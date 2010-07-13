@@ -72,13 +72,232 @@ get_location (Dwarf_Addr dwbias, Dwarf_Addr pc, Dwarf_Attribute *loc_attr,
   return expr;
 }
 
+#define obstack_chunk_alloc malloc
+#define obstack_chunk_free free
+
+static void
+handle_fields (struct obstack *pool,
+	       struct location *head, struct location *tail,
+	       Dwarf_Addr cubias, Dwarf_Die *vardie, Dwarf_Addr pc,
+	       char **fields)
+{
+  Dwarf_Attribute attr_mem;
+
+  if (dwarf_attr_integrate (vardie, DW_AT_type, &attr_mem) == NULL)
+    error (2, 0, _("cannot get type of variable: %s"),
+	   dwarf_errmsg (-1));
+
+  bool store = false;
+  Dwarf_Die die_mem, *die = vardie;
+  while (*fields != NULL)
+    {
+      if (!strcmp (*fields, "="))
+	{
+	  store = true;
+	  if (fields[1] != NULL)
+	    error (2, 0, _("extra fields after ="));
+	  break;
+	}
+
+      die = dwarf_formref_die (&attr_mem, &die_mem);
+
+      const int typetag = dwarf_tag (die);
+      switch (typetag)
+	{
+	case DW_TAG_typedef:
+	case DW_TAG_const_type:
+	case DW_TAG_volatile_type:
+	  /* Just iterate on the referent type.  */
+	  break;
+
+	case DW_TAG_pointer_type:
+	  if (**fields == '+')
+	    goto subscript;
+	  /* A "" field means explicit pointer dereference and we consume it.
+	     Otherwise the next field implicitly gets the dereference.  */
+	  if (**fields == '\0')
+	    ++fields;
+	  c_translate_pointer (pool, 1, cubias, die, &tail);
+	  break;
+
+	case DW_TAG_array_type:
+	  if (**fields == '+')
+	    {
+	    subscript:;
+	      char *endp = *fields + 1;
+	      uintmax_t idx = strtoumax (*fields + 1, &endp, 0);
+	      if (endp == NULL || endp == *fields || *endp != '\0')
+		c_translate_array (pool, 1, cubias, die, &tail,
+				   *fields + 1, 0);
+	      else
+		c_translate_array (pool, 1, cubias, die, &tail,
+				   NULL, idx);
+	      ++fields;
+	    }
+	  else
+	    error (2, 0, _("bad field for array type: %s"), *fields);
+	  break;
+
+	case DW_TAG_structure_type:
+	case DW_TAG_union_type:
+	  switch (dwarf_child (die, &die_mem))
+	    {
+	    case 1:		/* No children.  */
+	      error (2, 0, _("empty struct %s"),
+		     dwarf_diename (die) ?: "<anonymous>");
+	      break;
+	    case -1:		/* Error.  */
+	    default:		/* Shouldn't happen */
+	      error (2, 0, _("%s %s: %s"),
+		     typetag == DW_TAG_union_type ? "union" : "struct",
+		     dwarf_diename (die) ?: "<anonymous>",
+		     dwarf_errmsg (-1));
+	      break;
+
+	    case 0:
+	      break;
+	    }
+	  while (dwarf_tag (die) != DW_TAG_member
+		 || ({ const char *member = dwarf_diename (die);
+		       member == NULL || strcmp (member, *fields); }))
+	    if (dwarf_siblingof (die, &die_mem) != 0)
+	      error (2, 0, _("field name %s not found"), *fields);
+
+	  if (dwarf_attr_integrate (die, DW_AT_data_member_location,
+				    &attr_mem) == NULL)
+	    {
+	      /* Union members don't usually have a location,
+		 but just use the containing union's location.  */
+	      if (typetag != DW_TAG_union_type)
+		error (2, 0, _("no location for field %s: %s"),
+		       *fields, dwarf_errmsg (-1));
+	    }
+	  else
+	    {
+	      /* We expect a block or a constant.  In older elfutils,
+		 dwarf_getlocation_addr would not handle the constant for
+		 us, but newer ones do.  For older ones, we work around
+		 it by faking an expression, which is what newer ones do.  */
+#if !_ELFUTILS_PREREQ (0,142)
+	      Dwarf_Op offset_loc = { .atom = DW_OP_plus_uconst };
+	      if (dwarf_formudata (&attr_mem, &offset_loc.number) == 0)
+		c_translate_location (pool, NULL, NULL, NULL,
+				      1, cubias, pc, &attr_mem,
+				      &offset_loc, 1,
+				      &tail, NULL, NULL);
+	      else
+#endif
+		{
+		  size_t locexpr_len;
+		  const Dwarf_Op *locexpr = get_location (cubias, pc, &attr_mem,
+							  &locexpr_len);
+		  c_translate_location (pool, NULL, NULL, NULL,
+					1, cubias, pc, &attr_mem,
+					locexpr, locexpr_len,
+					&tail, NULL, NULL);
+		}
+	    }
+	  ++fields;
+	  break;
+
+	case DW_TAG_base_type:
+	  error (2, 0, _("field %s vs base type %s"),
+		 *fields, dwarf_diename (die) ?: "<anonymous type>");
+	  break;
+
+	case -1:
+	  error (2, 0, _("cannot find type: %s"), dwarf_errmsg (-1));
+	  break;
+
+	default:
+	  error (2, 0, _("%s: unexpected type tag %#x"),
+		 dwarf_diename (die) ?: "<anonymous type>",
+		 dwarf_tag (die));
+	  break;
+	}
+
+      /* Now iterate on the type in DIE's attribute.  */
+      if (dwarf_attr_integrate (die, DW_AT_type, &attr_mem) == NULL)
+	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
+    }
+
+  /* Fetch the type DIE corresponding to the final location to be accessed.
+     It must be a base type or a typedef for one.  */
+
+  Dwarf_Die typedie_mem;
+  Dwarf_Die *typedie;
+  int typetag;
+  while (1)
+    {
+      typedie = dwarf_formref_die (&attr_mem, &typedie_mem);
+      if (typedie == NULL)
+	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
+      typetag = dwarf_tag (typedie);
+      if (typetag != DW_TAG_typedef &&
+	  typetag != DW_TAG_const_type &&
+	  typetag != DW_TAG_volatile_type)
+	break;
+      if (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem) == NULL)
+	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
+    }
+
+  switch (typetag)
+    {
+    case DW_TAG_base_type:
+      if (store)
+	c_translate_store (pool, 1, cubias, die, typedie, &tail, "value");
+      else
+	c_translate_fetch (pool, 1, cubias, die, typedie, &tail, "value");
+      break;
+
+    case DW_TAG_pointer_type:
+    case DW_TAG_reference_type:
+      if (store)
+	error (2, 0, _("store not supported for pointer type"));
+      c_translate_pointer (pool, 1, cubias, typedie, &tail);
+      c_translate_addressof (pool, 1, cubias, die, typedie, &tail, "value");
+      break;
+
+    default:
+      if (store)
+	error (2, 0, _("store supported only for base type"));
+      else
+	error (2, 0, _("fetch supported only for base type or pointer"));
+      break;
+    }
+
+  printf ("#define PROBEADDR %#" PRIx64 "ULL\n", pc);
+
+  puts (store
+	? "static void set_value(struct pt_regs *regs, intptr_t value)\n{"
+	: "static void print_value(struct pt_regs *regs)\n"
+	"{\n"
+	"  intptr_t value;");
+
+  unsigned int stack_depth;
+  bool deref = c_emit_location (stdout, head, 1, &stack_depth);
+
+  obstack_free (pool, NULL);
+
+  printf ("  /* max expression stack depth %u */\n", stack_depth);
+
+  puts (store ? "  return;" :
+	"  printk (\" ---> %ld\\n\", (unsigned long) value);\n"
+	"  return;");
+
+  if (deref)
+    puts ("\n"
+	  " deref_fault:\n"
+	  "  printk (\" => BAD ACCESS\\n\");");
+
+  puts ("}");
+}
+
 static void
 handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 		 Dwarf_Addr cubias, Dwarf_Die *vardie, Dwarf_Addr pc,
 		 Dwarf_Op *cfa_ops, char **fields)
 {
-#define obstack_chunk_alloc malloc
-#define obstack_chunk_free free
   struct obstack pool;
   obstack_init (&pool);
 
@@ -146,214 +365,7 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 				   &tail, fb_attr, cfa_ops);
     }
 
-  if (dwarf_attr_integrate (vardie, DW_AT_type, &attr_mem) == NULL)
-    error (2, 0, _("cannot get type of variable: %s"),
-	   dwarf_errmsg (-1));
-
-  bool store = false;
-  Dwarf_Die die_mem, *die = vardie;
-  while (*fields != NULL)
-    {
-      if (!strcmp (*fields, "="))
-	{
-	  store = true;
-	  if (fields[1] != NULL)
-	    error (2, 0, _("extra fields after ="));
-	  break;
-	}
-
-      die = dwarf_formref_die (&attr_mem, &die_mem);
-
-      const int typetag = dwarf_tag (die);
-      switch (typetag)
-	{
-	case DW_TAG_typedef:
-	case DW_TAG_const_type:
-	case DW_TAG_volatile_type:
-	  /* Just iterate on the referent type.  */
-	  break;
-
-	case DW_TAG_pointer_type:
-	  if (**fields == '+')
-	    goto subscript;
-	  /* A "" field means explicit pointer dereference and we consume it.
-	     Otherwise the next field implicitly gets the dereference.  */
-	  if (**fields == '\0')
-	    ++fields;
-	  c_translate_pointer (&pool, 1, cubias, die, &tail);
-	  break;
-
-	case DW_TAG_array_type:
-	  if (**fields == '+')
-	    {
-	    subscript:;
-	      char *endp = *fields + 1;
-	      uintmax_t idx = strtoumax (*fields + 1, &endp, 0);
-	      if (endp == NULL || endp == *fields || *endp != '\0')
-		c_translate_array (&pool, 1, cubias, die, &tail,
-				   *fields + 1, 0);
-	      else
-		c_translate_array (&pool, 1, cubias, die, &tail,
-				   NULL, idx);
-	      ++fields;
-	    }
-	  else
-	    error (2, 0, _("bad field for array type: %s"), *fields);
-	  break;
-
-	case DW_TAG_structure_type:
-	case DW_TAG_union_type:
-	  switch (dwarf_child (die, &die_mem))
-	    {
-	    case 1:		/* No children.  */
-	      error (2, 0, _("empty struct %s"),
-		     dwarf_diename (die) ?: "<anonymous>");
-	      break;
-	    case -1:		/* Error.  */
-	    default:		/* Shouldn't happen */
-	      error (2, 0, _("%s %s: %s"),
-		     typetag == DW_TAG_union_type ? "union" : "struct",
-		     dwarf_diename (die) ?: "<anonymous>",
-		     dwarf_errmsg (-1));
-	      break;
-
-	    case 0:
-	      break;
-	    }
-	  while (dwarf_tag (die) != DW_TAG_member
-		 || ({ const char *member = dwarf_diename (die);
-		       member == NULL || strcmp (member, *fields); }))
-	    if (dwarf_siblingof (die, &die_mem) != 0)
-	      error (2, 0, _("field name %s not found"), *fields);
-
-	  if (dwarf_attr_integrate (die, DW_AT_data_member_location,
-				    &attr_mem) == NULL)
-	    {
-	      /* Union members don't usually have a location,
-		 but just use the containing union's location.  */
-	      if (typetag != DW_TAG_union_type)
-		error (2, 0, _("no location for field %s: %s"),
-		       *fields, dwarf_errmsg (-1));
-	    }
-	  else
-	    {
-	      /* We expect a block or a constant.  In older elfutils,
-		 dwarf_getlocation_addr would not handle the constant for
-		 us, but newer ones do.  For older ones, we work around
-		 it by faking an expression, which is what newer ones do.  */
-#if !_ELFUTILS_PREREQ (0,142)
-	      Dwarf_Op offset_loc = { .atom = DW_OP_plus_uconst };
-	      if (dwarf_formudata (&attr_mem, &offset_loc.number) == 0)
-		c_translate_location (&pool, NULL, NULL, NULL,
-				      1, cubias, pc, &attr_mem,
-				      &offset_loc, 1,
-				      &tail, NULL, NULL);
-	      else
-#endif
-		{
-		  size_t locexpr_len;
-		  const Dwarf_Op *locexpr = get_location (cubias, pc, &attr_mem,
-							  &locexpr_len);
-		  c_translate_location (&pool, NULL, NULL, NULL,
-					1, cubias, pc, &attr_mem,
-					locexpr, locexpr_len,
-					&tail, NULL, NULL);
-		}
-	    }
-	  ++fields;
-	  break;
-
-	case DW_TAG_base_type:
-	  error (2, 0, _("field %s vs base type %s"),
-		 *fields, dwarf_diename (die) ?: "<anonymous type>");
-	  break;
-
-	case -1:
-	  error (2, 0, _("cannot find type: %s"), dwarf_errmsg (-1));
-	  break;
-
-	default:
-	  error (2, 0, _("%s: unexpected type tag %#x"),
-		 dwarf_diename (die) ?: "<anonymous type>",
-		 dwarf_tag (die));
-	  break;
-	}
-
-      /* Now iterate on the type in DIE's attribute.  */
-      if (dwarf_attr_integrate (die, DW_AT_type, &attr_mem) == NULL)
-	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
-    }
-
-  /* Fetch the type DIE corresponding to the final location to be accessed.
-     It must be a base type or a typedef for one.  */
-
-  Dwarf_Die typedie_mem;
-  Dwarf_Die *typedie;
-  int typetag;
-  while (1)
-    {
-      typedie = dwarf_formref_die (&attr_mem, &typedie_mem);
-      if (typedie == NULL)
-	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
-      typetag = dwarf_tag (typedie);
-      if (typetag != DW_TAG_typedef &&
-	  typetag != DW_TAG_const_type &&
-	  typetag != DW_TAG_volatile_type)
-	break;
-      if (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem) == NULL)
-	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
-    }
-
-  switch (typetag)
-    {
-    case DW_TAG_base_type:
-      if (store)
-	c_translate_store (&pool, 1, cubias, die, typedie, &tail, "value");
-      else
-	c_translate_fetch (&pool, 1, cubias, die, typedie, &tail, "value");
-      break;
-
-    case DW_TAG_pointer_type:
-    case DW_TAG_reference_type:
-      if (store)
-	error (2, 0, _("store not supported for pointer type"));
-      c_translate_pointer (&pool, 1, cubias, typedie, &tail);
-      c_translate_addressof (&pool, 1, cubias, die, typedie, &tail, "value");
-      break;
-
-    default:
-      if (store)
-	error (2, 0, _("store supported only for base type"));
-      else
-	error (2, 0, _("fetch supported only for base type or pointer"));
-      break;
-    }
-
-  printf ("#define PROBEADDR %#" PRIx64 "ULL\n", pc);
-
-  puts (store
-	? "static void set_value(struct pt_regs *regs, intptr_t value)\n{"
-	: "static void print_value(struct pt_regs *regs)\n"
-	"{\n"
-	"  intptr_t value;");
-
-  unsigned int stack_depth;
-  bool deref = c_emit_location (stdout, head, 1, &stack_depth);
-
-  obstack_free (&pool, NULL);
-
-  printf ("  /* max expression stack depth %u */\n", stack_depth);
-
-  puts (store ? "  return;" :
-	"  printk (\" ---> %ld\\n\", (unsigned long) value);\n"
-	"  return;");
-
-  if (deref)
-    puts ("\n"
-	  " deref_fault:\n"
-	  "  printk (\" => BAD ACCESS\\n\");");
-
-  puts ("}");
+  handle_fields (&pool, head, tail, cubias, vardie, pc, fields);
 }
 
 static void
@@ -516,6 +528,35 @@ main (int argc, char **argv)
   else
     {
       char *spec = argv[argi++];
+
+      if (!strcmp (spec, "return"))
+	{
+	  int i;
+	  for (i = 0; i < n; ++i)
+	    if (dwarf_tag (&scopes[i]) == DW_TAG_subprogram)
+	      {
+		const Dwarf_Op *locexpr;
+		int locexpr_len = dwfl_module_return_value_location
+		  (dwfl_addrmodule (dwfl, pc), &scopes[i], &locexpr);
+		if (locexpr_len < 0)
+		  error (EXIT_FAILURE, 0,
+			 "dwfl_module_return_value_location: %s",
+			 dwfl_errmsg (-1));
+		struct obstack pool;
+		obstack_init (&pool);
+		struct location *head, *tail = NULL;
+		head = c_translate_location (&pool, &fail, NULL, NULL,
+					     1, cubias, pc, NULL,
+					     locexpr, locexpr_len,
+					     &tail, NULL, NULL);
+		handle_fields (&pool, head, tail, cubias, &scopes[i], pc,
+			       &argv[argi]);
+		free (scopes);
+		dwfl_end (dwfl);
+		return 0;
+	      }
+	  error (EXIT_FAILURE, 0, "no subprogram to have a return value!");
+	}
 
       int lineno = 0, colno = 0, shadow = 0;
       char *at = strchr (spec, '@');
