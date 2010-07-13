@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# PR11809
+# This stap command may or may not fail, depending on function/var
+# availability.  When it does fail, it should not be with "stack underflow".
+stap -e 'probe kernel.function("next_tgid") { println($iter->tgid) }' -p2 2>&1 |
+grep "stack underflow"
+[ "$?" -eq 1 ]

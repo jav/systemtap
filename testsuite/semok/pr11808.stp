@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# PR11808
+# This stap command may or may not fail, depending on function/var
+# availability.  It should not abort() though.
+stap -e 'probe kernel.function("next_tgid").return { println($return->tgid) }' -p2
+[ "$?" -le 1 ]
