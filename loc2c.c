@@ -1025,6 +1025,8 @@ location_relative (struct obstack *pool,
 	      if (piece == NULL)
 		DIE ("offset outside available pieces");
 
+	      assert ((*input)->next == NULL);
+	      (*input)->next = piece;
 	      *input = piece;
 	    }
 
