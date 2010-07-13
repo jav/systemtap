@@ -257,14 +257,6 @@ compile_server_client::add_package_args ()
       if (rc != 0)
 	return rc;
     }
-
-  limit = s.args.size();
-  for (unsigned i = 0; i < limit; ++i)
-    {
-      rc = add_package_arg (s.args[i]);
-      if (rc != 0)
-	return rc;
-    }
   return rc;
 }  
 
