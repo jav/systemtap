@@ -1,7 +1,7 @@
 # stap_buildok.exp
 #
 # Simple script for checking the known failures of buildok.exp. Used by
-#   systemtap.passes0_4/buildok.exp and
+#   systemtap.pass1-4/buildok.exp and
 #   systemtap.server/server.exp
 proc buildok_known_failures {test rc} {
     switch $test {
