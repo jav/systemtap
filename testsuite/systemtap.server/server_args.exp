@@ -140,6 +140,8 @@ set previously_fixed [list \
   "-p1 -Ir -e -D29\\ -cj2szt;4" \
   "-p1 -Ibno3=b4sk -e' -Dg2-j;e -c2ijx'" \
   "-p1 -I285v7pl -eo5\\0 -D86s -c-c*v" \
+  "-l syscall.open* -- -p5" \
+  "-l syscall.open* -- -rfoo" \
 ]
 
 set i 0
