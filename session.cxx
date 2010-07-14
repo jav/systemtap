@@ -442,23 +442,12 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	  verbose ++;
 	  break;
 
-       case 'G':
-          {
-            std::string gopt = string (optarg);
+        case 'G':
+          // Make sure the global option is only composed of the
+          // following chars: [_=a-zA-Z0-9]
+          assert_regexp_match("-G parameter", optarg, "^[a-z_][a-z0-9_]+=[a-z0-9_-]+$");
 
-            // Make sure the global option is only composed of the
-            // following chars: [_=a-zA-Z0-9]
-            const string identchars("_" "=" "abcdefghijklmnopqrstuvwxyz"
-                                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "0123456789");
-            if (gopt.find_first_not_of(identchars) != string::npos)
-            {
-                cerr << "Invalid global option (must only be composed of"
-                        " characters [_=a-zA-Z0-9])." << endl;
-                return 1;
-            }
-
-            globalopts.push_back (gopt);
-          }
+          globalopts.push_back (string(optarg));
           break;
 
         case 't':
@@ -548,7 +537,6 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    client_options_disallowed += client_options_disallowed.empty () ? "-m" : ", -m";
           module_name = string (optarg);
 	  save_module = true;
-          // XXX: convert to assert_regexp_match()
 	  {
 	    // If the module name ends with '.ko', chop it off since
 	    // modutils doesn't like modules named 'foo.ko.ko'.
@@ -567,15 +555,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    }
 
 	    // Make sure the module name is only composed of the
-	    // following chars: [_a-zA-Z0-9]
-	    const string identchars("_" "abcdefghijklmnopqrstuvwxyz"
-				    "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "0123456789");
-	    if (module_name.find_first_not_of(identchars) != string::npos)
-	      {
-		cerr << "Invalid module name (must only be composed of"
-		    " characters [_a-zA-Z0-9])." << endl;
-		return 1;
-	      }
+	    // following chars: [a-z0-9_]
+            assert_regexp_match("-m parameter", module_name, "^[a-z0-9_]+$");
 
 	    // Make sure module name isn't too long.
 	    if (module_name.size() >= (MODULE_NAME_LEN - 1))
