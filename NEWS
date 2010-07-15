@@ -1,7 +1,7 @@
 * What's new
 
-- New stap option -G allows setting global variables and invoke
-  staprun in one step.
+- New stap option -G VAR=VALUE allows overriding global variables
+  by passing the settings to staprun as module options.
 
 - It is now possible in some situations to use print_ubacktrace() to
   get a user space stack trace from a kernel probe point. e.g. for
