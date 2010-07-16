@@ -1,0 +1,5 @@
+#! stap -p2
+
+probe procfs.umask(0880).write {}
+
+

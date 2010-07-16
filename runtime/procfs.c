@@ -135,10 +135,9 @@ static struct proc_dir_entry *_stp_procfs_lookup(const char *dir, struct proc_di
 }
 
 static int _stp_create_procfs(const char *path, int num,
-			      const struct file_operations *fops)
+			      const struct file_operations *fops, int perm) 
 {  
-	const char *p;
-	char *next;
+	const char *p; char *next;
 	struct proc_dir_entry *last_dir, *de;
 
 	if (num >= STP_MAX_PROCFS_FILES) {
@@ -186,7 +185,8 @@ static int _stp_create_procfs(const char *path, int num,
 	if (_stp_num_pde == STP_MAX_PROCFS_FILES)
 		goto too_many;
 	
-	de = proc_create(p, 0600, last_dir, fops);
+	de = proc_create(p, perm, last_dir, fops);
+
 	if (de == NULL) {
 		_stp_error("Could not create file \"%s\" in path \"%s\"\n", p, path);
 		goto err;
