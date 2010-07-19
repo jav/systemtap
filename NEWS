@@ -1,8 +1,10 @@
 * What's new
 
-- New stap option -G allows setting global variables and invoke
-  staprun in one step.
+- A new procfs parameter .umask(UMASK) which provides modification of file permissions 
+  using the proper umask value.  Default file permissions for a read probe are 0400,
+  0200 for a write probe, and 0600 for a file with a read and write probe.
 
+- New stap option -G allows setting global variables and invoke staprun in one step.  
 - It is now possible in some situations to use print_ubacktrace() to
   get a user space stack trace from a kernel probe point. e.g. for
   user backtraces when there is a pagefault:
