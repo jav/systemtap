@@ -1,0 +1,9 @@
+#! stap -p2
+
+probe procfs("foo7").read {
+	$value = "100\n"
+}
+
+probe procfs("foo7").umask(0040).write {
+	printf("The user wrote, %s", $value)
+}

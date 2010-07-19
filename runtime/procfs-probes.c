@@ -24,6 +24,7 @@ struct stap_procfs_probe {
 	const size_t bufsize;
 	size_t count;
 	int needs_fill;
+	const int permissions;
 
 	struct mutex lock;
 	int opencount;
@@ -123,7 +124,7 @@ _stp_proc_release_file(struct inode *inode, struct file *filp)
 
 static ssize_t
 _stp_proc_read_file(struct file *file, char __user *buf, size_t count,
-		    loff_t *ppos)
+		    loff_t *ppos) 
 {
 	struct stap_procfs_probe *spp = file->private_data;
 	ssize_t retval = 0;
@@ -150,7 +151,7 @@ out:
 
 static ssize_t
 _stp_proc_write_file(struct file *file, const char __user *buf, size_t count,
-		     loff_t *ppos)
+		     loff_t *ppos) 
 {
 	struct stap_procfs_probe *spp = file->private_data;
 	struct _stp_procfs_data pdata;
@@ -178,7 +179,7 @@ static struct file_operations _stp_proc_fops = {
 	.read		= _stp_proc_read_file,
 	.write		= _stp_proc_write_file,
 	.llseek		= generic_file_llseek,
-	.release	= _stp_proc_release_file
+	.release	= _stp_proc_release_file,
 };
 
 #endif /* _STP_PROCFS_PROBES_C_ */

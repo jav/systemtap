@@ -576,21 +576,32 @@ hierarchy associated with the target process.
 .SS PROCFS
 
 These probe points allow procfs "files" in
-/proc/systemtap/MODNAME to be created, read and written
+/proc/systemtap/MODNAME to be created, read and written using a  
+permission that may be modified using the proper umask value. Default permissions are 0400 for read
+probes, and 0200 for write probes. If both a read and write probe are being 
+used on the same file, a default permission of 0600 will be used.
+Using procfs.umask(0040).read would
+result in a 0404 permission set for the file.
 .RI ( MODNAME
 is the name of the systemtap module). The
 .I proc
 filesystem is a pseudo-filesystem which is used an an interface to
-kernel data structures.  There are several probe point variants supported
+kernel data structures. There are several probe point variants supported
 by the translator:
 
 .SAMPLE
 procfs("PATH").read
+procfs("PATH").umask(UMASK).read
 procfs("PATH").read.maxsize(MAXSIZE)
+procfs("PATH").umask(UMASK).maxsize(MAXSIZE)
 procfs("PATH").write
+procfs("PATH").umask(UMASK).write
 procfs.read
+procfs.umask(UMASK).read
 procfs.read.maxsize(MAXSIZE)
+procfs.umask(UMASK).read.maxsize(MAXSIZE)
 procfs.write
+procfs.umask(UMASK).write
 .ESAMPLE
 
 .I PATH
