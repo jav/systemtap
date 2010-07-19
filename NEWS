@@ -1,5 +1,9 @@
 * What's new
 
+- The tapset alias 'syscall.compat_pselect7a' was misnamed.  It should
+  have been 'syscall.compat_pselect7' (without the trailing 'a').
+  Starting in release 1.4, the old name will be deprecated.
+
 - A new procfs parameter .umask(UMASK) which provides modification of file permissions 
   using the proper umask value.  Default file permissions for a read probe are 0400,
   0200 for a write probe, and 0600 for a file with a read and write probe.

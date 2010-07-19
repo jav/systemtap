@@ -547,7 +547,16 @@ probe syscall.pselect7.return = kernel.function("sys_pselect7").return ?
 	name = "pselect7"
 	retstr = returnstr(1)
 }
-probe syscall.compat_pselect7a = kernel.function("compat_sys_pselect7").call ?
+
+# Through a typo, 'compat_pselect7' was misnamed as
+# 'compat_pselect7a' (notice the trailing 'a').  The old name is
+# deprecated.  To use the old name without changing your script, use
+# the '--compatible 1.3' stap option.
+probe
+%( systemtap_v <= "1.3"
+	%? syscall.compat_pselect7a %: syscall.compat_pselect7
+%) =
+		kernel.function("compat_sys_pselect7").call ?
 {
 	name = "pselect7"
 	argstr = sprintf("%d, %p, %p, %p, %s, %p, %d", $n, $inp, $outp, $exp,

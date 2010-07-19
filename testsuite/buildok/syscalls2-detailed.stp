@@ -131,7 +131,12 @@ probe syscall.pread.return
 }
 
 probe syscall.pselect6 ?, syscall.compat_pselect6 ?,
-      syscall.pselect7 ?, syscall.compat_pselect7a ?
+      syscall.pselect7 ?,
+%( systemtap_v <= "1.3" %?
+      syscall.compat_pselect7a ?
+%:
+      syscall.compat_pselect7 ?
+%)
 {
 	printf("%s(%s)\n", name, argstr)
 }
