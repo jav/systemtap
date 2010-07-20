@@ -23,7 +23,6 @@
  */
 
 global start
-global entry_nanosleep
 
 function timestamp:long() {
   return gettimeofday_us() - start
@@ -37,26 +36,9 @@ probe begin {
  start = gettimeofday_us()
 }
 
-probe syscall.nanosleep {
-  t = gettimeofday_us(); p = pid()
-  entry_nanosleep[p] = t
-}
-
-probe syscall.nanosleep.return {
-  t = gettimeofday_us(); p = pid()
-  elapsed_time = t - entry_nanosleep[p]
-  printf("%d %s nanosleep: %d\n",  timestamp(), proc(), elapsed_time)
-  delete entry_nanosleep[p]
-}
-
-probe syscall.compat_nanosleep ? {
-  t = gettimeofday_us(); p = pid()
-  entry_nanosleep[p] = t
-}
-
-probe syscall.compat_nanosleep.return ? {
-  t = gettimeofday_us(); p = pid()
-  elapsed_time = t - entry_nanosleep[p]
-  printf("%d %s compat_nanosleep: %d\n",  timestamp(), proc(), elapsed_time)
-  delete entry_nanosleep[p]
+probe syscall.nanosleep.return,
+      syscall.compat_nanosleep.return ?
+{
+  elapsed_time = gettimeofday_us() - @entry(gettimeofday_us())
+  printf("%d %s %s: %d\n",  timestamp(), proc(), name, elapsed_time)
 }
