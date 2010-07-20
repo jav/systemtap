@@ -25,7 +25,6 @@
  */
 
 global start
-global entry_wait4
 global wait4_pid
 
 function timestamp:long() {
@@ -41,16 +40,15 @@ probe begin {
 }
 
 probe syscall.wait4 {
-  t = gettimeofday_us(); p = pid()
-  entry_wait4[p] = t
-  wait4_pid[p]=pid
+  // It would be nice to use @entry here, but "pid" has a non-trivial
+  // expression in the tapset which we probably shouldn't duplicate.
+  wait4_pid[tid()]=pid
 }
 
 probe syscall.wait4.return {
-  t = gettimeofday_us(); p = pid()
-  elapsed_time = t - entry_wait4[p]
+  t = tid()
+  elapsed_time = gettimeofday_us() - @entry(gettimeofday_us())
   printf("%d %s wait4: %d %d\n",  timestamp(), proc(), elapsed_time,
-         wait4_pid[p])
-  delete entry_wait4[p]
-  delete wait4_pid[p]
+         wait4_pid[t])
+  delete wait4_pid[t]
 }
