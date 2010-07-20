@@ -547,7 +547,16 @@ probe syscall.pselect7.return = kernel.function("sys_pselect7").return ?
 	name = "pselect7"
 	retstr = returnstr(1)
 }
-probe syscall.compat_pselect7a = kernel.function("compat_sys_pselect7").call ?
+
+# Through a typo, 'compat_pselect7' was misnamed as
+# 'compat_pselect7a' (notice the trailing 'a').  The old name is
+# deprecated.  To use the old name without changing your script, use
+# the '--compatible 1.3' stap option.
+probe
+%( systemtap_v <= "1.3"
+	%? syscall.compat_pselect7a %: syscall.compat_pselect7
+%) =
+		kernel.function("compat_sys_pselect7").call ?
 {
 	name = "pselect7"
 	argstr = sprintf("%d, %p, %p, %p, %s, %p, %d", $n, $inp, $outp, $exp,
@@ -936,6 +945,7 @@ probe syscall.compat_sys_recvmsg = kernel.function("compat_sys_recvmsg").call ?
 	s = $fd
 	msg_uaddr = $msg
 	flags = $flags
+	flags_str = _recvflags_str($flags)
 	argstr = sprintf("%d, %p, %s", $fd, $msg, _recvflags_str($flags))
 }
 probe syscall.compat_sys_recvmsg.return = kernel.function("compat_sys_recvmsg").return ?
@@ -1370,27 +1380,15 @@ probe syscall.sched_rr_get_interval.return = kernel.function("sys_sched_rr_get_i
 # long sys_sched_setaffinity(pid_t pid,
 #	unsigned int len,
 #	unsigned long __user *user_mask_ptr)
-# FIXME: why the problem with x86_64?
 #
-%( arch != "x86_64" %?
 probe syscall.sched_setaffinity = kernel.function("sys_sched_setaffinity").call
 {
 	name = "sched_setaffinity"
 	pid = $pid
-	len = $len
+	len = (@defined($len) ? $len : 0)
 	mask_uaddr = $user_mask_ptr
 	argstr = sprintf("%d, %d, %p", $pid, $len, $user_mask_ptr)
 }
-%:
-probe syscall.sched_setaffinity = kernel.function("sys_sched_setaffinity").call
-{
-	name = "sched_setaffinity"
-	pid = $pid
-	len = 0
-	mask_uaddr = $user_mask_ptr
-	argstr = sprintf("%d, <unknown>, %p", $pid, $user_mask_ptr)
-}
-%)
 probe syscall.sched_setaffinity.return = kernel.function("sys_sched_setaffinity").return
 {
 	name = "sched_setaffinity"
@@ -1523,6 +1521,9 @@ probe syscall.semctl.return = kernel.function("sys_semctl").return ?
 probe syscall.compat_sys_semctl = kernel.function("compat_sys_semctl").call ?
 {
 	name = "compat_sys_semctl"
+	semid = $first
+	semnum = $second
+	cmd = $third
 	argstr = sprintf("%d, %d, %d, %p", $first, $second, $third, $uptr)
 }
 probe syscall.compat_sys_semctl.return = kernel.function("compat_sys_semctl").return ?
@@ -1687,6 +1688,7 @@ probe syscall.compat_sys_sendmsg = kernel.function("compat_sys_sendmsg").call ?
 	s = $fd
 	msg_uaddr = $msg
 	flags = $flags
+	flags_str = _sendflags_str($flags)
 	argstr = sprintf("%d, %p, %s", $fd, $msg, _sendflags_str($flags))
 }
 probe syscall.compat_sys_sendmsg.return = kernel.function("compat_sys_sendmsg").return ?
@@ -2428,8 +2430,12 @@ probe syscall.signal.return = kernel.function("sys_signal").return ?
 # signalfd _____________________________________________________
 #
 # long sys_signalfd(int ufd, sigset_t __user *user_mask, size_t sizemask)
+# long sys_signalfd4(int ufd, sigset_t __user *user_mask, size_t sizemask,
+#		 int flags)
 # long compat_sys_signalfd(int ufd, const compat_sigset_t __user *sigmask,
 # 		 compat_size_t sigsetsize)
+# long compat_sys_signalfd4(int ufd, const compat_sigset_t __user *sigmask,
+#		 compat_size_t sigsetsize, int flags)
 #
 probe syscall.signalfd = kernel.function("sys_signalfd4").call !,
                          kernel.function("sys_signalfd").call ?
@@ -2451,14 +2457,25 @@ probe syscall.signalfd.return = kernel.function("sys_signalfd4").return !,
 	name = (flags == 0) ? "signalfd" : "signalfd4"
 	retstr = returnstr(1)
 }
-probe syscall.compat_signalfd = kernel.function("compat_sys_signalfd").call ?
+probe syscall.compat_signalfd = kernel.function("compat_sys_signalfd4").call !,
+                                kernel.function("compat_sys_signalfd").call ?
 {
-	name = "compat_signalfd"
-	argstr = sprintf("%d, %p, %d", $ufd, $sigmask, $sigsetsize)
+	flags = @defined($flags) ? $flags : 0;
+	if (flags == 0) {
+		name = "compat_signalfd"
+		argstr = sprintf("%d, %p, %d", $ufd, $sigmask, $sigsetsize)
+	} else {
+		name = "compat_signalfd4"
+		argstr = sprintf("%d, %p, %d, %s", $ufd, $sigmask,
+				 $sigsetsize, _signalfd4_flags_str($flags))
+	}
 }
-probe syscall.compat_signalfd.return = kernel.function("compat_sys_signalfd").return ?
+probe syscall.compat_signalfd.return =
+		kernel.function("compat_sys_signalfd4").return ?,
+		kernel.function("compat_sys_signalfd").return ?
 {
-	name = "compat_signalfd"
+	flags = @defined($flags) ? $flags : 0;
+	name = (flags == 0) ? "compat_signalfd" : "compat_signalfd4"
 	retstr = returnstr(1)
 }
 
@@ -3273,21 +3290,19 @@ probe syscall.ustat = kernel.function("sys_ustat").call
 	argstr = sprintf("%d, %p", $dev, $ubuf)
 }
 
-#long sys32_ustat(unsigned dev, struct ustat32 __user *u32p)
-probe syscall.ustat32 = kernel.function("sys32_ustat").call ?
+# long sys32_ustat(unsigned dev, struct ustat32 __user *u32p)
+# long compat_sys_ustat(unsigned dev, struct compat_ustat __user *u)
+#
+# FIXME: the way the ustat/ustat32 probes are written, there is no
+# syscall.ustat32.return probe.
+#
+probe syscall.ustat32 = kernel.function("compat_sys_ustat").call ?,
+      		        kernel.function("sys32_ustat").call ?
 {
 	name = "ustat"
 	dev = $dev
-	argstr = sprintf("%d, %p", $dev, $u32p)
-}
-# Since 2.6.30 sys32_ustat is compat_sys_ustat
-# Note that last argument changed name.
-#long compat_sys_ustat(unsigned dev, struct compat_ustat __user *u)
-probe syscall.ustat32 = kernel.function("compat_sys_ustat").call ?
-{
-	name = "ustat"
-	dev = $dev
-	argstr = sprintf("%d, %p", $dev, $u)
+	ubuf_uaddr = (@defined($u) ? $u : $u32p)
+	argstr = sprintf("%d, %p", $dev, (@defined($u) ? $u : $u32p))
 }
 
 probe syscall.ustat.return = kernel.function("sys_ustat").return ?,

@@ -3,6 +3,15 @@
 - New stap option -G VAR=VALUE allows overriding global variables
   by passing the settings to staprun as module options.
 
+- The tapset alias 'syscall.compat_pselect7a' was misnamed.  It should
+  have been 'syscall.compat_pselect7' (without the trailing 'a').
+  Starting in release 1.4, the old name will be deprecated.
+
+- A new procfs parameter .umask(UMASK) which provides modification of file permissions 
+  using the proper umask value.  Default file permissions for a read probe are 0400,
+  0200 for a write probe, and 0600 for a file with a read and write probe.
+
+- New stap option -G allows setting global variables and invoke staprun in one step.  
 - It is now possible in some situations to use print_ubacktrace() to
   get a user space stack trace from a kernel probe point. e.g. for
   user backtraces when there is a pagefault:
