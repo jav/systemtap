@@ -4495,86 +4495,6 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline(-1) << "}";
 }
 
-struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
-{
-  sdt_uprobe_var_expanding_visitor(systemtap_session& s,
-                                   int elf_machine,
-                                   const string & process_name,
-				   const string & provider_name,
-				   const string & probe_name,
-				   const string & arg_string,
-				   int arg_count):
-    session (s), process_name (process_name),
-    provider_name (provider_name), probe_name (probe_name), arg_count (arg_count)
-  {
-    /* Register name mapping table depends on the elf machine of this particular
-       probe target process/file, not upon the host.  So we can't just
-       #ifdef _i686_ etc. */
-    if (elf_machine == EM_X86_64) {
-      reg_prefix = "";
-      dwarf_regs["rax"] = dwarf_regs["eax"] = dwarf_regs["ax"] = dwarf_regs["al"] = 0;
-      dwarf_regs["rdx"] = dwarf_regs["edx"] = dwarf_regs["dx"] = dwarf_regs["dl"] = 1;
-      dwarf_regs["rcx"] = dwarf_regs["ecx"] = dwarf_regs["cx"] = dwarf_regs["cl"] = 2;
-      dwarf_regs["rbx"] = dwarf_regs["ebx"] = dwarf_regs["bx"] = dwarf_regs["bl"] = 3;
-      dwarf_regs["rsi"] = dwarf_regs["esi"] = dwarf_regs["si"] = dwarf_regs["sil"] = 4;
-      dwarf_regs["rdi"] = dwarf_regs["edi"] = dwarf_regs["di"] = dwarf_regs["dil"] = 5;
-      dwarf_regs["rbp"] = dwarf_regs["ebp"] = dwarf_regs["bp"] = 6;
-      dwarf_regs["rsp"] = dwarf_regs["esp"] = dwarf_regs["sp"] = 7;
-      dwarf_regs["r8"]  = dwarf_regs["r8d"]  = dwarf_regs["r8w"]	= dwarf_regs["r8b"]  = 8;
-      dwarf_regs["r9"]  = dwarf_regs["r9d"]  = dwarf_regs["r9w"]	= dwarf_regs["r9b"]  = 9;
-      dwarf_regs["r10"] = dwarf_regs["r10d"] = dwarf_regs["r10w"] = dwarf_regs["r10b"] = 10;
-      dwarf_regs["r11"] = dwarf_regs["r11d"] = dwarf_regs["r11w"] = dwarf_regs["r11b"] = 11;
-      dwarf_regs["r12"] = dwarf_regs["r12d"] = dwarf_regs["r12w"] = dwarf_regs["r12b"] = 12;
-      dwarf_regs["r13"] = dwarf_regs["r13d"] = dwarf_regs["r13w"] = dwarf_regs["r13b"] = 13;
-      dwarf_regs["r14"] = dwarf_regs["r14d"] = dwarf_regs["r14w"] = dwarf_regs["r14b"] = 14;
-      dwarf_regs["r15"] = dwarf_regs["r15d"] = dwarf_regs["r15w"] = dwarf_regs["r15b"] = 15;
-    } else if (elf_machine == EM_386) {
-      reg_prefix = "";
-      dwarf_regs["eax"] = dwarf_regs["ax"] = dwarf_regs["al"] = 0;
-      dwarf_regs["ecx"] = dwarf_regs["cx"] = dwarf_regs["cl"] = 1;
-      dwarf_regs["edx"] = dwarf_regs["dx"] = dwarf_regs["dl"] = 2;
-      dwarf_regs["ebx"] = dwarf_regs["bx"] = dwarf_regs["bl"] = 3;
-      dwarf_regs["esp"] = dwarf_regs["sp"] = 4;
-      dwarf_regs["ebp"] = dwarf_regs["bp"] = 5;
-      dwarf_regs["esi"] = dwarf_regs["si"] = dwarf_regs["sil"] = 6;
-      dwarf_regs["edi"] = dwarf_regs["di"] = dwarf_regs["dil"] = 7;
-    } else if (elf_machine == EM_PPC || elf_machine == EM_PPC64) {
-      reg_prefix = "r";
-      dwarf_regs["r0"] = 0; dwarf_regs["r1"] = 1; dwarf_regs["r2"] = 2;
-      dwarf_regs["r3"] = 3; dwarf_regs["r4"] = 4; dwarf_regs["r5"] = 5;
-      dwarf_regs["r6"] = 6; dwarf_regs["r7"] = 7; dwarf_regs["r8"] = 8;
-      dwarf_regs["r9"] = 9; dwarf_regs["r10"] = 10; dwarf_regs["r11"] = 11;
-      dwarf_regs["r12"] = 12; dwarf_regs["r13"] = 13; dwarf_regs["r14"] = 14;
-      dwarf_regs["r15"] = 15; dwarf_regs["r16"] = 16; dwarf_regs["r17"] = 17;
-      dwarf_regs["r18"] = 18; dwarf_regs["r19"] = 19; dwarf_regs["r20"] = 20;
-      dwarf_regs["r21"] = 21; dwarf_regs["r22"] = 22; dwarf_regs["r23"] = 23;
-      dwarf_regs["r24"] = 24; dwarf_regs["r25"] = 25; dwarf_regs["r26"] = 26;
-      dwarf_regs["r27"] = 27; dwarf_regs["r28"] = 28; dwarf_regs["r29"] = 29;
-      dwarf_regs["r30"] = 30; dwarf_regs["r31"] = 31; 
-    }
-    else if (arg_count) {
-      throw semantic_error (string("Unsupported architecture ")
-                            + "(" + process_name + " ELF code " + lex_cast(elf_machine) + ")"
-                            + "for dwarfless sdt probes.");
-    }
-
-
-    need_debug_info = false;
-    tokenize(arg_string, arg_tokens, " ");
-    assert(arg_count >= 0 && arg_count <= 10);
-  }
-  systemtap_session& session;
-  const string & process_name;
-  const string & provider_name;
-  const string & probe_name;
-  int arg_count;
-  vector<string> arg_tokens;
-  map<string,int> dwarf_regs;
-  string reg_prefix;
-  bool need_debug_info;
-
-  void visit_target_symbol (target_symbol* e);
-};
 
 struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
 {
@@ -4597,6 +4517,95 @@ struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
 
   void visit_target_symbol (target_symbol* e);
 };
+
+
+struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
+{
+  sdt_uprobe_var_expanding_visitor(systemtap_session& s,
+                                   int elf_machine,
+                                   const string & process_name,
+				   const string & provider_name,
+				   const string & probe_name,
+				   const string & arg_string,
+				   int ac):
+    session (s), process_name (process_name),
+    provider_name (provider_name), probe_name (probe_name), arg_count ((unsigned) ac)
+  {
+    /* Register name mapping table depends on the elf machine of this particular
+       probe target process/file, not upon the host.  So we can't just
+       #ifdef _i686_ etc. */
+    if (elf_machine == EM_X86_64) {
+      dwarf_regs["%rax"] = dwarf_regs["%eax"] = dwarf_regs["%ax"] = dwarf_regs["%al"] = 0;
+      dwarf_regs["%rdx"] = dwarf_regs["%edx"] = dwarf_regs["%dx"] = dwarf_regs["%dl"] = 1;
+      dwarf_regs["%rcx"] = dwarf_regs["%ecx"] = dwarf_regs["%cx"] = dwarf_regs["%cl"] = 2;
+      dwarf_regs["%rbx"] = dwarf_regs["%ebx"] = dwarf_regs["%bx"] = dwarf_regs["%bl"] = 3;
+      dwarf_regs["%rsi"] = dwarf_regs["%esi"] = dwarf_regs["%si"] = dwarf_regs["%sil"] = 4;
+      dwarf_regs["%rdi"] = dwarf_regs["%edi"] = dwarf_regs["%di"] = dwarf_regs["%dil"] = 5;
+      dwarf_regs["%rbp"] = dwarf_regs["%ebp"] = dwarf_regs["%bp"] = 6;
+      dwarf_regs["%rsp"] = dwarf_regs["%esp"] = dwarf_regs["%sp"] = 7;
+      dwarf_regs["%r8"]  = dwarf_regs["%r8d"]  = dwarf_regs["%r8w"]	= dwarf_regs["%r8b"]  = 8;
+      dwarf_regs["%r9"]  = dwarf_regs["%r9d"]  = dwarf_regs["%r9w"]	= dwarf_regs["%r9b"]  = 9;
+      dwarf_regs["%r10"] = dwarf_regs["%r10d"] = dwarf_regs["%r10w"] = dwarf_regs["%r10b"] = 10;
+      dwarf_regs["%r11"] = dwarf_regs["%r11d"] = dwarf_regs["%r11w"] = dwarf_regs["%r11b"] = 11;
+      dwarf_regs["%r12"] = dwarf_regs["%r12d"] = dwarf_regs["%r12w"] = dwarf_regs["%r12b"] = 12;
+      dwarf_regs["%r13"] = dwarf_regs["%r13d"] = dwarf_regs["%r13w"] = dwarf_regs["%r13b"] = 13;
+      dwarf_regs["%r14"] = dwarf_regs["%r14d"] = dwarf_regs["%r14w"] = dwarf_regs["%r14b"] = 14;
+      dwarf_regs["%r15"] = dwarf_regs["%r15d"] = dwarf_regs["%r15w"] = dwarf_regs["%r15b"] = 15;
+    } else if (elf_machine == EM_386) {
+      dwarf_regs["%eax"] = dwarf_regs["%ax"] = dwarf_regs["%al"] = 0;
+      dwarf_regs["%ecx"] = dwarf_regs["%cx"] = dwarf_regs["%cl"] = 1;
+      dwarf_regs["%edx"] = dwarf_regs["%dx"] = dwarf_regs["%dl"] = 2;
+      dwarf_regs["%ebx"] = dwarf_regs["%bx"] = dwarf_regs["%bl"] = 3;
+      dwarf_regs["%esp"] = dwarf_regs["%sp"] = 4;
+      dwarf_regs["%ebp"] = dwarf_regs["%bp"] = 5;
+      dwarf_regs["%esi"] = dwarf_regs["%si"] = dwarf_regs["%sil"] = 6;
+      dwarf_regs["%edi"] = dwarf_regs["%di"] = dwarf_regs["%dil"] = 7;
+    } else if (elf_machine == EM_PPC || elf_machine == EM_PPC64) {
+      dwarf_regs["%r0"] = 0; dwarf_regs["%r1"] = 1; dwarf_regs["%r2"] = 2;
+      dwarf_regs["%r3"] = 3; dwarf_regs["%r4"] = 4; dwarf_regs["%r5"] = 5;
+      dwarf_regs["%r6"] = 6; dwarf_regs["%r7"] = 7; dwarf_regs["%r8"] = 8;
+      dwarf_regs["%r9"] = 9; dwarf_regs["%r10"] = 10; dwarf_regs["%r11"] = 11;
+      dwarf_regs["%r12"] = 12; dwarf_regs["%r13"] = 13; dwarf_regs["%r14"] = 14;
+      dwarf_regs["%r15"] = 15; dwarf_regs["%r16"] = 16; dwarf_regs["%r17"] = 17;
+      dwarf_regs["%r18"] = 18; dwarf_regs["%r19"] = 19; dwarf_regs["%r20"] = 20;
+      dwarf_regs["%r21"] = 21; dwarf_regs["%r22"] = 22; dwarf_regs["%r23"] = 23;
+      dwarf_regs["%r24"] = 24; dwarf_regs["%r25"] = 25; dwarf_regs["%r26"] = 26;
+      dwarf_regs["%r27"] = 27; dwarf_regs["%r28"] = 28; dwarf_regs["%r29"] = 29;
+      dwarf_regs["%r30"] = 30; dwarf_regs["%r31"] = 31; 
+      // PR11821: unadorned register "names" without -mregnames
+      dwarf_regs["0"] = 0; dwarf_regs["1"] = 1; dwarf_regs["2"] = 2;
+      dwarf_regs["3"] = 3; dwarf_regs["4"] = 4; dwarf_regs["5"] = 5;
+      dwarf_regs["6"] = 6; dwarf_regs["7"] = 7; dwarf_regs["8"] = 8;
+      dwarf_regs["9"] = 9; dwarf_regs["10"] = 10; dwarf_regs["11"] = 11;
+      dwarf_regs["12"] = 12; dwarf_regs["13"] = 13; dwarf_regs["14"] = 14;
+      dwarf_regs["15"] = 15; dwarf_regs["16"] = 16; dwarf_regs["17"] = 17;
+      dwarf_regs["18"] = 18; dwarf_regs["19"] = 19; dwarf_regs["20"] = 20;
+      dwarf_regs["21"] = 21; dwarf_regs["22"] = 22; dwarf_regs["23"] = 23;
+      dwarf_regs["24"] = 24; dwarf_regs["25"] = 25; dwarf_regs["26"] = 26;
+      dwarf_regs["27"] = 27; dwarf_regs["28"] = 28; dwarf_regs["29"] = 29;
+      dwarf_regs["30"] = 30; dwarf_regs["31"] = 31; 
+    }
+    else if (arg_count) {
+      /* permit this case; just fall back to dwarf */
+    }
+
+    need_debug_info = false;
+    tokenize(arg_string, arg_tokens, " ");
+    assert(arg_count >= 0 && arg_count <= 10);
+  }
+
+  systemtap_session& session;
+  const string & process_name;
+  const string & provider_name;
+  const string & probe_name;
+  unsigned arg_count;
+  vector<string> arg_tokens;
+  map<string,int> dwarf_regs;
+  bool need_debug_info;
+
+  void visit_target_symbol (target_symbol* e);
+};
+
 
 void
 sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
@@ -4623,7 +4632,20 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  provide(myname);
 	  return;
 	}
-      if (arg_count == 0)
+
+      unsigned argno = 0; // the N in $argN
+      try
+	{
+	  if (startswith(e->name, "$arg"))
+	    argno = lex_cast<unsigned>(e->name.substr(4));
+	}
+      catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
+	{
+          argno = 0;
+	}
+
+      if (arg_count == 0 || // a sdt.h variant without .probe-stored arg_count
+          argno < 1 || argno > arg_count) // a $argN with out-of-range N
 	{
 	  // NB: Either
 	  // 1) uprobe1_type $argN or $FOO (we don't know the arg_count)
@@ -4634,142 +4656,166 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  return;
 	}
 
-      int argno = -1;
-      try
-	{
-	  if (startswith(e->name, "$arg"))
-	    argno = lex_cast<int>(e->name.substr(4));
-	}
-      catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
-	{
-	}
-      if (argno < 0)
-	throw semantic_error("invalid variable, must be of the form $argN", e->tok);
-      if (argno < 1 || argno > arg_count)
-	throw semantic_error("invalid argument number", e->tok);
+      assert (arg_tokens.size() >= argno);
+      string asmarg = arg_tokens[argno-1];   // $arg1 => arg_tokens[0]
+      
+      // Now we try to parse this thing, which is an assembler operand
+      // expression.  If we can't, we warn, back down to need_debug_info
+      // and hope for the best.
+      expression* argexpr = 0; // filled in in case of successful parse
 
-      enum arg_type
-      {
-	literal_arg,
-	register_arg,
-	memory_arg
-      } arg_type;
-      functioncall *fc = new functioncall;
-      binary_expression *be = new binary_expression;
-      literal_number* ln = NULL;
-      string reg;
-      string disp_str;
-      int disp = 0;
-      // NB: uprobes-based sdt.h; $argFOO gets resolved later.
+      string percent_regnames;
+      string regnames;
+      vector<string> matches;
+      int rc;
 
-      string tok = arg_tokens[argno-1];
+      // test for a numeric literal.
+      // Only accept (signed) decimals throughout. XXX
 
-      regex_t	 preg;
-      // this pattern matches 0xD(%R) | (%R) | %R
-      const char *pattern = "\\([0x]*-*[0-9]*\\)\\([(]*\\)\\(%*[0-9a-z][0-9a-z]*\\)\\([)]*\\)";
-      int	 rc;
-      size_t	 nmatch = 5;
-      regmatch_t pmatch[5];
-
-      if (0 != (rc = regcomp(&preg, pattern, 0)))
-	throw semantic_error("Failed to parse probe operand");
-      if (0 != (rc = regexec(&preg, arg_tokens[argno-1].c_str(), nmatch, pmatch, 0)))
-	{
-	  // Do we have a numeric literal?
-	  // Check this separately instead of complicating the above pattern.
-	  if (0 != (rc = regcomp(&preg, "\\$[0-9][0-9]*", 0)))
-	    throw semantic_error("Failed to parse probe operand");
-	  if (0 != (rc = regexec(&preg, arg_tokens[argno-1].c_str(), nmatch, pmatch, 0)))
-	    throw semantic_error("Unsupported assembler operand while accessing "
-				 + probe_name + " " + e->name + " " + arg_tokens[argno-1],
-				 e->tok);
-	  arg_type = literal_arg;
-	  ln = new literal_number(lex_cast<int>(arg_tokens[argno-1].substr(pmatch[0].rm_so+1)));
+      // PR11821.  NB: on powerpc, literals are not prefixed with $,
+      // so this regex does not match.  But that's OK, since without
+      // -mregnames, we can't tell them apart from register numbers
+      // anyway.  With -mregnames, we could, if gcc somehow
+      // communicated to us the presence of that option, but alas it
+      // doesn't.  http://gcc.gnu.org/PR44995.
+      rc = regexp_match (asmarg, "^\\$[-]?[0-9][0-9]*$", matches);
+      if (! rc)
+        {
+	  literal_number* ln = new literal_number(lex_cast<int>(matches[0].substr(1))); // assume decimal
 	  ln->tok = e->tok;
-	}
-      else
-	{
-	  // Is there a displacement?
-	  if (pmatch[2].rm_so > pmatch[1].rm_so)
-	    {
-	      disp_str = arg_tokens[argno-1].substr(pmatch[1].rm_so);
-	      disp = lex_cast<int>(disp_str.substr(0,pmatch[1].rm_eo - pmatch[1].rm_so));
-	    }
-	  // Is there an indirect register?
-	  if ((arg_tokens[argno-1][pmatch[2].rm_so]) == '(')
-	    arg_type = memory_arg;
-	  else
-	    arg_type = register_arg;
-	  // Is there a register?
-	  if (pmatch[3].rm_eo >= pmatch[3].rm_so)
-	    {
-	      reg = arg_tokens[argno-1].substr(pmatch[3].rm_so);
-	      reg.erase(pmatch[3].rm_eo - pmatch[3].rm_so);
-	      if (reg[0] == '%')
-		reg.erase(0,1);
-	      else
-		{
-		  // Handle reg XY which is recognized as disp X reg Y
-		  if (arg_type == register_arg)
-		    {
-		      reg.insert (0, disp_str.substr(0,pmatch[1].rm_eo - pmatch[1].rm_so));
-		      disp = 0;
-		    }
-		  reg.insert (0, reg_prefix);
-		}
-	    }
-	  if (reg.length() == 0)
-	    throw semantic_error("Unsupported assembler operand while accessing "
-				 + probe_name + " " + e->name, e->tok);
-	  // synthesize user_long(%{fetch_register(R)%} + D)
-	  fc->function = "user_long";
-	  fc->tok = e->tok;
-	  be->tok = e->tok;
+          argexpr = ln;
+          goto matched;
+        }
 
-	  embedded_expr *get_arg1 = new embedded_expr;
-	  get_arg1->tok = e->tok;
-	  get_arg1->code = string("/* unprivileged */ /* pure */")
-	    + (is_user_module (process_name)
-	       ? string("u_fetch_register(")
-	       : string("k_fetch_register("))
-	    + lex_cast(dwarf_regs[reg]) + string(")");
-	  // XXX: may we ever need to cast that to a narrower type?
+      // Build regex pieces out of the known dwarf_regs.  We keep two separate
+      // lists: ones with the % prefix (and thus unambigiuous even despite PR11821),
+      // and ones with no prefix (and thus only usable in unambiguous contexts).
+      for (map<string,int>::iterator ri = dwarf_regs.begin(); ri != dwarf_regs.end(); ri++)
+        {
+          string regname = ri->first;
+          assert (regname != "");
+          regnames += string("|")+regname;
+          if (regname[0]=='%')
+            percent_regnames += string("|")+regname;
+        }
+      // clip off leading |
+      regnames = regnames.substr(1);
+      percent_regnames = percent_regnames.substr(1);
 
-	  be->left = get_arg1;
-	  be->op = "+";
-	  literal_number* inc = new literal_number(disp);
-	  inc->tok = e->tok;
-	  be->right = inc;
-	  fc->args.push_back(be);
-	}
+      // test for REGISTER
+      // NB: Because PR11821, we must use percent_regnames here.
+      rc = regexp_match (asmarg, string("^(")+percent_regnames+string(")$"), matches);
+      if (! rc)
+        {
+          string regname = matches[1];
+          if (dwarf_regs.find (regname) != dwarf_regs.end()) // known register
+            {
+              embedded_expr *get_arg1 = new embedded_expr;
+              get_arg1->tok = e->tok;
+              get_arg1->code = string("/* unprivileged */ /* pure */")
+                + (is_user_module (process_name)
+                   ? string("u_fetch_register(")
+                   : string("k_fetch_register("))
+                + lex_cast(dwarf_regs[regname]) + string(")");
+              // XXX: may we ever need to cast that to a narrower type?
+              argexpr = get_arg1;
+              goto matched;
+            }
+          // invalid register name, fall through
+        }
+      
+      // test for OFFSET(REGISTER)
+      // NB: Despire PR11821, we can use regnames here, since the parentheses 
+      // make things unambiguous.
+      rc = regexp_match (asmarg, string("^([-]?[0-9]*)[(](")+regnames+string(")[)]$"), matches);
+      if (! rc)
+        {
+          string dispstr = matches[1];
+          int64_t disp = 0;
+              if (dispstr == "")
+                disp = 0;
+              else
+                try
+                  {
+                    disp = lex_cast<int64_t>(dispstr); // should decode positive/negative hex/decimal
+                  }
+                catch (const runtime_error& f) // unparseable offset
+                  {
+                    goto not_matched; // can't just 'break' out of
+                                      // this case or use a sentinel
+                                      // value, unfortunately
+                  }
 
+              string regname = matches[2];
+              if (dwarf_regs.find (regname) != dwarf_regs.end()) // known register
+                {
+                  // synthesize user_long(%{fetch_register(R)%} + D)
+                  
+                  embedded_expr *get_arg1 = new embedded_expr;
+                  get_arg1->tok = e->tok;
+                  get_arg1->code = string("/* unprivileged */ /* pure */")
+                    + (is_user_module (process_name)
+                       ? string("u_fetch_register(")
+                       : string("k_fetch_register("))
+                    + lex_cast(dwarf_regs[regname]) + string(")");
+                  // XXX: may we ever need to cast that to a narrower type?
+                  
+                  literal_number* inc = new literal_number(disp);
+                  inc->tok = e->tok;
+                  
+                  binary_expression *be = new binary_expression;
+                  be->tok = e->tok;
+                  be->left = get_arg1;
+                  be->op = "+";
+                  be->right = inc;
+                  
+                  functioncall *fc = new functioncall;
+                  fc->function = "user_long";
+                  fc->tok = e->tok;
+                  fc->args.push_back(be);
+                  
+                  argexpr = fc;
+                  goto matched;
+                }
+              // invalid register name, fall through
+        }
+
+    not_matched:
+      // The asmarg operand was not recognized.  Back down to dwarf.
+      if (! session.suppress_warnings)
+        session.print_warning ("Downgrading SDT_V2 probe argument to dwarf, can't parse '"+asmarg+"'", e->tok);
+      assert (argexpr == 0);
+      need_debug_info = true;
+      provide (e);
+      return;
+      
+    matched:
+      assert (argexpr != 0);
+      
+      if (session.verbose > 2) 
+        clog << "mapped asm operand " << asmarg << " to " << *argexpr << endl;
+      
       if (e->components.empty()) // We have a scalar
-	{
-	  if (e->addressof)
-	    throw semantic_error("cannot take address of sdt variable", e->tok);
-
-	  if (arg_type == memory_arg)
-	    provide(fc);
-	  else if (arg_type == register_arg)
-	    provide(be);
-	  else if (arg_type == literal_arg)
-	    provide(ln);
-	  return;
-	}
-      cast_op *cast = new cast_op;
-      cast->name = "@cast";
-      cast->tok = e->tok;
-      if (arg_type == memory_arg)
-	cast->operand = fc;
-      else if (arg_type == register_arg)
-	cast->operand = be;
-      else if (arg_type == literal_arg)
-	provide(ln);
-      cast->components = e->components;
-      cast->type_name = probe_name + "_arg" + lex_cast(argno);
-      cast->module = process_name;
-
-      cast->visit(this);
+        {
+          if (e->addressof)
+            throw semantic_error("cannot take address of sdt variable", e->tok);
+          provide (argexpr);
+          return;
+        }
+      else  // $var->foo
+        {
+          cast_op *cast = new cast_op;
+          cast->name = "@cast";
+          cast->tok = e->tok;
+          cast->operand = argexpr;
+          cast->components = e->components;
+          cast->type_name = probe_name + "_arg" + lex_cast(argno);
+          cast->module = process_name;
+          cast->visit(this);
+          return;
+        }
+      
+      /* NOTREACHED */
     }
   catch (const semantic_error &er)
     {
