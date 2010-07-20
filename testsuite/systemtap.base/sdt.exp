@@ -45,7 +45,7 @@ if { $res != "" } {
 }
 
 if {[installtest_p] && [utrace_p] && [uprobes_p]} {
-  stap_run3 "$test $extra_flag $pbtype_mssg" $srcdir/$subdir/$test.stp $testprog -c ./$testprog
+  stap_run3 "$test $extra_flag $pbtype_mssg" -w $srcdir/$subdir/$test.stp $testprog -c ./$testprog
 } else {
   untested "$test $extra_flag $pbtype_mssg"
 }
@@ -71,7 +71,7 @@ if { $res != "" } {
 }
 
 if {[installtest_p] && [utrace_p] && [uprobes_p]} {
-  stap_run3 "$test c++ $extra_flag $pbtype_mssg" $srcdir/$subdir/$test.stp $testprog -c ./$testprog
+  stap_run3 "$test c++ $extra_flag $pbtype_mssg" -w $srcdir/$subdir/$test.stp $testprog -c ./$testprog
 } else {
   untested "$test c++ $extra_flag $pbtype_mssg $pbtype_mssg"
 }
