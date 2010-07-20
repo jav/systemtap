@@ -11,13 +11,6 @@
 #include <errno.h>
 
 
-/* The asm operand string stap_sdt_probe_entry_v2.arg_string
-   is currently only supported for x86 */
-#if ! defined __x86_64__ && ! defined __i386__ && ! defined __powerpc__
- #define STAP_SDT_V1 1
- #undef STAP_SDT_V2
-#endif
-
 #define UPROBE1_TYPE 0x31425250 /* "PRB1" (little-endian) */
 #define KPROBE1_TYPE 0x32425250 /* "PRB2" */
 #define UPROBE2_TYPE 0x32425055 /* "UPB2" */
