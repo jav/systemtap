@@ -7,24 +7,18 @@ global mincount = 100      # training: beneath this number of hits, only collect
 global note_percent = 250  # percent beyond maximum-so-far to generate report for
 function time() { return gettimeofday_us() }    # time measurement function
 
-global times, entry
+global times
 
-probe $1.call {
-   entry[probefunc(),tid()] = time()
-}
-
-probe $1.return {
+function check(t)   # t: elapsed time
+{
    pf=probefunc()
-   tid=tid()
-   if ([pf,tid] in entry) {       # seen function entry?
-      t = time()-entry[pf,tid]    # t: elapsed time
-      delete entry[pf,tid]
-      if (@count(times[pf]) >= mincount 
-          && t >= @max(times[pf]) * note_percent / 100) {   # also consider @avg()
-          printf("function %s well over %s time (%d vs %d)\n",
-                 pf, "maximum", t, @max(times[pf]))
-          # also consider: print_backtrace()
-      }
-      times[pf] <<< t  # (increments @count, updates @max)
+   if (@count(times[pf]) >= mincount
+       && t >= @max(times[pf]) * note_percent / 100) {   # also consider @avg()
+     printf("function %s well over %s time (%d vs %d)\n",
+            pf, "maximum", t, @max(times[pf]))
+     # also consider: print_backtrace()
    }
+   times[pf] <<< t  # (increments @count, updates @max)
 }
+
+probe $1.return { check(time()-@entry(time())) }
