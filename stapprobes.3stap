@@ -291,7 +291,18 @@ kernel.statement(PATTERN)
 kernel.statement(ADDRESS).absolute
 .br
 module(MPATTERN).statement(PATTERN)
+.br
+process("PATH").function("NAME")
+.br
+process("PATH").statement("*@FILE.c:123")
+.br
+process("PATH").function("*").return
+.br
+process("PATH").function("myfun").label("foo")
 .ESAMPLE
+
+(See the USER-SPACE section below for more information on the process
+probes.)
 
 In the above list, MPATTERN stands for a string literal that aims to
 identify the loaded kernel module of interest and LPATTERN stands for
@@ -333,12 +344,19 @@ the ".absolute" suffix.  Such an address is considered already relocated,
 as if it came from 
 .BR /proc/kallsyms ,
 so it cannot be checked against statement/instruction boundaries.
+
+.SS CONTEXT VARIABLES
+
 .PP
-Some of the source-level context variables, such as function parameters,
+Many of the source-level context variables, such as function parameters,
 locals, globals visible in the compilation unit, may be visible to
 probe handlers.  They may refer to these variables by prefixing their
 name with "$" within the scripts.  In addition, a special syntax
-allows limited traversal of structures, pointers, and arrays.
+allows limited traversal of structures, pointers, and arrays.  More
+syntax allows pretty-printing of individual variables or their groups.
+See also 
+.BR @cast .
+
 .TP
 $var
 refers to an in-scope variable "var".  If it's an integer-like type,
@@ -364,20 +382,19 @@ with a return value.
 $var[N]
 indexes into an array.  The index given with a literal number or even
 an arbitrary numeric expression.
-.TP
-$var$
-expands to a string with all of $var's members, equivalent to
-sprintf("{.a=%i, .b=%u, .c={...}, .d=[...]}", $var\->a, $var\->b)
-.TP
-$var$$
-expands to a string with all of $var's members and submembers, equivalent to
-sprintf("{.a=%i, .b=%u, .c={.x=%p, .y=%c}, .d=[%i, ...]}", $var\->a, $var\->b,
-$var\->c\->x, $var\->c\->y, $var\->d[0])
+.PP
+A number of operators exist for such basic context variable expressions:
 .TP
 $$vars
 expands to a character string that is equivalent to
-sprintf("parm1=%x ... parmN=%x var1=%x ... varN=%x", parm1, ..., parmN,
-var1, ..., varN)
+.SAMPLE
+sprintf("parm1=%x ... parmN=%x var1=%x ... varN=%x",
+        parm1, ..., parmN, var1, ..., varN)
+.ESAMPLE
+for each variable in scope at the probe point.  Some values may be
+printed as
+.IR =?
+if their run-time location cannot be found.
 .TP
 $$locals
 expands to a subset of $$vars for only local variables.
@@ -389,6 +406,32 @@ $$return
 is available in return probes only.  It expands to a string that
 is equivalent to sprintf("return=%x", $return)
 if the probed function has a return value, or else an empty string.
+.TP
+& $EXPR
+expands to the address of the given context variable expression, if it
+is addressable.
+.TP
+@defined($EXPR)
+expands to 1 or 0 iff the given context variable expression is resolvable,
+for use in conditionals such as   
+.SAMPLE
+@defined($foo->bar) ? $foo->bar : 0
+.ESAMPLE
+.TP
+$EXPR$
+expands to a string with all of $EXPR's members, equivalent to
+.SAMPLE
+sprintf("{.a=%i, .b=%u, .c={...}, .d=[...]}",
+         $EXPR\->a, $EXPR\->b)
+.ESAMPLE
+.TP
+$EXPR$$
+expands to a string with all of $var's members and submembers, equivalent to
+.SAMPLE
+sprintf("{.a=%i, .b=%u, .c={.x=%p, .y=%c}, .d=[%i, ...]}",
+        $EXPR\->a, $EXPR\->b, $EXPR\->c\->x, $EXPR\->c\->y, $EXPR\->d[0])
+.ESAMPLE
+
 .PP
 For ".return" probes, context variables other than the "$return"
 value itself are only available for the function call parameters.

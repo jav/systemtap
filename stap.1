@@ -908,6 +908,16 @@ Multiple headers may be specified in sequence to resolve a codependency.
 @cast(task, "task_struct",
       "kernel<linux/sched.h><linux/fs_struct.h>")->fs->umask
 .ESAMPLE
+Values acquired by 
+.BR @cast
+may be pretty-printed by the 
+.BR
+$ " and " $$
+suffix operators, the same way as described in the CONTEXT VARIABLES
+section of the
+.IR stapprobes (3stap) 
+manual page.
+
 .PP
 When in guru mode, the translator will also allow scripts to assign new
 values to members of typecasted pointers.
