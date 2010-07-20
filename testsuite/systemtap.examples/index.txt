@@ -39,6 +39,17 @@ keywords: simple
   prints out "hello world" message and then immediately exits.
 
 
+general/para-callgraph-verbose.stp - Callgraph tracing with verbose arguments
+keywords: trace callgraph
+
+  Print a timed per-thread callgraph, complete with pretty-printed
+  function parameters and return values.  The first parameter names the
+  function probe points to trace.  The optional second parameter names
+  the probe points for trigger functions, which acts to enable tracing
+  for only those functions that occur while the current thread is
+  nested within the trigger.
+
+
 general/para-callgraph.stp - Callgraph tracing with arguments
 keywords: trace callgraph
 

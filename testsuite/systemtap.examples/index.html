@@ -55,6 +55,9 @@ keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html
 <li><a href="general/helloworld.stp">general/helloworld.stp</a> - SystemTap "Hello World" Program<br>
 keywords: <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
 <p>A basic "Hello World" program implemented in SystemTap script. It prints out "hello world" message and then immediately exits.</p></li>
+<li><a href="general/para-callgraph-verbose.stp">general/para-callgraph-verbose.stp</a> - Callgraph tracing with verbose arguments<br>
+keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.html#CALLGRAPH">CALLGRAPH</a> <br>
+<p>Print a timed per-thread callgraph, complete with pretty-printed function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.</p></li>
 <li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Callgraph tracing with arguments<br>
 keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.html#CALLGRAPH">CALLGRAPH</a> <br>
 <p>Print a timed per-thread callgraph, complete with function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.</p></li>
