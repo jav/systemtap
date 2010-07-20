@@ -1748,6 +1748,7 @@ dwflpp::translate_location(struct obstack *pool,
   if (dwarf_whatattr (attr) == DW_AT_data_member_location)
     {
       Dwarf_Op offset_loc;
+      memset(&offset_loc, 0, sizeof(Dwarf_Op));
       offset_loc.atom = DW_OP_plus_uconst;
       if (dwarf_formudata (attr, &offset_loc.number) == 0)
         return c_translate_location (pool, &loc2c_error, this,
@@ -2356,6 +2357,7 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
       && dwarf_attr_integrate (&vardie, DW_AT_location, &attr_mem) == NULL)
     {
       Dwarf_Op addr_loc;
+      memset(&addr_loc, 0, sizeof(Dwarf_Op));
       addr_loc.atom = DW_OP_addr;
       // If it is an external variable try the symbol table. PR10622.
       if (dwarf_attr_integrate (&vardie, DW_AT_external, &attr_mem) != NULL
