@@ -594,11 +594,7 @@ probe tcpmib.CurrEstab
 global SockSendbytes;
 global SockSendmsg;
 probe tcp.sendmsg.return {
-%( kernel_v < "2.6.23" %?
-	sk=$sk;
-%:
-	sk = $sock->sk;
-%)
+	sk = @defined($sk) ? $sk : $sock->sk;
         op = size; // $return
 	if ( op <= 0 ) next;
         if ( !sk ) next;
