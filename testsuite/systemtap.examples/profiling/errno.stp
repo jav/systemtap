@@ -13,11 +13,10 @@ global execname, errors
 
 probe syscall.*.return {
   errno = $return
-  thissyscall=probefunc();
   if ( errno < 0 ) {
     p = pid()
     execname[p]=execname();
-    errors[p, errno, thissyscall] <<< 1
+    errors[p, errno, name] <<< 1
   }
 }
 
