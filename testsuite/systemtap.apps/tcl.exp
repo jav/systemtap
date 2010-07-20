@@ -52,7 +52,7 @@ set lines 0
 verbose -log "spawn stap -DMAXSKIPPED=8024 -t -c \"tcl/install/bin/tclsh${tclreleasemajor} tcl/src/tests/all.tcl > tcl-test.out\" $srcdir/$subdir/stap-tcl.stp tcl/install/bin/tclsh${tclreleasemajor} tcl/install/lib/libtcl${tclreleasemajor}.so"
 spawn stap -DMAXSKIPPED=8024 -t -c "tcl/install/bin/tclsh${tclreleasemajor} tcl/src/tests/all.tcl > tcl-test.out" $srcdir/$subdir/stap-tcl.stp tcl/install/bin/tclsh${tclreleasemajor} tcl/install/lib/libtcl${tclreleasemajor}.so
 expect {
-    -timeout 1000
+    -timeout 2000
     -re {^OK [^\r\n]*[\r\n]} { incr ok; exp_continue }
     -re {^KO [^\r\n]*[\r\n]} { incr ko; exp_continue }
     -re {^ERROR: Skipped[^\r\n]*[\r\n]} { incr xok; exp_continue }
