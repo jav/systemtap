@@ -7,11 +7,14 @@
   have been 'syscall.compat_pselect7' (without the trailing 'a').
   Starting in release 1.4, the old name will be deprecated.
 
-- A new procfs parameter .umask(UMASK) which provides modification of file permissions 
-  using the proper umask value.  Default file permissions for a read probe are 0400,
-  0200 for a write probe, and 0600 for a file with a read and write probe.
+- A new procfs parameter .umask(UMASK) which provides modification of
+  file permissions using the proper umask value.  Default file
+  permissions for a read probe are 0400, 0200 for a write probe, and
+  0600 for a file with a read and write probe.
 
-- New stap option -G allows setting global variables and invoke staprun in one step.  
+- New stap option -G allows setting global variables and invoke
+  staprun in one step.
+
 - It is now possible in some situations to use print_ubacktrace() to
   get a user space stack trace from a kernel probe point. e.g. for
   user backtraces when there is a pagefault:
@@ -75,13 +78,14 @@
   are now accepted in scripts.  They are mapped to the double-underscore
   form ("foo__bar").
 
-- Prototype support for debuginfo-less <sys/sdt.h> user-space markers
-  is included for some architectures (i686 and x86-64 initially).
-  Compile your sdt.h-instrumented program with -DSTAP_SDT_V2 to
-  activate this mode.  This implementation also supports preserving
+- More robust <sys/sdt.h> user-space markers support is included.  For
+  some platforms (x86*, ppc*), this can let systemtap probe the markers
+  without debuginfo.  This implementation also supports preserving
   the "provider" name associated with a marker:
     probe process("foo").provider("bar").mark("baz") to match
     STAP_PROBE<n>(bar, baz <...>)
+  (Compile with -DSTAP_SDT_V1 to revert to the previous implementation.
+  Systemtap supports pre-existing or new binaries using them.)
 
 - Embedded-C may be used within expressions as values, when in guru mode:
      num = %{ LINUX_VERSION_CODE %}               // int64_t
