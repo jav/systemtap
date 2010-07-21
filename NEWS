@@ -1,5 +1,8 @@
 * What's new
 
+- The uprobes kernel module now has about half the overhead when probing
+  NOPs, which is particularly relevant for sdt.h markers.
+
 - New stap option -G VAR=VALUE allows overriding global variables
   by passing the settings to staprun as module options.
 
