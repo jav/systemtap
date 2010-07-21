@@ -23,6 +23,7 @@ extern "C" {
 #include <linux/limits.h>
 #include <sys/time.h>
 #include <glob.h>
+#include <limits.h>
 }
 
 #if HAVE_AVAHI
@@ -385,45 +386,105 @@ compile_server_client::package_request ()
 int
 compile_server_client::find_and_connect_to_server ()
 {
-  int rc;
   int servers = 0;
 
-  unsigned limit = s.specified_servers.size ();
-  for (unsigned i = 0; i < limit; ++i)
+  // Iterate over the specified servers. For each specification, construct
+  // a list of servers to try.
+  unsigned num_specified_servers = s.specified_servers.size ();
+  for (unsigned i = 0; i < num_specified_servers; ++i)
     {
+      vector<compile_server_info> server_list;
       const string &server = s.specified_servers[i];
-
-      // If the server string is empty, then work with all online, trusted and
-      // compatible servers.
       if (server.empty ())
 	{
-	  vector<compile_server_info> default_servers;
-	  int pmask = compile_server_online | compile_server_trusted |
-	    compile_server_compatible;
-	  get_server_info (s, pmask, default_servers);
-
-	  // Try each server in succession until successful.
-	  unsigned limit = default_servers.size ();
-	  for (unsigned i = 0; i < limit; ++i)
-	    {
-	      ++servers;
-	      rc = compile_using_server (default_servers[i]);
-	      if (rc == 0)
-                {
-                  s.winning_server =
-                    default_servers[i].host_name + string(" [") +
-                    default_servers[i].ip_address + string(":") +
-                    lex_cast(default_servers[i].port) + string("]");
-                  return rc; // success!
-                }
-
-	    }
-	  continue;
+	  // No server specified. Look for compatible servers online.
+	  const int pmask = compile_server_online | compile_server_compatible;
+	  get_server_info (s, pmask, server_list);
 	}
+      else
+	{
+	  // Work with the specified server
+	  compile_server_info server_info;
+	  server_info.port = 0;
 
-      // Otherwise work with the specified server
-      // XXXX: TODO
-    }
+	  // See if a port was specified (:n suffix)
+	  vector<string> components;
+	  tokenize (server, components, ":");
+	  if (components.size () > 2)
+	    {
+	      cerr << "Invalid server specification: " << server << endl;
+	      continue;
+	    }
+	  if (components.size () == 2)
+	    {
+	      // Obtain the port number.
+	      const char *pstr = components.back ().c_str ();
+	      char *estr;
+	      errno = 0;
+	      unsigned long port = strtoul (pstr, & estr, 10);
+	      if (errno == 0 && *estr == '\0' && port <= USHRT_MAX)
+		server_info.port = port;
+	      else
+		{
+		  cerr << "Invalid port number specified: "
+		       << components.back ()
+		       << endl;
+		  continue;
+		}
+	    }
+
+	  // Obtain the host name or ip address.
+	  server_info.host_name = components.front ();
+
+	  // Resolve the server
+	  if (resolve_server (server_info) != 0)
+	    continue; // message already issued.
+
+	  // If no port was specified, then discover it from the list of
+	  // online servers.
+	  if (server_info.port == 0)
+	    {
+	      // Obtain a list of compatible servers which are online.
+	      const int pmask = compile_server_online | compile_server_compatible;
+	      get_server_info (s, pmask, server_list);
+
+	      // Search the list of online servers for one matching the one
+	      // specified and obtain the port number.
+	      unsigned limit = server_list.size ();
+	      for (unsigned i = 0; i < limit; ++i)
+		{
+		  if (server_info.ip_address == server_list[i].ip_address)
+		    {
+		      server_info = server_list[i];
+		      break; // found it!
+		    }
+		}
+	      server_list.clear ();
+	    }
+
+	  // Do we have a port number now?
+	  if (server_info.port != 0)
+	    server_list.push_back (server_info);
+	  else if (s.verbose)
+	    cerr << "No compatible server detected on " << server_info << endl;
+	} // Specified server.
+
+      // Now try each of the identified servers in turn.
+      unsigned limit = server_list.size ();
+      for (unsigned i = 0; i < limit; ++i)
+	{
+	  ++servers;
+	  int rc = compile_using_server (server_list[i]);
+	  if (rc == 0)
+	    {
+	      s.winning_server =
+		server_list[i].host_name + string(" [") +
+		server_list[i].ip_address + string(":") +
+		lex_cast(server_list[i].port) + string("]");
+	      return rc; // success!
+	    }
+	}
+    } // Loop over --use-server options
 
   if (servers == 0)
     cerr << "Unable to find a server" << endl;
@@ -445,23 +506,7 @@ compile_server_client::compile_using_server (const compile_server_info &server)
   // This code will never be called if we don't have NSS, but it must still
   // compile.
 #if HAVE_NSS
-  // Try resolve the host name if it is '.local'.
-  string::size_type dot_index = server.host_name.find ('.');
-  assert (dot_index != 0);
-  string host = server.host_name.substr (0, dot_index);
-  string domain = server.host_name.substr (dot_index + 1);
-
-  if (domain == "local")
-    domain = s.get_domain_name ();
-
-  string host_name;
-  if (host + domain == "localhost" + s.get_domain_name () ||
-      host + domain == s.get_host_name () + s.get_domain_name ())
-    host_name = "localhost";
-  else
-    host_name = host + "." + domain;
-
-  // Attempt connection using each of the available client ceritificate
+  // Attempt connection using each of the available client certificate
   // databases.
   vector<string> dbs = private_ssl_dbs;
   vector<string>::iterator i = dbs.end();
@@ -471,8 +516,7 @@ compile_server_client::compile_using_server (const compile_server_info &server)
       const char *cert_dir = i->c_str ();
 
       if (s.verbose > 1)
-	clog << "Attempting connection with " << server
-	     << " (" << host_name << ")" << endl
+	clog << "Attempting SSL connection with " << server << endl
 	     << "  using certificates from the database in " << cert_dir
 	     << endl;
       // Call the NSPR initialization routines.
@@ -500,7 +544,7 @@ compile_server_client::compile_using_server (const compile_server_info &server)
       NSS_SetDomesticPolicy ();
 
       server_zipfile = s.tmpdir + "/server.zip";
-      int rc = client_main (host_name.c_str (), server.port,
+      int rc = client_main (server.host_name.c_str (), server.port,
 			    client_zipfile.c_str(), server_zipfile.c_str ());
 
       NSS_Shutdown();
@@ -538,7 +582,7 @@ compile_server_client::unpack_response ()
   // its contents to our temp directory.
   glob_t globbuf;
   string filespec = server_tmpdir + "/stap??????";
-  if (s.verbose > 1)
+  if (s.verbose > 2)
     clog << "Searching \"" << filespec << "\"" << endl;
   int r = glob(filespec.c_str (), 0, NULL, & globbuf);
   if (r != GLOB_NOSPACE && r != GLOB_ABORTED && r != GLOB_NOMATCH)
@@ -551,11 +595,11 @@ compile_server_client::unpack_response ()
 
       assert (globbuf.gl_pathc == 1);
       string dirname = globbuf.gl_pathv[0];
-      if (s.verbose > 1)
+      if (s.verbose > 2)
 	clog << "  found " << dirname << endl;
 
       filespec = dirname + "/*";
-      if (s.verbose > 1)
+      if (s.verbose > 2)
 	clog << "Searching \"" << filespec << "\"" << endl;
       int r = glob(filespec.c_str (), GLOB_PERIOD, NULL, & globbuf);
       if (r != GLOB_NOSPACE && r != GLOB_ABORTED && r != GLOB_NOMATCH)
@@ -568,7 +612,7 @@ compile_server_client::unpack_response ()
 		  oldname.substr (oldname.size () - 3) == "/..")
 		continue;
 	      string newname = s.tmpdir + "/" + oldname.substr (prefix_len);
-	      if (s.verbose > 1)
+	      if (s.verbose > 2)
 		clog << "  found " << oldname
 		     << " -- linking from " << newname << endl;
 	      rc = symlink (oldname.c_str (), newname.c_str ());
@@ -612,7 +656,7 @@ compile_server_client::process_response ()
     {
       // The server should have returned a module.
       string filespec = s.tmpdir + "/*.ko";
-      if (s.verbose > 1)
+      if (s.verbose > 2)
 	clog << "Searching \"" << filespec << "\"" << endl;
 
       glob_t globbuf;
@@ -625,7 +669,7 @@ compile_server_client::process_response ()
 	    {
 	      assert (globbuf.gl_pathc == 1);
 	      string modname = globbuf.gl_pathv[0];
-	      if (s.verbose > 1)
+	      if (s.verbose > 2)
 		clog << "  found " << modname << endl;
 
 	      // If a module name was not specified by the user, then set it to
@@ -770,14 +814,18 @@ compile_server_client::flush_to_stream (const string &fname, ostream &o)
 //-----------------------------------------------------------------------
 std::ostream &operator<< (std::ostream &s, const compile_server_info &i)
 {
-  return s << i.host_name << ' '
-	   << i.ip_address << ' '
-	   << i.port << ' '
-	   << i.sysinfo;
+  s << i.host_name;
+  if (! i.ip_address.empty ())
+    s << " (" << i.ip_address << ')';
+  if (i.port != 0)
+    s << " port " << i.port;
+  if (! i.sysinfo.empty ())
+    s << ' ' << i.sysinfo;
+  return s;
 }
 
 void
-query_server_status (const systemtap_session &s)
+query_server_status (systemtap_session &s)
 {
   unsigned limit = s.server_status_strings.size ();
   for (unsigned i = 0; i < limit; ++i)
@@ -785,7 +833,7 @@ query_server_status (const systemtap_session &s)
 }
 
 void
-query_server_status (const systemtap_session &s, const string &status_string)
+query_server_status (systemtap_session &s, const string &status_string)
 {
 #if HAVE_NSS || HAVE_AVAHI
   // If this string is empty, then set the default.
@@ -900,7 +948,7 @@ query_server_status (const systemtap_session &s, const string &status_string)
 
 void
 get_server_info (
-  const systemtap_session &s,
+  systemtap_session &s,
   int pmask,
   vector<compile_server_info> &servers
 )
@@ -910,7 +958,7 @@ get_server_info (
   //             are currently implemented.
   if ((pmask & compile_server_online))
     {
-      get_online_server_info (servers);
+      get_online_server_info (s, servers);
     }
   if ((pmask & compile_server_compatible))
     {
@@ -918,9 +966,60 @@ get_server_info (
     }
 }
 
+int resolve_server (compile_server_info &server_info)
+{
+  struct addrinfo hints;
+  memset(& hints, 0, sizeof (hints));
+  hints.ai_family = AF_INET; // AF_UNSPEC or AF_INET6 to force version
+  struct addrinfo *res;
+  int status = getaddrinfo(server_info.host_name.c_str(), NULL, & hints, & res);
+  if (status != 0)
+    goto error;
+
+  // Obtain the ip address and canonical name of the resolved server.
+  assert (res);
+  for (const struct addrinfo *p = res; p != NULL; p = p->ai_next)
+    {
+      if (p->ai_family != AF_INET)
+	continue; // Not an IPv4 address
+
+      // get the pointer to the address itself,
+      struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+      void *addr = & ipv4->sin_addr;
+
+      // convert the IP to a string.
+      char ipstr[INET_ADDRSTRLEN];
+      inet_ntop(p->ai_family, addr, ipstr, sizeof (ipstr));
+      server_info.ip_address = ipstr;
+
+      // Now get the canonical name.
+      char hbuf[NI_MAXHOST];
+      status = getnameinfo (p->ai_addr, sizeof (*p->ai_addr),
+			    hbuf, sizeof (hbuf), NULL, 0,
+			    NI_NAMEREQD | NI_IDN);
+      if (status != 0)
+	continue;
+
+      server_info.host_name = hbuf;
+      break; // Use the info from the first IPv4 result.
+    }
+  freeaddrinfo(res); // free the linked list
+
+  if (status != 0)
+    goto error;
+
+  return 0;
+
+ error:
+  cerr << "Unable to resolve server " << server_info.host_name
+       << ": " << gai_strerror(status)
+       << endl;
+  return 1;
+}
+
 void
 keep_compatible_server_info (
-  const systemtap_session &s,
+  systemtap_session &s,
   vector<compile_server_info> &servers
 )
 {
@@ -1105,9 +1204,14 @@ void timeout_callback(AVAHI_GCC_UNUSED AvahiTimeout *e, AVAHI_GCC_UNUSED void *u
 #endif // HAVE_AVAHI
 
 void
-get_online_server_info (vector<compile_server_info> &servers)
+get_online_server_info (systemtap_session &s,
+			vector<compile_server_info> &servers)
 {
 #if HAVE_AVAHI
+    // Must predeclare these due to jumping on error to fail:
+    unsigned limit;
+    vector<compile_server_info> raw_servers;
+
     // Initialize.
     AvahiClient *client = NULL;
     AvahiServiceBrowser *sb = NULL;
@@ -1120,7 +1224,7 @@ get_online_server_info (vector<compile_server_info> &servers)
     }
     browsing_context context;
     context.simple_poll = simple_poll;
-    context.servers = & servers;
+    context.servers = & raw_servers;
 
     // Allocate a new Avahi client
     int error;
@@ -1158,7 +1262,35 @@ get_online_server_info (vector<compile_server_info> &servers)
 
     // Run the main loop.
     avahi_simple_poll_loop(simple_poll);
-    
+
+    // Resolve each server discovered and eliminate duplicates.
+    limit = raw_servers.size ();
+    for (unsigned i = 0; i < limit; ++i)
+      {
+	compile_server_info &raw_server = raw_servers[i];
+
+	// Delete the domain, if it is '.local'
+	string &host_name = raw_server.host_name;
+	string::size_type dot_index = host_name.find ('.');
+	assert (dot_index != 0);
+	string domain = host_name.substr (dot_index + 1);
+	if (domain == "local")
+	  host_name = host_name.substr (0, dot_index);
+
+	// Now resolve the server (name, ip address, etc)
+	resolve_server (raw_server);
+
+	// Add it to the list of servers, if it is not a duplicate.
+	vector<compile_server_info>::const_iterator s;
+	for (s = servers.begin (); s != servers.end (); ++s)
+	  {
+	    if (*s == raw_server)
+	      break;
+	  }
+	if (s == servers.end ())
+	  servers.push_back (raw_server);
+      }
+
 fail:
     // Cleanup.
     if (sb)

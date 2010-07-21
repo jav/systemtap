@@ -15,6 +15,14 @@ struct compile_server_info
   std::string ip_address;
   unsigned short port;
   std::string sysinfo;
+
+  bool operator== (const compile_server_info &that) const
+  {
+    return this->host_name == that.host_name &&
+           this->ip_address == that.ip_address &&
+           this->port == that.port &&
+           this->sysinfo == that.sysinfo;
+  }
 };
 
 enum compile_server_properties {
@@ -65,11 +73,13 @@ private:
 };
 
 // Utility functions
-void query_server_status (const systemtap_session &s);
-void query_server_status (const systemtap_session &s, const std::string &status_string);
-void get_server_info (const systemtap_session &s, int pmask, std::vector<compile_server_info> &servers);
-void get_online_server_info (std::vector<compile_server_info> &servers);
-void keep_compatible_server_info (const systemtap_session &s, std::vector<compile_server_info> &servers);
+void query_server_status (systemtap_session &s);
+void query_server_status (systemtap_session &s, const std::string &status_string);
+void get_server_info (systemtap_session &s, int pmask, std::vector<compile_server_info> &servers);
+void get_online_server_info (systemtap_session &s, std::vector<compile_server_info> &servers);
+void keep_compatible_server_info (systemtap_session &s, std::vector<compile_server_info> &servers);
+
+int resolve_server (compile_server_info &server_info);
 
 std::ostream &operator<< (std::ostream &s, const compile_server_info &i);
 

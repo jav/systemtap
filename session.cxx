@@ -842,7 +842,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         }
 
       // Pass selected options on to the server, if any.
-      if (push_server_opt && ! specified_servers.empty ())
+      if (push_server_opt)
 	{
 	  if (grc == 0)
 	    server_args.push_back (string ("--") +
@@ -1457,53 +1457,6 @@ systemtap_session::print_warning (const string& message_str, const token* tok)
       clog << endl;
       if (tok) { print_error_source (clog, align_warning, tok); }
     }
-}
-
-string &
-systemtap_session::get_host_name ()
-{
-  if (host_name.empty ())
-    get_host_and_domain_name ();
-  return host_name;
-}
-
-string &
-systemtap_session::get_domain_name ()
-{
-  if (domain_name.empty ())
-    get_host_and_domain_name ();
-  return domain_name;
-}
-
-void
-systemtap_session::get_host_and_domain_name ()
-{
-  // We can't rely on the existence of MAXHOSTNAMELEN, so loop until we get
-  // a buffer big enough.
-  size_t bufSize = 0;
-  char *buf;
-  for (;;)
-    {
-      bufSize += 100;
-      buf = new char[bufSize];
-      int rc = gethostname (buf, bufSize);
-      if (rc == 0)
-	break;
-      assert (errno == ENAMETOOLONG);
-      delete[] buf;
-    }
-  host_name = buf;
-  delete[] buf;
-
-  // Break the returned name up into host and domain.
-  string::size_type dot_index = host_name.find ('.');
-  if (dot_index != string::npos)
-    {
-      domain_name = host_name.substr (dot_index + 1);
-      host_name = host_name.substr (0, dot_index);
-    }
-  else
-    domain_name = "unknown";
 }
 
 // --------------------------------------------------------------------------
