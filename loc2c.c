@@ -1100,8 +1100,12 @@ location_relative (struct obstack *pool,
 	      return head ?: *input;
 
 	    case loc_value:
-	      /* The piece we want is part of a computed value!  */
-	      /* XXX implement me! */
+	      /* The piece we want is part of a computed value.
+		 If it's the whole thing, we are done.  */
+	      if (value == 0)
+		return head ?: *input;
+	      DIE ("XXX extract partial rematerialized value");
+	      break;
 
 	    default:
 	      abort ();
