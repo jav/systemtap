@@ -1,4 +1,4 @@
-* What's new
+* What's new in version 1.3
 
 - The uprobes kernel module now has about half the overhead when probing
   NOPs, which is particularly relevant for sdt.h markers.
