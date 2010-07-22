@@ -44,11 +44,9 @@ no script in examples
 	<para>This section describes how to monitor if any processes are changing the attributes of a targeted file, in real time. </para>
 	
 <formalpara id="inodewatch2">
-	<title>inodewatch2-simple.stp</title>
+	<title>inodewatch2.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/inodewatch2-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/io/inodewatch2.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>		
 

@@ -286,6 +286,14 @@ keywords: io
   major/minor device.
 
 
+io/inodewatch2.stp - Monitoring Attribute Changes to a File
+keywords: io
+
+   The inodewatch2.stp script outputs the executable name, process id,
+  and attributes each time the attributes are changed on the specified
+  inode on the specified major/minor device.
+
+
 io/io_submit.stp - Tally Reschedule Reason During AIO io_submit Call
 keywords: io backtrace
 
