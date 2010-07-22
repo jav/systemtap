@@ -109,6 +109,14 @@ keywords: disk
   ten entries during that period.
 
 
+io/inodewatch.stp - Monitoring Reads and Writes to a File
+keywords: io
+
+   The inodewatch.stp outputs the executable name and process id each
+  time a read or write occurs to the specified inode on the specified
+  major/minor device.
+
+
 io/io_submit.stp - Tally Reschedule Reason During AIO io_submit Call
 keywords: io backtrace
 
