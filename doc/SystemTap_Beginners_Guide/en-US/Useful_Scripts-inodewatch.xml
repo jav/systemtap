@@ -48,11 +48,9 @@ no script in examples
 	<para>This section describes how to monitor reads from and writes to a file in real time. </para>
 	
 <formalpara id="inodewatch">
-	<title>inodewatch-simple.stp</title>
+	<title>inodewatch.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/inodewatch-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="extras/inodewatch.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>		
 
