@@ -234,7 +234,8 @@ int init_relayfs(void)
 	struct statfs st;
 	char rqbuf[128];
 	char buf[PATH_MAX], relay_filebase[PATH_MAX];
-
+        struct sigaction sa;
+        
 	dbug(2, "initializing relayfs\n");
 
 	reader[0] = (pthread_t)0;
@@ -276,6 +277,10 @@ int init_relayfs(void)
 		_err("This is inconsistent! Please file a bug report. Exiting now.\n");
 		return -1;
 	}
+
+        /* PR7097 */
+        if (load_only)
+                return 0;
 
 	if (fsize_max) {
 		/* switch file mode */
@@ -335,22 +340,19 @@ int init_relayfs(void)
 			out_fd[0] = STDOUT_FILENO;
 		
 	}
-	if (!load_only) {
-		struct sigaction sa;
 
-		sa.sa_handler = switchfile_handler;
-		sa.sa_flags = 0;
-		sigemptyset(&sa.sa_mask);
-		sigaction(SIGUSR2, &sa, NULL);
-		dbug(2, "starting threads\n");
-		for (i = 0; i < ncpus; i++) {
-			if (pthread_create(&reader[i], NULL, reader_thread,
-					   (void *)(long)i) < 0) {
-				_perr("failed to create thread");
-				return -1;
-			}
-		}
-	}
+        sa.sa_handler = switchfile_handler;
+        sa.sa_flags = 0;
+        sigemptyset(&sa.sa_mask);
+        sigaction(SIGUSR2, &sa, NULL);
+        dbug(2, "starting threads\n");
+        for (i = 0; i < ncpus; i++) {
+                if (pthread_create(&reader[i], NULL, reader_thread,
+                                   (void *)(long)i) < 0) {
+                        _perr("failed to create thread");
+                        return -1;
+                }
+        }
 	
 	return 0;
 }
