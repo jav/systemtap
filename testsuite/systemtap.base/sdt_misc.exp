@@ -13,7 +13,7 @@ set v_flags {{} {} {-DSTAP_SDT_V1}}
 set pbtype_mssgs {{uprobe} {kprobe} {V1_uprobe}}
 set pbtype_flags {{} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-g}}
 switch -regexp $::tcl_platform(machine) {
-    ^(x86_64|i.86|ppc64)$ { 
+    ^(x86_64|i.86)$ { 
         set pbtype_flags {{} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-g}}
     }
     default {
