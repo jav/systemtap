@@ -40,9 +40,7 @@
 <formalpara id="iotime">
 	<title>iotime.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/iotime-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/io/iotime.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
 

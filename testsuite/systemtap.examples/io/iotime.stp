@@ -32,21 +32,13 @@
 global start
 global time_io
 
-function timestamp:long() {
-  return gettimeofday_us() - start
-}
+function timestamp:long() { return gettimeofday_us() - start }
 
-function proc:string() {
-  return sprintf("%d (%s)", pid(), execname())
-}
+function proc:string() { return sprintf("%d (%s)", pid(), execname()) }
 
-probe begin {
- start = gettimeofday_us()
-}
+probe begin { start = gettimeofday_us() }
 
-global filehandles
-global fileread
-global filewrite
+global filehandles, fileread, filewrite
 
 probe syscall.open.return {
   filename = user_string($filename)
@@ -62,9 +54,8 @@ probe syscall.read.return {
   fd = $fd
   bytes = $return
   time = gettimeofday_us() - @entry(gettimeofday_us())
-  if (bytes > 0) {
+  if (bytes > 0)
     fileread[p, fd] += bytes
-  }
   time_io[p, fd] <<< time
 }
 
@@ -73,9 +64,8 @@ probe syscall.write.return {
   fd = $fd
   bytes = $return
   time = gettimeofday_us() - @entry(gettimeofday_us())
-  if (bytes > 0) {
+  if (bytes > 0)
     filewrite[p, fd] += bytes
-  }
   time_io[p, fd] <<< time
 }
 
