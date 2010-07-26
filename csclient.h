@@ -76,10 +76,13 @@ private:
 void query_server_status (systemtap_session &s);
 void query_server_status (systemtap_session &s, const std::string &status_string);
 void get_server_info (systemtap_session &s, int pmask, std::vector<compile_server_info> &servers);
+void get_default_server_info (systemtap_session &s, std::vector<compile_server_info> &servers);
+void get_specified_server_info (systemtap_session &s, std::vector<compile_server_info> &servers);
 void get_online_server_info (systemtap_session &s, std::vector<compile_server_info> &servers);
 void keep_compatible_server_info (systemtap_session &s, std::vector<compile_server_info> &servers);
+void add_server_info (const compile_server_info &info, std::vector<compile_server_info>& list);
 
-int resolve_server (compile_server_info &server_info);
+int resolve_server (const systemtap_session& s, compile_server_info &server_info);
 
 std::ostream &operator<< (std::ostream &s, const compile_server_info &i);
 

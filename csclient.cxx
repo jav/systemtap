@@ -386,111 +386,33 @@ compile_server_client::package_request ()
 int
 compile_server_client::find_and_connect_to_server ()
 {
-  int servers = 0;
+  // Accumulate info on the specified servers.
+  vector<compile_server_info> server_list;
+  get_specified_server_info (s, server_list);
 
-  // Iterate over the specified servers. For each specification, construct
-  // a list of servers to try.
-  unsigned num_specified_servers = s.specified_servers.size ();
-  for (unsigned i = 0; i < num_specified_servers; ++i)
+  // Did we identify any potential servers?
+  unsigned limit = server_list.size ();
+  if (limit == 0)
     {
-      vector<compile_server_info> server_list;
-      const string &server = s.specified_servers[i];
-      if (server.empty ())
+      cerr << "Unable to find a server" << endl;
+      return 1;
+    }
+
+  // Now try each of the identified servers in turn.
+  for (unsigned i = 0; i < limit; ++i)
+    {
+      int rc = compile_using_server (server_list[i]);
+      if (rc == 0)
 	{
-	  // No server specified. Look for compatible servers online.
-	  const int pmask = compile_server_online | compile_server_compatible;
-	  get_server_info (s, pmask, server_list);
+	  s.winning_server =
+	    server_list[i].host_name + string(" [") +
+	    server_list[i].ip_address + string(":") +
+	    lex_cast(server_list[i].port) + string("]");
+	  return 0; // success!
 	}
-      else
-	{
-	  // Work with the specified server
-	  compile_server_info server_info;
-	  server_info.port = 0;
+    }
 
-	  // See if a port was specified (:n suffix)
-	  vector<string> components;
-	  tokenize (server, components, ":");
-	  if (components.size () > 2)
-	    {
-	      cerr << "Invalid server specification: " << server << endl;
-	      continue;
-	    }
-	  if (components.size () == 2)
-	    {
-	      // Obtain the port number.
-	      const char *pstr = components.back ().c_str ();
-	      char *estr;
-	      errno = 0;
-	      unsigned long port = strtoul (pstr, & estr, 10);
-	      if (errno == 0 && *estr == '\0' && port <= USHRT_MAX)
-		server_info.port = port;
-	      else
-		{
-		  cerr << "Invalid port number specified: "
-		       << components.back ()
-		       << endl;
-		  continue;
-		}
-	    }
-
-	  // Obtain the host name or ip address.
-	  server_info.host_name = components.front ();
-
-	  // Resolve the server
-	  if (resolve_server (server_info) != 0)
-	    continue; // message already issued.
-
-	  // If no port was specified, then discover it from the list of
-	  // online servers.
-	  if (server_info.port == 0)
-	    {
-	      // Obtain a list of compatible servers which are online.
-	      const int pmask = compile_server_online | compile_server_compatible;
-	      get_server_info (s, pmask, server_list);
-
-	      // Search the list of online servers for one matching the one
-	      // specified and obtain the port number.
-	      unsigned limit = server_list.size ();
-	      for (unsigned i = 0; i < limit; ++i)
-		{
-		  if (server_info.ip_address == server_list[i].ip_address)
-		    {
-		      server_info = server_list[i];
-		      break; // found it!
-		    }
-		}
-	      server_list.clear ();
-	    }
-
-	  // Do we have a port number now?
-	  if (server_info.port != 0)
-	    server_list.push_back (server_info);
-	  else if (s.verbose)
-	    cerr << "No compatible server detected on " << server_info << endl;
-	} // Specified server.
-
-      // Now try each of the identified servers in turn.
-      unsigned limit = server_list.size ();
-      for (unsigned i = 0; i < limit; ++i)
-	{
-	  ++servers;
-	  int rc = compile_using_server (server_list[i]);
-	  if (rc == 0)
-	    {
-	      s.winning_server =
-		server_list[i].host_name + string(" [") +
-		server_list[i].ip_address + string(":") +
-		lex_cast(server_list[i].port) + string("]");
-	      return rc; // success!
-	    }
-	}
-    } // Loop over --use-server options
-
-  if (servers == 0)
-    cerr << "Unable to find a server" << endl;
-  else
-    cerr << "Unable to connect to a server" << endl;
-
+  cerr << "Unable to connect to a server" << endl;
   return 1; // Failure
 }
 
@@ -821,22 +743,16 @@ std::ostream &operator<< (std::ostream &s, const compile_server_info &i)
     s << " port " << i.port;
   if (! i.sysinfo.empty ())
     s << ' ' << i.sysinfo;
+  else
+    s << " (not detected on the local network)";
   return s;
 }
 
-void
-query_server_status (systemtap_session &s)
+// Return the default server specification, used when none is given on the
+// command line.
+static string
+default_server_spec (const systemtap_session &s)
 {
-  unsigned limit = s.server_status_strings.size ();
-  for (unsigned i = 0; i < limit; ++i)
-    query_server_status (s, s.server_status_strings[i]);
-}
-
-void
-query_server_status (systemtap_session &s, const string &status_string)
-{
-#if HAVE_NSS || HAVE_AVAHI
-  // If this string is empty, then set the default.
   // If the --use-server option has been used
   //   the default is 'specified'
   // otherwise if the --unprivileged has been used
@@ -848,29 +764,23 @@ query_server_status (systemtap_session &s, const string &status_string)
   //   'online' is only applicable if we have avahi
   //   'trusted' and 'signer' are only applicable if we have NSS
   string working_string;
-  if (status_string.empty ())
-    {
-      if (s.specified_servers.empty ())
-	{
+
 #if HAVE_AVAHI
-	  working_string = "online,";
+  working_string = "online,";
 #endif
 #if HAVE_NSS
-	  //	  working_string += "trusted,"; --- not yet
-	  if (s.unprivileged)
-	    working_string += "signer,";
+  working_string += "trusted,";
+  if (s.unprivileged)
+    working_string += "signer,";
 #endif
-	  working_string += "compatible";
-	}
-      else
-	working_string = "specified";
-    }
-  else
-    working_string = status_string;
+  working_string += "compatible";
 
-  clog << "Systemtap Compile Server Status for '" << working_string << '\''
-       << endl;
+  return working_string;
+}
 
+static int
+server_spec_to_pmask (const string &server_spec)
+{
   // Construct a mask of the server properties that have been requested.
   // The available properties are:
   //     trusted    - trusted servers only.
@@ -884,7 +794,7 @@ query_server_status (systemtap_session &s, const string &status_string)
   //     all        - all trusted servers, servers currently online and
   //	              specified servers.
   vector<string> properties;
-  tokenize (working_string, properties, ",");
+  tokenize (server_spec, properties, ",");
   int pmask = 0;
   unsigned limit = properties.size ();
   for (unsigned i = 0; i < limit; ++i)
@@ -932,13 +842,42 @@ query_server_status (systemtap_session &s, const string &status_string)
 	       << endl;
 	}
     }
+  return pmask;
+}
+
+void
+query_server_status (systemtap_session &s)
+{
+  unsigned limit = s.server_status_strings.size ();
+  for (unsigned i = 0; i < limit; ++i)
+    query_server_status (s, s.server_status_strings[i]);
+}
+
+void
+query_server_status (systemtap_session &s, const string &status_string)
+{
+#if HAVE_NSS || HAVE_AVAHI
+  // If this string is empty, then the default is "specified"
+  string working_string = status_string;
+  if (working_string.empty ())
+    working_string = "specified";
+
+  // If no servers have been specified (--use-server not used), then "specified"
+  // becomes the default query.
+  if (working_string == "specified" && s.specified_servers.empty ())
+    working_string = default_server_spec (s);
+
+  clog << "Systemtap Compile Server Status for '" << working_string << '\''
+       << endl;
+
+  int pmask = server_spec_to_pmask (working_string);
 
   // Now obtain a list of the servers which match the criteria.
   vector<compile_server_info> servers;
   get_server_info (s, pmask, servers);
 
   // Print the server information
-  limit = servers.size ();
+  unsigned limit = servers.size ();
   for (unsigned i = 0; i < limit; ++i)
     {
       clog << servers[i] << endl;
@@ -954,67 +893,163 @@ get_server_info (
 )
 {
   // Get information on compile servers matching the requested criteria.
-  // XXXX: TODO: Only compile_server_online and compile_server_compatible
-  //             are currently implemented.
+  // XXXX: TODO: Only compile_server_specified, compile_server_online and
+  //             compile_server_compatible are currently implemented.
+  // These specs accumulate server selection.
+  if ((pmask & compile_server_specified))
+    {
+      get_specified_server_info (s, servers);
+    }
   if ((pmask & compile_server_online))
     {
       get_online_server_info (s, servers);
     }
+  // The remaining specs filter server selection.
   if ((pmask & compile_server_compatible))
     {
       keep_compatible_server_info (s, servers);
     }
 }
 
-int resolve_server (compile_server_info &server_info)
+void
+get_default_server_info (
+  systemtap_session &s,
+  vector<compile_server_info> &servers
+)
 {
-  struct addrinfo hints;
-  memset(& hints, 0, sizeof (hints));
-  hints.ai_family = AF_INET; // AF_UNSPEC or AF_INET6 to force version
-  struct addrinfo *res;
-  int status = getaddrinfo(server_info.host_name.c_str(), NULL, & hints, & res);
-  if (status != 0)
-    goto error;
-
-  // Obtain the ip address and canonical name of the resolved server.
-  assert (res);
-  for (const struct addrinfo *p = res; p != NULL; p = p->ai_next)
+  // We only need to obtain this once. This is a good thing(tm) since
+  // obtaining this information is expensive.
+  static vector<compile_server_info> default_servers;
+  if (default_servers.empty ())
     {
-      if (p->ai_family != AF_INET)
-	continue; // Not an IPv4 address
+      int pmask = server_spec_to_pmask (default_server_spec (s));
+      get_server_info (s, pmask, default_servers);
 
-      // get the pointer to the address itself,
-      struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
-      void *addr = & ipv4->sin_addr;
-
-      // convert the IP to a string.
-      char ipstr[INET_ADDRSTRLEN];
-      inet_ntop(p->ai_family, addr, ipstr, sizeof (ipstr));
-      server_info.ip_address = ipstr;
-
-      // Now get the canonical name.
-      char hbuf[NI_MAXHOST];
-      status = getnameinfo (p->ai_addr, sizeof (*p->ai_addr),
-			    hbuf, sizeof (hbuf), NULL, 0,
-			    NI_NAMEREQD | NI_IDN);
-      if (status != 0)
-	continue;
-
-      server_info.host_name = hbuf;
-      break; // Use the info from the first IPv4 result.
+      // Maintain an empty entry to indicate that this search has been
+      // performed, in case the search comes up empty.
+      default_servers.insert (default_servers.begin (), compile_server_info ());
     }
-  freeaddrinfo(res); // free the linked list
 
-  if (status != 0)
-    goto error;
+  // Add the information, but not duplicates. Skip the empty first entry.
+  unsigned limit = default_servers.size ();
+  for (unsigned i = 1; i < limit; ++i)
+    add_server_info (default_servers[i], servers);
+}
 
-  return 0;
+void
+get_specified_server_info (
+  systemtap_session &s,
+  vector<compile_server_info> &servers
+)
+{
+  // We only need to obtain this once. This is a good thing(tm) since
+  // obtaining this information is expensive.
+  static vector<compile_server_info> specified_servers;
+  if (specified_servers.empty ())
+    {
+      // If --use-servers was not specified at all, then return info for the
+      // default server list.
+      if (s.specified_servers.empty ())
+	{
+	  get_default_server_info (s, specified_servers);
+	}
+      else
+	{
+	  // Iterate over the specified servers. For each specification, add to
+	  // the list of servers.
+	  unsigned num_specified_servers = s.specified_servers.size ();
+	  for (unsigned i = 0; i < num_specified_servers; ++i)
+	    {
+	      const string &server = s.specified_servers[i];
+	      if (server.empty ())
+		{
+		  // No server specified. Use the default servers.
+		  get_default_server_info (s, specified_servers);
+		}
+	      else
+		{
+		  // Work with the specified server
+		  compile_server_info server_info;
+		  server_info.port = 0;
 
- error:
-  cerr << "Unable to resolve server " << server_info.host_name
-       << ": " << gai_strerror(status)
-       << endl;
-  return 1;
+		  // See if a port was specified (:n suffix)
+		  vector<string> components;
+		  tokenize (server, components, ":");
+		  if (components.size () > 2)
+		    {
+		      cerr << "Invalid server specification: " << server
+			   << endl;
+		      continue;
+		    }
+		  if (components.size () == 2)
+		    {
+		      // Obtain the port number.
+		      const char *pstr = components.back ().c_str ();
+		      char *estr;
+		      errno = 0;
+		      unsigned long port = strtoul (pstr, & estr, 10);
+		      if (errno == 0 && *estr == '\0' && port <= USHRT_MAX)
+			server_info.port = port;
+		      else
+			{
+			  cerr << "Invalid port number specified: "
+			       << components.back ()
+			       << endl;
+			  continue;
+			}
+		    }
+
+		  // Obtain the host name or ip address.
+		  server_info.host_name = components.front ();
+
+		  // Resolve the server. Not an error if it fails. Just less
+		  // info gathered.
+		  resolve_server (s, server_info);
+
+		  // If no port was specified, then discover it from the list of
+		  // usable online servers.
+		  if (server_info.port == 0)
+		    {
+		      // Obtain a list of usable servers online.
+		      vector<compile_server_info> usable_servers;
+		      get_default_server_info (s, usable_servers);
+
+		      // Search the list of online servers for ones matching the
+		      // one specified and obtain the port numbers.
+		      unsigned found = 0;
+		      unsigned limit = usable_servers.size ();
+		      for (unsigned i = 0; i < limit; ++i)
+			{
+			  if (server_info.ip_address == usable_servers[i].ip_address)
+			    {
+			      add_server_info (usable_servers[i], specified_servers);
+			      ++found;
+			    }
+			}
+
+		      // Do we have a port number now?
+		      if (s.verbose && found == 0)
+			cerr << "No server matching " << default_server_spec (s) 
+			     << " detected on " << server_info << endl;
+		    }
+		  else
+		    {
+		      add_server_info (server_info, specified_servers);
+		    }
+		} // Specified server.
+	    } // Loop over --use-server options
+	} // -- use-server specified
+
+      // Maintain an empty entry to indicate that this search has been
+      // performed, in case the search comes up empty.
+      specified_servers.insert (specified_servers.begin (),
+				compile_server_info ());
+    } // Server information is not cached
+
+  // Add the information, but not duplicates. Skip the empty first entry.
+  unsigned limit = specified_servers.size ();
+  for (unsigned i = 1; i < limit; ++i)
+    add_server_info (specified_servers[i], servers);
 }
 
 void
@@ -1070,6 +1105,60 @@ keep_compatible_server_info (
     }
 }
 
+int resolve_server (const systemtap_session& s, compile_server_info &server_info)
+{
+  struct addrinfo hints;
+  memset(& hints, 0, sizeof (hints));
+  hints.ai_family = AF_INET; // AF_UNSPEC or AF_INET6 to force version
+  struct addrinfo *res;
+  int status = getaddrinfo(server_info.host_name.c_str(), NULL, & hints, & res);
+  if (status != 0)
+    goto error;
+
+  // Obtain the ip address and canonical name of the resolved server.
+  assert (res);
+  for (const struct addrinfo *p = res; p != NULL; p = p->ai_next)
+    {
+      if (p->ai_family != AF_INET)
+	continue; // Not an IPv4 address
+
+      // get the pointer to the address itself,
+      struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+      void *addr = & ipv4->sin_addr;
+
+      // convert the IP to a string.
+      char ipstr[INET_ADDRSTRLEN];
+      inet_ntop(p->ai_family, addr, ipstr, sizeof (ipstr));
+      server_info.ip_address = ipstr;
+
+      // Now get the canonical name.
+      char hbuf[NI_MAXHOST];
+      status = getnameinfo (p->ai_addr, sizeof (*p->ai_addr),
+			    hbuf, sizeof (hbuf), NULL, 0,
+			    NI_NAMEREQD | NI_IDN);
+      if (status != 0)
+	continue;
+
+      server_info.host_name = hbuf;
+      break; // Use the info from the first IPv4 result.
+    }
+  freeaddrinfo(res); // free the linked list
+
+  if (status != 0)
+    goto error;
+
+  return 0;
+
+ error:
+  if (s.verbose)
+    {
+      clog << "Unable to resolve server " << server_info.host_name
+	   << ": " << gai_strerror(status)
+	   << endl;
+    }
+  return 1;
+}
+
 #if HAVE_AVAHI
 // Avahi API Callbacks.
 //-----------------------------------------------------------------------
@@ -1123,7 +1212,7 @@ void resolve_callback(
 	    info.host_name = host_name;
 
 	    // Add this server to the list of discovered servers.
-	    servers->push_back (info);
+	    add_server_info (info, *servers);
 
             avahi_free(t);
         }
@@ -1208,98 +1297,125 @@ get_online_server_info (systemtap_session &s,
 			vector<compile_server_info> &servers)
 {
 #if HAVE_AVAHI
-    // Must predeclare these due to jumping on error to fail:
-    unsigned limit;
-    vector<compile_server_info> raw_servers;
+  // We only need to obtain this once. This is a good thing(tm) since
+  // obtaining this information is expensive.
+  static vector<compile_server_info> online_servers;
+  if (online_servers.empty ())
+    {
+      // Must predeclare these due to jumping on error to fail:
+      unsigned limit;
+      vector<compile_server_info> raw_servers;
 
-    // Initialize.
-    AvahiClient *client = NULL;
-    AvahiServiceBrowser *sb = NULL;
+      // Initialize.
+      AvahiClient *client = NULL;
+      AvahiServiceBrowser *sb = NULL;
  
-    // Allocate main loop object.
-    AvahiSimplePoll *simple_poll;
-    if (!(simple_poll = avahi_simple_poll_new())) {
-        cerr << "Failed to create Avahi simple poll object" << endl;
-        goto fail;
-    }
-    browsing_context context;
-    context.simple_poll = simple_poll;
-    context.servers = & raw_servers;
+      // Allocate main loop object.
+      AvahiSimplePoll *simple_poll;
+      if (!(simple_poll = avahi_simple_poll_new()))
+	{
+	  cerr << "Failed to create Avahi simple poll object" << endl;
+	  goto fail;
+	}
+      browsing_context context;
+      context.simple_poll = simple_poll;
+      context.servers = & raw_servers;
 
-    // Allocate a new Avahi client
-    int error;
-    client = avahi_client_new (avahi_simple_poll_get (simple_poll),
-			       (AvahiClientFlags)0,
-			       client_callback, & context, & error);
+      // Allocate a new Avahi client
+      int error;
+      client = avahi_client_new (avahi_simple_poll_get (simple_poll),
+				 (AvahiClientFlags)0,
+				 client_callback, & context, & error);
 
-    // Check whether creating the client object succeeded.
-    if (!client) {
-        cerr << "Failed to create Avahi client: "
-	     << avahi_strerror(error)
-	     << endl;
-        goto fail;
-    }
-    context.client = client;
+      // Check whether creating the client object succeeded.
+      if (! client)
+	{
+	  cerr << "Failed to create Avahi client: "
+	       << avahi_strerror(error)
+	       << endl;
+	  goto fail;
+	}
+      context.client = client;
     
-    // Create the service browser.
-    if (!(sb = avahi_service_browser_new (client, AVAHI_IF_UNSPEC,
-					  AVAHI_PROTO_UNSPEC, "_stap._tcp",
-					  NULL, (AvahiLookupFlags)0,
-					  browse_callback, & context))) {
-        cerr << "Failed to create Avahi service browser: "
-	     << avahi_strerror(avahi_client_errno(client))
-	     << endl;
-        goto fail;
-    }
+      // Create the service browser.
+      if (!(sb = avahi_service_browser_new (client, AVAHI_IF_UNSPEC,
+					    AVAHI_PROTO_UNSPEC, "_stap._tcp",
+					    NULL, (AvahiLookupFlags)0,
+					    browse_callback, & context)))
+	{
+	  cerr << "Failed to create Avahi service browser: "
+	       << avahi_strerror(avahi_client_errno(client))
+	       << endl;
+	  goto fail;
+	}
 
-    // Timeout after 2 seconds.
-    struct timeval tv;
-    avahi_simple_poll_get(simple_poll)->timeout_new(
+      // Timeout after 2 seconds.
+      struct timeval tv;
+      avahi_simple_poll_get(simple_poll)->timeout_new(
         avahi_simple_poll_get(simple_poll),
-        avahi_elapse_time(&tv, 1000*2, 0),
-        timeout_callback,
-        & context);
+	avahi_elapse_time(&tv, 1000*2, 0),
+	timeout_callback,
+	& context);
 
-    // Run the main loop.
-    avahi_simple_poll_loop(simple_poll);
+      // Run the main loop.
+      avahi_simple_poll_loop(simple_poll);
 
-    // Resolve each server discovered and eliminate duplicates.
-    limit = raw_servers.size ();
-    for (unsigned i = 0; i < limit; ++i)
-      {
-	compile_server_info &raw_server = raw_servers[i];
+      // Resolve each server discovered and eliminate duplicates.
+      limit = raw_servers.size ();
+      for (unsigned i = 0; i < limit; ++i)
+	{
+	  compile_server_info &raw_server = raw_servers[i];
 
-	// Delete the domain, if it is '.local'
-	string &host_name = raw_server.host_name;
-	string::size_type dot_index = host_name.find ('.');
-	assert (dot_index != 0);
-	string domain = host_name.substr (dot_index + 1);
-	if (domain == "local")
-	  host_name = host_name.substr (0, dot_index);
+	  // Delete the domain, if it is '.local'
+	  string &host_name = raw_server.host_name;
+	  string::size_type dot_index = host_name.find ('.');
+	  assert (dot_index != 0);
+	  string domain = host_name.substr (dot_index + 1);
+	  if (domain == "local")
+	    host_name = host_name.substr (0, dot_index);
 
-	// Now resolve the server (name, ip address, etc)
-	resolve_server (raw_server);
+	  // Now resolve the server (name, ip address, etc)
+	  // Not an error if it fails. Just less info gathered.
+	  resolve_server (s, raw_server);
 
-	// Add it to the list of servers, if it is not a duplicate.
-	vector<compile_server_info>::const_iterator s;
-	for (s = servers.begin (); s != servers.end (); ++s)
-	  {
-	    if (*s == raw_server)
-	      break;
-	  }
-	if (s == servers.end ())
-	  servers.push_back (raw_server);
-      }
+	  // Add it to the list of servers, unless it is duplicate.
+	  add_server_info (raw_server, online_servers);
+	}
 
-fail:
-    // Cleanup.
-    if (sb)
+    fail:
+      // Cleanup.
+      if (sb)
         avahi_service_browser_free(sb);
     
-    if (client)
+      if (client)
         avahi_client_free(client);
 
-    if (simple_poll)
+      if (simple_poll)
         avahi_simple_poll_free(simple_poll);
+
+      // Maintain an empty entry to indicate that this search has been
+      // performed, in case the search comes up empty.
+      online_servers.insert (online_servers.begin (), compile_server_info ());
+    } // Server information is not cached.
+
+  // Add the information, but not duplicates. Skip the empty first entry.
+  unsigned limit = online_servers.size ();
+  for (unsigned i = 1; i < limit; ++i)
+    add_server_info (online_servers[i], servers);
 #endif // HAVE_AVAHI
+}
+
+// Add server info to a list, avoiding duplicates
+void
+add_server_info (
+  const compile_server_info &info, vector<compile_server_info>& list
+)
+{
+  vector<compile_server_info>::const_iterator s;
+  for (s = list.begin (); s != list.end (); ++s)
+    {
+      if (*s == info)
+	return; // Duplicate
+    }
+  list.push_back (info);
 }
