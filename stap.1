@@ -1395,6 +1395,16 @@ that require the given \-\-compatible flag to use:
 The tapset alias 'syscall.compat_pselect7a' was misnamed.  It should
 have been 'syscall.compat_pselect7' (without the trailing 'a').
 Starting in release 1.4, the old name will be deprecated.
+.TP
+\-\-compatible=1.4
+In the 'syscall.add_key' probe, the 'description_auddr' variable
+has been deprecated in favor of the new 'description_uaddr'
+variable.
+.IP
+In the 'syscall.fgetxattr', 'syscall.fsetxattr',
+\'syscall.getxattr', 'syscall.lgetxattr', and
+\'syscall.lremovexattr' probes, the 'name2' variable has been
+deprecated in favor of the new 'name_str' variable.
 .\" e.g. tapset_function()
 .\" e.g. post-incrementing a frobozz in a while loop
 
