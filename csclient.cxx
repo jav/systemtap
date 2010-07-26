@@ -1107,6 +1107,9 @@ keep_compatible_server_info (
 
 int resolve_server (const systemtap_session& s, compile_server_info &server_info)
 {
+  // This code will never be called if we don't have NSS, but it must still
+  // compile.
+#if HAVE_NSS
   struct addrinfo hints;
   memset(& hints, 0, sizeof (hints));
   hints.ai_family = AF_INET; // AF_UNSPEC or AF_INET6 to force version
@@ -1156,6 +1159,7 @@ int resolve_server (const systemtap_session& s, compile_server_info &server_info
 	   << ": " << gai_strerror(status)
 	   << endl;
     }
+#endif
   return 1;
 }
 
