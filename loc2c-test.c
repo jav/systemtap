@@ -471,7 +471,10 @@ main (int argc, char **argv)
   (void) setlocale (LC_ALL, "");
 
   const struct argp_child argp_children[] =
-    { { .argp = dwfl_standard_argp () } };
+    {
+      { .argp = dwfl_standard_argp () },
+      { .argp = NULL }
+    };
   const struct argp argp =
     {
       .children = argp_children,
