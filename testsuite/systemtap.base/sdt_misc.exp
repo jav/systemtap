@@ -476,11 +476,14 @@ if {$ok == 4 && $ko == 0} {
 # 6. Test .mark probe wildcard matching
 
 set ok 0
-verbose -log "spawn $stap_path -l \"process(\"./sdt_types.x\").mark(\"*\")"
-spawn $stap_path -l "process(\"./sdt_types.x\").mark(\"*\")"
+verbose -log "spawn $stap_path -L \"process(\"./sdt_types.x\").mark(\"*\")"
+spawn $stap_path -L "process(\"./sdt_types.x\").mark(\"*\")"
 
 expect {
     -timeout 180
+    -re {mark\(\"[a-z_]+\"\) .arg1:long .arg2:long .arg3:long .arg4:long .arg5:long .arg6:long .arg7:long .arg8:long\n} { incr ok; exp_continue }
+    -re {mark\(\"[a-z_]+\"\) .arg1:long .arg2:long\n} { incr ok; exp_continue }
+    -re {mark\(\"[a-z_]+\"\) .arg1:long\n} { incr ok; exp_continue }
     -re {mark\(\"[a-z_]+\"\)} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }

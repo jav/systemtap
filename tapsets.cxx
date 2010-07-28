@@ -453,6 +453,10 @@ struct uprobe_derived_probe: public dwarf_derived_probe
 
   void emit_unprivileged_assertion (translator_output*);
   void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged_process_owner (o); }
+  void getargs(std::list<std::string> &arg_set) const;
+  void saveargs(int nargs);
+private:
+  list<string> args;
 };
 
 struct dwarf_derived_probe_group: public derived_probe_group
@@ -5109,6 +5113,7 @@ sdt_query::handle_query_module()
 	      uprobe_derived_probe* p =
 		new uprobe_derived_probe ("", "", 0, q.module_val, section,
 					  q.statement_num_val, reloc_addr, q, 0);
+	      p->saveargs (arg_count);
 	      results.push_back (p);
 	    }
         }
@@ -5942,6 +5947,22 @@ uprobe_derived_probe::join_group (systemtap_session& s)
   // Ask buildrun.cxx to build extra module if needed, and
   // signal staprun to load that module
   s.need_uprobes = true;
+}
+
+
+void
+uprobe_derived_probe::getargs(std::list<std::string> &arg_set) const
+{
+  dwarf_derived_probe::getargs(arg_set);
+  arg_set.insert(arg_set.end(), args.begin(), args.end());
+}
+
+
+void
+uprobe_derived_probe::saveargs(int nargs)
+{
+  for (int i = 1; i <= nargs; i++)
+    args.push_back("$arg" + lex_cast (i) + ":long");
 }
 
 
