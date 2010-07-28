@@ -368,6 +368,7 @@ private:
 
   struct location *translate_location(struct obstack *pool,
                                       Dwarf_Attribute *attr,
+                                      Dwarf_Die *die,
                                       Dwarf_Addr pc,
                                       Dwarf_Attribute *fb_attr,
                                       struct location **tail,
@@ -376,6 +377,7 @@ private:
   bool find_struct_member(const target_symbol::component& c,
                           Dwarf_Die *parentdie,
                           Dwarf_Die *memberdie,
+                          std::vector<Dwarf_Die>& dies,
                           std::vector<Dwarf_Attribute>& locs);
 
   void translate_components(struct obstack *pool,

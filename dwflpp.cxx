@@ -1733,7 +1733,8 @@ dwflpp::find_variable_and_frame_base (vector<Dwarf_Die>& scopes,
 
 struct location *
 dwflpp::translate_location(struct obstack *pool,
-                           Dwarf_Attribute *attr, Dwarf_Addr pc,
+                           Dwarf_Attribute *attr, Dwarf_Die *die,
+			   Dwarf_Addr pc,
                            Dwarf_Attribute *fb_attr,
                            struct location **tail,
                            const target_symbol *e)
@@ -1783,7 +1784,9 @@ dwflpp::translate_location(struct obstack *pool,
 
     case 0:			/* Shouldn't happen.  */
       throw semantic_error ("not accessible at this address ("
-                            + lex_cast_hex(pc) + ")", e->tok);
+                            + lex_cast_hex(pc) + ", dieoffset: "
+			    + lex_cast_hex(dwarf_dieoffset(die)) + ")",
+			    e->tok);
 
     default:			/* Shouldn't happen.  */
     case -1:
@@ -1874,6 +1877,7 @@ bool
 dwflpp::find_struct_member(const target_symbol::component& c,
                            Dwarf_Die *parentdie,
                            Dwarf_Die *memberdie,
+                           vector<Dwarf_Die>& dies,
                            vector<Dwarf_Attribute>& locs)
 {
   Dwarf_Attribute attr;
@@ -1905,7 +1909,7 @@ dwflpp::find_struct_member(const target_symbol::component& c,
           // for inherited members
           Dwarf_Die subdie;
           if (dwarf_attr_die (&die, DW_AT_type, &subdie) &&
-              find_struct_member(c, &subdie, memberdie, locs))
+              find_struct_member(c, &subdie, memberdie, dies, locs))
             goto success;
         }
       else if (name == c.member)
@@ -1922,7 +1926,10 @@ success:
   /* As we unwind the recursion, we need to build the chain of
    * locations that got to the final answer. */
   if (dwarf_attr_integrate (&die, DW_AT_data_member_location, &attr))
-    locs.insert(locs.begin(), attr);
+    {
+      dies.insert(dies.begin(), die);
+      locs.insert(locs.begin(), attr);
+    }
 
   /* Union members don't usually have a location,
    * but just use the containing union's location.  */
@@ -2041,8 +2048,9 @@ dwflpp::translate_components(struct obstack *pool,
             }
 
             {
+              vector<Dwarf_Die> dies;
               vector<Dwarf_Attribute> locs;
-              if (!find_struct_member(c, typedie, vardie, locs))
+              if (!find_struct_member(c, typedie, vardie, dies, locs))
                 {
                   /* Add a file:line hint for anonymous types */
                   string source;
@@ -2069,7 +2077,8 @@ dwflpp::translate_components(struct obstack *pool,
 
               for (unsigned j = 0; j < locs.size(); ++j)
                 if (pool)
-                  translate_location (pool, &locs[j], pc, NULL, tail, e);
+                  translate_location (pool, &locs[j], &dies[j],
+                                      pc, NULL, tail, e);
             }
 
           dwarf_die_type (vardie, typedie, c.tok);
@@ -2377,7 +2386,7 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
                            e->tok);
     }
   else
-    head = translate_location (&pool, &attr_mem, pc, fb_attr, &tail, e);
+    head = translate_location (&pool, &attr_mem, &vardie, pc, fb_attr, &tail, e);
 
   /* Translate the ->bar->baz[NN] parts. */
 
