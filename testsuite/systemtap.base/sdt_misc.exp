@@ -23,7 +23,7 @@ switch -regexp $::tcl_platform(machine) {
 
 proc cleanup_handler { verbose } {
     if { $verbose == 0 } {
-	foreach x pbtype_mssgs {
+	foreach x $pbtype_mssgs {
 	    catch {exec rm -f libsdt_${x}.so libsdt_${x}_shared.so sdt_misc_${x}.x sdt_misc_${x}_loop.x sdt_misc_${x}_shared.x sdt_misc_${x}_loop_shared.x sdt_misc_${x}.x sdt_misc_${x}_compatibility.x sdt_misc_${x}_types.x libsdt_${x}_loop.so }
 	}
 	catch {exec rm -f sdt_misc_.c sdt_misc.c sdt_misc_.d sdt_misc_.h sdt_misc_.o sdt_misc.stp sdt_types.x ,semclean ,semout}

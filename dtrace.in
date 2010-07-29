@@ -12,21 +12,26 @@
 # Public License (GPL); either version 2, or (at your option) any
 # later version.
 
-import os,posix,string,sys
+import os
+import posix
+import string
+import sys
 from subprocess import call
 from tempfile import mkstemp
 
-class provider:
+
+class _provider:
     semaphores_def = "\n"
     # is the type a basic scalar type?
-    def basic_type(self, arg):
-        basic_types = [ "int","int*","long","long*","short","short int","unsigned long","char","char*","float","double" ]
+    def __basic_type(self, arg):
+        basic_types = [ "int","int*","long","long*","short","short int",
+                        "unsigned long","char","char*","float","double" ]
         split_arg = arg.rsplit(None,1)
         return (split_arg[0].strip() in basic_types) & (arg.find("[") == -1)
-    def typedef_append(self, typedefs,this_probe,arg,c):
+    def __typedef_append(self, typedefs,this_probe,arg,c):
         if (add_typedefs):
             split_arg = arg.rsplit(None,1)
-            if (self.basic_type(arg)):
+            if (self.__basic_type(arg)):
                 return typedefs
             type_name = " %s_arg%d" % (this_probe.replace("__","_"),c)
             if (len(split_arg) > 1):
@@ -36,12 +41,14 @@ class provider:
                 typedefs += ("typedef " + arg.strip() + type_name + "; ")
                 typedefs += (type_name + type_name + "_v;\n")
         return typedefs
-    def semaphore_def_append(self, this_probe):
+    def __semaphore_def_append(self, this_probe):
         # NB: unsigned short is fixed in ABI
         self.semaphores_def += '#if defined STAP_SDT_V1\n'
-        self.semaphores_def += '#define %s_%s_semaphore %s_semaphore\n' % (self.provider,this_probe,this_probe)
+        self.semaphores_def += '#define %s_%s_semaphore %s_semaphore\n' % \
+            (self.provider,this_probe,this_probe)
         self.semaphores_def += '#endif\n'
-        self.semaphores_def += "__extension__ unsigned short %s_%s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % (self.provider,this_probe)
+        self.semaphores_def += "__extension__ unsigned short %s_%s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % \
+            (self.provider,this_probe)
     def semaphore_def_write(self, file):
         file.write(self.semaphores_def)
     def generate(self, provider, header, add_typedefs):
@@ -81,25 +88,28 @@ class provider:
                 arg = ""
                 i = 0
                 c = 0
-                self.semaphore_def_append (this_probe)
+                self.__semaphore_def_append (this_probe)
                 while (i < len(args)):
                     if (args[i:i+1] == ","):
-                        args_string = ('%s %s,' % (args_string, arg.strip()))
+                        args_string = ('%s %s,' %
+                                       (args_string, arg.strip()))
                         c += 1
-                        typedefs = self.typedef_append (typedefs,this_probe,arg,c)
+                        typedefs = self.__typedef_append (typedefs,this_probe,arg,c)
                         arg = ""
                     else:
                         arg = arg + args[i]
                     i += 1
                 if (i != 0):
                     args_string = ('%s %s' % (args_string, arg.strip()))
-                if (len(args_string) == 0):
+                if (not args_string):
                     c = 0
-                    stap_str = "STAP_PROBE(%s,%s" % (self.provider,this_probe)
+                    stap_str = "STAP_PROBE(%s,%s" % \
+                    (self.provider,this_probe)
                 else:
                     c += 1
-                    typedefs = self.typedef_append (typedefs,this_probe,arg,c)
-                    stap_str = "STAP_PROBE%d(%s,%s" % (c,self.provider,this_probe)
+                    typedefs = self.__typedef_append (typedefs,this_probe,arg,c)
+                    stap_str = "STAP_PROBE%d(%s,%s" % \
+                        (c,self.provider,this_probe)
                 define_str = "#define %s(" % (this_probe_canon)
                 i = 1
                 while (i <= c):
@@ -108,21 +118,26 @@ class provider:
                     define_str = define_str + "arg%s" % (i);
                     stap_str = stap_str + ",arg%s" % (i);
                     i += 1
-                self.h.write ('/* %s (%s) */\n' % (this_probe_canon,args_string))
-                self.h.write ('#if defined STAP_SDT_V1\n')
-                self.h.write ('#define %s_ENABLED() __builtin_expect (%s_semaphore, 0)\n' % (this_probe_canon,this_probe))
-                self.h.write ('#define %s_%s_semaphore %s_semaphore\n' % (self.provider,this_probe,this_probe))
-                self.h.write ('#else\n')
-                self.h.write ('#define %s_ENABLED() __builtin_expect (%s_%s_semaphore, 0)\n' % (this_probe_canon,self.provider,this_probe))
-                self.h.write ('#endif\n')
+                self.h.write('/* %s (%s) */\n' % \
+                                  (this_probe_canon,args_string))
+                self.h.write('#if defined STAP_SDT_V1\n')
+                self.h.write('#define %s_ENABLED() __builtin_expect (%s_semaphore, 0)\n' % \
+                                  (this_probe_canon,this_probe))
+                self.h.write('#define %s_%s_semaphore %s_semaphore\n' % \
+                                  (self.provider,this_probe,this_probe))
+                self.h.write('#else\n')
+                self.h.write('#define %s_ENABLED() __builtin_expect (%s_%s_semaphore, 0)\n' % \
+                                  (this_probe_canon,self.provider,this_probe))
+                self.h.write('#endif\n')
                 # NB: unsigned short is fixed in ABI
-                self.h.write ("__extension__ extern unsigned short %s_%s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % (self.provider,this_probe))
-                self.h.write (define_str + ") \\\n")
-                self.h.write (stap_str + ")\n\n")
+                self.h.write("__extension__ extern unsigned short %s_%s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % \
+                                  (self.provider,this_probe))
+                self.h.write(define_str + ") \\\n")
+                self.h.write(stap_str + ")\n\n")
             elif (line.find("}") != -1 and have_provider):
                 have_provider = False
         if (add_typedefs):
-            self.h.write (typedefs)
+            self.h.write(typedefs)
         self.h.close()
 
 
@@ -142,7 +157,7 @@ def help ():
     sys.exit(1)
 
 def open_file (arg):
-    if (len (sys.argv) <= arg):
+    if (len(sys.argv) <= arg):
         return False
     try:
         file = open(sys.argv[arg], 'r')
@@ -156,7 +171,7 @@ def open_file (arg):
 # main
 ########################################################################
 
-if (len (sys.argv) < 2):
+if (len(sys.argv) < 2):
     usage()
     sys.exit(1)
 
@@ -171,7 +186,7 @@ filename = ""
 s_filename = ""
 includes = []
 defines = []
-while (i < len (sys.argv)):
+while (i < len(sys.argv)):
     if (sys.argv[i] == "-o"):
         i += 1
         filename = sys.argv[i]
@@ -221,13 +236,13 @@ else:
     else:
         (filename,ext) = os.path.splitext(filename)
 if (build_header):
-    providers = provider()
+    providers = _provider()
     providers.generate(s_filename, filename + h_ext, add_typedefs)
 elif (build_source):
     (basename,ext) = os.path.splitext(s_filename)
 
     # create for semaphore_def_write
-    providers = provider()
+    providers = _provider()
     (d,fn) = mkstemp(suffix=".h")
     providers.generate(s_filename, fn, add_typedefs)
     if (not keep_temps):
@@ -242,7 +257,9 @@ elif (build_source):
     providers.semaphore_def_write(f)
     f.close()
     #print ["gcc", "-fPIC"] + defines + ["-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"]
-    call(["gcc", "-fPIC"] + defines + includes + ["-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"], shell=False)
+    call(["gcc", "-fPIC"] + defines + includes +
+         ["-I.", "-I@prefix@/include", "-g", "-c", fn, "-o",
+          filename + ".o"], shell=False)
     if (not keep_temps):
         os.remove(fn)
     else:
