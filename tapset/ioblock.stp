@@ -17,7 +17,7 @@
 function __bio_ino:long(bio:long)
 %{ /* pure */
     struct bio *bio = (struct bio *)(long)THIS->bio;
-    struct page *bv_page = bio? kread(&(bio->bi_io_vec[0].bv_page)) : NULL;
+    struct page *bv_page = (bio && bio->bi_vcnt) ? kread(&(bio->bi_io_vec[0].bv_page)) : NULL;
     struct address_space *mapping;
     struct inode *host;
     THIS->__retvalue = -1;
