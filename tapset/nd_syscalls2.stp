@@ -317,6 +317,8 @@ probe nd_syscall.personality.return = kprobe.function("sys_personality").return 
 # asmlinkage int
 # sys_pipe(unsigned long __user * fildes)
 #
+# FIXME: needs to handle sys_pipe2
+# FIXME: needs to support pipe0/pipe1
 probe nd_syscall.pipe =
 %( arch == "ia64" %?
                         kprobe.function("sys_ia64_pipe") ?,
@@ -324,6 +326,8 @@ probe nd_syscall.pipe =
                         kprobe.function("sys_pipe") ?
 {
 	name = "pipe"
+	flags = 0
+	flag_str = ""
 %( arch == "ia64" %?
 # ia64 just returns value directly, so fake the arguments
 	fildes_uaddr = 0
@@ -337,6 +341,8 @@ probe nd_syscall.pipe =
 %)
 }
 
+# FIXME: needs to handle sys_pipe2.return
+# FIXME: needs to support pipe0/pipe1
 probe nd_syscall.pipe.return =
 %( arch == "ia64" %?
                                kprobe.function("sys_ia64_pipe").return ?,
@@ -562,7 +568,15 @@ probe nd_syscall.pselect7.return = kprobe.function("sys_pselect7").return ?
 	name = "pselect7"
 	retstr = returnstr(1)
 }
-probe nd_syscall.compat_pselect7a = kprobe.function("compat_sys_pselect7") ?
+# Through a typo, 'compat_pselect7' was misnamed as
+# 'compat_pselect7a' (notice the trailing 'a').  The old name is
+# deprecated.  To use the old name without changing your script, use
+# the '--compatible 1.4' stap option.
+probe
+%( systemtap_v <= "1.4"
+	%? nd_syscall.compat_pselect7a %: nd_syscall.compat_pselect7
+%) =
+		kernel.function("compat_sys_pselect7").call ?
 {
 	name = "pselect7"
 	//argstr = sprintf("%d, %p, %p, %p, %s, %p, %d", $n, $inp, $outp, $exp,
@@ -999,6 +1013,7 @@ probe nd_syscall.compat_sys_recvmsg = kprobe.function("compat_sys_recvmsg") ?
 	s = int_arg(1)
 	msg_uaddr = pointer_arg(2)
 	flags = uint_arg(3)
+	flags_str = _recvflags_str(flags)
 	argstr = sprintf("%d, %p, %s", s, msg_uaddr, _recvflags_str(flags))
 }
 probe nd_syscall.compat_sys_recvmsg.return = kprobe.function("compat_sys_recvmsg").return ?
@@ -1533,9 +1548,7 @@ probe nd_syscall.sched_rr_get_interval.return = kprobe.function("sys_sched_rr_ge
 # long sys_sched_setaffinity(pid_t pid,
 #	unsigned int len,
 #	unsigned long __user *user_mask_ptr)
-# FIXME: why the problem with x86_64?
 #
-%( arch != "x86_64" %?
 probe nd_syscall.sched_setaffinity = kprobe.function("sys_sched_setaffinity") ?
 {
 	name = "sched_setaffinity"
@@ -1549,21 +1562,6 @@ probe nd_syscall.sched_setaffinity = kprobe.function("sys_sched_setaffinity") ?
 	mask_uaddr = pointer_arg(3)
 	argstr = sprintf("%d, %d, %p", pid, len, mask_uaddr)
 }
-%:
-probe nd_syscall.sched_setaffinity = kprobe.function("sys_sched_setaffinity") ?
-{
-	name = "sched_setaffinity"
-	// pid = $pid
-	// len = 0
-	// mask_uaddr = $user_mask_ptr
-	// argstr = sprintf("%d, <unknown>, %p", $pid, $user_mask_ptr)
-	asmlinkage()
-	pid = int_arg(1)
-	len = 0
-	mask_uaddr = pointer_arg(3)
-	argstr = sprintf("%d, <unknown>, %p", pid, mask_uaddr)
-}
-%)
 probe nd_syscall.sched_setaffinity.return = kprobe.function("sys_sched_setaffinity").return ?
 {
 	name = "sched_setaffinity"
@@ -1728,8 +1726,14 @@ probe nd_syscall.semctl.return = kprobe.function("sys_semctl").return ?
 probe nd_syscall.compat_sys_semctl = kprobe.function("compat_sys_semctl") ?
 {
 	name = "compat_sys_semctl"
+	// semid = $first
+	// semnum = $second
+	// cmd = $third
 	// argstr = sprintf("%d, %d, %d, %p", $first, $second, $third, $uptr)
 	// NB: no asmlinkage()
+	semid = int_arg(1)
+	semnum = int_arg(2)
+	cmd =  int_arg(3)
 	argstr = sprintf("%d, %d, %d, %p", int_arg(1), int_arg(2), int_arg(3), pointer_arg(4))
 }
 probe nd_syscall.compat_sys_semctl.return = kprobe.function("compat_sys_semctl").return ?
@@ -1940,11 +1944,13 @@ probe nd_syscall.compat_sys_sendmsg = kprobe.function("compat_sys_sendmsg") ?
 	// s = $fd
 	// msg_uaddr = $msg
 	// flags = $flags
+	// flags_str = _sendflags_str($flags)
 	// argstr = sprintf("%d, %p, %s", $fd, $msg, _sendflags_str($flags))
 	asmlinkage()
 	s = int_arg(1)
 	msg_uaddr = pointer_arg(2)
 	flags = uint_arg(3)
+	flags_str = _sendflags_str(flags)
 	argstr = sprintf("%d, %p, %s", s, msg_uaddr, _sendflags_str(flags))
 }
 probe nd_syscall.compat_sys_sendmsg.return = kprobe.function("compat_sys_sendmsg").return ?
@@ -2876,11 +2882,13 @@ probe nd_syscall.signal.return = kprobe.function("sys_signal").return ?
 # long compat_sys_signalfd(int ufd, const compat_sigset_t __user *sigmask,
 # 		 compat_size_t sigsetsize)
 #
+# FIXME: should prefer sys_signalfd4
 probe nd_syscall.signalfd = kprobe.function("sys_signalfd") ?
 {
 	name = "signalfd"
 	// argstr = sprintf("%d, %p, %d", $ufd, $user_mask, $sizemask)
 	asmlinkage()
+	flags = 0
 	argstr = sprintf("%d, %p, %d", int_arg(1), pointer_arg(2), ulong_arg(3))
 }
 probe nd_syscall.signalfd.return = kprobe.function("sys_signalfd").return ?
@@ -2888,11 +2896,13 @@ probe nd_syscall.signalfd.return = kprobe.function("sys_signalfd").return ?
 	name = "signalfd"
 	retstr = returnstr(1)
 }
+# FIXME: should prefer compat_sys_signalfd4()
 probe nd_syscall.compat_signalfd = kprobe.function("compat_sys_signalfd") ?
 {
 	name = "compat_signalfd"
 	// argstr = sprintf("%d, %p, %d", $ufd, $sigmask, $sigsetsize)
 	asmlinkage()
+	flags = 0
 	argstr = sprintf("%d, %p, %d", int_arg(1), pointer_arg(2), u32_arg(3))
 }
 probe nd_syscall.compat_signalfd.return = kprobe.function("compat_sys_signalfd").return ?
@@ -3896,10 +3906,12 @@ probe nd_syscall.ustat32 = kprobe.function("sys32_ustat") ?
 {
 	name = "ustat"
 	// dev = $dev
-	// argstr = sprintf("%d, %p", $dev, $u32p)
+	// ubuf_uaddr = (@defined($u) ? $u : $u32p)
+	// argstr = sprintf("%d, %p", $dev, (@defined($u) ? $u : $u32p))
 	// no asmlinkage
 	dev = uint_arg(1)
-	argstr = sprintf("%d, %p", dev, pointer_arg(2))
+	ubuf_uaddr = pointer_arg(2)
+	argstr = sprintf("%d, %p", dev, ubuf_uaddr)
 }
 # Since 2.6.30 sys32_ustat is called compat_sys_ustat and is now asmlinkage.
 #asmlinkage long compat_sys_ustat(unsigned dev, struct compat_ustat __user *u)
@@ -3907,11 +3919,13 @@ probe nd_syscall.ustat32 = kprobe.function("compat_sys_ustat") ?
 {
 	name = "ustat"
 	// dev = $dev
-	// argstr = sprintf("%d, %p", $dev, $u)
+	// ubuf_uaddr = (@defined($u) ? $u : $u32p)
+	// argstr = sprintf("%d, %p", $dev, (@defined($u) ? $u : $u32p))
 	// asmlinkage
 	asmlinkage()
 	dev = uint_arg(1)
-	argstr = sprintf("%d, %p", dev, pointer_arg(2))
+	ubuf_uaddr = pointer_arg(2)
+	argstr = sprintf("%d, %p", dev, ubuf_uaddr)
 }
 
 probe nd_syscall.ustat.return = kprobe.function("sys_ustat").return ?,

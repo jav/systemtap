@@ -1401,10 +1401,20 @@ In the 'syscall.add_key' probe, the 'description_auddr' variable
 has been deprecated in favor of the new 'description_uaddr'
 variable.
 .IP
-In the 'syscall.fgetxattr', 'syscall.fsetxattr',
-\'syscall.getxattr', 'syscall.lgetxattr', and
-\'syscall.lremovexattr' probes, the 'name2' variable has been
+In the 'syscall.fgetxattr', 'syscall.fsetxattr', 'syscall.getxattr',
+\'syscall.lgetxattr', 'syscall.lremovexattr', 'nd_syscall.fgetxattr',
+\'nd_syscall.fremovexattr', 'nd_syscall.fsetxattr', 'nd_syscall.getxattr',
+and 'nd_syscall.lremovexattr' probes, the 'name2' variable has been
 deprecated in favor of the new 'name_str' variable.
+.IP
+In the 'nd_syscall.accept' probe the 'flag_str' variable
+has been deprecated in favor of the new 'flags_str' variable.
+.IP
+In the 'nd_syscall.dup' probe the 'old_fd' variable has been
+deprecated in favor of the new 'oldfd' variable.
+.IP
+The tapset alias 'nd_syscall.compat_pselect7a' was misnamed.  It should
+have been 'nd_syscall.compat_pselect7' (without the trailing 'a').
 .\" e.g. tapset_function()
 .\" e.g. post-incrementing a frobozz in a while loop
 

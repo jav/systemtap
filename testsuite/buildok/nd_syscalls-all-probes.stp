@@ -1,0 +1,11 @@
+#! stap -wp4
+
+probe nd_syscall.*
+{
+	printf("%s (%s)\n", name, argstr)
+}
+
+probe nd_syscall.*.return
+{
+	printf("%s\n", retstr)
+}
