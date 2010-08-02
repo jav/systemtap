@@ -1077,6 +1077,8 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
       pair<set<int>::iterator,bool> line_probed;
       int ret = 0;
 
+      if (pending_interrupts) break;
+
       ret = dwarf_getsrc_file (module_dwarf, srcfile, l, 0,
 					 &srcsp, &nsrcs);
       if (ret != 0) /* tolerate invalid line number */
