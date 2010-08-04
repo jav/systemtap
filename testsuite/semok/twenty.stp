@@ -1,7 +1,7 @@
 #! /bin/sh
 
 set -e
-: stap -wp2 -e '
+stap -wp2 -e '
 probe kernel.function("*") {}
 probe module("*").function("*") {}
 probe kernel.function("*").call {}
