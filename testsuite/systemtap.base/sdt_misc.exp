@@ -22,6 +22,7 @@ switch -regexp $::tcl_platform(machine) {
 }
 
 proc cleanup_handler { verbose } {
+    global pbtype_mssgs
     if { $verbose == 0 } {
 	foreach x $pbtype_mssgs {
 	    catch {exec rm -f libsdt_${x}.so libsdt_${x}_shared.so sdt_misc_${x}.x sdt_misc_${x}_loop.x sdt_misc_${x}_shared.x sdt_misc_${x}_loop_shared.x sdt_misc_${x}.x sdt_misc_${x}_compatibility.x sdt_misc_${x}_types.x libsdt_${x}_loop.so }
