@@ -60,7 +60,7 @@ function print_stack(stk:string) %{
  * truncated to MAXSTRINGLEN, to print fuller and richer stacks use
  * print_stack.
  */
-function sprint_stack:string(stk:string) %{
+function sprint_stack:string(stk:string) %{ /* pure */
 	char *ptr = THIS->stk;
 	char *tok = strsep(&ptr, " ");
 	char *str = THIS->__retvalue;

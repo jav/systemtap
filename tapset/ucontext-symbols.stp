@@ -95,7 +95,7 @@ function print_ustack(stk:string) %{
  * truncated to MAXSTRINGLEN, to print fuller and richer stacks use
  * print_ustack.
  */
-function sprint_ustack:string(stk:string) %{
+function sprint_ustack:string(stk:string) %{ /* pure */
 	char *ptr = THIS->stk;
 	char *tok = strsep(&ptr, " ");
 	char *str = THIS->__retvalue;
