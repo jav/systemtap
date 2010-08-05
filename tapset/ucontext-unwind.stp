@@ -67,8 +67,8 @@ function print_ubacktrace () %{
  * but more efficient (no need to translate between hex strings and
  * final backtrace string).
  */
-function sprint_ubacktrace () %{
-/* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
+function sprint_ubacktrace:string () %{
+/* pure */ /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
   assert_is_myproc();
 
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
