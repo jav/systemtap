@@ -52,7 +52,7 @@ function print_backtrace () %{
  * but more efficient (no need to translate between hex strings and
  * final backtrace string).
  */
-function sprint_backtrace () %{
+function sprint_backtrace:string () %{ /* pure */
 	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG))
 		_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
 				   _STP_SYM_SIMPLE, CONTEXT->regs,
