@@ -70,6 +70,18 @@ get_file_size(const string &path)
 }
 
 // Get the size of a file in bytes
+size_t
+get_file_size(int fd)
+{
+  struct stat file_info;
+
+  if (fstat(fd, &file_info) == 0)
+    return file_info.st_size;
+  else
+    return 0;
+}
+
+// Check that a file is present
 bool
 file_exists (const string &path)
 {

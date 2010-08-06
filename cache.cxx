@@ -114,7 +114,8 @@ get_stapconf_from_cache(systemtap_session& s)
     }
 
   // Copy the stapconf header file to the destination
-  if (!copy_file(s.stapconf_path, stapconf_dest_path))
+  if (!get_file_size(fd_stapconf) ||
+      !copy_file(s.stapconf_path, stapconf_dest_path))
     {
       close(fd_stapconf);
       return false;
@@ -163,8 +164,10 @@ get_script_from_cache(systemtap_session& s)
       return false;
     }
 
-  // Copy the cached C file to the destination
-  if (!copy_file(c_src_path, s.translated_source))
+  // Check that the files aren't empty, and then
+  // copy the cached C file to the destination
+  if (!get_file_size(fd_module) || !get_file_size(fd_c) ||
+      !copy_file(c_src_path, s.translated_source))
     {
       close(fd_module);
       close(fd_c);
