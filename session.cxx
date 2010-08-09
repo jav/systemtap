@@ -346,10 +346,8 @@ systemtap_session::usage (int exitcode)
     << "              instead of " << compatible << endl
     << "   --skip-badvars" << endl
     << "              substitute zero for bad context $variables" << endl
-#if HAVE_NSS
     << "   --use-server[=SERVER-SPEC]" << endl
-    << "              compile using a systemtap compile-server" << endl
-#endif
+    << "              specify systemtap compile-servers" << endl
 #if HAVE_NSS || HAVE_AVAHI
     << "   --list-servers[=PROPERTIES]" << endl
     << "              report on the status of the specified compile-servers" << endl
@@ -873,11 +871,6 @@ systemtap_session::check_options (int argc, char * const argv [])
 #if ! HAVE_NSS
   if (client_options)
     cerr << "WARNING: --client-options is not supported by this version of systemtap" << endl;
-  if (! specified_servers.empty ())
-    {
-      cerr << "WARNING: --use-server is not supported by this version of systemtap" << endl;
-      specified_servers.clear ();
-    }
 #endif
 
 #if ! HAVE_NSS && ! HAVE_AVAHI

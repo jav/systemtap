@@ -341,12 +341,15 @@ function check_cert {
 #
 # Advertise the availability of the server on the network.
 function advertise_presence {
-    # Build up a strings representing our server's properties.
+    # Build up a string representing our server's properties.
     # The service name must differ for each server, so put the port number
     # in it.
     service_name="Systemtap Compile Server on port $port"
 
+    # Target kernel and arch information
     local sysinfo="sysinfo=$uname_r $arch"
+
+    # Invocation option information
     local optinfo="optinfo="
     test -n "$R_option" && optinfo="${optinfo}-R '$R_option'"
     for opt in $B_options; do
@@ -357,9 +360,15 @@ function advertise_presence {
     done
     optinfo=`echo $optinfo | sed 's/optinfo= /optinfo=/'`
 
+    # Certificate information
+    certinfo="certinfo=`certutil -L -n $nss_cert -d $ssl_db | \
+	                awk '{if (print_next == 1) {print $1; print_next = 0}};\
+	                /Serial Number/ {print_next = 1}'`"
+
     # Call avahi-publish-service to advertise our presence.
     avahi-publish-service "$service_name" \
-	$stap_avahi_service_tag $port "$sysinfo" "$optinfo" >> $logfile 2>&1 &
+	$stap_avahi_service_tag $port "$sysinfo" "$optinfo" "$certinfo" \
+        >> $logfile 2>&1 &
 }
 
 # function: listen

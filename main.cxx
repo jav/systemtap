@@ -419,8 +419,12 @@ passes_0_4 (systemtap_session &s)
   // Perform passes 0 through 4 using a compile server?
   if (! s.specified_servers.empty ())
     {
+#if HAVE_NSS
       compile_server_client client (s);
       return client.passes_0_4 ();
+#else
+      cerr << "WARNING: Compiliation using a compile-server is not supported by this version of systemtap" << endl;
+#endif
     }
 
   // PASS 0: setting up
