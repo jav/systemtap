@@ -58,7 +58,7 @@ OPTS=
 OPT_ASSUMEYES=
 
 echo_usage () {
-  echo $"Usage: $prog {start|stop|restart|status|compile|cleanup} [option]"
+  echo $"Usage: $prog {start|stop|status|restart|compile|cleanup|condrestart|try-restart|reload|force-reload} [option]"
   echo $"Options:"
   echo $"	-c configfile	: specify config file"
   echo $"	-r kernelrelease: specify kernel release version"
@@ -478,14 +478,15 @@ start_script () { # script
 }
 
 start () {
-  local scripts s ret
+  local start_scripts s ret
   clog $"Starting $prog: " -n
 
+  start_scripts=$SCRIPTS
   if [ -n "$DEFAULT_START" -a -z "$OPT_SCRIPTS" ]; then
-    SCRIPTS="$DEFAULT_START"
+    start_scripts="$DEFAULT_START"
   fi
 
-  if [ -z "$SCRIPTS" ]; then
+  if [ -z "$start_scripts" ]; then
     do_warning $"No scripts exist."
     return 5 # program is not installed
   fi
@@ -502,13 +503,13 @@ start () {
   fi
 
   if [ $RECURSIVE -eq 1 ]; then
-    SCRIPTS=`sort_dependency $SCRIPTS`
+    start_scripts=`sort_dependency $start_scripts`
     if [ $? -ne 0 ]; then
       do_failure $"Failed to sort dependency"
       return 6 # program is not configured
     fi
   fi
-  for s in $SCRIPTS; do
+  for s in $start_scripts; do
     start_script "$s"
     ret=$?
     if [ $ret -ne 0 ]; then
@@ -538,17 +539,18 @@ stop_script () { # script
 }
 
 stop () {
-  local s sl=
+  local stop_scripts s sl=
   clog $"Stopping $prog: " -n
-  [ -z "$OPT_SCRIPTS" ] && SCRIPTS=`get_all_runnings`
+  stop_scripts=$SCRIPTS
+  [ -z "$OPT_SCRIPTS" ] && stop_scripts=`get_all_runnings`
   if [ $RECURSIVE -eq 1 ]; then
-    SCRIPTS=`sort_dependency $SCRIPTS`
+    stop_scripts=`sort_dependency $stop_scripts`
     if [ $? -ne 0 ]; then
       do_failure $"Failed to sort dependency"
       return 6 # program is not configured
     fi
   fi
-  for s in $SCRIPTS; do
+  for s in $stop_scripts; do
     sl="$s $sl"
   done
   for s in $sl; do
@@ -559,15 +561,16 @@ stop () {
   return 0
 }
 
-status () {
-  local s pid ret r
-  [ -z "$SCRIPTS" ] && SCRIPTS=`get_all_runnings`
+rh_status () {
+  local status_scripts s pid ret r
+  status_scripts=$SCRIPTS
+  [ -z "$status_scripts" ] && status_scripts=`get_all_runnings`
   ret=3
-  if [ -z "$SCRIPTS" ] ; then
+  if [ -z "$status_scripts" ] ; then
     echo "No systemtap scripts are present"
     return $ret
   fi
-  for s in $SCRIPTS; do
+  for s in $status_scripts; do
     check_running $s
     r=$?
     [ $ret -ne 0 ] && ret=$r
@@ -581,6 +584,11 @@ status () {
     esac
   done
   return $ret
+}
+
+rh_status_q () {
+  rh_status >/dev/null 2>&1
+  return $?
 }
 
 compile () {
@@ -636,9 +644,8 @@ cleanup () {
 
 # Restart scripts
 function restart () {
-  [ -z "$OPT_SCRIPTS" ] && SCRIPTS=`get_all_runnings`
-  [ "$SCRIPTS" ] && stop
-  echo
+  stop
+  echo					# we need a newline
   start
   return $?
 }
@@ -654,12 +661,12 @@ case $CMD in
   stop
   RETVAL=$?
   ;;
-  restart|force-reload)
+  restart|force-reload|reload)
   restart
   RETVAL=$?
   ;;
   status)
-  status
+  rh_status
   exit $?
   ;;
   compile)
@@ -668,6 +675,11 @@ case $CMD in
   ;;
   cleanup)
   cleanup
+  RETVAL=$?
+  ;;
+  condrestart|try-restart)
+  rh_status_q || exit 0
+  restart
   RETVAL=$?
   ;;
   *)
