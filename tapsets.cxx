@@ -819,7 +819,9 @@ dwarf_query::query_module_dwarf()
 
       // For simple cases, no wildcard and no source:line, we can do a very
       // quick function lookup in a module-wide cache.
-      if (spec_type == function_alone && !dw.name_has_wildcard(function))
+      if (spec_type == function_alone &&
+          !dw.name_has_wildcard(function) &&
+          !startswith(function, "_Z"))
         query_module_functions();
       else
         dw.iterate_over_cus(&query_cu, this);
@@ -1067,7 +1069,7 @@ bad:
 
 
 void
-dwarf_query::add_probe_point(const string& funcname,
+dwarf_query::add_probe_point(const string& dw_funcname,
 			     const char* filename,
 			     int line,
 			     Dwarf_Die* scope_die,
@@ -1076,10 +1078,19 @@ dwarf_query::add_probe_point(const string& funcname,
   string reloc_section; // base section for relocation purposes
   Dwarf_Addr reloc_addr; // relocated
   const string& module = dw.module_name; // "kernel" or other
+  string funcname = dw_funcname;
 
   assert (! has_absolute); // already handled in dwarf_builder::build()
 
   reloc_addr = dw.relocate_address(addr, reloc_section);
+
+  // If we originally used the linkage name, then let's call it that way
+  Dwarf_Attribute attr_mem;
+  const char* linkage_name;
+  if (scope_die && startswith (this->function, "_Z")
+      && dwarf_attr_integrate (scope_die, DW_AT_MIPS_linkage_name, &attr_mem)
+      && (linkage_name = dwarf_formstring (&attr_mem)))
+    funcname = linkage_name;
 
   if (sess.verbose > 1)
     {
@@ -5887,6 +5898,11 @@ module_info::update_symtab(cu_function_cache_t *funcs)
       // optimization: inlines will never be in the symbol table
       if (dwarf_func_inline(&func->second) != 0)
         continue;
+
+      // XXX We may want to make additional efforts to match mangled elf names
+      // to dwarf too.  MIPS_linkage_name can help, but that's sometimes
+      // missing, so we may also need to try matching by address.  See also the
+      // notes about _Z in dwflpp::iterate_over_functions().
 
       func_info *fi = sym_table->lookup_symbol(func->first);
       if (!fi)

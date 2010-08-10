@@ -838,6 +838,32 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
           if (rc != DWARF_CB_OK) break;
         }
     }
+  else if (startswith(function, "_Z"))
+    {
+      // C++ names are mangled starting with a "_Z" prefix.  Most of the time
+      // we can discover the mangled name from a die's MIPS_linkage_name
+      // attribute, so we read that to match against the user's function
+      // pattern.  Note that this isn't perfect, as not all will have that
+      // attribute (notably ctors and dtors), but we do what we can...
+      for (it = v->begin(); it != v->end(); ++it)
+        {
+          if (pending_interrupts) return DWARF_CB_ABORT;
+          Dwarf_Die& die = it->second;
+          const char* linkage_name;
+          Dwarf_Attribute attr_mem;
+          if (dwarf_attr_integrate (&die, DW_AT_MIPS_linkage_name, &attr_mem)
+              && (linkage_name = dwarf_formstring (&attr_mem))
+              && function_name_matches_pattern (linkage_name, function))
+            {
+              if (sess.verbose > 4)
+                clog << "function cache " << module_name << ":" << cu_name()
+                     << " match " << linkage_name << " vs " << function << endl;
+
+              rc = (*callback)(& die, q);
+              if (rc != DWARF_CB_OK) break;
+            }
+        }
+    }
   else if (name_has_wildcard (function))
     {
       for (it = v->begin(); it != v->end(); ++it)
@@ -856,7 +882,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
             }
         }
     }
-  else // not a wildcard and no match in this CU
+  else // not a linkage name or wildcard and no match in this CU
     {
       // do nothing
     }
