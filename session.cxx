@@ -78,6 +78,9 @@ systemtap_session::systemtap_session ():
   // PR4186: Copy logic from coreutils uname (uname -i) to squash
   // i?86->i386.  Actually, copy logic from linux top-level Makefile
   // to squash uname -m -> $(SUBARCH).
+  //
+  // This logic needs to match the logic in the stap_get_arch shell
+  // function in stap-env.
 
   machine = buf.machine;
   if (machine == "i486") machine = "i386";
