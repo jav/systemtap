@@ -12,5 +12,7 @@
 # Where to log messages
 # LOG_FILE=/var/log/stap-server/log
 
-# The user who will run the server(s)
+# The user who will run the server(s).  The default for the initscript
+# is the 'stap-server' user, otherwise the user running the
+# 'stap-server' script.
 # STAP_USER=stap-server
