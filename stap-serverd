@@ -51,7 +51,7 @@ function initialization {
     # Parse the arguments
     parse_options "$@"
 
-    echo ===== compile server pid $$ started >> $logfile
+    echo ===== compile server pid $$ starting >> $logfile
 
     # What port will we listen on?
     test "X$port" = "X" && port=$((1024+$RANDOM%64000))
@@ -69,6 +69,10 @@ function initialization {
 
     nss_pw=$ssl_db/pw
     nss_cert=stap-server
+
+    # Ensure that our certificate is valid. Generate a new one if
+    # not.
+    check_cert
 }
 
 # function: parse_options [ STAP-OPTIONS ]
@@ -307,7 +311,7 @@ function check_cert {
 	echo "Certificate found in database $ssl_db" >> $logfile
 	certutil -L -d "$ssl_db" -n $nss_cert | \
 	    awk '/Validity|Not After|Not Before/ { print $0 }' | \
-	    sed 's/^ */  /' >> $logfile
+	    sed 's/^ */  /' >> $logfile 2>&1
     fi
 
     # If the certificate does not exist or the certificate
@@ -363,7 +367,7 @@ function advertise_presence {
     # Certificate information
     certinfo="certinfo=`certutil -L -n $nss_cert -d $ssl_db | \
 	                awk '{if (print_next == 1) {print $1; print_next = 0}};\
-	                /Serial Number/ {print_next = 1}'`"
+	                /Serial Number/ {print_next = 1}'`" 2>>$logfile
 
     # Call avahi-publish-service to advertise our presence.
     avahi-publish-service "$service_name" \
@@ -379,10 +383,6 @@ function listen {
     # accepting requests.
     # CVE-2009-4273 ... or at least, until resource limits fire
     while true; do # NB: loop to avoid DoS by deliberate rlimit-induced halt
-	# Ensure that our certificate is valid. Generate a new one if
-	# not.
-	check_cert
-
         # NB: impose resource limits in case of mischevious data inducing
         # too much / long computation
         (test $set_ulimits = 1 && ulimit -f 50000 -s 1000 -t 60 -u 20 -v 500000;
@@ -392,6 +392,10 @@ function listen {
         stap_server_connect_pid=$!
 	echo "$service_name ready"
         wait $stap_server_connect_pid
+
+	# Ensure that our certificate is still valid. Generate a new one if
+	# not.
+	check_cert
 
         # NB: avoid superfast spinning in case of a ulimit or other failure
         sleep 1
