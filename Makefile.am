@@ -13,18 +13,18 @@ AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 
 man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
-dtrace.1 \
+dtrace.1 stap-merge.1\
 stappaths.7 \
 staprun.8
 
-bin_PROGRAMS = staprun
+bin_PROGRAMS = staprun stap-merge
 bin_SCRIPTS = stap-report
 pkglibexec_PROGRAMS = stapio
 pkglibexec_SCRIPTS = stap-env
 oldinclude_HEADERS = includes/sys/sdt.h
 
 if BUILD_TRANSLATOR
-bin_PROGRAMS += stap
+bin_PROGRAMS += stap 
 man_MANS += stap.1
 bin_SCRIPTS += dtrace
 
@@ -182,6 +182,10 @@ stapio_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-builtin-strft
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_LDADD = -lpthread
 
+stap_merge_SOURCES = runtime/staprun/stap_merge.c
+stap_merge_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@
+stap_merge_LDFLAGS = $(AM_LDFLAGS) @PIECFLAGS@
+stap_merge_LDADD = 
 
 install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi

@@ -105,19 +105,19 @@ int main (int argc, char *argv[])
 			if (verbose)
 				fprintf(stdout, "[CPU:%d, seq=%ld, length=%d]\n", j, min, len);
 			if (len > bufsize) {
-				bufsize = len * 2;
+				bufsize = len;
 				if (verbose) fprintf(stderr, "reallocating %d bytes\n", bufsize);
 				buf = realloc(buf, bufsize);
 				if (buf == NULL) {
-					fprintf(stderr, "Memory allocation failed.\n");
+					fprintf(stderr, "Memory allocation failed.\n");	
 					exit(-2);
 				}
 			}
-			if ((rc = fread(buf, len, 1, fp[j]) <= 0)) {
+			if ((rc = fread(buf, len, 1, fp[j])) <= 0 ) {
 				fprintf(stderr, "fread error: got %d\n", rc);
 				exit(-3);
 			}
-			if ((rc = fwrite(buf, len, 1, ofp)) <= 0) {
+			if ((rc = fwrite(buf, len, 1, ofp)) <= 0 ) {
 				fprintf(stderr, "fread error: got %d\n", rc);
 				exit(-3);
 			}
