@@ -22,6 +22,7 @@
 #include <map>
 #include <string>
 #include <fstream>
+#include <cassert>
 
 extern "C" {
 #include <fcntl.h>
@@ -168,7 +169,7 @@ error:
 
 // Make sure a directory exists.
 int
-create_dir(const char *dir)
+create_dir(const char *dir, int mode)
 {
   struct stat st;
   if (stat(dir, &st) == 0)
@@ -179,8 +180,24 @@ create_dir(const char *dir)
       return 1;
     }
 
-  if (mkdir(dir, 0777) != 0 && errno != EEXIST)
-    return 1;
+  // Create the directory. We must create each component
+  // of the path ourselves.
+  vector<string> components;
+  tokenize (dir, components, "/");
+  string path;
+  if (*dir == '/')
+    {
+      // Absolute path
+      path = "/";
+    }
+  unsigned limit = components.size ();
+  assert (limit != 0);
+  for (unsigned ix = 0; ix < limit; ++ix)
+    {
+      path += components[ix] + '/';
+      if (mkdir(path.c_str (), mode) != 0 && errno != EEXIST)
+	return 1;
+    }
 
   return 0;
 }

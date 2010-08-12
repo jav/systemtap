@@ -12,7 +12,7 @@ size_t get_file_size(int fd);
 bool file_exists (const std::string &path);
 bool copy_file(const std::string& src, const std::string& dest,
                bool verbose=false);
-int create_dir(const char *dir);
+int create_dir(const char *dir, int mode = 0777);
 int remove_file_or_dir(const char *dir);
 bool in_group_id (gid_t target_gid);
 std::string getmemusage ();
