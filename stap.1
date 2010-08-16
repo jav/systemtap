@@ -209,9 +209,9 @@ a specific process.
 .TP
 .BI \-l " PROBE"
 Instead of running a probe script, just list all available probe
-points matching the given pattern.  The pattern may include wildcards
-and aliases.  The process result code will indicate failure if there
-are no matches.
+points matching the given single probe point.  The pattern may include
+wildcards and aliases, but not comma-separated multiple probe points.
+The process result code will indicate failure if there are no matches.
 .TP
 .BI \-L " PROBE"
 Similar to "-l", but list probe points and script-level local variables.
