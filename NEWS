@@ -1,7 +1,8 @@
 * What's new in version 1.4
 
-- Several misnamed syscall probe convenience variables have been
-  deprecated:
+- Starting in release 1.5, these old variables/functions will be deprecated
+  and will only be available when the '--compatible=1.4' flag is used:
+
   - In the 'syscall.add_key' probe, the 'description_auddr' variable
     has been deprecated in favor of the new 'description_uaddr'
     variable.
@@ -9,12 +10,6 @@
     'syscall.getxattr', 'syscall.lgetxattr', and
     'syscall.lremovexattr' probes, the 'name2' variable has been
     deprecated in favor of the new 'name_str' variable.
-
-  Starting in release 1.5, the old variables will be deprecated and
-  will only be available when the '--compatible=1.4' flag is used.
-
-- Several misnamed nd_syscall probe convenience variables have been
-  deprecated:
   - In the 'nd_syscall.accept' probe the 'flag_str' variable
     has been deprecated in favor of the new 'flags_str' variable.
   - In the 'nd_syscall.dup' probe the 'old_fd' variable has been
@@ -23,14 +18,10 @@
     'nd_syscall.fsetxattr', 'nd_syscall.getxattr', and
     'nd_syscall.lremovexattr' probes, the 'name2' variable has been 
     deprecated in favor of the new 'name_str' variable.
-
-  Starting in release 1.5, the old variables will be deprecated and
-  will only be available when the '--compatible=1.4' flag is used.
-
-- The tapset alias 'nd_syscall.compat_pselect7a' was misnamed.  It should
-  have been 'nd_syscall.compat_pselect7' (without the trailing 'a').
-  Starting in release 1.5, the old name will be deprecated and
-  will only be available when the '--compatible=1.4' flag is used.
+  - The tapset alias 'nd_syscall.compat_pselect7a' was misnamed.  It should
+    have been 'nd_syscall.compat_pselect7' (without the trailing 'a').
+  - The tapset function 'cpuid' is deprecated in favor of the better known 
+    'cpu'.
 
 * What's new in version 1.3, 2010-07-21
 
