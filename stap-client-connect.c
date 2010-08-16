@@ -386,9 +386,11 @@ do_connect(
   if (secStatus != SECSuccess)
     goto done;
 
-  secStatus = handle_connection(sslSocket, infileName, outfileName);
-  if (secStatus != SECSuccess)
-    goto done;
+  /* If we don't have both the input and output file names, then we're
+     contacting this server only in order to establish trust. No need to
+     handle the connection in this case.  */
+  if (infileName && outfileName)
+    secStatus = handle_connection(sslSocket, infileName, outfileName);
 
  done:
   prStatus = PR_Close(sslSocket);
@@ -397,7 +399,8 @@ do_connect(
 
 int
 client_main (const char *hostName, unsigned short port,
-	     const char* infileName, const char* outfileName)
+	     const char* infileName, const char* outfileName,
+	     const char* trustNewServer)
 {
   SECStatus   secStatus;
   PRStatus    prStatus;
@@ -408,6 +411,8 @@ client_main (const char *hostName, unsigned short port,
   char        buffer[PR_NETDB_BUF_SIZE];
   int         attempt;
   int errCode = GENERAL_ERROR;
+
+  trustNewServer_p = trustNewServer;
 
   /* Setup network connection. */
   prStatus = PR_GetHostByName(hostName, buffer, sizeof (buffer), &hostEntry);
@@ -526,7 +531,7 @@ main(int argc, char **argv)
   /* All cipher suites except RSA_NULL_MD5 are enabled by Domestic Policy. */
   NSS_SetDomesticPolicy();
 
-  client_main (hostName, port, infileName, outfileName);
+  client_main (hostName, port, infileName, outfileName, trustNewServer_p);
 
   NSS_Shutdown();
   PR_Cleanup();

@@ -86,6 +86,11 @@ private:
 // Utility functions
 void query_server_status (systemtap_session &s);
 void query_server_status (systemtap_session &s, const std::string &status_string);
+void manage_server_trust (systemtap_session &s);
+
+void add_server_trust (systemtap_session &s, const std::string &cert_db_path, const std::vector<compile_server_info> &server_list);
+void revoke_server_trust (systemtap_session &s, const std::string &cert_db_path, const std::vector<compile_server_info> &server_list);
+
 void get_server_info (systemtap_session &s, int pmask, std::vector<compile_server_info> &servers);
 void get_all_server_info (systemtap_session &s, std::vector<compile_server_info> &servers);
 void get_default_server_info (systemtap_session &s, std::vector<compile_server_info> &servers);

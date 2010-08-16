@@ -152,6 +152,7 @@ struct systemtap_session
   std::string client_options_disallowed;
   std::vector<std::string> server_status_strings;
   std::vector<std::string> specified_servers;
+  std::string server_trust_spec;
   std::vector<std::string> server_args;
   std::string winning_server;
 

@@ -855,11 +855,14 @@ main (int argc, char * const argv [])
   // If requested, query server status. This is independent of other tasks.
   query_server_status (s);
 
+  // If requested, manage trust of servers. This is independent of other tasks.
+  manage_server_trust (s);
+
   // Run the passes only if a script has been specified. The requirement for
   // a script has already been checked in systemtap_session::check_options.
   if (s.have_script)
     {
-      // Run passes 0-4, either locally or using a compile server.
+      // Run passes 0-4, either locally or using a compile-server.
       rc = passes_0_4 (s);
 
       // Run pass 5, if requested

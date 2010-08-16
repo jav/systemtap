@@ -47,6 +47,7 @@ extern "C" {
 #include <ssl.h>
 #include <nspr.h>
 #include <nss.h>
+#include <certdb.h>
 #include <pk11pub.h>
 #include <prerror.h>
 #include <secerr.h>
@@ -56,7 +57,7 @@ extern "C" {
 }
 
 static const char *server_cert_nickname = "stap-server";
-#endif
+#endif // HAVE_NSS
 
 #include <cstdlib>
 #include <cstdio>
@@ -64,6 +65,26 @@ static const char *server_cert_nickname = "stap-server";
 #include <algorithm>
 
 using namespace std;
+
+#if HAVE_NSS
+static string
+private_ssl_cert_db_path (const systemtap_session &s)
+{
+  return s.data_path + "/ssl/client";
+}
+
+static string
+global_ssl_cert_db_path ()
+{
+  return SYSCONFDIR "/systemtap/ssl/client";
+}
+
+static string
+signing_cert_db_path ()
+{
+  return SYSCONFDIR "/systemtap/staprun";
+}
+#endif // HAVE_NSS
 
 int
 compile_server_client::passes_0_4 ()
@@ -161,15 +182,11 @@ compile_server_client::initialize ()
   // Initialize session state
   argc = 0;
 
-  // Default location for server certificates if we're not root.
-  uid_t euid = geteuid ();
-  if (euid != 0)
-    {
-      private_ssl_dbs.push_back (s.data_path + "/ssl/client");
-    }
+  // Private location for server certificates.
+  private_ssl_dbs.push_back (private_ssl_cert_db_path (s));
 
-  // Additional location for all users.
-  public_ssl_dbs.push_back (SYSCONFDIR "/systemtap/ssl/client");
+  // Additional public location.
+  public_ssl_dbs.push_back (global_ssl_cert_db_path ());
 
   // Create a temporary directory to package things in.
   client_tmpdir = s.tmpdir + "/client";
@@ -398,6 +415,11 @@ compile_server_client::find_and_connect_to_server ()
   vector<compile_server_info> server_list;
   get_specified_server_info (s, server_list);
 
+  // Ignore the empty first entry.
+  assert (! server_list.empty ());
+  assert (server_list[0].host_name.empty ());
+  server_list.erase (server_list.begin (), server_list.begin ());
+
   // Did we identify any potential servers?
   unsigned limit = server_list.size ();
   if (limit == 0)
@@ -428,7 +450,8 @@ compile_server_client::find_and_connect_to_server ()
 extern "C"
 int
 client_main (const char *hostName, unsigned short port,
-	     const char* infileName, const char* outfileName);
+	     const char* infileName, const char* outfileName,
+	     const char* trustNewServer);
 
 int 
 compile_server_client::compile_using_server (const compile_server_info &server)
@@ -479,7 +502,8 @@ compile_server_client::compile_using_server (const compile_server_info &server)
 
       server_zipfile = s.tmpdir + "/server.zip";
       int rc = client_main (server.host_name.c_str (), server.port,
-			    client_zipfile.c_str(), server_zipfile.c_str ());
+			    client_zipfile.c_str(), server_zipfile.c_str (),
+			    NULL/*trustNewServer_p*/);
 
       NSS_Shutdown();
       PR_Cleanup();
@@ -884,15 +908,414 @@ query_server_status (systemtap_session &s, const string &status_string)
   vector<compile_server_info> servers;
   get_server_info (s, pmask, servers);
 
-  // Print the server information
+  // Print the server information. Skip tge emoty entry at the head of the list.
   clog << "Systemtap Compile Server Status for '" << working_string << '\''
        << endl;
   unsigned limit = servers.size ();
-  for (unsigned i = 0; i < limit; ++i)
+  for (unsigned i = 1; i < limit; ++i)
     {
       clog << servers[i] << endl;
     }
 #endif // HAVE_NSS || HAVE_AVAHI
+}
+
+// Add or remove trust of the servers specified on the command line.
+void
+manage_server_trust (systemtap_session &s)
+{
+#if HAVE_NSS
+  // Nothing to do if --trust-servers was not specified.
+  if (s.server_trust_spec.empty ())
+    return;
+
+  // Break up and analyze the trust specification. Recognized components are:
+  //   ssl       - trust the specified servers as ssl peers
+  //   signer    - trust the specified servers as module signers
+  //   revoke    - revoke the requested trust
+  //   all-users - apply/revoke the requested trust for all users
+  vector<string>components;
+  tokenize (s.server_trust_spec, components, ",");
+  bool ssl = false;
+  bool signer = false;
+  bool revoke = false;
+  bool all_users = false;
+  bool error = false;
+  for (vector<string>::const_iterator i = components.begin ();
+       i != components.end ();
+       ++i)
+    {
+      if (*i == "ssl")
+	ssl = true;
+      else if (*i == "signer")
+	{
+	  if (geteuid () != 0)
+	    {
+	      cerr << "Only root can specify 'signer' on --trust-servers" << endl;
+	      error = true;
+	    }
+	  else
+	    signer = true;
+	}
+      else if (*i == "revoke")
+	revoke = true;
+      else if (*i == "all-users")
+	{
+	  if (geteuid () != 0)
+	    {
+	      cerr << "Only root can specify 'all-users' on --trust-servers" << endl;
+	      error = true;
+	    }
+	  else
+	    all_users = true;
+	}
+      else
+	cerr << "Warning: Unrecognized server trust specification: " << *i
+	     << endl;
+    }
+  if (error)
+    return;
+
+  // Now obtain the list of specified servers.
+  vector<compile_server_info> server_list;
+  get_specified_server_info (s, server_list);
+
+  // Ignore the empty first entry.
+  assert (! server_list.empty ());
+  assert (server_list[0].host_name.empty ());
+  server_list.erase (server_list.begin (), server_list.begin ());
+
+  // Did we identify any potential servers? Ignore the empty first entry.
+  unsigned limit = server_list.size ();
+  if (limit == 0)
+    {
+      cerr << "No servers identified for trust" << endl;
+      return;
+    }
+
+  // Create a string representing the request in English.
+  // If neither 'ssl' or 'signer' was specified, the default is 'ssl'.
+  if (! ssl && ! signer)
+    ssl = true;
+  ostringstream trustString;
+  if (ssl)
+    {
+      trustString << "as an SSL peer";
+      if (all_users)
+	trustString << " for all users";
+      else
+	trustString << " for the current user";
+    }
+  if (signer)
+    {
+      if (ssl)
+	trustString << " and ";
+      trustString << "as a module signer for all users";
+    }
+
+  // Prompt the user to confirm what's about to happen.
+  if (revoke)
+    clog << "Revoke trust ";
+  else
+    clog << "Add trust ";
+  clog << "in the following servers " << trustString.str () << '?' << endl;
+  for (unsigned i = 0; i < limit; ++i)
+    clog << "  " << server_list[i] << endl;
+
+  // Now add/revoke the requested trust.
+  string cert_db_path;
+  if (ssl)
+    {
+      if (all_users)
+	cert_db_path = global_ssl_cert_db_path ();
+      else
+	cert_db_path = private_ssl_cert_db_path (s);
+      if (revoke)
+	revoke_server_trust (s, cert_db_path, server_list);
+      else
+	add_server_trust (s, cert_db_path, server_list);
+    }
+  if (signer)
+    {
+      cert_db_path = signing_cert_db_path ();
+      if (revoke)
+	revoke_server_trust (s, cert_db_path, server_list);
+      else
+	add_server_trust (s, cert_db_path, server_list);
+    }
+#endif // HAVE_NSS
+}
+
+// Issue a status message for when a server's trust is already in place.
+static void
+trust_already_in_place (
+  const compile_server_info &server,
+  const string cert_db_path,
+  bool revoking
+)
+{
+  string purpose;
+  if (cert_db_path == signing_cert_db_path ())
+    purpose = "as a module signer for all users";
+  else
+    {
+      purpose = "as an SSL peer";
+      if (cert_db_path == global_ssl_cert_db_path ())
+	purpose += " for all users";
+      else
+	purpose += " for the current user";
+    }
+
+  clog << server << " is already ";
+  if (revoking)
+    clog << "un";
+  clog << "trusted " << purpose << endl;
+}
+
+// Add the given servers to the given database of trusted servers.
+void
+add_server_trust (
+  systemtap_session &s,
+  const string &cert_db_path,
+  const vector<compile_server_info> &server_list
+)
+{
+  // This function will never be called without NSS, but it must still compile.
+#if HAVE_NSS
+  // Make sure the given path exists.
+  if (create_dir (cert_db_path.c_str (), 0755) != 0)
+    {
+      cerr << "Unable to find or create the client certificate database directory "
+	   << cert_db_path << ": ";
+      perror ("");
+      return;
+    }
+
+  // Call the NSPR initialization routines.
+  PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+
+  // Initialize the NSS libraries -- read/write
+  SECStatus secStatus = NSS_InitReadWrite (cert_db_path.c_str ());
+  if (secStatus != SECSuccess)
+    {
+      cerr << "Error initializing NSS for " << cert_db_path << endl;
+      nssError ();
+      goto cleanup;
+    }
+
+  // All cipher suites except RSA_NULL_MD5 are enabled by Domestic Policy.
+  NSS_SetDomesticPolicy ();
+
+  // Iterate over the servers to become trusted. Contact each one and
+  // add it to the list of trusted servers if it is not already trusted.
+  // client_main will issue any error messages.
+  for (vector<compile_server_info>::const_iterator server = server_list.begin();
+       server != server_list.end ();
+       ++server)
+    {
+      client_main (server->host_name.c_str (), server->port,
+		   NULL, NULL, "permanent");
+    }
+
+ cleanup:
+  NSS_Shutdown ();
+  PR_Cleanup();
+#endif // HAVE_NSS
+}
+
+// Remove the given servers from the given database of trusted servers.
+void
+revoke_server_trust (
+  systemtap_session &s,
+  const string &cert_db_path,
+  const vector<compile_server_info> &server_list
+)
+{
+  // This function will never be called without NSS, but it must still compile.
+#if HAVE_NSS
+  // Make sure the given path exists.
+  if (! file_exists (cert_db_path))
+    {
+      if (s.verbose > 1)
+	cerr << "Certificate database '" << cert_db_path << "' does not exist."
+	     << endl;
+      for (vector<compile_server_info>::const_iterator server = server_list.begin();
+	   server != server_list.end ();
+	   ++server)
+	{
+	  trust_already_in_place (*server, cert_db_path, true/*revoking*/);
+	}
+      return;
+    }
+
+  // Must predeclare these because of jumps to cleanup: below.
+  PK11SlotInfo *slot = NULL;
+  CERTCertDBHandle *handle;
+  PRArenaPool *tmpArena = NULL;
+  CERTCertList *certs = NULL;
+  CERTCertificate *db_cert;
+
+  // Call the NSPR initialization routines.
+  PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+
+  // Initialize the NSS libraries -- read/write
+  SECStatus secStatus = NSS_InitReadWrite (cert_db_path.c_str ());
+  if (secStatus != SECSuccess)
+    {
+      cerr << "Error initializing NSS for " << cert_db_path << endl;
+      nssError ();
+      goto cleanup;
+    }
+  slot = PK11_GetInternalKeySlot ();
+  handle = CERT_GetDefaultCertDB();
+
+  // A memory pool to work in
+  tmpArena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+  if (! tmpArena) 
+    {
+      cerr << "Out of memory:";
+      nssError ();
+      goto cleanup;
+    }
+
+  // Iterate over the servers to become untrusted.
+  for (vector<compile_server_info>::const_iterator server = server_list.begin();
+       server != server_list.end ();
+       ++server)
+    {
+      // If the server's certificate serial number is unknown, then we can't
+      // match it with one in the database.
+      if (server->certinfo.empty ())
+	{
+	  cerr << "Unable to obtain certificate information for server "
+	       << *server << endl;
+	  continue;
+	}
+
+      // Search the client-side database of trusted servers.
+      db_cert = PK11_FindCertFromNickname (server_cert_nickname, NULL);
+      if (! db_cert)
+	{
+	  // No trusted servers. Not an error, but issue a status message.
+	  trust_already_in_place (*server, cert_db_path, true/*revoking*/);
+	  continue;
+	}
+
+      // Here, we have one cert with the desired nickname.
+      // Now, we will attempt to get a list of ALL certs 
+      // with the same subject name as the cert we have.  That list 
+      // should contain, at a minimum, the one cert we have already found.
+      // If the list of certs is empty (NULL), the libraries have failed.
+      certs = CERT_CreateSubjectCertList (NULL, handle, & db_cert->derSubject,
+					  PR_Now (), PR_FALSE);
+      CERT_DestroyCertificate (db_cert);
+      if (! certs)
+	{
+	  cerr << "Unable to query certificate database " << cert_db_path
+	       << ": " << endl;
+	  PORT_SetError (SEC_ERROR_LIBRARY_FAILURE);
+	  nssError ();
+	  goto cleanup;
+	}
+
+      // Find the certificate matching the one belonging to our server.
+      CERTCertListNode *node;
+      for (node = CERT_LIST_HEAD (certs);
+	   ! CERT_LIST_END (node, certs);
+	   node = CERT_LIST_NEXT (node))
+	{
+	  // The certificate we're working with.
+	  db_cert = node->cert;
+
+	  // Get the serial number.
+	  ostringstream serialNumber;
+	  serialNumber << hex << setw(2) << setfill('0') << right;
+	  for (unsigned i = 0; i < db_cert->serialNumber.len; ++i)
+	    {
+	      if (i > 0)
+		serialNumber << ':';
+	      serialNumber << (unsigned)db_cert->serialNumber.data[i];
+	    }
+
+	  // Does the serial number match that of the current server?
+	  if (serialNumber.str () != server->certinfo)
+	    continue; // goto next certificate
+
+	  // As a sanity check, make sure the host name on the certificate
+	  // matches that of our server.
+	  // The host name is in the alt-name extension of the certificate.
+	  SECItem subAltName;
+	  subAltName.data = NULL;
+	  secStatus = CERT_FindCertExtension (db_cert,
+					      SEC_OID_X509_SUBJECT_ALT_NAME,
+					      & subAltName);
+	  if (secStatus != SECSuccess || ! subAltName.data)
+	    {
+	      cerr << "Unable to find alt name extension on server certificate: ";
+	      nssError ();
+	      continue;
+	    }
+
+	  // Decode the extension.
+	  CERTGeneralName *nameList = CERT_DecodeAltNameExtension (tmpArena, & subAltName);
+	  SECITEM_FreeItem(& subAltName, PR_FALSE);
+	  if (! nameList)
+	    {
+	      cerr << "Unable to decode alt name extension on server certificate: ";
+	      nssError ();
+	      continue;
+	    }
+
+	  // We're interested in the first alternate name.
+	  assert (nameList->type == certDNSName);
+	  string host_name = string ((const char *)nameList->name.other.data,
+				     nameList->name.other.len);
+	  // Don't free nameList. It's part of the tmpArena.
+
+	  // Now finally compare the host names.
+	  if (host_name != server->host_name)
+	    {
+	      cerr << "Host name '" << host_name
+		   << "' on certificate does not match the host name '"
+		   << server->host_name << "' of the server"
+		   << endl;
+	      continue;
+	    }
+
+	  // All is ok! Remove the certificate from the database.
+	  break;
+	} // Loop over certificates in the database
+
+      // Was a certificate matching the server found?  */
+      if (CERT_LIST_END (node, certs))
+	{
+	  // Not found. Server is already untrusted.
+	  trust_already_in_place (*server, cert_db_path, true/*revoking*/);
+	}
+      else
+	{
+	  secStatus = SEC_DeletePermCertificate (db_cert);
+	  if (secStatus != SECSuccess)
+	    {
+	      cerr << "Unable to remove certificate from " << cert_db_path
+		   << ": " << endl;
+	      nssError ();
+	    }
+	}
+      CERT_DestroyCertList (certs);
+      certs = NULL;
+    } // Loop over servers
+
+ cleanup:
+  if (certs)
+    CERT_DestroyCertList (certs);
+  if (slot)
+    PK11_FreeSlot (slot);
+  if (tmpArena)
+    PORT_FreeArena (tmpArena, PR_FALSE);
+
+  NSS_Shutdown ();
+  PR_Cleanup();
+#endif // HAVE_NSS
 }
 
 void
@@ -974,18 +1397,16 @@ get_default_server_info (
   static vector<compile_server_info> default_servers;
   if (default_servers.empty ())
     {
-      // Maintain an empty entry to indicate that this search has been
-      // performed, in case the search comes up empty.
-      default_servers.push_back (compile_server_info ());
-
-      // Now get the required information.
+      // Get the required information.
+      // get_server_info will add an empty entry at the beginning to indicate
+      // that the search has been performed, in case the search comes up empty.
       int pmask = server_spec_to_pmask (default_server_spec (s));
       get_server_info (s, pmask, default_servers);
     }
 
-  // Add the information, but not duplicates. Skip the empty first entry.
+  // Add the information, but not duplicates.
   unsigned limit = default_servers.size ();
-  for (unsigned i = 1; i < limit; ++i)
+  for (unsigned i = 0; i < limit; ++i)
     add_server_info (default_servers[i], servers);
 }
 
@@ -1097,9 +1518,9 @@ get_specified_server_info (
 	} // -- use-server specified
     } // Server information is not cached
 
-  // Add the information, but not duplicates. Skip the empty first entry.
+  // Add the information, but not duplicates.
   unsigned limit = specified_servers.size ();
-  for (unsigned i = 1; i < limit; ++i)
+  for (unsigned i = 0; i < limit; ++i)
     add_server_info (specified_servers[i], servers);
 }
 
@@ -1122,16 +1543,12 @@ get_or_keep_trusted_server_info (
       // Call the NSPR initialization routines
       PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
-      // For non-root users, check the private database first.
-      string cert_db_path;
-      if (geteuid () != 0)
-	{
-	  cert_db_path = s.data_path + "/ssl/client";
-	  get_server_info_from_db (s, trusted_servers, cert_db_path);
-	}
+      // Check the private database first.
+      string cert_db_path = private_ssl_cert_db_path (s);
+      get_server_info_from_db (s, trusted_servers, cert_db_path);
 
-      // For all users, check the global database.
-      cert_db_path = SYSCONFDIR "/systemtap/ssl/client";
+      // Now check the global database.
+      cert_db_path = global_ssl_cert_db_path ();
       get_server_info_from_db (s, trusted_servers, cert_db_path);
 
       // Terminate NSPR.
@@ -1152,9 +1569,9 @@ get_or_keep_trusted_server_info (
     }
   else
     {
-      // Add the information, but not duplicates. Skip the empty first entry.
+      // Add the information, but not duplicates.
       unsigned limit = trusted_servers.size ();
-      for (unsigned i = 1; i < limit; ++i)
+      for (unsigned i = 0; i < limit; ++i)
 	add_server_info (trusted_servers[i], servers);
     }
 }
@@ -1179,7 +1596,7 @@ get_or_keep_signing_server_info (
       PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
       // For all users, check the global database.
-      string cert_db_path = SYSCONFDIR "/systemtap/staprun";
+      string cert_db_path = signing_cert_db_path ();
       get_server_info_from_db (s, signing_servers, cert_db_path);
 
       // Terminate NSPR.
@@ -1200,9 +1617,9 @@ get_or_keep_signing_server_info (
     }
   else
     {
-      // Add the information, but not duplicates. Skip the empty first entry.
+      // Add the information, but not duplicates.
       unsigned limit = signing_servers.size ();
-      for (unsigned i = 1; i < limit; ++i)
+      for (unsigned i = 0; i < limit; ++i)
 	add_server_info (signing_servers[i], servers);
     }
 }
@@ -1226,11 +1643,11 @@ get_server_info_from_db (
     }
 
   // Must predeclare these because of jumps to cleanup: below.
-  CERTCertList *certs = NULL;
   PK11SlotInfo *slot = NULL;
-  PRArenaPool *tmpArena = NULL;
   CERTCertDBHandle *handle;
-  CERTCertificate *the_cert;
+  PRArenaPool *tmpArena = NULL;
+  CERTCertList *certs = NULL;
+  CERTCertificate *db_cert;
   vector<compile_server_info> temp_list;
 
   // Initialize the NSS libraries -- readonly
@@ -1245,8 +1662,8 @@ get_server_info_from_db (
   // Search the client-side database of trusted servers.
   slot = PK11_GetInternalKeySlot ();
   handle = CERT_GetDefaultCertDB();
-  the_cert = PK11_FindCertFromNickname (server_cert_nickname, NULL);
-  if (! the_cert)
+  db_cert = PK11_FindCertFromNickname (server_cert_nickname, NULL);
+  if (! db_cert)
     {
       // No trusted servers. Not an error. Just an empty list returned.
       goto cleanup;
@@ -1257,9 +1674,9 @@ get_server_info_from_db (
   // with the same subject name as the cert we have.  That list 
   // should contain, at a minimum, the one cert we have already found.
   // If the list of certs is empty (NULL), the libraries have failed.
-  certs = CERT_CreateSubjectCertList (NULL, handle, & the_cert->derSubject,
+  certs = CERT_CreateSubjectCertList (NULL, handle, & db_cert->derSubject,
 				      PR_Now (), PR_FALSE);
-  CERT_DestroyCertificate (the_cert);
+  CERT_DestroyCertificate (db_cert);
   if (! certs)
     {
       cerr << "Unable to query client certificate database: " << endl;
@@ -1283,13 +1700,13 @@ get_server_info_from_db (
       compile_server_info server_info;
 
       // The certificate we're working with.
-      the_cert = node->cert;
+      db_cert = node->cert;
 
       // Get the host name. It is in the alt-name extension of the
       // certificate.
       SECItem subAltName;
       subAltName.data = NULL;
-      secStatus = CERT_FindCertExtension (the_cert,
+      secStatus = CERT_FindCertExtension (db_cert,
 					  SEC_OID_X509_SUBJECT_ALT_NAME,
 					  & subAltName);
       if (secStatus != SECSuccess || ! subAltName.data)
@@ -1318,11 +1735,11 @@ get_server_info_from_db (
       // Get the serial number.
       ostringstream field;
       field << hex << setw(2) << setfill('0') << right;
-      for (unsigned i = 0; i < the_cert->serialNumber.len; ++i)
+      for (unsigned i = 0; i < db_cert->serialNumber.len; ++i)
 	{
 	  if (i > 0)
 	    field << ':';
-	  field << (unsigned)the_cert->serialNumber.data[i];
+	  field << (unsigned)db_cert->serialNumber.data[i];
 	}
       server_info.certinfo = field.str ();
 
@@ -1370,11 +1787,16 @@ keep_compatible_server_info (
   // of the host environment.
   for (unsigned i = 0; i < servers.size (); /**/)
     {
-      if (servers[i].sysinfo != s.kernel_release + " " + s.architecture)
+      // Retain empty entries.
+      if (! servers[i].host_name.empty ())
 	{
-	  // Platform mismatch.
-	  servers.erase (servers.begin () + i);
-	  continue;
+	  // Check the target of the server.
+	  if (servers[i].sysinfo != s.kernel_release + " " + s.architecture)
+	    {
+	      // Target platform mismatch.
+	      servers.erase (servers.begin () + i);
+	      continue;
+	    }
 	}
   
       // The server is compatible. Leave it in the list.
@@ -1763,9 +2185,9 @@ get_or_keep_online_server_info (systemtap_session &s,
     }
   else
     {
-      // Add the information, but not duplicates. Skip the empty first entry.
+      // Add the information, but not duplicates.
       unsigned limit = online_servers.size ();
-      for (unsigned i = 1; i < limit; ++i)
+      for (unsigned i = 0; i < limit; ++i)
 	add_server_info (online_servers[i], servers);
     }
 }

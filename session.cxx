@@ -352,7 +352,10 @@ systemtap_session::usage (int exitcode)
     << "   --list-servers[=PROPERTIES]" << endl
     << "              report on the status of the specified compile-servers" << endl
 #endif
-    << endl
+#if HAVE_NSS
+    << "   --trust-servers[=TRUST-SPEC]" << endl
+    << "              add/revoke trust of specified compile-servers" << endl
+ #endif
     ;
 
   time_t now;
@@ -392,7 +395,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_LDD 15
 #define LONG_OPT_USE_SERVER 16
 #define LONG_OPT_LIST_SERVERS 17
-#define LONG_OPT_ALL_MODULES 18
+#define LONG_OPT_TRUST_SERVERS 18
+#define LONG_OPT_ALL_MODULES 19
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -418,6 +422,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "ldd", 0, &long_opt, LONG_OPT_LDD },
         { "use-server", 2, &long_opt, LONG_OPT_USE_SERVER },
         { "list-servers", 2, &long_opt, LONG_OPT_LIST_SERVERS },
+        { "trust-servers", 2, &long_opt, LONG_OPT_TRUST_SERVERS },
         { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
         { NULL, 0, NULL, 0 }
       };
@@ -774,10 +779,18 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    case LONG_OPT_LIST_SERVERS:
 	      if (client_options)
 		client_options_disallowed += client_options_disallowed.empty () ? "--list-servers" : ", --list-servers";
-	      if (optarg )
+	      if (optarg)
 		server_status_strings.push_back (optarg);
 	      else
 		server_status_strings.push_back ("");
+	      break;
+	    case LONG_OPT_TRUST_SERVERS:
+	      if (client_options)
+		client_options_disallowed += client_options_disallowed.empty () ? "--trust-servers" : ", --trust-servers";
+	      if (optarg)
+		server_trust_spec = optarg;
+	      else
+		server_trust_spec = "ssl";
 	      break;
 	    case LONG_OPT_HELP:
 	      usage (0);
@@ -880,6 +893,13 @@ systemtap_session::check_options (int argc, char * const argv [])
       server_status_strings.clear ();
     }
 #endif
+#if ! HAVE_NSS
+  if (! server_trust_spec.empty ())
+    {
+      cerr << "WARNING: --trust-servers is not supported by this version of systemtap" << endl;
+      server_trust_spec.clear ();
+    }
+#endif
 
   if (runtime_specified && ! specified_servers.empty ())
     {
@@ -942,8 +962,8 @@ systemtap_session::check_options (int argc, char * const argv [])
   // NB: this is also triggered if stap is invoked with no arguments at all
   if (! have_script)
     {
-      // We don't need a script if --list-servers was specified
-      if (server_status_strings.empty ())
+      // We don't need a script if --list-servers or --trust-servers was specified
+      if (server_status_strings.empty () && server_trust_spec.empty ())
 	{
 	  cerr << "A script must be specified." << endl;
 	  usage(1);
