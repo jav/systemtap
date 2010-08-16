@@ -849,7 +849,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
         {
           if (pending_interrupts) return DWARF_CB_ABORT;
           Dwarf_Die& die = it->second;
-          const char* linkage_name;
+          const char* linkage_name = NULL;
           Dwarf_Attribute attr_mem;
           if (dwarf_attr_integrate (&die, DW_AT_MIPS_linkage_name, &attr_mem)
               && (linkage_name = dwarf_formstring (&attr_mem))
