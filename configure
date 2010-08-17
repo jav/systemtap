@@ -599,6 +599,7 @@ am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
 subdirs
+support_section_question
 DATE
 stap_LIBS
 elfutils_abs_srcdir
@@ -7428,6 +7429,45 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for assembler .section \"?\" flags support" >&5
+$as_echo_n "checking for assembler .section \"?\" flags support... " >&6; }
+if test "${stap_cv_sectionq+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wa,--fatal-warnings"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+asm(".section .note.foo,\"?\",\"note\"\n"
+		       ".byte 1, 2, 3\n"
+		       ".previous\n"
+		       ".section .text,\"axG\",\"progbits\",foogroup,comdat\n"
+		       ".byte 1\n"
+		       ".pushsection .note.foo,\"?\",\"note\"\n"
+		       ".byte 4, 5, 6\n"
+		       ".popsection\n"
+		       ".byte 2\n");
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  stap_cv_sectionq=yes
+else
+  stap_cv_sectionq=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+CFLAGS="$oldCFLAGS"
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $stap_cv_sectionq" >&5
+$as_echo "$stap_cv_sectionq" >&6; }
+
+support_section_question=0
+if test $stap_cv_sectionq = yes; then
+  support_section_question=1
+fi
+ac_config_files="$ac_config_files includes/sys/sdt-config.h"
+
+
+
 if test $build_elfutils = yes -a $enable_translator = yes; then
   case "$with_elfutils" in
   /*) elfutils_srcdir="$with_elfutils" ;;
@@ -8314,6 +8354,7 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
+    "includes/sys/sdt-config.h") CONFIG_FILES="$CONFIG_FILES includes/sys/sdt-config.h" ;;
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h:config.in" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;

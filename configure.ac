@@ -348,13 +348,13 @@ AS_IF([test "x$enable_grapher" != xno],
    PKG_CHECK_MODULES([gtkmm], [gtkmm-2.4 >= 2.8.0],
      have_gtkmm="yes", have_gtkmm="no")
    AS_IF([test "x${have_gtkmm}" == "xno" -a x"$enable_grapher" == "xyes"],
-     AC_MSG_WARN([systemtap cannot find required gtkmm libs (gtkmm24-devel version 2.8.0 or higher may need to be installed)]))   
+     AC_MSG_WARN([systemtap cannot find required gtkmm libs (gtkmm24-devel version 2.8.0 or higher may need to be installed)]))
 
    dnl Check for libglade
    PKG_CHECK_MODULES([libglade], [libglademm-2.4 >= 2.6.7],
      have_libglade="yes", have_libglade="no")
    AS_IF([test "x${have_libglade}" == "xno" -a x"$enable_grapher" == "xyes"],
-     AC_MSG_WARN([systemtap cannot find required libglade libs (libglademm24-devel version 2.6.7 or higher may need to be installed)]))   
+     AC_MSG_WARN([systemtap cannot find required libglade libs (libglademm24-devel version 2.6.7 or higher may need to be installed)]))
 
    dnl Check for needed boost headers
    have_boost_headers="yes"
@@ -452,6 +452,28 @@ AC_CHECK_HEADERS([tr1/unordered_map])
 AC_CHECK_HEADERS([tr1/memory])
 AC_CHECK_HEADERS([boost/shared_ptr.hpp])
 AC_LANG_POP(C++)
+
+
+AC_CACHE_CHECK([for assembler .section "?" flags support], stap_cv_sectionq, [
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wa,--fatal-warnings"
+AC_COMPILE_IFELSE([asm(".section .note.foo,\"?\",\"note\"\n"
+		       ".byte 1, 2, 3\n"
+		       ".previous\n"
+		       ".section .text,\"axG\",\"progbits\",foogroup,comdat\n"
+		       ".byte 1\n"
+		       ".pushsection .note.foo,\"?\",\"note\"\n"
+		       ".byte 4, 5, 6\n"
+		       ".popsection\n"
+		       ".byte 2\n");],
+		  stap_cv_sectionq=yes, stap_cv_sectionq=no)
+CFLAGS="$oldCFLAGS"])
+AC_SUBST(support_section_question)
+support_section_question=0
+if test $stap_cv_sectionq = yes; then
+  support_section_question=1
+fi
+AC_CONFIG_FILES([includes/sys/sdt-config.h])
 
 
 if test $build_elfutils = yes -a $enable_translator = yes; then
