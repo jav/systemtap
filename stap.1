@@ -1417,6 +1417,19 @@ The tapset alias 'nd_syscall.compat_pselect7a' was misnamed.  It should
 have been 'nd_syscall.compat_pselect7' (without the trailing 'a').
 .IP
 The tapset function 'cpuid' is deprecated in favor of the better known 'cpu'.
+.IP
+In the i386 'syscall.sigaltstack' probe, the 'ussp' variable has
+been deprecated in favor of the new 'uss_uaddr' variable.
+.IP
+In the ia64 'syscall.sigaltstack' probe, the 'ss_uaddr' and
+\'oss_uaddr' variables have been deprecated in favor of the new
+\'uss_uaddr' and 'uoss_uaddr' variables.
+.IP
+The powerpc tapset alias 'syscall.compat_sysctl' was deprecated
+and renamed 'syscall.sysctl32'.
+.IP
+In the x86_64 'syscall.sigaltstack' probe, the 'regs_uaddr'
+variable has been deprecated in favor of the new 'regs' variable.
 .\" e.g. tapset_function()
 .\" e.g. post-incrementing a frobozz in a while loop
 

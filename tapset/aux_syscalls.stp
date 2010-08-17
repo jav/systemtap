@@ -1409,6 +1409,10 @@ function __int32:long(val:long) %{ /* pure */
 	THIS->__retvalue = (int32_t)THIS->val;
 %}
 
+/* Unsigned values can get get sign-extended and become negative. */
+function __ulong:long(val:long) %{ /* pure */
+	THIS->__retvalue = (unsigned long)THIS->val;
+%}
 
 # For utimensat and futimesat, the directory fd can have a special value
 function _dfd_str(d) {

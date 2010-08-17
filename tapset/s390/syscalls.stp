@@ -2,12 +2,18 @@
 
 %(arch == "s390" %?
 
+# FIXME: the getresgid16/getresuid16 probes could be combined with
+# their "generic" versions in tapset/syscalls.stp.
+
 # getresgid __________________________________________________
 # long sys32_getresgid16(u16 __user *rgid, u16 __user *egid, u16 __user *sgid)
 #
 probe syscall.getresgid16 = kernel.function("sys32_getresgid16") ?
 {
 	name = "getresgid"
+	rgid_uaddr = $rgid
+	egid_uaddr = $egid
+	sgid_uaddr = $sgid
 	argstr = sprintf("%p, %p, %p", $rgid, $egid, $sgid)
 }
 probe syscall.getresgid16.return = kernel.function("sys32_getresgid16").return ?
@@ -21,6 +27,9 @@ probe syscall.getresgid16.return = kernel.function("sys32_getresgid16").return ?
 probe syscall.getresuid16 = kernel.function("sys32_getresuid16") ?
 {
 	name = "getresuid"
+	ruid_uaddr = $ruid
+	euid_uaddr = $euid
+	suid_uaddr = $suid
 	argstr = sprintf("%p, %p, %p", $ruid, $euid, $suid)
 }
 probe syscall.getresuid16.return = kernel.function("sys32_getresuid16").return ?
@@ -53,10 +62,27 @@ probe syscall.mmap = kernel.function("old_mmap") ?,
 {
 	name = "mmap"
 
-	if ((probefunc() == "old_mmap") || (probefunc() == "SyS_s390_old_mmap"))
-		argstr = get_mmap_args($arg)
-        else
-		argstr = get_32mmap_args($arg)
+	if ((probefunc() == "old_mmap")
+	    || (probefunc() == "SyS_s390_old_mmap")) {
+		start = user_long(&@cast($arg, "mmap_arg_struct")->addr)
+		len = user_long(&@cast($arg, "mmap_arg_struct")->len)
+		prot = user_long(&@cast($arg, "mmap_arg_struct")->prot)
+		flags = user_long(&@cast($arg, "mmap_arg_struct")->flags)
+		fd = user_long(&@cast($arg, "mmap_arg_struct")->fd)
+		offset = user_long(&@cast($arg, "mmap_arg_struct")->offset)
+	}
+        else {
+		start = user_int(&@cast($arg, "mmap_arg_struct_emu31")->addr)
+		len = user_int(&@cast($arg, "mmap_arg_struct_emu31")->len)
+		prot = user_int(&@cast($arg, "mmap_arg_struct_emu31")->prot)
+		flags = user_int(&@cast($arg, "mmap_arg_struct_emu31")->flags)
+		fd = user_int(&@cast($arg, "mmap_arg_struct_emu31")->fd)
+		offset = user_int(&@cast($arg,
+					 "mmap_arg_struct_emu31")->offset)
+	}
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", start, len,
+			 _mprotect_prot_str(prot), _mmap_flags(flags),
+			 fd, offset)
 }
 
 probe syscall.mmap.return = kernel.function("old_mmap").return ?,
@@ -78,10 +104,26 @@ probe syscall.mmap2 = kernel.function("sys_mmap2") ?,
 {
         name = "mmap2"
 
-	if ((probefunc() == "sys_mmap2") || (probefunc() == "SyS_mmap2"))
-		argstr = get_mmap_args($arg)
-	else
-		argstr = get_32mmap_args($arg)
+	if ((probefunc() == "sys_mmap2") || (probefunc() == "SyS_mmap2")) {
+		start = user_long(&@cast($arg, "mmap_arg_struct")->addr)
+		length = user_long(&@cast($arg, "mmap_arg_struct")->len)
+		prot = user_long(&@cast($arg, "mmap_arg_struct")->prot)
+		flags = user_long(&@cast($arg, "mmap_arg_struct")->flags)
+		fd = user_long(&@cast($arg, "mmap_arg_struct")->fd)
+		pgoffset = user_long(&@cast($arg, "mmap_arg_struct")->offset)
+	}
+	else {
+		start = user_int(&@cast($arg, "mmap_arg_struct_emu31")->addr)
+		length = user_int(&@cast($arg, "mmap_arg_struct_emu31")->len)
+		prot = user_int(&@cast($arg, "mmap_arg_struct_emu31")->prot)
+		flags = user_int(&@cast($arg, "mmap_arg_struct_emu31")->flags)
+		fd = user_int(&@cast($arg, "mmap_arg_struct_emu31")->fd)
+		pgoffset = user_int(&@cast($arg,
+					   "mmap_arg_struct_emu31")->offset)
+	}
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", start, length,
+			 _mprotect_prot_str(prot), _mmap_flags(flags),
+			 fd, pgoffset)
 }
 
 probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?,
@@ -89,6 +131,41 @@ probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?,
 {
         name = "mmap2"
         retstr = returnstr(2)
+}
+
+# sigaltstack ________________________________________________
+# asmlinkage long
+# sys_sigaltstack(const stack_t __user * uss, stack_t __user *uoss)
+#
+# NOTE: args vary between archs.
+probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
+{
+	name = "sigaltstack"
+	uss_uaddr = $uss
+	uoss_uaddr = $uoss
+	regs = %{ task_pt_regs(current) %}
+	argstr = sprintf("%p, %p", $uss, $uoss)
+}
+probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return
+{
+	name = "sigaltstack"
+	retstr = returnstr(1)
+}
+
+# sys32_sigaltstack ________________________________________________
+# asmlinkage long
+# sys32_sigaltstack(const stack_t32 __user *uss, stack_t32 __user *uoss)
+#
+# NOTE: args vary between archs.
+probe syscall.sys32_sigaltstack = kernel.function("sys32_sigaltstack") ?
+{
+	name = "sys32_sigaltstack"
+	argstr = ""
+}
+probe syscall.sys32_sigaltstack.return = kernel.function("sys32_sigaltstack").return ?
+{
+	name = "sys32_sigaltstack"
+	retstr = returnstr(1)
 }
 
 # sysctl _____________________________________________________

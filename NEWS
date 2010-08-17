@@ -22,6 +22,15 @@
     have been 'nd_syscall.compat_pselect7' (without the trailing 'a').
   - The tapset function 'cpuid' is deprecated in favor of the better known 
     'cpu'.
+  - In the i386 'syscall.sigaltstack' probe, the 'ussp' variable has
+    been deprecated in favor of the new 'uss_uaddr' variable.
+  - In the ia64 'syscall.sigaltstack' probe, the 'ss_uaddr' and
+    'oss_uaddr' variables have been deprecated in favor of the new
+    'uss_uaddr' and 'uoss_uaddr' variables.
+  - The powerpc tapset alias 'syscall.compat_sysctl' was deprecated
+    and renamed 'syscall.sysctl32'.
+  - In the x86_64 'syscall.sigaltstack' probe, the 'regs_uaddr'
+    variable has been deprecated in favor of the new 'regs' variable.
 
 * What's new in version 1.3, 2010-07-21
 

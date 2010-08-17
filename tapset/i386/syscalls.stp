@@ -129,8 +129,28 @@ probe syscall.set_zone_reclaim.return = kernel.function("sys_set_zone_reclaim").
 probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
 {
 	name = "sigaltstack"
+# 'ussp' should have been 'uss_uaddr.  Deprecate the old name.
+%(systemtap_v <= "1.4" %?
 	ussp = %( kernel_vr < "2.6.25" %? $ebx %: %( kernel_vr < "2.6.30" %? $bx %: $regs->bx %) %)
-	argstr = sprintf("%p", ussp)
+%)
+	if (@defined($regs)) {
+		uss_uaddr = (@defined($uss) ? $uss : $regs->bx)
+		uoss_uaddr = (@defined($uoss) ? $uoss : $regs->cx)
+		regs = $regs
+	}
+	else if (@defined($bx)) {	# kernels < "2.6.30"
+		uss_uaddr = $bx
+		# Make sure the register value didn't get sign extended.
+		uoss_uaddr = __ulong(@cast(&$bx, "pt_regs", "kernel<asm/ptrace.h>")->cx)
+		regs = &$bx
+	}
+	else {				# kernels < "2.6.25"
+		uss_uaddr = $ebx
+		# Make sure the register value didn't get sign extended.
+		uoss_uaddr = __ulong(@cast(&$ebx, "pt_regs", "kernel<asm/ptrace.h>")->ecx)
+		regs = &$ebx
+	}
+	argstr = sprintf("%p, %p", uss_uaddr, uoss_uaddr)
 }
 probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return
 {

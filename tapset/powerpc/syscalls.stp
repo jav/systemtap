@@ -177,12 +177,25 @@ probe syscall.sys32_getdents.return = kernel.function("sys32_getdents").return ?
 #
 # long compat_sys_sysctl(struct __sysctl_args32 __user *args)
 #
-probe syscall.compat_sysctl = kernel.function("compat_sys_sysctl") ?
+# To match the ia64/s390/x86_64 versions, the 'syscall.compat_sysctl'
+# probe name is deprecated and 'syscall.sysctl32' should be used
+# instead.  To use the old name without changing your script, use
+# the '--compatible 1.4' stap option.
+probe
+%( systemtap_v <= "1.4"
+	%? syscall.compat_sysctl %: syscall.sysctl32
+%) =
+
+	kernel.function("compat_sys_sysctl") ?
 {
 	name = "sysctl"
 	argstr = sprintf("%p", $args)
 }
-probe syscall.compat_sysctl.return = kernel.function("compat_sys_sysctl").return ?
+probe
+%( systemtap_v <= "1.4"
+	%? syscall.compat_sysctl.return %: syscall.sysctl32.return
+%) =
+	kernel.function("compat_sys_sysctl").return ?
 {
 	name = "sysctl"
 	retstr = returnstr(1)
@@ -281,15 +294,42 @@ probe syscall.sys32_rt_sigqueueinfo.return = kernel.function("sys32_rt_sigqueuei
 	name = "sys32_rt_sigqueueinfo"
 	retstr = returnstr(1)
 }
+
+# sigaltstack ________________________________________________
+# long sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss,
+#		       unsigned long r5, unsigned long r6,
+#		       unsigned long r7, unsigned long r8, 
+#		       struct pt_regs *regs)
+#
+# NOTE: args vary between archs.
+#
+probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
+{
+	name = "sigaltstack"
+	uss_uaddr = $uss
+	uoss_uaddr = $uoss
+	regs = $regs
+	argstr = sprintf("%p, %p", $uss, $uoss)
+}
+probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return
+{
+	name = "sigaltstack"
+	retstr = returnstr(1)
+}
+
 # sys32_sigaltstack ________________________________________
 #
+# int compat_sys_sigaltstack(u32 __new, u32 __old, int r5,
+#		             int r6, int r7, int r8, struct pt_regs *regs)
 # int sys32_sigaltstack(u32 __new, u32 __old, int r5,
 #			int r6, int r7, int r8, struct pt_regs *regs)
 #
-probe syscall.sys32_sigaltstack = kernel.function("sys32_sigaltstack") ?
+# Args are too different to match 'syscall.sigaltstack'.
+probe syscall.sys32_sigaltstack = kernel.function("compat_sys_sigaltstack") !,
+				  kernel.function("sys32_sigaltstack") ?
 {
 	name = "sys32_sigaltstack"
-	argstr = "FIXME"
+	argstr = ""
 }
 probe syscall.sys32_sigaltstack.return = kernel.function("sys32_sigaltstack").return ?
 {
