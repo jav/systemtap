@@ -77,6 +77,7 @@ struct statistic_decl
 struct systemtap_session
 {
   systemtap_session ();
+  ~systemtap_session ();
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).
@@ -148,6 +149,10 @@ struct systemtap_session
   // to be cleared in the systemtap_session ctor (session.cxx).
 
   // Client/server
+#if HAVE_NSS
+  bool NSPR_Initialized;
+  void NSPR_init ();
+#endif
   bool client_options;
   std::string client_options_disallowed;
   std::vector<std::string> server_status_strings;

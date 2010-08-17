@@ -18,6 +18,10 @@
 #include <fstream>
 #include <sstream>
 #include <cassert>
+#include <cstdlib>
+#include <cstdio>
+#include <iomanip>
+#include <algorithm>
 
 extern "C" {
 #include <linux/limits.h>
@@ -40,7 +44,7 @@ extern "C" {
 #include <avahi-common/error.h>
 #include <avahi-common/timeval.h>
 }
-#endif
+#endif // HAVE_AVAHI
 
 #if HAVE_NSS
 extern "C" {
@@ -55,18 +59,77 @@ extern "C" {
 
 #include "nsscommon.h"
 }
-
-static const char *server_cert_nickname = "stap-server";
 #endif // HAVE_NSS
-
-#include <cstdlib>
-#include <cstdio>
-#include <iomanip>
-#include <algorithm>
 
 using namespace std;
 
+// Information about compile servers.
+struct compile_server_info
+{
+  compile_server_info () : port (0) {}
+
+  std::string host_name;
+  std::string ip_address;
+  unsigned short port;
+  std::string sysinfo;
+  std::string certinfo;
+
+  bool operator== (const compile_server_info &that) const
+  {
+    // The host name must always match.
+    if (this->host_name != that.host_name)
+      return false;
+    // Compare the other fields only if they have both been set.
+    if (this->port != 0 && that.port != 0 && this->port != that.port)
+      return false;
+    if (! this->sysinfo.empty () && ! that.sysinfo.empty () &&
+	this->sysinfo != that.sysinfo)
+      return false;
+    if (! this->certinfo.empty () && ! that.certinfo.empty () &&
+	this->certinfo != that.certinfo)
+      return false;
+    return true;
+  }
+};
+
+// For filtering queries.
+enum compile_server_properties {
+  compile_server_all        = 0x1,
+  compile_server_trusted    = 0x2,
+  compile_server_online     = 0x4,
+  compile_server_compatible = 0x8,
+  compile_server_signer     = 0x10,
+  compile_server_specified  = 0x20
+};
+
+// Static functions.
+static void query_server_status (systemtap_session &s, const string &status_string);
+static void add_server_trust (systemtap_session &s, const string &cert_db_path, const vector<compile_server_info> &server_list);
+static void revoke_server_trust (systemtap_session &s, const string &cert_db_path, const vector<compile_server_info> &server_list);
+
+static void get_server_info (systemtap_session &s, int pmask, vector<compile_server_info> &servers);
+static void get_all_server_info (systemtap_session &s, vector<compile_server_info> &servers);
+static void get_default_server_info (systemtap_session &s, vector<compile_server_info> &servers);
+static void get_specified_server_info (systemtap_session &s, vector<compile_server_info> &servers);
+static void get_or_keep_online_server_info (systemtap_session &s, vector<compile_server_info> &servers);
+static void get_or_keep_trusted_server_info (systemtap_session &s, vector<compile_server_info> &servers);
+static void get_or_keep_signing_server_info (systemtap_session &s, vector<compile_server_info> &servers);
+static void keep_compatible_server_info (systemtap_session &s, vector<compile_server_info> &servers);
+static void keep_common_server_info (const vector<compile_server_info> &info_to_keep, vector<compile_server_info> &filtered_info);
+static void get_server_info_from_db (systemtap_session &s, vector<compile_server_info> &servers, const string &cert_db_path);
+static void add_server_info (const compile_server_info &info, vector<compile_server_info>& list);
+static void merge_server_info (const compile_server_info &source, compile_server_info &target);
+static void merge_server_info (const vector<compile_server_info> &source, vector<compile_server_info> &target);
+static void merge_server_info (const vector<compile_server_info> &source, compile_server_info &target);
+
+static void resolve_server (systemtap_session& s, compile_server_info &server_info);
+static int resolve_host_name (systemtap_session& s, string &host_name, string *ip_address = NULL);
+
+ostream &operator<< (ostream &s, const compile_server_info &i);
+
 #if HAVE_NSS
+static const char *server_cert_nickname = "stap-server";
+
 static string
 private_ssl_cert_db_path (const systemtap_session &s)
 {
@@ -151,7 +214,6 @@ compile_server_client::passes_0_4 ()
            << TIMESPRINT
            << endl;
     }
-#endif // HAVE_NSS
 
   if (rc == 0)
     {
@@ -178,6 +240,7 @@ compile_server_client::passes_0_4 ()
   STAP_PROBE1(stap, client__end, &s);
 
   return rc;
+#endif // HAVE_NSS
 }
 
 // Initialize a client/server session.
@@ -470,11 +533,15 @@ compile_server_client::compile_using_server (const compile_server_info &server)
   if (server.port == 0)
     return 1; // Failure
 
+  // Make sure NSPR is initialized
+  s.NSPR_init ();
+
   // Attempt connection using each of the available client certificate
   // databases.
   vector<string> dbs = private_ssl_dbs;
   vector<string>::iterator i = dbs.end();
   dbs.insert (i, public_ssl_dbs.begin (), public_ssl_dbs.end ());
+  int rc = 1; // assume failure
   for (i = dbs.begin (); i != dbs.end (); ++i)
     {
       const char *cert_dir = i->c_str ();
@@ -483,8 +550,6 @@ compile_server_client::compile_using_server (const compile_server_info &server)
 	clog << "Attempting SSL connection with " << server << endl
 	     << "  using certificates from the database in " << cert_dir
 	     << endl;
-      // Call the NSPR initialization routines.
-      PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
 #if 0 // no client authentication for now.
       // Set our password function callback.
@@ -500,7 +565,9 @@ compile_server_client::compile_using_server (const compile_server_info &server)
 	  if (secStatus != SECSuccess)
 	    {
 	      cerr << "Error initializing NSS" << endl;
-	      goto error;
+	      nssError ();
+	      NSS_Shutdown();
+	      continue; // try next database
 	    }
 	}
 
@@ -508,23 +575,17 @@ compile_server_client::compile_using_server (const compile_server_info &server)
       NSS_SetDomesticPolicy ();
 
       server_zipfile = s.tmpdir + "/server.zip";
-      int rc = client_main (server.host_name.c_str (), server.port,
-			    client_zipfile.c_str(), server_zipfile.c_str (),
-			    NULL/*trustNewServer_p*/);
-
+      rc = client_main (server.host_name.c_str (), server.port,
+			client_zipfile.c_str(), server_zipfile.c_str (),
+			NULL/*trustNewServer_p*/);
+ 
       NSS_Shutdown();
-      PR_Cleanup();
 
       if (rc == 0)
-	return rc; // Success!
+	break; // Success!
     }
 
-  return 1; // Failure
-
- error:
-  nssError ();
-  NSS_Shutdown();
-  PR_Cleanup();
+  return rc;
 #endif // HAVE_NSS
 
   return 1; // Failure
@@ -777,7 +838,7 @@ compile_server_client::flush_to_stream (const string &fname, ostream &o)
 
 // Utility Functions.
 //-----------------------------------------------------------------------
-std::ostream &operator<< (std::ostream &s, const compile_server_info &i)
+ostream &operator<< (ostream &s, const compile_server_info &i)
 {
   s << i.host_name;
   s << " ip=";
@@ -887,15 +948,17 @@ server_spec_to_pmask (const string &server_spec)
 void
 query_server_status (systemtap_session &s)
 {
+  // Make sure NSPR is initialized
+  s.NSPR_init ();
+
   unsigned limit = s.server_status_strings.size ();
   for (unsigned i = 0; i < limit; ++i)
     query_server_status (s, s.server_status_strings[i]);
 }
 
-void
+static void
 query_server_status (systemtap_session &s, const string &status_string)
 {
-#if HAVE_NSS || HAVE_AVAHI
   // If this string is empty, then the default is "specified"
   string working_string = status_string;
   if (working_string.empty ())
@@ -923,13 +986,14 @@ query_server_status (systemtap_session &s, const string &status_string)
     {
       clog << servers[i] << endl;
     }
-#endif // HAVE_NSS || HAVE_AVAHI
 }
 
 // Add or remove trust of the servers specified on the command line.
 void
 manage_server_trust (systemtap_session &s)
 {
+  // This function will never be called if we don't have NSS, but it must
+  // still compile.
 #if HAVE_NSS
   // Nothing to do if --trust-servers was not specified.
   if (s.server_trust_spec.empty ())
@@ -981,6 +1045,9 @@ manage_server_trust (systemtap_session &s)
     }
   if (error)
     return;
+
+  // Make sure NSPR is initialized
+  s.NSPR_init ();
 
   // Now obtain the list of specified servers.
   vector<compile_server_info> server_list;
@@ -1089,7 +1156,7 @@ trust_already_in_place (
 }
 
 // Add the given servers to the given database of trusted servers.
-void
+static void
 add_server_trust (
   systemtap_session &s,
   const string &cert_db_path,
@@ -1106,9 +1173,6 @@ add_server_trust (
       perror ("");
       return;
     }
-
-  // Call the NSPR initialization routines.
-  PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
   // Initialize the NSS libraries -- read/write
   SECStatus secStatus = NSS_InitReadWrite (cert_db_path.c_str ());
@@ -1135,12 +1199,11 @@ add_server_trust (
 
  cleanup:
   NSS_Shutdown ();
-  PR_Cleanup();
 #endif // HAVE_NSS
 }
 
 // Remove the given servers from the given database of trusted servers.
-void
+static void
 revoke_server_trust (
   systemtap_session &s,
   const string &cert_db_path,
@@ -1170,9 +1233,6 @@ revoke_server_trust (
   PRArenaPool *tmpArena = NULL;
   CERTCertList *certs = NULL;
   CERTCertificate *db_cert;
-
-  // Call the NSPR initialization routines.
-  PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
   // Initialize the NSS libraries -- read/write
   SECStatus secStatus = NSS_InitReadWrite (cert_db_path.c_str ());
@@ -1331,11 +1391,10 @@ revoke_server_trust (
     PORT_FreeArena (tmpArena, PR_FALSE);
 
   NSS_Shutdown ();
-  PR_Cleanup();
 #endif // HAVE_NSS
 }
 
-void
+static void
 get_server_info (
   systemtap_session &s,
   int pmask,
@@ -1382,7 +1441,7 @@ get_server_info (
 
 // Get information about all online servers as well as servers trusted
 // as SSL peers and servers trusted as signers.
-void
+static void
 get_all_server_info (
   systemtap_session &s,
   vector<compile_server_info> &servers
@@ -1403,7 +1462,7 @@ get_all_server_info (
   merge_server_info (temp, servers);
 }
 
-void
+static void
 get_default_server_info (
   systemtap_session &s,
   vector<compile_server_info> &servers
@@ -1427,7 +1486,7 @@ get_default_server_info (
     add_server_info (default_servers[i], servers);
 }
 
-void
+static void
 get_specified_server_info (
   systemtap_session &s,
   vector<compile_server_info> &servers
@@ -1563,7 +1622,7 @@ get_specified_server_info (
     add_server_info (specified_servers[i], servers);
 }
 
-void
+static void
 get_or_keep_trusted_server_info (
   systemtap_session &s,
   vector<compile_server_info> &servers
@@ -1579,9 +1638,6 @@ get_or_keep_trusted_server_info (
       trusted_servers.push_back (compile_server_info ());
 
 #if HAVE_NSS
-      // Call the NSPR initialization routines
-      PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
-
       // Check the private database first.
       string cert_db_path = private_ssl_cert_db_path (s);
       get_server_info_from_db (s, trusted_servers, cert_db_path);
@@ -1589,9 +1645,6 @@ get_or_keep_trusted_server_info (
       // Now check the global database.
       cert_db_path = global_ssl_cert_db_path ();
       get_server_info_from_db (s, trusted_servers, cert_db_path);
-
-      // Terminate NSPR.
-      PR_Cleanup ();
 #else // ! HAVE_NSS
       // Without NSS, we can't determine whether a server is trusted.
       // Issue a warning.
@@ -1615,7 +1668,7 @@ get_or_keep_trusted_server_info (
     }
 }
 
-void
+static void
 get_or_keep_signing_server_info (
   systemtap_session &s,
   vector<compile_server_info> &servers
@@ -1631,15 +1684,9 @@ get_or_keep_signing_server_info (
       signing_servers.push_back (compile_server_info ());
 
 #if HAVE_NSS
-      // Call the NSPR initialization routines
-      PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
-
       // For all users, check the global database.
       string cert_db_path = signing_cert_db_path ();
       get_server_info_from_db (s, signing_servers, cert_db_path);
-
-      // Terminate NSPR.
-      PR_Cleanup ();
 #else // ! HAVE_NSS
       // Without NSS, we can't determine whether a server is a trusted
       // signer. Issue a warning.
@@ -1664,13 +1711,15 @@ get_or_keep_signing_server_info (
 }
 
 // Obtain information about servers from the certificates in the given database.
-void
+static void
 get_server_info_from_db (
   systemtap_session &s,
   vector<compile_server_info> &servers,
   const string &cert_db_path
 )
 {
+  // This function will never be called if we don't have NSS, but it must
+  // still compile.
 #if HAVE_NSS
   // Make sure the given path exists.
   if (! file_exists (cert_db_path))
@@ -1813,7 +1862,7 @@ get_server_info_from_db (
 #endif // HAVE_NSS
 }
 
-void
+static void
 keep_compatible_server_info (
   systemtap_session &s,
   vector<compile_server_info> &servers
@@ -1852,13 +1901,14 @@ keep_compatible_server_info (
 
 // Attempt to obtain complete information about this server from the local
 // name service and/or from online server discovery.
-int resolve_server (systemtap_session& s, compile_server_info &server_info)
+static void
+resolve_server (systemtap_session& s, compile_server_info &server_info)
 {
   // Attempt to resolve the host name and ip.
   int status = resolve_host_name (s, server_info.host_name,
 				  & server_info.ip_address);
   if (status != 0)
-    return status; // message already issued.
+    return; // message already issued.
 
   // See if we can discover the target of this server.
   if (server_info.sysinfo.empty ())
@@ -1882,12 +1932,11 @@ int resolve_server (systemtap_session& s, compile_server_info &server_info)
       get_or_keep_signing_server_info (s, signing_servers);
       merge_server_info (signing_servers, server_info);
     }
-
-  return 0;
 }
 
 // Obtain the canonical host name and, if requested, ip address of a host.
-int resolve_host_name (
+static int
+resolve_host_name (
   systemtap_session& s,
   string &host_name,
   string *ip_address
@@ -2106,7 +2155,7 @@ void timeout_callback(AVAHI_GCC_UNUSED AvahiTimeout *e, AVAHI_GCC_UNUSED void *u
 }
 #endif // HAVE_AVAHI
 
-void
+static void
 get_or_keep_online_server_info (systemtap_session &s,
 				vector<compile_server_info> &servers)
 {
@@ -2233,7 +2282,7 @@ get_or_keep_online_server_info (systemtap_session &s,
 
 // Add server info to a list, avoiding duplicates. Merge information from
 // two duplicate items.
-void
+static void
 add_server_info (
   const compile_server_info &info, vector<compile_server_info>& list
 )
@@ -2251,7 +2300,7 @@ add_server_info (
 
 // Filter the second vector by keeping information in common with the first
 // vector.
-void
+static void
 keep_common_server_info (
   const	vector<compile_server_info> &info_to_keep,
   vector<compile_server_info> &filtered_info
@@ -2277,7 +2326,7 @@ keep_common_server_info (
 }
 
 // Merge two compile server info items.
-void
+static void
 merge_server_info (
   const compile_server_info &source,
   compile_server_info &target
@@ -2296,7 +2345,7 @@ merge_server_info (
 }
 
 // Merge two compile server info vectors.
-void
+static void
 merge_server_info (
   const vector<compile_server_info> &source,
   vector<compile_server_info> &target
@@ -2310,7 +2359,7 @@ merge_server_info (
 
 // Merge info from a compile server info vector into a compile
 // server info item.
-void
+static void
 merge_server_info (
   const vector<compile_server_info> &source,
   compile_server_info &target

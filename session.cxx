@@ -33,6 +33,12 @@ extern "C" {
 #include <elfutils/libdwfl.h>
 }
 
+#if HAVE_NSS
+extern "C" {
+#include <nspr.h>
+}
+#endif
+
 #include <string>
 
 using namespace std;
@@ -142,6 +148,9 @@ systemtap_session::systemtap_session ():
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
   client_options = false;
+#if HAVE_NSS
+  NSPR_Initialized = false;
+#endif
 
   /*  adding in the XDG_DATA_DIRS variable path,
    *  this searches in conjunction with SYSTEMTAP_TAPSET
@@ -215,6 +224,25 @@ systemtap_session::systemtap_session ():
   }
 }
 
+systemtap_session::~systemtap_session ()
+{
+#if HAVE_NSS
+  if (NSPR_Initialized)
+    PR_Cleanup ();
+#endif // HAVE_NSS
+}
+
+#if HAVE_NSS
+void
+systemtap_session::NSPR_init ()
+{
+  if (! NSPR_Initialized)
+    {
+      PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+      NSPR_Initialized = true;
+    }
+}
+#endif // HAVE_NSS
 
 void
 systemtap_session::version ()
