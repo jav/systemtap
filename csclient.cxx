@@ -165,6 +165,13 @@ compile_server_client::passes_0_4 ()
 	  string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
 	  string module_dest_path = s.module_name + ".ko";
 	  copy_file (module_src_path, module_dest_path, s.verbose > 1);
+	  // Also copy the module signature, it it exists.
+	  module_src_path += ".sgn";
+	  if (file_exists (module_src_path))
+	    {
+	      module_dest_path += ".sgn";
+	      copy_file(module_src_path, module_dest_path, s.verbose > 1);
+	    }
 	}
     }
 
@@ -982,7 +989,7 @@ manage_server_trust (systemtap_session &s)
   // Ignore the empty first entry.
   assert (! server_list.empty ());
   assert (server_list[0].host_name.empty ());
-  server_list.erase (server_list.begin (), server_list.begin ());
+  server_list.erase (server_list.begin ());
 
   // Did we identify any potential servers? Ignore the empty first entry.
   unsigned limit = server_list.size ();
@@ -1020,6 +1027,16 @@ manage_server_trust (systemtap_session &s)
   clog << "in the following servers " << trustString.str () << '?' << endl;
   for (unsigned i = 0; i < limit; ++i)
     clog << "  " << server_list[i] << endl;
+  clog << "[y/N] " << flush;
+
+  // Only carry out the operation if the response is "yes"
+  string response;
+  cin >> response;
+  if (response[0] != 'y' && response [0] != 'Y')
+    {
+      clog << "Server trust unchanged" << endl;
+      return;
+    }
 
   // Now add/revoke the requested trust.
   string cert_db_path;
@@ -1228,12 +1245,12 @@ revoke_server_trust (
 
 	  // Get the serial number.
 	  ostringstream serialNumber;
-	  serialNumber << hex << setw(2) << setfill('0') << right;
+	  serialNumber << hex << setfill('0') << right;
 	  for (unsigned i = 0; i < db_cert->serialNumber.len; ++i)
 	    {
 	      if (i > 0)
 		serialNumber << ':';
-	      serialNumber << (unsigned)db_cert->serialNumber.data[i];
+	      serialNumber << setw(2) << (unsigned)db_cert->serialNumber.data[i];
 	    }
 
 	  // Does the serial number match that of the current server?
@@ -1454,65 +1471,87 @@ get_specified_server_info (
 		  tokenize (server, components, ":");
 		  if (components.size () > 2)
 		    {
-		      cerr << "Invalid server specification: " << server
-			   << endl;
-		      continue;
-		    }
-		  if (components.size () == 2)
-		    {
-		      // Obtain the port number.
-		      const char *pstr = components.back ().c_str ();
-		      char *estr;
-		      errno = 0;
-		      unsigned long port = strtoul (pstr, & estr, 10);
-		      if (errno == 0 && *estr == '\0' && port <= USHRT_MAX)
-			server_info.port = port;
-		      else
-			{
-			  cerr << "Invalid port number specified: "
-			       << components.back ()
-			       << endl;
-			  continue;
-			}
-		    }
-
-		  // Obtain the host name.
-		  server_info.host_name = components.front ();
-
-		  // Was a port specified?
-		  if (server_info.port != 0)
-		    {
-		      // A specific server was specified.
-		      // Resolve the server. It's not an error if it fails.
-		      // Just less info gathered.
-		      resolve_server (s, server_info);
-		      add_server_info (server_info, specified_servers);
-		    }
-		  else
-		    {
-		      // No port was specified, so find all known servers
-		      // on the specified host.
-		      resolve_host_name (s, server_info.host_name);
+		      // Treat it as a certificate serial number. Look for
+		      // all known servers with this serial number.
 		      vector<compile_server_info> all_servers;
 		      get_all_server_info (s, all_servers);
 
-		      // Search the list of online servers for ones matching the
-		      // one specified and obtain the port numbers.
+		      // Search the list of servers for ones matching the
+		      // serial number specified.
 		      unsigned found = 0;
 		      unsigned limit = all_servers.size ();
 		      for (unsigned j = 0; j < limit; ++j)
 			{
-			  if (server_info == all_servers[j])
+			  if (server == all_servers[j].certinfo)
 			    {
 			      add_server_info (all_servers[j], specified_servers);
 			      ++found;
 			    }
 			}
-		      // Do we have a port number now?
+		      // Did we find one?
 		      if (s.verbose && found == 0)
-			cerr << "No server matching " << s.specified_servers[i]
-			     << " found" << endl;
-		    } // No port specified
+			cerr << "No server matching " << server << " found"
+			     << endl;
+		    } // specified by cert serial number
+		  else {
+		    // Not specified by serial number. Treat it as host name
+		    // and optional port number.
+		    if (components.size () == 2)
+		      {
+			// Obtain the port number.
+			const char *pstr = components.back ().c_str ();
+			char *estr;
+			errno = 0;
+			unsigned long port = strtoul (pstr, & estr, 10);
+			if (errno == 0 && *estr == '\0' && port <= USHRT_MAX)
+			  server_info.port = port;
+			else
+			  {
+			    cerr << "Invalid port number specified: "
+				 << components.back ()
+				 << endl;
+			    continue;
+			  }
+		      }
+
+		    // Obtain the host name.
+		    server_info.host_name = components.front ();
+
+		    // Was a port specified?
+		    if (server_info.port != 0)
+		      {
+			// A specific server was specified.
+			// Resolve the server. It's not an error if it fails.
+			// Just less info gathered.
+			resolve_server (s, server_info);
+			add_server_info (server_info, specified_servers);
+		      }
+		    else
+		      {
+			// No port was specified, so find all known servers
+			// on the specified host.
+			resolve_host_name (s, server_info.host_name);
+			vector<compile_server_info> all_servers;
+			get_all_server_info (s, all_servers);
+
+			// Search the list of servers for ones matching the
+			// one specified and obtain the port numbers.
+			unsigned found = 0;
+			unsigned limit = all_servers.size ();
+			for (unsigned j = 0; j < limit; ++j)
+			  {
+			    if (server_info == all_servers[j])
+			      {
+				add_server_info (all_servers[j], specified_servers);
+				++found;
+			      }
+			  }
+			// Do we have a port number now?
+			if (s.verbose && found == 0)
+			  cerr << "No server matching " << server << " found"
+			       << endl;
+		      } // No port specified
+		  }  // Not specified by cert serial number
 		} // Specified server.
 	    } // Loop over --use-server options
 	} // -- use-server specified
@@ -1734,12 +1773,12 @@ get_server_info_from_db (
 
       // Get the serial number.
       ostringstream field;
-      field << hex << setw(2) << setfill('0') << right;
+      field << hex << setfill('0') << right;
       for (unsigned i = 0; i < db_cert->serialNumber.len; ++i)
 	{
 	  if (i > 0)
 	    field << ':';
-	  field << (unsigned)db_cert->serialNumber.data[i];
+	  field << setw(2) << (unsigned)db_cert->serialNumber.data[i];
 	}
       server_info.certinfo = field.str ();
 
