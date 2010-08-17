@@ -626,6 +626,13 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	case 'c':
 	  push_server_opt = true;
 	  cmd = string (optarg);
+          if (cmd == "")
+            {
+              // This would mess with later code deciding to pass -c
+              // through to staprun
+              cerr << "Empty CMD string invalid." << endl;
+              return 1;
+            }
 	  break;
 
 	case 'x':
