@@ -38,31 +38,28 @@ extern "C" {
 // NB: "rc == 0" means OK in this case
 void dwfl_assert(const std::string& desc, int rc);
 
-// Throw error if pointer is NULL.
-template <typename T>
-void dwfl_assert(const std::string& desc, T* ptr)
-{
-  if (!ptr)
-    dwfl_assert(desc, -1);
-}
-
 // Throw error if pointer is NULL
-template <typename T>
-void dwfl_assert(const std::string& desc, const T* ptr)
+inline void
+dwfl_assert(const std::string& desc, const void* ptr)
 {
   if (!ptr)
     dwfl_assert(desc, -1);
 }
 
 // Throw error if condition is false
-void dwfl_assert(const std::string& desc, bool condition);
+inline void
+dwfl_assert(const std::string& desc, bool condition)
+{
+  if (!condition)
+    dwfl_assert(desc, -1);
+}
 
 // NB: "rc == 0" means OK in this case
 void dwarf_assert(const std::string& desc, int rc);
 
 // Throw error if pointer is NULL
-template <typename T>
-void dwarf_assert(const std::string& desc, T* ptr)
+inline void
+dwarf_assert(const std::string& desc, const void* ptr)
 {
   if (!ptr)
     dwarf_assert(desc, -1);

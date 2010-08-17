@@ -41,12 +41,6 @@ void dwarf_assert(const string& desc, int rc)
   throw semantic_error (msg);
 }
 
-void dwfl_assert(const std::string& desc, bool condition)
-{
-    if (!condition)
-        dwfl_assert(desc, -1);
-}
-
 
 #if !_ELFUTILS_PREREQ(0, 143)
 // Elfutils prior to 0.143 didn't use attr_integrate when looking up the
