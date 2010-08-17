@@ -1085,11 +1085,9 @@ dwarf_query::add_probe_point(const string& dw_funcname,
   reloc_addr = dw.relocate_address(addr, reloc_section);
 
   // If we originally used the linkage name, then let's call it that way
-  Dwarf_Attribute attr_mem;
   const char* linkage_name;
   if (scope_die && startswith (this->function, "_Z")
-      && dwarf_attr_integrate (scope_die, DW_AT_MIPS_linkage_name, &attr_mem)
-      && (linkage_name = dwarf_formstring (&attr_mem)))
+      && (linkage_name = dwarf_linkage_name (scope_die)))
     funcname = linkage_name;
 
   if (sess.verbose > 1)

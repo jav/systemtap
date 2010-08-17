@@ -16,6 +16,7 @@ extern "C" {
 #ifdef HAVE_ELFUTILS_VERSION_H
 #include <elfutils/version.h>
 #endif
+#include <dwarf.h>
 }
 
 #include <string>
@@ -27,6 +28,10 @@ extern "C" {
 
 #if ! _ELFUTILS_PREREQ(0,142)
 #define DW_TAG_rvalue_reference_type 0x42
+#endif
+
+#if ! _ELFUTILS_PREREQ(0, 148)
+#define DW_AT_linkage_name 0x6e
 #endif
 
 
@@ -115,6 +120,18 @@ dwarf_attr_die (Dwarf_Die *die, unsigned int attr, Dwarf_Die *result)
   Dwarf_Attribute attr_mem;
   return dwarf_formref_die (dwarf_attr_integrate (die, attr, &attr_mem),
                             result);
+}
+
+
+// Retrieve the linkage name of a die, either by the MIPS vendor extension or
+// DWARF4's standardized attribute.
+inline const char *
+dwarf_linkage_name (Dwarf_Die *die)
+{
+  Dwarf_Attribute attr_mem;
+  return dwarf_formstring
+    (dwarf_attr_integrate (die, DW_AT_MIPS_linkage_name, &attr_mem)
+     ?: dwarf_attr_integrate (die, DW_AT_linkage_name, &attr_mem));
 }
 
 

@@ -850,9 +850,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
           if (pending_interrupts) return DWARF_CB_ABORT;
           Dwarf_Die& die = it->second;
           const char* linkage_name = NULL;
-          Dwarf_Attribute attr_mem;
-          if (dwarf_attr_integrate (&die, DW_AT_MIPS_linkage_name, &attr_mem)
-              && (linkage_name = dwarf_formstring (&attr_mem))
+          if ((linkage_name = dwarf_linkage_name (&die))
               && function_name_matches_pattern (linkage_name, function))
             {
               if (sess.verbose > 4)
@@ -2325,13 +2323,7 @@ dwflpp::express_as_string (string prelude,
 Dwarf_Addr
 dwflpp::vardie_from_symtable (Dwarf_Die *vardie, Dwarf_Addr *addr)
 {
-  const char *name;
-  Dwarf_Attribute attr_mem;
-  name = dwarf_formstring (dwarf_attr_integrate (vardie,
-                                                 DW_AT_MIPS_linkage_name,
-                                                 &attr_mem));
-  if (!name)
-    name = dwarf_diename (vardie);
+  const char *name = dwarf_linkage_name (vardie) ?: dwarf_diename (vardie);
 
   if (sess.verbose > 2)
     clog << "finding symtable address for " << name << "\n";
