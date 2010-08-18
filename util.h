@@ -1,4 +1,5 @@
 #include <cstring>
+#include <cerrno>
 #include <string>
 #include <vector>
 #include <iostream>
