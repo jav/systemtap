@@ -35,7 +35,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = staprun$(EXEEXT) $(am__EXEEXT_1)
+bin_PROGRAMS = staprun$(EXEEXT) stap-merge$(EXEEXT) $(am__EXEEXT_1)
 pkglibexec_PROGRAMS = stapio$(EXEEXT) $(am__EXEEXT_2) $(am__EXEEXT_3)
 @BUILD_TRANSLATOR_TRUE@am__append_1 = stap
 @BUILD_TRANSLATOR_TRUE@am__append_2 = stap.1
@@ -43,7 +43,7 @@ pkglibexec_PROGRAMS = stapio$(EXEEXT) $(am__EXEEXT_2) $(am__EXEEXT_3)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_4 = stap-authorize-signing-cert.8
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_5 = stap-authorize-signing-cert
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_6 = stap-sign-module
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_7 = stap-gen-cert stap-authorize-cert 
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_7 = stap-gen-cert stap-authorize-cert
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_8 = stap-client.8 stap-server.8 stap-authorize-server-cert.8
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_9 = stap-client-connect stap-server-connect
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_10 = stap-client stap-server stap-authorize-server-cert
@@ -150,6 +150,11 @@ stap_client_connect_OBJECTS = $(am_stap_client_connect_OBJECTS)
 stap_client_connect_DEPENDENCIES =
 stap_client_connect_LINK = $(CCLD) $(stap_client_connect_CFLAGS) \
 	$(CFLAGS) $(stap_client_connect_LDFLAGS) $(LDFLAGS) -o $@
+am_stap_merge_OBJECTS = stap_merge-stap_merge.$(OBJEXT)
+stap_merge_OBJECTS = $(am_stap_merge_OBJECTS)
+stap_merge_DEPENDENCIES =
+stap_merge_LINK = $(CCLD) $(stap_merge_CFLAGS) $(CFLAGS) \
+	$(stap_merge_LDFLAGS) $(LDFLAGS) -o $@
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am_stap_server_connect_OBJECTS = stap_server_connect-stap-server-connect.$(OBJEXT) \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_server_connect-nsscommon.$(OBJEXT)
 stap_server_connect_OBJECTS = $(am_stap_server_connect_OBJECTS)
@@ -235,9 +240,9 @@ AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) \
-	$(stap_client_connect_SOURCES) $(stap_server_connect_SOURCES) \
-	$(stap_sign_module_SOURCES) $(stapio_SOURCES) \
-	$(staprun_SOURCES)
+	$(stap_client_connect_SOURCES) $(stap_merge_SOURCES) \
+	$(stap_server_connect_SOURCES) $(stap_sign_module_SOURCES) \
+	$(stapio_SOURCES) $(staprun_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -386,8 +391,8 @@ AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap \
-	stapex.3stap dtrace.1 stappaths.7 staprun.8 $(am__append_2) \
-	$(am__append_4) $(am__append_8)
+	stapex.3stap dtrace.1 stap-merge.1 stappaths.7 staprun.8 \
+	$(am__append_2) $(am__append_4) $(am__append_8)
 bin_SCRIPTS = stap-report $(am__append_3) $(am__append_5) \
 	$(am__append_10)
 pkglibexec_SCRIPTS = stap-env $(am__append_7) $(am__append_11)
@@ -452,6 +457,10 @@ stapio_SOURCES = runtime/staprun/stapio.c \
 stapio_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-builtin-strftime
 stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_LDADD = -lpthread
+stap_merge_SOURCES = runtime/staprun/stap_merge.c
+stap_merge_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@
+stap_merge_LDFLAGS = $(AM_LDFLAGS) @PIECFLAGS@
+stap_merge_LDADD = 
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_SOURCES = modsign.cxx nsscommon.c
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CPPFLAGS = -Wall -Werror $(AM_CPPFLAGS) $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_LDADD = -lnss3 -lnspr4
@@ -637,6 +646,9 @@ stap$(EXEEXT): $(stap_OBJECTS) $(stap_DEPENDENCIES)
 stap-client-connect$(EXEEXT): $(stap_client_connect_OBJECTS) $(stap_client_connect_DEPENDENCIES) 
 	@rm -f stap-client-connect$(EXEEXT)
 	$(AM_V_CCLD)$(stap_client_connect_LINK) $(stap_client_connect_OBJECTS) $(stap_client_connect_LDADD) $(LIBS)
+stap-merge$(EXEEXT): $(stap_merge_OBJECTS) $(stap_merge_DEPENDENCIES) 
+	@rm -f stap-merge$(EXEEXT)
+	$(AM_V_CCLD)$(stap_merge_LINK) $(stap_merge_OBJECTS) $(stap_merge_LDADD) $(LIBS)
 stap-server-connect$(EXEEXT): $(stap_server_connect_OBJECTS) $(stap_server_connect_DEPENDENCIES) 
 	@rm -f stap-server-connect$(EXEEXT)
 	$(AM_V_CCLD)$(stap_server_connect_LINK) $(stap_server_connect_OBJECTS) $(stap_server_connect_LDADD) $(LIBS)
@@ -757,6 +769,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_client_connect-nsscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_client_connect-stap-client-connect.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_merge-stap_merge.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_server_connect-nsscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_server_connect-stap-server-connect.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_sign_module-modsign.Po@am__quote@
@@ -917,6 +930,22 @@ stap_client_connect-nsscommon.obj: nsscommon.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='nsscommon.c' object='stap_client_connect-nsscommon.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_client_connect_CFLAGS) $(CFLAGS) -c -o stap_client_connect-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
+
+stap_merge-stap_merge.o: runtime/staprun/stap_merge.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -MT stap_merge-stap_merge.o -MD -MP -MF $(DEPDIR)/stap_merge-stap_merge.Tpo -c -o stap_merge-stap_merge.o `test -f 'runtime/staprun/stap_merge.c' || echo '$(srcdir)/'`runtime/staprun/stap_merge.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap_merge-stap_merge.Tpo $(DEPDIR)/stap_merge-stap_merge.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/staprun/stap_merge.c' object='stap_merge-stap_merge.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -c -o stap_merge-stap_merge.o `test -f 'runtime/staprun/stap_merge.c' || echo '$(srcdir)/'`runtime/staprun/stap_merge.c
+
+stap_merge-stap_merge.obj: runtime/staprun/stap_merge.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -MT stap_merge-stap_merge.obj -MD -MP -MF $(DEPDIR)/stap_merge-stap_merge.Tpo -c -o stap_merge-stap_merge.obj `if test -f 'runtime/staprun/stap_merge.c'; then $(CYGPATH_W) 'runtime/staprun/stap_merge.c'; else $(CYGPATH_W) '$(srcdir)/runtime/staprun/stap_merge.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap_merge-stap_merge.Tpo $(DEPDIR)/stap_merge-stap_merge.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/staprun/stap_merge.c' object='stap_merge-stap_merge.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -c -o stap_merge-stap_merge.obj `if test -f 'runtime/staprun/stap_merge.c'; then $(CYGPATH_W) 'runtime/staprun/stap_merge.c'; else $(CYGPATH_W) '$(srcdir)/runtime/staprun/stap_merge.c'; fi`
 
 stap_server_connect-stap-server-connect.o: stap-server-connect.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_server_connect_CFLAGS) $(CFLAGS) -MT stap_server_connect-stap-server-connect.o -MD -MP -MF $(DEPDIR)/stap_server_connect-stap-server-connect.Tpo -c -o stap_server_connect-stap-server-connect.o `test -f 'stap-server-connect.c' || echo '$(srcdir)/'`stap-server-connect.c
@@ -2184,7 +2213,7 @@ uninstall-local:
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
         PWD=`pwd`; \
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)" PKGLIBDIR="$(pkglibexecdir)";
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$LD_LIBRARY_PATH$${LD_LIBRARY_PATH:+:}$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)" PKGLIBDIR="$(pkglibexecdir)";
 
 installcheck:
 	if test \! -e $(DESTDIR)$(bindir)/stap; then \

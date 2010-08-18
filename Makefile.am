@@ -24,7 +24,7 @@ pkglibexec_SCRIPTS = stap-env
 oldinclude_HEADERS = includes/sys/sdt.h
 
 if BUILD_TRANSLATOR
-bin_PROGRAMS += stap 
+bin_PROGRAMS += stap
 man_MANS += stap.1
 bin_SCRIPTS += dtrace
 
@@ -32,7 +32,7 @@ if HAVE_NSS
 man_MANS += stap-authorize-signing-cert.8
 bin_SCRIPTS += stap-authorize-signing-cert
 pkglibexec_PROGRAMS += stap-sign-module
-pkglibexec_SCRIPTS += stap-gen-cert stap-authorize-cert 
+pkglibexec_SCRIPTS += stap-gen-cert stap-authorize-cert
 
 if BUILD_SERVER
 man_MANS += stap-client.8 stap-server.8 stap-authorize-server-cert.8
@@ -185,7 +185,7 @@ stapio_LDADD = -lpthread
 stap_merge_SOURCES = runtime/staprun/stap_merge.c
 stap_merge_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@
 stap_merge_LDFLAGS = $(AM_LDFLAGS) @PIECFLAGS@
-stap_merge_LDADD = 
+stap_merge_LDADD =
 
 install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
@@ -331,7 +331,7 @@ EXTRA_DIST = man/tapset*.3stap
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
         PWD=`pwd`; \
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)" PKGLIBDIR="$(pkglibexecdir)";
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$LD_LIBRARY_PATH$${LD_LIBRARY_PATH:+:}$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)" PKGLIBDIR="$(pkglibexecdir)";
 
 installcheck:
 	if test \! -e $(DESTDIR)$(bindir)/stap; then \
