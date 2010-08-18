@@ -29,6 +29,7 @@ extern "C" {
 #include <glob.h>
 #include <limits.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <pwd.h>
@@ -110,7 +111,7 @@ static void revoke_server_trust (systemtap_session &s, const string &cert_db_pat
 static void get_server_info (systemtap_session &s, int pmask, vector<compile_server_info> &servers);
 static void get_all_server_info (systemtap_session &s, vector<compile_server_info> &servers);
 static void get_default_server_info (systemtap_session &s, vector<compile_server_info> &servers);
-static void get_specified_server_info (systemtap_session &s, vector<compile_server_info> &servers);
+static void get_specified_server_info (systemtap_session &s, vector<compile_server_info> &servers, bool no_default = false);
 static void get_or_keep_online_server_info (systemtap_session &s, vector<compile_server_info> &servers);
 static void get_or_keep_trusted_server_info (systemtap_session &s, vector<compile_server_info> &servers);
 static void get_or_keep_signing_server_info (systemtap_session &s, vector<compile_server_info> &servers);
@@ -850,7 +851,7 @@ ostream &operator<< (ostream &s, const compile_server_info &i)
   if (i.port != 0)
     s << i.port;
   else
-    s << "unknown";
+    s << "offline";
   s << " sysinfo=\"";
   if (! i.sysinfo.empty ())
     s << i.sysinfo << '"';
@@ -1051,7 +1052,7 @@ manage_server_trust (systemtap_session &s)
 
   // Now obtain the list of specified servers.
   vector<compile_server_info> server_list;
-  get_specified_server_info (s, server_list);
+  get_specified_server_info (s, server_list, true/*no_default*/);
 
   // Ignore the empty first entry.
   assert (! server_list.empty ());
@@ -1198,7 +1199,31 @@ add_server_trust (
     }
 
  cleanup:
+  // Shutdown NSS.
   NSS_Shutdown ();
+
+  // Make sure the database files are readable.
+  glob_t globbuf;
+  string filespec = cert_db_path + "/*.db";
+  if (s.verbose > 2)
+    clog << "Searching \"" << filespec << "\"" << endl;
+  int r = glob (filespec.c_str (), 0, NULL, & globbuf);
+  if (r != GLOB_NOSPACE && r != GLOB_ABORTED && r != GLOB_NOMATCH)
+    {
+      for (unsigned i = 0; i < globbuf.gl_pathc; ++i)
+	{
+	  string filename = globbuf.gl_pathv[i];
+	  if (s.verbose > 2)
+	    clog << "  found " << filename << endl;
+
+	  if (chmod (filename.c_str (), 0644) != 0)
+	    {
+	      cerr << "Warning: Unable to change permissions on "
+		   << filename << ": ";
+	      perror ("");
+	    }
+	}
+    }
 #endif // HAVE_NSS
 }
 
@@ -1403,7 +1428,7 @@ get_server_info (
 {
   // Get information on compile servers matching the requested criteria.
   // The order of queries is significant. Accumulating queries must go first
-  // followed by accumulating/filering queries followed by filtering queries.
+  // followed by accumulating/filtering queries followed by filtering queries.
   // We start with an empty vector.
   // These queries accumulate server information.
   vector<compile_server_info> temp;
@@ -1489,7 +1514,8 @@ get_default_server_info (
 static void
 get_specified_server_info (
   systemtap_session &s,
-  vector<compile_server_info> &servers
+  vector<compile_server_info> &servers,
+  bool no_default
 )
 {
   // We only need to obtain this once. This is a good thing(tm) since
@@ -1505,7 +1531,8 @@ get_specified_server_info (
       // default server list.
       if (s.specified_servers.empty ())
 	{
-	  get_default_server_info (s, specified_servers);
+	  if (! no_default)
+	    get_default_server_info (s, specified_servers);
 	}
       else
 	{
@@ -1518,7 +1545,8 @@ get_specified_server_info (
 	      if (server.empty ())
 		{
 		  // No server specified. Use the default servers.
-		  get_default_server_info (s, specified_servers);
+		  if (! no_default)
+		    get_default_server_info (s, specified_servers);
 		}
 	      else
 		{

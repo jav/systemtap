@@ -271,25 +271,105 @@ systemtap script fails to run.  See the DEPRECATION section for more
 details.
 
 .TP
-.BI \-\-use\-server
-Use a compatible compile server (automatically found) for phases 1 through 4.
+.BI \-\-use\-server " [SERVER]"
+Specify compile\-server(s) to be used for compilation and/or in conjunction
+with
+.I \-\-list\-servers
+and
+.I \-\-trust\-servers
+(see below). If no argument is
+supplied, then the default in unprivileged mode (see
+.IR \-\-unprivileged )
+is to select compatible servers which are trusted as SSL peers and as
+module signers and currently online. Otherwise the default is to select
+compatible servers which are trusted as SSL peers
+and currently online.
+.I \-\-use\-servers
+may be
+specified more than once, in which case a list of servers is accumulated
+in the order specified.
 
 .TP
-.BI \-\-list\-servers " SERVERS"
-Display the status of the requested SERVERS, where SERVERS is a comma\-separated
-list of server attributes. Currently supported attribues are:
+.BI \-\-list\-servers " [SERVERS]"
+Display the status of the requested
+.IR SERVERS ,
+where
+.I SERVERS
+is a comma\-separated
+list of server attributes. The list of attributes is combined to filter the
+list of servers displayed. Supported attributes are:
 .RS
 .TP
+.BI all
+specifies all known servers (trusted SSL peers, trusted module signers, online
+servers).
+.TP
+.BI specified
+specifies servers specified using
+.IR \-\-use\-server .
+.TP
 .BI online
-displays information about servers which are currently online.
+filters the output by retaining information about servers which are currently
+online.
+.TP
+.BI trusted
+filters the output by retaining information about servers which are trusted as
+SSL peers.
+.TP
+.BI signer
+filters the output by retaining information about servers which are trusted as
+module signers (see
+.IR \-\-unprivileged ).
 .TP
 .BI compatible
-displays information about servers which are compatible with the current
-kernel release and architecture.
+filters the output by retaining information about servers which are compatible
+with the current kernel release and architecture.
 .RE
 
-The default, if no argument is specified is online,compatible, which displays
-information about compatible servers which are currently online.
+If no argument is provided, then the default is
+.BR specified . 
+If no servers were specified using
+.IR \-\-use\-server ,
+then the default servers for
+.IR \-\-use-server
+are listed.
+
+.TP
+.BI \-\-trust\-servers " [TRUST_SPEC]"
+Grant or revoke trust in compile\-servers, specified using
+.IR \-\-use-server
+as specified by TRUST_SPEC,
+where TRUST_SPEC is a comma\-separated list specifying the trust which is to
+be granted or revoked. Supported elements are:
+.RS
+.TP
+.BI ssl
+trust the specified servers as SSL peers.
+.TP
+.BI signer
+trust the specified servers as module signers (see
+.IR \-\-unprivileged ).
+Only root can specify
+.BR signer.
+.TP
+.BI all\-users
+grant trust as an ssl peer for all users on the local host. The default is
+to grant trust as an ssl peer for the current user only. Trust as a module
+signer is always granted for all users. Only root can specify
+.BR all\-users .
+.TP
+.BI revoke
+revoke the specified trust. The default is to grant it.
+.RE
+
+If no argument is provided, then the default is
+.BR ssl . 
+If no servers were specified using
+.IR \-\-use\-server ,
+then no trust will be granted or revoked.
+
+The user will be prompted to confirm the trust to be granted or revoked before
+the operation is performed.
 
 .SH ARGUMENTS
 
@@ -1172,7 +1252,7 @@ the /lib/modules/VERSION/systemtap directory.  This directory
 must be owned by root and not be world writable.
 .IP \(bu 4
 The module has been signed by a trusted signer. Trusted signers are normally
-systemtap compile servers which sign modules when the --unprivileged option is
+systemtap compile\-servers which sign modules when the --unprivileged option is
 specified by the client. See the
 .IR stap-server (8)
 manual page for a for more information.
