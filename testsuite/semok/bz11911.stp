@@ -1,0 +1,24 @@
+#!/bin/sh
+
+TESTBIN=`mktemp` || exit $?
+function clean_exit { rm $TESTBIN; exit $1; }
+
+echo '
+struct point { int x, y; };
+
+int
+foo (struct point p, int i)
+{
+  return p.x + p.y;
+}
+
+int
+main (void)
+{
+  struct point p = { 2, 3 };
+  return foo (p, 17);
+}
+' | gcc -g -o $TESTBIN -xc - || clean_exit $?
+
+stap -L 'process("'$TESTBIN'").function("foo")' | grep '\$p:struct point'
+clean_exit $?

@@ -419,7 +419,7 @@ protected:
 
 private:
   list<string> args;
-  void saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_expanding_visitor& v);
+  void saveargs(dwarf_query& q, Dwarf_Die* scope_die, Dwarf_Addr dwfl_addr);
 };
 
 
@@ -3787,7 +3787,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
         }
       // Save the local variables for listing mode
       if (q.sess.listing_mode_vars)
-         saveargs(q, scope_die, v);
+         saveargs(q, scope_die, dwfl_addr);
     }
   // else - null scope_die - $target variables will produce an error during translate phase
 
@@ -3858,28 +3858,32 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
 
 void
-dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_expanding_visitor& v)
+dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die,
+                              Dwarf_Addr dwfl_addr)
 {
   if (null_die(scope_die))
     return;
 
-  string type_name;
-  Dwarf_Die type_die;
+  bool verbose = q.sess.verbose > 2;
 
-  if (has_return &&
-      dwarf_attr_die (scope_die, DW_AT_type, &type_die) &&
-      dwarf_type_name(&type_die, type_name))
-    args.push_back("$return:"+type_name);
+  if (verbose)
+    clog << "saveargs: examining '" << (dwarf_diename(scope_die) ?: "<unknown>")
+         << "' (dieoffset: " << lex_cast_hex(dwarf_dieoffset(scope_die)) << ")\n";
 
-  /* Pretend that we aren't in a .return for a moment, just so we can
-   * check whether variables are accessible.  We don't want any of the
-   * entry-saving code generated during listing mode.  This works
-   * because the set of $context variables available in a .return
-   * probe (apart from $return) is the same set as available for the
-   * corresponding .call probe, since we collect those variables at
-   * .call time. */
-  bool saved_has_return = has_return;
-  q.has_return = has_return = false;
+  if (has_return)
+    {
+      /* Only save the return value if it has a type. */
+      string type_name;
+      Dwarf_Die type_die;
+      if (dwarf_attr_die (scope_die, DW_AT_type, &type_die) &&
+          dwarf_type_name(&type_die, type_name))
+        args.push_back("$return:"+type_name);
+
+      else if (verbose)
+        clog << "saveargs: failed to retrieve type name for return value"
+             << " (dieoffset: " << lex_cast_hex(dwarf_dieoffset(scope_die))
+             << ")\n";
+    }
 
   Dwarf_Die arg;
   vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
@@ -3896,31 +3900,67 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_ex
             continue;
           }
 
+        /* Ignore this local if it has no name. */
         const char *arg_name = dwarf_diename (&arg);
         if (!arg_name)
-          continue;
+          {
+            if (verbose)
+              clog << "saveargs: failed to retrieve name for local (dieoffset: "
+                   << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+            continue;
+          }
 
-        type_name.clear();
+        if (verbose)
+          clog << "saveargs: finding location for local '"
+               << arg_name << "' (dieoffset: "
+               << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+
+        /* Ignore this local if it has no location (or not at this PC). */
+        /* NB: It still may not be directly accessible, e.g. if it is an
+         * aggregate type, implicit_pointer, etc., but the user can later
+         * figure out how to access the interesting parts. */
+        Dwarf_Attribute attr_mem;
+        if (!dwarf_attr_integrate (&arg, DW_AT_const_value, &attr_mem))
+          {
+            Dwarf_Op *expr;
+            size_t len;
+            if (!dwarf_attr_integrate (&arg, DW_AT_location, &attr_mem))
+              {
+                if (verbose)
+                  clog << "saveargs: failed to resolve the location for local '"
+                       << arg_name << "' (dieoffset: "
+                       << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+                continue;
+              }
+            else if (!(dwarf_getlocation_addr(&attr_mem, dwfl_addr, &expr,
+                                              &len, 1) == 1 && len > 0))
+              {
+                if (verbose)
+                  clog << "saveargs: local '" << arg_name << "' (dieoffset: "
+                       << lex_cast_hex(dwarf_dieoffset(&arg))
+                       << ") is not available at this address ("
+                       << lex_cast_hex(dwfl_addr) << ")\n";
+                continue;
+              }
+          }
+
+        /* Ignore this local if it has no type. */
+        string type_name;
+        Dwarf_Die type_die;
         if (!dwarf_attr_die (&arg, DW_AT_type, &type_die) ||
             !dwarf_type_name(&type_die, type_name))
-          continue;
+          {
+            if (verbose)
+              clog << "saveargs: failed to retrieve type name for local '"
+                   << arg_name << "' (dieoffset: "
+                   << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+            continue;
+          }
 
-        /* trick from visit_target_symbol_context */
-        target_symbol *tsym = new target_symbol;
-        tsym->tok = q.base_loc->components.front()->tok;
-        tsym->name = "$";
-        tsym->name += arg_name;
-
-        /* Ignore any variable that isn't accessible */
-        tsym->saved_conversion_error = 0;
-        v.require (tsym);
-        if (!tsym->saved_conversion_error)
-           args.push_back("$"+string(arg_name)+":"+type_name);
+        /* This local looks good -- save it! */
+        args.push_back("$"+string(arg_name)+":"+type_name);
       }
     while (dwarf_siblingof (&arg, &arg) == 0);
-
-  /* restore the .return status of the probe */
-  q.has_return = has_return = saved_has_return;
 }
 
 
