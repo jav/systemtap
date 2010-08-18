@@ -52,6 +52,7 @@ stap_SOURCES = main.cxx session.cxx \
 	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
 	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx \
 	setupdwfl.cxx csclient.cxx
+noinst_HEADERS = sdt-compat.h
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 stap_DEPENDENCIES =
 endif

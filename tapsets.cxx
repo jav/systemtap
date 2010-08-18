@@ -22,7 +22,8 @@
 #include "hash.h"
 #include "dwflpp.h"
 #include "setupdwfl.h"
-#include "sys/sdt.h"
+
+#include "sdt-compat.h"
 
 #include <cstdlib>
 #include <algorithm>
