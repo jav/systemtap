@@ -237,7 +237,7 @@ print_systemtap_version
 get_system_info
 
 # PR11798: die if kernel-devel is not sufficient to build any modules
-if {[catch {exec stap -p4 -e {probe begin {exit()}}} result options]} {
+if {[catch {exec stap -p4 -e {probe begin {exit()}}} result]} {
     puts "\n\n\n**** failed systemtap kernel-devel smoke test:\n"
     puts $result
 #    puts "****\n"
@@ -250,7 +250,7 @@ if {[catch {exec stap -p4 -e {probe begin {exit()}}} result options]} {
 # NB: if one introduced a [kernel_debuginfo_p] proc like the
 # ones for uprobes/utrace above, and sprinkled it throughout,
 # then this wouldn't have to be a failing condition.
-if {[catch {exec stap -p4 -e {probe syscall.open {println (argstr)}}} result options]} {
+if {[catch {exec stap -p4 -e {probe syscall.open {println (argstr)}}} result]} {
     puts "\n\n\n**** failed systemtap kernel-debuginfo smoke test:\n"
     puts $result
 #    puts "****\n"
