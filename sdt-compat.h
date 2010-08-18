@@ -3,8 +3,8 @@
    This file is part of systemtap, and is free software in the public domain.
 */
 
-#ifndef _SYS_SDT_H
-#define _SYS_SDT_H    1
+#ifndef _SDT_COMPAT_H
+#define _SDT_COMPAT_H    1
 
 #include <string.h>
 #include <sys/types.h>
@@ -26,7 +26,7 @@ typedef enum
     uprobe3_type = UPROBE3_TYPE
   } stap_sdt_probe_type;
 
-typedef struct 
+typedef struct
 {
   __uint32_t type_a;
   __uint32_t type_b;
@@ -45,6 +45,8 @@ typedef struct
   __uint64_t pc;
   __uint64_t semaphore;
 }   stap_sdt_probe_entry_v2;
+
+#ifndef _SYS_SDT_H
 
 #ifdef __LP64__
  #define STAP_PROBE_ADDR(arg) "\t.quad " arg
@@ -169,7 +171,7 @@ typedef struct
 #else
 #define STAP_G_CONSTRAINT "nro"
 #endif
- 
+
 
 /* variadic macro args not allowed by -ansi -pedantic so... */
 /* Use "ron" constraint as "g" constraint sometimes gives an auto increment operand */
@@ -515,4 +517,6 @@ STAP_PROBE9(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9
 #define DTRACE_PROBE10(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10) \
   STAP_PROBE10(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10)
 
-#endif /* sys/sdt.h */
+#endif	/* !_SYS_SDT_H */
+
+#endif /* sdt-compat.h */

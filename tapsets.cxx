@@ -23,6 +23,7 @@
 #include "dwflpp.h"
 #include "setupdwfl.h"
 
+#include "sys/sdt.h"
 #include "sdt-compat.h"
 
 #include <cstdlib>
@@ -4872,7 +4873,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 		    }
                   fc->tok = e->tok;
                   fc->args.push_back(be);
-                  
+
                   argexpr = fc;
                   goto matched;
                 }
@@ -4887,13 +4888,13 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       need_debug_info = true;
       provide (e);
       return;
-      
+
     matched:
       assert (argexpr != 0);
-      
-      if (session.verbose > 2) 
+
+      if (session.verbose > 2)
         clog << "mapped asm operand " << asmarg << " to " << *argexpr << endl;
-      
+
       if (e->components.empty()) // We have a scalar
         {
           if (e->addressof)
@@ -4913,7 +4914,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           cast->visit(this);
           return;
         }
-      
+
       /* NOTREACHED */
     }
   catch (const semantic_error &er)
