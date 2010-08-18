@@ -14,12 +14,12 @@ proc seperate_debuginfo {elffile} {
     lappend objcopy "${elffile}.debug"
     send_log "Executing: $objcopy\n"
     eval exec $objcopy
-    
+
     set objcopy [list "objcopy" "--strip-debug"]
     lappend objcopy "$elffile"
     send_log "Executing: $objcopy\n"
     eval exec $objcopy
-    
+
     set objcopy [list "objcopy"]
     lappend objcopy "--add-gnu-debuglink=${elffile}.debug"
     lappend objcopy "$elffile"
@@ -47,20 +47,20 @@ foreach arch $arches {
     # because it didn't add much interesting differences in binaries
     # and exploded the test search case a bit.
     foreach compiler {gcc} { # Add g++
-	
+
 	# Just try -O3.
 	# Adding -O0, -O, -O2, -Os and mixing lib/exe is a bit overdone
 	foreach opt {-O3} {
-	    
+
 	    foreach libprelink {no yes} {
-		
+
 		# not done yet, "no" lib debug.
 		# seperate debuginfo can be done before or after prelinking
 		# (after is only done if prelinking is also done
 		foreach libdebug {yes sep sep-after} {
-		    
+
 		    set libname "uprobeslib${compiler}${opt}${arch}"
-		    
+
 		    if {$libprelink == "yes"} {
 			set libname $libname-prelink
 		    }
@@ -69,7 +69,7 @@ foreach arch $arches {
 		    if {$libdebug == "sep-after" && $libprelink == "no"} {
 			continue;
 		    }
-		    
+
 		    if {$libdebug == "sep"} {
 			set libname $libname-sep-debug
 		    } elseif {$libdebug == "sep-after"} {
@@ -77,10 +77,10 @@ foreach arch $arches {
 		    } else {
 			set libname $libname-debug
 		    }
-		    
+
 		    # General compiler flags
 		    # We want the sdt.h from the source dir.
-		    set testflags "additional_flags=-I$srcdir/../includes"
+		    set testflags [sdt_includes]
 		    # For now we always require debuginfo
 		    set testflags "$testflags additional_flags=-g"
 		    if {$arch != "default"} {
@@ -90,11 +90,11 @@ foreach arch $arches {
 			set testflags "$testflags additional_flags=-x additional_flags=c++"
 		    }
 		    set testflags "$testflags additional_flags=$opt"
-		    
+
 		    # Extra flags for libraries
 		    set testlibflags "$testflags additional_flags=-fPIC"
 		    set testlibflags "$testlibflags additional_flags=-shared"
-		    
+
 		    set testso "$testlibdir/lib${libname}.so"
 		    set res [target_compile $testsrclib $testso executable $testlibflags]
 		    if { $res != "" } {
@@ -104,7 +104,7 @@ foreach arch $arches {
 		    } else {
 			pass "$libname compile [file tail $testsrclib]"
 		    }
-		    
+
 		    # seperate debuginfo before prelinking
 		    if {$libdebug == "sep"} {
 			seperate_debuginfo $testso
@@ -123,7 +123,7 @@ foreach arch $arches {
 			    pass "$libname prelink $testso"
 			}
 		    }
-		    
+
 		    # seperate debuginfo after prelinking
 		    if {$libdebug == "sep-after"} {
 			seperate_debuginfo $testso
@@ -133,25 +133,25 @@ foreach arch $arches {
 		    foreach exepie {no yes} {
 			# not supported, "no" exe debug.
 			foreach exedebug {yes sep} {
-			    
+
 			    set exename uprobes$compiler$opt$arch
-			    
+
 			    # Extra exe compile flags to include lib
 			    set testexeflags "$testflags additional_flags=-L$testlibdir additional_flags=-l$libname additional_flags=-Wl,-rpath,$testlibdir"
-			    
+
 			    if {$exepie == "yes"} {
 				set exename $exename-pie
 				set testexeflags "$testexeflags additional_flags=-fPIE additional_flags=-pie"
 			    }
-			    
+
 			    if {$exedebug == "sep"} {
 				set exename $exename-sep-debug
 			    } else {
 				set exename $exename-debug
 			    }
-			    
+
 			    set exename $exename-$libname
-			    
+
 			    set testexe "$testlibdir/${exename}_exe"
 			    set res [target_compile $testsrc $testexe executable $testexeflags]
 			    if { $res != "" } {
@@ -161,7 +161,7 @@ foreach arch $arches {
 			    } else {
 				pass "$exename compile [file tail $testsrc]"
 			    }
-			    
+
 			    if {$exedebug == "sep"} {
 				seperate_debuginfo $testexe
 			    }

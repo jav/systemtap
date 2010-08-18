@@ -12,8 +12,8 @@ set ::result_string {1
 
 set extra_flags {{""} {additional_flags=-std=gnu89} {additional_flags=-ansi} {additional_flags=-pedantic} {additional_flags=-ansi additional_flags=-pedantic} {additional_flags=-O2} {additional_flags="-O3"}}
 
-set pbtype_flags {{""} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
-set pbtype_mssgs {{uprobe} {kprobe}}
+set pbtype_flags {{""} {additional_flags=-DSTAP_SDT_V2} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
+set pbtype_mssgs {{uprobe} {V2_uprobe} {V2_kprobe}}
 
 # Iterate pbtype_flags
 for {set p 0} {$p < [llength $pbtype_flags]} {incr p} {
@@ -27,7 +27,7 @@ set testprog "sdt.c.exe.$i"
 
 # C
 set test_flags "additional_flags=-g"
-set test_flags "$test_flags additional_flags=-I$srcdir/../includes"
+set test_flags "$test_flags [sdt_includes]"
 set test_flags "$test_flags additional_flags=-Wall"
 set test_flags "$test_flags additional_flags=-Wextra"
 set test_flags "$test_flags additional_flags=-Werror $pbtype_flag"
@@ -55,7 +55,7 @@ catch {exec rm -f $testprog}
 set testprog "sdt.cxx.exe.$i"
 
 set test_flags "additional_flags=-g"
-set test_flags "$test_flags additional_flags=-I$srcdir/../includes"
+set test_flags "$test_flags [sdt_includes]"
 set test_flags "$test_flags additional_flags=-Wall"
 set test_flags "$test_flags additional_flags=-Werror"
 set test_flags "$test_flags additional_flags=-x additional_flags=c++ $pbtype_flag"

@@ -9,17 +9,19 @@ set test "sdt_misc"
 # 6. Test .mark probe wildcard matching
 # 7. Test types defined in sdt_misc_.d.  This requires -g
 
-set v_flags {{} {} {-DSTAP_SDT_V1}}
-set pbtype_mssgs {{uprobe} {kprobe} {V1_uprobe}}
-set pbtype_flags {{} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-g}}
+set v_flags {{} {-DSTAP_SDT_V2} {-DSTAP_SDT_V2} {-DSTAP_SDT_V1}}
+set pbtype_mssgs {{uprobe} {V2_uprobe} {V2_kprobe} {V1_uprobe}}
+set pbtype_flags {{}}
 switch -regexp $::tcl_platform(machine) {
-    ^(x86_64|i.86)$ { 
-        set pbtype_flags {{} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-g}}
+    ^(x86_64|i.86)$ {
+        lappend pbtype_flags {}
     }
     default {
-        set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {additional_flags=-g}}
+        lappend pbtype_flags {additional_flags=-g}
     }
 }
+lappend pbtype_flags {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}
+lappend pbtype_flags {additional_flags=-g}
 
 proc cleanup_handler { verbose } {
     global pbtype_mssgs
@@ -61,7 +63,7 @@ void
 bar (int i)
 {
 #ifdef LOOP
-  while (!loop_check()) 
+  while (!loop_check())
     {
     }
 #endif
@@ -104,13 +106,13 @@ buz (int parm)
 #endif
 
 #ifndef NO_MAIN
-void int_handler(int sig)  
+void int_handler(int sig)
 {
   sem_display();
   exit(1);
 }
 
-void alrm_handler(int sig)  
+void alrm_handler(int sig)
 {
   exit (1);
 }
@@ -142,27 +144,27 @@ set sup_stppath "[pwd]/sdt_misc.stp"
 set fp [open $sup_stppath "w"]
 puts $fp "
 %( \$# > 1 %?
-probe process(@1).library(@2).mark(\"test_probe_0\") 
+probe process(@1).library(@2).mark(\"test_probe_0\")
 %:
-probe process(@1).mark(\"test_probe_0\") 
-%)
-{ 
-  printf(\"In %s probe %#x\\n\", \$\$name, \$arg1)
-}
-%( \$# > 1 %?
-probe process(@1).library(@2).mark(\"test_probe_2\") 
-%:
-probe process(@1).mark(\"test_probe_2\") 
+probe process(@1).mark(\"test_probe_0\")
 %)
 {
   printf(\"In %s probe %#x\\n\", \$\$name, \$arg1)
 }
 %( \$# > 1 %?
-probe process(@1).library(@2).mark(\"test_probe_3\") 
+probe process(@1).library(@2).mark(\"test_probe_2\")
 %:
-probe process(@1).mark(\"test_probe_3\") 
+probe process(@1).mark(\"test_probe_2\")
 %)
-{ 
+{
+  printf(\"In %s probe %#x\\n\", \$\$name, \$arg1)
+}
+%( \$# > 1 %?
+probe process(@1).library(@2).mark(\"test_probe_3\")
+%:
+probe process(@1).mark(\"test_probe_3\")
+%)
+{
   printf(\"In %s probe %#x %#x\\n\", \$\$name, \$arg1, \$arg2)
 }
 %( \$# > 1 %?
@@ -170,7 +172,7 @@ probe process(@1).library(@2).mark(\"test_probe_4\")
 %:
 probe process(@1).mark(\"test_probe_4\")
 %)
-{ 
+{
   printf(\"In %s dtrace probe %#x\\n\", \$\$name, \$arg1)
 }
 probe timer.sec(30)
@@ -180,9 +182,9 @@ probe timer.sec(30)
 "
 close $fp
 
-set sup_dpath "[pwd]/sdt_misc_.d" 
-set sup_hpath "[pwd]/sdt_misc_.h" 
-set sup_opath "[pwd]/sdt_misc_.o" 
+set sup_dpath "[pwd]/sdt_misc_.d"
+set sup_hpath "[pwd]/sdt_misc_.h"
+set sup_opath "[pwd]/sdt_misc_.o"
 set fp [open $sup_dpath "w"]
 puts $fp "
 provider sdt_misc {
@@ -195,12 +197,6 @@ struct astruct {int a; int b;};
 "
 close $fp
 
-if {[installtest_p]} { 
-    set sdtdir $env(SYSTEMTAP_INCLUDES)
-} else {
-    set sdtdir $srcdir/../includes
-}
-
 # Iterate pbtype_flags
 for {set i 0} {$i < [llength $pbtype_flags]} {incr i} {
 set v_flag [lindex $v_flags $i]
@@ -210,8 +206,8 @@ set sup_exepath "[pwd]/sdt_misc_$pbtype_mssg.x"
 
 # Run dtrace
 
-if {[installtest_p]} { 
-    set dtrace $env(SYSTEMTAP_PATH)/dtrace 
+if {[installtest_p]} {
+    set dtrace $env(SYSTEMTAP_PATH)/dtrace
 } else {
     set dtrace ../dtrace
 }
@@ -229,7 +225,7 @@ if {[file exists $sup_hpath] && [file exists $sup_opath]} then {
     return
 }
 
-set sup_flags "additional_flags=-I$sdtdir"
+set sup_flags [sdt_includes]
 set sup_flags "$sup_flags additional_flags=$sup_opath"
 set sup_flags "$sup_flags additional_flags=-I. $pbtype_flag"
 set res [target_compile $sup_srcpath $sup_exepath executable $sup_flags]
@@ -268,7 +264,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if {$ok == 5} { 
+if {$ok == 5} {
     pass "$test $pbtype_mssg"
 } else {
     fail "$test ($ok) $pbtype_mssg"
@@ -290,10 +286,10 @@ if { $res != "" } {
 # This is perhaps a wee bit clumsy
 verbose -log "$loop_exepath >| ,semclean 2>&1 & TEST=\$! ; \
 	$stap_path $sup_stppath $loop_exepath >| ,semout ; \
-	/usr/bin/kill -SIGINT \$TEST"	
+	/usr/bin/kill -SIGINT \$TEST"
 system "$loop_exepath >,semclean 2>&1 & TEST=\$! ; \
 	$stap_path $sup_stppath $loop_exepath >| ,semout ; \
-	/usr/bin/kill -SIGINT \$TEST"	
+	/usr/bin/kill -SIGINT \$TEST"
 
 set ok 0
 set ko 0
@@ -308,7 +304,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if {$ok == 5} { 
+if {$ok == 5} {
     pass "$test $pbtype_mssg attach"
 } else {
     fail "$test ($ok) $pbtype_mssg attach"
@@ -326,7 +322,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if {$ok == 4 && $ko == 0} { 
+if {$ok == 4 && $ko == 0} {
     pass "$test $pbtype_mssg epilogue"
 } else {
     fail "$test ($ok) $pbtype_mssg epilogue"
@@ -350,7 +346,7 @@ spawn $stap_path -g -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x
 
 expect {
     -timeout 180
-    -re {FAIL: [a-z_]+var} { regexp " .*$" $expect_out(0,string) s; 
+    -re {FAIL: [a-z_]+var} { regexp " .*$" $expect_out(0,string) s;
 	incr ok; set fail "$fail $s"; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
@@ -401,7 +397,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if {$ok == 5} { 
+if {$ok == 5} {
     pass "$test shared $pbtype_mssg"
 } else {
     fail "$test ($ok) shared $pbtype_mssg"
@@ -412,8 +408,7 @@ if {$ok == 5} {
 set supl_flags "$sup41_flags additional_flags=-DLOOP"
 set supl_sopath "[pwd]/libsdt_${pbtype_mssg}_loop.so"
 set res0 [target_compile $sup_srcpath $supl_sopath executable $supl_flags ]
-set loop_flags "additional_flags=-I$srcdir/../includes/sys"
-set loop_flags "$loop_flags additional_flags=-I$sdtdir"
+set loop_flags [sdt_includes]
 set loop_flags "$loop_flags additional_flags=-I. $pbtype_flag"
 set loop_flags "$loop_flags additional_flags=-DLOOP"
 set loop_flags "$loop_flags additional_flags=-DONLY_MAIN"
@@ -432,10 +427,10 @@ if { $res != "" } {
 # This is perhaps a wee bit clumsy
 verbose -log "$loop_exepath >| ,semclean 2>&1 & TEST=\$! ; \
 	$stap_path $sup_stppath $loop_exepath $supl_sopath >| ,semout ; \
-	/usr/bin/kill -SIGINT \$TEST"	
+	/usr/bin/kill -SIGINT \$TEST"
 system "$loop_exepath >,semclean 2>&1 & TEST=\$! ; \
 	$stap_path $sup_stppath $loop_exepath $supl_sopath >| ,semout ; \
-	/usr/bin/kill -SIGINT \$TEST"	
+	/usr/bin/kill -SIGINT \$TEST"
 
 set ok 0
 set ko 0
@@ -450,7 +445,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if {$ok == 5} { 
+if {$ok == 5} {
     pass "$test $pbtype_mssg shared attach"
 } else {
     fail "$test ($ok) $pbtype_mssg shared attach"
@@ -468,7 +463,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if {$ok == 4 && $ko == 0} { 
+if {$ok == 4 && $ko == 0} {
     pass "$test $pbtype_mssg shared shared epilogue"
 } else {
     fail "$test ($ok) $pbtype_mssg shared epilogue"
@@ -537,10 +532,10 @@ expect {
 
 catch {close}; catch {wait}
 
-if {$ok == 1} { 
-    pass "$test $pbtype_mssg --types" 
+if {$ok == 1} {
+    pass "$test $pbtype_mssg --types"
 } else {
-    fail "$test ($ok) $pbtype_mssg --types" 
+    fail "$test ($ok) $pbtype_mssg --types"
 }
 
 # for {set i 0}

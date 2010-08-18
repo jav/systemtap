@@ -200,8 +200,8 @@ proc shutdown_server {} {
 
 proc get_system_info {} {
     global Host Snapshot Distro GCC_Version env
-    
-    set Host [exec /bin/uname -a] 
+
+    set Host [exec /bin/uname -a]
     if [file exists ../SNAPSHOT] {
 	set Snapshot [exec /bin/cat ../SNAPSHOT]
     } elseif [file exists $env(SRCDIR)/../SNAPSHOT] {
@@ -292,9 +292,9 @@ proc stap_run_batch {args} {
         spawn $args
     }
 
-    expect { 
+    expect {
 	-timeout -1
-        -re {[^\r]*\r} { verbose -log $expect_out(0,string); exp_continue } 
+        -re {[^\r]*\r} { verbose -log $expect_out(0,string); exp_continue }
         eof { }
     }
     set results [wait]
@@ -320,3 +320,27 @@ proc as_root { command } {
      verbose -log "RC $res"
      return  $res
  }
+
+proc sdt_includes {} {
+  global srcdir
+
+  # The wrapper sys/sdt.h for testing STAP_SDT_V[12] is here.
+  set dirs [list $srcdir]
+
+  if {[installtest_p]} {
+    # Use the installed <sys/sdt.h>.
+    lappend dirs $env(SYSTEMTAP_INCLUDES)
+  } else {
+    # Find <sys/sdt.h> in the source tree.
+    lappend dirs $srcdir/../includes
+    # The uninstalled, configured sdt-config.h has to be found here.
+    lappend dirs ../includes/sys
+  }
+
+  set flags ""
+  foreach dir $dirs {
+    set flags "$flags additional_flags=-isystem=$dir"
+  }
+
+  return $flags
+}
