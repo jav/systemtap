@@ -429,6 +429,7 @@ exit 0
 %files runtime
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
+%{_bindir}/stap-merge
 %{_bindir}/stap-report
 %{_bindir}/stap-authorize-signing-cert
 %{_libexecdir}/%{name}/stapio
