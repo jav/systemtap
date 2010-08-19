@@ -1234,8 +1234,12 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
 
                   vector<Dwarf_Die> scopes = getscopes_die(&die);
                   if (scopes.size() > 1)
-                    callback(function, name, file, dline,
-                             &scopes[1], stmt_addr, q);
+                    {
+                      Dwarf_Die scope;
+                      inner_die_containing_pc(scopes[1], stmt_addr, scope);
+                      callback(function, name, file, dline,
+                               &scope, stmt_addr, q);
+                    }
                 }
             }
           break;
@@ -1534,6 +1538,46 @@ dwflpp::die_has_pc (Dwarf_Die & die, Dwarf_Addr pc)
   // if (res == -1)
   //    dwarf_assert ("dwarf_haspc", res);
   return res == 1;
+}
+
+
+void
+dwflpp::inner_die_containing_pc(Dwarf_Die& scope, Dwarf_Addr addr,
+                                Dwarf_Die& result)
+{
+  if (!die_has_pc(scope, addr))
+    {
+      ostringstream msg;
+      msg << "dwflpp::inner_die_containing_pc internal error, '"
+          << (dwarf_diename(&scope) ?: "<unknown>")
+          << "' (dieoffset: " << lex_cast_hex(dwarf_dieoffset(&scope))
+          << ") doesn't contain address " << lex_cast_hex(addr);
+      throw semantic_error (msg.str());
+    }
+
+  Dwarf_Die child;
+  result = scope;
+  int rc = dwarf_child(&result, &child);
+  while (rc == 0)
+    {
+      switch (dwarf_tag (&child))
+        {
+        // lexical tags to recurse within the same starting scope
+        // NB: this intentionally doesn't cross into inlines!
+        case DW_TAG_lexical_block:
+        case DW_TAG_with_stmt:
+        case DW_TAG_catch_block:
+        case DW_TAG_try_block:
+        case DW_TAG_entry_point:
+          if (die_has_pc(child, addr))
+            {
+              result = child;
+              rc = dwarf_child(&result, &child);
+              continue;
+            }
+        }
+      rc = dwarf_siblingof(&child, &child);
+    }
 }
 
 

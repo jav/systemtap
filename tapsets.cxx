@@ -1455,9 +1455,13 @@ query_srcfile_line (const dwarf_line_t& line, void * arg)
 	  if (q->sess.verbose>3)
 	    clog << "function DIE lands on srcfile\n";
 	  if (q->has_statement_str)
-	    query_statement (i->name, i->decl_file,
-			     lineno, // NB: not q->line !
-                             &(i->die), addr, q);
+            {
+              Dwarf_Die scope;
+              q->dw.inner_die_containing_pc(i->die, addr, scope);
+              query_statement (i->name, i->decl_file,
+                               lineno, // NB: not q->line !
+                               &scope, addr, q);
+            }
 	  else
 	    query_func_info (i->entrypc, *i, q);
 	}
@@ -1472,8 +1476,12 @@ query_srcfile_line (const dwarf_line_t& line, void * arg)
 	  if (q->sess.verbose>3)
 	    clog << "inline instance DIE lands on srcfile\n";
 	  if (q->has_statement_str)
-	    query_statement (i->name, i->decl_file,
-			     q->line[0], &(i->die), addr, q);
+            {
+              Dwarf_Die scope;
+              q->dw.inner_die_containing_pc(i->die, addr, scope);
+              query_statement (i->name, i->decl_file,
+                               q->line[0], &scope, addr, q);
+            }
 	  else
 	    query_inline_instance_info (*i, q);
 	}
@@ -3365,14 +3373,7 @@ dwarf_var_expanding_visitor::getscopes(target_symbol *e)
 {
   if (scopes.empty())
     {
-      // If the address is at the beginning of the scope_die, we can do a fast
-      // getscopes from there.  Otherwise we need to look it up by address.
-      Dwarf_Addr entrypc;
-      if (q.dw.die_entrypc(scope_die, &entrypc) && entrypc == addr)
-        scopes = q.dw.getscopes(scope_die);
-      else
-        scopes = q.dw.getscopes(addr);
-
+      scopes = q.dw.getscopes(scope_die);
       if (scopes.empty())
         throw semantic_error ("unable to find any scopes containing "
                               + lex_cast_hex(addr)

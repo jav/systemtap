@@ -258,6 +258,8 @@ struct dwflpp
   void function_line (int *linep);
 
   bool die_has_pc (Dwarf_Die & die, Dwarf_Addr pc);
+  void inner_die_containing_pc(Dwarf_Die& scope, Dwarf_Addr addr,
+                               Dwarf_Die& result);
 
   std::string literal_stmt_for_local (std::vector<Dwarf_Die>& scopes,
                                       Dwarf_Addr pc,
