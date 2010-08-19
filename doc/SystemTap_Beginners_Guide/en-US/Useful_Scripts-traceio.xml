@@ -41,9 +41,7 @@
 <formalpara id="traceio">
 	<title>traceio.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/io/traceio.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/io/traceio.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
 <!--
@@ -82,8 +80,7 @@
 
 <example id="traceiooutput">
 	<title><xref linkend="traceio"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
            Xorg r:   583401 KiB w:        0 KiB
        floaters r:       96 KiB w:     7130 KiB
 multiload-apple r:      538 KiB w:      537 KiB
@@ -104,8 +101,7 @@ pam_timestamp_c r:      138 KiB w:        0 KiB
           snmpd r:       46 KiB w:        0 KiB
           pcscd r:       28 KiB w:        0 KiB
      irqbalance r:       27 KiB w:        4 KiB
-          cupsd r:        4 KiB w:       18 KiB
-</screen>
+          cupsd r:        4 KiB w:       18 KiB</screen>
 </example>		
 <!--	
 global reads, writes, total_io

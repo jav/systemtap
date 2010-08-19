@@ -127,9 +127,7 @@
 </indexterm>
 
 
-<screen>
-<replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>]
-</screen>
+<screen><replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>]</screen>
 
 <para>Here, the <command><replaceable>array_name</replaceable></command> is any arbitrary name the array uses. The <command><replaceable>index_expression</replaceable></command> is used to refer to a specific unique key in the array. To illustrate, let us try to build an array named <command>foo</command> that specifies the ages of three people (i.e. the unique keys): <command>tom</command>, <command>dick</command>, and <command>harry</command>. To assign them the ages (i.e. associated values) of 23, 24, and 25 respectively, we'd use the following array statements:</para> 
 
@@ -154,18 +152,14 @@
 </indexterm>
 <example id="arraysimplestexample">
 	<title>Basic Array Statements</title>
-<screen>
-foo["tom"] = 23
+<screen>foo["tom"] = 23
 foo["dick"] = 24
-foo["harry"] = 25
-</screen>
+foo["harry"] = 25</screen>
 </example>
 
 <para>You can specify up to nine index expressons in an array statement, each one delimited by a comma (<command>,</command>). This is useful if you wish to have a key that contains multiple pieces of information. The following line from <xref linkend="scriptdisktop"/> uses 5 elements for the key: process ID, executable name, user ID, parent process ID, and string "W". It associates the value of <command>devname</command> with that key.</para>
 
-<screen>
-device[pid(),execname(),uid(),ppid(),"W"] = devname
-</screen>
+<screen>device[pid(),execname(),uid(),ppid(),"W"] = devname</screen>
 
 <important>
 	<title>Important</title>
@@ -195,18 +189,14 @@ device[pid(),execname(),uid(),ppid(),"W"] = devname
 	<title>Incrementing Associated Values of Unique Keys</title>
 <para>The simplest form of data manipulation in associative arrays is incrementing the associated value of a unique key in the array. The syntax for this operation is as follows:</para>
 </formalpara>
-<screen>
-<replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>"] ++
-</screen>
+<screen><replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>"] ++</screen>
 
 <para>Here, the <command>++</command> operation instructs SystemTap to increment the associated value of <command><replaceable>unique_key</replaceable></command> by <command><replaceable>value</replaceable></command>. For example, to increase the associated value of unique key <command>hello</command> in array <command>foo</command> by 4, use:</para>
 
 <formalpara id="aaexamplesimple-example">
 	<title>explicit-incrementing-in-arrays.stp</title>
 <para>
-<programlisting>
-probe begin {	foo[4,"hello"] ++ }
-</programlisting>
+<programlisting>probe begin {	foo[4,"hello"] ++ }</programlisting>
 </para>
 </formalpara>
 
@@ -216,9 +206,7 @@ probe begin {	foo[4,"hello"] ++ }
 <para>One of the most common uses of associative arrays is to tally events per unique key. To do this, use the operator <command>+= $count</command>, as in:</para>
 </formalpara>
 
-<screen>
-<replaceable>array_name</replaceable>[<replaceable>unique_key</replaceable>] += $count	
-</screen>
+<screen><replaceable>array_name</replaceable>[<replaceable>unique_key</replaceable>] += $count	</screen>
 
 <para>You can also use a handler function in as the <command><replaceable>unique_key</replaceable></command>. Doing so creates an associate array that uses the values returned by the handler function as the unique keys. The first time that a probe using this array returns a string value, that value is set as a unique key with an initial value of 0. The next time that the probe returns the same string value, it increments the associated value of the unique key by 1.</para>
 
@@ -227,10 +215,8 @@ probe begin {	foo[4,"hello"] ++ }
 <formalpara id="aaexamplesimplevfsreads">
 	<title>tallying-in-arrays.stp</title>
 <para>
-<programlisting>
-probe vfs.read
-{ reads[execname()] += $count }
-</programlisting>
+<programlisting>probe vfs.read
+{ reads[execname()] += $count }</programlisting>
 </para>
 </formalpara>
 

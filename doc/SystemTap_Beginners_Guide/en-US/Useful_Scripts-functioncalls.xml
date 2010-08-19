@@ -46,9 +46,7 @@ no script in examples
 <formalpara id="countcalls">
 	<title>functioncallcount.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/profiling/functioncallcount.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/profiling/functioncallcount.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>		
 
@@ -73,8 +71,7 @@ no script in examples
 
 <example id="countcallsoutput">
 	<title><xref linkend="countcalls"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
 __vma_link 97
 __vma_link_file 66
 __vma_link_list 97
@@ -101,8 +98,7 @@ atomic_add_negative 97
 atomic_dec_and_test 5153
 atomic_inc 470
 atomic_inc_and_test 1
-[...]
-</screen>
+[...]</screen>
 </example>
 <!--probe kernel.function(@1) {  # probe function passed as argument from stdin
 called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently

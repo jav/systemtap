@@ -48,9 +48,7 @@ discard packets every five-second interval.
 <formalpara id="dropwatch">
 		<title>dropwatch.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/network/dropwatch.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/network/dropwatch.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>	
 
@@ -70,8 +68,7 @@ tracepoint address and the actual address.
 
 <example id="dropwatchoutput">
 	<title><xref linkend="dropwatch"/> Sample Output</title>
-<screen>
-Monitoring for dropped packets
+<screen>Monitoring for dropped packets
 
 51 packets dropped at location 0xffffffff8024cd0f
 2 packets dropped at location 0xffffffff8044b472
@@ -81,8 +78,7 @@ Monitoring for dropped packets
 
 97 packets dropped at location 0xffffffff8024cd0f
 1 packets dropped at location 0xffffffff8044b472
-Stopping dropped packet monitor
-</screen>
+Stopping dropped packet monitor</screen>
 </example>
 
 <para>
@@ -107,8 +103,7 @@ address 0xffffffff8024cd0f maps to the function
 to the function <command>arp_rcv</command>.
 </para>
 -->
-<screen>
-[...]
+<screen>[...]
 ffffffff8024c5cd T unlock_new_inode
 ffffffff8024c5da t unix_stream_sendmsg
 ffffffff8024c920 t unix_stream_recvmsg
@@ -118,7 +113,6 @@ ffffffff8044addc t arp_process
 ffffffff8044b360 t arp_rcv
 ffffffff8044b487 t parp_redo
 ffffffff8044b48c t arp_solicit
-[...]
-</screen>
+[...]</screen>
 	</section>
 

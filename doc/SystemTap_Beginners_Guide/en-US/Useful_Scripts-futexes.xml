@@ -86,9 +86,7 @@ no script in examples
 <formalpara id="futexcontention">
 		<title>futexes.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/process/futexes.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/process/futexes.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>		
 
@@ -106,14 +104,12 @@ no script in examples
 
 <example id="futexcontentionoutput">
 	<title><xref linkend="futexcontention"/> Sample Output</title>
-<screen>
-[...]	
+<screen>[...]	
 automount[2825] lock 0x00bc7784 contended 18 times, 999931 avg us
 synergyc[3686] lock 0x0861e96c contended 192 times, 101991 avg us
 synergyc[3758] lock 0x08d98744 contended 192 times, 101990 avg us
 synergyc[3938] lock 0x0982a8b4 contended 192 times, 101997 avg us
-[...]
-</screen>
+[...]</screen>
 </example>
 
 <!-- global thread_thislock # short

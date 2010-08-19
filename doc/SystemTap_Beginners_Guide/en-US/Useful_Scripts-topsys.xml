@@ -61,9 +61,7 @@ uses systemtap/testsuite/systemtap.examples/profiling/topsys.stp
 <formalpara id="topsys">
 	<title>topsys.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/profiling/topsys.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/profiling/topsys.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>		
 	
@@ -90,8 +88,7 @@ uses systemtap/testsuite/systemtap.examples/profiling/topsys.stp
 
 <example id="topsysoutput">
 	<title><xref linkend="topsys"/> Sample Output</title>
-<screen>
---------------------------------------------------------------
+<screen>--------------------------------------------------------------
                   SYSCALL      COUNT
              gettimeofday       1857
                      read       1821
@@ -113,8 +110,7 @@ uses systemtap/testsuite/systemtap.examples/profiling/topsys.stp
                      time         81
                 sigreturn         72
                     fstat         66
---------------------------------------------------------------
-</screen>
+--------------------------------------------------------------</screen>
 </example>
 <!--probe kernel.function(@1) {  # probe function passed as argument from stdin
 called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently

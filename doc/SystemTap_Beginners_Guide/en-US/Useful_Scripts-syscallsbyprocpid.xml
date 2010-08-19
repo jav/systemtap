@@ -52,9 +52,7 @@ uses systemtap/testsuite/systemtap.examples/process/syscalls_by_p*.stp
 <formalpara id="syscallsbyprocpid">
 	<title>syscalls_by_proc.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/process/syscalls_by_proc.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/process/syscalls_by_proc.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>		
 	
@@ -68,8 +66,7 @@ uses systemtap/testsuite/systemtap.examples/process/syscalls_by_p*.stp
 	
 <example id="syscallsbyprocpidoutput">
 	<title><xref linkend="topsys"/> Sample Output</title>
-<screen>
-Collecting data... Type Ctrl-C to exit and display results
+<screen>Collecting data... Type Ctrl-C to exit and display results
 #SysCalls  Process Name
 1577       multiload-apple
 692        synergyc
@@ -84,8 +81,7 @@ Collecting data... Type Ctrl-C to exit and display results
 84         scim-bridge
 78         gnome-screensav
 66         scim-launcher
-[...]
-</screen>
+[...]</screen>
 </example>
 
 <para>
@@ -96,9 +92,7 @@ Collecting data... Type Ctrl-C to exit and display results
 <formalpara id="syscallsbypid">
 	<title>syscalls_by_pid.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/process/syscalls_by_pid.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/process/syscalls_by_pid.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>	
 
@@ -110,12 +104,10 @@ Collecting data... Type Ctrl-C to exit and display results
 	5 seconds, add the following probe to the script:
 </para>
 
-<screen>
-probe timer.s(5)
+<screen>probe timer.s(5)
 {
 	exit()
-}
-</screen>
+}</screen>
 
 <!--probe kernel.function(@1) {  # probe function passed as argument from stdin
 called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently

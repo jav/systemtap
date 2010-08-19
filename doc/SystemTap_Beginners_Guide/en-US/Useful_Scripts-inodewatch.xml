@@ -104,9 +104,7 @@ file as arguments on the command line:</para>
 
 <para>For instance: if you wish to monitor <filename>/etc/crontab</filename>, run <command>stat -c '%D %i' /etc/crontab</command> first. This gives the following output:</para>
 
-<screen>
-805 1078319
-</screen>
+<screen>805 1078319</screen>
 <indexterm>
 	<primary>script examples</primary>
 	<secondary>inode number</secondary>
@@ -129,10 +127,8 @@ file as arguments on the command line:</para>
 
 <example id="inodewatchoutput">
 	<title><xref linkend="inodewatch"/> Sample Output</title>
-<screen>
-cat(16437) vfs_read 0x800005/1078319
-cat(16437) vfs_read 0x800005/1078319
-</screen>
+<screen>cat(16437) vfs_read 0x800005/1078319
+cat(16437) vfs_read 0x800005/1078319</screen>
 </example>
 
 <!--  

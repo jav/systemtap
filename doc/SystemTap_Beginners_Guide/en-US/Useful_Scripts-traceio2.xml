@@ -52,9 +52,7 @@
 <formalpara id="traceio2">
 	<title>traceio2.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/io/traceio2.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/io/traceio2.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
 
@@ -63,15 +61,13 @@
 <para condition="fedora">For some kernel versions (e.g. <filename>2.6.21-1.3194.fc7</filename>), you may need to revise <xref linkend="traceio2"/> accordingly. SystemTap will output the following error if you need to do so:</para>
 
 <screen condition="fedora">
-semantic error: field 'f_dentry' not found
-</screen>
+semantic error: field 'f_dentry' not found</screen>
 
 <para condition="fedora">If this is the case, revise <xref linkend="traceio2"/> by deleting the following lines in the script:</para>
 
 <programlisting condition="fedora">
 	dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
-        inode_nr = $file->f_dentry->d_inode->i_ino
-</programlisting>
+        inode_nr = $file->f_dentry->d_inode->i_ino</programlisting>
 
 <para condition="fedora">Replace those lines with:</para>
 
@@ -133,15 +129,13 @@ semantic error: field 'f_dentry' not found
 
 <example id="traceio2output">
 	<title><xref linkend="traceio2"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
 synergyc(3722) vfs_read 0x800005
 synergyc(3722) vfs_read 0x800005
 cupsd(2889) vfs_write 0x800005
 cupsd(2889) vfs_write 0x800005
 cupsd(2889) vfs_write 0x800005
-[...]
-</screen>
+[...]</screen>
 </example>
 <!--
 probe kernel.function ("vfs_write"),

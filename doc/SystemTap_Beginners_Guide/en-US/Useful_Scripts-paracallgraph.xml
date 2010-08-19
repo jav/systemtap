@@ -127,8 +127,7 @@ for <command>stap para-callgraph.stp 'kernel.function("*@fs/*.c")' 'kernel.funct
 	
 <example id="paracallgraphoutput">
 	<title><xref linkend="scriptcallgraph"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
    267 gnome-terminal(2921): &lt;-do_sync_read return=0xfffffffffffffff5
    269 gnome-terminal(2921):&lt;-vfs_read return=0xfffffffffffffff5
      0 gnome-terminal(2921):->fput file=0xffff880111eebbc0
@@ -141,8 +140,7 @@ for <command>stap para-callgraph.stp 'kernel.function("*@fs/*.c")' 'kernel.funct
     12 gnome-terminal(2921): ->do_sync_read filp=0xffff8801116ce980 buf=0xc86504 len=0x1000 ppos=0xffff88010544df48
     15 gnome-terminal(2921): &lt;-do_sync_read return=0xfffffffffffffff5
     18 gnome-terminal(2921):&lt;-vfs_read return=0xfffffffffffffff5
-     0 gnome-terminal(2921):->fput file=0xffff8801116ce980
-</screen>
+     0 gnome-terminal(2921):->fput file=0xffff8801116ce980</screen>
 </example>
 
 	</section>

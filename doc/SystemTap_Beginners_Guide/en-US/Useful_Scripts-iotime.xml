@@ -84,8 +84,7 @@
 
 <example id="iotimeoutput">
 	<title><xref linkend="iotime"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
 825946 3364 (NetworkManager) access /sys/class/net/eth0/carrier read: 8190 write: 0
 825955 3364 (NetworkManager) iotime /sys/class/net/eth0/carrier time: 9
 [...]
@@ -94,8 +93,7 @@
 [...]
 3973737 2886 (sendmail) access /proc/loadavg read: 4096 write: 0
 3973744 2886 (sendmail) iotime /proc/loadavg time: 11
-[...]
-</screen>
+[...]</screen>
 </example>
 
 <para>

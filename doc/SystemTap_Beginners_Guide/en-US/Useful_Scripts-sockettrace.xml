@@ -50,9 +50,7 @@
 <formalpara id="sockettrace">
 		<title>socket-trace.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/network/socket-trace.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/network/socket-trace.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>		
 
@@ -60,8 +58,7 @@
 
 <example id="sockettraceoutput">
 	<title><xref linkend="sockettrace"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
 0 Xorg(3611): -> sock_poll
 3 Xorg(3611): &lt;- sock_poll
 0 Xorg(3611): -> sock_poll
@@ -80,8 +77,7 @@
 28 scim-bridge(3883):   &lt;- sys_recvfrom
 31 scim-bridge(3883):  &lt;- sys_recv
 35 scim-bridge(3883): &lt;- sys_socketcall
-[...]
-</screen>
+[...]</screen>
 </example>
 
 <para><xref linkend="sockettraceoutput"/> contains a 3-second excerpt of the output for <xref linkend="sockettrace"/>. For more information about the output of this script as provided by <command>thread_indent()</command>, refer to <xref linkend="systemtapscript-functions"/> <xref linkend="thread_indent"/>. </para>

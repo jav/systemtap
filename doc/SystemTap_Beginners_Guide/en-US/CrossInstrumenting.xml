@@ -259,9 +259,7 @@
     appropriate values):
   </para>
 
-<screen>
-stap -r <replaceable>kernel_version</replaceable> <replaceable>script</replaceable> -m <replaceable>module_name</replaceable>
-</screen>
+<screen>stap -r <replaceable>kernel_version</replaceable> <replaceable>script</replaceable> -m <replaceable>module_name</replaceable></screen>
 
   <para>
     Here, <command><replaceable>kernel_version</replaceable></command> refers to
@@ -297,9 +295,7 @@ stap -r <replaceable>kernel_version</replaceable> <replaceable>script</replaceab
     it to the <emphasis>target system</emphasis> and then load it using:
   </para>
 
-<screen>
-staprun <replaceable>module_name</replaceable>.ko
-</screen>
+<screen>staprun <replaceable>module_name</replaceable>.ko</screen>
 
   <para>
     For example, to create the

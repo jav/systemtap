@@ -43,9 +43,7 @@
 <formalpara id="nettop">
 		<title>nettop.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/network/nettop.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/network/nettop.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>	
 
@@ -66,21 +64,17 @@
 <para>Note that <command>function print_activity()</command> uses the following
 expressions:</para>
 
-<screen>
-n_xmit ? @sum(ifxmit[pid, dev, exec, uid])/1024 : 0
-n_recv ? @sum(ifrecv[pid, dev, exec, uid])/1024 : 0
-</screen>
+<screen>n_xmit ? @sum(ifxmit[pid, dev, exec, uid])/1024 : 0
+n_recv ? @sum(ifrecv[pid, dev, exec, uid])/1024 : 0</screen>
 
 <para>These expressions are if/else conditionals.
 The first statement is simply a more concise way of writing the following
 psuedo code:</para>
 
-<screen>
-if n_recv != 0 then
+<screen>if n_recv != 0 then
   @sum(ifrecv[pid, dev, exec, uid])/1024
 else
-  0 
-</screen>
+  0 </screen>
 
 <para><xref linkend="nettop"/> tracks which processes are generating network traffic on the system, and provides the following information about each process:</para>
 
@@ -101,8 +95,7 @@ else
 
 <example id="nettopoutput">
 	<title><xref linkend="nettop"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
   PID   UID DEV     XMIT_PK RECV_PK XMIT_KB RECV_KB COMMAND        
     0     0 eth0          0       5       0       0 swapper        
 11178     0 eth0          2       0       0       0 synergyc       
@@ -125,8 +118,7 @@ else
 11178     0 eth0         43       1       3       0 synergyc       
 11362     0 eth0          0       7       0       0 firefox        
  3897     0 eth0          0       1       0       0 multiload-apple
-[...]
-</screen>
+[...]</screen>
 </example>
 
 <!--

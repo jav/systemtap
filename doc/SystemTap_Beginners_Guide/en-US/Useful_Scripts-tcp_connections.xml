@@ -53,9 +53,7 @@
 <formalpara id="tcpconnections">
 		<title>tcp_connections.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/network/tcp_connections.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/network/tcp_connections.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>		
 
@@ -75,11 +73,9 @@
 	
 <example id="tcpconnectionsoutput">
 	<title><xref linkend="tcpconnections"/> Sample Output</title>
-<screen>
-UID            CMD    PID   PORT        IP_SOURCE
+<screen>UID            CMD    PID   PORT        IP_SOURCE
 0             sshd   3165     22      10.64.0.227
-0             sshd   3165     22      10.64.0.227
-</screen>
+0             sshd   3165     22      10.64.0.227</screen>
 </example>
 
 </section>

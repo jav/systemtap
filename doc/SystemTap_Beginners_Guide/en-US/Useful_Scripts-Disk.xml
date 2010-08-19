@@ -19,8 +19,7 @@
 <formalpara id="scriptdiskusage">
 		<title>disk-usage-graph.stp</title>
 <para>
-<programlisting>
-#! stap
+<programlisting>#! stap
 # disk I/O stats
 probe begin { qnames["ioblock"] ++; qsq_start ("ioblock") }
 probe ioblock.request { qs_wait ("ioblock") qs_run("ioblock") }
@@ -62,8 +61,7 @@ probe timer.ms(1000) {
     printf ("e\n")
   }
   printf ("pause 1\n")
-}
-</programlisting>
+}</programlisting>
 </para>
 </formalpara>		
 
@@ -74,8 +72,7 @@ probe timer.ms(1000) {
 <para>Running <xref linkend="scriptdiskusage"/> by itself hardly presents any data that is useful, as in <xref linkend="rawdiskusagegraph"/>.</para>
 
 <example id="rawdiskusagegraph"><title>Raw disk-usage-graph.stp Output</title>
-<screen>
-[...]	
+<screen>[...]	
 62
 5
 3
@@ -89,8 +86,7 @@ probe timer.ms(1000) {
 6
 5
 e
-pause 1
-</screen>
+pause 1</screen>
 </example>
 
 <para>However, refining the output of <xref linkend="scriptdiskusage"/> through <command>gnuplot</command> presents us with a more useful result. <command>gnuplot</command> is a lightweight, command-line driven plotting program that helps you display data in a graphical format.</para>

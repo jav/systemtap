@@ -53,9 +53,7 @@
 <formalpara id="tcpdumplike">
 		<title>tcpdumplike.stp</title>
 <para>
-<programlisting>
-	<xi:include parse="text" href="../testsuite/systemtap.examples/network/tcpdumplike.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting>	<xi:include parse="text" href="../testsuite/systemtap.examples/network/tcpdumplike.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>		
 
@@ -93,8 +91,7 @@
 	
 <example id="tcpdumplikeoutput">
 	<title><xref linkend="tcpdumplike"/> Sample Output</title>
-<screen>
------------------------------------------------------------------
+<screen>-----------------------------------------------------------------
        Source IP         Dest IP  SPort  DPort  U  A  P  R  S  F
 -----------------------------------------------------------------
   209.85.229.147       10.0.2.15     80  20373  0  1  1  0  0  0
@@ -108,8 +105,7 @@
   209.85.229.147       10.0.2.15     80  21141  0  1  1  0  0  0
   209.85.229.147       10.0.2.15     80  21141  0  1  1  0  0  0
   209.85.229.118       10.0.2.15     80  63433  0  1  1  0  0  0
-[...]
-</screen>
+[...]</screen>
 </example>
 
 </section>

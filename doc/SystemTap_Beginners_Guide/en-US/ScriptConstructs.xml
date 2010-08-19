@@ -87,8 +87,7 @@ name, assign a value from a function or expression to it, and use it in an expre
 
 <example id="timerjiffies">
 	<title>timer-jiffies.stp</title>
-<programlisting>
-global count_jiffies, count_ms
+<programlisting>global count_jiffies, count_ms
 probe timer.jiffies(100) { count_jiffies ++ }
 probe timer.ms(100) { count_ms ++ }
 probe timer.ms(12345)
@@ -97,8 +96,7 @@ probe timer.ms(12345)
   printf ("jiffies:ms ratio %d:%d => CONFIG_HZ=%d\n",
     count_jiffies, count_ms, hz)
   exit ()
-}
-</programlisting>
+}</programlisting>
 </example>
 
 <indexterm>
@@ -110,9 +108,7 @@ probe timer.ms(12345)
 <note>
 	<title>Note</title>
 	<para>The <command>++</command> notation in <xref linkend="timerjiffies"/> (i.e. <command>count_jiffies ++</command> and <command>count_ms ++</command>) is used to increment the value of a variable by 1. In the following probe, <command>count_jiffies</command> is incremented by 1 every 100 jiffies:</para>
-<screen>
-probe timer.jiffies(100) { count_jiffies ++ }
-</screen>
+<screen>probe timer.jiffies(100) { count_jiffies ++ }</screen>
 	<para>In this instance, SystemTap understands that <command>count_jiffies</command> is an integer. Because no initial value was assigned to <command>count_jiffies</command>, its initial value is zero by default.</para>   
 </note>	
 <!--
@@ -165,12 +161,10 @@ You can do this by using <emphasis>conditionals</emphasis> in handlers. SystemTa
 </indexterm>
 
 		<para>Format:</para>
-<programlisting>
-if (<replaceable>condition</replaceable>)
+<programlisting>if (<replaceable>condition</replaceable>)
   <replaceable>statement1</replaceable>
 else
-  <replaceable>statement2</replaceable>
-</programlisting>
+  <replaceable>statement2</replaceable></programlisting>
 
 <para>
 The <command><replaceable>statement1</replaceable></command> is executed if the
@@ -186,8 +180,7 @@ blocks.
 
 <example id="simpleifelseexample">
 	<title>ifelse.stp</title>
-<programlisting>
-global countread, countnonread
+<programlisting>global countread, countnonread
 probe kernel.function("vfs_read"),kernel.function("vfs_write")
 {
   if (probefunc()=="vfs_read") 
@@ -199,8 +192,7 @@ probe timer.s(5) { exit() }
 probe end 
 {
   printf("VFS reads total %d\n VFS writes total %d\n", countread, countnonread)
-}
-</programlisting>
+}</programlisting>
 </example>
 
 <para><xref linkend="simpleifelseexample"/> is a script that counts how many virtual file system reads (<command>vfs_read</command>) and writes (<command>vfs_write</command>) the system performs within a 5-second span. When run, the script increments the value of the variable <command>countread</command> by 1 if the name of the function it probed matches <command>vfs_read</command> (as noted by the condition <command>if (probefunc()=="vfs_read")</command>); otherwise, it increments <command>countnonread</command> (<command>else {countnonread ++}</command>).</para>
@@ -231,10 +223,8 @@ probe end
 <tertiary>handlers</tertiary>
 </indexterm>
 		<para>Format:</para>
-<programlisting>
-while (<replaceable>condition</replaceable>)
-  <replaceable>statement</replaceable>
-</programlisting>
+<programlisting>while (<replaceable>condition</replaceable>)
+  <replaceable>statement</replaceable></programlisting>
 <para>
 So long as <command><replaceable>condition</replaceable></command> is non-zero
 the block of statements in
@@ -246,13 +236,11 @@ block and it must change a value so
 <!--
 <example id="simplewhileexample">
 	<title>while.stp</title>
-<programlisting>
-global foo
+<programlisting>global foo
 probe timer.s(1) {
 foo ++
 while (foo&lt;6) {printf("hello world\n")}
-printf("goodbye world\n")
-</programlisting>
+printf("goodbye world\n")</programlisting>
 </example>
 
 <para><xref linkend="simplewhileexample"/> is a script that prints <computeroutput>hello world</computeroutput> while less than 6 seconds has passed (<command>while (foo&lt;6)</command>). Once the <command>while</command> condition no longer applies, the script prints out <computeroutput>goodbye world</computeroutput>.</para>
@@ -283,20 +271,16 @@ printf("goodbye world\n")
 <tertiary>handlers</tertiary>
 </indexterm>		
 		<para>Format:</para>
-<programlisting>
-for (<replaceable>initialization</replaceable>; <replaceable>conditional</replaceable>; <replaceable>increment</replaceable>) <replaceable>statement</replaceable>
-</programlisting>
+<programlisting>for (<replaceable>initialization</replaceable>; <replaceable>conditional</replaceable>; <replaceable>increment</replaceable>) <replaceable>statement</replaceable></programlisting>
 <para>
 The <command>for</command> loop is simply shorthand for a while loop. The
 following is the equivalent <command>while</command> loop:
 </para>
-<programlisting>
-<replaceable>initialization</replaceable>
+<programlisting><replaceable>initialization</replaceable>
 while (<replaceable>conditional</replaceable>) {
    <replaceable>statement</replaceable>
    <replaceable>increment</replaceable>
-}
-</programlisting>
+}</programlisting>
 	</listitem>
 </varlistentry>
 
@@ -392,10 +376,8 @@ followed by the number of the argument on the command line. Use <command>$</comm
 
 
 <example id="commandlineargs"><title>commandlineargs.stp</title>
-<programlisting>
-probe kernel.function(@1) { }
-probe kernel.function(@1).return { }
-</programlisting>	
+<programlisting>probe kernel.function(@1) { }
+probe kernel.function(@1).return { }</programlisting>	
 </example>	
 
 <para><xref linkend="commandlineargs"/> is similar to <xref linkend="wildcards"/>, except that it allows you to pass the kernel function to be probed as a command-line argument (as in <command>stap commandlineargs.stp <replaceable>kernel function</replaceable></command>). You can also specify the script to accept multiple command-line arguments, noting them as <command>@1</command>, <command>@2</command>, and so on, in the order they are entered by the user.</para>

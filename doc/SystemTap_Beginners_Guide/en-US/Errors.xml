@@ -106,9 +106,7 @@
 </para>
 
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/perror.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="extras/perror.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 
 <para>
@@ -117,11 +115,9 @@
       column 1 of line 2:
 </para>
 <para>
-<programlisting>
-parse error: expected one of '. , ( ? ! { = +='
+<programlisting>parse error: expected one of '. , ( ? ! { = +='
 	saw: keyword at perror.stp:2:1
-1 parse error(s).
-</programlisting>
+1 parse error(s).</programlisting>
 </para>
 
 <formalpara><title>parse error: embedded code in unprivileged script</title>
@@ -253,12 +249,10 @@ parse error: expected one of '. , ( ? ! { = +='
 
 <example id="errorvariable">
 	<title>error-variable.stp</title>
-<programlisting>
-probe syscall.open
+<programlisting>probe syscall.open
 {
   printf ("%d(%d) open\n", execname(), pid())
-}
-</programlisting>
+}</programlisting>
 </example>
 
 <formalpara>
@@ -329,9 +323,7 @@ probe syscall.open
 </para>
 </formalpara>
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/werror.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="extras/werror.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 
 <formalpara>

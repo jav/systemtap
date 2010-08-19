@@ -136,9 +136,7 @@
 </indexterm>    
     <para> To determine what kernel your system is currently using, use:</para>
 		
-<screen>
-uname -r
-</screen>
+<screen>uname -r</screen>
 
     <para>
 	    For example, if you wish to use SystemTap on kernel version <filename>2.6.18-53.el5</filename> on an i686 machine, then you would 
@@ -180,8 +178,7 @@ uname -r
 name=Fedora $releasever - $basearch - Debug
 failovermethod=priority
 baseurl=http://download.fedoraproject.org/pub/fedora/linux/releases/$releasever/Everything/$basearch/debug/
-enabled=1
-</programlisting>	
+enabled=1</programlisting>	
 	
 	
 	<para condition="RedHat">
@@ -195,8 +192,7 @@ enabled=1
 [rhel-debuginfo]
 name=Red Hat Enterprise Linux $releasever - $basearch - Debug
 baseurl=ftp://ftp.redhat.com/pub/redhat/linux/enterprise/$releasever/en/os/$basearch/Debuginfo/
-enabled=1
-</programlisting>
+enabled=1</programlisting>
 
 <para>
 	After configuring <command>yum</command> with the appropriate repository, you can now install 
@@ -247,9 +243,7 @@ enabled=1
 <formalpara condition="RedHat">
 <title>rheldebugurl.sh</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/rheldebugurl.sh" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="extras/rheldebugurl.sh" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
 
@@ -257,9 +251,7 @@ enabled=1
 <formalpara condition="fedora">
 <title>fedoradebugurl.sh</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/fedoradebugurl.sh" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="extras/fedoradebugurl.sh" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
     <para>
@@ -303,15 +295,13 @@ Once you have manually downloaded the required packages to the machine, install 
       following:
     </para>-->
 
-<screen>
-Pass 1: parsed user script and 45 library script(s) in 340usr/0sys/358real ms.
+<screen>Pass 1: parsed user script and 45 library script(s) in 340usr/0sys/358real ms.
 Pass 2: analyzed script: 1 probe(s), 1 function(s), 0 embed(s), 0 global(s) in 290usr/260sys/568real ms.
 Pass 3: translated to C into "/tmp/stapiArgLX/stap_e5886fa50499994e6a87aacdc43cd392_399.c" in 490usr/430sys/938real ms.
 Pass 4: compiled C into "stap_e5886fa50499994e6a87aacdc43cd392_399.ko" in 3310usr/430sys/3714real ms.
 Pass 5: starting run.
 read performed
-Pass 5: run completed in 10usr/40sys/73real ms.
-</screen>
+Pass 5: run completed in 10usr/40sys/73real ms.</screen>
 
     <para> The last three lines of the output (i.e. beginning with
     <computeroutput>Pass 5</computeroutput>) indicate that SystemTap was able to

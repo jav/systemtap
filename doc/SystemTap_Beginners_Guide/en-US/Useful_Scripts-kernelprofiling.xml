@@ -26,8 +26,7 @@
 <formalpara id="kernelprof">
 		<title>kernelprof.stp</title>
 <para>
-<programlisting>
-#! /usr/bin/env stap
+<programlisting>#! /usr/bin/env stap
 
 global profile, pcount
 probe timer.profile {
@@ -43,7 +42,6 @@ probe timer.ms(5000) {
   delete profile
   delete pcount
 }
-
 </programlisting>
 </para>
 </formalpara>		
@@ -52,8 +50,7 @@ probe timer.ms(5000) {
 
 <example id="kernelprofoutput">
 	<title><xref linkend="kernelprof"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
 --- 10002 samples recorded:
 sys_recvfrom                         1
 memmove                              1
@@ -101,8 +98,7 @@ ide_outb                             1
 ide_outsw                            1
 __copy_to_user_ll                   11
 __copy_from_user_ll                 14
-[...]
-</screen>
+[...]</screen>
 </example>
 
 <para><xref linkend="kernelprof"/> allows you to identify interesting kernel-specific performance facts about the system, such as kernel-intensive workloads and idle times (in this case, <command>mwait_idle</command>. Note that <xref linkend="kernelprof"/> does not count user-space functions, although it counts all kernel functions as part of the sample (even if the script cannot identify from which specific kernel function a call originated.</para>

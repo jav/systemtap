@@ -38,9 +38,7 @@
 <formalpara id="ioblktime">
 	<title>ioblktime.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/io/ioblktime.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/io/ioblktime.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
 
@@ -63,13 +61,11 @@
 
 <example id="ioblktimeoutput">
 	<title><xref linkend="ioblktime"/> Sample Output</title>
-<screen>
-    device  rw total (us)      count   avg (us)
+<screen>    device  rw total (us)      count   avg (us)
        sda   W       9659          6       1609
       dm-0   W      20278          6       3379
       dm-0   R      20524          5       4104
-       sda   R      19277          5       3855
-</screen>
+       sda   R      19277          5       3855</screen>
 </example>
 
 <para>

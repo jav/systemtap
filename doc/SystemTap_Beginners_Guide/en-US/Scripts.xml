@@ -132,9 +132,7 @@
       contains probes written in the following format:
     </para>
   </formalpara>	
-<screen>
-probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}
-</screen>
+<screen>probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}</screen>
 
   <para>
     SystemTap supports multiple events per probe; multiple events are delimited
@@ -193,10 +191,8 @@ probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}
     in a <firstterm>function</firstterm>, as in:
   </para>
 
-<screen>
-function <replaceable>function_name</replaceable>(<replaceable>arguments</replaceable>) {<replaceable>statements</replaceable>}
-probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>(<replaceable>arguments</replaceable>)}
-</screen>
+<screen>function <replaceable>function_name</replaceable>(<replaceable>arguments</replaceable>) {<replaceable>statements</replaceable>}
+probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>(<replaceable>arguments</replaceable>)}</screen>
 
   <para>
     The <command><replaceable>statements</replaceable></command> in
@@ -356,10 +352,8 @@ probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>
 
 <example id="wildcards">
 <title>wildcards.stp</title>
-<programlisting>
-probe kernel.function("*@net/socket.c") { }
-probe kernel.function("*@net/socket.c").return { }
-</programlisting>	
+<programlisting>probe kernel.function("*@net/socket.c") { }
+probe kernel.function("*@net/socket.c").return { }</programlisting>	
 </example>
 
 	  <remark>Wild cards also work for other types of events, e.g. syscall.*</remark>
@@ -417,10 +411,8 @@ probe kernel.function("*@net/socket.c").return { }
 	  <para>Allows you to probe functions within modules. For example:</para>
 		
 <example id="eventsmodules"><title>moduleprobe.stp</title>
-<programlisting>
-probe module("ext3").function("*") { }
-probe module("ext3").function("*").return { }
-</programlisting>	
+<programlisting>probe module("ext3").function("*") { }
+probe module("ext3").function("*").return { }</programlisting>	
 </example>
 		
 		<para>
@@ -520,12 +512,10 @@ probe module("ext3").function("*").return { }
 	  </para>
 		
 <example id="timer"><title>timer-s.stp</title>
-<programlisting>
-probe timer.s(4)
+<programlisting>probe timer.s(4)
 {
   printf("hello world\n")
-}
-</programlisting>
+}</programlisting>
 </example>
 
 	  <para>
@@ -582,13 +572,11 @@ probe timer.s(4)
 	<para> Consider the following sample script: </para>
 	
 <example id="helloworld"><title>helloworld.stp</title>
-<programlisting>
-probe begin
+<programlisting>probe begin
 {
   printf ("hello world\n")
   exit ()
-}
-</programlisting>	
+}</programlisting>	
 </example>
 	
 	<para>
@@ -633,8 +621,7 @@ probe begin
 	</formalpara>
 	
 	
-	<programlisting>
-		printf ("<replaceable>format string</replaceable>\n", <replaceable>arguments</replaceable>)
+	<programlisting>		printf ("<replaceable>format string</replaceable>\n", <replaceable>arguments</replaceable>)
 	</programlisting>
 	<indexterm>
 		<primary><command>printf()</command></primary>
@@ -694,12 +681,10 @@ probe begin
 	
 <example id="syscall-open">
 <title>variables-in-printf-statements.stp</title>
-<programlisting>
-probe syscall.open
+<programlisting>probe syscall.open
 {
   printf ("%s(%d) open\n", execname(), pid())
-}
-</programlisting>
+}</programlisting>
 </example>
 	
 	<para>
@@ -714,16 +699,14 @@ probe syscall.open
 		to "argument1", "format specifier2" is to "argument2", or is this clear
 		enough? </remark>
 	
-<screen>
-vmware-guestd(2206) open
+<screen>vmware-guestd(2206) open
 hald(2360) open
 hald(2360) open
 hald(2360) open
 df(3433) open
 df(3433) open
 df(3433) open
-hald(2360) open
-</screen>
+hald(2360) open</screen>
 	
 	<formalpara id="systemtapscript-functions">
 		<title>SystemTap Functions</title>
@@ -972,16 +955,14 @@ hald(2360) open
 					 </para>
 					 
 <example id="thread_indent"><title>thread_indent.stp</title>
-<programlisting>
-probe kernel.function("*@net/socket.c") 
+<programlisting>probe kernel.function("*@net/socket.c") 
 {
   printf ("%s -> %s\n", thread_indent(1), probefunc())
 }
 probe kernel.function("*@net/socket.c").return 
 {
   printf ("%s &lt;- %s\n", thread_indent(-1), probefunc())
-}
-</programlisting>
+}</programlisting>
 </example>
 					 
 					 <para>
@@ -989,8 +970,7 @@ probe kernel.function("*@net/socket.c").return
 						 <command>thread_indent()</command> and probe functions at each event
 						 in the following format:</para>
 					 
-<screen>
-0 ftp(7223): -&gt; sys_socketcall
+<screen>0 ftp(7223): -&gt; sys_socketcall
 1159 ftp(7223):  -&gt; sys_socket
 2173 ftp(7223):   -&gt; __sock_create
 2286 ftp(7223):    -&gt; sock_alloc_inode
@@ -1005,8 +985,7 @@ probe kernel.function("*@net/socket.c").return
 4699 ftp(7223):    &lt;- sock_map_file
 4715 ftp(7223):   &lt;- sock_map_fd
 4732 ftp(7223):  &lt;- sys_socket
-4775 ftp(7223): &lt;- sys_socketcall
-</screen>
+4775 ftp(7223): &lt;- sys_socketcall</screen>
 					 
 					 <para>This sample output contains the following information:</para>
 					 
@@ -1101,12 +1080,10 @@ probe kernel.function("*@net/socket.c").return
 					 
 <example id="targetexample">
 <title>targetexample.stp</title>
-<programlisting>
-probe syscall.* {
+<programlisting>probe syscall.* {
   if (pid() == target())
     printf("%s/n", name)
-}	
-</programlisting>
+}	</programlisting>
 </example>
 					 
 					 <para>

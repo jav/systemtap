@@ -46,9 +46,7 @@ uses systemtap/testsuite/systemtap.examples/profiling/timeout.stp
 <formalpara id="timeouts">
 	<title>timeout.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/profiling/timeout.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/profiling/timeout.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
 
@@ -92,8 +90,7 @@ uses systemtap/testsuite/systemtap.examples/profiling/timeout.stp
 	
 <example id="timeoutsoutput">
 	<title><xref linkend="timeouts"/> Sample Output</title>
-<screen>
-  uid |   poll  select   epoll  itimer   futex nanosle  signal| process
+<screen>  uid |   poll  select   epoll  itimer   futex nanosle  signal| process
 28937 | 148793       0       0    4727   37288       0       0| firefox
 22945 |      0   56949       0       1       0       0       0| scim-bridge
     0 |      0       0       0   36414       0       0       0| swapper
@@ -113,8 +110,7 @@ uses systemtap/testsuite/systemtap.examples/profiling/timeout.stp
  4248 |   1591       0       0       0       0       0       0| nm-applet
  3165 |      0    1441       0       0       0       0       0| xterm
 29548 |      0    1440       0       0       0       0       0| httpd
- 1862 |      0       0       0       0       0    1438       0| iscsid
-</screen>
+ 1862 |      0       0       0       0       0    1438       0| iscsid</screen>
 </example>
 <!--probe kernel.function(@1) {  # probe function passed as argument from stdin
 called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently
