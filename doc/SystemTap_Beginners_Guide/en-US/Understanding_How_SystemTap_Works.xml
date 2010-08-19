@@ -10,7 +10,7 @@
 <indexterm>
 <primary>Understanding How SystemTap Works</primary>
 </indexterm>
-  
+
 
 <para>
     SystemTap allows users to write and reuse simple scripts to deeply
@@ -142,7 +142,7 @@
 	</para>
       </step>
 	<!--
-	<step><para>Once the SystemTap session is terminated, the hooked events are disconnected from the kernel; afterwards, the kernel module is unloaded.</para></step>-->    
+	<step><para>Once the SystemTap session is terminated, the hooked events are disconnected from the kernel; afterwards, the kernel module is unloaded.</para></step>-->
     </procedure>
 
     <para>This sequence is driven from a single command-line program:
@@ -156,12 +156,12 @@
 <xi:include href="Scripts.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 <xi:include href="ScriptConstructs.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 <xi:include href="Arrays.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-<xi:include href="Array-Operations.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
+<xi:include href="Array-Operations.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 
-<!--	
+<!--
 	<section id="understanding-scripts">
 		<title>SystemTap Scripts</title>
-		
+
 		<remark>
 			** definition, significance, structure, very basic examples, reference to later chapter (how to read library of preset SystemTap scripts in this book, using them)
 		</remark>
@@ -177,7 +177,7 @@
       definition, significance, difference with stap scripts (previous section),
       library of tapsets in system: location
     </remark>
-		
+
     <para>
       <firstterm>Tapsets</firstterm> are scripts that form a library of
       pre-written probes and functions to be used in SystemTap scripts. When a
@@ -187,10 +187,10 @@
       (refer to <xref linkend="understanding-architecture-tools"/> for
       information on what transpires in a SystemTap session).
     </para>
-<!--		
+<!--
 		<para>
 			Simply put, the tapset library is an abstraction layer designed to make it easier for users to define events and functions. In a way, tapsets provide useful "aliases" for functions that users may want to specify as an event; knowing the proper alias to use is, for the most part, easier than understanding how to specify a specific kernel function.
-		</para>	
+		</para>
 		-->
     <para>
       Like SystemTap scripts, tapsets use the file name extension
@@ -199,7 +199,7 @@
       unlike SystemTap scripts, tapsets are not meant for direct execution;
       rather, they constitute the library from which other scripts can pull
       definitions.
-    </para>	
+    </para>
 
     <para>
       Simply put, the tapset library is an abstraction layer designed to make it
@@ -208,10 +208,10 @@
       specify as an event; knowing the proper alias to use is, for the most
       part, easier than remembering specific kernel functions that might vary
       between kernel versions.
-    </para>	
+    </para>
 
 <!-- 			understanding how to specify a specific kernel function. -->
-				
+
     <para>
       Several handlers and functions in <xref linkend="systemtapscript-events"/>
       and <xref linkend="systemtapscript-functions"/> are defined in tapsets.

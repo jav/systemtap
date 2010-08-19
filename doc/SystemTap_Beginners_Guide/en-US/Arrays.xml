@@ -12,7 +12,7 @@
 <indexterm>
 <primary>associative arrays</primary>
 <secondary>introduction</secondary>
-</indexterm>	
+</indexterm>
 
 <para>SystemTap also supports the use of associative arrays. While an ordinary variable represents a single value, associative arrays can represent a collection of values. Simply put, an associative array is a collection of unique keys; each key in the array has a value associated with it.</para>
 
@@ -40,7 +40,7 @@
 <tertiary>arrays</tertiary>
 </indexterm>
 
-<!-- next 2 indexterms for unique keys 
+<!-- next 2 indexterms for unique keys
 
 <indexterm>
 <primary>arrays</primary>
@@ -60,7 +60,7 @@
 <tertiary>arrays</tertiary>
 </indexterm>
 
-<!-- next 2 indexterms for associated values 
+<!-- next 2 indexterms for associated values
 
 <indexterm>
 <primary>arrays</primary>
@@ -80,7 +80,7 @@
 <tertiary>arrays</tertiary>
 </indexterm>
 
-<!-- next 2 indexterms for index expression 
+<!-- next 2 indexterms for index expression
 
 <indexterm>
 <primary>arrays</primary>
@@ -101,7 +101,7 @@
 </indexterm>
 
 <para>Since associative arrays are normally processed in multiple probes (as we will demonstrate later), they should be declared as <command>global</command> variables in the SystemTap script. The syntax for accessing an element in an associative array is similar to that of <command>awk</command>, and is as follows:</para>
-<!-- next 3 indexterms for syntax 
+<!-- next 3 indexterms for syntax
 <indexterm>
 <primary>arrays</primary>
 <secondary>introduction</secondary>
@@ -129,9 +129,9 @@
 
 <screen><replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>]</screen>
 
-<para>Here, the <command><replaceable>array_name</replaceable></command> is any arbitrary name the array uses. The <command><replaceable>index_expression</replaceable></command> is used to refer to a specific unique key in the array. To illustrate, let us try to build an array named <command>foo</command> that specifies the ages of three people (i.e. the unique keys): <command>tom</command>, <command>dick</command>, and <command>harry</command>. To assign them the ages (i.e. associated values) of 23, 24, and 25 respectively, we'd use the following array statements:</para> 
+<para>Here, the <command><replaceable>array_name</replaceable></command> is any arbitrary name the array uses. The <command><replaceable>index_expression</replaceable></command> is used to refer to a specific unique key in the array. To illustrate, let us try to build an array named <command>foo</command> that specifies the ages of three people (i.e. the unique keys): <command>tom</command>, <command>dick</command>, and <command>harry</command>. To assign them the ages (i.e. associated values) of 23, 24, and 25 respectively, we'd use the following array statements:</para>
 
-<!-- next 2 indexterms for example 
+<!-- next 2 indexterms for example
 
 <indexterm>
 <primary>arrays</primary>
@@ -168,21 +168,21 @@ foo["harry"] = 25</screen>
 
 
 
-<!--	
+<!--
 <varlistentry>
 	<term></term>
 	<listitem>
 		<para></para>
-	</listitem>	
+	</listitem>
 </varlistentry>
--->	
+-->
 
-	
-	
-	
-	
-<!-- 
-	
+
+
+
+
+<!--
+
 <para>SystemTap supports numerous ways to manipulate associative arrays (i.e. <command><replaceable>operation</replaceable></command> in the syntax format). For the purposes of this book, we will only cover the most common examples of manipulating associative arrays, all of which appear in <xref linkend="useful-systemtap-scripts"/>.</para>
 
 <formalpara id="aaexamplesimple">
@@ -202,7 +202,7 @@ foo["harry"] = 25</screen>
 
 <formalpara id="aaexampleupdatecounting">
 	<title>Incrementing Associated Values of Unique Keys (By Variable)</title>
-	
+
 <para>One of the most common uses of associative arrays is to tally events per unique key. To do this, use the operator <command>+= $count</command>, as in:</para>
 </formalpara>
 

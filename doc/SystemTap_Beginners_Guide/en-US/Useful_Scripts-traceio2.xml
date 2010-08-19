@@ -17,13 +17,13 @@
 <indexterm>
 <primary>monitoring device I/O</primary>
 <secondary>examples of SystemTap scripts</secondary>
-</indexterm>		
+</indexterm>
 
 <indexterm>
 <primary>I/O monitoring (by device)</primary>
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
-		
+
 <indexterm>
 <primary>device I/O, monitoring</primary>
 <secondary>examples of SystemTap scripts</secondary>
@@ -36,19 +36,19 @@
 <remark>
 			example from http://sourceware.org/systemtap/examples/io/traceio2.stp, but error
 		</remark>
-		
+
 		<remark>
 			WAR STORY: http://sourceware.org/systemtap/wiki/WSDeviceMonitor?highlight=((WarStories)), but script errored
-		</remark>	
-		
+		</remark>
+
 		<remark>
 			was able to correct script through http://sourceware.org/systemtap/wiki/WSFileMonitor?highlight=((WarStories))
-		</remark>	
-		
+		</remark>
+
 		<para>
 			This section describes how to monitor I/O activity on a specific device.
 		</para>
-		
+
 <formalpara id="traceio2">
 	<title>traceio2.stp</title>
 <para>
@@ -56,7 +56,7 @@
 </para>
 </formalpara>
 
-<!-- <remark>in new SystemTap, returned a warning, but ran ok.</remark> 
+<!-- <remark>in new SystemTap, returned a warning, but ran ok.</remark>
 
 <para condition="fedora">For some kernel versions (e.g. <filename>2.6.21-1.3194.fc7</filename>), you may need to revise <xref linkend="traceio2"/> accordingly. SystemTap will output the following error if you need to do so:</para>
 
@@ -118,7 +118,7 @@ semantic error: field 'f_dentry' not found</screen>
 <indexterm>
 <primary>usrdev2kerndev()</primary>
 <secondary>examples of SystemTap scripts</secondary>
-</indexterm>	
+</indexterm>
 <para>The <command>usrdev2kerndev()</command> function converts the whole device number into the format understood by the kernel. The output produced by <command>usrdev2kerndev()</command> is used in conjunction with the <command>MKDEV()</command>, <command>MINOR()</command>, and <command>MAJOR()</command> functions to determine the major and minor numbers of a specific device.</para>
 
 <para>The output of <xref linkend="traceio2"/> includes the name and ID of any process performing a read/write, the function it is performing (i.e. <command>vfs_read</command> or <command>vfs_write</command>), and the kernel device number.</para>

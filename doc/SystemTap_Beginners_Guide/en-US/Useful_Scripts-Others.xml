@@ -8,18 +8,18 @@
 	<remark>
 		http://sourceware.org/systemtap/examples/subsystem-index.html
 	</remark>
-	
+
 	<remark>
 		SCHEDULER - Generating Backtraces of Threads Waiting for IO Operations - http://sourceware.org/systemtap/examples/process/sleepingBeauties.stp
 	</remark>
-	
+
 	<remark>
 		LOCKING - System-Wide Futex Contention - http://sourceware.org/systemtap/examples/process/futexes.stp
-	</remark>	
-	
+	</remark>
+
 	<remark>
 		CPU - Graphing Disk and CPU Utilization - http://sourceware.org/systemtap/examples/general/graphs.stp
 	</remark>
-	
-	
+
+
 	</section>

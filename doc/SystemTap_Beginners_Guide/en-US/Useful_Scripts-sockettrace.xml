@@ -18,7 +18,7 @@
 <indexterm>
 <primary>tracing functions called in network socket code</primary>
 <secondary>examples of SystemTap scripts</secondary>
-</indexterm>		
+</indexterm>
 <indexterm>
 	<primary>network socket code, tracing functions called in</primary>
 	<secondary>examples of SystemTap scripts</secondary>
@@ -26,11 +26,11 @@
 <indexterm>
 	<primary>functions called in network socket code, tracing</primary>
 	<secondary>examples of SystemTap scripts</secondary>
-</indexterm>	
+</indexterm>
 <remark>
 	http://sourceware.org/systemtap/examples/network/socket-trace.stp
-</remark>	
-				
+</remark>
+
 <indexterm>
 	<primary>script examples</primary>
 	<secondary>net/socket.c, tracing functions from</secondary>
@@ -52,7 +52,7 @@
 <para>
 <programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/network/socket-trace.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
-</formalpara>		
+</formalpara>
 
 <para><xref linkend="sockettrace"/> is identical to <xref linkend="thread_indent"/>, which was earlier used in <xref linkend="systemtapscript-functions"/> to illustrate how <command>thread_indent()</command> works.</para>
 
@@ -87,11 +87,11 @@
 
 <itemizedlist>
 	<listitem><para>The time delta (in microseconds) since the previous entry; i.e. the number of microseconds since the last traced function call.</para></listitem>
-	
+
 	<listitem><para>The process name (and its corresponding ID) that made the function call.</para></listitem>
-	
+
 	<listitem><para>An arrow signifying whether the call was an entry (<computeroutput>&lt;-</computeroutput>) or an exit (<computeroutput>-></computeroutput>); the indentations help you match specific function call entries with their corresponding exits.</para></listitem>
-	
+
 	<listitem><para>The name of the function called by the process.</para></listitem>
 </itemizedlist>	-->
 <!--
@@ -101,8 +101,8 @@
 probe kernel.function("*@net/socket.c").return {
 printf ("%s &lt;- %s\n", thread_indent(-1), probefunc())
 }
-    
-    
+
+
     -->
 
 </section>

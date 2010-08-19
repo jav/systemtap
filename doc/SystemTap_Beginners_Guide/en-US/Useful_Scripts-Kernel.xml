@@ -7,20 +7,20 @@
 	<remark>
 		http://sourceware.org/systemtap/examples/subsystem-index.html
 	</remark>
-	
+
 	<remark>
 		Tracing Calls for Sections of Code - http://sourceware.org/systemtap/examples/general/para-callgraph.stp
 	</remark>
-	
+
 	<remark>
 		Profile kernel functions - http://sourceware.org/systemtap/examples/process/pf2.stp
 	</remark>
-	
+
 	<remark>
-		Count Times Functions Called - 
+		Count Times Functions Called -
 		http://sourceware.org/systemtap/examples/profiling/functioncallcount.stp
 	</remark>
-	
+
 	<remark>
 		Profile kernel functions - http://sourceware.org/systemtap/examples/profiling/thread-times.stp
 	</remark>

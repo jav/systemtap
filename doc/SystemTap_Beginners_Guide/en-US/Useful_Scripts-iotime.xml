@@ -30,10 +30,10 @@
 </indexterm>
 
 <!-- 	<para>This section describes how to monitor I/O time on the system.</para> -->
-	
+
 <para>
-	This section describes how to monitor the amount of time it takes for each process to read 
-	from or write to any file. This is useful if you wish to determine what files are slow to 
+	This section describes how to monitor the amount of time it takes for each process to read
+	from or write to any file. This is useful if you wish to determine what files are slow to
 	load on a given system.
 </para>
 
@@ -45,9 +45,9 @@
 </formalpara>
 
 <para>
-	<xref linkend="iotime"/> tracks each time a system call opens, closes, reads from, and writes 
-	to a file. For each file any system call accesses, <xref linkend="iotime"/> counts the number 
-	of microseconds it takes for any reads or writes to finish and tracks the amount of data (in 
+	<xref linkend="iotime"/> tracks each time a system call opens, closes, reads from, and writes
+	to a file. For each file any system call accesses, <xref linkend="iotime"/> counts the number
+	of microseconds it takes for any reads or writes to finish and tracks the amount of data (in
 	bytes) read from or written to the file.
 </para>
 <!-- next 2 indexterms for $count -->
@@ -72,11 +72,11 @@
 
 
 <para>
-	<xref linkend="iotime"/> also uses the local variable <command>$count</command> to track the 
-	amount of data (in bytes) that any system call <emphasis>attempts</emphasis> to read or 
-	write. Note that <command>$return</command> (as used in <xref linkend="scriptdisktop"/> from 
-	<xref linkend= "disktop"/>) stores the <emphasis>actual</emphasis> amount of data 
-	read/written. <command>$count</command> can only be used on probes that track data reads or 
+	<xref linkend="iotime"/> also uses the local variable <command>$count</command> to track the
+	amount of data (in bytes) that any system call <emphasis>attempts</emphasis> to read or
+	write. Note that <command>$return</command> (as used in <xref linkend="scriptdisktop"/> from
+	<xref linkend= "disktop"/>) stores the <emphasis>actual</emphasis> amount of data
+	read/written. <command>$count</command> can only be used on probes that track data reads or
 	writes (e.g. <command>syscall.read</command> and <command>syscall.write</command>).
 </para>
 
@@ -97,30 +97,30 @@
 </example>
 
 <para>
-	<xref linkend="iotimeoutput"/> prints out the following data: 
-</para>	
+	<xref linkend="iotimeoutput"/> prints out the following data:
+</para>
 
 <itemizedlist>
 	<listitem><para>A timestamp, in microseconds.</para></listitem>
 	<listitem><para>Process ID and process name.</para></listitem>
-	<listitem><para>An <computeroutput>access</computeroutput> or  
-		<computeroutput>iotime</computeroutput> flag.</para></listitem>   
+	<listitem><para>An <computeroutput>access</computeroutput> or
+		<computeroutput>iotime</computeroutput> flag.</para></listitem>
 	<listitem><para>The file accessed.</para></listitem>
 </itemizedlist>
 
 <para>
-	If a process was able to read or write any data, a pair of 
-	<computeroutput>access</computeroutput> and <computeroutput>iotime</computeroutput> lines 
-	should appear together. The <computeroutput>access</computeroutput> line's timestamp refers to 
-	the time that a given process started accessing a file; at the end of the line, it will show 
-	the amount of data read/written (in bytes). The <computeroutput>iotime</computeroutput> line 
-	will show the amount of time (in microseconds) that the process took in order to perform the 
+	If a process was able to read or write any data, a pair of
+	<computeroutput>access</computeroutput> and <computeroutput>iotime</computeroutput> lines
+	should appear together. The <computeroutput>access</computeroutput> line's timestamp refers to
+	the time that a given process started accessing a file; at the end of the line, it will show
+	the amount of data read/written (in bytes). The <computeroutput>iotime</computeroutput> line
+	will show the amount of time (in microseconds) that the process took in order to perform the
 	read or write.
 </para>
 
 <para>
 	If an <computeroutput>access</computeroutput> line is not followed by an
-	<computeroutput>iotime</computeroutput> line, it simply means that the process did not read 
+	<computeroutput>iotime</computeroutput> line, it simply means that the process did not read
 	or write any data.
 </para>
 

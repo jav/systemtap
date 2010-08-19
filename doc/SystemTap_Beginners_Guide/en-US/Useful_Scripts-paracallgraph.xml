@@ -5,7 +5,7 @@
 
 	<section id="paracallgraph">
 		<title>Call Graph Tracing</title>
-		
+
 <indexterm>
 <primary>script examples</primary>
 <secondary>call graph tracing</secondary>
@@ -19,7 +19,7 @@
 <indexterm>
 <primary>call graph tracing</primary>
 <secondary>examples of SystemTap scripts</secondary>
-</indexterm>	
+</indexterm>
 
 <indexterm>
 <primary>incoming/outgoing function calls, tracing</primary>
@@ -41,20 +41,20 @@
 		<remark>
 			WAR STORY: Call graph tracing http://sourceware.org/systemtap/wiki/WSCallGraph?highlight=((WarStories))
 		</remark>
-		
+
 		<remark>
 			script: http://sourceware.org/systemtap/examples/general/para-callgraph.stp
-		</remark>	
-				
-		
+		</remark>
+
+
 	<para>This section describes how to trace incoming and outgoing function calls. </para>
-	
+
 <formalpara id="scriptcallgraph">
 	<title>para-callgraph.stp</title>
 <para>
 <programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/general/para-callgraph.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
-</formalpara>		
+</formalpara>
 <indexterm>
 <primary>script examples</primary>
 <secondary>multiple command-line arguments, example of</secondary>
@@ -91,16 +91,16 @@
 </indexterm>
 <itemizedlist>
 	<listitem><para>
-			The function/s whose entry/exit call you'd like to trace 
-			(<command>$1</command>). 
+			The function/s whose entry/exit call you'd like to trace
+			(<command>$1</command>).
 		</para></listitem>
 
 	<listitem><para>
-			A second optional <firstterm>trigger function</firstterm> (<command>$2</command>), which 
-			enables or disables tracing on a per-thread basis. Tracing in each thread 
-			will continue as long as the trigger function has not exited yet.  
+			A second optional <firstterm>trigger function</firstterm> (<command>$2</command>), which
+			enables or disables tracing on a per-thread basis. Tracing in each thread
+			will continue as long as the trigger function has not exited yet.
 		</para></listitem>
-	
+
 </itemizedlist>
 
 <remark> please verify previous if correct; i'm particularly interested in finding out how to better describe "trigger function"</remark>
@@ -123,15 +123,15 @@
 
 		<para>The following example contains an excerpt from the output
 for <command>stap para-callgraph.stp 'kernel.function("*@fs/*.c")' 'kernel.function("sys_read")'</command>:</para>
-		
-	
+
+
 <example id="paracallgraphoutput">
 	<title><xref linkend="scriptcallgraph"/> Sample Output</title>
 <screen>[...]
    267 gnome-terminal(2921): &lt;-do_sync_read return=0xfffffffffffffff5
    269 gnome-terminal(2921):&lt;-vfs_read return=0xfffffffffffffff5
      0 gnome-terminal(2921):->fput file=0xffff880111eebbc0
-     2 gnome-terminal(2921):&lt;-fput 
+     2 gnome-terminal(2921):&lt;-fput
      0 gnome-terminal(2921):->fget_light fd=0x3 fput_needed=0xffff88010544df54
      3 gnome-terminal(2921):&lt;-fget_light return=0xffff8801116ce980
      0 gnome-terminal(2921):->vfs_read file=0xffff8801116ce980 buf=0xc86504 count=0x1000 pos=0xffff88010544df48

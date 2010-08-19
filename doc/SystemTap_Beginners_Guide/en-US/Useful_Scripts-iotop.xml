@@ -30,7 +30,7 @@
 </indexterm>
 
 	<para>This section describes how to monitor I/O activity on the system.</para>
-	
+
 <formalpara id="iotop">
 	<title>iotop.stp</title>
 <para>
@@ -44,7 +44,7 @@
 
 <example id="iotopoutput">
 	<title><xref linkend="iotop"/> Sample Output</title>
-<screen>[...]	
+<screen>[...]
          Process           KB Read      KB Written
             Xorg             50287               0
          staprun              3328               0

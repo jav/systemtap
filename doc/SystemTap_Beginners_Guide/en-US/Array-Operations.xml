@@ -1,7 +1,7 @@
 <?xml version='1.0'?>
 <!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
 ]>
-	
+
 <section id="arrayoperators">
 	<title>Array Operations in SystemTap</title>
 <indexterm>
@@ -13,7 +13,7 @@
 <primary>operations</primary>
 <secondary>associative arrays</secondary>
 </indexterm>
-	
+
 <para>This section enumerates some of the most commonly used array operations in SystemTap.</para>
 
 <section id="arrayops-assignvalue">
@@ -27,7 +27,7 @@
 <indexterm>
 <primary>assigning associated values</primary>
 <secondary>array operations</secondary>
-</indexterm>	
+</indexterm>
 
 <indexterm>
 <primary>values, assignment of</primary>
@@ -81,7 +81,7 @@
 </example>
 
 <para>Whenever an event invokes the statement in <xref linkend="arrays-timestampprocessname"/>, SystemTap returns the appropriate <command>tid()</command> value (i.e. the ID of a thread, which is then used as the unique key). At the same time, SystemTap also uses the function <command>gettimeofday_s()</command> to set the corresponding timestamp as the associated value to the unique key defined by the function <command>tid()</command>. This creates an array composed of key pairs containing thread IDs and timestamps.</para>
-	
+
 <para>In this same example, if <command>tid()</command> returns a value that is already defined in the array <command>foo</command>, the operator will discard the original associated value to it, and replace it with the current timestamp from <command>gettimeofday_s()</command>.</para>
 </section>
 <section id="arrayops-readvalues">
@@ -91,7 +91,7 @@
 	<secondary>array operations</secondary>
 </indexterm>
 
-	
+
 <indexterm>
 <primary>array operations</primary>
 <secondary>reading values from arrays</secondary>
@@ -101,19 +101,19 @@
 <primary>operations</primary>
 <secondary>reading values from arrays</secondary>
 </indexterm>
-	
-	<para>You can also read values from an array the same way you would read the value of a variable. 
-	To do so, include the  
-	<command><replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>]</command> 
-	statement as an element in a mathematical expression. For example:</para>	
-<!--	
+
+	<para>You can also read values from an array the same way you would read the value of a variable.
+	To do so, include the
+	<command><replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>]</command>
+	statement as an element in a mathematical expression. For example:</para>
+<!--
 	<para>You can also use the <command>=</command> operator to read values from an array. This is accomplished by simply including the <command><replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>]</command> as an element in a mathematical expression. For example:</para>-->
 <indexterm>
 	<primary>reading values from arrays</primary>
 	<secondary>array operations</secondary>
 <tertiary>using arrays in simple computations</tertiary>
 </indexterm>
-	
+
 <indexterm>
 <primary>array operations</primary>
 <secondary>reading values from arrays</secondary>
@@ -172,32 +172,32 @@
 </example>
 
 <para>
-	This example assumes that the array <command>foo</command> was built using the construct in 
-	<xref linkend="arrays-timestampprocessname"/> (from <xref linkend="arrayops-assignvalue"/>). This 
-	sets a timestamp that will serve as a <emphasis>reference point</emphasis>, to be used in 
+	This example assumes that the array <command>foo</command> was built using the construct in
+	<xref linkend="arrays-timestampprocessname"/> (from <xref linkend="arrayops-assignvalue"/>). This
+	sets a timestamp that will serve as a <emphasis>reference point</emphasis>, to be used in
 	computing for <literal>delta</literal>.
 </para>
 
 <para>
-	The construct in <xref linkend="arrayreadingvaluesfrom"/> computes a value for the variable 
-	<literal>delta</literal> by subtracting the associated value of the key <literal>tid()</literal> 
-	from the current <command>gettimeofday_s()</command>. The construct does this by 
-	<emphasis>reading</emphasis> the value of <literal>tid()</literal> from the array. This particular 
-	construct is useful for determining the time between two events, such as the start and completion 
+	The construct in <xref linkend="arrayreadingvaluesfrom"/> computes a value for the variable
+	<literal>delta</literal> by subtracting the associated value of the key <literal>tid()</literal>
+	from the current <command>gettimeofday_s()</command>. The construct does this by
+	<emphasis>reading</emphasis> the value of <literal>tid()</literal> from the array. This particular
+	construct is useful for determining the time between two events, such as the start and completion
 	of a read operation.
-</para>	
+</para>
 <!--
 
 <para>
-	In <xref linkend="arrayreadingvaluesfrom"/>, the first statement sets a timestamp associated 
-	with the returned value of the handler function <command>tid()</command> as a 
+	In <xref linkend="arrayreadingvaluesfrom"/>, the first statement sets a timestamp associated
+	with the returned value of the handler function <command>tid()</command> as a
 	<emphasis>reference point</emphasis>.
-	The second statement computes a value for the variable 
-	<command>delta</command> by subtracting the associated value the reference point from the 
-	current <command>gettimeofday_s()</command>. Note that the first statement writes the value 
-	of <command>gettimeofday_s()</command> into the appropriate key of array 
-	<literal>foo</literal>, while in the second statement the value of 
-	<command>foo[tid()]</command> is <emphasis>read</emphasis> from the array in order to compute 
+	The second statement computes a value for the variable
+	<command>delta</command> by subtracting the associated value the reference point from the
+	current <command>gettimeofday_s()</command>. Note that the first statement writes the value
+	of <command>gettimeofday_s()</command> into the appropriate key of array
+	<literal>foo</literal>, while in the second statement the value of
+	<command>foo[tid()]</command> is <emphasis>read</emphasis> from the array in order to compute
 	for <literal>delta</literal>.
 </para>
 -->
@@ -228,10 +228,10 @@
 <note>
 	<title>Note</title>
 <para>
-	If the <command><replaceable>index_expression</replaceable></command> cannot 
-	find the unique key, it returns a value of 0 (for numerical operations, such as 
-	<xref linkend="arrayreadingvaluesfrom"/>) or a null/empty string value (for string operations) by 
-	default. 
+	If the <command><replaceable>index_expression</replaceable></command> cannot
+	find the unique key, it returns a value of 0 (for numerical operations, such as
+	<xref linkend="arrayreadingvaluesfrom"/>) or a null/empty string value (for string operations) by
+	default.
 </para>
 </note>
 </section>
@@ -250,7 +250,7 @@
 <indexterm>
 <primary>operations</primary>
 <secondary>incrementing associated values</secondary>
-</indexterm>		
+</indexterm>
 	<para>Use <command>++</command> to increment the associated value of a unique key in an array, as in:</para>
 
 <screen><replaceable>array_name</replaceable>[<replaceable>index_expression</replaceable>] ++</screen>
@@ -305,7 +305,7 @@
 	<primary>multiple elements in an array</primary>
 	<secondary>array operations</secondary>
 </indexterm>
-	
+
 <indexterm>
 <primary>array operations</primary>
 <secondary>multiple elements in an array</secondary>
@@ -314,7 +314,7 @@
 <indexterm>
 <primary>operations</primary>
 <secondary>multiple elements in an array</secondary>
-</indexterm>	
+</indexterm>
 
 <indexterm>
 	<primary>array operations</primary>
@@ -350,13 +350,13 @@
 	<primary>processing multiple elements in an array</primary>
 	<secondary>foreach</secondary>
 	<tertiary>array operations</tertiary>
-</indexterm>	
+</indexterm>
 
 <indexterm>
 <primary>foreach</primary>
 <secondary>processing multiple elements in an array</secondary>
 <tertiary>array operations</tertiary>
-</indexterm>	
+</indexterm>
 
 
 
@@ -418,7 +418,7 @@
 	<title>cumulative-vfsreads.stp</title>
 <programlisting>global reads
 probe vfs.read
-{ 
+{
   reads[execname()] ++
 }
 probe timer.s(3)
@@ -428,8 +428,8 @@ probe timer.s(3)
 }</programlisting>
 </example>
 
-<para>In the second probe of <xref linkend="simplevfsreadprint"/>, the <command>foreach</command> statement uses the variable <command>count</command> to reference each iteration of a unique key in the array <command>reads</command>. The <command>reads[count]</command> array statement in the same probe retrieves the associated value of each unique key.</para> 
-	
+<para>In the second probe of <xref linkend="simplevfsreadprint"/>, the <command>foreach</command> statement uses the variable <command>count</command> to reference each iteration of a unique key in the array <command>reads</command>. The <command>reads[count]</command> array statement in the same probe retrieves the associated value of each unique key.</para>
+
 <para>Given what we know about the first probe in <xref linkend="simplevfsreadprint"/>, the script prints VFS-read statistics every 3 seconds, displaying names of processes that performed a VFS-read along with a corresponding VFS-read count.</para>
 <indexterm>
 <primary>array operations</primary>
@@ -491,7 +491,7 @@ probe timer.s(3)
     printf("%s : %d \n", count, reads[count])
 }</screen>
 
-<para>This <command>foreach</command> statement instructs the script to process the elements in the array <command>reads</command> in descending order (of associated value). The <command>limit 10</command> option instructs the <command>foreach</command> to only process the first ten iterations (i.e. print the first 10, starting with the highest value).</para> 
+<para>This <command>foreach</command> statement instructs the script to process the elements in the array <command>reads</command> in descending order (of associated value). The <command>limit 10</command> option instructs the <command>foreach</command> to only process the first ten iterations (i.e. print the first 10, starting with the highest value).</para>
 </section>
 
 <section id="arrayops-deleting">
@@ -505,7 +505,7 @@ probe timer.s(3)
 <primary>operations</primary>
 <secondary>deleting arrays and array elements</secondary>
 </indexterm>
-	
+
 <indexterm>
 <primary>array operations</primary>
 <secondary>clearing arrays/array elements</secondary>
@@ -545,7 +545,7 @@ probe timer.s(3)
 <primary>delete operator</primary>
 <secondary>clearing arrays/array elements</secondary>
 <tertiary>array operations</tertiary>
-</indexterm>	
+</indexterm>
 	<para>To do that, you will need to clear the values accumulated by the array. You can accomplish this using the <command>delete</command> operator to delete elements in an array, or an entire array. Consider the following example:</para>
 
 <indexterm>
@@ -570,22 +570,22 @@ probe timer.s(3)
 <primary>virtual file system reads (non-cumulative), tallying</primary>
 <secondary>clearing arrays/array elements</secondary>
 <tertiary>array operations</tertiary>
-</indexterm>	
+</indexterm>
 <example id="simplevfsreadprintnotcumulative">
 	<title>noncumulative-vfsreads.stp</title>
 <programlisting>global reads
 probe vfs.read
-{ 
+{
   reads[execname()] ++
 }
 probe timer.s(3)
 {
   foreach (count in reads)
     printf("%s : %d \n", count, reads[count])
-  delete reads	
+  delete reads
 }</programlisting>
 </example>
-<!--	
+<!--
 <example id="simplevfsreadprintnotcumulative">
 	<title>vfsreads-per-2secs.stp</title>
 <programlisting>global reads
@@ -597,7 +597,7 @@ probe vfs.read
 probe timer.s(3)
 {
   printf("=======\n")
-  foreach (count in reads+) 
+  foreach (count in reads+)
     printf("%s : %d \n", count, reads[count])
   delete reads
 }</programlisting>
@@ -607,7 +607,7 @@ probe timer.s(3)
 
 <note>
 	<title>Note</title>
-	
+
 <!-- next 2 indexterms for multiple array operations within the same probe -->
 
 <indexterm>
@@ -632,9 +632,9 @@ probe timer.s(3)
 <primary>multiple array operations within the same probe</primary>
 <secondary>clearing arrays/array elements</secondary>
 <tertiary>array operations</tertiary>
-</indexterm>	
+</indexterm>
 	<para>You can have multiple array operations within the same probe. Using the examples from <xref linkend="arrayops-foreach"/> and <xref linkend="arrayops-deleting"/> , you can track the number of VFS reads each process makes per 3-second period <emphasis>and</emphasis> tally the cumulative VFS reads of those same processes. Consider the following example:</para>
-	
+
 <screen>global reads, totalreads
 
 probe vfs.read
@@ -646,7 +646,7 @@ probe vfs.read
 probe timer.s(3)
 {
   printf("=======\n")
-  foreach (count in reads-) 
+  foreach (count in reads-)
     printf("%s : %d \n", count, reads[count])
   delete reads
 }
@@ -658,9 +658,9 @@ probe end
     printf("%s : %d \n", total, totalreads[total])
 }</screen>
 
-<para>In this example, the arrays <command>reads</command> and <command>totalreads</command> track the same information, and are printed out in a similar fashion. The only difference here is that <command>reads</command> is cleared every 3-second period, whereas <command>totalreads</command> keeps growing.</para> 
+<para>In this example, the arrays <command>reads</command> and <command>totalreads</command> track the same information, and are printed out in a similar fashion. The only difference here is that <command>reads</command> is cleared every 3-second period, whereas <command>totalreads</command> keeps growing.</para>
 </note>
-</section>	
+</section>
 <section id="arrayops-conditionals">
 	<title>Using Arrays in Conditional Statements</title>
 <indexterm>
@@ -677,7 +677,7 @@ probe end
 <primary>conditional statements, using arrays in</primary>
 <secondary>array operations</secondary>
 </indexterm>
-	
+
 <indexterm>
 <primary>if/else statements, using arrays in</primary>
 <secondary>array operations</secondary>
@@ -702,9 +702,9 @@ probe timer.s(3)
     else
       printf("%s : %dB \n", count, reads[count])
 }</programlisting>
-</example>	
+</example>
 
-<para>Every three seconds, <xref linkend="simplevfsreadprintif"/> prints out a list of all processes, along with how many times each process performed a VFS read. If the associated value of a process name is equal or greater than 1024, the <command>if</command> statement in the script converts and prints it out in <command>kB</command>.</para>  
+<para>Every three seconds, <xref linkend="simplevfsreadprintif"/> prints out a list of all processes, along with how many times each process performed a VFS read. If the associated value of a process name is equal or greater than 1024, the <command>if</command> statement in the script converts and prints it out in <command>kB</command>.</para>
 <!--	<title>vfsreads-stop-on-stapio.stp</title>
 <programlisting>global reads
 probe kernel.function("vfs_read")
@@ -715,7 +715,7 @@ probe kernel.function("vfs_read")
 probe timer.s(3)
 {
   printf("=======\n")
-  foreach (count in reads+) 
+  foreach (count in reads+)
     printf("%s : %d \n", count, reads[count])
   if(reads["stapio"] >= 20) {
     exit()
@@ -727,7 +727,7 @@ probe timer.s(3)
 -->
 <formalpara>
 	<title>Testing for Membership</title>
-	
+
 <!-- next 3 indexterms for testing for array membership -->
 <indexterm>
 <primary>array operations</primary>
@@ -751,7 +751,7 @@ probe timer.s(3)
 <primary>testing for array membership</primary>
 <secondary>conditional statements, using arrays in</secondary>
 <tertiary>array operations</tertiary>
-</indexterm>	
+</indexterm>
 
 <indexterm>
 <primary>membership (in array), testing for</primary>
@@ -779,13 +779,13 @@ probe vfs.read
 probe timer.s(3)
 {
   printf("=======\n")
-  foreach (count in reads+) 
+  foreach (count in reads+)
     printf("%s : %d \n", count, reads[count])
   if(["stapio"] in reads) {
     printf("stapio read detected, exiting\n")
     exit()
   }
-}</programlisting>		
+}</programlisting>
 </example>
 
 <para>The <command>if(["stapio"] in reads)</command> statement instructs the script to print <computeroutput>stapio read detected, exiting</computeroutput> once the unique key <command>stapio</command> is added to the array <command>reads</command>.</para>
@@ -796,7 +796,7 @@ probe timer.s(3)
 <indexterm>
 	<primary>statistical aggregates</primary>
 	<secondary>array operations</secondary>
-</indexterm>	
+</indexterm>
 <indexterm>
 	<primary>aggregates (statistical)</primary>
 	<secondary>array operations</secondary>
@@ -848,7 +848,7 @@ probe timer.s(3)
 
 <example id="simpleaggregates">
 	<title>stat-aggregates.stp</title>
-<programlisting>global reads	
+<programlisting>global reads
 probe vfs.read
 {
   reads[execname()] &lt;&lt;&lt; count
@@ -884,7 +884,7 @@ probe vfs.read
 <para>In <xref linkend="simpleaggregates"/>, the operator <command>&lt;&lt;&lt; count</command> <emphasis>stores</emphasis> the amount returned by <literal>count</literal> to to the associated value of the corresponding <command>execname()</command> in the <literal>reads</literal> array. Remember, these values are <emphasis>stored</emphasis>; they are not added to the associated values of each unique key, nor are they used to replace the current associated values. In a manner of speaking, think of it as having each unique key (<command>execname()</command>) having multiple associated values, accumulating with each probe handler run.</para>
 
 <note>
-	<title>Note</title>	
+	<title>Note</title>
 	<para>In the context of <xref linkend="simpleaggregates"/>, <literal>count</literal> returns the amount of data written by the returned <command>execname()</command> to the virtual file system.</para>
 </note>
 
@@ -923,9 +923,9 @@ probe vfs.read
 
 
 <para>To extract data collected by statistical aggregates, use the syntax format <command>@<replaceable>extractor</replaceable>(<replaceable>variable/array index expression</replaceable>)</command>. <command><replaceable>extractor</replaceable></command> can be any of the following integer extractors:</para>
-	
+
 <variablelist>
-	
+
 <varlistentry>
 	<term>count</term>
 <listitem>
@@ -951,13 +951,13 @@ probe vfs.read
 	<primary>@count (integer extractor)</primary>
 <secondary>computing for statistical aggregates</secondary>
 <tertiary>array operations</tertiary>
-</indexterm>	
+</indexterm>
 <para>
-	Returns the number of all values stored into the variable/array index expression. Given the sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@count(writes[execname()])</command> will return <emphasis>how many values are stored</emphasis> in each unique key in array <literal>writes</literal>. 
+	Returns the number of all values stored into the variable/array index expression. Given the sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@count(writes[execname()])</command> will return <emphasis>how many values are stored</emphasis> in each unique key in array <literal>writes</literal>.
 </para>
 </listitem>
-</varlistentry>	
-	
+</varlistentry>
+
 <varlistentry>
 	<term>sum</term>
 <listitem>
@@ -989,7 +989,7 @@ probe vfs.read
 </indexterm>
 
 <para>
-	Returns the sum of all values stored into the variable/array index expression. Again, given sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@sum(writes[execname()])</command> will return <emphasis>the total of all values stored</emphasis> in each unique key in array <literal>writes</literal>.  
+	Returns the sum of all values stored into the variable/array index expression. Again, given sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@sum(writes[execname()])</command> will return <emphasis>the total of all values stored</emphasis> in each unique key in array <literal>writes</literal>.
 </para>
 	</listitem>
 </varlistentry>
@@ -1059,7 +1059,7 @@ probe vfs.read
 <secondary>computing for statistical aggregates</secondary>
 <tertiary>array operations</tertiary>
 </indexterm>
-	
+
 <para>
 	Returns the largest among all the values stored in the variable/array index expression.
 </para>
@@ -1118,8 +1118,8 @@ probe vfs.read
 </variablelist>
 
 <para>
-	When using statistical aggregates, you can also build array constructs that use multiple index 
-	expressions (to a maximum of 5). This is helpful in capturing additional contextual information 
+	When using statistical aggregates, you can also build array constructs that use multiple index
+	expressions (to a maximum of 5). This is helpful in capturing additional contextual information
 	during a probe. For example:
 </para>
 
@@ -1138,16 +1138,16 @@ probe timer.s(3)
 </example>
 
 <para>
-	In <xref linkend="multiplearrayindices"/>, the first probe tracks how many times each process 
+	In <xref linkend="multiplearrayindices"/>, the first probe tracks how many times each process
 	performs a VFS read. What makes this different from earlier examples is that this array associates
 	a performed read to both a process name <emphasis>and</emphasis> its corresponding process ID.
 </para>
 
 <para>
 	The second probe in <xref linkend="multiplearrayindices"/> demonstrates how to process and print
-	the information collected by the array <literal>reads</literal>. Note how the 
-	<command>foreach</command> statement uses the same number of variables (i.e. 
-	<literal>var1</literal> and <literal>var2</literal>) contained in the first instance of the array 
+	the information collected by the array <literal>reads</literal>. Note how the
+	<command>foreach</command> statement uses the same number of variables (i.e.
+	<literal>var1</literal> and <literal>var2</literal>) contained in the first instance of the array
 	<literal>reads</literal> from the first probe.
 </para>
 

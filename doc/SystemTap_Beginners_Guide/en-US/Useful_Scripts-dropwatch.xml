@@ -18,13 +18,13 @@
 <indexterm>
 <primary>network profiling</primary>
 <secondary>examples of SystemTap scripts</secondary>
-</indexterm>		
-		
-		
+</indexterm>
+
+
 <remark>
 	probably http://sourceware.org/systemtap/examples/network/nettop.stp
-</remark>	
-				
+</remark>
+
 <indexterm>
 <primary>profiling the network</primary>
 <secondary>examples of SystemTap scripts</secondary>
@@ -39,9 +39,9 @@
 <indexterm><primary>tracepoint</primary></indexterm>
 The network stack in Linux
 can discard packets for various reasons.  Some Linux kernels include a
-tracepoint, <command>kernel.trace("kfree_skb")</command>, which easily tracks where packets 
-are discarded. <xref linkend="dropwatch"/> uses <command>kernel.trace("kfree_skb")</command> to trace 
-packet discards; the script summarizes which locations 
+tracepoint, <command>kernel.trace("kfree_skb")</command>, which easily tracks where packets
+are discarded. <xref linkend="dropwatch"/> uses <command>kernel.trace("kfree_skb")</command> to trace
+packet discards; the script summarizes which locations
 discard packets every five-second interval.
 </para>
 
@@ -50,7 +50,7 @@ discard packets every five-second interval.
 <para>
 <programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/network/dropwatch.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
-</formalpara>	
+</formalpara>
 
 <para>
 The <command>kernel.trace("kfree_skb")</command> traces which places
@@ -82,7 +82,7 @@ Stopping dropped packet monitor</screen>
 </example>
 
 <para>
-To make the location of packet drops more meaningful, refer to the 
+To make the location of packet drops more meaningful, refer to the
 <filename>/boot/System.map-`uname -r`</filename> file. This file lists the
 starting addresses for each function, allowing you to map the
 addresses in the output of <xref linkend="dropwatchoutput"/> to a specific
