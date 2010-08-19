@@ -86,7 +86,7 @@ probe timer.ms(1000) {
 6
 5
 e
-pause 1</screen>
+pause 1</screen>
 </example>
 
 <para>However, refining the output of <xref linkend="scriptdiskusage"/> through <command>gnuplot</command> presents us with a more useful result. <command>gnuplot</command> is a lightweight, command-line driven plotting program that helps you display data in a graphical format.</para>
