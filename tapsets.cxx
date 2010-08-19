@@ -3887,81 +3887,86 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die,
     }
 
   Dwarf_Die arg;
-  vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
-  if (dwarf_child (&scopes[0], &arg) == 0)
-    do
-      {
-        switch (dwarf_tag (&arg))
+  vector<Dwarf_Die> scopes = q.dw.getscopes(scope_die);
+  for (unsigned i = 0; i < scopes.size(); ++i)
+    {
+      if (dwarf_tag(&scopes[i]) == DW_TAG_compile_unit)
+        break; // we don't want file-level variables
+      if (dwarf_child (&scopes[i], &arg) == 0)
+        do
           {
-          case DW_TAG_variable:
-          case DW_TAG_formal_parameter:
-            break;
+            switch (dwarf_tag (&arg))
+              {
+              case DW_TAG_variable:
+              case DW_TAG_formal_parameter:
+                break;
 
-          default:
-            continue;
-          }
+              default:
+                continue;
+              }
 
-        /* Ignore this local if it has no name. */
-        const char *arg_name = dwarf_diename (&arg);
-        if (!arg_name)
-          {
-            if (verbose)
-              clog << "saveargs: failed to retrieve name for local (dieoffset: "
-                   << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
-            continue;
-          }
-
-        if (verbose)
-          clog << "saveargs: finding location for local '"
-               << arg_name << "' (dieoffset: "
-               << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
-
-        /* Ignore this local if it has no location (or not at this PC). */
-        /* NB: It still may not be directly accessible, e.g. if it is an
-         * aggregate type, implicit_pointer, etc., but the user can later
-         * figure out how to access the interesting parts. */
-        Dwarf_Attribute attr_mem;
-        if (!dwarf_attr_integrate (&arg, DW_AT_const_value, &attr_mem))
-          {
-            Dwarf_Op *expr;
-            size_t len;
-            if (!dwarf_attr_integrate (&arg, DW_AT_location, &attr_mem))
+            /* Ignore this local if it has no name. */
+            const char *arg_name = dwarf_diename (&arg);
+            if (!arg_name)
               {
                 if (verbose)
-                  clog << "saveargs: failed to resolve the location for local '"
+                  clog << "saveargs: failed to retrieve name for local (dieoffset: "
+                       << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+                continue;
+              }
+
+            if (verbose)
+              clog << "saveargs: finding location for local '"
+                   << arg_name << "' (dieoffset: "
+                   << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+
+            /* Ignore this local if it has no location (or not at this PC). */
+            /* NB: It still may not be directly accessible, e.g. if it is an
+             * aggregate type, implicit_pointer, etc., but the user can later
+             * figure out how to access the interesting parts. */
+            Dwarf_Attribute attr_mem;
+            if (!dwarf_attr_integrate (&arg, DW_AT_const_value, &attr_mem))
+              {
+                Dwarf_Op *expr;
+                size_t len;
+                if (!dwarf_attr_integrate (&arg, DW_AT_location, &attr_mem))
+                  {
+                    if (verbose)
+                      clog << "saveargs: failed to resolve the location for local '"
+                           << arg_name << "' (dieoffset: "
+                           << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+                    continue;
+                  }
+                else if (!(dwarf_getlocation_addr(&attr_mem, dwfl_addr, &expr,
+                                                  &len, 1) == 1 && len > 0))
+                  {
+                    if (verbose)
+                      clog << "saveargs: local '" << arg_name << "' (dieoffset: "
+                           << lex_cast_hex(dwarf_dieoffset(&arg))
+                           << ") is not available at this address ("
+                           << lex_cast_hex(dwfl_addr) << ")\n";
+                    continue;
+                  }
+              }
+
+            /* Ignore this local if it has no type. */
+            string type_name;
+            Dwarf_Die type_die;
+            if (!dwarf_attr_die (&arg, DW_AT_type, &type_die) ||
+                !dwarf_type_name(&type_die, type_name))
+              {
+                if (verbose)
+                  clog << "saveargs: failed to retrieve type name for local '"
                        << arg_name << "' (dieoffset: "
                        << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
                 continue;
               }
-            else if (!(dwarf_getlocation_addr(&attr_mem, dwfl_addr, &expr,
-                                              &len, 1) == 1 && len > 0))
-              {
-                if (verbose)
-                  clog << "saveargs: local '" << arg_name << "' (dieoffset: "
-                       << lex_cast_hex(dwarf_dieoffset(&arg))
-                       << ") is not available at this address ("
-                       << lex_cast_hex(dwfl_addr) << ")\n";
-                continue;
-              }
-          }
 
-        /* Ignore this local if it has no type. */
-        string type_name;
-        Dwarf_Die type_die;
-        if (!dwarf_attr_die (&arg, DW_AT_type, &type_die) ||
-            !dwarf_type_name(&type_die, type_name))
-          {
-            if (verbose)
-              clog << "saveargs: failed to retrieve type name for local '"
-                   << arg_name << "' (dieoffset: "
-                   << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
-            continue;
+            /* This local looks good -- save it! */
+            args.push_back("$"+string(arg_name)+":"+type_name);
           }
-
-        /* This local looks good -- save it! */
-        args.push_back("$"+string(arg_name)+":"+type_name);
-      }
-    while (dwarf_siblingof (&arg, &arg) == 0);
+        while (dwarf_siblingof (&arg, &arg) == 0);
+    }
 }
 
 
