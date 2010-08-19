@@ -1,8 +1,8 @@
-<!ENTITY PRODUCT "Red_Hat_Enterprise_Linux 5">
+<!ENTITY PRODUCT "Red_Hat_Enterprise_Linux">
 <!ENTITY BOOKID "SystemTap_Beginners_Guide">
-<!ENTITY YEAR "2009">
-<!ENTITY RHEL "Red Hat Enterprise Linux 5">
+<!ENTITY YEAR "2010">
+<!ENTITY RHEL "Red Hat Enterprise Linux">
 <!ENTITY APH "'">
-<!ENTITY PROD "Red Hat Enterprise Linux 5">
-<!ENTITY PROD2 "Fedora 10">
+<!ENTITY PROD "Red Hat Enterprise Linux">
+<!ENTITY PROD2 "Fedora">
 <!ENTITY HOLDER "Red Hat, Inc">
