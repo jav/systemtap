@@ -3101,60 +3101,65 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       // non-.return probe: support $$parms, $$vars, $$locals
       bool first = true;
       Dwarf_Die result;
-      vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
-      if (dwarf_child (&scopes[0], &result) == 0)
-        do
-          {
-            switch (dwarf_tag (&result))
+      vector<Dwarf_Die> scopes = q.dw.getscopes(scope_die);
+      for (unsigned i = 0; i < scopes.size(); ++i)
+        {
+          if (dwarf_tag(&scopes[i]) == DW_TAG_compile_unit)
+            break; // we don't want file-level variables
+          if (dwarf_child (&scopes[i], &result) == 0)
+            do
               {
-              case DW_TAG_variable:
-                if (e->name == "$$parms")
-                  continue;
-                break;
-              case DW_TAG_formal_parameter:
-                if (e->name == "$$locals")
-                  continue;
-                break;
-
-              default:
-                continue;
-              }
-
-            const char *diename = dwarf_diename (&result);
-            if (! diename) continue;
-
-            if (! first)
-              pf->raw_components += " ";
-            pf->raw_components += diename;
-
-            tsym->name = "$";
-            tsym->name += diename;
-
-            // Ignore any variable that isn't accessible.
-            tsym->saved_conversion_error = 0;
-            expression *texp = tsym;
-            replace (texp); // NB: throws nothing ...
-            if (tsym->saved_conversion_error) // ... but this is how we know it happened.
-              {
-                if (q.sess.verbose>2)
+                switch (dwarf_tag (&result))
                   {
-                    for (semantic_error *c = tsym->saved_conversion_error;
-                         c != 0;
-                         c = c->chain) {
-                        clog << "variable location problem: " << c->what() << endl;
-                    }
+                  case DW_TAG_variable:
+                    if (e->name == "$$parms")
+                      continue;
+                    break;
+                  case DW_TAG_formal_parameter:
+                    if (e->name == "$$locals")
+                      continue;
+                    break;
+
+                  default:
+                    continue;
                   }
 
-                pf->raw_components += "=?";
+                const char *diename = dwarf_diename (&result);
+                if (! diename) continue;
+
+                if (! first)
+                  pf->raw_components += " ";
+                pf->raw_components += diename;
+
+                tsym->name = "$";
+                tsym->name += diename;
+
+                // Ignore any variable that isn't accessible.
+                tsym->saved_conversion_error = 0;
+                expression *texp = tsym;
+                replace (texp); // NB: throws nothing ...
+                if (tsym->saved_conversion_error) // ... but this is how we know it happened.
+                  {
+                    if (q.sess.verbose>2)
+                      {
+                        for (semantic_error *c = tsym->saved_conversion_error;
+                             c != 0;
+                             c = c->chain) {
+                            clog << "variable location problem: " << c->what() << endl;
+                        }
+                      }
+
+                    pf->raw_components += "=?";
+                  }
+                else
+                  {
+                    pf->raw_components += format;
+                    pf->args.push_back(texp);
+                  }
+                first = false;
               }
-            else
-              {
-                pf->raw_components += format;
-                pf->args.push_back(texp);
-              }
-            first = false;
-          }
-        while (dwarf_siblingof (&result, &result) == 0);
+            while (dwarf_siblingof (&result, &result) == 0);
+        }
     }
 
   pf->components = print_format::string_to_components(pf->raw_components);
