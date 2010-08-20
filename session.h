@@ -151,8 +151,8 @@ struct systemtap_session
   // Client/server
 #if HAVE_NSS
   bool NSPR_Initialized;
-  void NSPR_init ();
 #endif
+  void NSPR_init ();
   bool client_options;
   std::string client_options_disallowed;
   std::vector<std::string> server_status_strings;

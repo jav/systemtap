@@ -232,17 +232,17 @@ systemtap_session::~systemtap_session ()
 #endif // HAVE_NSS
 }
 
-#if HAVE_NSS
 void
 systemtap_session::NSPR_init ()
 {
+#if HAVE_NSS
   if (! NSPR_Initialized)
     {
       PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
       NSPR_Initialized = true;
     }
-}
 #endif // HAVE_NSS
+}
 
 void
 systemtap_session::version ()

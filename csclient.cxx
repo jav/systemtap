@@ -93,6 +93,8 @@ struct compile_server_info
   }
 };
 
+ostream &operator<< (ostream &s, const compile_server_info &i);
+
 // For filtering queries.
 enum compile_server_properties {
   compile_server_all        = 0x1,
@@ -105,8 +107,6 @@ enum compile_server_properties {
 
 // Static functions.
 static void query_server_status (systemtap_session &s, const string &status_string);
-static void add_server_trust (systemtap_session &s, const string &cert_db_path, const vector<compile_server_info> &server_list);
-static void revoke_server_trust (systemtap_session &s, const string &cert_db_path, const vector<compile_server_info> &server_list);
 
 static void get_server_info (systemtap_session &s, int pmask, vector<compile_server_info> &servers);
 static void get_all_server_info (systemtap_session &s, vector<compile_server_info> &servers);
@@ -117,7 +117,6 @@ static void get_or_keep_trusted_server_info (systemtap_session &s, vector<compil
 static void get_or_keep_signing_server_info (systemtap_session &s, vector<compile_server_info> &servers);
 static void keep_compatible_server_info (systemtap_session &s, vector<compile_server_info> &servers);
 static void keep_common_server_info (const vector<compile_server_info> &info_to_keep, vector<compile_server_info> &filtered_info);
-static void get_server_info_from_db (systemtap_session &s, vector<compile_server_info> &servers, const string &cert_db_path);
 static void add_server_info (const compile_server_info &info, vector<compile_server_info>& list);
 static void merge_server_info (const compile_server_info &source, compile_server_info &target);
 static void merge_server_info (const vector<compile_server_info> &source, vector<compile_server_info> &target);
@@ -126,10 +125,12 @@ static void merge_server_info (const vector<compile_server_info> &source, compil
 static void resolve_server (systemtap_session& s, compile_server_info &server_info);
 static int resolve_host_name (systemtap_session& s, string &host_name, string *ip_address = NULL);
 
-ostream &operator<< (ostream &s, const compile_server_info &i);
-
 #if HAVE_NSS
 static const char *server_cert_nickname = "stap-server";
+
+static void add_server_trust (systemtap_session &s, const string &cert_db_path, const vector<compile_server_info> &server_list);
+static void revoke_server_trust (systemtap_session &s, const string &cert_db_path, const vector<compile_server_info> &server_list);
+static void get_server_info_from_db (systemtap_session &s, vector<compile_server_info> &servers, const string &cert_db_path);
 
 static string
 private_ssl_cert_db_path (const systemtap_session &s)
@@ -158,7 +159,7 @@ compile_server_client::passes_0_4 ()
 #if ! HAVE_NSS
   // This code will never be called, if we don't have NSS, but it must still
   // compile.
-  int rc = 1; // Failure
+  return 1; // Failure
 #else
   // arguments parsed; get down to business
   if (s.verbose > 1)
@@ -244,6 +245,7 @@ compile_server_client::passes_0_4 ()
 #endif // HAVE_NSS
 }
 
+#if HAVE_NSS
 // Initialize a client/server session.
 int
 compile_server_client::initialize ()
@@ -523,6 +525,7 @@ int
 client_main (const char *hostName, unsigned short port,
 	     const char* infileName, const char* outfileName,
 	     const char* trustNewServer);
+#endif // HAVE_NSS
 
 int 
 compile_server_client::compile_using_server (const compile_server_info &server)
@@ -592,6 +595,7 @@ compile_server_client::compile_using_server (const compile_server_info &server)
   return 1; // Failure
 }
 
+#if HAVE_NSS
 int
 compile_server_client::unpack_response ()
 {
@@ -836,6 +840,7 @@ compile_server_client::flush_to_stream (const string &fname, ostream &o)
     cerr << "unknown error" << endl;
   return 1; // Failure
 }
+#endif // HAVE_NSS
 
 // Utility Functions.
 //-----------------------------------------------------------------------
@@ -1130,6 +1135,7 @@ manage_server_trust (systemtap_session &s)
 #endif // HAVE_NSS
 }
 
+#if HAVE_NSS
 // Issue a status message for when a server's trust is already in place.
 static void
 trust_already_in_place (
@@ -1164,8 +1170,6 @@ add_server_trust (
   const vector<compile_server_info> &server_list
 )
 {
-  // This function will never be called without NSS, but it must still compile.
-#if HAVE_NSS
   // Make sure the given path exists.
   if (create_dir (cert_db_path.c_str (), 0755) != 0)
     {
@@ -1224,7 +1228,6 @@ add_server_trust (
 	    }
 	}
     }
-#endif // HAVE_NSS
 }
 
 // Remove the given servers from the given database of trusted servers.
@@ -1235,8 +1238,6 @@ revoke_server_trust (
   const vector<compile_server_info> &server_list
 )
 {
-  // This function will never be called without NSS, but it must still compile.
-#if HAVE_NSS
   // Make sure the given path exists.
   if (! file_exists (cert_db_path))
     {
@@ -1416,8 +1417,8 @@ revoke_server_trust (
     PORT_FreeArena (tmpArena, PR_FALSE);
 
   NSS_Shutdown ();
-#endif // HAVE_NSS
 }
+#endif // HAVE_NSS
 
 static void
 get_server_info (
@@ -1738,6 +1739,7 @@ get_or_keep_signing_server_info (
     }
 }
 
+#if HAVE_NSS
 // Obtain information about servers from the certificates in the given database.
 static void
 get_server_info_from_db (
@@ -1746,9 +1748,6 @@ get_server_info_from_db (
   const string &cert_db_path
 )
 {
-  // This function will never be called if we don't have NSS, but it must
-  // still compile.
-#if HAVE_NSS
   // Make sure the given path exists.
   if (! file_exists (cert_db_path))
     {
@@ -1887,8 +1886,8 @@ get_server_info_from_db (
       resolve_server (s, *i);
       add_server_info (*i, servers);
     }
-#endif // HAVE_NSS
 }
+#endif // HAVE_NSS
 
 static void
 keep_compatible_server_info (
