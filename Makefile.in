@@ -427,7 +427,7 @@ BUILT_SOURCES = git_version.stamp $(am__append_23)
 # make install, and have "sudo stap ...." or "sudo staprun ...." work later.
 CLEANFILES = git_version.h $(am__append_24) $(pkglibexec_PROGRAMS)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
-PHONIES = $(am__append_20) $(am__append_26) dist-gzip
+PHONIES = $(am__append_20) $(am__append_26) runcheck dist-gzip
 @BUILD_TRANSLATOR_TRUE@stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ \
 @BUILD_TRANSLATOR_TRUE@	-D_FILE_OFFSET_BITS=64 $(am__append_16)
 @BUILD_TRANSLATOR_TRUE@stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ \
@@ -2225,6 +2225,16 @@ installcheck:
 	  exit -1; \
 	fi;
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
+# All the variables are overridden by run-stap, but SYSTEMTAP_RUNTIME
+# is used by the testsuite scripts themselves.
+runcheck: testsuite/stap
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" \
+		SYSTEMTAP_PATH="`cd testsuite; pwd`" \
+		SYSTEMTAP_RUNTIME="`cd $(srcdir)/runtime; pwd`"
+testsuite/stap: run-stap
+	(echo '#!/bin/sh'; echo "exec `pwd`/run-stap" '$${1+"$$@"}') > $@.new
+	chmod 555 $@.new
+	mv -f $@.new $@
 
 .PHONY: $(PHONIES)
 

@@ -344,6 +344,17 @@ installcheck:
 	fi;
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
 
+PHONIES += runcheck
+# All the variables are overridden by run-stap, but SYSTEMTAP_RUNTIME
+# is used by the testsuite scripts themselves.
+runcheck: testsuite/stap
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" \
+		SYSTEMTAP_PATH="`cd testsuite; pwd`" \
+		SYSTEMTAP_RUNTIME="`cd $(srcdir)/runtime; pwd`"
+testsuite/stap: run-stap
+	(echo '#!/bin/sh'; echo "exec `pwd`/run-stap" '$${1+"$$@"}') > $@.new
+	chmod 555 $@.new
+	mv -f $@.new $@
 
 # Any extra flags, such as:
 #     --define "with_docs 0"
