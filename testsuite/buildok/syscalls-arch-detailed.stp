@@ -1,3 +1,4 @@
+#! stap -p4
 #
 # Arch-specific probes that all/most arches support.
 #
