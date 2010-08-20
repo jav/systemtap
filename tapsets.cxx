@@ -3060,10 +3060,9 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 
   target_symbol *tsym = new target_symbol(*e);
 
-  string format = "=%#x";
-  if (!e->components.empty() &&
-      e->components[0].type == target_symbol::comp_pretty_print)
-    format = "=%s";
+  bool pretty = (!e->components.empty() &&
+                 e->components[0].type == target_symbol::comp_pretty_print);
+  string format = pretty ? "=%s" : "=%#x";
 
   // Convert $$parms to sprintf of a list of parms and active local vars
   // which we recursively evaluate
@@ -3130,6 +3129,26 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
                 if (! first)
                   pf->raw_components += " ";
                 pf->raw_components += diename;
+                first = false;
+
+                // Write a placeholder for ugly aggregates
+                Dwarf_Die type;
+                if (!pretty && dwarf_attr_die(&result, DW_AT_type, &type))
+                  {
+                    q.dw.resolve_unqualified_inner_typedie(&type, &type, e);
+                    switch (dwarf_tag(&type))
+                      {
+                      case DW_TAG_union_type:
+                      case DW_TAG_structure_type:
+                      case DW_TAG_class_type:
+                        pf->raw_components += "={...}";
+                        continue;
+
+                      case DW_TAG_array_type:
+                        pf->raw_components += "=[...]";
+                        continue;
+                      }
+                  }
 
                 tsym->name = "$";
                 tsym->name += diename;
@@ -3156,7 +3175,6 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
                     pf->raw_components += format;
                     pf->args.push_back(texp);
                   }
-                first = false;
               }
             while (dwarf_siblingof (&result, &result) == 0);
         }
