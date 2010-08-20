@@ -287,7 +287,13 @@ and currently online.
 .I \-\-use\-servers
 may be
 specified more than once, in which case a list of servers is accumulated
-in the order specified.
+in the order specified. Servers may be specified by host name, ip address, or
+by certificate serial number (obtained using
+.IR \-\-list\-servers ).
+The latter is most commonly used when revoking
+trust in a server (see
+.I \-\-trust-servers
+below).
 
 .TP
 .BI \-\-list\-servers " [SERVERS]"
