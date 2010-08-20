@@ -16,7 +16,7 @@
 # please.  The test here checks that the right $vars are available in the
 # separate probes.
 
-probe process("stap").function("_ZN6dwflpp9getscopesEm")
+probe process("stap").function("_ZN6dwflpp9getscopesE[my]")
 {
     if (@defined($pc) && !@defined($die))
         println("pc=", $pc$)
