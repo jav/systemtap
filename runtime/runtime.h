@@ -142,10 +142,14 @@ static struct
 #endif
 #include "addr-map.c"
 
-
+#ifdef module_param_cb			/* kernels >= 2.6.36 */
+#define _STP_KERNEL_PARAM_ARG const struct kernel_param
+#else
+#define _STP_KERNEL_PARAM_ARG struct kernel_param
+#endif
 
 /* Support functions for int64_t module parameters. */
-static int param_set_int64_t(const char *val, struct kernel_param *kp)
+static int param_set_int64_t(const char *val, _STP_KERNEL_PARAM_ARG *kp)
 {
   char *endp;
   long long ll;
@@ -166,13 +170,20 @@ static int param_set_int64_t(const char *val, struct kernel_param *kp)
   return 0;
 }
 
-static int param_get_int64_t(char *buffer, struct kernel_param *kp)
+static int param_get_int64_t(char *buffer, _STP_KERNEL_PARAM_ARG *kp)
 {
   return sprintf(buffer, "%lli", (long long)*((int64_t *)kp->arg));
 }
 
 #define param_check_int64_t(name, p) __param_check(name, p, int64_t)
 
+#ifdef module_param_cb			/* kernels >= 2.6.36 */
+static struct kernel_param_ops param_ops_int64_t = {
+	.set = param_set_int64_t,
+	.get = param_get_int64_t,
+};
+#endif
+#undef _STP_KERNEL_PARAM_ARG
 
 /************* Module Stuff ********************/
 
