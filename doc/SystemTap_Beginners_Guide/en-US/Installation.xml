@@ -160,45 +160,22 @@
 
 
     <para>
-	    The easiest way to install the required kernel information packages is through <command>yum install</command>
-	    and <command>debuginfo-install</command>. <command>debuginfo-install</command> is included with later versions of the
-	    <filename>yum-utils</filename> package (for example, version 1.1.10), and also requires an appropriate <command>yum</command>
-	    repository from which to download and install <command>-debuginfo</command>/<filename>-debuginfo-common</filename> packages.
-    </para>
-
-	<para condition="fedora">
-	    Most of the required kernel packages can be found at
-	    <ulink url="http://download.fedoraproject.org/pub/fedora/linux/releases/"/>. Configure
-	    <command>yum</command> accordingly by adding a new "debug" <command>yum</command> repository file
-	    under <filename>/etc/yum.repos.d</filename> containing the following lines:
-	</para>
-
-<programlisting condition="fedora">
-[fedora-debuginfo]
-name=Fedora $releasever - $basearch - Debug
-failovermethod=priority
-baseurl=http://download.fedoraproject.org/pub/fedora/linux/releases/$releasever/Everything/$basearch/debug/
-enabled=1</programlisting>
-
-
-	<para condition="RedHat">
-		Most required kernel packages can be found at
-		<ulink url="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/"/>; navigate there until you find the
-		appropriate <filename>Debuginfo</filename> directory for your system. Configure
-		<command>yum</command> accordingly by adding a new "debug" <command>yum</command> repository file under
-		<filename>/etc/yum.repos.d</filename> containing the following lines:
-	</para>
-<programlisting condition="RedHat">
-[rhel-debuginfo]
-name=Red Hat Enterprise Linux $releasever - $basearch - Debug
-baseurl=ftp://ftp.redhat.com/pub/redhat/linux/enterprise/$releasever/en/os/$basearch/Debuginfo/
-enabled=1</programlisting>
-
-<para>
-	After configuring <command>yum</command> with the appropriate repository, you can now install
-	the required <filename>-devel</filename>, <filename>-debuginfo</filename>, and <filename>-debuginfo-common</filename>
-	packages for your kernel. To install the corresponding packages for a specific kernel, run the following commands:
-</para>
+	    The easiest way to install the required kernel information
+	    packages is through <command>yum install</command> and
+	    <command>debuginfo-install</command> commands.
+	    <command>debuginfo-install</command> is included with
+	    later versions of the <filename>yum-utils</filename>
+	    package (for example, version 1.1.10), and also requires
+	    an appropriate <command>yum</command> repository from
+	    which to download and install
+	    <command>-debuginfo</command>/<filename>-debuginfo-common</filename>
+	    packages.  You can install the required
+	    <filename>-devel</filename>,
+	    <filename>-debuginfo</filename>, and
+	    <filename>-debuginfo-common</filename> packages for your
+	    kernel. To install the corresponding packages for a
+	    specific kernel, run the following commands:
+   </para>
 
 <itemizedlist>
 <listitem><para><command>yum install <replaceable>kernelname</replaceable>-devel-<replaceable>version</replaceable></command></para></listitem>
