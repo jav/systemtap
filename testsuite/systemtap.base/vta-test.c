@@ -19,6 +19,7 @@ struct cull
 void
 t1 (int i)
 {
+  int a[] = { 17, 23 };
   struct ci c;
   c.i = i;
   srandom (c.i);
@@ -33,6 +34,7 @@ t1 (int i)
 void
 t2 (unsigned int i)
 {
+  int a[] = { 17, 23 };
   struct cui c;
   c.i = i;
   srandom (c.i);
@@ -47,6 +49,7 @@ t2 (unsigned int i)
 void
 t3 (unsigned long long i)
 {
+  int a[] = { 17, 23 };
   struct cull c;
   c.i = i;
   srandom (c.i);

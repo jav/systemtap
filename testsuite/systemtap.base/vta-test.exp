@@ -1,6 +1,9 @@
 set test "vta-test"
-set ::result_string {i: 0x6
+set ::result_string {a: {17, 23}
+i: 0x6
+a: {17, 23}
 i: 0xdeadbeef
+a: {17, 23}
 i: 0xdeadbeef87654321}
 
 # Test 32-on-64 when available
