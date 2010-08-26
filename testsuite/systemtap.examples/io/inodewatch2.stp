@@ -2,7 +2,9 @@
 
 global ATTR_MODE = 1
 
-probe kernel.function("inode_setattr") {
+probe kernel.function("setattr_copy")!,
+      kernel.function("generic_setattr")!,
+      kernel.function("inode_setattr") {
   dev_nr = $inode->i_sb->s_dev
   inode_nr = $inode->i_ino
 
