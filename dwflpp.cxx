@@ -1236,7 +1236,19 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
                   if (scopes.size() > 1)
                     {
                       Dwarf_Die scope;
-                      inner_die_containing_pc(scopes[1], stmt_addr, scope);
+                      if (!inner_die_containing_pc(scopes[1], stmt_addr, scope)
+                          && !sess.suppress_warnings)
+                        {
+                          ostringstream msg;
+                          msg << "label '" << name << "' at address "
+                              << lex_cast_hex(stmt_addr) << " (dieoffset: "
+                              << lex_cast_hex(dwarf_dieoffset(&die))
+                              << ") is not contained by its scope '"
+                              << (dwarf_diename(&scope) ?: "<unknown>")
+                              << "' (dieoffset: " << lex_cast_hex(dwarf_dieoffset(&scope))
+                              << ") -- bad debuginfo?";
+                          sess.print_warning (msg.str());
+                        }
                       callback(function, name, file, dline,
                                &scope, stmt_addr, q);
                     }
@@ -1541,7 +1553,7 @@ dwflpp::die_has_pc (Dwarf_Die & die, Dwarf_Addr pc)
 }
 
 
-void
+bool
 dwflpp::inner_die_containing_pc(Dwarf_Die& scope, Dwarf_Addr addr,
                                 Dwarf_Die& result)
 {
@@ -1552,7 +1564,7 @@ dwflpp::inner_die_containing_pc(Dwarf_Die& scope, Dwarf_Addr addr,
   // the lexical scope.  We can't really do anything about that, but variables
   // will probably not be accessible in this case.
   if (!die_has_pc(scope, addr))
-    return;
+    return false;
 
   Dwarf_Die child;
   int rc = dwarf_child(&result, &child);
@@ -1576,6 +1588,7 @@ dwflpp::inner_die_containing_pc(Dwarf_Die& scope, Dwarf_Addr addr,
         }
       rc = dwarf_siblingof(&child, &child);
     }
+  return true;
 }
 
 

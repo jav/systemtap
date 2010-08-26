@@ -1,10 +1,10 @@
-probe process("ptridx").function("main").label("l1")
+probe process("./ptridx.exe").function("main").label("l1")
 {
   printf ("a ");
   if (@defined($a)) printf("%p => ", $a);
   printf("%d, %d\n", $a[0], $a[1]);
 }
-probe process("ptridx").function("foo").label("l1")
+probe process("./ptridx.exe").function("foo").label("l1")
 {
   printf ("p ");
   if (@defined($p)) printf("%p => ", $p);

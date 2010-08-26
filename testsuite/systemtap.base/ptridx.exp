@@ -1,5 +1,4 @@
 set test "ptridx"
-set ::result_string "(\[ap] (0x\[0-9a-f]+ => )?17, 23\r\n){2}"
 
 set test_flags "additional_flags=-g"
 set test_flags "$test_flags additional_flags=-O2"
@@ -20,9 +19,24 @@ if {[catch {exec stap -L {process("./ptridx.exe").function("*").label("*")}}]} {
 } else {
   pass "$test (list labels)"
   if {[installtest_p] && [uprobes_p]} {
-    # the variables may have no location
-    setup_kfail 1 *-*-*
-    stap_run2 $srcdir/$subdir/$test.stp -c ./$test.exe
+    set ok 0
+    spawn stap $srcdir/$subdir/$test.stp -c ./$test.exe -w
+    expect {
+      -re {failed to retrieve location attribute} {
+        # the variables may have no location
+        setup_kfail 1 *-*-*
+        }
+      -re {^[ap] (0x\[0-9a-f]+ => )?17, 23\r\n} { incr ok; exp_continue }
+      timeout { fail "$test (timeout)" }
+      eof { }
+    }
+    wait
+
+    if {$ok == 2} {
+      pass "$test"
+    } else {
+      fail "$test ($ok)"
+    }
   } else {
     untested "$test"
   }
