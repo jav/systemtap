@@ -1,7 +1,8 @@
 # DW_AT_const_value (blocks).
 set test "const_value"
 set ::result_string {i: 2
-j: 21}
+j: 21
+a: {17, 23}}
 
 set test_flags "additional_flags=-g"
 # We need -O2 to get const_value encodings in dwarf.
