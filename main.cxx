@@ -527,6 +527,8 @@ passes_0_4 (systemtap_session &s)
   // PASS 1b: PARSING LIBRARY SCRIPTS
   STAP_PROBE1(stap, pass1b__start, &s);
 
+  set<pair<dev_t, ino_t> > seen_library_files;
+
   for (unsigned i=0; i<s.include_path.size(); i++)
     {
       // now iterate upon it
@@ -539,22 +541,12 @@ passes_0_4 (systemtap_session &s)
             rc ++;
           // GLOB_NOMATCH is acceptable
 
-          if (s.verbose>1 && globbuf.gl_pathc > 0)
-            clog << "Searched \"" << dir << "\", "
-                 << "found " << globbuf.gl_pathc << endl;
+          unsigned prev_s_library_files = s.library_files.size();
 
           for (unsigned j=0; j<globbuf.gl_pathc; j++)
             {
               if (pending_interrupts)
                 break;
-
-              // XXX: privilege only for /usr/share/systemtap?
-              stapfile* f = parse (s, globbuf.gl_pathv[j], true);
-              if (f == 0)
-                s.print_warning("tapset '" + string(globbuf.gl_pathv[j])
-                                + "' has errors, and will be skipped.");
-              else
-                s.library_files.push_back (f);
 
               struct stat tapset_file_stat;
               int stat_rc = stat (globbuf.gl_pathv[j], & tapset_file_stat);
@@ -562,12 +554,35 @@ passes_0_4 (systemtap_session &s)
                   user_file_stat.st_dev == tapset_file_stat.st_dev &&
                   user_file_stat.st_ino == tapset_file_stat.st_ino)
                 {
-                  clog << "usage error: tapset file '" << globbuf.gl_pathv[j]
+                  cerr << "usage error: tapset file '" << globbuf.gl_pathv[j]
                        << "' cannot be run directly as a session script." << endl;
                   rc ++;
                 }
 
+              // PR11949: duplicate-eliminate tapset files
+              if (stat_rc == 0)
+                {
+                  pair<dev_t,ino_t> here = make_pair(tapset_file_stat.st_dev,
+                                                     tapset_file_stat.st_ino);
+                  if (seen_library_files.find(here) != seen_library_files.end())
+                    continue;
+                  seen_library_files.insert (here);
+                }
+
+              // XXX: privilege only for /usr/share/systemtap?
+              stapfile* f = parse (s, globbuf.gl_pathv[j], true);
+              if (f == 0 && !s.suppress_warnings)
+                s.print_warning("tapset '" + string(globbuf.gl_pathv[j])
+                                + "' has errors, and will be skipped.");
+              else
+                s.library_files.push_back (f);
             }
+
+          unsigned next_s_library_files = s.library_files.size();
+          if (s.verbose>1 && globbuf.gl_pathc > 0)
+            clog << "Searched \"" << dir << "\","
+                 << " found " << globbuf.gl_pathc 
+                 << " processed " << (next_s_library_files-prev_s_library_files) << endl;
 
           globfree (& globbuf);
         }
