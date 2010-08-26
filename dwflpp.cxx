@@ -1545,18 +1545,16 @@ void
 dwflpp::inner_die_containing_pc(Dwarf_Die& scope, Dwarf_Addr addr,
                                 Dwarf_Die& result)
 {
+  result = scope;
+
+  // Sometimes we're in a bad scope to begin with -- just let it be.  This can
+  // happen for example if the compiler outputs a label PC that's just outside
+  // the lexical scope.  We can't really do anything about that, but variables
+  // will probably not be accessible in this case.
   if (!die_has_pc(scope, addr))
-    {
-      ostringstream msg;
-      msg << "dwflpp::inner_die_containing_pc internal error, '"
-          << (dwarf_diename(&scope) ?: "<unknown>")
-          << "' (dieoffset: " << lex_cast_hex(dwarf_dieoffset(&scope))
-          << ") doesn't contain address " << lex_cast_hex(addr);
-      throw semantic_error (msg.str());
-    }
+    return;
 
   Dwarf_Die child;
-  result = scope;
   int rc = dwarf_child(&result, &child);
   while (rc == 0)
     {

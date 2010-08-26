@@ -1,0 +1,30 @@
+set test "ptridx"
+set ::result_string "(\[ap] (0x\[0-9a-f]+ => )?17, 23\r\n){2}"
+
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags additional_flags=-O2"
+
+set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
+if { $res != "" } {
+  verbose "target_compile failed: $res" 2
+  fail "$test.c compile"
+  untested "$test"
+  return
+} else {
+  pass "$test.c compile"
+}
+
+if {[catch {exec stap -L {process("./ptridx.exe").function("*").label("*")}}]} {
+  fail "$test (list labels)"
+  untested "$test"
+} else {
+  pass "$test (list labels)"
+  if {[installtest_p] && [uprobes_p]} {
+    # the variables may have no location
+    setup_kfail 1 *-*-*
+    stap_run2 $srcdir/$subdir/$test.stp -c ./$test.exe
+  } else {
+    untested "$test"
+  }
+}
+catch {exec rm -f $test.exe}
