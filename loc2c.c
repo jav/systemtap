@@ -2129,7 +2129,7 @@ translate_array (struct obstack *pool, int indent,
 	    }
 	  if (piece == NULL)
 	    FAIL (*input, N_("constant index is outside noncontiguous array"));
-	  if (offset % stride != 0)
+	  if (offset % stride != 0 || piece->byte_size < stride)
 	    FAIL (*input, N_("noncontiguous array splits elements"));
 	  const_idx = offset / stride;
 	  loc = piece;
