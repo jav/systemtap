@@ -2052,7 +2052,7 @@ pointer_stride (Dwarf_Die *typedie, struct location *origin)
 {
   Dwarf_Attribute attr_mem;
   Dwarf_Die die_mem = *typedie;
-  int typetag = dwarf_tag(&die_mem);
+  int typetag = dwarf_tag (&die_mem);
   while (typetag == DW_TAG_typedef ||
 	 typetag == DW_TAG_const_type ||
 	 typetag == DW_TAG_volatile_type)
@@ -2062,7 +2062,7 @@ pointer_stride (Dwarf_Die *typedie, struct location *origin)
 	FAIL (origin, N_("cannot get inner type of type %s: %s"),
 	      dwarf_diename (&die_mem) ?: "<anonymous>",
 	      dwarf_errmsg (-1));
-      typetag = dwarf_tag(&die_mem);
+      typetag = dwarf_tag (&die_mem);
     }
 
   if (dwarf_attr_integrate (&die_mem, DW_AT_byte_size, &attr_mem) != NULL)
@@ -2105,18 +2105,13 @@ array_stride (Dwarf_Die *typedie, struct location *origin)
   return pointer_stride (&die_mem, origin);
 }
 
-void
-c_translate_array (struct obstack *pool, int indent,
-		   Dwarf_Addr dwbias __attribute__ ((unused)),
-		   Dwarf_Die *typedie, struct location **input,
-		   const char *idx, Dwarf_Word const_idx)
+static void
+translate_array (struct obstack *pool, int indent,
+		 Dwarf_Die *anydie, Dwarf_Word stride,
+		 struct location **input,
+		 const char *idx, Dwarf_Word const_idx)
 {
-  assert (dwarf_tag (typedie) == DW_TAG_array_type ||
-          dwarf_tag (typedie) == DW_TAG_pointer_type);
-
   ++indent;
-
-  Dwarf_Word stride = array_stride (typedie, *input);
 
   struct location *loc = *input;
   while (loc->type == loc_noncontiguous)
@@ -2157,7 +2152,7 @@ c_translate_array (struct obstack *pool, int indent,
     case loc_register:
       if (idx != NULL)
 	FAIL (*input, N_("cannot index array stored in a register"));
-      else if (const_idx > max_fetch_size (loc, typedie) / stride)
+      else if (const_idx > max_fetch_size (loc, anydie) / stride)
 	FAIL (*input, N_("constant index is outside array held in register"));
       else
 	{
@@ -2180,15 +2175,17 @@ c_translate_array (struct obstack *pool, int indent,
       break;
 
     case loc_value:
-      FAIL (*input, N_("cannot index into computed value"));
+      if (idx != NULL || const_idx != 0)
+	FAIL (*input, N_("cannot index into computed value"));
       break;
 
     case loc_unavailable:
-      FAIL (*input, N_("cannot index into unavailable value"));
+      if (idx != NULL || const_idx != 0)
+	FAIL (*input, N_("cannot index into unavailable value"));
       break;
 
     default:
-      abort();
+      abort ();
       break;
     }
 
@@ -2197,32 +2194,30 @@ c_translate_array (struct obstack *pool, int indent,
 }
 
 void
+c_translate_array (struct obstack *pool, int indent,
+		   Dwarf_Addr dwbias __attribute__ ((unused)),
+		   Dwarf_Die *typedie, struct location **input,
+		   const char *idx, Dwarf_Word const_idx)
+{
+  assert (dwarf_tag (typedie) == DW_TAG_array_type ||
+          dwarf_tag (typedie) == DW_TAG_pointer_type);
+
+  return translate_array (pool, indent, typedie,
+			  array_stride (typedie, *input),
+			  input, idx, const_idx);
+}
+
+void
 c_translate_array_pointer (struct obstack *pool, int indent,
 			   Dwarf_Die *typedie, struct location **input,
 			   const char *idx, Dwarf_Word const_idx)
 {
-  struct location *loc = *input;
-  if (loc->type != loc_address)
-    FAIL (*input, N_("cannot index noncontiguous array"));
-
-  Dwarf_Word stride = pointer_stride (typedie, *input);
-
-  indent += 2;
-  if (idx != NULL)
-    obstack_printf (pool, "%*saddr += %s * " UFORMAT ";\n",
-		    indent * 2, "", idx, stride);
-  else
-    obstack_printf (pool, "%*saddr += " UFORMAT " * " UFORMAT ";\n",
-		    indent * 2, "", const_idx, stride);
-  loc = new_synthetic_loc (pool, loc, false);
-
-  (*input)->next = loc;
-  *input = (*input)->next;
+  return translate_array (pool, indent, typedie,
+			  pointer_stride (typedie, *input),
+			  input, idx, const_idx);
 }
-
 
 /* Emitting C code for finalized fragments.  */
-
 
 #define emit(fmt, ...) fprintf (out, fmt, ## __VA_ARGS__)
 
