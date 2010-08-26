@@ -60,7 +60,7 @@ fi
 
 # Now generate the actual certificate. Make is valid for 1 year.
 certutil -C -i "$serverdb/stap.req" -o "$serverdb/$stap_certfile" -x -d "$serverdb" \
-         -f "$serverdb/pw" -v 12 -5 -8 "$HOSTNAME,localhost" >/dev/null <<-EOF
+         -f "$serverdb/pw" -v 12 -5 -8 "$HOSTNAME,localhost,localhost.localdomain" >/dev/null <<-EOF
 1
 3
 7
