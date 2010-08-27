@@ -32,30 +32,24 @@
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
 
-<remark>
-uses systemtap/testsuite/systemtap.examples/profiling/topsys.stp
-</remark>
-
-
 	<para>
-		<xref linkend="timeouts"/> from <xref linkend="timeoutssect"/> helps you identify which applications
-		are polling by pointing out which ones used the following system calls most frequently:
-	</para>
-
-	<itemizedlist>
-		<listitem><para><command>poll</command></para></listitem>
-		<listitem><para><command>select</command></para></listitem>
-		<listitem><para><command>epoll</command></para></listitem>
-		<listitem><para><command>itimer</command></para></listitem>
-		<listitem><para><command>futex</command></para></listitem>
-		<listitem><para><command>nanosleep</command></para></listitem>
-		<listitem><para><command>signal</command></para></listitem>
-	</itemizedlist>
-
-	<para>
-		However, in some systems, a different system call might be responsible for excessive polling. If you suspect
-		that a polling application is using a different system call to poll, you need to identify first the top
-		system calls used by the system. To do this, use <xref linkend="topsys"/>.
+		<xref linkend="timeouts"/> from <xref linkend="timeoutssect"/>
+		helps you identify which applications
+		are polling by examining a small subset of system calls (
+		<command>poll</command>,
+		<command>select</command>,
+		<command>epoll</command>,
+		<command>itimer</command>,
+		<command>futex</command>,
+		<command>nanosleep</command>, and
+		<command>signal</command>).
+		However, in some systems, an excessive number of system calls
+		outside that small subset
+		might be responsible for time spent in the
+		kernel. If you suspect that an application is using
+		system calls excessively, you need to
+		identify the most frequently used system calls on the
+		system. To do this, use <xref linkend="topsys"/>.
 	</para>
 
 <formalpara id="topsys">
