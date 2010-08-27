@@ -32,13 +32,12 @@
 	WAR STORY: Futex contention http://sourceware.org/systemtap/wiki/WSFutexContention?highlight=((WarStories))
 </remark>
 
-<remark>
-no script in examples
-</remark>
-
-
-	<para>This section describes how to identify contended user-space locks throughout the system within a specific time period. The ability to identify contended user-space locks can help you investigate hangs that you suspect may be caused by <command>futex</command> contentions.</para>
-<indexterm>
+	<para>This section describes how to identify contended
+user-space locks throughout the system within a specific time
+period. The ability to identify contended user-space locks can help
+you investigate poor program performance that you suspect may be
+caused by <command>futex</command> contentions.</para>
+ <indexterm>
 	<primary>futex contentions, identifying</primary>
 	<secondary>examples of SystemTap scripts</secondary>
 </indexterm>
@@ -50,20 +49,25 @@ no script in examples
 
 <indexterm>
 <primary>script examples</primary>
-<secondary>process deadlocks (arising from futex contentions)</secondary>
+<secondary>futex (lock) contentions</secondary>
 </indexterm>
 
 <indexterm>
 <primary>examples of SystemTap scripts</primary>
-<secondary>process deadlocks (arising from futex contentions)</secondary>
+<secondary>futex (lock) contentions</secondary>
 </indexterm>
 
 <indexterm>
-<primary>process deadlocks (arising from futex contentions)</primary>
+<primary>futex (lock) contentions</primary>
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
 
-	<para>Simply put, a <command>futex</command> contention occurs when multiple processes are trying to access the same region of memory. In some cases, this can result in a deadlock between the processes in contention, thereby appearing as an application hang.</para>
+	<para>Simply put, <command>futex</command> contention occurs
+	when multiple processes are trying to access the same lock
+	variable at the same time. This can result in a poor
+	performance because the lock serializes execution; one process obtains
+	the lock while the other processes must wait for the lock
+	variable to become available again.</para>
 <!-- next 2 indexterms for futex system call -->
 
 <indexterm>
@@ -81,7 +85,7 @@ no script in examples
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
 
-	<para>To do this, <xref linkend="futexcontention"/> probes the <command>futex</command> system call.</para>
+	<para>The <xref linkend="futexcontention"/> script probes the <command>futex</command> system call to show lock contention.</para>
 
 <formalpara id="futexcontention">
 		<title>futexes.stp</title>
@@ -94,8 +98,8 @@ no script in examples
 
 <itemizedlist>
 	<listitem><para>Name and ID of the process responsible for a contention</para></listitem>
-	<listitem><para>The region of memory it contested</para></listitem>
-	<listitem><para>How many times the region of memory was contended</para></listitem>
+	<listitem><para>The location of the contested lock variable</para></listitem>
+	<listitem><para>How many times the lock variable was contended</para></listitem>
 	<listitem><para>Average time of contention throughout the probe</para></listitem>
 </itemizedlist>
 
