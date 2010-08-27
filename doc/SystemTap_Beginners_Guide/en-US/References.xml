@@ -62,6 +62,18 @@ enumerating similar probe points for specific system components, such as
 </varlistentry>
 
 <varlistentry>
+	<term>SystemTap Tapset Reference Manual</term>
+<listitem>
+<para>
+	The <citetitle>SystemTap Tapset Reference Manual</citetitle> at
+	<ulink url="http://sourceware.org/systemtap/tapsets/"/>
+	describes the individual predefined functions and probe points of the
+	tapsets	greater detail.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
 	<term>SystemTap Language Reference</term>
 <listitem>
 <para>
