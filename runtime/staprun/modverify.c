@@ -2,7 +2,7 @@
   This program verifies the given file using the given signature, the named
   certificate and public key in the given certificate database.
 
-  Copyright (C) 2009 Red Hat Inc.
+  Copyright (C) 2009-2010 Red Hat Inc.
 
   This file is part of systemtap, and is free software.  You can
   redistribute it and/or modify it under the terms of the GNU General Public
@@ -35,11 +35,11 @@
 #include <sys/types.h>
 #include <errno.h>
 
-#include "nsscommon.h"
+#include "../../nsscommon.h"
 #include "modverify.h"
 
 /* Function: int check_cert_db_permissions (const char *cert_db_path);
- * 
+ *
  * Check that the given certificate directory and its contents have
  * the correct permissions.
  *
@@ -114,7 +114,7 @@ check_db_file_permissions (const char *cert_db_file) {
 }
 
 /* Function: int check_cert_db_permissions (const char *cert_db_path);
- * 
+ *
  * Check that the given certificate directory and its contents have
  * the correct permissions.
  *
