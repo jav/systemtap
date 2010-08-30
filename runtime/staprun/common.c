@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <assert.h>
-
+#include <string.h>
 
 /* variables needed by parse_args() */
 int verbose;
@@ -284,7 +284,7 @@ void usage(char *prog)
  */
 void parse_modpath(const char *inpath)
 {
-	const char *mptr = rindex(inpath, '/');
+	const char *mptr = strrchr(inpath, '/');
 	char *ptr;
 
 	dbug(3, "inpath=%s\n", inpath);
@@ -334,7 +334,7 @@ void parse_modpath(const char *inpath)
 
 			dbug(2, "modpath=\"%s\"\n", modpath);
 
-			mptr = rindex(modpath, '/');
+			mptr = strrchr(modpath, '/');
 			mptr++;
 		}
 	} else {
@@ -355,7 +355,7 @@ void parse_modpath(const char *inpath)
 		exit(1);
 	}
 
-	ptr = rindex(modname, '.');
+	ptr = strrchr(modname, '.');
 	if (ptr)
 		*ptr = '\0';
 

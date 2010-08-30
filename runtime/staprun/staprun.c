@@ -21,6 +21,7 @@
  */
 
 #include "staprun.h"
+#include <string.h>
 #include <sys/uio.h>
 #include <glob.h>
 
@@ -426,24 +427,24 @@ void send_relocation_modules ()
          Sample gl_pathv[]: /sys/modules/zlib_deflate/sections/.text
          Pieces:                         ^^^^^^^^^^^^          ^^^^^
       */
-      section_name = rindex (module_section_file, '/');
+      section_name = strrchr (module_section_file, '/');
       if (! section_name) continue;
       section_name ++;
 
       if (!strcmp (section_name, ".")) continue;
       if (!strcmp (section_name, "..")) continue;
 
-      module_name = index (module_section_file, '/');
+      module_name = strchr (module_section_file, '/');
       if (! module_name) continue;
       module_name ++;
-      module_name = index (module_name, '/');
+      module_name = strchr (module_name, '/');
       if (! module_name) continue;
       module_name ++;
-      module_name = index (module_name, '/');
+      module_name = strchr (module_name, '/');
       if (! module_name) continue;
       module_name ++;
 
-      module_name_end = index (module_name, '/');
+      module_name_end = strchr (module_name, '/');
       if (! module_name_end) continue;
 
       secfile = fopen (module_section_file, "r");
