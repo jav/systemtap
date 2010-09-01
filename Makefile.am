@@ -290,7 +290,7 @@ if BUILD_SERVER
 endif
 	(cd $(srcdir)/man; for f in *.3*; do rm -rf "$(DESTDIR)$(man3dir)/$$f"; done)
 
-SUBDIRS = doc grapher
+SUBDIRS = doc grapher runtime/staprun
 DIST_SUBDIRS = testsuite $(SUBDIRS)
 EXTRA_DIST = man/tapset*.3stap
 
