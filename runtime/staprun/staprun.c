@@ -368,17 +368,16 @@ int send_relocation_kernel ()
             {
               unsigned long long address;
               char type;
-              char* symbol = NULL;
-              int rc = sscanf (line, "%llx %c %as", &address, &type, &symbol);
+              char symbol[linesize];
+              int rc = sscanf (line, "%llx %c %s", &address, &type, symbol);
               free (line); line=NULL;
-              if (symbol == NULL) continue; /* OOM? */
 
 #ifdef __powerpc64__
 #define KERNEL_RELOC_SYMBOL ".__start"
 #else
 #define KERNEL_RELOC_SYMBOL "_stext"
 #endif
-              if ((rc == 3) && (0 == strcmp(symbol,KERNEL_RELOC_SYMBOL)))
+              if ((rc == 3) && symbol[0] && (0 == strcmp(symbol,KERNEL_RELOC_SYMBOL)))
                 {
                   /* NB: even on ppc, we use the _stext relocation name. */
                   send_a_relocation ("kernel", "_stext", address);
@@ -386,8 +385,6 @@ int send_relocation_kernel ()
                   /* We need nothing more from the kernel. */
                   done_with_kallsyms=1;
                 }
-
-              free (symbol);
             }
         }
       fclose (kallsyms);
