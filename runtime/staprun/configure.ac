@@ -15,14 +15,6 @@ AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_SYS_LARGEFILE
 
-# This is to compile with the same word size as the kernel.
-# We do this first, so all the tests are using the right compiler environment.
-# On e.g. PPC, userspace might be 32-bit default, but staprun
-# needs to be 64-bit.  See also bug #4037.
-case "`uname -p`" in
-ppc64|x86_64|s390x) CC="$CC -m64" ;;
-esac
-
 # Compiling without fPIE by default (see PR 9922)
 AC_ARG_ENABLE([pie],
   [AS_HELP_STRING([--enable-pie], [enable position-independent-executable])])
