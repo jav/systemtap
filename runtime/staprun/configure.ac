@@ -55,4 +55,5 @@ AC_DEFINE_UNQUOTED([PKGDATADIR], ["$pkgdatadir"],
 
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile)
+AC_CONFIG_FILES([run-staprun], [chmod +x run-staprun])
 AC_OUTPUT

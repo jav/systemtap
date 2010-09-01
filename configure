@@ -7483,8 +7483,6 @@ if test $enable_translator == "yes"; then
 	ac_config_files="$ac_config_files run-stap"
 
 fi
-ac_config_files="$ac_config_files run-staprun"
-
 ac_config_files="$ac_config_files dtrace"
 
 
@@ -8279,7 +8277,6 @@ do
     "initscript/systemtap") CONFIG_FILES="$CONFIG_FILES initscript/systemtap" ;;
     "initscript/stap-server") CONFIG_FILES="$CONFIG_FILES initscript/stap-server" ;;
     "run-stap") CONFIG_FILES="$CONFIG_FILES run-stap" ;;
-    "run-staprun") CONFIG_FILES="$CONFIG_FILES run-staprun" ;;
     "dtrace") CONFIG_FILES="$CONFIG_FILES dtrace" ;;
     "doc/beginners/publican.cfg") CONFIG_FILES="$CONFIG_FILES doc/beginners/publican.cfg:doc/SystemTap_Beginners_Guide/publican.cfg.in" ;;
     "doc/beginners") CONFIG_COMMANDS="$CONFIG_COMMANDS doc/beginners" ;;
@@ -8963,7 +8960,6 @@ $as_echo X"$file" |
 }
  ;;
     "run-stap":F) chmod +x run-stap ;;
-    "run-staprun":F) chmod +x run-staprun ;;
     "dtrace":F) chmod +x dtrace ;;
     "doc/beginners":C) rm -f $ac_abs_top_builddir/doc/beginners/en-US $ac_abs_top_builddir/doc/beginners/build/en-US/testsuite && mkdir -p $ac_abs_top_builddir/doc/beginners/build/en-US && ln -s $ac_abs_top_srcdir/doc/SystemTap_Beginners_Guide/en-US $ac_abs_top_builddir/doc/beginners/en-US && ln -s $ac_abs_top_srcdir/testsuite $ac_abs_top_builddir/doc/beginners/build/en-US/testsuite ;;
 

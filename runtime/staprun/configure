@@ -4582,6 +4582,8 @@ ac_config_headers="$ac_config_headers config.h:config.in"
 
 ac_config_files="$ac_config_files Makefile"
 
+ac_config_files="$ac_config_files run-staprun"
+
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -5307,6 +5309,7 @@ do
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h:config.in" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "run-staprun") CONFIG_FILES="$CONFIG_FILES run-staprun" ;;
 
   *) as_fn_error "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
@@ -5986,6 +5989,7 @@ $as_echo X"$file" |
   done
 }
  ;;
+    "run-staprun":F) chmod +x run-staprun ;;
 
   esac
 done # for ac_tag

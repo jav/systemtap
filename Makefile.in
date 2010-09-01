@@ -75,8 +75,7 @@ DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(am__configure_deps) $(srcdir)/config.in \
 	$(srcdir)/stappaths.7.in $(top_srcdir)/initscript/systemtap.in \
 	$(top_srcdir)/initscript/stap-server.in $(srcdir)/run-stap.in \
-	$(srcdir)/run-staprun.in $(srcdir)/dtrace.in depcomp \
-	$(oldinclude_HEADERS)
+	$(srcdir)/dtrace.in depcomp $(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -86,7 +85,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = stappaths.7 initscript/systemtap \
-	initscript/stap-server run-stap run-staprun dtrace
+	initscript/stap-server run-stap dtrace
 CONFIG_CLEAN_VPATH_FILES =
 @BUILD_TRANSLATOR_TRUE@am__EXEEXT_1 = stap$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
@@ -507,8 +506,6 @@ initscript/systemtap: $(top_builddir)/config.status $(top_srcdir)/initscript/sys
 initscript/stap-server: $(top_builddir)/config.status $(top_srcdir)/initscript/stap-server.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 run-stap: $(top_builddir)/config.status $(srcdir)/run-stap.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-run-staprun: $(top_builddir)/config.status $(srcdir)/run-staprun.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 dtrace: $(top_builddir)/config.status $(srcdir)/dtrace.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@

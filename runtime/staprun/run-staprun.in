@@ -18,7 +18,7 @@ esac
 
 exec sudo -P "SYSTEMTAP_STAPIO=${builddir}/stapio" \
              "SYSTEMTAP_STAPRUN=${builddir}/run-staprun" \
-             "SYSTEMTAP_RUNTIME=${srcdir}/runtime" \
+             "SYSTEMTAP_RUNTIME=${srcdir}/.." \
              "SYSTEMTAP_REAL_UID=`id -ru`" \
              "SYSTEMTAP_REAL_GID=`id -rg`" \
              ${builddir}/staprun ${1+"$@"}
