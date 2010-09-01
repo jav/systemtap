@@ -2,6 +2,8 @@
  *
  * staprun.c - SystemTap module loader
  *
+ * Copyright (C) 2005-2010 Red Hat, Inc.
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -15,8 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- *
- * Copyright (C) 2005-2009 Red Hat, Inc.
  *
  */
 
@@ -344,10 +344,14 @@ void send_a_relocation (const char* module, const char* reloc, unsigned long lon
 }
 
 
+#ifdef __powerpc64__
+#define KERNEL_RELOC_SYMBOL ".__start"
+#else
+#define KERNEL_RELOC_SYMBOL "_stext"
+#endif
+
 int send_relocation_kernel ()
 {
-  int srkrc = 0;
-
   FILE* kallsyms = fopen ("/proc/kallsyms", "r");
   if (kallsyms == NULL)
     {
@@ -357,27 +361,19 @@ int send_relocation_kernel ()
   else
     {
       int done_with_kallsyms = 0;
+      char *line = NULL;
+      size_t linesz = 0;
       while (! feof(kallsyms) && !done_with_kallsyms)
         {
-          char *line = NULL;
-          size_t linesz = 0;
           ssize_t linesize = getline (& line, & linesz, kallsyms);
-          if (linesize < 0)
-            break;
-          else
+          if (linesize > 0)
             {
               unsigned long long address;
-              char type;
-              char symbol[linesize];
-              int rc = sscanf (line, "%llx %c %s", &address, &type, symbol);
-              free (line); line=NULL;
-
-#ifdef __powerpc64__
-#define KERNEL_RELOC_SYMBOL ".__start"
-#else
-#define KERNEL_RELOC_SYMBOL "_stext"
-#endif
-              if ((rc == 3) && symbol[0] && (0 == strcmp(symbol,KERNEL_RELOC_SYMBOL)))
+	      int pos = -1;
+	      if (sscanf (line, "%llx %*c %n", &address, &pos) == 1
+		  && pos != -1
+		  && linesize - pos == sizeof KERNEL_RELOC_SYMBOL
+		  && !strcmp(line + pos, KERNEL_RELOC_SYMBOL "\n"))
                 {
                   /* NB: even on ppc, we use the _stext relocation name. */
                   send_a_relocation ("kernel", "_stext", address);
@@ -387,16 +383,19 @@ int send_relocation_kernel ()
                 }
             }
         }
+      free (line);
       fclose (kallsyms);
-      if (!done_with_kallsyms) srkrc = -1;
-      /* detect note section, send flag if there 
+      if (!done_with_kallsyms)
+	return -1;
+
+      /* detect note section, send flag if there
        * NB: address=2 represents existed note, the real one in _stp_module
-       */ 
-      if (srkrc != -1 && !access("/sys/kernel/notes", R_OK))
+       */
+      if (!access("/sys/kernel/notes", R_OK))
 	 send_a_relocation ("kernel", ".note.gnu.build-id", 2);
     }
 
-  return srkrc;
+  return 0;
 }
 
 
