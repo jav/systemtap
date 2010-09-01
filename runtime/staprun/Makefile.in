@@ -53,11 +53,14 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)"
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
+	"$(DESTDIR)$(man8dir)"
 PROGRAMS = $(bin_PROGRAMS) $(pkglibexec_PROGRAMS)
-stap_merge_SOURCES = stap_merge.c
-stap_merge_OBJECTS = stap_merge.$(OBJEXT)
-stap_merge_LDADD = $(LDADD)
+am_stap_merge_OBJECTS = stap_merge-stap_merge.$(OBJEXT)
+stap_merge_OBJECTS = $(am_stap_merge_OBJECTS)
+stap_merge_DEPENDENCIES =
+stap_merge_LINK = $(CCLD) $(stap_merge_CFLAGS) $(CFLAGS) \
+	$(stap_merge_LDFLAGS) $(LDFLAGS) -o $@
 am_stapio_OBJECTS = stapio.$(OBJEXT) mainloop.$(OBJEXT) \
 	common.$(OBJEXT) ctl.$(OBJEXT) relay.$(OBJEXT) \
 	relay_old.$(OBJEXT)
@@ -82,7 +85,31 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = stap_merge.c $(stapio_SOURCES) $(staprun_SOURCES)
+SOURCES = $(stap_merge_SOURCES) $(stapio_SOURCES) $(staprun_SOURCES)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+man8dir = $(mandir)/man8
+NROFF = nroff
+MANS = $(man_MANS)
 ETAGS = etags
 CTAGS = ctags
 ACLOCAL = @ACLOCAL@
@@ -184,6 +211,11 @@ staprun_CFLAGS = $(AM_CFLAGS) $(am__append_2)
 staprun_LDADD = $(am__append_3)
 stapio_SOURCES = stapio.c mainloop.c common.c ctl.c relay.c relay_old.c
 stapio_LDADD = -lpthread
+man_MANS = staprun.8
+stap_merge_SOURCES = stap_merge.c
+stap_merge_CFLAGS = $(AM_CFLAGS)
+stap_merge_LDFLAGS = $(AM_LDFLAGS)
+stap_merge_LDADD = 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -316,7 +348,7 @@ clean-pkglibexecPROGRAMS:
 	-test -z "$(pkglibexec_PROGRAMS)" || rm -f $(pkglibexec_PROGRAMS)
 stap-merge$(EXEEXT): $(stap_merge_OBJECTS) $(stap_merge_DEPENDENCIES) 
 	@rm -f stap-merge$(EXEEXT)
-	$(LINK) $(stap_merge_OBJECTS) $(stap_merge_LDADD) $(LIBS)
+	$(stap_merge_LINK) $(stap_merge_OBJECTS) $(stap_merge_LDADD) $(LIBS)
 stapio$(EXEEXT): $(stapio_OBJECTS) $(stapio_DEPENDENCIES) 
 	@rm -f stapio$(EXEEXT)
 	$(LINK) $(stapio_OBJECTS) $(stapio_LDADD) $(LIBS)
@@ -335,7 +367,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mainloop.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/relay.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/relay_old.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_merge.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_merge-stap_merge.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stapio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-ctl.Po@am__quote@
@@ -357,6 +389,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+stap_merge-stap_merge.o: stap_merge.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -MT stap_merge-stap_merge.o -MD -MP -MF $(DEPDIR)/stap_merge-stap_merge.Tpo -c -o stap_merge-stap_merge.o `test -f 'stap_merge.c' || echo '$(srcdir)/'`stap_merge.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/stap_merge-stap_merge.Tpo $(DEPDIR)/stap_merge-stap_merge.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stap_merge.c' object='stap_merge-stap_merge.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -c -o stap_merge-stap_merge.o `test -f 'stap_merge.c' || echo '$(srcdir)/'`stap_merge.c
+
+stap_merge-stap_merge.obj: stap_merge.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -MT stap_merge-stap_merge.obj -MD -MP -MF $(DEPDIR)/stap_merge-stap_merge.Tpo -c -o stap_merge-stap_merge.obj `if test -f 'stap_merge.c'; then $(CYGPATH_W) 'stap_merge.c'; else $(CYGPATH_W) '$(srcdir)/stap_merge.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/stap_merge-stap_merge.Tpo $(DEPDIR)/stap_merge-stap_merge.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stap_merge.c' object='stap_merge-stap_merge.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -c -o stap_merge-stap_merge.obj `if test -f 'stap_merge.c'; then $(CYGPATH_W) 'stap_merge.c'; else $(CYGPATH_W) '$(srcdir)/stap_merge.c'; fi`
 
 staprun-staprun.o: staprun.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CFLAGS) $(CFLAGS) -MT staprun-staprun.o -MD -MP -MF $(DEPDIR)/staprun-staprun.Tpo -c -o staprun-staprun.o `test -f 'staprun.c' || echo '$(srcdir)/'`staprun.c
@@ -441,6 +487,44 @@ staprun-nsscommon.obj: ../../nsscommon.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../nsscommon.c' object='staprun-nsscommon.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CFLAGS) $(CFLAGS) -c -o staprun-nsscommon.obj `if test -f '../../nsscommon.c'; then $(CYGPATH_W) '../../nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/../../nsscommon.c'; fi`
+install-man8: $(man_MANS)
+	@$(NORMAL_INSTALL)
+	test -z "$(man8dir)" || $(MKDIR_P) "$(DESTDIR)$(man8dir)"
+	@list=''; test -n "$(man8dir)" || exit 0; \
+	{ for i in $$list; do echo "$$i"; done; \
+	l2='$(man_MANS)'; for i in $$l2; do echo "$$i"; done | \
+	  sed -n '/\.8[a-z]*$$/p'; \
+	} | while read p; do \
+	  if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; echo "$$p"; \
+	done | \
+	sed -e 'n;s,.*/,,;p;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,' | \
+	sed 'N;N;s,\n, ,g' | { \
+	list=; while read file base inst; do \
+	  if test "$$base" = "$$inst"; then list="$$list $$file"; else \
+	    echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man8dir)/$$inst'"; \
+	    $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man8dir)/$$inst" || exit $$?; \
+	  fi; \
+	done; \
+	for i in $$list; do echo "$$i"; done | $(am__base_list) | \
+	while read files; do \
+	  test -z "$$files" || { \
+	    echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(man8dir)'"; \
+	    $(INSTALL_DATA) $$files "$(DESTDIR)$(man8dir)" || exit $$?; }; \
+	done; }
+
+uninstall-man8:
+	@$(NORMAL_UNINSTALL)
+	@list=''; test -n "$(man8dir)" || exit 0; \
+	files=`{ for i in $$list; do echo "$$i"; done; \
+	l2='$(man_MANS)'; for i in $$l2; do echo "$$i"; done | \
+	  sed -n '/\.8[a-z]*$$/p'; \
+	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
+	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
+	test -z "$$files" || { \
+	  echo " ( cd '$(DESTDIR)$(man8dir)' && rm -f" $$files ")"; \
+	  cd "$(DESTDIR)$(man8dir)" && rm -f $$files; }
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -495,9 +579,9 @@ distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS) config.h
+all-am: Makefile $(PROGRAMS) $(MANS) config.h
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(man8dir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -549,7 +633,7 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-man
 
 install-dvi: install-dvi-am
 
@@ -566,7 +650,7 @@ install-info: install-info-am
 
 install-info-am:
 
-install-man:
+install-man: install-man8
 
 install-pdf: install-pdf-am
 
@@ -597,7 +681,10 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-pkglibexecPROGRAMS
+uninstall-am: uninstall-binPROGRAMS uninstall-man \
+	uninstall-pkglibexecPROGRAMS
+
+uninstall-man: uninstall-man8
 
 .MAKE: all install-am install-exec-am install-strip
 
@@ -608,13 +695,13 @@ uninstall-am: uninstall-binPROGRAMS uninstall-pkglibexecPROGRAMS
 	install-am install-binPROGRAMS install-data install-data-am \
 	install-dvi install-dvi-am install-exec install-exec-am \
 	install-exec-hook install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-pkglibexecPROGRAMS install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-pkglibexecPROGRAMS
+	install-info-am install-man install-man8 install-pdf \
+	install-pdf-am install-pkglibexecPROGRAMS install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
+	ps ps-am tags uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-man uninstall-man8 uninstall-pkglibexecPROGRAMS
 
 
 # Why the "id -u" condition?  This way, an unprivileged user can run

@@ -22,6 +22,13 @@ endif
 stapio_SOURCES = stapio.c mainloop.c common.c ctl.c relay.c relay_old.c
 stapio_LDADD = -lpthread
 
+man_MANS = staprun.8
+
+stap_merge_SOURCES = stap_merge.c
+stap_merge_CFLAGS = $(AM_CFLAGS)
+stap_merge_LDFLAGS = $(AM_LDFLAGS)
+stap_merge_LDADD =
+
 
 # Why the "id -u" condition?  This way, an unprivileged user can run
 # make install, and have "sudo stap ...." or "sudo staprun ...." work later.

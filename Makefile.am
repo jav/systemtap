@@ -14,19 +14,20 @@ AM_CXXFLAGS = -Wall -Werror
 
 man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
 dtrace.1 stap-merge.1\
-stappaths.7 \
-staprun.8
+stappaths.7
 
-bin_PROGRAMS = staprun stap-merge
 bin_SCRIPTS = stap-report
-pkglibexec_PROGRAMS = stapio
 pkglibexec_SCRIPTS = stap-env
 oldinclude_HEADERS = includes/sys/sdt.h
+
+bin_PROGRAMS =
 
 if BUILD_TRANSLATOR
 bin_PROGRAMS += stap
 man_MANS += stap.1
 bin_SCRIPTS += dtrace
+
+pkglibexec_PROGRAMS = 
 
 if HAVE_NSS
 man_MANS += stap-authorize-signing-cert.8
@@ -157,42 +158,7 @@ install-elfutils:
 	done
 install-exec-local: install-elfutils
 endif
-
 endif
-
-staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
-	runtime/staprun/ctl.c runtime/staprun/common.c
-
-staprun_CPPFLAGS = $(AM_CPPFLAGS)
-staprun_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED -fno-strict-aliasing -fno-builtin-strftime -D_FILE_OFFSET_BITS=64
-staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-staprun_LDADD =
-
-if HAVE_NSS
-staprun_SOURCES += runtime/staprun/modverify.c nsscommon.c
-staprun_CFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
-staprun_LDADD += -lnss3 -lnspr4
-endif
-
-stapio_SOURCES = runtime/staprun/stapio.c \
-	runtime/staprun/mainloop.c runtime/staprun/common.c \
-	runtime/staprun/ctl.c \
-	runtime/staprun/relay.c runtime/staprun/relay_old.c
-stapio_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-builtin-strftime
-stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-stapio_LDADD = -lpthread
-
-stap_merge_SOURCES = runtime/staprun/stap_merge.c
-stap_merge_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@
-stap_merge_LDFLAGS = $(AM_LDFLAGS) @PIECFLAGS@
-stap_merge_LDADD =
-
-install-exec-hook:
-	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
-
-# Why the "id -u" condition?  This way, an unprivileged user can run
-# make install, and have "sudo stap ...." or "sudo staprun ...." work later.
-
 
 CLEANFILES +=  $(pkglibexec_PROGRAMS)
 

@@ -512,7 +512,7 @@ grapher/Makefile \
 grapher/stapgraph.1 \
 stappaths.7 \
 initscript/systemtap initscript/stap-server ])
-AC_CONFIG_SUBDIRS(testsuite)
+AC_CONFIG_SUBDIRS(testsuite runtime/staprun)
 if test $enable_translator == "yes"; then
 	AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
 fi

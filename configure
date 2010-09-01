@@ -781,7 +781,7 @@ gtkmm_LIBS
 libglade_CFLAGS
 libglade_LIBS
 CXXCPP'
-ac_subdirs_all='testsuite'
+ac_subdirs_all='testsuite runtime/staprun'
 
 # Initialize some variables set by options.
 ac_init_help=
@@ -7477,7 +7477,7 @@ ac_config_files="$ac_config_files Makefile doc/Makefile doc/beginners/Makefile d
 
 
 
-subdirs="$subdirs testsuite"
+subdirs="$subdirs testsuite runtime/staprun"
 
 if test $enable_translator == "yes"; then
 	ac_config_files="$ac_config_files run-stap"
