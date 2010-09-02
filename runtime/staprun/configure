@@ -4575,27 +4575,6 @@ $as_echo "#define HAVE_NSS 1" >>confdefs.h
 
 fi
 
-
-cat >>confdefs.h <<_ACEOF
-#define BINDIR "$bindir"
-_ACEOF
-
-
-cat >>confdefs.h <<_ACEOF
-#define SYSCONFDIR "$sysconfdir"
-_ACEOF
-
-
-cat >>confdefs.h <<_ACEOF
-#define PKGLIBDIR "$pkglibdir"
-_ACEOF
-
-
-cat >>confdefs.h <<_ACEOF
-#define PKGDATADIR "$pkgdatadir"
-_ACEOF
-
-
 ac_config_headers="$ac_config_headers config.h:config.in"
 
 ac_config_files="$ac_config_files Makefile"

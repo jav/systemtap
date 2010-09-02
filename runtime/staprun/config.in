@@ -1,8 +1,5 @@
 /* config.in.  Generated from configure.ac by autoheader.  */
 
-/* staprun installation directory */
-#undef BINDIR
-
 /* Define to 1 if you have the nss libraries. */
 #undef HAVE_NSS
 
@@ -29,15 +26,6 @@
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
-
-/* systemtap runtime source installation directory */
-#undef PKGDATADIR
-
-/* stapio installation directory */
-#undef PKGLIBDIR
-
-/* staprun certificate directory */
-#undef SYSCONFDIR
 
 /* Version number of package */
 #undef VERSION

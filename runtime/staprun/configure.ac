@@ -46,15 +46,6 @@ AS_IF([test $have_nss = yes], [
   AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
 ])
 
-AC_DEFINE_UNQUOTED([BINDIR], ["$bindir"],
-		   [staprun installation directory])
-AC_DEFINE_UNQUOTED([SYSCONFDIR], ["$sysconfdir"],
-		   [staprun certificate directory])
-AC_DEFINE_UNQUOTED([PKGLIBDIR], ["$pkglibdir"],
-		   [stapio installation directory])
-AC_DEFINE_UNQUOTED([PKGDATADIR], ["$pkgdatadir"],
-		   [systemtap runtime source installation directory])
-
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile)
 AC_CONFIG_FILES([run-staprun], [chmod +x run-staprun])
