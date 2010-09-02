@@ -164,7 +164,6 @@ PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
 PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
-PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PIECFLAGS = @PIECFLAGS@
@@ -220,7 +219,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -D_GNU_SOURCE
 AM_CFLAGS = -Wall -Werror -Wunused -W -Wformat=2 \
-	-Wno-format-nonliteral @PIECFLAGS@
+	-Wno-format-nonliteral -I$(srcdir)/../../includes @PIECFLAGS@
 AM_LDFLAGS = @PIELDFLAGS@
 staprun_SOURCES = staprun.c staprun_funcs.c ctl.c common.c \
 	$(am__append_1)
