@@ -86,6 +86,7 @@
   _SDT_ASM_1(992:	.balign 4)					      \
   _SDT_ASM_1(993:	_SDT_ASM_ADDR 990b)				      \
   _SDT_ASM_1(		_SDT_ASM_ADDR _.stapsdt.base)			      \
+  _SDT_SEMAPHORE(provider,name)						      \
   _SDT_ASM_STRING(provider)						      \
   _SDT_ASM_STRING(name)							      \
   pack_args args							      \
@@ -100,6 +101,12 @@
   _SDT_ASM_2(		.size _.stapsdt.base, 1)			      \
   _SDT_ASM_1(		.popsection)					      \
   _SDT_ASM_1(.endif)
+
+#if defined _SDT_HAS_SEMAPHORES
+#define _SDT_SEMAPHORE(p,n) _SDT_ASM_1(		_SDT_ASM_ADDR p##_##n##_semaphore)
+#else
+#define _SDT_SEMAPHORE(p,n) _SDT_ASM_1(		_SDT_ASM_ADDR 0)
+#endif
 
 #define _SDT_ASM_TEMPLATE_0		/* no arguments */
 #define _SDT_ASM_TEMPLATE_1		_SDT_ARGFMT(1)

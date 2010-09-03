@@ -322,7 +322,7 @@ proc as_root { command } {
  }
 
 proc sdt_includes {} {
-  global srcdir
+  global srcdir env
 
   # The wrapper sys/sdt.h for testing STAP_SDT_V[12] is here.
   set dirs [list $srcdir]
@@ -330,16 +330,18 @@ proc sdt_includes {} {
   if {[installtest_p]} {
     # Use the installed <sys/sdt.h>.
     lappend dirs $env(SYSTEMTAP_INCLUDES)
+    # The uninstalled, configured sdt-config.h has to be found here.
+    lappend dirs $srcdir/..
   } else {
     # Find <sys/sdt.h> in the source tree.
     lappend dirs $srcdir/../includes
     # The uninstalled, configured sdt-config.h has to be found here.
-    lappend dirs ../includes/sys
+    lappend dirs $srcdir/..
   }
 
   set flags ""
   foreach dir $dirs {
-    set flags "$flags additional_flags=-isystem=$dir"
+    set flags "$flags additional_flags=-I$dir"
   }
 
   return $flags

@@ -22,6 +22,7 @@
 #include "hash.h"
 #include "dwflpp.h"
 #include "setupdwfl.h"
+#include <gelf.h>
 
 #include "sys/sdt.h"
 #include "sdt-compat.h"
@@ -5063,6 +5064,7 @@ private:
   Dwarf_Addr semaphore;
 
   bool init_probe_scn();
+  bool get_next_probe();
   void iterate_over_probe_entries();
   void handle_probe_entry();
 
