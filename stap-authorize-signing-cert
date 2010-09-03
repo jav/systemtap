@@ -10,6 +10,10 @@
 # Public License (GPL); either version 2, or (at your option) any
 # later version.
 
+# Deprecation warning.
+echo "WARNING: stap-authorize-signing-cert is deprecated and will be removed in release 1.5" >&2
+echo "Please use 'stap --trust-servers'. See stap(1) for more information" >&2
+
 # Initialize the environment
 . ${PKGLIBEXECDIR}stap-env
 

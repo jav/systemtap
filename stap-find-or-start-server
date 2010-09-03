@@ -17,6 +17,10 @@
 #
 # Otherwise, it echoes -1
 
+# Deprecation warning.
+echo "WARNING: stap-find-or-start-server is deprecated and will be removed in release 1.5" >&2
+echo "Please use 'stap-server start'. See stap(1) for more information" >&2
+
 # Initialize the environment
 . ${PKGLIBEXECDIR}stap-env
 

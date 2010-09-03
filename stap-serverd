@@ -325,19 +325,11 @@ function check_cert {
 
         # Now add the new certificate to the client's database,
         # making it a trusted peer for this user.
-	# Do this only if the client has been installed.
-	if test -f `which ${stap_exec_prefix}stap-client 2>/dev/null` -a \
-	        -x `which ${stap_exec_prefix}stap-client 2>/dev/null`; then
-	    ${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile >> $logfile 2>&1
-	fi
+	${stap_pkglibexecdir}stap-authorize-cert $ssl_db/$stap_certfile $stap_ssl_db/client >> $logfile 2>&1
     elif ! test -f $stap_ssl_db/client/cert8.db; then
 	# Our certificate exists and is valid.
 	# If the client's database does not exist, then initialize it with our certificate.
-	# Do this only if the client has been installed.
-	if test -f `which ${stap_exec_prefix}stap-client 2>/dev/null` -a \
-	    -x `which ${stap_exec_prefix}stap-client 2>/dev/null`; then
-	    ${stap_exec_prefix}stap-authorize-server-cert $ssl_db/$stap_certfile >> $logfile 2>&1
-	fi
+	${stap_pkglibexecdir}stap-authorize-cert $ssl_db/$stap_certfile $stap_ssl_db/client >> $logfile 2>&1
     fi
 }
 

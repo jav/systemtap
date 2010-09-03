@@ -10,8 +10,14 @@ stap\-authorize\-server\-cert \- systemtap server authorization utility
 
 .SH DESCRIPTION
 
+\fIstap\-authorize\-server\-cert\fR is deprecated and will be removed in
+release 1.5. Please use 'stap --trust-servers'. See
+.IR stap (1)
+for more information.
+
+.PP
 A systemtap compile server listens for connections from clients
-(\fIstap\-client\fR) on a secure SSL network port and accepts requests
+on a secure SSL network port and accepts requests
 to run the
 .I stap
 front end. Each server advertises its presence and configuration on the local
@@ -100,7 +106,6 @@ Server certificate for servers started by the \fIstap\-server\fR service.
 .IR stap (1),
 .IR stappaths (7),
 .IR stap\-server (8),
-.IR stap\-client (8),
 .IR NSS ,
 .IR certutil
 

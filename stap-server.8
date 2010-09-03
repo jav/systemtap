@@ -30,8 +30,7 @@ stap\-server \- systemtap server management
 
 .SH DESCRIPTION
 
-A systemtap compile server listens for connections from clients
-(\fIstap\-client\fR)
+A systemtap compile server listens for connections from stap clients
 on a secure SSL network port and accepts requests to run the
 .I stap
 front end. Each server advertises its presence and configuration on the local
@@ -317,8 +316,8 @@ host.
 .PP
 In order to use a server running on another host, that server\[aq]s certificate
 must be installed on the client\[aq]s host.
-See the
-.IR stap\-authorize\-server\-cert (8)
+See the \fI\-\-trust\-servers\fR option in the
+.IR stap (1)
 manual page for more details.
 
 .SH EXAMPLES
@@ -377,7 +376,7 @@ points to a separate and/or quota-enforced directory, in
 order to prevent filling up of important filesystems.
 .TP
 4
-Activate network firewalls to limit stap-client connections
+Activate network firewalls to limit stap client connections
 to relatively trustworthy networks.
 
 .PP
@@ -416,8 +415,6 @@ Location of installed kernels.
 .SH SEE ALSO
 .IR stap (1),
 .IR staprun (8),
-.IR stap\-client (8),
-.IR stap\-authorize\-server\-cert (8),
 .IR stapprobes (3stap),
 .IR stapfuncs (3stap),
 .IR stapex (3stap),

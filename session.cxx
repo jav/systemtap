@@ -403,7 +403,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
       char * num_endptr;
 
       // NB: when adding new options, consider very carefully whether they
-      // should be restricted from stap-clients (after --client-options)!
+      // should be restricted from stap clients (after --client-options)!
 #define LONG_OPT_KELF 1
 #define LONG_OPT_KMAP 2
 #define LONG_OPT_IGNORE_VMLINUX 3
@@ -455,7 +455,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
 			     long_options, NULL);
       // NB: when adding new options, consider very carefully whether they
-      // should be restricted from stap-clients (after --client-options)!
+      // should be restricted from stap clients (after --client-options)!
 
       if (grc < 0)
         break;

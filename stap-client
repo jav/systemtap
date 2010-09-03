@@ -16,6 +16,10 @@
 # request. If a kernel module is generated, this script will load the module
 # and execute it using 'staprun', if requested.
 
+# Deprecation warning.
+echo "WARNING: stap-client is deprecated and will be removed in release 1.5" >&2
+echo "Please use 'stap --use-server'. See stap(1) for more information" >&2
+
 # Catch ctrl-c and other termination signals
 trap 'terminate' SIGTERM
 trap 'interrupt' SIGINT

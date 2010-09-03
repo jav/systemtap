@@ -15,7 +15,7 @@
   See 'man stap' for complete details.
 
   With these changes, the integrated client provides more functionality than
-  the old client. The old client and tools will be deprecated shortly and
+  the old client. The old client and tools are now deprecated and
   will no longer be available beginning in release 1.5:
     stap-client
     stap-find-servers

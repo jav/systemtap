@@ -77,25 +77,31 @@ Examples with greater detail, can be found here. Each example comes with a .txt
 or .meta file explaining what the example, sample or demo does and how it is
 ordinarily run.
 .TP
-stap-authorize-server-cert  -  Certfile
-@sysconfdir@/systemtap/ssl/server
-For root users (EUID=0), the database can be found in
+$SYSTEMTAP_DIR/ssl/server
+User's server\-side SSL certificate database. If SYSTEMTAP_DIR is not
+set, the default is $HOME/.systemtap.
 .TP
-stap-authorize-server-cert  -  Dirname 
-@sysconfdir@/systemtap/ssl/client
-Global client\-side certificate database for root users (EUID=0)
-can be found in.
+$SYSTEMTAP_DIR/ssl/client
+User's private client\-side SSL certificate database. If SYSTEMTAP_DIR is not
+set, the default is $HOME/.systemtap.
 .TP
-stap-authorize-signing-cert  -  Certfile
-@sysconfdir@/systemtap/ssl/server
-For root users (EUID=0), the database can be found in
+@prefix@/etc/systemtap/ssl/client
+Global client\-side SSL certificate database.
 .TP
-stap-authorize-signing-cert  -  Dirname
-@sysconfdir@/systemtap/staprun/
+@prefix@/etc/systemtap/staprun/
 \fIstaprun\fR\[aq]s trusted signer certificate database.
 .TP
-@sysconfdir@/systemtap/ssl/client/
-Public (root\[aq]s) client side certificate database.
+@prefix@/etc/sysconfig/stap-server/
+stap-server service global configuration file.
+.TP
+@prefix@/etc/stap-server/conf.d/*.conf
+stap-server service configuration files for default servers.
+.TP
+@prefix@/var/run/stap-server/
+stap-server service default location of status files for running servers.
+.TP
+@prefix@/var/log/stap-server.log
+stap-server service default log file.
 
 
 .PP
@@ -110,7 +116,6 @@ Public (root\[aq]s) client side certificate database.
 .IR staprun (8),
 .IR stapvars (3stap),
 .IR stapex (3stap),
-.IR stap-client (8),
 .IR stap-server (8),
 .IR awk (1),
 .IR gdb (1)

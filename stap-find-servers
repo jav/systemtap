@@ -12,6 +12,10 @@
 # This script uses avahi to find systemtap compile servers on the local
 # network. Information about each server found is printed to stdout.
 
+# Deprecation warning.
+echo "WARNING: stap-find-servers is deprecated and will be removed in release 1.5" >&2
+echo "Please use 'stap --list-servers'. See stap(1) for more information" >&2
+
 # Initialize the environment
 . ${PKGLIBEXECDIR}stap-env
 

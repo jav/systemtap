@@ -19,8 +19,13 @@ stap\-client \- systemtap client
 
 .SH DESCRIPTION
 
+\fIstap\-client\fR is deprecated and will be removed in
+release 1.5. Please use 'stap --use-server'. See
+.IR stap (1)
+for more information.
+
+.PP
 A systemtap compile server listens for connections from clients
-(\fIstap\-client\fR)
 on a secure SSL network port and accepts requests to run the
 .I stap
 front end. Each server advertises its presence and configuration on the local
@@ -122,8 +127,8 @@ host.
 .PP
 In order to use a server running on another host, that server\[aq]s certificate
 must be installed on the client\[aq]s host.
-See the
-.IR stap\-authorize\-server\-cert (8)
+See the \fI\-\-trust\-servers\fR option in the
+.IR stap (1)
 manual page for more details.
 
 .PP
@@ -217,7 +222,6 @@ Server certificate for servers started by the \fIstap\-server\fR service.
 .IR stappaths (7),
 .IR staprun (8),
 .IR stap\-server (8),
-.IR stap\-authorize\-server\-cert (8),
 .IR stapprobes (3stap),
 .IR stapfuncs (3stap),
 .IR stapex (3stap),

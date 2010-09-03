@@ -176,7 +176,7 @@ for {set i 0} {$i < $iterations} {incr i} {
 	}
     }
 
-    # Now test it against stap and stap-client
+    # Now test it against stap and stap client
     if {[stap_direct_and_with_client $stap $options]} {
 	pass "Fuzzing $test $i"
     } else {

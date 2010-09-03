@@ -340,8 +340,8 @@ if test ! -e ~stap-server/.systemtap/ssl/server/stap.cert; then
    runuser -s /bin/sh - stap-server -c %{_libexecdir}/%{name}/stap-gen-cert >/dev/null
    # Authorize the certificate as a trusted ssl peer and as a trusted signer
    # on the local host.
-   %{_bindir}/stap-authorize-server-cert ~stap-server/.systemtap/ssl/server/stap.cert
-   %{_bindir}/stap-authorize-signing-cert ~stap-server/.systemtap/ssl/server/stap.cert
+   %{_libexecdir}/stap-authorize-cert ~stap-server/.systemtap/ssl/server/stap.cert %{_sysconfdir}/systemtap/ssl/client
+   %{_libexecdir}/stap-authorize-cert ~stap-server/.systemtap/ssl/server/stap.cert %{_sysconfdir}/systemtap/staprun
 fi
 
 # Activate the service

@@ -10,10 +10,16 @@ stap\-authorize\-signing\-cert \- systemtap signing authorization utility
 
 .SH DESCRIPTION
 
+\fIstap\-authorize\-signing\-cert\fR is deprecated and will be removed in
+release 1.5. Please use 'stap --trust-servers'. See
+.IR stap (1)
+for more information.
+
+.PP
 The \fIstaprun\fR program will load modules for members of the group
 \fIstapusr\fR if they are signed by a trusted signer. A trusted signer is
 usually a \fIsystemtap\fR compile server which signs modules when the client
-(\fIstap\-client\fR) specifies the \fB\-\-unprivileged\fR option.
+specifies the \fB\-\-unprivileged\fR option.
 
 .PP
 The trustworthiness of a given signer can not be determined
@@ -91,7 +97,6 @@ Signing certificate for servers started by the \fIstap\-server\fR service.
 .IR stappathss (7),
 .IR staprun (8),
 .IR stap\-server (8),
-.IR stap\-client (8),
 .IR NSS ,
 .IR certutil
 
