@@ -12,7 +12,7 @@ bin_PROGRAMS = staprun stap-merge
 pkglibexec_PROGRAMS = stapio
 
 staprun_SOURCES = staprun.c staprun_funcs.c ctl.c common.c
-staprun_CFLAGS = $(AM_CFLAGS)
+staprun_CFLAGS = $(AM_CFLAGS) -DSINGLE_THREADED
 staprun_LDADD =
 
 if HAVE_NSS

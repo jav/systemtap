@@ -227,7 +227,7 @@ AM_CFLAGS = -Wall -Werror -Wunused -W -Wformat=2 \
 AM_LDFLAGS = @PIELDFLAGS@
 staprun_SOURCES = staprun.c staprun_funcs.c ctl.c common.c \
 	$(am__append_1)
-staprun_CFLAGS = $(AM_CFLAGS) $(am__append_2)
+staprun_CFLAGS = $(AM_CFLAGS) -DSINGLE_THREADED $(am__append_2)
 staprun_LDADD = $(am__append_3)
 stapio_SOURCES = stapio.c mainloop.c common.c ctl.c relay.c relay_old.c
 stapio_LDADD = -lpthread
