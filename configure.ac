@@ -412,14 +412,21 @@ AC_SUBST(elfutils_abs_srcdir, `AS_IF([test $build_elfutils = yes],
 if test $enable_translator = yes; then
   if test $build_elfutils = no; then
     # Need libdwfl-capable recent elfutils http://elfutils.fedorahosted.org/
+
+    # On modern debian/ubuntu, libebl has been merged into libdw
+    # http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=457543
+    save_LIBS="$LIBS"
+    AC_CHECK_LIB(ebl, ebl_get_elfmachine,[ebl_LIBS=-lebl],[ebl_LIBS=])
+    LIBS="$save_LIBS"
+
     save_LIBS="$LIBS"
     AC_CHECK_LIB(dw, dwfl_module_getsym,[],[
       AC_MSG_ERROR([missing elfutils development headers/libraries (install elfutils-devel, libebl-dev, libdw-dev and/or libebl-devel)])],
-      [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
+      [-Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf])
     AC_CHECK_LIB(dw, dwarf_getelf,[],[
       AC_MSG_ERROR([elfutils, libdw too old, need 0.126+])],
-      [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
-    stap_LIBS="$stap_LIBS -Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
+      [-Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf])
+    stap_LIBS="$stap_LIBS -Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf"
     LIBS="$save_LIBS"
   else
     # We built our own and stap_LDFLAGS points at the install.
