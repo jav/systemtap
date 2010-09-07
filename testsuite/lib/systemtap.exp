@@ -148,7 +148,7 @@ proc setup_server {} {
 	set server_pid 0
 	return 0
     } else {
-	print "Started a systemtap server as PID==$server_pid"
+	verbose -log "Started a systemtap server as PID==$server_pid"
     }
 
     # See what avahi finds
@@ -158,7 +158,7 @@ proc setup_server {} {
     # Make sure that stap can find the server.
     set lines [exec stap --list-servers=online,compatible 2>@ stdout | wc -l]
     if {$lines < 2} then {
-	print "Unable to find a systemtap server -- check firewall settings"
+	print "Unable to find a systemtap server -- check firewall settings for mDNS"
 	shutdown_server
 	return 0
     }
@@ -183,7 +183,7 @@ proc shutdown_server {} {
     global server_pid net_path
 
     if { $server_pid != 0 } then {
-	print "Stopping the systemtap server with PID==$server_pid"
+	verbose -log "Stopping the systemtap server with PID==$server_pid"
 	exec stap-stop-server $server_pid
 	set server_pid 0
     }
