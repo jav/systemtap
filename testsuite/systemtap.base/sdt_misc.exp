@@ -9,8 +9,8 @@ set test "sdt_misc"
 # 6. Test .mark probe wildcard matching
 # 7. Test types defined in sdt_misc_.d.  This requires -g
 
-set v_flags {{} {} {-DSTAP_SDT_V1} {-DSTAP_SDT_V3}}
-set pbtype_mssgs {{uprobe} {kprobe} {V1_uprobe} {V3_uprobe}}
+set v_flags {{-DSTAP_SDT_V2} {-DSTAP_SDT_V2} {-DSTAP_SDT_V1} {-DSTAP_SDT_V3}}
+set pbtype_mssgs {{V2_uprobe} {V2_kprobe} {V1_uprobe} {V3_uprobe}}
 set pbtype_flags {{}}
 switch -regexp $::tcl_platform(machine) {
     ^(x86_64|i.86)$ {
