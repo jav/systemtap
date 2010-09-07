@@ -271,7 +271,7 @@ systemtap script fails to run.  See the DEPRECATION section for more
 details.
 
 .TP
-.BI \-\-use\-server " [SERVER]"
+\fB\-\-use\-server \fR[\fIHOSTNAME\fR[\fI:PORT\fR] | \fIIP_ADDRESS\fR[\fI:PORT\fR] | \fICERT_SERIAL\fR]
 Specify compile\-server(s) to be used for compilation and/or in conjunction
 with
 .I \-\-list\-servers
@@ -284,7 +284,7 @@ is to select compatible servers which are trusted as SSL peers and as
 module signers and currently online. Otherwise the default is to select
 compatible servers which are trusted as SSL peers
 and currently online.
-.I \-\-use\-servers
+.I \-\-use\-server
 may be
 specified more than once, in which case a list of servers is accumulated
 in the order specified. Servers may be specified by host name, ip address, or
@@ -293,7 +293,9 @@ by certificate serial number (obtained using
 The latter is most commonly used when revoking
 trust in a server (see
 .I \-\-trust-servers
-below).
+below). If a server is specified by host name or ip address, then an optional
+port number may be specified. This is useful for accessing servers which are
+not on the local network or to specify a particular server.
 
 .TP
 .BI \-\-list\-servers " [SERVERS]"
