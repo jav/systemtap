@@ -73,7 +73,8 @@ subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(srcdir)/Makefile.am $(top_srcdir)/configure \
 	$(am__configure_deps) $(srcdir)/config.in \
-	$(srcdir)/stappaths.7.in $(top_srcdir)/initscript/systemtap.in \
+	$(srcdir)/stappaths.7.in $(srcdir)/stap-server.8.in \
+	$(top_srcdir)/initscript/systemtap.in \
 	$(top_srcdir)/initscript/stap-server.in $(srcdir)/run-stap.in \
 	$(srcdir)/dtrace.in depcomp $(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -84,7 +85,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = stappaths.7 initscript/systemtap \
+CONFIG_CLEAN_FILES = stappaths.7 stap-server.8 initscript/systemtap \
 	initscript/stap-server run-stap dtrace
 CONFIG_CLEAN_VPATH_FILES =
 @BUILD_TRANSLATOR_TRUE@am__EXEEXT_1 = stap$(EXEEXT)
@@ -500,6 +501,8 @@ $(srcdir)/config.in: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 distclean-hdr:
 	-rm -f config.h stamp-h1
 stappaths.7: $(top_builddir)/config.status $(srcdir)/stappaths.7.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+stap-server.8: $(top_builddir)/config.status $(srcdir)/stap-server.8.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 initscript/systemtap: $(top_builddir)/config.status $(top_srcdir)/initscript/systemtap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
