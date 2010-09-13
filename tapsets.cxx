@@ -3724,12 +3724,12 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     has_process (q.has_process),
     has_return (q.has_return),
     has_maxactive (q.has_maxactive),
-    has_library (q.has_library), 
+    has_library (q.has_library),
     maxactive_val (q.maxactive_val),
     user_path (q.user_path),
     user_lib (q.user_lib),
     access_vars(false),
-    saved_longs(0), saved_strings(0), 
+    saved_longs(0), saved_strings(0),
     entry_handler(0)
 {
   if (user_lib.size() != 0)
@@ -4653,7 +4653,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
       dwarf_regs["%r21"] = 21; dwarf_regs["%r22"] = 22; dwarf_regs["%r23"] = 23;
       dwarf_regs["%r24"] = 24; dwarf_regs["%r25"] = 25; dwarf_regs["%r26"] = 26;
       dwarf_regs["%r27"] = 27; dwarf_regs["%r28"] = 28; dwarf_regs["%r29"] = 29;
-      dwarf_regs["%r30"] = 30; dwarf_regs["%r31"] = 31; 
+      dwarf_regs["%r30"] = 30; dwarf_regs["%r31"] = 31;
       // PR11821: unadorned register "names" without -mregnames
       dwarf_regs["0"] = 0; dwarf_regs["1"] = 1; dwarf_regs["2"] = 2;
       dwarf_regs["3"] = 3; dwarf_regs["4"] = 4; dwarf_regs["5"] = 5;
@@ -4665,7 +4665,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
       dwarf_regs["21"] = 21; dwarf_regs["22"] = 22; dwarf_regs["23"] = 23;
       dwarf_regs["24"] = 24; dwarf_regs["25"] = 25; dwarf_regs["26"] = 26;
       dwarf_regs["27"] = 27; dwarf_regs["28"] = 28; dwarf_regs["29"] = 29;
-      dwarf_regs["30"] = 30; dwarf_regs["31"] = 31; 
+      dwarf_regs["30"] = 30; dwarf_regs["31"] = 31;
     }
     else if (arg_count) {
       /* permit this case; just fall back to dwarf */
@@ -4740,7 +4740,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
       assert (arg_tokens.size() >= argno);
       string asmarg = arg_tokens[argno-1];   // $arg1 => arg_tokens[0]
-      
+
       // Now we try to parse this thing, which is an assembler operand
       // expression.  If we can't, we warn, back down to need_debug_info
       // and hope for the best.
@@ -4972,7 +4972,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  get_arg1->function = "pointer_arg";
 	  get_arg1->tok = e->tok;
 	  // arg3 is the pointer to a struct of arguments
-	  literal_number* num = new literal_number(3); 
+	  literal_number* num = new literal_number(3);
 	  num->tok = e->tok;
 	  get_arg1->args.push_back(num);
 
@@ -5036,20 +5036,26 @@ private:
   size_t probe_scn_offset;
   size_t probe_scn_addr;
   uint64_t arg_count;
-  uint64_t pc;
+  GElf_Addr pc;
   string arg_string;
   string probe_name;
   string provider_name;
   Dwarf_Addr semaphore;
 
   bool init_probe_scn();
-  bool get_next_probe();
+  void iterate_over_probe_entries();
+  void handle_probe_entry();
 
   void convert_probe(probe *base);
   void record_semaphore(vector<derived_probe *> & results, unsigned start);
   probe* convert_location();
   bool have_uprobe() {return probe_type == uprobe1_type || probe_type == uprobe2_type;}
   bool have_kprobe() {return probe_type == kprobe1_type || probe_type == kprobe2_type;}
+  bool have_debuginfo_uprobe(bool need_debug_info)
+  {return probe_type == uprobe1_type
+      || ((probe_type == uprobe2_type)
+	  && need_debug_info);}
+  bool have_debuginfoless_uprobe() {return probe_type == uprobe2_type;}
 };
 
 
@@ -5078,6 +5084,118 @@ sdt_query::sdt_query(probe * base_probe, probe_point * base_loc,
 
 
 void
+sdt_query::handle_probe_entry()
+{
+  if (! have_uprobe()
+      && !probes_handled.insert(probe_name).second)
+    return;
+
+  if (sess.verbose > 3)
+    {
+      clog << "matched probe_name " << probe_name << " probe_type ";
+      switch (probe_type)
+	{
+	case uprobe1_type:
+	  clog << "uprobe1 at 0x" << hex << pc << dec << endl;
+	  break;
+	case uprobe2_type:
+	  clog << "uprobe2 at 0x" << hex << pc << dec << endl;
+	  break;
+	case kprobe1_type:
+	  clog << "kprobe1" << endl;
+	  break;
+	case kprobe2_type:
+	  clog << "kprobe2" << endl;
+	  break;
+	}
+    }
+
+  // Extend the derivation chain
+  probe *new_base = convert_location();
+  probe_point *new_location = new_base->locations[0];
+
+  bool kprobe_found = false;
+  bool need_debug_info = false;
+
+  Dwarf_Addr bias;
+  Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw.mod_info->mod, &bias))
+	      ?: dwfl_module_getelf (dw.mod_info->mod, &bias));
+
+  if (have_kprobe())
+    {
+      convert_probe(new_base);
+      kprobe_found = true;
+      // Expand the local variables in the probe body
+      sdt_kprobe_var_expanding_visitor svv (module_val,
+					    provider_name,
+					    probe_name,
+					    arg_string,
+					    arg_count);
+      svv.replace (new_base->body);
+    }
+  else
+    {
+      /* Figure out the architecture of this particular ELF file.
+	 The dwarfless register-name mappings depend on it. */
+      GElf_Ehdr ehdr_mem;
+      GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
+      if (em == 0) { dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
+      int elf_machine = em->e_machine;
+      sdt_uprobe_var_expanding_visitor svv (sess, elf_machine,
+					    module_val,
+					    provider_name,
+					    probe_name,
+					    arg_string,
+					    arg_count);
+      svv.replace (new_base->body);
+      need_debug_info = svv.need_debug_info;
+    }
+
+  unsigned i = results.size();
+
+  if (have_kprobe())
+    derive_probes(sess, new_base, results);
+
+  else
+    {
+      // XXX: why not derive_probes() in the uprobes case too?
+      literal_map_t params;
+      for (unsigned i = 0; i < new_location->components.size(); ++i)
+	{
+	  probe_point::component *c = new_location->components[i];
+	  params[c->functor] = c->arg;
+	}
+
+      dwarf_query q(new_base, new_location, dw, params, results, "", "");
+      q.has_mark = true; // enables mid-statement probing
+
+      // V2 probes need dwarf info in case of a variable reference
+      if (have_debuginfo_uprobe(need_debug_info))
+	dw.iterate_over_modules(&query_module, &q);
+      else if (have_debuginfoless_uprobe())
+	{
+	  string section;
+	  Dwarf_Addr reloc_addr = q.statement_num_val + bias;
+	  if (dwfl_module_relocations (q.dw.mod_info->mod) > 0)
+	    {
+	      dwfl_module_relocate_address (q.dw.mod_info->mod, &reloc_addr);
+	      section = ".dynamic";
+	    }
+	  else
+	    section = ".absolute";
+
+	  uprobe_derived_probe* p =
+	    new uprobe_derived_probe ("", "", 0, q.module_val, section,
+				      q.statement_num_val, reloc_addr, q, 0);
+	  p->saveargs (arg_count);
+	  results.push_back (p);
+	}
+    }
+  record_semaphore(results, i);
+}
+
+
+void
 sdt_query::handle_query_module()
 {
   if (!init_probe_scn())
@@ -5086,117 +5204,7 @@ sdt_query::handle_query_module()
   if (sess.verbose > 3)
     clog << "TOK_MARK: " << pp_mark << " TOK_PROVIDER: " << pp_provider << endl;
 
-  while (get_next_probe())
-    {
-      if (! have_uprobe()
-	  && !probes_handled.insert(probe_name).second)
-        continue;
-
-      if (sess.verbose > 3)
-	{
-	  clog << "matched probe_name " << probe_name << " probe_type ";
-	  switch (probe_type)
-	    {
-	    case uprobe1_type:
-	      clog << "uprobe1 at 0x" << hex << pc << dec << endl;
-	      break;
-	    case uprobe2_type:
-	      clog << "uprobe2 at 0x" << hex << pc << dec << endl;
-	      break;
-	    case kprobe1_type:
-	      clog << "kprobe1" << endl;
-	      break;
-	    case kprobe2_type:
-	      clog << "kprobe2" << endl;
-	      break;
-	    }
-	}
-
-      // Extend the derivation chain
-      probe *new_base = convert_location();
-      probe_point *new_location = new_base->locations[0];
-
-      bool kprobe_found = false;
-      bool need_debug_info = false;
-      if (have_kprobe())
-        {
-          convert_probe(new_base);
-          kprobe_found = true;
-	  // Expand the local variables in the probe body
-	  sdt_kprobe_var_expanding_visitor svv (module_val,
-						provider_name,
-						probe_name,
-						arg_string,
-						arg_count);
-	  svv.replace (new_base->body);
-        }
-      else
-	{
-          /* Figure out the architecture of this particular ELF file.
-             The dwarfless register-name mappings depend on it. */
-          Dwarf_Addr bias;
-          Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw.mod_info->mod, &bias))
-                      ?: dwfl_module_getelf (dw.mod_info->mod, &bias));
-          GElf_Ehdr ehdr_mem;
-          GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
-          if (em == 0) { dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
-          int elf_machine = em->e_machine;
-	  sdt_uprobe_var_expanding_visitor svv (sess, elf_machine,
-                                                module_val,
-						provider_name,
-						probe_name,
-						arg_string,
-						arg_count);
-	  svv.replace (new_base->body);
-	  need_debug_info = svv.need_debug_info;
-	}
-      
-      unsigned i = results.size();
-
-      if (have_kprobe())
-        derive_probes(sess, new_base, results);
-
-      else
-        {
-          // XXX: why not derive_probes() in the uprobes case too?
-          literal_map_t params;
-          for (unsigned i = 0; i < new_location->components.size(); ++i)
-            {
-              probe_point::component *c = new_location->components[i];
-              params[c->functor] = c->arg;
-            }
-
-	  dwarf_query q(new_base, new_location, dw, params, results, "", "");
-	  q.has_mark = true; // enables mid-statement probing
-
-	  // V2 probes need dwarf info in case of a variable reference
-	  if (probe_type == uprobe1_type
-	      || (probe_type == uprobe2_type && need_debug_info))
-	    dw.iterate_over_modules(&query_module, &q);
-	  else if (probe_type == uprobe2_type)
-	    {
-	      Dwarf_Addr bias;
-	      string section;
-	      Elf* elf = dwfl_module_getelf (q.dw.mod_info->mod, &bias);
-	      assert(elf);
-	      Dwarf_Addr reloc_addr = q.statement_num_val + bias;
-	      if (dwfl_module_relocations (q.dw.mod_info->mod) > 0)
-	      	{
-	      	  dwfl_module_relocate_address (q.dw.mod_info->mod, &reloc_addr);
-	      	  section = ".dynamic";
-	      	}
-	      else
-	      	section = ".absolute";
-
-	      uprobe_derived_probe* p =
-		new uprobe_derived_probe ("", "", 0, q.module_val, section,
-					  q.statement_num_val, reloc_addr, q, 0);
-	      p->saveargs (arg_count);
-	      results.push_back (p);
-	    }
-        }
-      record_semaphore(results, i);
-    }
+  iterate_over_probe_entries ();
 }
 
 
@@ -5225,9 +5233,10 @@ sdt_query::init_probe_scn()
     return false;
 }
 
-bool
-sdt_query::get_next_probe()
+void
+sdt_query::iterate_over_probe_entries()
 {
+  // probes are in the .probe section
   while (probe_scn_offset < pdata->d_size)
     {
       stap_sdt_probe_entry_v1 *pbe_v1 = (stap_sdt_probe_entry_v1 *) ((char*)pdata->d_buf + probe_scn_offset);
@@ -5254,7 +5263,7 @@ sdt_query::get_next_probe()
       if (probe_type == uprobe1_type || probe_type == kprobe1_type)
 	{
 	  if (pbe_v1->name == 0) // No name possibly means we have a .so with a relocation
-	    return false;
+	    return;
 	  semaphore = 0;
 	  probe_name = (char*)((char*)pdata->d_buf + pbe_v1->name - (char*)probe_scn_addr);
           provider_name = ""; // unknown
@@ -5270,7 +5279,7 @@ sdt_query::get_next_probe()
       else if (probe_type == uprobe2_type || probe_type == kprobe2_type)
 	{
 	  if (pbe_v2->name == 0) // No name possibly means we have a .so with a relocation
-	    return false;
+	    return;
 	  semaphore = pbe_v2->semaphore;
 	  probe_name = (char*)((char*)pdata->d_buf + pbe_v2->name - (char*)probe_scn_addr);
 	  provider_name = (char*)((char*)pdata->d_buf + pbe_v2->provider - (char*)probe_scn_addr);
@@ -5288,11 +5297,10 @@ sdt_query::get_next_probe()
 
       if (dw.function_name_matches_pattern (probe_name, pp_mark)
           && ((pp_provider == "") || dw.function_name_matches_pattern (provider_name, pp_provider)))
-	return true;
+	handle_probe_entry ();
       else
 	continue;
     }
-  return false;
 }
 
 
@@ -5591,7 +5599,7 @@ dwarf_builder::build(systemtap_session & sess,
                   break;
                 }
             }
-          
+
           sess.print_warning ("cannot probe .return of " + lex_cast(i_n_r) + " inlined function(s):" + quicklist);
           // There will be also a "no matches" semantic error generated.
         }
@@ -6127,7 +6135,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
           s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
           s.op->line() << " },";
         }
-      else 
+      else
         ; // skip it in this pass, already have a suitable stap_uprobe_tf slot for it.
     }
   s.op->newline(-1) << "};";
@@ -6234,7 +6242,7 @@ uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   // Set up the task_finders
   s.op->newline() << "for (i=0; i<sizeof(stap_uprobe_finders)/sizeof(stap_uprobe_finders[0]); i++) {";
   s.op->newline(1) << "struct stap_uprobe_tf *stf = & stap_uprobe_finders[i];";
-  s.op->newline() << "probe_point = stf->pathname;"; // for error messages; XXX: would prefer pp() or something better 
+  s.op->newline() << "probe_point = stf->pathname;"; // for error messages; XXX: would prefer pp() or something better
   s.op->newline() << "rc = stap_register_task_finder_target (& stf->finder);";
 
   // NB: if (rc), there is no need (XXX: nor any way) to clean up any
@@ -6835,7 +6843,7 @@ kprobe_builder::build(systemtap_session & sess,
     path = find_executable (path);
   if (has_library)
     library = find_executable (library, "LD_LIBRARY_PATH");
- 
+
   if (has_function_str)
     {
       if (has_module_str)
@@ -6986,7 +6994,7 @@ void hwbkpt_derived_probe_group::enroll (hwbkpt_derived_probe* p, systemtap_sess
   else if (s.architecture == "s390")
     max_hwbkpt_probes_by_arch = 1;
 
-  if (hwbkpt_probes.size() >= max_hwbkpt_probes_by_arch) 
+  if (hwbkpt_probes.size() >= max_hwbkpt_probes_by_arch)
     if (! s.suppress_warnings)
       s.print_warning ("Too many hardware breakpoint probes requested for " + s.architecture
                        + "(" + lex_cast(hwbkpt_probes.size()) +
@@ -7104,7 +7112,7 @@ hwbkpt_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "hp->bp_type = sdp->atype;";
 
   // On x86 & x86-64, hp->bp_len is not just a number but a macro/enum (!?!).
-  if (s.architecture == "i386" || s.architecture == "x86_64" ) 
+  if (s.architecture == "i386" || s.architecture == "x86_64" )
     {
       s.op->newline() << "switch(sdp->len) {";
       s.op->newline() << "case 1:";
