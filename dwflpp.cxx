@@ -1,5 +1,5 @@
 // C++ interface to dwfl
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -973,6 +973,56 @@ dwflpp::iterate_over_globals (Dwarf_Die *cu_die,
   while (rc == DWARF_CB_OK && dwarf_siblingof(&die, &die) == 0);
 
   return rc;
+}
+
+
+/* For each notes section in the current module call 'callback', use
+ * 'data' for the notes buffer and pass 'object' back in case
+ * 'callback' is a method */
+
+int
+dwflpp::iterate_over_notes (void *object, void (*callback)(void *object, int type, const char *data, size_t len))
+{
+  Dwarf_Addr bias;
+  Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (module, &bias))
+              ?: dwfl_module_getelf (module, &bias));
+  size_t shstrndx;
+  if (elf_getshdrstrndx (elf, &shstrndx))
+    return elf_errno();
+
+  GElf_Addr base = -1;
+
+  Elf_Scn *scn = NULL;
+
+  vector<Dwarf_Die> notes;
+
+  while ((scn = elf_nextscn (elf, scn)) != NULL)
+    {
+      GElf_Shdr shdr;
+      if (gelf_getshdr (scn, &shdr) == NULL)
+	  continue;
+      switch (shdr.sh_type)
+	{
+	case SHT_NOTE:
+	  if (!(shdr.sh_flags & SHF_ALLOC))
+	    {
+	      if (base == (GElf_Addr) -1)
+		base = 0;
+
+	      Elf_Data *data = elf_getdata (scn, NULL);
+	      size_t next;
+	      GElf_Nhdr nhdr;
+	      size_t name_off;
+	      size_t desc_off;
+	      for (size_t offset = 0;
+		   (next = gelf_getnote (data, offset, &nhdr, &name_off, &desc_off)) > 0;
+		   offset = next)
+		(*callback) (object, nhdr.n_type, (const char*)((long)(data->d_buf) + (long)desc_off), nhdr.n_descsz);
+	    }
+	  break;
+	}
+    }
+  return 0;
 }
 
 
@@ -2953,6 +3003,64 @@ dwflpp::get_blacklist_section(Dwarf_Addr addr)
         }
     }
   return blacklist_section;
+}
+
+
+/* Find the section named 'section_name'  in the current module
+ * returning the section header using 'shdr_mem' */
+
+GElf_Shdr *
+dwflpp::get_section(string section_name, GElf_Shdr *shdr_mem)
+{
+  GElf_Shdr *shdr = NULL;
+  Elf* elf;
+  Dwarf_Addr bias;
+  size_t shstrndx;
+
+  // Explicitly look in the main elf file first.
+  elf = dwfl_module_getelf (module, &bias);
+  Elf_Scn *probe_scn = NULL;
+
+  dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
+
+  bool have_section = false;
+
+  while ((probe_scn = elf_nextscn (elf, probe_scn)))
+    {
+      shdr = gelf_getshdr (probe_scn, shdr_mem);
+      assert (shdr != NULL);
+
+      if (elf_strptr (elf, shstrndx, shdr->sh_name) == section_name)
+	{
+	  have_section = true;
+	  break;
+	}
+    }
+
+  // Older versions may put the section in the debuginfo dwarf file,
+  // so check if it actually exists, if not take a look in the debuginfo file
+  if (! have_section || (have_section && shdr->sh_type == SHT_NOBITS))
+    {
+      elf = dwarf_getelf (dwfl_module_getdwarf (module, &bias));
+      if (! elf)
+	return false;
+      dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
+      probe_scn = NULL;
+      while ((probe_scn = elf_nextscn (elf, probe_scn)))
+	{
+	  shdr = gelf_getshdr (probe_scn, shdr_mem);
+	  if (elf_strptr (elf, shstrndx, shdr->sh_name) == section_name)
+	    {
+	      have_section = true;
+	      break;
+	    }
+	}
+    }
+
+  if (!have_section)
+    return NULL;
+  else
+    return shdr;
 }
 
 

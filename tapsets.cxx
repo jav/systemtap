@@ -5203,65 +5203,26 @@ sdt_query::handle_query_module()
 bool
 sdt_query::init_probe_scn()
 {
-  Elf* elf;
   GElf_Shdr shdr_mem;
   GElf_Shdr *shdr = NULL;
-  Dwarf_Addr bias;
-  size_t shstrndx;
 
-  // Explicitly look in the main elf file first.
-  elf = dwfl_module_getelf (dw.module, &bias);
-  Elf_Scn *probe_scn = NULL;
-
-  dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
-
-  bool have_probes = false;
-
-  // Is there a .probes section?
-  while ((probe_scn = elf_nextscn (elf, probe_scn)))
+  shdr = dw.get_section (".probes", &shdr_mem);
+  if (shdr)
     {
-      shdr = gelf_getshdr (probe_scn, &shdr_mem);
-      assert (shdr != NULL);
-
-      if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".probes") == 0)
-	{
-	  have_probes = true;
-	  break;
-	}
+      Dwarf_Addr bias;
+      Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw.mod_info->mod, &bias))
+	      ?: dwfl_module_getelf (dw.mod_info->mod, &bias));
+      pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
+      probe_scn_offset = 0;
+      probe_scn_addr = shdr->sh_addr;
+      assert (pdata != NULL);
+      if (sess.verbose > 4)
+	clog << "got .probes elf scn_addr@0x" << probe_scn_addr << dec
+	     << ", size: " << pdata->d_size << endl;
+      return true;
     }
-
-  // Older versions put .probes section in the debuginfo dwarf file,
-  // so check if it actually exists, if not take a look in the debuginfo file
-  if (! have_probes || (have_probes && shdr->sh_type == SHT_NOBITS))
-    {
-      elf = dwarf_getelf (dwfl_module_getdwarf (dw.module, &bias));
-      if (! elf)
-	return false;
-      dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
-      probe_scn = NULL;
-      while ((probe_scn = elf_nextscn (elf, probe_scn)))
-	{
-	  shdr = gelf_getshdr (probe_scn, &shdr_mem);
-	  if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name),
-		      ".probes") == 0)
-	    {
-	      have_probes = true;
-	      break;
-	    }
-	}
-    }
-
-  if (!have_probes)
+  else
     return false;
-
-  pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
-  probe_scn_offset = 0;
-  probe_scn_addr = shdr->sh_addr;
-  assert (pdata != NULL);
-  if (sess.verbose > 4)
-    clog << "got .probes elf scn_addr@0x" << probe_scn_addr << dec
-	 << ", size: " << pdata->d_size << endl;
-  return true;
 }
 
 bool

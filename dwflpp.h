@@ -1,5 +1,5 @@
 // C++ interface to dwfl
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -244,6 +244,12 @@ struct dwflpp
                                               Dwarf_Die *,
                                               Dwarf_Addr,
                                               dwarf_query *));
+
+  int iterate_over_notes (void *object,
+			  void (*callback)(void *object, int type,
+					   const char *data, size_t len));
+
+  GElf_Shdr * get_section(std::string section_name, GElf_Shdr *shdr_mem);
 
   void collect_srcfiles_matching (std::string const & pattern,
                                   std::set<std::string> & filtered_srcfiles);
