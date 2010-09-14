@@ -1404,7 +1404,10 @@ void add_global_var_display (systemtap_session& s)
       if (l->index_types.size() == 0) // Scalar
 	{
 	  if (l->type == pe_stats)
-	    pf->raw_components += " @count=%#x @min=%#x @max=%#x @sum=%#x @avg=%#x\\n";
+	    if (strverscmp(s.compatible.c_str(), "1.4") >= 0)
+	      pf->raw_components += " @count=%#d @min=%#d @max=%#d @sum=%#d @avg=%#d\\n";
+	    	    else
+	      pf->raw_components += " @count=%#x @min=%#x @max=%#x @sum=%#x @avg=%#x\\n";
 	  else if (l->type == pe_string)
 	    pf->raw_components += "=\"%#s\"\\n";
 	  else
@@ -1507,7 +1510,10 @@ void add_global_var_display (systemtap_session& s)
 	    }
 	  pf->raw_components += "]";
 	  if (l->type == pe_stats)
-	    pf->raw_components += " @count=%#x @min=%#x @max=%#x @sum=%#x @avg=%#x\\n";
+	    if (strverscmp(s.compatible.c_str(), "1.4") >= 0)
+	      pf->raw_components += " @count=%#d @min=%#d @max=%#d @sum=%#d @avg=%#d\\n";
+	    else
+	      pf->raw_components += " @count=%#x @min=%#x @max=%#x @sum=%#x @avg=%#x\\n";
 	  else if (l->type == pe_string)
 	    pf->raw_components += "=\"%#s\"\\n";
 	  else
