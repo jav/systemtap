@@ -71,7 +71,7 @@ function run_tests \{
 /bin/rm -rf $pgdata
 $postgresdir/bin/initdb $pgdata
 
-which stap
+echo '$env(SYSTEMTAP_PATH)/stap -m \$(date +stapsdt_%j%k%M%N | sed 's/ //') -c \"$postgresdir/bin/postgres -D $pgdata\" $pgdata.stp >$pgdata-markers.log'
 $env(SYSTEMTAP_PATH)/stap -m \$(date +stapsdt_%j%k%M%N | sed 's/ //') -c \"$postgresdir/bin/postgres -D $pgdata\" $pgdata.stp >$pgdata-markers.log 2>&1 &
 STAPPID=\$!
 

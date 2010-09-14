@@ -4749,7 +4749,16 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       string percent_regnames;
       string regnames;
       vector<string> matches;
+      int precision = 0;
       int rc;
+
+      // Parse the leading length
+
+      if (asmarg.find('@') != string::npos)
+	{
+	  precision = lex_cast<int>(asmarg.substr(0, asmarg.find('@')));
+	  asmarg = asmarg.substr(asmarg.find('@')+1);
+	}
 
       // test for a numeric literal.
       // Only accept (signed) decimals throughout. XXX
@@ -4805,9 +4814,9 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
             }
           // invalid register name, fall through
         }
-      
+
       // test for OFFSET(REGISTER)
-      // NB: Despire PR11821, we can use regnames here, since the parentheses 
+      // NB: Despite PR11821, we can use regnames here, since the parentheses
       // make things unambiguous.
       rc = regexp_match (asmarg, string("^([-]?[0-9]*)[(](")+regnames+string(")[)]$"), matches);
       if (! rc)
@@ -4832,7 +4841,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
               if (dwarf_regs.find (regname) != dwarf_regs.end()) // known register
                 {
                   // synthesize user_long(%{fetch_register(R)%} + D)
-                  
+
                   embedded_expr *get_arg1 = new embedded_expr;
                   get_arg1->tok = e->tok;
                   get_arg1->code = string("/* unprivileged */ /* pure */")
@@ -4841,18 +4850,25 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
                        : string("k_fetch_register("))
                     + lex_cast(dwarf_regs[regname]) + string(")");
                   // XXX: may we ever need to cast that to a narrower type?
-                  
+
                   literal_number* inc = new literal_number(disp);
                   inc->tok = e->tok;
-                  
+
                   binary_expression *be = new binary_expression;
                   be->tok = e->tok;
                   be->left = get_arg1;
                   be->op = "+";
                   be->right = inc;
-                  
+
                   functioncall *fc = new functioncall;
-                  fc->function = "user_long";
+		  switch (precision)
+		    {
+		    case 4: case -4:
+		      fc->function = "user_int"; break;
+		    case 8: case -8:
+		      fc->function = "user_long"; break;
+		    default: fc->function = "user_long";
+		    }
                   fc->tok = e->tok;
                   fc->args.push_back(be);
                   
@@ -5023,6 +5039,7 @@ struct sdt_query : public base_query
 
 private:
   stap_sdt_probe_type probe_type;
+  enum {probe_section, note_section} probe_loc;
   probe * base_probe;
   probe_point * base_loc;
   literal_map_t const & params;
@@ -5036,6 +5053,7 @@ private:
   size_t probe_scn_offset;
   size_t probe_scn_addr;
   uint64_t arg_count;
+  GElf_Addr base;
   GElf_Addr pc;
   string arg_string;
   string probe_name;
@@ -5046,16 +5064,19 @@ private:
   void iterate_over_probe_entries();
   void handle_probe_entry();
 
+  static void setup_note_probe_entry_callback (void *object, int type, const char *data, size_t len);
+  void setup_note_probe_entry (int type, const char *data, size_t len);
+
   void convert_probe(probe *base);
   void record_semaphore(vector<derived_probe *> & results, unsigned start);
   probe* convert_location();
-  bool have_uprobe() {return probe_type == uprobe1_type || probe_type == uprobe2_type;}
+  bool have_uprobe() {return probe_type == uprobe1_type || probe_type == uprobe2_type || probe_type == uprobe3_type;}
   bool have_kprobe() {return probe_type == kprobe1_type || probe_type == kprobe2_type;}
   bool have_debuginfo_uprobe(bool need_debug_info)
   {return probe_type == uprobe1_type
-      || ((probe_type == uprobe2_type)
+      || ((probe_type == uprobe2_type || probe_type == uprobe3_type)
 	  && need_debug_info);}
-  bool have_debuginfoless_uprobe() {return probe_type == uprobe2_type;}
+  bool have_debuginfoless_uprobe() {return probe_type == uprobe2_type || probe_type == uprobe3_type;}
 };
 
 
@@ -5100,6 +5121,9 @@ sdt_query::handle_probe_entry()
 	  break;
 	case uprobe2_type:
 	  clog << "uprobe2 at 0x" << hex << pc << dec << endl;
+	  break;
+	case uprobe3_type:
+	  clog << "uprobe3 at 0x" << hex << pc << dec << endl;
 	  break;
 	case kprobe1_type:
 	  clog << "kprobe1" << endl;
@@ -5204,7 +5228,19 @@ sdt_query::handle_query_module()
   if (sess.verbose > 3)
     clog << "TOK_MARK: " << pp_mark << " TOK_PROVIDER: " << pp_provider << endl;
 
-  iterate_over_probe_entries ();
+  if (probe_loc == note_section)
+    {
+      GElf_Shdr shdr_mem;
+      GElf_Shdr *shdr = dw.get_section (".stapsdt.base", &shdr_mem);
+
+      if (shdr)
+	base = shdr->sh_addr;
+      else
+	base = 0;
+      dw.iterate_over_notes ((void*) this, &sdt_query::setup_note_probe_entry_callback);
+    }
+  else
+    iterate_over_probe_entries ();
 }
 
 
@@ -5212,7 +5248,13 @@ bool
 sdt_query::init_probe_scn()
 {
   GElf_Shdr shdr_mem;
-  GElf_Shdr *shdr = NULL;
+
+  GElf_Shdr *shdr = dw.get_section (".note.stapsdt", &shdr_mem);
+  if (shdr)
+    {
+      probe_loc = note_section;
+      return true;
+    }
 
   shdr = dw.get_section (".probes", &shdr_mem);
   if (shdr)
@@ -5227,11 +5269,110 @@ sdt_query::init_probe_scn()
       if (sess.verbose > 4)
 	clog << "got .probes elf scn_addr@0x" << probe_scn_addr << dec
 	     << ", size: " << pdata->d_size << endl;
+      probe_loc = probe_section;
       return true;
     }
   else
     return false;
 }
+
+void
+sdt_query::setup_note_probe_entry_callback (void *object, int type, const char *data, size_t len)
+{
+  sdt_query *me = (sdt_query*)object;
+  me->setup_note_probe_entry (type, data, len);
+}
+
+
+void
+sdt_query::setup_note_probe_entry (int type, const char *data, size_t len)
+{
+  //  if (nhdr.n_namesz == sizeof _SDT_NOTE_NAME
+  //      && !memcmp (data->d_buf + name_off,
+  //		  _SDT_NOTE_NAME, sizeof _SDT_NOTE_NAME))
+
+  // probes are in the .note.stapsdt section
+#define _SDT_NOTE_TYPE 3
+  if (type != _SDT_NOTE_TYPE)
+    return;
+
+  union
+  {
+    Elf64_Addr a64[3];
+    Elf32_Addr a32[3];
+  } buf;
+  Dwarf_Addr bias;
+  Elf* elf = (dwfl_module_getelf (dw.mod_info->mod, &bias));
+  Elf_Data dst =
+    {
+      &buf, ELF_T_ADDR, EV_CURRENT,
+      gelf_fsize (elf, ELF_T_ADDR, 3, EV_CURRENT), 0, 0
+    };
+  assert (dst.d_size <= sizeof buf);
+
+  if (len < dst.d_size + 3)
+    return;
+
+  Elf_Data src =
+    {
+      (void *) data, ELF_T_ADDR, EV_CURRENT,
+      dst.d_size, 0, 0
+    };
+
+  if (gelf_xlatetom (elf, &dst, &src,
+		      elf_getident (elf, NULL)[EI_DATA]) == NULL)
+    printf ("gelf_xlatetom: %s", elf_errmsg (-1));
+
+  probe_type = uprobe3_type;
+  const char * provider = data + dst.d_size;
+  provider_name = provider;
+  const char *name = (const char*)memchr (provider, '\0', data + len - provider);
+  probe_name = ++name;
+
+  // Did we find a matching probe?
+  if (! (dw.function_name_matches_pattern (probe_name, pp_mark)
+	 && ((pp_provider == "")
+	     || dw.function_name_matches_pattern (provider_name, pp_provider))))
+    return;
+
+  const char *args = (const char*)memchr (name, '\0', data + len - name);
+  if (args++ == NULL ||
+      memchr (args, '\0', data + len - name) != data + len - 1)
+    if (name == NULL)
+      return;
+  arg_string = args;
+
+  arg_count = 0;
+  for (unsigned i = 0; i < arg_string.length(); i++)
+    if (arg_string[i] == ' ')
+      arg_count += 1;
+  if (arg_string.length() != 0)
+    arg_count += 1;
+  
+  GElf_Addr base_ref;
+  if (gelf_getclass (elf) == ELFCLASS32)
+    {
+      pc = buf.a32[0];
+      base_ref = buf.a32[1];
+      semaphore = buf.a32[2];
+    }
+  else
+    {
+      pc = buf.a64[0];
+      base_ref = buf.a64[1];
+      semaphore = buf.a64[2];
+    }
+
+  semaphore += base - base_ref;
+  pc += base - base_ref;
+
+  if (sess.verbose > 4)
+    clog << "saw .note.stapsdt " << probe_name << (provider_name != "" ? " (provider "+provider_name+") " : "")
+	     << "@0x" << hex << pc << dec << endl;
+
+  handle_probe_entry();
+}
+
 
 void
 sdt_query::iterate_over_probe_entries()
@@ -5298,8 +5439,6 @@ sdt_query::iterate_over_probe_entries()
       if (dw.function_name_matches_pattern (probe_name, pp_mark)
           && ((pp_provider == "") || dw.function_name_matches_pattern (provider_name, pp_provider)))
 	handle_probe_entry ();
-      else
-	continue;
     }
 }
 
@@ -5321,7 +5460,8 @@ sdt_query::record_semaphore (vector<derived_probe *> & results, unsigned start)
       addr  = lookup_symbol_address(dw.module, semaphore.c_str());
     if (addr)
       {
-        if (dwfl_module_relocations (dw.module) > 0)
+        if (probe_type != uprobe3_type
+	    && dwfl_module_relocations (dw.module) > 0)
           dwfl_module_relocate_address (dw.module, &addr);
         // XXX: relocation basis?
         for (unsigned i = start; i < results.size(); ++i)
@@ -5446,13 +5586,16 @@ sdt_query::convert_location ()
               clog << "probe_type == uprobe2, use statement addr: 0x"
 		   << hex << pc << dec << endl;
             break;
-
-	  case kprobe1_type:
-	    clog << "probe_type == kprobe1" << endl;
-	    break;
-	  case kprobe2_type:
-	    clog << "probe_type == kprobe2" << endl;
-	    break;
+	    case uprobe3_type:
+              clog << "probe_type == uprobe3, use statement addr: 0x"
+		   << hex << pc << dec << endl;
+	      break;
+	    case kprobe1_type:
+	      clog << "probe_type == kprobe1" << endl;
+	      break;
+	    case kprobe2_type:
+	      clog << "probe_type == kprobe2" << endl;
+	      break;
 	    default:
               clog << "probe_type == use_uprobe_no_dwarf, use label name: "
 		   << "_stapprobe1_" << pp_mark << endl;
@@ -5462,6 +5605,7 @@ sdt_query::convert_location ()
           {
           case uprobe1_type:
           case uprobe2_type:
+          case uprobe3_type:
             // process("executable").statement(probe_arg)
             derived_loc->components[i] =
               new probe_point::component(TOK_STATEMENT,
