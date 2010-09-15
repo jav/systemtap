@@ -7,18 +7,23 @@
 # to provide a reason for that that sleep. The script needs to be run with the
 # '--all-modules' option to map the backtrace addresses to function names
 # and the function names back to reasons.
+#
+# stap --all-modules latencytap.stp
 
 global priority, reason;
 global traced_pid, sleep_time, dequeue;
 global this_sleep;
+global debug = 0;
 
 function log_event:long (p:long) { return (!traced_pid || traced_pid == p) }
 
-#print series of func names from hex addresses
-function print_func_backtrace (ips:string)
+#func names from hex addresses
+function func_backtrace:string (ips:string)
 {
+  ret = "";
   for (ip=tokenize(ips, " "); ip!=""; ip=tokenize("", " "))
-     printf("%s ", symname(strtol(ip,16)));
+     ret = ret . symname(strtol(ip,16)) . " ";
+  return ret;
 }
 
 # pick out a reason based on the backtrace function names
@@ -26,7 +31,7 @@ function translate:string (bt:string)
 {
   ip=tokenize(bt, " ");
   func = symname(strtol(ip,16))
-  pri = 1; rea="[" . func . "]";
+  pri = 1; rea="";
   while (ip!="") {
     p = priority[func]
     if (p >= pri) {
@@ -79,19 +84,39 @@ probe scheduler.cpu_on {
    }
 }
 
-function report_latencies() {
-  foreach ([backtrace] in sleep_time- limit 20) {
-    printf("%d %d %d ", @count(sleep_time[backtrace]),
-           @sum(sleep_time[backtrace]),
-           @max(sleep_time[backtrace]))
-#    print_func_backtrace(backtrace)
-    printf("%s", translate (backtrace));
-    printf("\n")
+global sort_latencies;
+
+function global_report_latencies() {
+  total = 0
+
+  foreach ([backtrace] in sleep_time) {
+    val = @sum(sleep_time[backtrace]);
+    sort_latencies[backtrace] = val;
+    total += val;
   }
+
+  ansi_clear_screen();
+  printf("%-32s %12s %12s %12s %7s%%\n",
+    "Reason", "Count", "Average(us)", "Maximum(us)", "Percent");
+  foreach ([backtrace] in sort_latencies- limit 20) {
+    #print reason count average max percentage
+    cause = translate (backtrace);
+    # if can't find reason print out a backtrace
+    if (cause == "" && debug)
+      printf("%s\n", func_backtrace(backtrace));
+    printf("%-32s ", cause);
+    p = (@sum(sleep_time[backtrace])*100)/total;
+    printf("%12d %12d %12d %7d%%\n",
+    	   @count(sleep_time[backtrace]),
+           @avg(sleep_time[backtrace]),
+           @max(sleep_time[backtrace]),
+	   p);
+  }
+  delete sort_latencies;
 }
 
 probe timer.s(30) {
-  report_latencies()
+  global_report_latencies()
   delete sleep_time
 }
 
