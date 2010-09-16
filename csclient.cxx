@@ -491,7 +491,7 @@ compile_server_client::find_and_connect_to_server ()
   // Ignore the empty first entry.
   assert (! server_list.empty ());
   assert (server_list[0].host_name.empty ());
-  server_list.erase (server_list.begin (), server_list.begin ());
+  server_list.erase (server_list.begin ());
 
   // Did we identify any potential servers?
   unsigned limit = server_list.size ();
@@ -515,8 +515,7 @@ compile_server_client::find_and_connect_to_server ()
 	}
     }
 
-  cerr << "Unable to connect to a server" << endl;
-  return 1; // Failure
+  return 1; // Failure - message already generated.
 }
 
 // Temporary until the stap-client-connect program goes away.
@@ -541,15 +540,20 @@ compile_server_client::compile_using_server (const compile_server_info &server)
   s.NSPR_init ();
 
   // Attempt connection using each of the available client certificate
-  // databases.
+  // databases. Assume the server certificate is invalid until proven otherwise.
+  PR_SetError (SEC_ERROR_CA_CERT_INVALID, 0);
   vector<string> dbs = private_ssl_dbs;
   vector<string>::iterator i = dbs.end();
   dbs.insert (i, public_ssl_dbs.begin (), public_ssl_dbs.end ());
   int rc = 1; // assume failure
   for (i = dbs.begin (); i != dbs.end (); ++i)
     {
-      const char *cert_dir = i->c_str ();
+      // Make sure the database directory exists. It is not an error if it
+      // doesn't.
+      if (! file_exists (*i))
+	continue;
 
+      const char *cert_dir = i->c_str ();
       if (s.verbose > 1)
 	clog << "Attempting SSL connection with " << server << endl
 	     << "  using certificates from the database in " << cert_dir
@@ -585,8 +589,14 @@ compile_server_client::compile_using_server (const compile_server_info &server)
  
       NSS_Shutdown();
 
-      if (rc == 0)
+      if (rc == SECSuccess)
 	break; // Success!
+    }
+
+  if (rc != SECSuccess)
+    {
+      cerr << "Unable to connect to a server: ";
+      nssError ();
     }
 
   return rc;
@@ -1368,17 +1378,23 @@ revoke_server_trust (
 	      continue;
 	    }
 
-	  // We're interested in the first alternate name.
-	  assert (nameList->type == certDNSName);
-	  string host_name = string ((const char *)nameList->name.other.data,
-				     nameList->name.other.len);
-	  // Don't free nameList. It's part of the tmpArena.
-
-	  // Now finally compare the host names.
-	  if (host_name != server->host_name)
+	  // Match any one of the alt names in the extension.
+	  do
 	    {
-	      cerr << "Host name '" << host_name
-		   << "' on certificate does not match the host name '"
+	      assert (nameList->type == certDNSName);
+	      string host_name = string ((const char *)nameList->name.other.data,
+					 nameList->name.other.len);
+	      if (host_name == server->host_name)
+		break;
+	      nameList = CERT_GetNextGeneralName (nameList);
+	    }
+	  while (nameList);
+	  // Don't need to free nameList. It's part of the tmpArena.
+
+	  // Did we find a match?
+	  if (! nameList)
+	    {
+	      cerr << "Host name on certificate does not match the host name '"
 		   << server->host_name << "' of the server"
 		   << endl;
 	      continue;

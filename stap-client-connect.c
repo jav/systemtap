@@ -50,6 +50,9 @@ Usage(const char *progName)
 }
 #endif
 
+#if STAP /* temporary until stap-client-connect program goes away*/
+#define exitErr(errorStr, rc) return (rc)
+#else
 static void
 exitErr(const char* errorStr, int rc)
 {
@@ -61,6 +64,7 @@ exitErr(const char* errorStr, int rc)
   PR_Cleanup();
   exit(rc);
 }
+#endif
 
 /* Add the server's certificate to our database of trusted servers.  */
 static SECStatus
@@ -429,7 +433,7 @@ client_main (const char *hostName, unsigned short port,
     {
       secStatus = do_connect (&addr, hostName, port, infileName, outfileName);
       if (secStatus == SECSuccess)
-	return 0;
+	return secStatus;
 
       errorNumber = PR_GetError ();
       switch (errorNumber)
@@ -458,7 +462,7 @@ client_main (const char *hostName, unsigned short port,
  failed:
   /* Unrecoverable error */
   exitErr("Unable to connect to server", errCode);
-  return 1;
+  return errCode;
 }
 
 #if 0 /* No client authorization */
