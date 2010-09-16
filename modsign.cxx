@@ -288,7 +288,7 @@ main(int argc, char **argv)
 	  return 1;
 	}
       }
-      cert_db_path = string (stap_dir) + "/.systemtap";
+      cert_db_path = string (stap_dir) + "/.systemtap/ssl/server";
     }
     else
       cert_db_path = string (stap_dir) + "/ssl/server";
