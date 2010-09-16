@@ -147,6 +147,9 @@ probe begin {
   priority["lock_super"] = 1;
   reason["lock_super"] = "Superblock lock contention";
 
+  priority["bdi_sync_supers"] = 1;
+  reason["bdi_sync_supers"] = "Sync superblock";
+
   priority["vfs_create"] = 1;
   reason["vfs_create"] = "Creating a file";
 
@@ -186,6 +189,12 @@ probe begin {
   priority["ksoftirqd"] = 2;
   reason["ksoftirqd"] = "Waking ksoftirqd";
 
+  priority["run_ksoftirqd"] = 2;
+  reason["run_ksoftirqd"] = "Waking ksoftirqd";
+
+  priority["migration_thread"] = 2;
+  reason["migration_thread"] = "migration() kernel thread";
+
   priority["do_unlinkat"] = 2;
   reason["do_unlinkat"] = "Unlinking file";
 
@@ -197,6 +206,21 @@ probe begin {
 
   priority["kjournald"] = 2;
   reason["kjournald"] = "kjournald() kernel thread";
+
+  priority["kjournald2"] = 2;
+  reason["kjournald2"] = "jdb2() kernel thread";
+
+  priority["bdi_writeback_task"] = 2;
+  reason["bdi_writeback_task"] = "Flush data to backing device";
+
+  priority["bdi_writeback_thread"] = 2;
+  reason["bdi_writeback_thread"] = "Flush data to backing dev";
+
+  priority["bdi_forker_task"] = 2;
+  reason["bdi_forker_task"] = "bdi-* kernel thread";
+
+  priority["dm_wait_for_completion"] = 2;
+  reason["dm_wait_for_completion"] = "Waiting for device mapper ops";
 
   priority["blkdev_ioctl"] = 2;
   reason["blkdev_ioctl"] = "block device IOCTL";
@@ -218,6 +242,9 @@ probe begin {
 
   priority["usb_autoresume_device"] = 2;
   reason["usb_autoresume_device"] = "Waking up USB device";
+
+  priority["khugepaged"] = 2;
+  reason["khugepaged"] = "khugepaged() kernel thread";
 
   priority["kswapd"] = 2;
   reason["kswapd"] = "kswapd() kernel thread";
@@ -467,6 +494,9 @@ probe begin {
 
   priority["ata_scsi_ioctl"] = 3;
   reason["ata_scsi_ioctl"] = "ATA/SCSI disk ioctl";
+
+  priority["kvm_vcpu_ioctl"] = 3;
+  reason["kvm_vcpu_ioctl"] = "KVM ioctl";
 
   priority["do_rmdir"] = 3;
   reason["do_rmdir"] = "Removing directory";
