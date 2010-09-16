@@ -265,8 +265,11 @@ c_translate_constant (struct obstack *pool,
 			     indent, attr);
 }
 
+#if _ELFUTILS_PREREQ (0, 149)
 static struct location *location_from_attr (struct location_context *ctx,
 					    int indent, Dwarf_Attribute *attr);
+#endif
+
 
 /* Synthesize a new loc_address using the program on the obstack.  */
 static struct location *
@@ -956,6 +959,7 @@ location_from_address (struct location_context *ctx, int indent,
   return loc;
 }
 
+#if _ELFUTILS_PREREQ (0, 149)
 static struct location *
 location_from_attr (struct location_context *ctx, int indent,
 		    Dwarf_Attribute *attr)
@@ -983,6 +987,7 @@ location_from_attr (struct location_context *ctx, int indent,
   struct location *input = NULL;
   return location_from_address (ctx, indent, expr, len, &input);
 }
+#endif
 
 static struct location *
 translate_offset (int indent, const Dwarf_Op *expr, size_t len, size_t i,
