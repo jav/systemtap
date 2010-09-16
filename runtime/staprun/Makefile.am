@@ -3,6 +3,7 @@
 AM_CPPFLAGS = -D_GNU_SOURCE
 AM_CFLAGS = -Wall -Werror -Wunused -W -Wformat=2 -Wno-format-nonliteral
 AM_CPPFLAGS += -I$(srcdir)/../../includes
+AM_CPPFLAGS += -I$(builddir)/../../includes/sys
 AM_CPPFLAGS += -DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 
 AM_CFLAGS += @PIECFLAGS@
