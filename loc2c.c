@@ -24,6 +24,7 @@
 
 #if !_ELFUTILS_PREREQ (0,142)
 #define DW_TAG_rvalue_reference_type	0x42
+#define DW_AT_data_bit_offset           0x6b
 #define DW_OP_implicit_value		0x9e
 #define DW_OP_stack_value		0x9f
 #endif
