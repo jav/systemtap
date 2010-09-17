@@ -41,24 +41,16 @@ extern "C" {
 
 using namespace std;
 
-static void uniq_list(list<string>& l)
+static void
+uniq_list(list<string>& l)
 {
-	list<string> r;
-	set<string> s;
-
-	for (list<string>::iterator i = l.begin(); i != l.end(); ++i) {
-		s.insert(*i);
-	}
-
-	for (list<string>::iterator i = l.begin(); i != l.end(); ++i) {
-		if (s.find(*i) != s.end()) {
-			s.erase(*i);
-			r.push_back(*i);
-		}
-	}
-
-	l.clear();
-	l.assign(r.begin(), r.end());
+  set<string> s;
+  list<string>::iterator i = l.begin();
+  while (i != l.end())
+    if (s.insert(*i).second)
+      ++i;
+    else
+      i = l.erase(i);
 }
 
 static void
