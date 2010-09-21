@@ -40,10 +40,10 @@
 # define _SDT_ASM_ARGS(n)		_SDT_ASM_STRING(_SDT_ASM_TEMPLATE_##n)
 # define _SDT_ASM_STRING_1(x)		_SDT_ASM_1(.asciz #x)
 
-# define _SDT_ARGFMT(n)			%c[_SDT_S##n]@_SDT_ARGTMPL(_SDT_A##n)
+# define _SDT_ARGFMT(n)			%n[_SDT_S##n]@_SDT_ARGTMPL(_SDT_A##n)
 # define _SDT_ARG(n, x)			\
   [_SDT_S##n] "n" (((__typeof((x) + 0)) -1L > (__typeof((x) + 0)) 0	\
-		    ? 1 : -1)						\
+		    ? -1 : 1)						\
 		   * (int) sizeof ((x) + 0)),				\
   [_SDT_A##n] "nor" ((x) + 0)
 #endif
@@ -61,7 +61,12 @@
 # define _SDT_ASM_ADDR	.4byte
 #endif
 
+/* The ia64 and s390 nop instructions take an argument. */
+#if defined(__ia64__) || defined(__s390__) || defined(__s390x__)
+#define _SDT_NOP	nop 0
+#else
 #define _SDT_NOP	nop
+#endif
 
 #define _SDT_NOTE_NAME	"stapsdt"
 #define _SDT_NOTE_TYPE	3
