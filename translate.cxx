@@ -975,14 +975,13 @@ c_unparser::emit_common_header ()
 
       // NB: see c_unparser::emit_probe() for original copy of duplicate-hashing logic.
       ostringstream oss;
-      oss << "c->statp = & time_" << dp->basest()->name << ";" << endl;  // -t anti-dupe
+      oss << "c->statp = & time_" << dp->name << ";" << endl;  // -t anti-dupe
       oss << "# needs_global_locks: " << dp->needs_global_locks () << endl;
       dp->print_dupe_stamp (oss);
       dp->body->print(oss);
       // NB: dependent probe conditions *could* be listed here, but don't need to be.
       // That's because they're only dependent on the probe body, which is already
       // "hashed" in above.
-
 
       if (tmp_probe_contents.count(oss.str()) == 0) // unique
         {
@@ -1268,17 +1267,13 @@ c_unparser::emit_module_init ()
 
   // initialize each Stat used for timing information
   o->newline() << "#ifdef STP_TIMING";
-  set<string> basest_names;
   for (unsigned i=0; i<session->probes.size(); i++)
     {
-      string nm = session->probes[i]->basest()->name;
-      if (basest_names.find(nm) == basest_names.end())
-        {
+      string nm = session->probes[i]->name;
+
           o->newline() << "time_" << nm << " = _stp_stat_init (HIST_NONE);";
           // NB: we don't check for null return here, but instead at
           // passage to probe handlers and at final printing.
-          basest_names.insert (nm);
-        }
     }
   o->newline() << "#endif";
 
@@ -1441,26 +1436,29 @@ c_unparser::emit_module_exit ()
   o->newline(-1) << "}";
   o->newline(-1) << "}";
 
-  // print probe timing statistics
+  // print per probe point timing statistics
   {
     o->newline() << "#ifdef STP_TIMING";
     o->newline() << "{";
     o->indent(1);
-    set<string> basest_names;
+    o->newline() << "_stp_printf(\"----- probe hit report: \\n\");";
     for (unsigned i=0; i<session->probes.size(); i++)
       {
-        const probe* p = session->probes[i]->basest();
+        vector<probe*> reference_point;
+        const probe* p = session->probes[i];
         const string &nm = p->name;
-        if (basest_names.find(nm) == basest_names.end())
-          {
-            basest_names.insert (nm);
+        string::iterator it;
+        string call = session->probes[i]->sole_location()->str();
+        it = call.end()-1;
+        if(*it=='?')
+        	call.erase(it);
+        //checking and erasing any trailing '?'
+        session->probes[i]->collect_derivation_chain(reference_point);
             // NB: check for null stat object
             o->newline() << "if (likely (time_" << nm << ")) {";
             o->newline(1) << "const char *probe_point = "
-                         << lex_cast_qstring (* p->locations[0])
-                         << (p->locations.size() > 1 ? "\"+\"" : "")
-                         << (p->locations.size() > 1 ? lex_cast_qstring(p->locations.size()-1) : "")
-                         << ";";
+            		     << lex_cast_qstring(call)
+            		     << ";";
             o->newline() << "const char *decl_location = "
                          << lex_cast_qstring (p->tok->location)
                          << ";";
@@ -1468,13 +1466,24 @@ c_unparser::emit_module_exit ()
                          << nm
                          << ", 0);";
             o->newline() << "if (stats->count) {";
-            o->newline(1) << "int64_t avg = _stp_div64 (NULL, stats->sum, stats->count);";
-            o->newline() << "_stp_printf (\"probe %s (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax\\n\",";
+            o->newline(1) << "int64_t avg = _stp_div64 (NULL, stats->sum, stats->count);";;
+            o->newline() << "_stp_printf (\"%s, (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax,\",";
             o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
+            for(unsigned int j=0;j<reference_point.size()-1;++j){
+            	string::iterator it1;
+            	string call_derivation = reference_point[j+1]->locations[0]->str();
+            	it1 = call_derivation.end()-1;
+            	if(*it1=='?')
+            		call_derivation.erase(it1);
+            	//checking for ? again
+            	o->newline() << "_stp_printf(\" from: \");";
+            	o->newline() << "_stp_printf(";
+            	o->line() << lex_cast_qstring(call_derivation) << ");";
+            }
+            o->newline()    << "_stp_printf(\" \\n\");";
             o->newline(-1) << "}";
             o->newline() << "_stp_stat_del (time_" << nm << ");";
             o->newline(-1) << "}";
-          }
       }
     o->newline() << "_stp_print_flush();";
     o->newline(-1) << "}";
@@ -1636,7 +1645,8 @@ c_unparser::emit_probe (derived_probe* v)
   // NB: This code *could* be enclosed in an "if (session->timing)".  That would
   // recognize more duplicate probe handlers, but then the generated code could
   // be very different with or without -t.
-  oss << "c->statp = & time_" << v->basest()->name << ";" << endl;
+
+  oss << "c->statp = & time_ " << v->name << ";" << endl;
 
   v->print_dupe_stamp (oss);
   v->body->print(oss);
@@ -1686,7 +1696,7 @@ c_unparser::emit_probe (derived_probe* v)
 
       o->newline();
       o->newline() << "#ifdef STP_TIMING";
-      o->newline() << "static __cacheline_aligned Stat " << "time_" << v->basest()->name << ";";
+      o->newline() << "static __cacheline_aligned Stat " << "time_" << v->name << ";";
       o->newline() << "#endif";
       o->newline();
       o->newline() << "static void " << v->name << " (struct context * __restrict__ c) ";
@@ -1714,7 +1724,7 @@ c_unparser::emit_probe (derived_probe* v)
       v->emit_unprivileged_assertion (o);
 
       o->newline() << "#ifdef STP_TIMING";
-      o->newline() << "c->statp = & time_" << v->basest()->name << ";";
+      o->newline() << "c->statp = & time_" << v->name << ";";
       o->newline() << "#endif";
 
       // emit probe local initialization block
@@ -5813,7 +5823,7 @@ translate_pass (systemtap_session& s)
 	  s.op->newline() << "#define STP_BULKMODE";
 
       if (s.timing)
-	s.op->newline() << "#define STP_TIMING";
+      s.op->newline() << "#define STP_TIMING";
 
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#include \"stack.c\"";

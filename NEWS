@@ -1,4 +1,6 @@
 * What's new in version 1.4
+- The -t option now displays information per probe-point rather than a summary
+  for each probe.  It also now shows the derivation chain for each probe-point.
 
 - The implementation of the integrated compile-server client has been
   extended.
