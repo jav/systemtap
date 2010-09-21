@@ -990,7 +990,7 @@ dwflpp::iterate_over_notes (void *object, void (*callback)(void *object, int typ
   if (elf_getshdrstrndx (elf, &shstrndx))
     return elf_errno();
 
-  GElf_Addr base = -1;
+  GElf_Addr base = (GElf_Addr) -1;
 
   Elf_Scn *scn = NULL;
 
