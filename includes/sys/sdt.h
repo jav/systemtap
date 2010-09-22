@@ -40,10 +40,10 @@
 # define _SDT_ASM_ARGS(n)		_SDT_ASM_STRING(_SDT_ASM_TEMPLATE_##n)
 # define _SDT_ASM_STRING_1(x)		_SDT_ASM_1(.asciz #x)
 
-# define _SDT_ARGFMT(n)			%n[_SDT_S##n]@_SDT_ARGTMPL(_SDT_A##n)
+# define _SDT_ARGFMT(n)			%c[_SDT_S##n]@_SDT_ARGTMPL(_SDT_A##n)
 # define _SDT_ARG(n, x)			\
   [_SDT_S##n] "n" (((__typeof((x) + 0)) -1L > (__typeof((x) + 0)) 0	\
-		    ? -1 : 1)						\
+		    ? 1 : -1)						\
 		   * (int) sizeof ((x) + 0)),				\
   [_SDT_A##n] "nor" ((x) + 0)
 #endif

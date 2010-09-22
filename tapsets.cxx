@@ -4611,12 +4611,10 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
                                    const string & process_name,
 				   const string & provider_name,
 				   const string & probe_name,
-				   int probe_loc,
 				   const string & arg_string,
 				   int ac):
-    session (s), process_name (process_name),
-    provider_name (provider_name), probe_name (probe_name),
-    probe_loc ((probe_loc_t)probe_loc), arg_count ((unsigned) ac)
+    session (s), elf_machine (elf_machine), process_name (process_name),
+    provider_name (provider_name), probe_name (probe_name), arg_count ((unsigned) ac)
   {
     /* Register name mapping table depends on the elf machine of this particular
        probe target process/file, not upon the host.  So we can't just
@@ -4682,11 +4680,10 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   }
 
   systemtap_session& session;
+  int elf_machine;
   const string & process_name;
   const string & provider_name;
   const string & probe_name;
-  typedef enum {probe_section=0, note_section=1} probe_loc_t;
-  probe_loc_t probe_loc;
   unsigned arg_count;
   vector<string> arg_tokens;
   map<string,int> dwarf_regs;
@@ -4802,12 +4799,10 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
       // test for REGISTER
       // NB: Because PR11821, we must use percent_regnames here.
-      if (probe_loc == probe_section)
-	rc = regexp_match (asmarg, string("^(")+percent_regnames+string(")$"), matches);
-      else if (probe_loc == note_section)
+      if (elf_machine == EM_PPC || elf_machine == EM_PPC64)
 	rc = regexp_match (asmarg, string("^(")+regnames+string(")$"), matches);
       else
-	rc = 1;
+	rc = regexp_match (asmarg, string("^(")+percent_regnames+string(")$"), matches);
       if (! rc)
         {
           string regname = matches[1];
@@ -5182,7 +5177,6 @@ sdt_query::handle_probe_entry()
 					    module_val,
 					    provider_name,
 					    probe_name,
-					    probe_loc,
 					    arg_string,
 					    arg_count);
       svv.replace (new_base->body);
