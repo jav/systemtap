@@ -9,20 +9,19 @@ set test "sdt_misc"
 # 6. Test .mark probe wildcard matching
 # 7. Test types defined in sdt_misc_.d.  This requires -g
 
-set v_flags {{-DSTAP_SDT_V2} {-DSTAP_SDT_V2} {-DSTAP_SDT_V1} {-DSTAP_SDT_V3}}
-set pbtype_mssgs {{V2_uprobe} {V2_kprobe} {V1_uprobe} {V3_uprobe}}
-set pbtype_flags {{}}
+set v_flags {{-DSTAP_SDT_V1} {-DSTAP_SDT_V2} {-DSTAP_SDT_V2}  {-DSTAP_SDT_V3}}
+set pbtype_mssgs {{V1_uprobe} {V2_kprobe} {V2_uprobe} {V3_uprobe}}
+set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
 switch -regexp $::tcl_platform(machine) {
     ^(x86_64|i.86)$ {
+	lappend pbtype_flags {}
 	lappend pbtype_flags {}
     }
     default {
 	lappend pbtype_flags {additional_flags=-g}
+	lappend pbtype_flags {additional_flags=-g}
     }
 }
-lappend pbtype_flags {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}
-lappend pbtype_flags {additional_flags=-g}
-lappend pbtype_flags {}
 
 proc cleanup_handler { verbose } {
     global pbtype_mssgs

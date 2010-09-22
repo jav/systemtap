@@ -4611,10 +4611,12 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
                                    const string & process_name,
 				   const string & provider_name,
 				   const string & probe_name,
+				   int probe_loc,
 				   const string & arg_string,
 				   int ac):
     session (s), process_name (process_name),
-    provider_name (provider_name), probe_name (probe_name), arg_count ((unsigned) ac)
+    provider_name (provider_name), probe_name (probe_name),
+    probe_loc ((probe_loc_t)probe_loc), arg_count ((unsigned) ac)
   {
     /* Register name mapping table depends on the elf machine of this particular
        probe target process/file, not upon the host.  So we can't just
@@ -4683,6 +4685,8 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   const string & process_name;
   const string & provider_name;
   const string & probe_name;
+  typedef enum {probe_section=0, note_section=1} probe_loc_t;
+  probe_loc_t probe_loc;
   unsigned arg_count;
   vector<string> arg_tokens;
   map<string,int> dwarf_regs;
@@ -4772,7 +4776,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       // anyway.  With -mregnames, we could, if gcc somehow
       // communicated to us the presence of that option, but alas it
       // doesn't.  http://gcc.gnu.org/PR44995.
-      rc = regexp_match (asmarg, "^\\$[-]?[0-9][0-9]*$", matches);
+      rc = regexp_match (asmarg, "^[i\\$][-]?[0-9][0-9]*$", matches);
       if (! rc)
         {
 	  literal_number* ln = new literal_number(lex_cast<int>(matches[0].substr(1))); // assume decimal
@@ -4798,7 +4802,12 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
       // test for REGISTER
       // NB: Because PR11821, we must use percent_regnames here.
-      rc = regexp_match (asmarg, string("^(")+percent_regnames+string(")$"), matches);
+      if (probe_loc == probe_section)
+	rc = regexp_match (asmarg, string("^(")+percent_regnames+string(")$"), matches);
+      else if (probe_loc == note_section)
+	rc = regexp_match (asmarg, string("^(")+regnames+string(")$"), matches);
+      else
+	rc = 1;
       if (! rc)
         {
           string regname = matches[1];
@@ -5042,7 +5051,7 @@ struct sdt_query : public base_query
 
 private:
   stap_sdt_probe_type probe_type;
-  enum {probe_section, note_section} probe_loc;
+  enum {probe_section=0, note_section=1} probe_loc;
   probe * base_probe;
   probe_point * base_loc;
   literal_map_t const & params;
@@ -5173,6 +5182,7 @@ sdt_query::handle_probe_entry()
 					    module_val,
 					    provider_name,
 					    probe_name,
+					    probe_loc,
 					    arg_string,
 					    arg_count);
       svv.replace (new_base->body);
