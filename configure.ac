@@ -65,6 +65,20 @@ AS_IF([test "x$enable_ssp" != xno],[
        CFLAGS="$save_CFLAGS"
        CXXFLAGS="$save_CXXFLAGS"])])
 
+
+dnl Link with gold if possible
+dnl but: https://bugzilla.redhat.com/show_bug.cgi?id=636603
+dnl
+dnl AC_PATH_PROG(GOLD, [ld.gold], [no])
+dnl if test "x$GOLD" != "xno"
+dnl then
+dnl   mkdir -p Bdir
+dnl   ln -sf $GOLD Bdir/ld
+dnl   LDFLAGS="$LDFLAGS -B`pwd`/Bdir/"
+dnl   AC_MSG_NOTICE([using ld.gold to link])
+dnl fi
+
+
 # Compiling without fPIE by default (see PR 9922)
 AC_ARG_ENABLE([pie],
   [AS_HELP_STRING([--enable-pie], [enable position-independent-executable])])
@@ -436,6 +450,7 @@ fi
 
 AC_SUBST(stap_LIBS)
 AC_MSG_NOTICE([stap will link $stap_LIBS])
+
 
 dnl Plop in the build (configure) date
 date=`date +%Y-%m-%d`

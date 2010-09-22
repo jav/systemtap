@@ -5680,6 +5680,9 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
 
+
+
+
 # Compiling without fPIE by default (see PR 9922)
 # Check whether --enable-pie was given.
 if test "${enable_pie+set}" = set; then :
@@ -7364,6 +7367,7 @@ fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: stap will link $stap_LIBS" >&5
 $as_echo "$as_me: stap will link $stap_LIBS" >&6;}
+
 
 date=`date +%Y-%m-%d`
 
