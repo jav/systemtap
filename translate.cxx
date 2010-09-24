@@ -1451,39 +1451,41 @@ c_unparser::emit_module_exit ()
         string call = session->probes[i]->sole_location()->str();
         it = call.end()-1;
         if(*it=='?')
-        	call.erase(it);
+          call.erase(it);
         //checking and erasing any trailing '?'
         session->probes[i]->collect_derivation_chain(reference_point);
-            // NB: check for null stat object
-            o->newline() << "if (likely (time_" << nm << ")) {";
-            o->newline(1) << "const char *probe_point = "
-            		     << lex_cast_qstring(call)
-            		     << ";";
-            o->newline() << "const char *decl_location = "
-                         << lex_cast_qstring (p->tok->location)
-                         << ";";
-            o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
-                         << nm
-                         << ", 0);";
-            o->newline() << "if (stats->count) {";
-            o->newline(1) << "int64_t avg = _stp_div64 (NULL, stats->sum, stats->count);";;
-            o->newline() << "_stp_printf (\"%s, (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax,\",";
-            o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
-            for(unsigned int j=0;j<reference_point.size()-1;++j){
-            	string::iterator it1;
-            	string call_derivation = reference_point[j+1]->locations[0]->str();
-            	it1 = call_derivation.end()-1;
-            	if(*it1=='?')
-            		call_derivation.erase(it1);
-            	//checking for ? again
-            	o->newline() << "_stp_printf(\" from: \");";
-            	o->newline() << "_stp_printf(";
-            	o->line() << lex_cast_qstring(call_derivation) << ");";
-            }
-            o->newline()    << "_stp_printf(\" \\n\");";
-            o->newline(-1) << "}";
-            o->newline() << "_stp_stat_del (time_" << nm << ");";
-            o->newline(-1) << "}";
+        // NB: check for null stat object
+        o->newline() << "if (likely (time_" << nm << ")) {";
+        o->newline(1) << "const char *probe_point = "
+                      << lex_cast_qstring(call)
+                      << ";";
+        o->newline() << "const char *decl_location = "
+                     << lex_cast_qstring (p->tok->location)
+                     << ";";
+        o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
+                     << nm
+                     << ", 0);";
+        o->newline() << "if (stats->count) {";
+        o->newline(1) << "int64_t avg = _stp_div64 (NULL, stats->sum, stats->count);";
+        o->newline() << "_stp_printf (\"%s, (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax,\",";
+        o->newline() << "probe_point, decl_location, (long long) stats->count, "
+                     << "(long long) stats->min, (long long) avg, (long long) stats->max);";
+        for(unsigned int j=0; j<reference_point.size()-1; ++j)
+          {
+            string::iterator it1;
+            string call_derivation = reference_point[j+1]->locations[0]->str();
+            it1 = call_derivation.end()-1;
+            if(*it1=='?')
+              call_derivation.erase(it1);
+            //checking for ? again
+            o->newline() << "_stp_printf(\" from: \");";
+            o->newline() << "_stp_printf(";
+            o->line() << lex_cast_qstring(call_derivation) << ");";
+          }
+        o->newline() << "_stp_printf(\" \\n\");";
+        o->newline(-1) << "}";
+        o->newline() << "_stp_stat_del (time_" << nm << ");";
+        o->newline(-1) << "}";
       }
     o->newline() << "_stp_print_flush();";
     o->newline(-1) << "}";
