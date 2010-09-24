@@ -1083,6 +1083,21 @@ keywords: profiling functions
   # stap  functioncallcount.stp "*@mm/*.c" -c "sleep 0.2"
 
 
+profiling/latencytap.stp - Show reasons and durations for processes sleeping
+keywords: profiling
+
+  The latencytap.stp script collects data on the intervals processes
+  are deactivated (sleeping).  The script categorizes the reasons for
+  the sleeps by analyzing the backtraces and displays a sorted list of
+  the top 20 causes from largest total sum time sleeping to smallest.
+  The output is updated every 30 seconds. The script needs to be
+  compiled with the '--all-modules' option to produce reasons for
+  sleeps caused by modules.  Optionally, this script can be used with
+  the '-c' or '-x' options to focus on a specific PID.
+
+  # stap latencytap.stp --all-modules -c "sleep 0.2"
+
+
 profiling/linetimes.stp - Show Time Spent on Each Line if a Function
 keywords: profiling
 
