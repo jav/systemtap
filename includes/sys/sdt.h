@@ -40,10 +40,10 @@
 # define _SDT_ASM_ARGS(n)		_SDT_ASM_STRING(_SDT_ASM_TEMPLATE_##n)
 # define _SDT_ASM_STRING_1(x)		_SDT_ASM_1(.asciz #x)
 
-# define _SDT_ARGFMT(n)			_SDT_ARGLTMPL[_SDT_S##n]@_SDT_ARGTMPL(_SDT_A##n)
+# define _SDT_ARGFMT(no)		%n[_SDT_S##no]@_SDT_ARGTMPL(_SDT_A##no)
 # define _SDT_ARG(n, x)			\
   [_SDT_S##n] "n" (((__typeof((x) + 0)) -1L > (__typeof((x) + 0)) 0	\
-		    _SDT_ARGCOEF)						\
+		    ? -1 : 1)						\
 		   * (int) sizeof ((x) + 0)),				\
   [_SDT_A##n] "nor" ((x) + 0)
 #endif
@@ -53,16 +53,6 @@
 # define _SDT_ARGTMPL(id)	%I[id]%[id]
 #else
 # define _SDT_ARGTMPL(id)	%[id]
-#endif
-
-// ppc gcc 4.4.3-4 gives 4[_SDT_S1]) instead of 4 for %n, but %c does work.
-// ia64 gcc 4.1.2-48 %c doesn't work, but %n does.  Both work on x86.
-#if defined(__ia64__)
-# define _SDT_ARGLTMPL		 %n
-# define _SDT_ARGCOEF ? -1 : 1
-#else
-# define _SDT_ARGLTMPL		 %c
-# define _SDT_ARGCOEF ? 1 : -1
 #endif
 
 #ifdef __LP64__
