@@ -1120,7 +1120,7 @@ probe::collect_derivation_chain (std::vector<probe*> &probes_list)
 }
 
 
-void probe_point::print (ostream& o) const
+void probe_point::print (ostream& o, bool print_extras) const
 {
   for (unsigned i=0; i<components.size(); i++)
     {
@@ -1130,6 +1130,8 @@ void probe_point::print (ostream& o) const
       if (c->arg)
         o << "(" << *c->arg << ")";
     }
+  if (!print_extras)
+    return;
   if (sufficient)
     o << "!";
   else if (optional) // sufficient implies optional
@@ -1138,10 +1140,10 @@ void probe_point::print (ostream& o) const
     o<< " if (" << *condition << ")";
 }
 
-string probe_point::str ()
+string probe_point::str (bool print_extras) const
 {
   ostringstream o;
-  print(o);
+  print(o, print_extras);
   return o.str();
 }
 

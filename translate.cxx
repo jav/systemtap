@@ -1445,14 +1445,9 @@ c_unparser::emit_module_exit ()
     for (unsigned i=0; i<session->probes.size(); i++)
       {
         vector<probe*> reference_point;
-        const probe* p = session->probes[i];
+        const derived_probe* p = session->probes[i];
         const string &nm = p->name;
-        string::iterator it;
-        string call = session->probes[i]->sole_location()->str();
-        it = call.end()-1;
-        if(*it=='?')
-          call.erase(it);
-        //checking and erasing any trailing '?'
+        string call = p->sole_location()->str(false); // no ?,!,etc
         session->probes[i]->collect_derivation_chain(reference_point);
         // NB: check for null stat object
         o->newline() << "if (likely (time_" << nm << ")) {";
@@ -1470,19 +1465,14 @@ c_unparser::emit_module_exit ()
         o->newline() << "_stp_printf (\"%s, (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax,\",";
         o->newline() << "probe_point, decl_location, (long long) stats->count, "
                      << "(long long) stats->min, (long long) avg, (long long) stats->max);";
-        for(unsigned int j=0; j<reference_point.size()-1; ++j)
+        for(unsigned int j=1; j<reference_point.size(); ++j)
           {
-            string::iterator it1;
-            string call_derivation = reference_point[j+1]->locations[0]->str();
-            it1 = call_derivation.end()-1;
-            if(*it1=='?')
-              call_derivation.erase(it1);
-            //checking for ? again
-            o->newline() << "_stp_printf(\" from: \");";
-            o->newline() << "_stp_printf(";
-            o->line() << lex_cast_qstring(call_derivation) << ");";
+            const probe_point *pp = reference_point[j]->locations[0];
+            o->newline() << "_stp_printf(\" from: %s\", "
+                         << lex_cast_qstring(pp->str(false)) // no ?,!,etc
+                         << ");";
           }
-        o->newline() << "_stp_printf(\" \\n\");";
+        o->newline() << "_stp_printf(\"\\n\");";
         o->newline(-1) << "}";
         o->newline() << "_stp_stat_del (time_" << nm << ");";
         o->newline(-1) << "}";

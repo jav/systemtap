@@ -680,11 +680,11 @@ struct probe_point
   bool optional;
   bool sufficient;
   expression* condition;
-  void print (std::ostream& o) const;
+  void print (std::ostream& o, bool print_extras=true) const;
   probe_point ();
   probe_point(const probe_point& pp);
   probe_point(std::vector<component*> const & comps);
-  std::string str();
+  std::string str(bool print_extras=true) const;
 };
 
 std::ostream& operator << (std::ostream& o, const probe_point& k);
