@@ -75,11 +75,23 @@ struct compile_server_info
   std::string sysinfo;
   std::string certinfo;
 
+  bool empty () const
+  {
+    return host_name.empty () && ip_address.empty ();
+  }
+
   bool operator== (const compile_server_info &that) const
   {
-    // The host name must always match.
-    if (this->host_name != that.host_name)
+    // If the ip address is not set, then the host names must match, otherwise
+    // the ip addresses must match.
+    if (this->ip_address.empty () || that.ip_address.empty ())
+      {
+	if (this->host_name != that.host_name)
+	  return false;
+      }
+    else if (this->ip_address != that.ip_address)
       return false;
+
     // Compare the other fields only if they have both been set.
     if (this->port != 0 && that.port != 0 && this->port != that.port)
       return false;
@@ -112,18 +124,22 @@ static void get_server_info (systemtap_session &s, int pmask, vector<compile_ser
 static void get_all_server_info (systemtap_session &s, vector<compile_server_info> &servers);
 static void get_default_server_info (systemtap_session &s, vector<compile_server_info> &servers);
 static void get_specified_server_info (systemtap_session &s, vector<compile_server_info> &servers, bool no_default = false);
-static void get_or_keep_online_server_info (systemtap_session &s, vector<compile_server_info> &servers);
-static void get_or_keep_trusted_server_info (systemtap_session &s, vector<compile_server_info> &servers);
-static void get_or_keep_signing_server_info (systemtap_session &s, vector<compile_server_info> &servers);
-static void keep_compatible_server_info (systemtap_session &s, vector<compile_server_info> &servers);
+static void get_or_keep_online_server_info (systemtap_session &s, vector<compile_server_info> &servers, bool keep);
+static void get_or_keep_trusted_server_info (systemtap_session &s, vector<compile_server_info> &servers, bool keep);
+static void get_or_keep_signing_server_info (systemtap_session &s, vector<compile_server_info> &servers, bool keep);
+static void get_or_keep_compatible_server_info (systemtap_session &s, vector<compile_server_info> &servers, bool keep);
+static void keep_common_server_info (const compile_server_info &info_to_keep, vector<compile_server_info> &filtered_info);
 static void keep_common_server_info (const vector<compile_server_info> &info_to_keep, vector<compile_server_info> &filtered_info);
-static void add_server_info (const compile_server_info &info, vector<compile_server_info>& list);
-static void merge_server_info (const compile_server_info &source, compile_server_info &target);
-static void merge_server_info (const vector<compile_server_info> &source, vector<compile_server_info> &target);
-static void merge_server_info (const vector<compile_server_info> &source, compile_server_info &target);
+static void keep_server_info_with_cert_and_port (systemtap_session &s, const compile_server_info &server, vector<compile_server_info> &servers);
 
-static void resolve_server (systemtap_session& s, compile_server_info &server_info);
-static int resolve_host_name (systemtap_session& s, string &host_name, string *ip_address = NULL);
+static void add_server_info (const compile_server_info &info, vector<compile_server_info>& list);
+static void add_server_info (const vector<compile_server_info> &source, vector<compile_server_info> &target);
+static void merge_server_info (const compile_server_info &source, compile_server_info &target);
+#if 0 // not used right now
+static void merge_server_info (const compile_server_info &source, vector<compile_server_info> &target);
+static void merge_server_info (const vector<compile_server_info> &source, vector <compile_server_info> &target);
+#endif
+static void resolve_host (systemtap_session& s, compile_server_info &server, vector<compile_server_info> &servers);
 
 #if HAVE_NSS
 static const char *server_cert_nickname = "stap-server";
@@ -485,13 +501,45 @@ int
 compile_server_client::find_and_connect_to_server ()
 {
   // Accumulate info on the specified servers.
-  vector<compile_server_info> server_list;
-  get_specified_server_info (s, server_list);
+  vector<compile_server_info> specified_servers;
+  get_specified_server_info (s, specified_servers);
 
-  // Ignore the empty first entry.
-  assert (! server_list.empty ());
-  assert (server_list[0].host_name.empty ());
-  server_list.erase (server_list.begin ());
+  // Examine the specified servers to make sure that each has been resolved
+  // with a host name, ip address and port. If not, try to obtain this
+  // information by examining online servers.
+  vector<compile_server_info> server_list;
+  for (vector<compile_server_info>::const_iterator i = specified_servers.begin ();
+       i != specified_servers.end ();
+       ++i)
+    {
+      // If we have an ip address and port number, then just use the one we've
+      // been given. Otherwise, check for matching online servers and try their
+      // ip addresses and ports.
+      if (! i->host_name.empty () && ! i->ip_address.empty () && i->port != 0)
+	add_server_info (*i, server_list);
+      else
+	{
+	  // Obtain a list of online servers.
+	  vector<compile_server_info> online_servers;
+	  get_or_keep_online_server_info (s, online_servers, false/*keep*/);
+
+	  // If no specific server (port) has been specified,
+	  // then we'll need the servers to be
+	  // compatible and possible trusted as signers as well.
+	  if (i->port == 0)
+	    {
+	      get_or_keep_compatible_server_info (s, online_servers, true/*keep*/);
+	      if (s.unprivileged)
+		get_or_keep_signing_server_info (s, online_servers, true/*keep*/);
+	    }
+
+	  // Keep the ones (if any) which match our server.
+	  keep_common_server_info (*i, online_servers);
+
+	  // Add these servers (if any) to the server list.
+	  add_server_info (online_servers, server_list);
+	}
+    }
 
   // Did we identify any potential servers?
   unsigned limit = server_list.size ();
@@ -502,18 +550,9 @@ compile_server_client::find_and_connect_to_server ()
     }
 
   // Now try each of the identified servers in turn.
-  for (unsigned i = 0; i < limit; ++i)
-    {
-      int rc = compile_using_server (server_list[i]);
-      if (rc == 0)
-	{
-	  s.winning_server =
-	    server_list[i].host_name + string(" [") +
-	    server_list[i].ip_address + string(":") +
-	    lex_cast(server_list[i].port) + string("]");
-	  return 0; // success!
-	}
-    }
+  int rc = compile_using_server (server_list);
+  if (rc == 0)
+    return 0; // success!
 
   return 1; // Failure - message already generated.
 }
@@ -521,21 +560,47 @@ compile_server_client::find_and_connect_to_server ()
 // Temporary until the stap-client-connect program goes away.
 extern "C"
 int
-client_main (const char *hostName, unsigned short port,
+client_main (const char *hostName, PRUint32 ip, PRUint16 port,
 	     const char* infileName, const char* outfileName,
 	     const char* trustNewServer);
 #endif // HAVE_NSS
 
+// Convert the given string to an ip address in host byte order.
+static PRUint32
+stringToIpAddress (const string &s)
+{
+  if (s.empty ())
+    return 0; // unknown
+
+  vector<string>components;
+  tokenize (s, components, ".");
+  assert (components.size () >= 1);
+
+  PRUint32 ip = 0;
+  unsigned i;
+  for (i = 0; i < components.size (); ++i)
+    {
+      const char *ipstr = components[i].c_str ();
+      char *estr;
+      errno = 0;
+      PRUint32 a = strtoul (ipstr, & estr, 10);
+      if (errno == 0 && *estr == '\0' && a <= UCHAR_MAX)
+	ip = (ip << 8) + a;
+      else
+	return 0;
+    }
+
+  return ip;
+}
+
 int 
-compile_server_client::compile_using_server (const compile_server_info &server)
+compile_server_client::compile_using_server (
+  const vector<compile_server_info> &servers
+)
 {
   // This code will never be called if we don't have NSS, but it must still
   // compile.
 #if HAVE_NSS
-  // We cannot contact the server if we don't have the port number.
-  if (server.port == 0)
-    return 1; // Failure
-
   // Make sure NSPR is initialized
   s.NSPR_init ();
 
@@ -553,18 +618,13 @@ compile_server_client::compile_using_server (const compile_server_info &server)
       if (! file_exists (*i))
 	continue;
 
-      const char *cert_dir = i->c_str ();
-      if (s.verbose > 1)
-	clog << "Attempting SSL connection with " << server << endl
-	     << "  using certificates from the database in " << cert_dir
-	     << endl;
-
 #if 0 // no client authentication for now.
       // Set our password function callback.
       PK11_SetPasswordFunc (myPasswd);
 #endif
 
       // Initialize the NSS libraries.
+      const char *cert_dir = i->c_str ();
       SECStatus secStatus = NSS_InitReadWrite (cert_dir);
       if (secStatus != SECSuccess)
 	{
@@ -583,9 +643,32 @@ compile_server_client::compile_using_server (const compile_server_info &server)
       NSS_SetDomesticPolicy ();
 
       server_zipfile = s.tmpdir + "/server.zip";
-      rc = client_main (server.host_name.c_str (), server.port,
-			client_zipfile.c_str(), server_zipfile.c_str (),
-			NULL/*trustNewServer_p*/);
+
+      // Try each server in turn.
+      for (vector<compile_server_info>::const_iterator j = servers.begin ();
+	   j != servers.end ();
+	   ++j)
+	{
+	  if (s.verbose > 1)
+	    clog << "Attempting SSL connection with " << *j << endl
+		 << "  using certificates from the database in " << cert_dir
+		 << endl;
+
+	  assert (! j->ip_address.empty ());
+	  rc = client_main (j->host_name.c_str (),
+			    stringToIpAddress (j->ip_address),
+			    j->port,
+			    client_zipfile.c_str(), server_zipfile.c_str (),
+			    NULL/*trustNewServer_p*/);
+	  if (rc == SECSuccess)
+	    {
+	      s.winning_server =
+		j->host_name + string(" [") +
+		j->ip_address + string(":") +
+		lex_cast(j->port) + string("]");
+	      break; // Success!
+	    }
+	}
  
       NSS_Shutdown();
 
@@ -856,12 +939,16 @@ compile_server_client::flush_to_stream (const string &fname, ostream &o)
 //-----------------------------------------------------------------------
 ostream &operator<< (ostream &s, const compile_server_info &i)
 {
-  s << i.host_name;
+  s << " host=";
+  if (! i.host_name.empty ())
+    s << i.host_name;
+  else
+    s << "unknown";
   s << " ip=";
   if (! i.ip_address.empty ())
     s << i.ip_address;
   else
-    s << "unknown";
+    s << "offline";
   s << " port=";
   if (i.port != 0)
     s << i.port;
@@ -981,8 +1068,10 @@ query_server_status (systemtap_session &s, const string &status_string)
     working_string = "specified";
 
   // If the query is "specified" and no servers have been specified
-  // (i.e. --use-server not used or used once with no argument), then
+  // (i.e. --use-server not used or used with no argument), then
   // use the default query.
+  // TODO: This may not be necessary. The underlying queries should handle
+  //       "specified" properly.
   if (working_string == "specified" &&
       (s.specified_servers.empty () ||
        (s.specified_servers.size () == 1 && s.specified_servers[0].empty ())))
@@ -991,17 +1080,33 @@ query_server_status (systemtap_session &s, const string &status_string)
   int pmask = server_spec_to_pmask (working_string);
 
   // Now obtain a list of the servers which match the criteria.
-  vector<compile_server_info> servers;
-  get_server_info (s, pmask, servers);
+  vector<compile_server_info> raw_servers;
+  get_server_info (s, pmask, raw_servers);
 
-  // Print the server information. Skip tge emoty entry at the head of the list.
+  // Augment the listing with as much information as possible by adding
+  // information from known servers.
+  vector<compile_server_info> servers;
+  get_all_server_info (s, servers);
+  keep_common_server_info (raw_servers, servers);
+
+  // Print the server information. Skip the empty entry at the head of the list.
   clog << "Systemtap Compile Server Status for '" << working_string << '\''
        << endl;
+  bool found = false;
   unsigned limit = servers.size ();
-  for (unsigned i = 1; i < limit; ++i)
+  for (unsigned i = 0; i < limit; ++i)
     {
+      assert (! servers[i].empty ());
+      // Don't list servers with no cert information. They may not actually
+      // exist.
+      // TODO: Could try contacting the server and obtaining it cert
+      if (servers[i].certinfo.empty ())
+	continue;
       clog << servers[i] << endl;
+      found = true;
     }
+  if (! found)
+    clog << "No servers found" << endl;
 }
 
 // Add or remove trust of the servers specified on the command line.
@@ -1069,10 +1174,18 @@ manage_server_trust (systemtap_session &s)
   vector<compile_server_info> server_list;
   get_specified_server_info (s, server_list, true/*no_default*/);
 
-  // Ignore the empty first entry.
-  assert (! server_list.empty ());
-  assert (server_list[0].host_name.empty ());
-  server_list.erase (server_list.begin ());
+  // Can't work with servers with no cert information.
+  // TODO: Could try contacting the server and obtaining it cert.
+  // The size of the vector may change as we go. Be careful!!
+  for (unsigned i = 0; i < server_list.size (); /**/)
+    {
+      if (server_list[i].certinfo.empty ())
+	{
+	  server_list.erase (server_list.begin () + i);
+	  continue;
+	}
+      ++i;
+    }
 
   // Did we identify any potential servers? Ignore the empty first entry.
   unsigned limit = server_list.size ();
@@ -1150,10 +1263,12 @@ manage_server_trust (systemtap_session &s)
 static void
 trust_already_in_place (
   const compile_server_info &server,
+  const vector<compile_server_info> &server_list,
   const string cert_db_path,
   bool revoking
 )
 {
+  // What level of trust?
   string purpose;
   if (cert_db_path == signing_cert_db_path ())
     purpose = "as a module signer for all users";
@@ -1166,10 +1281,17 @@ trust_already_in_place (
 	purpose += " for the current user";
     }
 
-  clog << server << " is already ";
-  if (revoking)
-    clog << "un";
-  clog << "trusted " << purpose << endl;
+  // Issue a message for each server in the list with the same certificate.
+  unsigned limit = server_list.size ();
+  for (unsigned i = 0; i < limit; ++i)
+    {
+      if (server.certinfo != server_list[i].certinfo)
+	continue;
+      clog << server_list[i] << " is already ";
+      if (revoking)
+	clog << "un";
+      clog << "trusted " << purpose << endl;
+    }
 }
 
 // Add the given servers to the given database of trusted servers.
@@ -1180,6 +1302,11 @@ add_server_trust (
   const vector<compile_server_info> &server_list
 )
 {
+  // Get a list of servers already trusted. This opens the database, so do it
+  // before we open it for our own purposes.
+  vector<compile_server_info> already_trusted;
+  get_server_info_from_db (s, already_trusted, cert_db_path);
+
   // Make sure the given path exists.
   if (create_dir (cert_db_path.c_str (), 0755) != 0)
     {
@@ -1188,6 +1315,9 @@ add_server_trust (
       perror ("");
       return;
     }
+
+  // Must predeclare this because of jumps to cleanup: below.
+  vector<string> processed_certs;
 
   // Initialize the NSS libraries -- read/write
   SECStatus secStatus = NSS_InitReadWrite (cert_db_path.c_str ());
@@ -1208,8 +1338,30 @@ add_server_trust (
        server != server_list.end ();
        ++server)
     {
-      client_main (server->host_name.c_str (), server->port,
-		   NULL, NULL, "permanent");
+      // Trust is based on certificates. We need only add trust in the
+      // same certificate once.
+      if (find (processed_certs.begin (), processed_certs.end (),
+		server->certinfo) != processed_certs.end ())
+	continue;
+      processed_certs.push_back (server->certinfo);
+
+      // We need not contact the server if it is already trusted.
+      if (find (already_trusted.begin (), already_trusted.end (), *server) !=
+	  already_trusted.end ())
+	{
+	  if (s.verbose > 1)
+	    trust_already_in_place (*server, server_list, cert_db_path, false/*revoking*/);
+	  continue;
+	}
+      int rc = client_main (server->host_name.c_str (),
+			    stringToIpAddress (server->ip_address),
+			    server->port,
+			    NULL, NULL, "permanent");
+      if (rc != SECSuccess)
+	{
+	  cerr << "Unable to connect to " << *server << endl;
+	  nssError ();
+	}
     }
 
  cleanup:
@@ -1254,11 +1406,12 @@ revoke_server_trust (
       if (s.verbose > 1)
 	cerr << "Certificate database '" << cert_db_path << "' does not exist."
 	     << endl;
-      for (vector<compile_server_info>::const_iterator server = server_list.begin();
-	   server != server_list.end ();
-	   ++server)
+      if (s.verbose)
 	{
-	  trust_already_in_place (*server, cert_db_path, true/*revoking*/);
+	  for (vector<compile_server_info>::const_iterator server = server_list.begin();
+	       server != server_list.end ();
+	       ++server)
+	    trust_already_in_place (*server, server_list, cert_db_path, true/*revoking*/);
 	}
       return;
     }
@@ -1269,6 +1422,7 @@ revoke_server_trust (
   PRArenaPool *tmpArena = NULL;
   CERTCertList *certs = NULL;
   CERTCertificate *db_cert;
+  vector<string> processed_certs;
 
   // Initialize the NSS libraries -- read/write
   SECStatus secStatus = NSS_InitReadWrite (cert_db_path.c_str ());
@@ -1297,19 +1451,22 @@ revoke_server_trust (
     {
       // If the server's certificate serial number is unknown, then we can't
       // match it with one in the database.
-      if (server->certinfo.empty ())
-	{
-	  cerr << "Unable to obtain certificate information for server "
-	       << *server << endl;
-	  continue;
-	}
+      assert (! server->certinfo.empty ());
+
+      // Trust is based on certificates. We need only revoke trust in the same
+      // certificate once.
+      if (find (processed_certs.begin (), processed_certs.end (),
+		server->certinfo) != processed_certs.end ())
+	continue;
+      processed_certs.push_back (server->certinfo);
 
       // Search the client-side database of trusted servers.
       db_cert = PK11_FindCertFromNickname (server_cert_nickname, NULL);
       if (! db_cert)
 	{
 	  // No trusted servers. Not an error, but issue a status message.
-	  trust_already_in_place (*server, cert_db_path, true/*revoking*/);
+	  if (s.verbose)
+	    trust_already_in_place (*server, server_list, cert_db_path, true/*revoking*/);
 	  continue;
 	}
 
@@ -1353,53 +1510,6 @@ revoke_server_trust (
 	  if (serialNumber.str () != server->certinfo)
 	    continue; // goto next certificate
 
-	  // As a sanity check, make sure the host name on the certificate
-	  // matches that of our server.
-	  // The host name is in the alt-name extension of the certificate.
-	  SECItem subAltName;
-	  subAltName.data = NULL;
-	  secStatus = CERT_FindCertExtension (db_cert,
-					      SEC_OID_X509_SUBJECT_ALT_NAME,
-					      & subAltName);
-	  if (secStatus != SECSuccess || ! subAltName.data)
-	    {
-	      cerr << "Unable to find alt name extension on server certificate: ";
-	      nssError ();
-	      continue;
-	    }
-
-	  // Decode the extension.
-	  CERTGeneralName *nameList = CERT_DecodeAltNameExtension (tmpArena, & subAltName);
-	  SECITEM_FreeItem(& subAltName, PR_FALSE);
-	  if (! nameList)
-	    {
-	      cerr << "Unable to decode alt name extension on server certificate: ";
-	      nssError ();
-	      continue;
-	    }
-
-	  // Match any one of the alt names in the extension.
-	  do
-	    {
-	      assert (nameList->type == certDNSName);
-	      string host_name = string ((const char *)nameList->name.other.data,
-					 nameList->name.other.len);
-	      if (host_name == server->host_name)
-		break;
-	      nameList = CERT_GetNextGeneralName (nameList);
-	    }
-	  while (nameList);
-	  // Don't need to free nameList. It's part of the tmpArena.
-
-	  // Did we find a match?
-	  if (! nameList)
-	    {
-	      cerr << "Host name on certificate does not match the host name '"
-		   << server->host_name << "' of the server"
-		   << endl;
-	      continue;
-	    }
-
 	  // All is ok! Remove the certificate from the database.
 	  break;
 	} // Loop over certificates in the database
@@ -1408,7 +1518,8 @@ revoke_server_trust (
       if (CERT_LIST_END (node, certs))
 	{
 	  // Not found. Server is already untrusted.
-	  trust_already_in_place (*server, cert_db_path, true/*revoking*/);
+	  if (s.verbose)
+	    trust_already_in_place (*server, server_list, cert_db_path, true/*revoking*/);
 	}
       else
 	{
@@ -1445,40 +1556,41 @@ get_server_info (
 {
   // Get information on compile servers matching the requested criteria.
   // The order of queries is significant. Accumulating queries must go first
-  // followed by accumulating/filtering queries followed by filtering queries.
-  // We start with an empty vector.
-  // These queries accumulate server information.
-  vector<compile_server_info> temp;
-  if ((pmask & compile_server_all))
+  // followed by accumulating/filtering queries.
+  bool keep = false;
+  if (((pmask & compile_server_all)))
     {
-      get_all_server_info (s, temp);
+      get_all_server_info (s, servers);
+      keep = true;
     }
+  // Add the specified servers, if requested
   if ((pmask & compile_server_specified))
     {
-      get_specified_server_info (s, temp);
+      get_specified_server_info (s, servers);
+      keep = true;
     }
-  // These queries filter server information if the vector is not empty and
-  // accumulate it otherwise.
+  // Now filter the or accumulate the list depending on whether a query has
+  // already been made.
   if ((pmask & compile_server_online))
     {
-      get_or_keep_online_server_info (s, temp);
+      get_or_keep_online_server_info (s, servers, keep);
+      keep = true;
     }
   if ((pmask & compile_server_trusted))
     {
-      get_or_keep_trusted_server_info (s, temp);
+      get_or_keep_trusted_server_info (s, servers, keep);
+      keep = true;
     }
   if ((pmask & compile_server_signer))
     {
-      get_or_keep_signing_server_info (s, temp);
+      get_or_keep_signing_server_info (s, servers, keep);
+      keep = true;
     }
-  // This query filters server information.
   if ((pmask & compile_server_compatible))
     {
-      keep_compatible_server_info (s, temp);
+      get_or_keep_compatible_server_info (s, servers, keep);
+      keep = true;
     }
-
-  // Now add the collected information to the target vector.
-  merge_server_info (temp, servers);
 }
 
 // Get information about all online servers as well as servers trusted
@@ -1489,19 +1601,15 @@ get_all_server_info (
   vector<compile_server_info> &servers
 )
 {
-  // The get_or_keep_XXXX_server_info functions filter the vector
-  // if it is not empty. So use an empty vector for each query.
   vector<compile_server_info> temp;
-  get_or_keep_online_server_info (s, temp);
-  merge_server_info (temp, servers);
+  get_or_keep_online_server_info (s, temp, false/*keep*/);
+  add_server_info (temp, servers);
 
-  temp.clear ();
-  get_or_keep_trusted_server_info (s, temp);
-  merge_server_info (temp, servers);
+  get_or_keep_trusted_server_info (s, temp, false/*keep*/);
+  add_server_info (temp, servers);
 
-  temp.clear ();
-  get_or_keep_signing_server_info (s, temp);
-  merge_server_info (temp, servers);
+  get_or_keep_signing_server_info (s, temp, false/*keep*/);
+  add_server_info (temp, servers);
 }
 
 static void
@@ -1523,9 +1631,7 @@ get_default_server_info (
     }
 
   // Add the information, but not duplicates.
-  unsigned limit = default_servers.size ();
-  for (unsigned i = 0; i < limit; ++i)
-    add_server_info (default_servers[i], servers);
+  add_server_info (default_servers, servers);
 }
 
 static void
@@ -1558,121 +1664,118 @@ get_specified_server_info (
 	  unsigned num_specified_servers = s.specified_servers.size ();
 	  for (unsigned i = 0; i < num_specified_servers; ++i)
 	    {
-	      const string &server = s.specified_servers[i];
+	      string &server = s.specified_servers[i];
 	      if (server.empty ())
 		{
 		  // No server specified. Use the default servers.
 		  if (! no_default)
 		    get_default_server_info (s, specified_servers);
+		  continue;
 		}
-	      else
+
+	      // Work with the specified server
+	      compile_server_info server_info;
+
+	      // See if a port was specified (:n suffix)
+	      vector<string> components;
+	      tokenize (server, components, ":");
+	      if (components.size () > 2)
 		{
-		  // Work with the specified server
-		  compile_server_info server_info;
-
-		  // See if a port was specified (:n suffix)
-		  vector<string> components;
-		  tokenize (server, components, ":");
-		  if (components.size () > 2)
+		  // Treat it as a certificate serial number. The final
+		  // component may still be a port number.
+		  if (components.size () > 5)
 		    {
-		      // Treat it as a certificate serial number. Look for
-		      // all known servers with this serial number.
-		      vector<compile_server_info> all_servers;
-		      get_all_server_info (s, all_servers);
-
-		      // Search the list of servers for ones matching the
-		      // serial number specified.
-		      unsigned found = 0;
-		      unsigned limit = all_servers.size ();
-		      for (unsigned j = 0; j < limit; ++j)
+		      // Obtain the port number.
+		      const char *pstr = components.back ().c_str ();
+		      char *estr;
+		      errno = 0;
+		      unsigned long port = strtoul (pstr, & estr, 10);
+		      if (errno == 0 && *estr == '\0' && port <= USHRT_MAX)
+			server_info.port = port;
+		      else
 			{
-			  if (server == all_servers[j].certinfo)
-			    {
-			      add_server_info (all_servers[j], specified_servers);
-			      ++found;
-			    }
+			  cerr << "Invalid port number specified: "
+			       << components.back ()
+			       << endl;
+			  continue;
 			}
-		      // Did we find one?
-		      if (s.verbose && found == 0)
+		      // Remove the port number from the spec
+		      server_info.certinfo = server.substr (0, server.find_last_of (':'));
+		    }
+		  else
+		    server_info.certinfo = server;
+
+		  // Look for all known servers with this serial number and
+		  // (optional) port number.
+		  vector<compile_server_info> known_servers;
+		  get_all_server_info (s, known_servers);
+		  keep_server_info_with_cert_and_port (s, server_info, known_servers);
+		  // Did we find one?
+		  if (known_servers.empty ())
+		    {
+		      if (s.verbose)
 			cerr << "No server matching " << server << " found"
 			     << endl;
-		    } // specified by cert serial number
-		  else {
-		    // Not specified by serial number. Treat it as host name
-		    // and optional port number.
-		    if (components.size () == 2)
-		      {
-			// Obtain the port number.
-			const char *pstr = components.back ().c_str ();
-			char *estr;
-			errno = 0;
-			unsigned long port = strtoul (pstr, & estr, 10);
-			if (errno == 0 && *estr == '\0' && port <= USHRT_MAX)
-			  server_info.port = port;
-			else
-			  {
-			    cerr << "Invalid port number specified: "
-				 << components.back ()
-				 << endl;
-			    continue;
-			  }
-		      }
-
-		    // Obtain the host name.
-		    server_info.host_name = components.front ();
-
-		    // Was a port specified?
-		    if (server_info.port != 0)
-		      {
-			// A specific server was specified.
-			// Resolve the server. It's not an error if it fails.
-			// Just less info gathered.
-			resolve_server (s, server_info);
-			add_server_info (server_info, specified_servers);
-		      }
+		    }
+		  else
+		    add_server_info (known_servers, specified_servers);
+		} // specified by cert serial number
+	      else {
+		// Not specified by serial number. Treat it as host name or
+		// ip address and optional port number.
+		if (components.size () == 2)
+		  {
+		    // Obtain the port number.
+		    const char *pstr = components.back ().c_str ();
+		    char *estr;
+		    errno = 0;
+		    unsigned long port = strtoul (pstr, & estr, 10);
+		    if (errno == 0 && *estr == '\0' && port <= USHRT_MAX)
+		      server_info.port = port;
 		    else
 		      {
-			// No port was specified, so find all known servers
-			// on the specified host.
-			resolve_host_name (s, server_info.host_name);
-			vector<compile_server_info> all_servers;
-			get_all_server_info (s, all_servers);
+			cerr << "Invalid port number specified: "
+			     << components.back ()
+			     << endl;
+			continue;
+		      }
+		  }
 
-			// Search the list of servers for ones matching the
-			// one specified and obtain the port numbers.
-			unsigned found = 0;
-			unsigned limit = all_servers.size ();
-			for (unsigned j = 0; j < limit; ++j)
-			  {
-			    if (server_info == all_servers[j])
-			      {
-				add_server_info (all_servers[j], specified_servers);
-				++found;
-			      }
-			  }
-			// Do we have a port number now?
-			if (s.verbose && found == 0)
-			  cerr << "No server matching " << server << " found"
-			       << endl;
-		      } // No port specified
-		  }  // Not specified by cert serial number
-		} // Specified server.
+		// Obtain the host name or ip address.
+		if (stringToIpAddress (components.front ()))
+		  server_info.ip_address = components.front ();
+		else
+		  server_info.host_name = components.front ();
+
+		// Find known servers matching the specified information.
+		vector<compile_server_info> known_servers;
+		get_all_server_info (s, known_servers);
+		keep_common_server_info (server_info, known_servers);
+		add_server_info (known_servers, specified_servers);
+
+		// Resolve this host and add any information that is discovered.
+		resolve_host (s, server_info, specified_servers);
+	      }  // Not specified by cert serial number
 	    } // Loop over --use-server options
 	} // -- use-server specified
     } // Server information is not cached
 
   // Add the information, but not duplicates.
-  unsigned limit = specified_servers.size ();
-  for (unsigned i = 0; i < limit; ++i)
-    add_server_info (specified_servers[i], servers);
+  add_server_info (specified_servers, servers);
 }
 
 static void
 get_or_keep_trusted_server_info (
   systemtap_session &s,
-  vector<compile_server_info> &servers
+  vector<compile_server_info> &servers,
+  bool keep
 )
 {
+  // If we're filtering the list and it's already empty, then
+  // there's nothing to do.
+  if (keep && servers.empty ())
+    return;
+
   // We only need to obtain this once. This is a good thing(tm) since
   // obtaining this information is expensive.
   static vector<compile_server_info> trusted_servers;
@@ -1698,7 +1801,7 @@ get_or_keep_trusted_server_info (
 #endif // ! HAVE_NSS
     } // Server information is not cached
 
-  if (! servers.empty ())
+  if (keep)
     {
       // Filter the existing vector by keeping the information in common with
       // the trusted_server vector.
@@ -1707,18 +1810,22 @@ get_or_keep_trusted_server_info (
   else
     {
       // Add the information, but not duplicates.
-      unsigned limit = trusted_servers.size ();
-      for (unsigned i = 0; i < limit; ++i)
-	add_server_info (trusted_servers[i], servers);
+      add_server_info (trusted_servers, servers);
     }
 }
 
 static void
 get_or_keep_signing_server_info (
   systemtap_session &s,
-  vector<compile_server_info> &servers
+  vector<compile_server_info> &servers,
+  bool keep
 )
 {
+  // If we're filtering the list and it's already empty, then
+  // there's nothing to do.
+  if (keep && servers.empty ())
+    return;
+
   // We only need to obtain this once. This is a good thing(tm) since
   // obtaining this information is expensive.
   static vector<compile_server_info> signing_servers;
@@ -1740,7 +1847,7 @@ get_or_keep_signing_server_info (
 #endif // ! HAVE_NSS
     } // Server information is not cached
 
-  if (! servers.empty ())
+  if (keep)
     {
       // Filter the existing vector by keeping the information in common with
       // the signing_server vector.
@@ -1749,9 +1856,7 @@ get_or_keep_signing_server_info (
   else
     {
       // Add the information, but not duplicates.
-      unsigned limit = signing_servers.size ();
-      for (unsigned i = 0; i < limit; ++i)
-	add_server_info (signing_servers[i], servers);
+      add_server_info (signing_servers, servers);
     }
 }
 
@@ -1779,7 +1884,6 @@ get_server_info_from_db (
   PRArenaPool *tmpArena = NULL;
   CERTCertList *certs = NULL;
   CERTCertificate *db_cert;
-  vector<compile_server_info> temp_list;
 
   // Initialize the NSS libraries -- readonly
   SECStatus secStatus = NSS_Init (cert_db_path.c_str ());
@@ -1857,12 +1961,6 @@ get_server_info_from_db (
 	  continue;
 	}
 
-      // We're interested in the first alternate name.
-      assert (nameList->type == certDNSName);
-      server_info.host_name = string ((const char *)nameList->name.other.data,
-				      nameList->name.other.len);
-      // Don't free nameList. It's part of the tmpArena.
-
       // Get the serial number.
       ostringstream field;
       field << hex << setfill('0') << right;
@@ -1874,11 +1972,21 @@ get_server_info_from_db (
 	}
       server_info.certinfo = field.str ();
 
-      // We can't call resolve_server while NSS is active on a database
-      // since it may recursively call this function for another database.
-      // So, keep a temporary list of the server info discovered and then
-      // make a pass over it later resolving each server.
-      add_server_info (server_info, temp_list);
+      // We're interested in the first alternate name.
+      assert (nameList->type == certDNSName);
+      server_info.host_name = string ((const char *)nameList->name.other.data,
+				      nameList->name.other.len);
+      // Don't free nameList. It's part of the tmpArena.
+
+      // Our results will at a minimum contain this server.
+      add_server_info (server_info, servers);
+
+      // Augment the list by querying all online servers and keeping the ones
+      // with the same cert serial number.
+      vector<compile_server_info> online_servers;
+      get_or_keep_online_server_info (s, online_servers, false/*keep*/);
+      keep_server_info_with_cert_and_port (s, server_info, online_servers);
+      add_server_info (online_servers, servers);
     }
 
  cleanup:
@@ -1890,44 +1998,49 @@ get_server_info_from_db (
     PORT_FreeArena (tmpArena, PR_FALSE);
 
   NSS_Shutdown ();
-
-  // Resolve each server discovered in order to eliminate duplicates when
-  // adding them to the target verctor.
-  // This must be done after NSS_Shutdown since resolve_server can call this
-  // function recursively.
-  for (vector<compile_server_info>::iterator i = temp_list.begin ();
-       i != temp_list.end ();
-       ++i)
-    {
-      resolve_server (s, *i);
-      add_server_info (*i, servers);
-    }
 }
 #endif // HAVE_NSS
 
 static void
-keep_compatible_server_info (
+get_or_keep_compatible_server_info (
   systemtap_session &s,
-  vector<compile_server_info> &servers
+  vector<compile_server_info> &servers,
+  bool keep
 )
 {
 #if HAVE_AVAHI
+  // If we're filtering the list and it's already empty, then
+  // there's nothing to do.
+  if (keep && servers.empty ())
+    return;
+
   // Remove entries for servers incompatible with the host environment
   // from the given list of servers.
   // A compatible server compiles for the kernel release and architecture
   // of the host environment.
+  //
+  // Compatibility can only be determined for online servers. So, augment
+  // and filter the information we have with information for online servers.
+  vector<compile_server_info> online_servers;
+  get_or_keep_online_server_info (s, online_servers, false/*keep*/);
+  if (keep)
+    keep_common_server_info (online_servers, servers);
+  else
+    add_server_info (online_servers, servers);
+
+  // Now look to see which ones are compatible.
+  // The vector can change size as we go, so be careful!!
   for (unsigned i = 0; i < servers.size (); /**/)
     {
       // Retain empty entries.
-      if (! servers[i].host_name.empty ())
+      assert (! servers[i].empty ());
+
+      // Check the target of the server.
+      if (servers[i].sysinfo != s.kernel_release + " " + s.architecture)
 	{
-	  // Check the target of the server.
-	  if (servers[i].sysinfo != s.kernel_release + " " + s.architecture)
-	    {
-	      // Target platform mismatch.
-	      servers.erase (servers.begin () + i);
-	      continue;
-	    }
+	  // Target platform mismatch.
+	  servers.erase (servers.begin () + i);
+	  continue;
 	}
   
       // The server is compatible. Leave it in the list.
@@ -1938,107 +2051,126 @@ keep_compatible_server_info (
   // Issue a warning.
   if (s.verbose)
     clog << "Unable to detect server compatibility" << endl;
-  servers.clear ();
+  if (keep)
+    servers.clear ();
 #endif
 }
 
-// Attempt to obtain complete information about this server from the local
-// name service and/or from online server discovery.
 static void
-resolve_server (systemtap_session& s, compile_server_info &server_info)
+keep_server_info_with_cert_and_port (
+  systemtap_session &s,
+  const compile_server_info &server,
+  vector<compile_server_info> &servers
+)
 {
-  // Attempt to resolve the host name and ip.
-  int status = resolve_host_name (s, server_info.host_name,
-				  & server_info.ip_address);
-  if (status != 0)
-    return; // message already issued.
+  assert (! server.certinfo.empty ());
 
-  // See if we can discover the target of this server.
-  if (server_info.sysinfo.empty ())
+  // Search the list of servers for ones matching the
+  // serial number specified.
+  // The vector can change size as we go, so be careful!!
+  for (unsigned i = 0; i < servers.size (); /**/)
     {
-      vector<compile_server_info> online_servers;
-      get_or_keep_online_server_info (s, online_servers);
-      merge_server_info (online_servers, server_info);
-    }
-
-  // See if we can discover the certificate of this server. Look in
-  // the databases of trusted peers and trusted signers.
-  if (server_info.certinfo.empty ())
-    {
-      vector<compile_server_info> trusted_servers;
-      get_or_keep_trusted_server_info (s, trusted_servers);
-      merge_server_info (trusted_servers, server_info);
-    }
-  if (server_info.certinfo.empty ())
-    {
-      vector<compile_server_info> signing_servers;
-      get_or_keep_signing_server_info (s, signing_servers);
-      merge_server_info (signing_servers, server_info);
+      // Retain empty entries.
+      if (servers[i].empty ())
+	{
+	  ++i;
+	  continue;
+	}
+      if (servers[i].certinfo == server.certinfo &&
+	  (servers[i].port == 0 || server.port == 0 ||
+	   servers[i].port == server.port))
+	{
+	  // If the server is not online, then use the specified
+	  // port, if any.
+	  if (servers[i].port == 0)
+	    servers[i].port = server.port;
+	  ++i;
+	  continue;
+	}
+      // The item does not match. Delete it.
+      servers.erase (servers.begin () + i);
     }
 }
 
-// Obtain the canonical host name and, if requested, ip address of a host.
-static int
-resolve_host_name (
+// Obtain missing host name or ip address, if any.
+static void
+resolve_host (
   systemtap_session& s,
-  string &host_name,
-  string *ip_address
+  compile_server_info &server,
+  vector<compile_server_info> &resolved_servers
 )
 {
+  // Either the host name or the ip address or both are already set.
+  const char *lookup_name;
+  if (! server.host_name.empty ())
+    {
+      if (! server.ip_address.empty ())
+	return; // Nothing to do
+      // Use the host name to do the lookup.
+      lookup_name = server.host_name.c_str ();
+    }
+  else
+    {
+      // Use the ip address to do the lookup.
+      // getaddrinfo works on both host names and ip addresses.
+      assert (! server.ip_address.empty ());
+      lookup_name = server.ip_address.c_str ();
+    }
+
+  // Resolve the server. 
   struct addrinfo hints;
   memset(& hints, 0, sizeof (hints));
   hints.ai_family = AF_INET; // AF_UNSPEC or AF_INET6 to force version
-  struct addrinfo *res;
-  int status = getaddrinfo(host_name.c_str(), NULL, & hints, & res);
-  if (status != 0)
-    goto error;
+  struct addrinfo *addr_info = NULL;
+  int status = getaddrinfo (lookup_name, NULL, & hints, & addr_info);
 
-  // Obtain the ip address and canonical name of the resolved server.
-  assert (res);
-  for (const struct addrinfo *p = res; p != NULL; p = p->ai_next)
+  // Failure to resolve will result in an appropriate error later if other
+  // methods fail.
+  if (status != 0)
+    goto cleanup;
+  assert (addr_info);
+
+  // Loop over the results collecting information.
+  for (const struct addrinfo *ai = addr_info; ai != NULL; ai = ai->ai_next)
     {
-      if (p->ai_family != AF_INET)
+      if (ai->ai_family != AF_INET)
 	continue; // Not an IPv4 address
 
-      // Get the canonical name.
+      // Start with the info we were given.
+      compile_server_info new_server = server;
+
+      // Obtain the ip address.
+      // Start with the pointer to the address itself,
+      struct sockaddr_in *ipv4 = (struct sockaddr_in *)ai->ai_addr;
+      void *addr = & ipv4->sin_addr;
+
+      // convert the IP to a string.
+      char ipstr[INET_ADDRSTRLEN];
+      inet_ntop (ai->ai_family, addr, ipstr, sizeof (ipstr));
+      new_server.ip_address = ipstr;
+
+      // Try to obtain a host name.
       char hbuf[NI_MAXHOST];
-      status = getnameinfo (p->ai_addr, sizeof (*p->ai_addr),
+      status = getnameinfo (ai->ai_addr, sizeof (*ai->ai_addr),
 			    hbuf, sizeof (hbuf), NULL, 0,
 			    NI_NAMEREQD | NI_IDN);
-      if (status != 0)
-	continue;
-      host_name = hbuf;
+      if (status == 0)
+	new_server.host_name = hbuf;
 
-      // Get the ip address, if requested
-      if (ip_address)
-	{
-	  // get the pointer to the address itself,
-	  struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
-	  void *addr = & ipv4->sin_addr;
-
-	  // convert the IP to a string.
-	  char ipstr[INET_ADDRSTRLEN];
-	  inet_ntop(p->ai_family, addr, ipstr, sizeof (ipstr));
-	  *ip_address = ipstr;
-	}
-
-      break; // Use the info from the first IPv4 result.
+      // Add the new resolved server to the list.
+      add_server_info (new_server, resolved_servers);
     }
-  freeaddrinfo(res); // free the linked list
 
-  if (status != 0)
-    goto error;
-
-  return 0;
-
- error:
-  if (s.verbose > 1)
+ cleanup:
+  if (addr_info)
+    freeaddrinfo (addr_info); // free the linked list
+  else
     {
-      clog << "Unable to resolve host name " << host_name
-	   << ": " << gai_strerror(status)
-	   << endl;
+      // At a minimum, return the information we were given.
+      add_server_info (server, resolved_servers);
     }
-  return status;
+
+  return;
 }
 
 #if HAVE_AVAHI
@@ -2199,9 +2331,17 @@ void timeout_callback(AVAHI_GCC_UNUSED AvahiTimeout *e, AVAHI_GCC_UNUSED void *u
 #endif // HAVE_AVAHI
 
 static void
-get_or_keep_online_server_info (systemtap_session &s,
-				vector<compile_server_info> &servers)
+get_or_keep_online_server_info (
+  systemtap_session &s,
+  vector<compile_server_info> &servers,
+  bool keep
+)
 {
+  // If we're filtering the list and it's already empty, then
+  // there's nothing to do.
+  if (keep && servers.empty ())
+    return;
+
   // We only need to obtain this once. This is a good thing(tm) since
   // obtaining this information is expensive.
   static vector<compile_server_info> online_servers;
@@ -2283,10 +2423,6 @@ get_or_keep_online_server_info (systemtap_session &s,
 	  if (domain == "local")
 	    host_name = host_name.substr (0, dot_index);
 
-	  // Now resolve the server (name, ip address, etc)
-	  // Not an error if it fails. Just less info gathered.
-	  resolve_server (s, raw_server);
-
 	  // Add it to the list of servers, unless it is duplicate.
 	  add_server_info (raw_server, online_servers);
 	}
@@ -2308,7 +2444,7 @@ get_or_keep_online_server_info (systemtap_session &s,
 #endif // ! HAVE_AVAHI
     } // Server information is not cached.
 
-  if (! servers.empty ())
+  if (keep)
     {
       // Filter the existing vector by keeping the information in common with
       // the online_server vector.
@@ -2317,9 +2453,7 @@ get_or_keep_online_server_info (systemtap_session &s,
   else
     {
       // Add the information, but not duplicates.
-      unsigned limit = online_servers.size ();
-      for (unsigned i = 0; i < limit; ++i)
-	add_server_info (online_servers[i], servers);
+      add_server_info (online_servers, servers);
     }
 }
 
@@ -2327,18 +2461,71 @@ get_or_keep_online_server_info (systemtap_session &s,
 // two duplicate items.
 static void
 add_server_info (
-  const compile_server_info &info, vector<compile_server_info>& list
+  const compile_server_info &info, vector<compile_server_info>& target
 )
 {
-  vector<compile_server_info>::iterator s = 
-    find (list.begin (), list.end (), info);
-  if (s != list.end ())
+  if (info.empty ())
+    return;
+
+  bool found = false;
+  for (vector<compile_server_info>::iterator i = target.begin ();
+       i != target.end ();
+       ++i)
     {
-      // Duplicate. Merge the two items.
-      merge_server_info (info, *s);
-      return;
+      if (info == *i)
+	{
+	  // Duplicate. Merge the two items.
+	  merge_server_info (info, *i);
+	  found = true;
+	}
     }
-  list.push_back (info);
+  if (! found)
+    target.push_back (info);
+}
+
+// Add server info from one vector to another.
+static void
+add_server_info (
+  const vector<compile_server_info> &source,
+  vector<compile_server_info> &target
+)
+{
+  for (vector<compile_server_info>::const_iterator i = source.begin ();
+       i != source.end ();
+       ++i)
+    {
+      add_server_info (*i, target);
+    }
+}
+
+// Filter the vector by keeping information in common with the item.
+static void
+keep_common_server_info (
+  const	compile_server_info &info_to_keep,
+  vector<compile_server_info> &filtered_info
+)
+{
+  assert (! info_to_keep.empty ());
+
+  // The vector may change size as we go. Be careful!!
+  for (unsigned i = 0; i < filtered_info.size (); /**/)
+    {
+      // Retain empty entries.
+      if (filtered_info[i].empty ())
+	{
+	  ++i;
+	  continue;
+	}
+      if (info_to_keep == filtered_info[i])
+	{
+	  merge_server_info (info_to_keep, filtered_info[i]);
+	  ++i;
+	  continue;
+	}
+      // The item does not match. Delete it.
+      filtered_info.erase (filtered_info.begin () + i);
+      continue;
+    }
 }
 
 // Filter the second vector by keeping information in common with the first
@@ -2349,22 +2536,31 @@ keep_common_server_info (
   vector<compile_server_info> &filtered_info
 )
 {
+  // The vector may change size as we go. Be careful!!
   for (unsigned i = 0; i < filtered_info.size (); /**/)
     {
-      const vector<compile_server_info>::const_iterator j =
-	find (info_to_keep.begin (), info_to_keep.end (), filtered_info[i]);
-      // Was the item found?
-      if (j != info_to_keep.end ())
+      // Retain empty entries.
+      if (filtered_info[i].empty ())
 	{
-	  // This item was found in the info to be kept. Keep it and merge
-	  // the information.
-	  merge_server_info (*j, filtered_info[i]);
 	  ++i;
 	  continue;
 	}
+      bool found = false;
+      for (unsigned j = 0; j < info_to_keep.size (); ++j)
+	{
+	  if (filtered_info[i] == info_to_keep[j])
+	    {
+	      merge_server_info (info_to_keep[j], filtered_info[i]);
+	      found = true;
+	    }
+	}
 
-      // The item was not found. Delete it.
-      filtered_info.erase (filtered_info.begin () + i);
+      // If the item was not found. Delete it. Otherwise, advance to the next
+      // item.
+      if (found)
+	++i;
+      else
+	filtered_info.erase (filtered_info.begin () + i);
     }
 }
 
@@ -2387,35 +2583,33 @@ merge_server_info (
     target.certinfo = source.certinfo;
 }
 
-// Merge two compile server info vectors.
+#if 0 // not used right now
+// Merge compile server info from one item into a vector.
 static void
 merge_server_info (
-  const vector<compile_server_info> &source,
+  const compile_server_info &source,
   vector<compile_server_info> &target
 )
 {
-  for (vector<compile_server_info>::const_iterator i = source.begin ();
-       i != source.end ();
-       ++i)
-    add_server_info (*i, target);
+  for (vector<compile_server_info>::iterator i = target.begin ();
+      i != target.end ();
+      ++i)
+    {
+      if (source == *i)
+	merge_server_info (source, *i);
+    }
 }
 
-// Merge info from a compile server info vector into a compile
-// server info item.
+// Merge compile server from one vector into another.
 static void
 merge_server_info (
   const vector<compile_server_info> &source,
-  compile_server_info &target
+  vector <compile_server_info> &target
 )
 {
   for (vector<compile_server_info>::const_iterator i = source.begin ();
-       i != source.end ();
-       ++i)
-    {
-      if (*i == target)
-	{
-	  merge_server_info (*i, target);
-	  break;
-	}
-    }
+      i != source.end ();
+      ++i)
+    merge_server_info (*i, target);
 }
+#endif

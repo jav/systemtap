@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 #include <ssl.h>
 #include <nspr.h>
@@ -332,11 +333,6 @@ do_connect(
 {
   PRFileDesc *sslSocket;
   PRStatus    prStatus;
-#if 0
-  PRHostEnt   hostEntry;
-  char        buffer[PR_NETDB_BUF_SIZE];
-  PRIntn      hostenum;
-#endif
   SECStatus   secStatus;
 
   secStatus = SECSuccess;
@@ -356,22 +352,6 @@ do_connect(
   if (secStatus != SECSuccess)
     goto done;
 
-#if 0 /* Already done */
-  /* Prepare and setup network connection. */
-  prStatus = PR_GetHostByName(hostName, buffer, sizeof(buffer), &hostEntry);
-  if (prStatus != PR_SUCCESS)
-    {
-      secStatus = SECFailure;
-      goto done;
-    }
-
-  hostenum = PR_EnumerateHostEnt(0, &hostEntry, port, addr);
-  if (hostenum == -1)
-    {
-      secStatus = SECFailure;
-      goto done;
-    }
-#endif
   prStatus = PR_Connect(sslSocket, addr, PR_INTERVAL_NO_TIMEOUT);
   if (prStatus != PR_SUCCESS)
     {
@@ -402,7 +382,8 @@ do_connect(
 }
 
 int
-client_main (const char *hostName, unsigned short port,
+client_main (const char *hostName, PRUint32 ip __attribute__ ((unused)),
+	     PRUint16 port,
 	     const char* infileName, const char* outfileName,
 	     const char* trustNewServer)
 {
@@ -418,14 +399,24 @@ client_main (const char *hostName, unsigned short port,
 
   trustNewServer_p = trustNewServer;
 
-  /* Setup network connection. */
-  prStatus = PR_GetHostByName(hostName, buffer, sizeof (buffer), &hostEntry);
-  if (prStatus != PR_SUCCESS)
-    exitErr("Unable to resolve server host name", GENERAL_ERROR);
+  /* Setup network connection. If we have an ip address, then
+     simply use it, otherwise we need to resolve the host name.  */
+  if (ip)
+    {
+      addr.inet.family = PR_AF_INET;
+      addr.inet.port = htons (port);
+      addr.inet.ip = htonl (ip);
+    }
+  else
+    {
+      prStatus = PR_GetHostByName(hostName, buffer, sizeof (buffer), &hostEntry);
+      if (prStatus != PR_SUCCESS)
+	exitErr ("Unable to resolve server host name", GENERAL_ERROR);
 
-  rv = PR_EnumerateHostEnt(0, &hostEntry, port, &addr);
-  if (rv < 0)
-    exitErr("Unable to resolve server host address", GENERAL_ERROR);
+      rv = PR_EnumerateHostEnt(0, &hostEntry, port, &addr);
+      if (rv < 0)
+	exitErr ("Unable to resolve server host address", GENERAL_ERROR);
+    }
 
   /* Some errors (see below) represent a situation in which trying again
      should succeed. However, don't try forever.  */
@@ -535,7 +526,7 @@ main(int argc, char **argv)
   /* All cipher suites except RSA_NULL_MD5 are enabled by Domestic Policy. */
   NSS_SetDomesticPolicy();
 
-  client_main (hostName, port, infileName, outfileName, trustNewServer_p);
+  client_main (hostName, 0, port, infileName, outfileName, trustNewServer_p);
 
   NSS_Shutdown();
   PR_Cleanup();
