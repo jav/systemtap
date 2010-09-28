@@ -311,6 +311,13 @@ match_key::operator<(match_key const & other) const
 	      && parameter_type < other.parameter_type));
 }
 
+
+// NB: these are only used in the probe point name components, where
+// only "*" is permitted.
+//
+// Within module("bar"), function("foo"), process("baz") strings, real
+// wildcards are permitted too. See also util.h:contains_glob_chars
+
 static bool
 isglob(string const & str)
 {
