@@ -14,7 +14,7 @@ if [ $? -ne 0 ]; then echo "error compiling bench-$2$3"; return; fi
 ./bench-$2$3.x > /dev/null
 
 # Run bench with stap
-$STAP/bin/stap -DSTP_NO_OVERLOAD=1 -g -p4 -m stapbench_$2$3 bench.stp ./bench-$2$3.x $1 >/dev/null
+taskset 1 $STAP/bin/stap -DSTP_NO_OVERLOAD=1 -g -p4 -m stapbench_$2$3 bench.stp ./bench-$2$3.x $1 >/dev/null
 if [ $? -ne 0 ]; then echo "error running stapbench_$2$3 with stap"; return; fi
 
 # Parse /usr/bin/time, bench.x, bench.stp output to get statistics
@@ -131,4 +131,3 @@ stap_test STAP_SDT_V2 uprobe2
 
 echo -e "\n##### UPROBE V3 #####\n"
 stap_test STAP_SDT_V3 uprobe3
-
