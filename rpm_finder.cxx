@@ -181,7 +181,7 @@ void
 missing_rpm_list_print (systemtap_session &sess, const char* rpm_type)
 {
 #ifdef HAVE_LIBRPM
-  if (sess.rpms_to_install.size() > 0) {
+  if (sess.rpms_to_install.size() > 0 && ! sess.suppress_warnings) {
 
     if(strcmp(rpm_type,"-devel")==0)
 	cerr << "Incorrect version or missing kernel-devel package, use: yum install ";
