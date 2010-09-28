@@ -5,31 +5,22 @@
   tracepoints are those that are declared somewhere other than the usual
   include/linux/trace/ headers, such as xfs and kvm.
 
+- process("...").function/.statement probes support wildcards in the
+  process-name part, to refer to all executables that match the glob
+  pattern.  (Use the optional "?" probe point flag to match any
+  executables instead of all.)
+
 - The -t option now displays information per probe-point rather than a summary
   for each probe.  It also now shows the derivation chain for each probe-point.
 
 - The implementation of the integrated compile-server client has been
   extended.
-
   o --use-server now accepts an argument representing a particular server and
     may be specified more than once.
   o --list-servers now accepts an expanded range of arguments.
-  o a new --trust-servers option has been added to stap which replaces
-    stap-authorize-server-cert and stap-authorize-signing-cert. --trust-servers
-    improves on these tools by obtaining a server's certificate directly from
-    the server, removing the need to manually obtain the server's certificate
-    file.
-
+  o a new --trust-servers option has been added to stap to replace several
+    old certificate-management scripts.
   See 'man stap' for complete details.
-
-  With these changes, the integrated client provides more functionality than
-  the old client. The old client and tools are now deprecated and
-  will no longer be available beginning in release 1.5:
-    stap-client
-    stap-find-servers
-    stap-find-or-start-server
-    stap-authorize-server-cert
-    stap-authorize-signing-cert.
 
 - Starting in release 1.5, these old variables/functions will be deprecated
   and will only be available when the '--compatible=1.4' flag is used:
