@@ -947,9 +947,6 @@ c_unparser::emit_common_header ()
   o->newline() << "const char * marker_name;";
   o->newline() << "const char * marker_format;";
   o->newline() << "void *data;";
-  o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "Stat *statp;";
-  o->newline() << "#endif";
   o->newline() << "#ifdef STP_OVERLOAD";
   o->newline() << "cycles_t cycles_base;";
   o->newline() << "cycles_t cycles_sum;";
@@ -975,7 +972,6 @@ c_unparser::emit_common_header ()
 
       // NB: see c_unparser::emit_probe() for original copy of duplicate-hashing logic.
       ostringstream oss;
-      oss << "c->statp = & time_" << dp->name << ";" << endl;  // -t anti-dupe
       oss << "# needs_global_locks: " << dp->needs_global_locks () << endl;
       dp->print_dupe_stamp (oss);
       dp->body->print(oss);
@@ -1269,11 +1265,11 @@ c_unparser::emit_module_init ()
   o->newline() << "#ifdef STP_TIMING";
   for (unsigned i=0; i<session->probes.size(); i++)
     {
-      string nm = session->probes[i]->name;
+      const string &nm = session->probes[i]->real_name;
 
-          o->newline() << "time_" << nm << " = _stp_stat_init (HIST_NONE);";
-          // NB: we don't check for null return here, but instead at
-          // passage to probe handlers and at final printing.
+      o->newline() << "stp_timing." << nm << " = _stp_stat_init (HIST_NONE);";
+      // NB: we don't check for null return here, but instead at
+      // passage to probe handlers and at final printing.
     }
   o->newline() << "#endif";
 
@@ -1446,18 +1442,18 @@ c_unparser::emit_module_exit ()
       {
         vector<probe*> reference_point;
         const derived_probe* p = session->probes[i];
-        const string &nm = p->name;
+        const string &nm = p->real_name;
         string call = p->sole_location()->str(false); // no ?,!,etc
         session->probes[i]->collect_derivation_chain(reference_point);
         // NB: check for null stat object
-        o->newline() << "if (likely (time_" << nm << ")) {";
+        o->newline() << "if (likely (stp_timing." << nm << ")) {";
         o->newline(1) << "const char *probe_point = "
                       << lex_cast_qstring(call)
                       << ";";
         o->newline() << "const char *decl_location = "
                      << lex_cast_qstring (p->tok->location)
                      << ";";
-        o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
+        o->newline() << "struct stat_data *stats = _stp_stat_get (stp_timing."
                      << nm
                      << ", 0);";
         o->newline() << "if (stats->count) {";
@@ -1474,7 +1470,7 @@ c_unparser::emit_module_exit ()
           }
         o->newline() << "_stp_printf(\"\\n\");";
         o->newline(-1) << "}";
-        o->newline() << "_stp_stat_del (time_" << nm << ");";
+        o->newline() << "_stp_stat_del (stp_timing." << nm << ");";
         o->newline(-1) << "}";
       }
     o->newline() << "_stp_print_flush();";
@@ -1633,13 +1629,6 @@ c_unparser::emit_probe (derived_probe* v)
   //
   ostringstream oss;
 
-  // NB: statp is just for avoiding designation as duplicate.  It need not be C.
-  // NB: This code *could* be enclosed in an "if (session->timing)".  That would
-  // recognize more duplicate probe handlers, but then the generated code could
-  // be very different with or without -t.
-
-  oss << "c->statp = & time_ " << v->name << ";" << endl;
-
   v->print_dupe_stamp (oss);
   v->body->print(oss);
 
@@ -1687,10 +1676,6 @@ c_unparser::emit_probe (derived_probe* v)
       this->probe_or_function_needs_deref_fault_handler = false;
 
       o->newline();
-      o->newline() << "#ifdef STP_TIMING";
-      o->newline() << "static __cacheline_aligned Stat " << "time_" << v->name << ";";
-      o->newline() << "#endif";
-      o->newline();
       o->newline() << "static void " << v->name << " (struct context * __restrict__ c) ";
       o->line () << "{";
       o->indent (1);
@@ -1714,10 +1699,6 @@ c_unparser::emit_probe (derived_probe* v)
 
       // Emit runtime safety net for unprivileged mode.
       v->emit_unprivileged_assertion (o);
-
-      o->newline() << "#ifdef STP_TIMING";
-      o->newline() << "c->statp = & time_" << v->name << ";";
-      o->newline() << "#endif";
 
       // emit probe local initialization block
       v->emit_probe_local_init(o);
@@ -5930,15 +5911,38 @@ translate_pass (systemtap_session& s)
             clog << "stap_probe *" << #var << endl;                             \
         }
 
+      // initialize each Stat used for timing information
+      s.op->newline() << "#ifdef STP_TIMING";
+      s.op->newline() << "static struct {";
+      s.op->indent(1);
+      for (unsigned i=0; i<s.probes.size(); ++i)
+        {
+          const string &nm = s.probes[i]->real_name;
+          s.op->newline() << "Stat " << nm << ";";
+        }
+      s.op->newline(-1) << "} stp_timing;";
+      s.op->newline() << "#endif";
+
       s.op->newline() << "struct stap_probe {";
       s.op->newline(1) << "void (* const ph) (struct context*);";
+      s.op->newline() << "#ifdef STP_TIMING";
+      s.op->newline() << "Stat *pt;";
+      s.op->newline() << "#define STAP_PROBE_INIT_TIMING(RN) .pt=&stp_timing.RN,";
+      s.op->newline() << "#else";
+      s.op->newline() << "#define STAP_PROBE_INIT_TIMING(RN)";
+      s.op->newline() << "#endif";
       CALCIT(pp);
       s.op->newline() << "#ifdef STP_NEED_PROBE_NAME";
       CALCIT(pn);
-      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PN) { .ph=(PH), .pp=(PP), .pn=(PN) }";
+      s.op->newline() << "#define STAP_PROBE_INIT_NAME(PN) .pn=(PN),";
       s.op->newline() << "#else";
-      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PN) { .ph=(PH), .pp=(PP) }";
+      s.op->newline() << "#define STAP_PROBE_INIT_NAME(PN)";
       s.op->newline() << "#endif";
+      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PN, RN) "
+                      << "{ .ph=(PH), .pp=(PP), "
+                      << "STAP_PROBE_INIT_NAME(PN) "
+                      << "STAP_PROBE_INIT_TIMING(RN) "
+                      << "}";
       s.op->newline(-1) << "};";
 #undef CALCIT
 

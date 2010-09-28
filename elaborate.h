@@ -127,6 +127,7 @@ struct derived_probe: public probe
   derived_probe (probe* b);
   derived_probe (probe* b, probe_point* l);
   probe* base; // the original parsed probe
+  const std::string real_name; // unchanging name, despite the dupe-finder
   virtual const probe* basest () const { return base->basest(); }
   virtual const probe* almost_basest () const { return base->almost_basest() ?: this; }
   virtual ~derived_probe () {}

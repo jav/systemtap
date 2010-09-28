@@ -73,7 +73,8 @@ common_probe_init (derived_probe* p)
   ostringstream o;
   o << "STAP_PROBE_INIT(&" << p->name << ", "
     << lex_cast_qstring (*p->sole_location()) << ", "
-    << lex_cast_qstring (*p->script_location()) << ")";
+    << lex_cast_qstring (*p->script_location()) << ", "
+    << p->real_name << ")";
   return o.str();
 }
 
@@ -92,6 +93,10 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   else
     o->newline() << "#ifdef STP_TIMING";
   o->newline() << "cycles_t cycles_atstart = get_cycles ();";
+  o->newline() << "#endif";
+
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "Stat stat = " << probe << ".pt ? *" << probe << ".pt : 0;";
   o->newline() << "#endif";
 
   o->newline() << "#if INTERRUPTIBLE";
@@ -163,9 +168,6 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "#else";
   o->newline() << "c->actionremaining = MAXACTION;";
   o->newline() << "#endif";
-  o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "c->statp = 0;";
-  o->newline() << "#endif";
   o->newline() << "c->ri = 0;";
   // NB: The following would actually be incorrect.
   // That's because cycles_sum/cycles_base values are supposed to survive
@@ -199,7 +201,7 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->indent(-1);
 
   o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "if (likely (c->statp)) _stp_stat_add(*c->statp, cycles_elapsed);";
+  o->newline() << "if (likely (stat)) _stp_stat_add(stat, cycles_elapsed);";
   o->newline() << "#endif";
 
   if (overload_processing)
