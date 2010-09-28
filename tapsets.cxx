@@ -5255,6 +5255,7 @@ sdt_query::handle_query_module()
 bool
 sdt_query::init_probe_scn()
 {
+  Elf* elf;
   GElf_Shdr shdr_mem;
 
   GElf_Shdr *shdr = dw.get_section (".note.stapsdt", &shdr_mem);
@@ -5264,12 +5265,9 @@ sdt_query::init_probe_scn()
       return true;
     }
 
-  shdr = dw.get_section (".probes", &shdr_mem);
+  shdr = dw.get_section (".probes", &shdr_mem, &elf);
   if (shdr)
     {
-      Dwarf_Addr bias;
-      Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw.mod_info->mod, &bias))
-	      ?: dwfl_module_getelf (dw.mod_info->mod, &bias));
       pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
       probe_scn_offset = 0;
       probe_scn_addr = shdr->sh_addr;

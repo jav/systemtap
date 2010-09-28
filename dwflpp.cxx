@@ -3010,7 +3010,7 @@ dwflpp::get_blacklist_section(Dwarf_Addr addr)
  * returning the section header using 'shdr_mem' */
 
 GElf_Shdr *
-dwflpp::get_section(string section_name, GElf_Shdr *shdr_mem)
+dwflpp::get_section(string section_name, GElf_Shdr *shdr_mem, Elf **elf_ret)
 {
   GElf_Shdr *shdr = NULL;
   Elf* elf;
@@ -3043,7 +3043,7 @@ dwflpp::get_section(string section_name, GElf_Shdr *shdr_mem)
     {
       elf = dwarf_getelf (dwfl_module_getdwarf (module, &bias));
       if (! elf)
-	return false;
+	return NULL;
       dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
       probe_scn = NULL;
       while ((probe_scn = elf_nextscn (elf, probe_scn)))
@@ -3059,8 +3059,10 @@ dwflpp::get_section(string section_name, GElf_Shdr *shdr_mem)
 
   if (!have_section)
     return NULL;
-  else
-    return shdr;
+
+  if (elf_ret)
+    *elf_ret = elf;
+  return shdr;
 }
 
 
