@@ -543,5 +543,12 @@ int regexp_match (const string& value, const string& re, vector<string>& matches
 }
 
 
+bool contains_glob_chars (const string& str)
+{
+  return (str.find("*") != str.npos ||
+          str.find("?") != str.npos ||
+          str.find("[") != str.npos);
+}
+
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

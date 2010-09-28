@@ -52,8 +52,10 @@ extern "C" {
 #include <fnmatch.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <math.h>
 #include <regex.h>
+#include <unistd.h>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -5731,11 +5733,60 @@ dwarf_builder::build(systemtap_session & sess,
     }
   else if (get_param (parameters, TOK_MODULE, module_name))
     {
+      // NB: glob patterns get expanded later, during the offline
+      // elfutils module listing.
       dw = get_kern_dw(sess, module_name);
     }
   else if (get_param (parameters, TOK_PROCESS, module_name))
     {
       string library_name;
+
+      // PR6456  process("/bin/*")  glob handling
+      if (contains_glob_chars (module_name))
+        {
+          // Expand glob via rewriting the probe-point process("....")
+          // parameter, asserted to be the first one.
+
+          assert (location->components.size() > 0);
+          assert (location->components[0]->functor == TOK_PROCESS);
+          assert (location->components[0]->arg);
+          literal_string* lit = dynamic_cast<literal_string*>(location->components[0]->arg);
+          assert (lit);
+
+          // Evaluate glob here, and call derive_probes recursively with each match.
+          glob_t the_blob;
+          int rc = glob (module_name.c_str(), 0, NULL, & the_blob);
+          if (rc) throw semantic_error ("glob " + module_name + " error (" + lex_cast (rc) + ")");
+          for (unsigned i = 0; i < the_blob.gl_pathc; ++i)
+            {
+              if (pending_interrupts) return;
+
+              const char* globbed = the_blob.gl_pathv[i];
+              struct stat st;
+
+              if (access (globbed, X_OK) == 0
+                  && stat (globbed, &st) == 0
+                  && S_ISREG (st.st_mode)) // see find_executable()
+                {
+                  if (sess.verbose > 1)
+                    clog << "Expanded process(\"" << module_name << "\") to "
+                         << "process(\"" << globbed << "\")" << endl;
+                  // synthesize a new probe_point, with the glob-expanded string
+                  probe_point *pp = new probe_point (*location);
+                  probe_point::component* ppc = new probe_point::component (TOK_PROCESS,
+                                                                            new literal_string (globbed));
+                  ppc->tok = location->components[0]->tok; // overwrite [0] slot, pattern matched above
+                  pp->components[0] = ppc;
+
+                  probe* new_probe = base->create_alias (pp, pp);
+                  derive_probes (sess, new_probe, finished_results, location->optional);
+                }
+            }
+
+          globfree (& the_blob);
+          return; // avoid falling through
+        }
+
       user_path = find_executable (module_name); // canonicalize it
       if (get_param (parameters, TOK_LIBRARY, library_name))
 	{
