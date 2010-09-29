@@ -53,7 +53,7 @@ perf_derived_probe::perf_derived_probe (probe* p, probe_point* l,
                                         int64_t type,
                                         int64_t config,
                                         int64_t i):
-  derived_probe (p, new probe_point(*l) /* .components soon rewritten */),
+  derived_probe (p, l, true /* .components soon rewritten */),
   event_type (type), event_config (config), interval (i)
 {
   vector<probe_point::component*>& comps = this->sole_location()->components;

@@ -119,7 +119,7 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
                                             probe* p, probe_point* l,
 					    bool hp, string &pn, int64_t pd,
 					    enum utrace_derived_probe_flags f):
-  derived_probe (p, new probe_point (*l) /* .components soon rewritten */ ),
+  derived_probe (p, l, true /* .components soon rewritten */ ),
   has_path(hp), path(pn), pid(pd), flags(f),
   target_symbol_seen(false)
 {

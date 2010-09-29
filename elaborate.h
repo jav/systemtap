@@ -124,7 +124,7 @@ class derived_probe_group;
 
 struct derived_probe: public probe
 {
-  derived_probe (probe* b, probe_point* l);
+  derived_probe (probe* b, probe_point* l, bool rewrite_loc=false);
   probe* base; // the original parsed probe
   const std::string real_name; // unchanging name, despite the dupe-finder
   virtual const probe* basest () const { return base->basest(); }

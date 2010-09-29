@@ -207,7 +207,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
                                         const string& p_n,
                                         const string& p_f,
                                         probe* base, probe_point* loc):
-  derived_probe (base, new probe_point(*loc) /* .components soon rewritten */),
+  derived_probe (base, loc, true /* .components soon rewritten */),
   sess (s), probe_name (p_n), probe_format (p_f),
   target_symbol_seen (false)
 {

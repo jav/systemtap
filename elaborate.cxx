@@ -57,7 +57,7 @@ expression* add_condition (expression* a, expression* b)
 
 
 
-derived_probe::derived_probe (probe *p, probe_point *l):
+derived_probe::derived_probe (probe *p, probe_point *l, bool rewrite_loc):
   base (p), real_name(name), sdt_semaphore_addr(0)
 {
   assert (p);
@@ -66,6 +66,9 @@ derived_probe::derived_probe (probe *p, probe_point *l):
   this->body = deep_copy_visitor::deep_copy(p->body);
 
   assert (l);
+  // make a copy for subclasses which want to rewrite the location
+  if (rewrite_loc)
+    l = new probe_point(*l);
   this->locations.push_back (l);
 }
 

@@ -3723,7 +3723,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                                          Dwarf_Addr addr,
                                          dwarf_query& q,
                                          Dwarf_Die* scope_die /* may be null */)
-  : derived_probe (q.base_probe, new probe_point(*q.base_loc) /* .components soon rewritten */ ),
+  : derived_probe (q.base_probe, q.base_loc, true /* .components soon rewritten */ ),
     module (module), section (section), addr (addr),
     path (q.path),
     has_process (q.has_process),
@@ -6546,7 +6546,7 @@ kprobe_derived_probe::kprobe_derived_probe (probe *base,
 					    const string& path,
 					    const string& library
 					    ):
-  derived_probe (base, location),
+  derived_probe (base, location, true /* .components soon rewritten */ ),
   symbol_name (name), addr (stmt_addr),
   has_return (has_return), has_statement (has_statement),
   has_maxactive (has_maxactive), has_path (has_path),
@@ -7084,7 +7084,7 @@ hwbkpt_derived_probe::hwbkpt_derived_probe (probe *base,
                                             bool has_only_write_access,
                                             bool has_rw_access
                                             ):
-  derived_probe (base, location),
+  derived_probe (base, location, true /* .components soon rewritten */ ),
   hwbkpt_addr (addr),
   symbol_name (symname),
   hwbkpt_len (len)
@@ -7680,7 +7680,7 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
                                                     dwflpp& dw, Dwarf_Die& func_die,
                                                     const string& tracepoint_name,
                                                     probe* base, probe_point* loc):
-  derived_probe (base, new probe_point(*loc) /* .components soon rewritten */),
+  derived_probe (base, loc, true /* .components soon rewritten */),
   sess (s), tracepoint_name (tracepoint_name)
 {
   // create synthetic probe point name; preserve condition
