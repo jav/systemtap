@@ -1,6 +1,7 @@
 // translation pass
 // Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2008 Intel Corporation.
+// Copyright (C) 2010 Novell Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -4895,9 +4896,9 @@ dump_unwindsyms (Dwfl_Module *m,
     // Enable workaround for elfutils dwfl bug.
     // see https://bugzilla.redhat.com/show_bug.cgi?id=465872
     // and http://sourceware.org/ml/systemtap/2008-q4/msg00579.html
-#if _ELFUTILS_PREREQ(0,138)
-    // Let's standardize to the buggy "end of build-id bits" behavior.
-    build_id_vaddr += build_id_len;
+#if !_ELFUTILS_PREREQ(0,138)
+    // Let's standardize to the new "start of build-id bits" behavior.
+    build_id_vaddr -= build_id_len;
 #endif
 
     // And check for another workaround needed.
@@ -4912,26 +4913,30 @@ dump_unwindsyms (Dwfl_Module *m,
       }
 #endif
 
-    if (modname != "kernel") {
-    	Dwarf_Addr reloc_vaddr = build_id_vaddr;
-    	const char *secname;
-    	int i;
+    if (modname != "kernel")
+      {
+        Dwarf_Addr reloc_vaddr = build_id_vaddr;
+        const char *secname;
+        int i;
 
-      	i = dwfl_module_relocate_address (m, &reloc_vaddr);
-      	dwfl_assert ("dwfl_module_relocate_address", i >= 0);
+        i = dwfl_module_relocate_address (m, &reloc_vaddr);
+        dwfl_assert ("dwfl_module_relocate_address", i >= 0);
 
-      	secname = dwfl_module_relocation_info (m, i, NULL);
-	dwfl_assert ("dwfl_module_relocation_info", 
-		strcmp(secname, ".note.gnu.build-id") == 0);
+        secname = dwfl_module_relocation_info (m, i, NULL);
 
-	build_id_vaddr = reloc_vaddr;
-    }
+        // assert same section name as in runtime/transport/symbols.c
+        if (!secname || strcmp(secname, ".note.gnu.build-id"))
+          throw semantic_error ("unexpected build-id reloc section " +
+                                string(secname ?: "null"));
+
+        build_id_vaddr = reloc_vaddr;
+      }
 
     if (c->session.verbose > 1)
       {
         clog << "Found build-id in " << name
              << ", length " << build_id_len;
-        clog << ", end at 0x" << hex << build_id_vaddr
+        clog << ", start at 0x" << hex << build_id_vaddr
              << dec << endl;
       }
   }

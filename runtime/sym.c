@@ -267,13 +267,11 @@ static int _stp_module_check(void)
 			  base_addr = m->notes_sect;
 		    }
 
-		    /* build-id note payload start address */
-                    /* XXX: But see https://bugzilla.redhat.com/show_bug.cgi?id=465872;
-                       dwfl_module_build_id was not intended to return the end address. */
-		    notes_addr -= m->build_id_len;
-
-		    if (notes_addr <= base_addr)  /* shouldn't happen */
-			 continue;
+		    if (notes_addr <= base_addr) { /* shouldn't happen */
+                            _stp_warn ("build-id address %lx < base %lx\n", 
+                                       notes_addr, base_addr);
+                            continue;
+                    }
                     for (j=0; j<m->build_id_len; j++) {
                             /* Use set_fs / get_user to access
                              conceivably invalid addresses.  If
