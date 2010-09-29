@@ -188,7 +188,6 @@ be_derived_probe_group::emit_module_exit (systemtap_session& s)
 
 struct never_derived_probe: public derived_probe
 {
-  never_derived_probe (probe* p): derived_probe (p) {}
   never_derived_probe (probe* p, probe_point* l): derived_probe (p, l) {}
   void join_group (systemtap_session&) { /* thus no probe_group */ }
   void emit_unprivileged_assertion (translator_output*) {}

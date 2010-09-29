@@ -33,7 +33,7 @@ using namespace __gnu_cxx;
 struct task_finder_derived_probe: public derived_probe
 {
   // Dummy constructor for gcc 3.4 compatibility
-  task_finder_derived_probe (): derived_probe (0) { assert(0); }
+  task_finder_derived_probe (): derived_probe (0, 0) { assert(0); }
 };
 
 

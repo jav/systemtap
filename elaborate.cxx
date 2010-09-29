@@ -57,17 +57,6 @@ expression* add_condition (expression* a, expression* b)
 
 
 
-derived_probe::derived_probe (probe *p):
-  base (p), real_name(name), sdt_semaphore_addr(0)
-{
-  assert (p);
-  this->locations = p->locations;
-  this->tok = p->tok;
-  this->privileged = p->privileged;
-  this->body = deep_copy_visitor::deep_copy(p->body);
-}
-
-
 derived_probe::derived_probe (probe *p, probe_point *l):
   base (p), real_name(name), sdt_semaphore_addr(0)
 {
