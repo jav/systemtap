@@ -4911,6 +4911,22 @@ dump_unwindsyms (Dwfl_Module *m,
         build_id_vaddr += main_bias;
       }
 #endif
+
+    if (modname != "kernel") {
+    	Dwarf_Addr reloc_vaddr = build_id_vaddr;
+    	const char *secname;
+    	int i;
+
+      	i = dwfl_module_relocate_address (m, &reloc_vaddr);
+      	dwfl_assert ("dwfl_module_relocate_address", i >= 0);
+
+      	secname = dwfl_module_relocation_info (m, i, NULL);
+	dwfl_assert ("dwfl_module_relocation_info", 
+		strcmp(secname, ".note.gnu.build-id") == 0);
+
+	build_id_vaddr = reloc_vaddr;
+    }
+
     if (c->session.verbose > 1)
       {
         clog << "Found build-id in " << name
