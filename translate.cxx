@@ -1441,11 +1441,11 @@ c_unparser::emit_module_exit ()
     o->newline() << "_stp_printf(\"----- probe hit report: \\n\");";
     for (unsigned i=0; i<session->probes.size(); i++)
       {
-        vector<probe*> reference_point;
+        vector<probe_point*> reference_point;
         const derived_probe* p = session->probes[i];
         const string &nm = p->real_name;
         string call = p->sole_location()->str(false); // no ?,!,etc
-        session->probes[i]->collect_derivation_chain(reference_point);
+        session->probes[i]->collect_derivation_pp_chain(reference_point);
         // NB: check for null stat object
         o->newline() << "if (likely (stp_timing." << nm << ")) {";
         o->newline(1) << "const char *probe_point = "
@@ -1462,9 +1462,9 @@ c_unparser::emit_module_exit ()
         o->newline() << "_stp_printf (\"%s, (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax,\",";
         o->newline() << "probe_point, decl_location, (long long) stats->count, "
                      << "(long long) stats->min, (long long) avg, (long long) stats->max);";
-        for(unsigned int j=1; j<reference_point.size(); ++j)
+        for(unsigned int j=0; j<reference_point.size(); ++j)
           {
-            const probe_point *pp = reference_point[j]->locations[0];
+            const probe_point *pp = reference_point[j];
             o->newline() << "_stp_printf(\" from: %s\", "
                          << lex_cast_qstring(pp->str(false)) // no ?,!,etc
                          << ");";

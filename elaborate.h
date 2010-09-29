@@ -126,6 +126,7 @@ struct derived_probe: public probe
 {
   derived_probe (probe* b, probe_point* l, bool rewrite_loc=false);
   probe* base; // the original parsed probe
+  probe_point* base_pp; // the probe_point that led to this derivation
   const std::string real_name; // unchanging name, despite the dupe-finder
   virtual const probe* basest () const { return base->basest(); }
   virtual const probe* almost_basest () const { return base->almost_basest() ?: this; }
@@ -138,6 +139,7 @@ struct derived_probe: public probe
   virtual void getargs (std::list<std::string> &arg_set) const {}
   void printsig_nested (std::ostream &o) const;
   virtual void collect_derivation_chain (std::vector<probe*> &probes_list);
+  virtual void collect_derivation_pp_chain (std::vector<probe_point*> &pp_list);
 
   virtual void print_dupe_stamp(std::ostream&) {}
   // To aid duplication elimination, print a stamp which uniquely identifies

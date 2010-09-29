@@ -58,7 +58,7 @@ expression* add_condition (expression* a, expression* b)
 
 
 derived_probe::derived_probe (probe *p, probe_point *l, bool rewrite_loc):
-  base (p), real_name(name), sdt_semaphore_addr(0)
+  base (p), base_pp(l), real_name(name), sdt_semaphore_addr(0)
 {
   assert (p);
   this->tok = p->tok;
@@ -112,6 +112,14 @@ derived_probe::collect_derivation_chain (std::vector<probe*> &probes_list)
 {
   probes_list.push_back(this);
   base->collect_derivation_chain(probes_list);
+}
+
+
+void
+derived_probe::collect_derivation_pp_chain (std::vector<probe_point*> &pp_list)
+{
+  pp_list.push_back(base_pp);
+  base->collect_derivation_pp_chain(pp_list);
 }
 
 
