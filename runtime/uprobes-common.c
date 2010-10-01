@@ -49,7 +49,7 @@ static int stap_uprobe_change_plus (struct task_struct *tsk, unsigned long reloc
 
       /* register new uprobe
 	 We make two passes for semaphores;
-	 see _stap_uprobe_change_semaphore_plus */
+	 see stap_uprobe_change_semaphore_plus */
  
       if (sup->spec_index < 0 || (sups->sdt_sem_offset && vm_flags & VM_WRITE && sup->spec_index == spec_index)) {
         #if (UPROBES_API_VERSION < 2)
@@ -96,7 +96,12 @@ static int stap_uprobe_change_plus (struct task_struct *tsk, unsigned long reloc
         sup->up.handler = &enter_uprobe_probe;
         rc = register_uprobe (& sup->up);
       }
-      if (rc) { /* failed to register */
+
+      /* The u*probe failed to register.  However, if we got EEXIST,
+       * that means that the u*probe is already there, so just ignore
+       * the error.  This could happen if CLONE_THREAD or CLONE_VM was
+       * used. */
+      if (rc != 0 && rc != -EEXIST) {
         _stp_warn ("u*probe failed %s[%d] '%s' addr %p rc %d\n", tsk->comm, tsk->tgid, sups->probe.pp, (void*)(relocation + sups->address), rc);
 	/* NB: we need to release this slot,
 	   so we need to borrow the mutex temporarily. */

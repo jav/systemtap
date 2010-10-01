@@ -969,29 +969,17 @@ static int defer_registration(struct uprobe *u, int regflag,
 }
 
 /*
- * Given a numeric thread ID, return a ref-counted struct pid for the
- * task-group-leader thread.
+ * Given a numeric thread-group ID, return a ref-counted struct pid for the
+ * task-group-leader thread.  This ID is always in the global namespace,
+ * as appears in the task_struct.tgid field.
  */
 static struct pid *uprobe_get_tg_leader(pid_t p)
 {
-	struct pid *pid = NULL;
-
+	struct pid *pid;
 	rcu_read_lock();
-	/*
-	 * We need this check because unmap_u[ret]probe() can be called
-	 * from a report_death callback, where current->proxy is NULL.
-	 */
-	if (current->nsproxy)
-		pid = find_vpid(p);
-	if (pid) {
-		struct task_struct *t = pid_task(pid, PIDTYPE_PID);
-		if (t)
-			pid = task_tgid(t);
-		else
-			pid = NULL;
-	}
+	pid = get_pid(find_pid_ns(p, &init_pid_ns));
 	rcu_read_unlock();
-	return get_pid(pid);	/* null pid OK here */
+	return pid;
 }
 
 /* See Documentation/uprobes.txt. */
@@ -2428,7 +2416,7 @@ static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
 
 	if (!try_module_get(THIS_MODULE))
 		return -ENOSYS;
-	child_pid = get_pid(find_vpid(child_tsk->pid));
+	child_pid = get_pid(task_pid(child_tsk));
 	if (!child_pid) {
 		module_put(THIS_MODULE);
 		return -ESRCH;
@@ -2496,8 +2484,9 @@ static u32 uprobe_report_clone(enum utrace_resume_action action,
 	lock_uproc_table();
 	down_write(&uproc->rwsem);
 
-	if (clone_flags & CLONE_THREAD) {
-		/* New thread in the same process. */
+	if (clone_flags & (CLONE_THREAD|CLONE_VM)) {
+		/* New thread in the same process (CLONE_THREAD) or
+		 * processes sharing the same memory space (CLONE_VM). */
 		ctask = uprobe_find_utask(child);
 		if (unlikely(ctask)) {
 			/*
