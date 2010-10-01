@@ -1264,15 +1264,11 @@ c_unparser::emit_module_init ()
 
   // initialize each Stat used for timing information
   o->newline() << "#ifdef STP_TIMING";
-  for (unsigned i=0; i<session->probes.size(); i++)
-    {
-      const string &nm = session->probes[i]->real_name;
-
-      o->newline() << "stp_timing." << nm << " = _stp_stat_init (HIST_NONE);";
-      // NB: we don't check for null return here, but instead at
-      // passage to probe handlers and at final printing.
-    }
-  o->newline() << "#endif";
+  o->newline() << "for (i = 0; i < ARRAY_SIZE(stap_probes); ++i)";
+  o->newline(1) << "stap_probes[i].timing = _stp_stat_init (HIST_NONE);";
+  // NB: we don't check for null return here, but instead at
+  // passage to probe handlers and at final printing.
+  o->newline(-1) << "#endif";
 
   // Print a message to the kernel log about this module.  This is
   // intended to help debug problems with systemtap modules.
@@ -1434,50 +1430,25 @@ c_unparser::emit_module_exit ()
   o->newline(-1) << "}";
 
   // print per probe point timing statistics
-  {
-    o->newline() << "#ifdef STP_TIMING";
-    o->newline() << "{";
-    o->indent(1);
-    o->newline() << "_stp_printf(\"----- probe hit report: \\n\");";
-    for (unsigned i=0; i<session->probes.size(); i++)
-      {
-        vector<probe_point*> reference_point;
-        const derived_probe* p = session->probes[i];
-        const string &nm = p->real_name;
-        string call = p->sole_location()->str(false); // no ?,!,etc
-        session->probes[i]->collect_derivation_pp_chain(reference_point);
-        // NB: check for null stat object
-        o->newline() << "if (likely (stp_timing." << nm << ")) {";
-        o->newline(1) << "const char *probe_point = "
-                      << lex_cast_qstring(call)
-                      << ";";
-        o->newline() << "const char *decl_location = "
-                     << lex_cast_qstring (p->tok->location)
-                     << ";";
-        o->newline() << "struct stat_data *stats = _stp_stat_get (stp_timing."
-                     << nm
-                     << ", 0);";
-        o->newline() << "if (stats->count) {";
-        o->newline(1) << "int64_t avg = _stp_div64 (NULL, stats->sum, stats->count);";
-        o->newline() << "_stp_printf (\"%s, (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax,\",";
-        o->newline() << "probe_point, decl_location, (long long) stats->count, "
-                     << "(long long) stats->min, (long long) avg, (long long) stats->max);";
-        for(unsigned int j=0; j<reference_point.size(); ++j)
-          {
-            const probe_point *pp = reference_point[j];
-            o->newline() << "_stp_printf(\" from: %s\", "
-                         << lex_cast_qstring(pp->str(false)) // no ?,!,etc
-                         << ");";
-          }
-        o->newline() << "_stp_printf(\"\\n\");";
-        o->newline(-1) << "}";
-        o->newline() << "_stp_stat_del (stp_timing." << nm << ");";
-        o->newline(-1) << "}";
-      }
-    o->newline() << "_stp_print_flush();";
-    o->newline(-1) << "}";
-    o->newline() << "#endif";
-  }
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "_stp_printf(\"----- probe hit report: \\n\");";
+  o->newline() << "for (i = 0; i < ARRAY_SIZE(stap_probes); ++i) {";
+  o->newline(1) << "struct stap_probe *const p = &stap_probes[i];";
+  // NB: check for null stat object
+  o->newline() << "if (likely (p->timing)) {";
+  o->newline(1) << "struct stat_data *stats = _stp_stat_get (p->timing, 0);";
+  o->newline() << "if (stats->count) {";
+  o->newline(1) << "int64_t avg = _stp_div64 (NULL, stats->sum, stats->count);";
+  o->newline() << "_stp_printf (\"%s, (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax,%s\\n\",";
+  o->newline(2) << "p->pp, p->location, (long long) stats->count,";
+  o->newline() << "(long long) stats->min, (long long) avg, (long long) stats->max,";
+  o->newline() << "p->derivation);";
+  o->newline(-3) << "}";
+  o->newline() << "_stp_stat_del (p->timing);";
+  o->newline(-1) << "}";
+  o->newline(-1) << "}";
+  o->newline() << "_stp_print_flush();";
+  o->newline() << "#endif";
 
   // teardown gettimeofday (if needed)
   o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
@@ -5905,8 +5876,8 @@ translate_pass (systemtap_session& s)
       // Let's find some stats for the embedded pp strings.  Maybe they
       // are small and uniform enough to justify putting char[MAX]'s into
       // the array instead of relocated char*'s.
-      size_t pp_max = 0, pn_max = 0;
-      size_t pp_tot = 0, pn_tot = 0;
+      size_t pp_max = 0, pn_max = 0, location_max = 0, derivation_max = 0;
+      size_t pp_tot = 0, pn_tot = 0, location_tot = 0, derivation_tot = 0;
       for (unsigned i=0; i<s.probes.size(); i++)
         {
           derived_probe* p = s.probes[i];
@@ -5916,6 +5887,8 @@ translate_pass (systemtap_session& s)
         var##_tot += var##_size; } while (0)
           DOIT(pp, lex_cast_qstring(*p->sole_location()).size());
           DOIT(pn, lex_cast_qstring(*p->script_location()).size());
+          DOIT(location, lex_cast_qstring(p->tok->location).size());
+          DOIT(derivation, lex_cast_qstring(p->derived_locations()).size());
 #undef DOIT
         }
 
@@ -5937,25 +5910,16 @@ translate_pass (systemtap_session& s)
             clog << "stap_probe *" << #var << endl;                             \
         }
 
-      // initialize each Stat used for timing information
-      s.op->newline() << "#ifdef STP_TIMING";
-      s.op->newline() << "static struct {";
-      s.op->indent(1);
-      for (unsigned i=0; i<s.probes.size(); ++i)
-        {
-          const string &nm = s.probes[i]->real_name;
-          s.op->newline() << "Stat " << nm << ";";
-        }
-      s.op->newline(-1) << "} stp_timing;";
-      s.op->newline() << "#endif";
-
-      s.op->newline() << "struct stap_probe {";
+      s.op->newline() << "static struct stap_probe {";
       s.op->newline(1) << "void (* const ph) (struct context*);";
       s.op->newline() << "#ifdef STP_TIMING";
-      s.op->newline() << "Stat *pt;";
-      s.op->newline() << "#define STAP_PROBE_INIT_TIMING(RN) .pt=&stp_timing.RN,";
+      s.op->newline() << "Stat timing;";
+      CALCIT(location);
+      CALCIT(derivation);
+      s.op->newline() << "#define STAP_PROBE_INIT_TIMING(L, D) "
+                      << ".location=(L), .derivation=(D),";
       s.op->newline() << "#else";
-      s.op->newline() << "#define STAP_PROBE_INIT_TIMING(RN)";
+      s.op->newline() << "#define STAP_PROBE_INIT_TIMING(L, D)";
       s.op->newline() << "#endif";
       CALCIT(pp);
       s.op->newline() << "#ifdef STP_NEED_PROBE_NAME";
@@ -5964,11 +5928,23 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#else";
       s.op->newline() << "#define STAP_PROBE_INIT_NAME(PN)";
       s.op->newline() << "#endif";
-      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PN, RN) "
+      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PN, L, D) "
                       << "{ .ph=(PH), .pp=(PP), "
                       << "STAP_PROBE_INIT_NAME(PN) "
-                      << "STAP_PROBE_INIT_TIMING(RN) "
+                      << "STAP_PROBE_INIT_TIMING(L, D) "
                       << "}";
+      s.op->newline(-1) << "} stap_probes[] = {";
+      s.op->indent(1);
+      for (unsigned i=0; i<s.probes.size(); ++i)
+        {
+          derived_probe* p = s.probes[i];
+          p->session_index = i;
+          s.op->newline() << "STAP_PROBE_INIT(&" << p->name << ", "
+                          << lex_cast_qstring (*p->sole_location()) << ", "
+                          << lex_cast_qstring (*p->script_location()) << ", "
+                          << lex_cast_qstring (p->tok->location) << ", "
+                          << lex_cast_qstring (p->derived_locations()) << "),";
+        }
       s.op->newline(-1) << "};";
 #undef CALCIT
 

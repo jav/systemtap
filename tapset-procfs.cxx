@@ -276,7 +276,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline(-1) << "}";
 
       // call probe function
-      s.op->newline() << "(*spp->read_probe.ph) (c);";
+      s.op->newline() << "(*spp->read_probe->ph) (c);";
 
       // Note that _procfs_value_set copied string data into spp->buffer
       s.op->newline() << "c->data = NULL;";
@@ -332,7 +332,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline(-1) << "}";
 
       // call probe function
-      s.op->newline() << "(*spp->write_probe.ph) (c);";
+      s.op->newline() << "(*spp->write_probe->ph) (c);";
 
       s.op->newline() << "c->data = NULL;";
       s.op->newline() << "if (c->last_error == 0) {";
@@ -356,10 +356,10 @@ procfs_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "for (i = 0; i < " << probes_by_path.size() << "; i++) {";
   s.op->newline(1) << "struct stap_procfs_probe *spp = &stap_procfs_probes[i];";
 
-  s.op->newline() << "if (spp->read_probe.pp)";
-  s.op->newline(1) << "probe_point = spp->read_probe.pp;";
+  s.op->newline() << "if (spp->read_probe)";
+  s.op->newline(1) << "probe_point = spp->read_probe->pp;";
   s.op->newline(-1) << "else";
-  s.op->newline(1) << "probe_point = spp->write_probe.pp;";
+  s.op->newline(1) << "probe_point = spp->write_probe->pp;";
   s.op->indent(-1);
 
   s.op->newline() << "_spp_init(spp);";

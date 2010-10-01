@@ -122,7 +122,7 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   sort(probes.begin(), probes.end(), be_derived_probe::comp);
 
   s.op->newline() << "static struct stap_be_probe {";
-  s.op->newline(1) << "struct stap_probe probe;";
+  s.op->newline(1) << "struct stap_probe * const probe;";
   s.op->newline() << "int state, type;";
   s.op->newline(-1) << "} stap_be_probes[] = {";
   s.op->indent(1);
@@ -140,7 +140,7 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static void enter_be_probe (struct stap_be_probe *stp) {";
   s.op->indent(1);
   common_probe_entryfn_prologue (s.op, "stp->state", "stp->probe", false);
-  s.op->newline() << "(*stp->probe.ph) (c);";
+  s.op->newline() << "(*stp->probe->ph) (c);";
   common_probe_entryfn_epilogue (s.op, false);
   s.op->newline(-1) << "}";
 }

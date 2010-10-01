@@ -64,7 +64,7 @@ static int stap_uprobe_change_plus (struct task_struct *tsk, unsigned long reloc
     }
     mutex_unlock (& stap_uprobes_lock);
     #ifdef DEBUG_UPROBES
-    _stp_dbug(__FUNCTION__,__LINE__, "+uprobe spec %d idx %d process %s[%d] addr %p pp %s\n", spec_index, (slotted_p ? i : -1), tsk->comm, tsk->tgid, (void*)(relocation+sups->address), sups->probe.pp);
+    _stp_dbug(__FUNCTION__,__LINE__, "+uprobe spec %d idx %d process %s[%d] addr %p pp %s\n", spec_index, (slotted_p ? i : -1), tsk->comm, tsk->tgid, (void*)(relocation+sups->address), sups->probe->pp);
     #endif
 
     /* Here, slotted_p implies that `i' points to the single
@@ -102,7 +102,7 @@ static int stap_uprobe_change_plus (struct task_struct *tsk, unsigned long reloc
        * the error.  This could happen if CLONE_THREAD or CLONE_VM was
        * used. */
       if (rc != 0 && rc != -EEXIST) {
-        _stp_warn ("u*probe failed %s[%d] '%s' addr %p rc %d\n", tsk->comm, tsk->tgid, sups->probe.pp, (void*)(relocation + sups->address), rc);
+        _stp_warn ("u*probe failed %s[%d] '%s' addr %p rc %d\n", tsk->comm, tsk->tgid, sups->probe->pp, (void*)(relocation + sups->address), rc);
 	/* NB: we need to release this slot,
 	   so we need to borrow the mutex temporarily. */
         mutex_lock (& stap_uprobes_lock);
@@ -207,7 +207,7 @@ static int stap_uprobe_change_minus (struct task_struct *tsk, unsigned long relo
     if (sups->return_p && sup->urp.u.pid == tsk->tgid && sup->urp.u.vaddr >= relocation && sup->urp.u.vaddr < relocation+length) { /* in range */
       
       #ifdef DEBUG_UPROBES
-      _stp_dbug (__FUNCTION__,__LINE__, "-uretprobe spec %d idx %d process %s[%d] addr %p pp %s\n", sup->spec_index, i, tsk->comm, tsk->tgid, (void*) sup->urp.u.vaddr, sups->probe.pp);
+      _stp_dbug (__FUNCTION__,__LINE__, "-uretprobe spec %d idx %d process %s[%d] addr %p pp %s\n", sup->spec_index, i, tsk->comm, tsk->tgid, (void*) sup->urp.u.vaddr, sups->probe->pp);
       #endif
       #if (UPROBES_API_VERSION >= 2)
       unmap_uretprobe (& sup->urp);
@@ -222,7 +222,7 @@ static int stap_uprobe_change_minus (struct task_struct *tsk, unsigned long relo
     } else if (!sups->return_p && sup->up.pid == tsk->tgid && sup->up.vaddr >= relocation && sup->up.vaddr < relocation+length) { /* in range */
       
       #ifdef DEBUG_UPROBES
-      _stp_dbug (__FUNCTION__,__LINE__, "-uprobe spec %d idx %d process %s[%d] reloc %p pp %s\n", sup->spec_index, i, tsk->comm, tsk->tgid, (void*) sup->up.vaddr, sups->probe.pp);
+      _stp_dbug (__FUNCTION__,__LINE__, "-uprobe spec %d idx %d process %s[%d] reloc %p pp %s\n", sup->spec_index, i, tsk->comm, tsk->tgid, (void*) sup->up.vaddr, sups->probe->pp);
       #endif
       #if (UPROBES_API_VERSION >= 2)
       unmap_uprobe (& sup->up);

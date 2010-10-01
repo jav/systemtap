@@ -58,7 +58,7 @@ expression* add_condition (expression* a, expression* b)
 
 
 derived_probe::derived_probe (probe *p, probe_point *l, bool rewrite_loc):
-  base (p), base_pp(l), real_name(name), sdt_semaphore_addr(0)
+  base (p), base_pp(l), sdt_semaphore_addr(0), session_index((unsigned)-1)
 {
   assert (p);
   this->tok = p->tok;
@@ -120,6 +120,18 @@ derived_probe::collect_derivation_pp_chain (std::vector<probe_point*> &pp_list)
 {
   pp_list.push_back(base_pp);
   base->collect_derivation_pp_chain(pp_list);
+}
+
+
+string
+derived_probe::derived_locations ()
+{
+  ostringstream o;
+  vector<probe_point*> reference_point;
+  collect_derivation_pp_chain(reference_point);
+  for(unsigned i=0; i<reference_point.size(); ++i)
+    o << " from: " << reference_point[i]->str(false); // no ?,!,etc
+  return o.str();
 }
 
 
