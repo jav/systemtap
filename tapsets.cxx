@@ -4236,7 +4236,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "const unsigned long address;";
   s.op->newline() << "struct stap_probe * const probe;";
-  s.op->newline() << "void (* const entry_ph) (struct context*);";
+  s.op->newline() << "struct stap_probe * const entry_probe;";
   s.op->newline() << "const unsigned long sdt_sem_offset;";
   s.op->newline() << "unsigned long sdt_sem_address;";
   s.op->newline() << "struct task_struct *tsk;";
@@ -4264,7 +4264,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
           if (p->saved_strings)
             s.op->line() << " .saved_strings=" << p->saved_strings << ",";
           if (p->entry_handler)
-            s.op->line() << " .entry_ph=&" << p->entry_handler->name << ",";
+            s.op->line() << " .entry_probe=" << common_probe_init (p->entry_handler) << ",";
         }
       if (p->locations[0]->optional)
         s.op->line() << " .optional_p=1,";
@@ -4349,7 +4349,10 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // XXX: it would be nice to give a more verbose error though; BUG_ON later?
   s.op->line() << "];";
 
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
+  s.op->newline() << "struct stap_probe *sp = entry ? sdp->entry_probe : sdp->probe;";
+  s.op->newline() << "if (sp) {";
+  s.op->indent(1);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sp");
   s.op->newline() << "c->regs = regs;";
 
   // for assisting runtime's backtrace logic and accessing kretprobe data packets
@@ -4360,21 +4363,17 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
   s.op->newline() << "{";
-  s.op->indent(1);
-  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "if (entry) {";
-  s.op->indent(1);
-  s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
-  s.op->newline() << "(sdp->entry_ph) (c);";
-  s.op->newline(-1) << "} else {";
-  s.op->indent(1);
-  s.op->newline() << "SET_REG_IP(regs, (unsigned long)inst->ret_addr);";
-  s.op->newline() << "(sdp->probe->ph) (c);";
-  s.op->newline(-1) << "}";
+  s.op->newline(1) << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "if (entry)";
+  s.op->newline(1) << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
+  s.op->newline(-1) << "else";
+  s.op->newline(1) << "SET_REG_IP(regs, (unsigned long)inst->ret_addr);";
+  s.op->newline(-1) << "(sp->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
   common_probe_entryfn_epilogue (s.op);
+  s.op->newline(-1) << "}";
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
 
@@ -4434,7 +4433,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "kp->u.krp.handler = &enter_kretprobe_probe;";
   s.op->newline() << "#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)";
-  s.op->newline() << "if (sdp->entry_ph) {";
+  s.op->newline() << "if (sdp->entry_probe) {";
   s.op->newline(1) << "kp->u.krp.entry_handler = &enter_kretprobe_entry_probe;";
   s.op->newline() << "kp->u.krp.data_size = sdp->saved_longs * sizeof(int64_t) + ";
   s.op->newline() << "                      sdp->saved_strings * MAXSTRINGLEN;";
