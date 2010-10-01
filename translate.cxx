@@ -4913,7 +4913,7 @@ dump_unwindsyms (Dwfl_Module *m,
       }
 #endif
 
-    if (modname != "kernel")
+    if (modname != "kernel" && modname[0] != '/') // => kernel module
       {
         Dwarf_Addr reloc_vaddr = build_id_vaddr;
         const char *secname;
@@ -4925,6 +4925,11 @@ dump_unwindsyms (Dwfl_Module *m,
         secname = dwfl_module_relocation_info (m, i, NULL);
 
         // assert same section name as in runtime/transport/symbols.c
+        // NB: this is applicable only to module("...") probes.
+        // process("...") ones may have relocation bases like '.dynamic',
+        // and so we'll have to store not just a generic offset but
+        // the relocation section/symbol name too: just like we do
+        // for probe PC addresses themselves.
         if (!secname || strcmp(secname, ".note.gnu.build-id"))
           throw semantic_error ("unexpected build-id reloc section " +
                                 string(secname ?: "null"));
