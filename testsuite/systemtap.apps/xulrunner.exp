@@ -111,15 +111,15 @@ PATH=$env(SYSTEMTAP_PATH)/:\$PATH \
 ../src/configure --prefix=$xuldir --enable-dtrace \
 --enable-application=xulrunner \
 --disable-necko-wifi
-sed -i '/include.*rules.mk/a\
-ifdef HAVE_DTRACE\
-PROGOBJS += ../mozjs-dtrace.\$(OBJ_SUFFIX)\
-endif\
+sed -i '/include.*rules.mk/a\\
+ifdef HAVE_DTRACE\\
+PROGOBJS += ../mozjs-dtrace.\$(OBJ_SUFFIX)\\
+endif\\
 ' js/src/shell/Makefile
-sed -i '/include.*rules.mk/a\
-ifdef HAVE_DTRACE\
-PROGOBJS += ../mozjs-dtrace.\$(OBJ_SUFFIX)\
-endif\
+sed -i '/include.*rules.mk/a\\
+ifdef HAVE_DTRACE\\
+PROGOBJS += ../mozjs-dtrace.\$(OBJ_SUFFIX)\\
+endif\\
 ' js/src/jsapi-tests/Makefile
 J=\$(getconf _NPROCESSORS_CONF)
 make
