@@ -1,7 +1,6 @@
 #!/usr/bin/env tclsh
 
-# List of systemcalls that may or may not be in kernels. Until we
-# fix PR2645, we cannot implement syscall probes for these.
+# List of systemcalls that the systemtap.syscall tests do not cover.
 
 set badlist { add_key tux }
 
@@ -9,7 +8,7 @@ foreach f $badlist {
     set funcname($f) -1
 }
 
-set cmd {stap -p2 -e "probe kernel.function(\"sys_*\"), kernel.function(\"sys32_*\") ? \{\}"}
+set cmd {stap -w -p2 -e "probe kernel.function(\"sys_*\"), kernel.function(\"sys32_*\") ? \{\}"}
 if {[catch {eval exec $cmd} output]} {
     puts "ERROR running stap: $output"
     exit
@@ -17,12 +16,12 @@ if {[catch {eval exec $cmd} output]} {
 
 
 foreach line [split $output "\n"] {
-    if {[regexp {kernel.function\(\"sys_([^@]+)} $line match fn]} {
+    if {[regexp {^kernel.function\(\"sys_([^@]+)} $line match fn]} {
 	if {![info exists funcname($fn)]} {
 	    set funcname($fn) 0
 	}
     }
-    if {[regexp {kernel.function\(\"sys32_([^@]+)} $line match fn]} {
+    if {[regexp {^kernel.function\(\"sys32_([^@]+)} $line match fn]} {
 	set fn "32_$fn"
 	if {![info exists funcname($fn)]} {
 	    set funcname($fn) 0
