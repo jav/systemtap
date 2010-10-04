@@ -3,9 +3,11 @@
 .kprobe*
 *.log
 Module.symvers
+Module.markers
 kprobe_module.ko*
 kprobe_module.mod.c
 modules.order
 .tmp_versions
 probes.*
 kprobe_defs.h
+*.cfg
