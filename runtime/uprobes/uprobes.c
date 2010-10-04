@@ -2280,8 +2280,9 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 	down_write(&uproc->rwsem);
 	get_task_struct(child);
 
-	if (clone_flags & CLONE_THREAD) {
-		/* New thread in the same process */
+	if (clone_flags & (CLONE_THREAD|CLONE_VM)) {
+		/* New thread in the same process (CLONE_THREAD) or
+		 * processes sharing the same memory space (CLONE_VM). */
 		ctask = uprobe_add_task(child, uproc);
 		BUG_ON(!ctask);
 		if (IS_ERR(ctask))
