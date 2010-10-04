@@ -504,13 +504,15 @@ probe syscall.iopl.return
 
 # syscall.sysctl32 is above
 
-# syscall.mmap is above
-
-probe syscall.mmap32
+# syscall.mmap is above, but we want to make sure syscall.mmap32
+# matches syscall.mmap
+probe syscall.mmap, syscall.mmap32
 {
 	printf("%s, %s\n", name, argstr)
+	printf("%d, %d, %d, %d, %d, %d\n", start, len, prot, flags, fd,
+	       offset)
 }
-probe syscall.mmap32.return
+probe syscall.mmap.return, syscall.mmap32.return
 {
 	printf("%s, %s\n", name, retstr)
 }

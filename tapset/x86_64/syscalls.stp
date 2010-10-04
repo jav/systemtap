@@ -102,12 +102,31 @@ probe syscall.mmap.return = kernel.function("sys_mmap").return ?,
 	retstr = returnstr(2)
 }
 #
+# sys32_mmap(struct mmap_arg_struct32 __user *arg)
 # sys32_mmap(struct mmap_arg_struct __user *arg)
 #
 probe syscall.mmap32 = kernel.function("sys32_mmap")
 {
 	name = "mmap"
-	argstr = get_mmap_args($arg)
+	if (@defined(@cast($arg, "mmap_arg_struct32")->addr)) {
+		start = user_long(&@cast($arg, "mmap_arg_struct32")->addr)
+		len = user_long(&@cast($arg, "mmap_arg_struct32")->len)
+		prot = user_long(&@cast($arg, "mmap_arg_struct32")->prot)
+		flags = user_long(&@cast($arg, "mmap_arg_struct32")->flags)
+		fd = user_long(&@cast($arg, "mmap_arg_struct32")->fd)
+		offset = user_long(&@cast($arg, "mmap_arg_struct32")->offset)
+	}
+	else {
+		start = user_long(&@cast($arg, "mmap_arg_struct")->addr)
+		len = user_long(&@cast($arg, "mmap_arg_struct")->len)
+		prot = user_long(&@cast($arg, "mmap_arg_struct")->prot)
+		flags = user_long(&@cast($arg, "mmap_arg_struct")->flags)
+		fd = user_long(&@cast($arg, "mmap_arg_struct")->fd)
+		offset = user_long(&@cast($arg, "mmap_arg_struct")->offset)
+	}
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", start, len,
+			 _mprotect_prot_str(prot), _mmap_flags(flags),
+			 fd, offset)
 }
 
 probe syscall.mmap32.return = kernel.function("sys32_mmap").return
