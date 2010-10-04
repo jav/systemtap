@@ -1,0 +1,24 @@
+CFLAGS += -g -O2
+
+DTRACE := dtrace
+
+OBJS := dtrace_clone.o dtrace_clone_probes.o
+
+TARGETS := dtrace_clone
+
+BUILT_SOURCES := dtrace_clone_probes.h
+
+all: $(TARGETS)
+
+dtrace_clone: $(OBJS)
+
+dtrace_clone.c: dtrace_clone_probes.h
+
+%.h: %.d
+	$(DTRACE) -C -h -s $< -o $@
+
+%.o: %.d
+	$(DTRACE) -C -G -s $< -o $@
+
+clean:
+	rm -f $(OBJS) $(TARGETS) $(BUILT_SOURCES)
