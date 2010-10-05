@@ -191,7 +191,7 @@ ldd to be necessary for user-space binaries being probe or listed with
 the \-d option.  Caution: this can make the probe modules considerably
 larger.
 .TP
-.BI \-\-all-modules
+.BI \-\-all\-modules
 Equivalent to specifying "-dkernel" and a "-d" for each kernel module that is
 currently loaded.  Caution: this can make the probe modules considerably
 larger.
@@ -369,6 +369,10 @@ signer is always granted for all users. Only root can specify
 .TP
 .BI revoke
 revoke the specified trust. The default is to grant it.
+.TP
+.BI no\-prompt
+do not prompt the user for confirmation before carrying out the requested
+action. The default is to prompt the user for confirmation.
 .RE
 
 If no argument is provided, then the default is
@@ -377,7 +381,8 @@ If no servers were specified using
 .IR \-\-use\-server ,
 then no trust will be granted or revoked.
 
-The user will be prompted to confirm the trust to be granted or revoked before
+Unless \fBno\-prompt\fR has been specified,
+the user will be prompted to confirm the trust to be granted or revoked before
 the operation is performed.
 
 .SH ARGUMENTS

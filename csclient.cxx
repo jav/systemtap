@@ -1125,6 +1125,7 @@ manage_server_trust (systemtap_session &s)
   //   signer    - trust the specified servers as module signers
   //   revoke    - revoke the requested trust
   //   all-users - apply/revoke the requested trust for all users
+  //   no-prompt - don't prompt the user for confirmation
   vector<string>components;
   tokenize (s.server_trust_spec, components, ",");
   bool ssl = false;
@@ -1132,6 +1133,7 @@ manage_server_trust (systemtap_session &s)
   bool revoke = false;
   bool all_users = false;
   bool error = false;
+  bool no_prompt = false;
   for (vector<string>::const_iterator i = components.begin ();
        i != components.end ();
        ++i)
@@ -1160,6 +1162,8 @@ manage_server_trust (systemtap_session &s)
 	  else
 	    all_users = true;
 	}
+      else if (*i == "no-prompt")
+	no_prompt = true;
       else
 	cerr << "Warning: Unrecognized server trust specification: " << *i
 	     << endl;
@@ -1216,22 +1220,38 @@ manage_server_trust (systemtap_session &s)
     }
 
   // Prompt the user to confirm what's about to happen.
-  if (revoke)
-    clog << "Revoke trust ";
+  if (no_prompt)
+    {
+      if (revoke)
+	clog << "Revoking trust ";
+      else
+	clog << "Adding trust ";
+    }
   else
-    clog << "Add trust ";
-  clog << "in the following servers " << trustString.str () << '?' << endl;
+    {
+      if (revoke)
+	clog << "Revoke trust ";
+      else
+	clog << "Add trust ";
+    }
+  clog << "in the following servers " << trustString.str ();
+  if (! no_prompt)
+    clog << '?';
+  clog << endl;
   for (unsigned i = 0; i < limit; ++i)
     clog << "  " << server_list[i] << endl;
-  clog << "[y/N] " << flush;
-
-  // Only carry out the operation if the response is "yes"
-  string response;
-  cin >> response;
-  if (response[0] != 'y' && response [0] != 'Y')
+  if (! no_prompt)
     {
-      clog << "Server trust unchanged" << endl;
-      return;
+      clog << "[y/N] " << flush;
+
+      // Only carry out the operation if the response is "yes"
+      string response;
+      cin >> response;
+      if (response[0] != 'y' && response [0] != 'Y')
+	{
+	  clog << "Server trust unchanged" << endl;
+	  return;
+	}
     }
 
   // Now add/revoke the requested trust.
