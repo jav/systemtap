@@ -24,7 +24,7 @@ if {[catch {exec stap -L {process("./ptridx.exe").function("*").label("*")}}]} {
     expect {
       -re {failed to retrieve location attribute} {
         # the variables may have no location
-        setup_kfail 1 *-*-*
+        setup_xfail *-*-*
         }
       -re {^[ap] (0x\[0-9a-f]+ => )?17, 23\r\n} { incr ok; exp_continue }
       timeout { fail "$test (timeout)" }

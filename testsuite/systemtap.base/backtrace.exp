@@ -2,7 +2,7 @@ set test "backtrace"
 
 if {![installtest_p]} { untested $test; return }
 
-setup_xfail 6961 "*-*-*"
+setup_kfail 6961 "*-*-*"
 
 set ok 0
 set ok2 0
@@ -20,7 +20,7 @@ if {$ok == 3 && $ok2 >= $ok} then { pass "$test ($ok $ok2)" } else { fail "$test
 
 set test "backtrace-unwindsyms"
 
-setup_xfail 6961 "*-*-*"
+setup_kfail 6961 "*-*-*"
 
 set ok 0
 set ok2 0

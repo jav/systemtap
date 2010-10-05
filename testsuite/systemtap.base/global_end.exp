@@ -47,5 +47,5 @@ expect {
 catch {close}; catch {wait}
 
 # PR6954
-setup_xfail 6954 "*-*-*"
+setup_kfail 6954 "*-*-*"
 if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
