@@ -1429,13 +1429,19 @@ c_unparser::emit_module_exit ()
   o->newline(-1) << "}";
   o->newline(-1) << "}";
 
-  // print per probe point timing statistics
-  o->newline() << "#ifdef STP_TIMING";
+  // print per probe point timing/alibi statistics
+  o->newline() << "#if defined(STP_TIMING) || defined(STP_ALIBI)";
   o->newline() << "_stp_printf(\"----- probe hit report: \\n\");";
   o->newline() << "for (i = 0; i < ARRAY_SIZE(stap_probes); ++i) {";
   o->newline(1) << "struct stap_probe *const p = &stap_probes[i];";
-  // NB: check for null stat object
-  o->newline() << "if (likely (p->timing)) {";
+  o->newline() << "#ifdef STP_ALIBI";
+  o->newline() << "int alibi = atomic_read(&(p->alibi));";
+  o->newline() << "if (alibi)";
+  o->newline(1) << "_stp_printf (\"%s, (%s), hits: %d,%s\\n\",";
+  o->newline(2) << "p->pp, p->location, alibi, p->derivation);";
+  o->newline(-3) << "#endif"; // STP_ALIBI
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "if (likely (p->timing)) {"; // NB: check for null stat object
   o->newline(1) << "struct stat_data *stats = _stp_stat_get (p->timing, 0);";
   o->newline() << "if (stats->count) {";
   o->newline(1) << "int64_t avg = _stp_div64 (NULL, stats->sum, stats->count);";
@@ -1446,6 +1452,7 @@ c_unparser::emit_module_exit ()
   o->newline(-3) << "}";
   o->newline() << "_stp_stat_del (p->timing);";
   o->newline(-1) << "}";
+  o->newline() << "#endif"; // STP_TIMING
   o->newline(-1) << "}";
   o->newline() << "_stp_print_flush();";
   o->newline() << "#endif";
@@ -5912,8 +5919,17 @@ translate_pass (systemtap_session& s)
 
       s.op->newline() << "static struct stap_probe {";
       s.op->newline(1) << "void (* const ph) (struct context*);";
+      s.op->newline() << "#ifdef STP_ALIBI";
+      s.op->newline() << "atomic_t alibi;";
+      s.op->newline() << "#define STAP_PROBE_INIT_ALIBI() "
+                      << ".alibi=ATOMIC_INIT(0),";
+      s.op->newline() << "#else";
+      s.op->newline() << "#define STAP_PROBE_INIT_ALIBI()";
+      s.op->newline() << "#endif";
       s.op->newline() << "#ifdef STP_TIMING";
       s.op->newline() << "Stat timing;";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#if defined(STP_TIMING) || defined(STP_ALIBI)";
       CALCIT(location);
       CALCIT(derivation);
       s.op->newline() << "#define STAP_PROBE_INIT_TIMING(L, D) "
@@ -5931,6 +5947,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PN, L, D) "
                       << "{ .ph=(PH), .pp=(PP), "
                       << "STAP_PROBE_INIT_NAME(PN) "
+                      << "STAP_PROBE_INIT_ALIBI() "
                       << "STAP_PROBE_INIT_TIMING(L, D) "
                       << "}";
       s.op->newline(-1) << "} stap_probes[] = {";

@@ -79,6 +79,10 @@ void
 common_probe_entryfn_prologue (translator_output* o, string statestr,
                                string probe, bool overload_processing)
 {
+  o->newline() << "#ifdef STP_ALIBI";
+  o->newline() << "atomic_inc(&(" << probe << "->alibi));";
+  o->newline() << "#else";
+
   o->newline() << "struct context* __restrict__ c;";
   o->newline() << "#if !INTERRUPTIBLE";
   o->newline() << "unsigned long flags;";
@@ -262,6 +266,8 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->newline() << "#else";
   o->newline() << "local_irq_restore (flags);";
   o->newline() << "#endif";
+
+  o->newline() << "#endif // STP_ALIBI";
 }
 
 
