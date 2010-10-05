@@ -121,6 +121,30 @@ proc setup_server {} {
     set net_path [exec pwd]/net
     exec /bin/mkdir -p $net_path
 
+    # Start the server
+    if {! [start_server]} then {
+	return 0
+    }
+
+    # Substitute a script on the PATH in place of stap which calls the real
+    # stap with the --use-server flag.
+    set path "$net_path/stap"
+    set fp [open $path "w"]
+    puts $fp "#!/bin/sh"
+    puts $fp "[exec which stap] --use-server \"\$@\""
+    close $fp
+    exec chmod +x $path
+
+    # Add the wrapper script to the PATH after creating it
+    set installed_stap [exec which stap]
+    set env(PATH) "$net_path:$env(PATH)"
+
+    return 1
+}
+
+proc start_server {} {
+    global env server_pid
+
     # Server management scripts and data are installed if this is an
     # install test, otherwise there is some setup to do.
     # Make sure the server management scripts and tools are on the $PATH.
@@ -151,30 +175,18 @@ proc setup_server {} {
 	verbose -log "Started a systemtap server as PID==$server_pid"
     }
 
-    # See what avahi finds
+    # See what avahi finds. Give the server a chance to advertise.
+    exec sleep 1
     catch { exec avahi-browse _stap._tcp -t -r | grep -A4 {^=.*Systemtap.Compile} } looksee
     verbose -log "avahi-browse found:\n$looksee"
 
     # Make sure that stap can find the server.
-    set lines [exec stap --list-servers=online,compatible 2>@ stdout | wc -l]
+    set lines [exec stap --list-servers=online,trusted,compatible 2>@ stdout | wc -l]
     if {$lines < 2} then {
 	print "Unable to find a systemtap server -- check firewall settings for mDNS"
 	shutdown_server
 	return 0
     }
-
-    # Substitute a script on the PATH in place of stap which calls the real
-    # stap with the --use-server flag.
-    set path "$net_path/stap"
-    set fp [open $path "w"]
-    puts $fp "#!/bin/sh"
-    puts $fp "[exec which stap] --use-server \"\$@\""
-    close $fp
-    exec chmod +x $path
-
-    # Add the wrapper script to the PATH after creating it
-    set installed_stap [exec which stap]
-    set env(PATH) "$net_path:$env(PATH)"
 
     return 1
 }
@@ -195,6 +207,9 @@ proc shutdown_server {} {
 
     foreach module [glob -nocomplain [exec pwd]/stap_*.ko] {
 	exec /bin/rm -f $module
+    }
+    foreach sig [glob -nocomplain [exec pwd]/stap_*.ko.sgn] {
+	exec /bin/rm -f $sig
     }
 }
 
@@ -243,6 +258,7 @@ if {[catch {exec stap -p4 -e {probe begin {exit()}}} result]} {
 #    puts "****\n"
 #    puts $options
     puts "\n**** aborting testing.\n"
+    cleanup
     exit 1
 }
 
@@ -256,6 +272,7 @@ if {[catch {exec stap -p4 -e {probe syscall.open {println (argstr)}}} result]} {
 #    puts "****\n"
 #    puts $options
     puts "\n**** aborting testing.\n"
+    cleanup
     exit 1
 }
 
