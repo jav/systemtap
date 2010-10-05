@@ -15,6 +15,15 @@
 #include <errno.h>
 #include "dtrace_vfork_parent_probes.h"
 
+#if !defined(USE_SEMAPHORES)
+#undef PARENT_MAIN_ENABLED
+#define PARENT_MAIN_ENABLED() (1)
+#undef PARENT_CHILD_PID_ENABLED
+#define PARENT_CHILD_PID_ENABLED() (1)
+#undef PARENT_FINISHED_ENABLED
+#define PARENT_FINISHED_ENABLED() (1)
+#endif
+
 int
 main(int argc, char **argv)
 {

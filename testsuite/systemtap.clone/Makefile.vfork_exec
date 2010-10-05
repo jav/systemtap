@@ -1,6 +1,4 @@
-PWD := $(shell pwd)
-
-CFLAGS += -g -O2 -DTEST_DIR="$(PWD)"
+CFLAGS += -g -O2
 
 DTRACE := dtrace
 

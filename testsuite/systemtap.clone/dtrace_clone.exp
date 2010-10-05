@@ -7,16 +7,6 @@ if {![uprobes_p]} { untested $TEST_NAME; return }
 
 source $srcdir/$subdir/test_progs.tcl
 
-# Build everything
-set TEST_NAME "dtrace_clone1"
-if {[build_test_progs "Makefile.clone" $test_progs] == 0} {
-    fail "$TEST_NAME - build failure"
-    cleanup_test_progs
-    return
-} else {
-    pass "$TEST_NAME - build success"
-}
-
 # We have to be root to use CLONE_NEWPID.
 proc run_test_prog {} {
     global build_dir
@@ -24,8 +14,6 @@ proc run_test_prog {} {
     return 0
 }
 
-# Run the test.
-#
 # Here's an explanation of the output.  On kernels that support
 # CLONE_NEWPID (new pid namespace), we'll see the following output:
 #   main - pid: XXX
@@ -37,8 +25,35 @@ proc run_test_prog {} {
 # On kernels with CLONE_NEWPID, the pids assigned to the children are
 # fixed since they exist in their own pid namespace.  Because not all
 # kernels support CLONE_NEWPID, we have to accept all pids.
-set TEST_NAME "dtrace_clone2"
 set output_string "main - pid: \[0-9\]+\r\nmain - child pid: \[0-9\]+\r\nchild1 - pid: \[0-9\]+\r\nchild1 - child2 pid: \[0-9\]+\r\nchild2 - pid: \[0-9\]+\r\nmain - finished\r\n"
+
+# Build everything (without semaphores)
+set TEST_NAME "dtrace_clone1"
+if {[build_test_progs "Makefile.clone" $test_progs "-DNO_SEMAPHORES"] == 0} {
+    fail "$TEST_NAME - build failure"
+    cleanup_test_progs
+    return
+} else {
+    pass "$TEST_NAME - build success"
+}
+
+# Run the test (without semaphores)
+set TEST_NAME "dtrace_clone2"
+stap_run $TEST_NAME run_test_prog $output_string \
+  $srcdir/$subdir/dtrace_clone.stp $build_dir/dtrace_clone
+
+# Build everything (with semaphores)
+set TEST_NAME "dtrace_clone3"
+if {[build_test_progs "Makefile.clone" $test_progs] == 0} {
+    fail "$TEST_NAME - build failure"
+    cleanup_test_progs
+    return
+} else {
+    pass "$TEST_NAME - build success"
+}
+
+# Run the test (with semaphores)
+set TEST_NAME "dtrace_clone4"
 stap_run $TEST_NAME run_test_prog $output_string \
   $srcdir/$subdir/dtrace_clone.stp $build_dir/dtrace_clone
 

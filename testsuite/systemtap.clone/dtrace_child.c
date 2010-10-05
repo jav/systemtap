@@ -12,6 +12,11 @@
 #include <unistd.h>
 #include "dtrace_child_probes.h"
 
+#if !defined(USE_SEMAPHORES)
+#undef CHILD_MAIN_ENABLED
+#define CHILD_MAIN_ENABLED() (1)
+#endif
+
 int
 main(int argc, char **argv)
 {
