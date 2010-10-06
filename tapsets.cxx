@@ -4785,6 +4785,17 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           goto matched;
         }
 
+      switch (elf_machine)
+	{
+	case EM_386:
+	case EM_X86_64:
+	case EM_PPC:
+	case EM_PPC64:
+	  break;
+	default:
+	  goto not_matched;
+	}
+      
       // Build regex pieces out of the known dwarf_regs.  We keep two separate
       // lists: ones with the % prefix (and thus unambigiuous even despite PR11821),
       // and ones with no prefix (and thus only usable in unambiguous contexts).
