@@ -4756,7 +4756,16 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 
       // Now we try to parse this thing, which is an assembler operand
       // expression.  If we can't, we warn, back down to need_debug_info
-      // and hope for the best.
+      // and hope for the best.  Here is the syntax for a few architectures.
+      // Note that the power iN syntax is only for V3 sdt.h; gcc emits N.
+      //      literal	reg	reg	reg +	
+      //	      	      indirect offset
+      // x86	$N	%rR	(%rR)	N(%rR)
+      // power	iN	R	(R)	N(R)
+      // ia64	N	rR	[r16]	
+      // s390	N	%rR	0(rR)	N(r15)
+      // arm	#N	rR	[rR]	[rR, #N]
+
       expression* argexpr = 0; // filled in in case of successful parse
 
       string percent_regnames;
