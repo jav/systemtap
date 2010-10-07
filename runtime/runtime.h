@@ -210,6 +210,14 @@ void cleanup_module(void)
 	ret; })
 
 
+#if defined(__ia64__) && defined(__GNUC__) && (__GNUC__ < 4)
+/* Due to http://gcc.gnu.org/PR21838, old gcc on ia64 generates calls
+   to __ia64_save_stack_nonlocal(), since our generated code uses
+   __label__ constructs since PR11004.  This dummy declaration works
+   around the undefined reference.  */
+void __ia64_save_stack_nonlocal (void) { }
+#endif
+
 MODULE_LICENSE("GPL");
 
 #endif /* _RUNTIME_H_ */
