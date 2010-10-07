@@ -1,9 +1,9 @@
 /* -*- linux-c -*-
  *
  * dwarf unwinder header file
- * Copyright (C) 2008, 2009 Red Hat Inc.
+ * Copyright (C) 2008-2010 Red Hat Inc.
  * Copyright (C) 2002-2006 Novell, Inc.
- * 
+ *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
  * Public License (GPL); either version 2, or (at your option) any
@@ -118,9 +118,14 @@ struct unwind_item {
 		Nowhere,
 		Memory,
 		Register,
-		Value
+		Value,
+		Expr,
+		ValExpr
 	} where;
-	uleb128_t value;
+	union {
+		uleb128_t value;
+		const u8 *expr;
+	};
 };
 
 struct unwind_state {
@@ -128,12 +133,16 @@ struct unwind_state {
 	const u8 *cieStart, *cieEnd;
 	uleb128_t codeAlign;
 	sleb128_t dataAlign;
-	struct cfa {
-		uleb128_t reg, offs;
-	} cfa;
+	union {
+		struct cfa {
+			uleb128_t reg, offs;
+		} cfa;
+		const u8 *cfa_expr;
+	};
 	struct unwind_item regs[ARRAY_SIZE(reg_info)];
 	unsigned stackDepth:8;
 	unsigned version:8;
+	unsigned cfa_is_expr:1;
 	const u8 *label;
 	const u8 *stack[STP_MAX_STACK_DEPTH];
 };

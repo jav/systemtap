@@ -1,6 +1,6 @@
-/* -*- linux-c -*- 
+/* -*- linux-c -*-
  * kernel stack unwinding
- * Copyright (C) 2008-2009 Red Hat Inc.
+ * Copyright (C) 2008-2010 Red Hat Inc.
  *
  * Based on old kernel code that is
  * Copyright (C) 2002-2006 Novell, Inc.
@@ -241,7 +241,7 @@ static signed fde_pointer_type(const u32 *cie, void *unwind_data,
 		if (*ptr != 'z')
 			return -1;
 		/* check if augmentation string is nul-terminated */
-		if ((ptr = memchr(aug = (const void *)ptr, 0, end - ptr)) == NULL) 
+		if ((ptr = memchr(aug = (const void *)ptr, 0, end - ptr)) == NULL)
 			return -1;
 		++ptr;		/* skip terminator */
 		get_uleb128(&ptr, end);	/* skip code alignment */
@@ -289,6 +289,21 @@ static void set_rule(uleb128_t reg, enum item_location where, uleb128_t value, s
 	if (reg < ARRAY_SIZE(state->regs)) {
 		state->regs[reg].where = where;
 		state->regs[reg].value = value;
+	}
+}
+
+static void set_expr_rule(uleb128_t reg, enum item_location where,
+			  const u8 **expr, const u8 *end,
+			  struct unwind_state *state)
+{
+	const u8 *const start = *expr;
+	uleb128_t len = get_uleb128(expr, end);
+	dbug_unwind(1, "reg=%lx, where=%d, expr=%lu@%p\n",
+		    reg, where, len, *expr);
+	if (end - *expr >= len && reg < ARRAY_SIZE(state->regs)) {
+		state->regs[reg].where = where;
+		state->regs[reg].expr = start;
+		*expr += len;
 	}
 }
 
@@ -372,6 +387,17 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				set_rule(value, Register, get_uleb128(&ptr.p8, end), state);
 				dbug_unwind(1, "DW_CFA_register\n");
 				break;
+			case DW_CFA_expression:
+				value = get_uleb128(&ptr.p8, end);
+				set_expr_rule(value, Expr, &ptr.p8, end, state);
+				dbug_unwind(1, "DW_CFA_expression\n");
+				break;
+			case DW_CFA_val_expression:
+				value = get_uleb128(&ptr.p8, end);
+				set_expr_rule(value, ValExpr, &ptr.p8, end,
+					      state);
+				dbug_unwind(1, "DW_CFA_val_expression\n");
+				break;
 			case DW_CFA_remember_state:
 				dbug_unwind(1, "DW_CFA_remember_state\n");
 				if (ptr.p8 == state->label) {
@@ -389,6 +415,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 					const u8 *label = state->label;
 
 					state->label = state->stack[state->stackDepth - 1];
+					state->cfa_is_expr = 0;
 					memcpy(&state->cfa, &badCFA, sizeof(state->cfa));
 					memset(state->regs, 0, sizeof(state->regs));
 					state->stackDepth = 0;
@@ -418,9 +445,19 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				state->cfa.reg = get_uleb128(&ptr.p8, end);
 				dbug_unwind(1, "DW_CFA_def_cfa_register reg=%ld\n", state->cfa.reg);
 				break;
-				/*todo case DW_CFA_def_cfa_expression: */
-				/*todo case DW_CFA_expression: */
-				/*todo case DW_CFA_val_expression: */
+			case DW_CFA_def_cfa_expression: {
+				const u8 *cfa_expr = ptr.p8;
+				value = get_uleb128(&ptr.p8, end);
+				if (ptr.p8 < end && end - ptr.p8 >= value) {
+					state->cfa_is_expr = 1;
+					state->cfa_expr = cfa_expr;
+					ptr.p8 += value;
+					dbug_unwind(1, "DW_CFA_def_cfa_expression %lu@%p\n", value, cfa_expr);
+				}
+				else
+					dbug_unwind(1, "DW_CFA_def_cfa_expression BAD %lu\n", value);
+				break;
+			}
 			case DW_CFA_GNU_args_size:
 				get_uleb128(&ptr.p8, end);
 				dbug_unwind(1, "DW_CFA_GNU_args_size\n");
@@ -640,15 +677,64 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 	return fde;
 }
 
+#define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
+
+#define MAX_EXPR_STACK	8	/* arbitrary */
+
+static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
+			unsigned long *result)
+{
+	/*
+	 * We previously validated the length, so we won't read off the end.
+	 */
+	uleb128_t len = get_uleb128(&expr, (const u8 *) -1UL);
+	const u8 *const end = expr + len;
+
+	unsigned long stack[MAX_EXPR_STACK];
+	unsigned int sp = 0;
+#define PUSH(val) do { \
+		if (sp == MAX_EXPR_STACK) \
+			goto overflow; \
+		stack[sp++] = (val); \
+	} while (0)
+#define POP ({ \
+		if (sp == 0) \
+			goto underflow; \
+		stack[--sp]; \
+	})
+
+	while (expr < end) {
+		const u8 op = *expr++;
+		dbug_unwind(3, " expr op 0x%x (%lu left)\n", op, end - expr);
+		switch (op) {
+		default:
+			dbug_unwind(1, " unimplemented CFI expression operation: 0x%x\n", op);
+			return 1;
+		}
+	}
+
+	*result = POP;
+	return 0;
+
+overflow:
+	dbug_unwind(1, " expr stack overflow\n");
+	return 1;
+underflow:
+	dbug_unwind(1, " expr stack underflow\n");
+	return 1;
+
+#undef	PUSH
+#undef	POP
+}
+
 /* Unwind to previous to frame.  Returns 0 if successful, negative
- * number in case of an error.  A positive return means unwinding is finished; 
+ * number in case of an error.  A positive return means unwinding is finished;
  * don't try to fallback to dumping addresses on the stack. */
 static int unwind_frame(struct unwind_frame_info *frame,
 			struct task_struct *tsk,
 			struct _stp_module *m, struct _stp_section *s,
 			void *table, uint32_t table_len, int is_ehframe)
 {
-#define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
 	const u32 *fde = NULL, *cie = NULL;
 	const u8 *ptr = NULL, *end = NULL;
 	unsigned long pc = UNW_PC(frame) - frame->call_frame;
@@ -657,6 +743,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	signed ptrType = -1;
 	uleb128_t retAddrReg = 0;
 	struct unwind_state state;
+	unsigned long addr;
 
 	if (unlikely(table_len == 0 || table_len & (sizeof(*fde) - 1))) {
 		dbug_unwind(1, "Module %s: frame_len=%d", m->name, table_len);
@@ -819,7 +906,12 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	if (frame->call_frame && !UNW_DEFAULT_RA(state.regs[retAddrReg], state.dataAlign))
 		frame->call_frame = 0;
 #endif
-	cfa = FRAME_REG(state.cfa.reg, unsigned long) + state.cfa.offs;
+	if (state.cfa_is_expr) {
+		if (compute_expr(state.cfa_expr, frame, &cfa))
+			goto err;
+	}
+	else
+		cfa = FRAME_REG(state.cfa.reg, unsigned long) + state.cfa.offs;
 	startLoc = min((unsigned long)UNW_SP(frame), cfa);
 	endLoc = max((unsigned long)UNW_SP(frame), cfa);
 	dbug_unwind(1, "cfa=%lx startLoc=%lx, endLoc=%lx\n", cfa, startLoc, endLoc);
@@ -893,28 +985,38 @@ static int unwind_frame(struct unwind_frame_info *frame,
 				goto err;
 			}
 			break;
+		case Expr:
+			if (compute_expr(state.regs[i].expr, frame, &addr))
+				goto err;
+			goto memory;
+		case ValExpr:
+			if (compute_expr(state.regs[i].expr, frame, &addr))
+				goto err;
+			goto value;
 		case Value:
+			addr = cfa + state.regs[i].value * state.dataAlign;
+		value:
 			if (reg_info[i].width != sizeof(unsigned long)) {
 				dbug_unwind(2, "Value\n");
 				goto err;
 			}
-			FRAME_REG(i, unsigned long) = cfa + state.regs[i].value * state.dataAlign;
+			FRAME_REG(i, unsigned long) = addr;
 			break;
-		case Memory:{
-				unsigned long addr = cfa + state.regs[i].value * state.dataAlign;
-				dbug_unwind(2, "addr=%lx width=%d\n", addr, reg_info[i].width);
-				switch (reg_info[i].width) {
-#define CASE(n)     case sizeof(u##n): \
-					if (unlikely(_stp_read_address(FRAME_REG(i, u##n), (u##n *)addr, KERNEL_DS))) \
-						goto copy_failed;\
-					dbug_unwind(1, "set register %d to %lx\n", i, (long)FRAME_REG(i,u##n));\
-					break
-					CASES;
+		case Memory:
+			addr = cfa + state.regs[i].value * state.dataAlign;
+		memory:
+			dbug_unwind(2, "addr=%lx width=%d\n", addr, reg_info[i].width);
+			switch (reg_info[i].width) {
+#define CASE(n)     case sizeof(u##n):					\
+				if (unlikely(_stp_read_address(FRAME_REG(i, u##n), (u##n *)addr, KERNEL_DS))) \
+					goto copy_failed;		\
+				dbug_unwind(1, "set register %d to %lx\n", i, (long)FRAME_REG(i,u##n));	\
+				break
+				CASES;
 #undef CASE
-				default:
-					dbug_unwind(2, "default\n");
-					goto err;
-				}
+			default:
+				dbug_unwind(2, "default\n");
+				goto err;
 			}
 			break;
 		}
@@ -926,7 +1028,7 @@ copy_failed:
 	dbug_unwind(1, "_stp_read_address failed to access memory\n");
 err:
 	return -EIO;
-	
+
 done:
 	/* PC was in a range convered by a module but no unwind info */
 	/* found for the specific PC. This seems to happen only for kretprobe */
