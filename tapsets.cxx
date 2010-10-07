@@ -4672,8 +4672,14 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
       dwarf_regs["24"] = 24; dwarf_regs["25"] = 25; dwarf_regs["26"] = 26;
       dwarf_regs["27"] = 27; dwarf_regs["28"] = 28; dwarf_regs["29"] = 29;
       dwarf_regs["30"] = 30; dwarf_regs["31"] = 31;
-    }
-    else if (arg_count) {
+    } else if (elf_machine == EM_S390) {
+      dwarf_regs["%r0"] = 0; dwarf_regs["%r1"] = 1; dwarf_regs["%r2"] = 2;
+      dwarf_regs["%r3"] = 3; dwarf_regs["%r4"] = 4; dwarf_regs["%r5"] = 5;
+      dwarf_regs["%r6"] = 6; dwarf_regs["%r7"] = 7; dwarf_regs["%r8"] = 8;
+      dwarf_regs["%r9"] = 9; dwarf_regs["%r10"] = 10; dwarf_regs["%r11"] = 11;
+      dwarf_regs["%r12"] = 12; dwarf_regs["%r13"] = 13; dwarf_regs["%r14"] = 14;
+      dwarf_regs["%r15"] = 15;
+    } else if (arg_count) {
       /* permit this case; just fall back to dwarf */
     }
 
@@ -4785,16 +4791,8 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           goto matched;
         }
 
-      switch (elf_machine)
-	{
-	case EM_386:
-	case EM_X86_64:
-	case EM_PPC:
-	case EM_PPC64:
-	  break;
-	default:
-	  goto not_matched;
-	}
+      if (dwarf_regs.empty())
+	goto not_matched;
       
       // Build regex pieces out of the known dwarf_regs.  We keep two separate
       // lists: ones with the % prefix (and thus unambigiuous even despite PR11821),
