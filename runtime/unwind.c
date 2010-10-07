@@ -679,6 +679,12 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 
 #define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
 
+#ifndef CONFIG_64BIT
+# define CASES CASE(8); CASE(16); CASE(32)
+#else
+# define CASES CASE(8); CASE(16); CASE(32); CASE(64)
+#endif
+
 #define MAX_EXPR_STACK	8	/* arbitrary */
 
 static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
@@ -688,9 +694,10 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 	 * We previously validated the length, so we won't read off the end.
 	 */
 	uleb128_t len = get_uleb128(&expr, (const u8 *) -1UL);
+	const u8 *const start = expr;
 	const u8 *const end = expr + len;
 
-	unsigned long stack[MAX_EXPR_STACK];
+	long stack[MAX_EXPR_STACK]; /* stack slots are signed */
 	unsigned int sp = 0;
 #define PUSH(val) do { \
 		if (sp == MAX_EXPR_STACK) \
@@ -702,13 +709,217 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 			goto underflow; \
 		stack[--sp]; \
 	})
+#define NEED(n)	do { \
+		if (end - expr < (n)) \
+			goto truncated; \
+	} while (0)
 
 	while (expr < end) {
+		uleb128_t value;
+		union {
+			u8 u8;
+			s8 s8;
+			u16 u16;
+			s16 s16;
+			u32 u32;
+			s32 s32;
+			u64 u64;
+			s64 s64;
+		} u;
 		const u8 op = *expr++;
 		dbug_unwind(3, " expr op 0x%x (%lu left)\n", op, end - expr);
 		switch (op) {
+		case DW_OP_nop:
+			break;
+
+		case DW_OP_bra:
+			if (POP == 0)
+				break;
+			/* Fall through.  */
+		case DW_OP_skip:
+			NEED(sizeof(u.s16));
+			memcpy(&u.s16, expr, sizeof(u.s16));
+			expr += sizeof(u.s16);
+			if (u.s16 < 0 ?
+			    unlikely(expr - start < -u.s16) :
+			    unlikely(end - expr < u.s16)) {
+				dbug_unwind(1, "invalid skip %d in CFI expression\n", (int) u.s16);
+				return 1;
+			}
+			/*
+			 * A backward branch could lead to an infinite loop.
+			 * So punt it until we find we actually need it.
+			 */
+			if (u.s16 < 0) {
+				dbug_unwind(1, "backward branch in CFI expression not supported\n");
+				return 1;
+			}
+			expr += u.s16;
+			break;
+
+		case DW_OP_dup:
+			value = POP;
+			PUSH(value);
+			PUSH(value);
+			break;
+		case DW_OP_drop:
+			POP;
+			break;
+		case DW_OP_swap: {
+			unsigned long tos = POP;
+			unsigned long nos = POP;
+			PUSH(tos);
+			PUSH(nos);
+			break;
+		};
+
+		case DW_OP_over:
+			value = 1;
+			goto pick;
+		case DW_OP_pick:
+			NEED(1);
+			value = *expr++;
+		pick:
+			if (value >= sp)
+				goto underflow;
+			value = stack[sp - value];
+			PUSH(value);
+			break;
+
+#define CONSTANT(type) \
+			NEED(sizeof(u.type)); \
+			memcpy(&u.type, expr, sizeof(u.type)); \
+			expr += sizeof(u.type); \
+			value = u.type; \
+			PUSH(value); \
+			break
+
+		case DW_OP_addr:
+			if (sizeof(unsigned long) == 8) { /* XXX 32/64!! */
+				CONSTANT(u64);
+			} else {
+				CONSTANT(u32);
+			}
+			break;
+
+		case DW_OP_const1u: CONSTANT(u8);
+		case DW_OP_const1s: CONSTANT(s8);
+		case DW_OP_const2u: CONSTANT(u16);
+		case DW_OP_const2s: CONSTANT(s16);
+		case DW_OP_const4u: CONSTANT(u32);
+		case DW_OP_const4s: CONSTANT(s32);
+		case DW_OP_const8u: CONSTANT(u64);
+		case DW_OP_const8s: CONSTANT(s64);
+
+#undef	CONSTANT
+
+		case DW_OP_constu:
+			value = get_uleb128(&expr, end);
+			PUSH(value);
+			break;
+		case DW_OP_consts:
+			value = get_sleb128(&expr, end);
+			PUSH(value);
+			break;
+
+		case DW_OP_lit0 ... DW_OP_lit31:
+			PUSH(op - DW_OP_lit0);
+			break;
+
+		case DW_OP_plus_uconst:
+			value = get_uleb128(&expr, end);
+			PUSH(value + POP);
+			break;
+
+#define BINOP(name, operator)				\
+			case DW_OP_##name: {		\
+				long b = POP;		\
+				long a = POP;		\
+				PUSH(a operator b);	\
+			} break
+
+			BINOP(eq, ==);
+			BINOP(ne, !=);
+			BINOP(ge, >=);
+			BINOP(gt, >);
+			BINOP(le, <=);
+			BINOP(lt, <);
+
+			BINOP(and, &);
+			BINOP(or, |);
+			BINOP(xor, ^);
+			BINOP(plus, +);
+			BINOP(minus, -);
+			BINOP(mul, *);
+			BINOP(div, /);
+			BINOP(mod, %);
+			BINOP(shl, <<);
+			BINOP(shra, >>);
+#undef	BINOP
+
+		case DW_OP_shr: {
+			unsigned long b = POP;
+			unsigned long a = POP;
+			PUSH (a >> b);
+		}
+
+		case DW_OP_not:
+			PUSH(~ POP);
+			break;
+		case DW_OP_neg:
+			PUSH(- POP);
+			break;
+		case DW_OP_abs:
+			value = POP;
+			value = abs(value);
+			PUSH(value);
+			break;
+
+		case DW_OP_bregx:
+			value = get_uleb128(&expr, end);
+			goto breg;
+		case DW_OP_breg0 ... DW_OP_breg31:
+			value = op - DW_OP_breg0;
+		breg:
+			if (unlikely(value >= ARRAY_SIZE(reg_info))) {
+				dbug_unwind(1, "invalid register number %lu in CFI expression\n", value);
+				return 1;
+			} else {
+				sleb128_t offset = get_sleb128(&expr, end);
+				value = FRAME_REG(value, unsigned long);
+				PUSH(value + offset);
+			}
+			break;
+
+		case DW_OP_deref:
+			value = sizeof(long); /* XXX 32/64!! */
+			goto deref;
+		case DW_OP_deref_size:
+			NEED(1);
+			value = *expr++;
+			if (unlikely(value > sizeof(stack[0]))) {
+			bad_deref_size:
+				dbug_unwind(1, "invalid DW_OP_deref_size %lu in CFI expression\n", value);
+				return 1;
+			}
+		deref: {
+				unsigned long addr = POP;
+				switch (value) {
+#define CASE(n)     		case sizeof(u##n):			\
+					if (unlikely(_stp_read_address(value, (u##n *)addr, KERNEL_DS))) \
+						goto copy_failed;	\
+					break
+					CASES;
+#undef CASE
+				default:
+					goto bad_deref_size;
+				}
+			}
+			break;
+
+		case DW_OP_rot:
 		default:
-			dbug_unwind(1, " unimplemented CFI expression operation: 0x%x\n", op);
+			dbug_unwind(1, "unimplemented CFI expression operation: 0x%x\n", op);
 			return 1;
 		}
 	}
@@ -716,13 +927,20 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 	*result = POP;
 	return 0;
 
+copy_failed:
+	dbug_unwind(1, "_stp_read_address failed to access memory\n");
+	return 1;
+truncated:
+	dbug_unwind(1, "invalid (truncated) DWARF expression in CFI\n");
+	return 1;
 overflow:
-	dbug_unwind(1, " expr stack overflow\n");
+	dbug_unwind(1, "DWARF expression stack overflow in CFI\n");
 	return 1;
 underflow:
-	dbug_unwind(1, " expr stack underflow\n");
+	dbug_unwind(1, "DWARF expression stack underflow in CFI\n");
 	return 1;
 
+#undef	NEED
 #undef	PUSH
 #undef	POP
 }
@@ -921,11 +1139,6 @@ static int unwind_frame(struct unwind_frame_info *frame,
 		dbug_unwind(1, "cfa startLoc=%lx, endLoc=%lx\n",
                             (unsigned long)startLoc, (unsigned long)endLoc);
 	}
-#ifndef CONFIG_64BIT
-# define CASES CASE(8); CASE(16); CASE(32)
-#else
-# define CASES CASE(8); CASE(16); CASE(32); CASE(64)
-#endif
 	dbug_unwind(1, "cie=%lx fde=%lx\n", (unsigned long) cie, (unsigned long) fde);
 	for (i = 0; i < ARRAY_SIZE(state.regs); ++i) {
 		if (REG_INVALID(i)) {
