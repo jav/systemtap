@@ -668,6 +668,12 @@ compile_server_client::compile_using_server (
 		lex_cast(j->port) + string("]");
 	      break; // Success!
 	    }
+
+	  if (s.verbose > 1)
+	    {
+	      clog << "  Unable to connect: ";
+	      nssError ();
+	    }
 	}
  
       NSS_Shutdown();
@@ -677,10 +683,7 @@ compile_server_client::compile_using_server (
     }
 
   if (rc != SECSuccess)
-    {
-      cerr << "Unable to connect to a server: ";
-      nssError ();
-    }
+    cerr << "Unable to connect to a server" << endl;
 
   return rc;
 #endif // HAVE_NSS
@@ -1132,8 +1135,8 @@ manage_server_trust (systemtap_session &s)
   bool signer = false;
   bool revoke = false;
   bool all_users = false;
-  bool error = false;
   bool no_prompt = false;
+  bool error = false;
   for (vector<string>::const_iterator i = components.begin ();
        i != components.end ();
        ++i)
@@ -1178,20 +1181,7 @@ manage_server_trust (systemtap_session &s)
   vector<compile_server_info> server_list;
   get_specified_server_info (s, server_list, true/*no_default*/);
 
-  // Can't work with servers with no cert information.
-  // TODO: Could try contacting the server and obtaining it cert.
-  // The size of the vector may change as we go. Be careful!!
-  for (unsigned i = 0; i < server_list.size (); /**/)
-    {
-      if (server_list[i].certinfo.empty ())
-	{
-	  server_list.erase (server_list.begin () + i);
-	  continue;
-	}
-      ++i;
-    }
-
-  // Did we identify any potential servers? Ignore the empty first entry.
+  // Did we identify any potential servers?
   unsigned limit = server_list.size ();
   if (limit == 0)
     {
@@ -1373,6 +1363,10 @@ add_server_trust (
 	    trust_already_in_place (*server, server_list, cert_db_path, false/*revoking*/);
 	  continue;
 	}
+      // At a minimum we need a host name or ip_address along with a port
+      // number in order to contact the server.
+      if (server->empty () || server->port == 0)
+	continue;
       int rc = client_main (server->host_name.c_str (),
 			    stringToIpAddress (server->ip_address),
 			    server->port,
@@ -1471,7 +1465,8 @@ revoke_server_trust (
     {
       // If the server's certificate serial number is unknown, then we can't
       // match it with one in the database.
-      assert (! server->certinfo.empty ());
+      if (server->certinfo.empty ())
+	continue;
 
       // Trust is based on certificates. We need only revoke trust in the same
       // certificate once.
@@ -1621,15 +1616,9 @@ get_all_server_info (
   vector<compile_server_info> &servers
 )
 {
-  vector<compile_server_info> temp;
-  get_or_keep_online_server_info (s, temp, false/*keep*/);
-  add_server_info (temp, servers);
-
-  get_or_keep_trusted_server_info (s, temp, false/*keep*/);
-  add_server_info (temp, servers);
-
-  get_or_keep_signing_server_info (s, temp, false/*keep*/);
-  add_server_info (temp, servers);
+  get_or_keep_online_server_info (s, servers, false/*keep*/);
+  get_or_keep_trusted_server_info (s, servers, false/*keep*/);
+  get_or_keep_signing_server_info (s, servers, false/*keep*/);
 }
 
 static void
@@ -2124,8 +2113,6 @@ resolve_host (
   const char *lookup_name;
   if (! server.host_name.empty ())
     {
-      if (! server.ip_address.empty ())
-	return; // Nothing to do
       // Use the host name to do the lookup.
       lookup_name = server.host_name.c_str ();
     }
@@ -2176,6 +2163,13 @@ resolve_host (
 			    NI_NAMEREQD | NI_IDN);
       if (status == 0)
 	new_server.host_name = hbuf;
+
+      // Don't resolve to localhost or localhost.localdomain, unless that's
+      // what was asked for.
+      if ((new_server.host_name == "localhost" ||
+	   new_server.host_name == "localhost.localdomain") &&
+	  new_server.host_name != server.host_name)
+	continue;
 
       // Add the new resolved server to the list.
       add_server_info (new_server, resolved_servers);
@@ -2444,7 +2438,7 @@ get_or_keep_online_server_info (
 	    host_name = host_name.substr (0, dot_index);
 
 	  // Add it to the list of servers, unless it is duplicate.
-	  add_server_info (raw_server, online_servers);
+	  resolve_host (s, raw_server, online_servers);
 	}
 
     fail:
