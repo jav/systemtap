@@ -471,6 +471,7 @@ if {[regexp {^.*port=([^ ]*).*} $our_servers(0) match port_num]} {
 }
 set test "Compile module using server"
 set failed 0
+set module_name ""
 set cmd [concat stap -p4 --unprivileged $srcdir/systemtap.server/hello.stp --use-server=$host_name:$port_num]
 send_log "executing: $cmd\n"
 eval spawn $cmd
