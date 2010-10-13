@@ -1255,7 +1255,7 @@ c_unparser::emit_module_init ()
       // Allocation can in general continue.
 
       o->newline() << "if (rc) {";
-      o->newline(1) << "_stp_error (\"global variable " << v->name << " allocation failed\");";
+      o->newline(1) << "_stp_error (\"global variable '" << v->name << "' allocation failed\");";
       o->newline() << "goto out;";
       o->newline(-1) << "}";
 
