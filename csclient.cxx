@@ -566,7 +566,7 @@ client_main (const char *hostName, PRUint32 ip, PRUint16 port,
 #endif // HAVE_NSS
 
 // Convert the given string to an ip address in host byte order.
-static PRUint32
+static unsigned
 stringToIpAddress (const string &s)
 {
   if (s.empty ())
@@ -576,14 +576,14 @@ stringToIpAddress (const string &s)
   tokenize (s, components, ".");
   assert (components.size () >= 1);
 
-  PRUint32 ip = 0;
+  unsigned ip = 0;
   unsigned i;
   for (i = 0; i < components.size (); ++i)
     {
       const char *ipstr = components[i].c_str ();
       char *estr;
       errno = 0;
-      PRUint32 a = strtoul (ipstr, & estr, 10);
+      unsigned a = strtoul (ipstr, & estr, 10);
       if (errno == 0 && *estr == '\0' && a <= UCHAR_MAX)
 	ip = (ip << 8) + a;
       else
