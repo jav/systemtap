@@ -97,7 +97,7 @@ exitErr(char *function)
 static SECStatus readDataFromSocket(PRFileDesc *sslSocket, const char *requestFileName)
 {
   PRFileDesc *local_file_fd;
-  PRFileInfo  info;
+  PRInt32     numBytesExpected;
   PRInt32     numBytesRead;
   PRInt32     numBytesWritten;
   PRInt32     totalBytes;
@@ -115,7 +115,7 @@ static SECStatus readDataFromSocket(PRFileDesc *sslSocket, const char *requestFi
 
   /* Read the number of bytes to be received.  */
   /* XXX: impose a limit to prevent disk space consumption DoS */
-  numBytesRead = PR_Read(sslSocket, & info.size, sizeof (info.size));
+  numBytesRead = PR_Read(sslSocket, & numBytesExpected, sizeof (numBytesExpected));
   if (numBytesRead == 0) /* EOF */
     {
       fprintf (stderr, "Error reading size of request file\n");
@@ -126,9 +126,11 @@ static SECStatus readDataFromSocket(PRFileDesc *sslSocket, const char *requestFi
       errWarn("PR_Read");
       return SECFailure;
     }
+  /* Convert numBytesExpected from network byte order to host byte order.  */
+  numBytesExpected = ntohl (numBytesExpected);
 
   /* Read until EOF or until the expected number of bytes has been read. */
-  for (totalBytes = 0; totalBytes < info.size; totalBytes += numBytesRead)
+  for (totalBytes = 0; totalBytes < numBytesExpected; totalBytes += numBytesRead)
     {
       numBytesRead = PR_Read(sslSocket, buffer, READ_BUFFER_SIZE);
       if (numBytesRead == 0)
@@ -155,9 +157,9 @@ static SECStatus readDataFromSocket(PRFileDesc *sslSocket, const char *requestFi
 #endif
     }
 
-  if (totalBytes != info.size)
+  if (totalBytes != numBytesExpected)
     {
-      fprintf (stderr, "Expected %d bytes, got %d\n", info.size, totalBytes);
+      fprintf (stderr, "Expected %d bytes, got %d\n", numBytesExpected, totalBytes);
       return SECFailure;
     }
 

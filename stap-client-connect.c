@@ -247,9 +247,13 @@ handle_connection(
     }
 
   /* Send the file size first, so the server knows when it has the entire file. */
-  numBytes = PR_Write(sslSocket, & info.size, sizeof (info.size));
+  numBytes = htonl ((PRInt32)info.size);
+  numBytes = PR_Write(sslSocket, & numBytes, sizeof (numBytes));
   if (numBytes < 0)
-    return SECFailure;
+    {
+      PR_Close(local_file_fd);
+      return SECFailure;
+    }
 
   /* Transmit the local file across the socket.  */
   numBytes = PR_TransmitFile(sslSocket, local_file_fd, 
@@ -257,7 +261,10 @@ handle_connection(
 			     PR_TRANSMITFILE_KEEP_OPEN,
 			     PR_INTERVAL_NO_TIMEOUT);
   if (numBytes < 0)
-    return SECFailure;
+    {
+      PR_Close(local_file_fd);
+      return SECFailure;
+    }
 
 #if DEBUG
   /* Transmitted bytes successfully. */
