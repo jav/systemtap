@@ -6,5 +6,6 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-extern void missing_rpm_list_print (systemtap_session &);
+extern void missing_rpm_list_print (systemtap_session &, const char *);
 extern int find_debug_rpms (systemtap_session &, const char *);
+extern int find_devel_rpms (systemtap_session &, const char *);

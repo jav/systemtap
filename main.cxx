@@ -293,9 +293,10 @@ int parse_kernel_config (systemtap_session &s)
   struct stat st;
   int rc = stat(kernel_config_file.c_str(), &st);
   if (rc != 0)
-    {
-	clog << "Checking \"" << kernel_config_file << "\" failed: " << strerror(errno) << endl
-	     << "Ensure kernel development headers & makefiles are installed." << endl;
+    {  
+	clog << "Checking \"" << kernel_config_file << "\" failed: " << strerror(errno) << endl;
+	find_devel_rpms(s, s.kernel_build_tree.c_str());
+	missing_rpm_list_print(s,"-devel");
 	return rc;
     }
 
@@ -658,7 +659,7 @@ passes_0_4 (systemtap_session &s)
          << endl;
 
   /* Print out list of missing files.  XXX should be "if (rc)" ? */
-  missing_rpm_list_print(s);
+  missing_rpm_list_print(s,"-debuginfo");
 
   STAP_PROBE1(stap, pass2__end, &s);
 
