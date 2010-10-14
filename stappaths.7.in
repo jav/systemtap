@@ -22,7 +22,7 @@ This manual page was generated on @DATE@ for systemtap @VERSION@.
 The following section will list the main paths in systemtap that are 
 important to know and may be required to reference.
 .TP
-Systemtap Tapset Path: @prefix@/share/systemtap/tapset/
+Tapset Path: @prefix@/share/systemtap/tapset/
 Systemtap data directory for cached systemtap files, unless overridden
 by the
 .I SYSTEMTAP_TAPSET
@@ -35,19 +35,49 @@ These are described in the
 .IR stapfuncs "(3stap) and " stapprobes (3stap)
 manual pages.
 .TP
-Systemtap Runtime Path: @prefix@/share/systemtap/runtime/
+Runtime Path: @prefix@/share/systemtap/runtime/
 The runtime sources, unless overridden by the
 .I SYSTEMTAP_RUNTIME
 environment variable.
 .TP
-Systemtap Staprun Path: @prefix@/bin/staprun/
+Staprun Path: @prefix@/bin/staprun/
 The auxiliary program supervising module loading, interaction, and
 unloading.
 .TP
-Systemtap Stapio Path: @prefix@/libexec/systemtap/stapio/
+Stapio Path: @prefix@/libexec/systemtap/stapio/
 The Systemtap module input and output handler.
 .TP
 sdt.h Path: @oldincludedir@/include/sys/std.h
+.TP
+Debuginfo Path: /usr/lib/debug/lib/modules/Kernel-Debuginfo-Version/
+The location of kernel debugging information when packaged into the
+.IR kernel\-debuginfo
+RPM, unless overridden by the
+.I SYSTEMTAP_DEBUGINFO_PATH
+environment variable.  The default value for this variable is
+.I \+:.debug:/usr/lib/debug:build 
+and can be changed using $env SYSTEMTAP_DEBUGINFO_PATH=/path/to/vmlinux .
+Elfutils searches vmlinux in this path and it interprets the path as a base
+directory of which various subdirectories will be searched for finding modules.
+By default, systemtap will also look for vmlinux in these locations:
+
+.SAMPLE
+/boot/vmlinux\-`uname \-r` 
+/lib/modules/`uname \-r`/vmlinux
+/lib/modules/`uname \-r`/vmlinux.debug
+/lib/modules/`uname \-r`/build/vmlinux
+/lib/modules/`uname \-r`/.debug/vmlinux.debug
+/usr/lib/debug/lib/modules/`uname \-r`/vmlinux.debug
+/var/cache/abrt-di/usr/debug/lib/modules/`uname \-r`/
+/var/cache/abrt-di/usr/lib/debug/lib/modules/`uname \-r`/vmlinux.debug
+.PP
+.ESAMPLE
+.IP
+      
+Debuginfo for user-space applications have source files located in /usr/src/debug/
+Further file information on user-space applications can be determined per-basis using
+rpm -ql <package>-debuginfo. For supported user-space applications information please 
+visit the systemtap wiki. 
 .TP
 $HOME/.systemtap
 Systemtap data directory for cached systemtap files, unless overridden
@@ -61,16 +91,6 @@ and kernel object.
 .TP
 /lib/modules/VERSION/build
 The location of kernel module building infrastructure.
-.TP
-/usr/lib/debug/lib/modules/Kernel-Debuginfo-Version/
-The location of kernel debugging information when packaged into the
-.IR kernel\-debuginfo
-RPM, unless overridden by the
-.I SYSTEMTAP_DEBUGINFO_PATH
-environment variable.  The default value for this variable is
-.IR \+:.debug:/usr/lib/debug:build .
-Elfutils searches vmlinux in this path and it interprets the path as a base
-directory of which various subdirectories will be searched for finding modules.
 .TP
 @prefix@/doc/systemtap*/examples
 Examples with greater detail, can be found here. Each example comes with a .txt
@@ -124,5 +144,5 @@ stap-server service default log file.
 .SH BUGS
 Use the Bugzilla link of the project web page or our mailing list.
 .nh
-.BR http://sources.redhat.com/systemtap/ , <systemtap@sources.redhat.com> .
+.BR http://sources.redhat.com/systemtap/  ,  <systemtap@sources.redhat.com> .
 .hy
