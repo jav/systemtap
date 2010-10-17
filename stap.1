@@ -1353,6 +1353,11 @@ the module itself, plus any additional allocations.  This only tracks
 direct allocations by the systemtap runtime.  This does not track
 indirect allocations (as done by kprobes/uprobes/etc. internals). 
 .TP
+TASK_FINDER_VMA_ENTRY_ITEMS
+Maximum number of VMA pages that will be tracked at runtime. This might
+get exhausted for system wide probes inspecting shared library variables
+and/or user backtraces. Defaults to 1536.
+.TP
 STP_PROCFS_BUFSIZE
 Size of procfs probe read buffers (in bytes).  Defaults to
 .IR MAXSTRINGLEN .
