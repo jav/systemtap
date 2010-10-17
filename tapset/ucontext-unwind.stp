@@ -18,8 +18,12 @@
 /**
  * sfunction print_ubacktrace - Print stack back trace for current task. EXPERIMENTAL!
  *
- *  Equivalent to print_ustack(ubacktrace()), 
- *  except that deeper stack nesting may be supported.  Return nothing.
+ * Equivalent to print_ustack(ubacktrace()), except that deeper stack
+ * nesting may be supported.  Returns nothing.
+ *
+ * Note: To get (full) backtraces for user space applications and shared
+ * shared libraries not mentioned in the current script run stap with
+ * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
 function print_ubacktrace () %{
 /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
@@ -66,6 +70,10 @@ function print_ubacktrace () %{
  * print_ubacktrace(). Equivalent to sprint_ustack(ubacktrace()),
  * but more efficient (no need to translate between hex strings and
  * final backtrace string).
+ *
+ * Note: To get (full) backtraces for user space applications and shared
+ * shared libraries not mentioned in the current script run stap with
+ * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
 function sprint_ubacktrace:string () %{
 /* pure */ /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
@@ -102,8 +110,13 @@ function sprint_ubacktrace:string () %{
 /**
  * sfunction print_ubacktrace_brief- Print stack back trace for current task. EXPERIMENTAL!
  *
- *  Equivalent to print_ubacktrace(), but output for each symbol is
- *  shorter (just name and offset, or just the hex address of no symbol could be found).
+ * Equivalent to print_ubacktrace(), but output for each symbol is
+ * shorter (just name and offset, or just the hex address of no symbol
+ * could be found).
+ *
+ * Note: To get (full) backtraces for user space applications and shared
+ * shared libraries not mentioned in the current script run stap with
+ * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
 function print_ubacktrace_brief () %{
 /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
@@ -139,10 +152,14 @@ function print_ubacktrace_brief () %{
 /**
  * sfunction ubacktrace - Hex backtrace of current task stack. EXPERIMENTAL!
  *
- *  Return a string of hex addresses that are a backtrace of the 
- *  stack of the current task.  Output may be truncated as per maximum
- *  string length. Returns empty string when current probe point cannot
- *  determine user backtrace.
+ * Return a string of hex addresses that are a backtrace of the 
+ * stack of the current task.  Output may be truncated as per maximum
+ * string length. Returns empty string when current probe point cannot
+ * determine user backtrace.
+ *
+ * Note: To get (full) backtraces for user space applications and shared
+ * shared libraries not mentioned in the current script run stap with
+ * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
 function ubacktrace:string () %{
 /* pure */ /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
