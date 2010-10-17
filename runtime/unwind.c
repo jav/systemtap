@@ -106,7 +106,7 @@ static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
 
 	/* CIE_pointer must be a proper offset */
 	if ((fde[1] & (sizeof(*fde) - 1)) || fde[1] > (unsigned long)(fde + 1) - (unsigned long)unwind_data) {
-		dbug_unwind(1, "fde[1]=%lx fde+1=%lx, unwind_data=%lx  %lx\n",
+		_stp_warn("invalid fde[1]=%lx fde+1=%lx, unwind_data=%lx  %lx\n",
 			    (unsigned long)fde[1], (unsigned long)(fde + 1),
 			    (unsigned long)unwind_data, (unsigned long)(fde + 1) - (unsigned long)unwind_data);
 		return NULL;	/* this is not a valid FDE */
@@ -126,7 +126,7 @@ static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
 	if (*cie <= sizeof(*cie) + 4 || *cie >= fde[1] - sizeof(*fde)
 	    || (*cie & (sizeof(*cie) - 1))
 	    || (cie[1] != 0xffffffff && cie[1] != 0)) {
-		dbug_unwind(1, "cie is not valid %lx %x %x %x\n", (unsigned long)cie, *cie, fde[1], cie[1]);
+		_stp_warn("cie is not valid %lx %x %x %x\n", (unsigned long)cie, *cie, fde[1], cie[1]);
 		return NULL;	/* this is not a (valid) CIE */
 	}
 
@@ -455,7 +455,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 					dbug_unwind(1, "DW_CFA_def_cfa_expression %lu@%p\n", value, cfa_expr);
 				}
 				else
-					dbug_unwind(1, "DW_CFA_def_cfa_expression BAD %lu\n", value);
+					_stp_warn("BAD DW_CFA_def_cfa_expression value %lu\n", value);
 				break;
 			}
 			case DW_CFA_GNU_args_size:
@@ -469,7 +469,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				break;
 			case DW_CFA_GNU_window_save:
 			default:
-				dbug_unwind(1, "unimplemented call frame instruction: 0x%x\n", *(ptr.p8 - 1));
+				_stp_warn("unimplemented call frame instruction: 0x%x\n", *(ptr.p8 - 1));
 				result = 0;
 				break;
 			}
@@ -620,7 +620,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 		tableSize = 8;
 		break;
 	default:
-		dbug_unwind(1, "bad table encoding");
+		_stp_warn("bad unwind table encoding");
 		return NULL;
 	}
 	ptr = hdr + 4;
@@ -632,14 +632,14 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 		if ((hdr[1] & DW_EH_PE_ADJUST) == DW_EH_PE_pcrel)
 			eh = eh - (unsigned long)hdr + eh_hdr_addr;
 		if ((is_ehframe && eh != (unsigned long)m->eh_frame_addr)) {
-			dbug_unwind(1, "eh_frame_ptr in eh_frame_hdr 0x%lx not valid; eh_frame_addr = 0x%lx", eh, (unsigned long)m->eh_frame_addr);
+			_stp_warn("eh_frame_ptr in eh_frame_hdr 0x%lx not valid; eh_frame_addr = 0x%lx", eh, (unsigned long)m->eh_frame_addr);
 			return NULL;
 		}
 	}
 	num = read_ptr_sect(&ptr, end, hdr[2], 0, eh_hdr_addr);
 	if (num == 0 || num != (end - ptr) / (2 * tableSize)
 	    || (end - ptr) % (2 * tableSize)) {
-		dbug_unwind(1, "Bad num=%d end-ptr=%ld 2*tableSize=%d",
+		_stp_warn("unwind Bad num=%d end-ptr=%ld 2*tableSize=%d",
 			    num, (long)(end - ptr), 2 * tableSize);
 		return NULL;
 	}
@@ -743,7 +743,7 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 			if (u.s16 < 0 ?
 			    unlikely(expr - start < -u.s16) :
 			    unlikely(end - expr < u.s16)) {
-				dbug_unwind(1, "invalid skip %d in CFI expression\n", (int) u.s16);
+				_stp_warn("invalid skip %d in CFI expression\n", (int) u.s16);
 				return 1;
 			}
 			/*
@@ -751,7 +751,7 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 			 * So punt it until we find we actually need it.
 			 */
 			if (u.s16 < 0) {
-				dbug_unwind(1, "backward branch in CFI expression not supported\n");
+				_stp_warn("backward branch in CFI expression not supported\n");
 				return 1;
 			}
 			expr += u.s16;
@@ -882,7 +882,7 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 			value = op - DW_OP_breg0;
 		breg:
 			if (unlikely(value >= ARRAY_SIZE(reg_info))) {
-				dbug_unwind(1, "invalid register number %lu in CFI expression\n", value);
+				_stp_warn("invalid register number %lu in CFI expression\n", value);
 				return 1;
 			} else {
 				sleb128_t offset = get_sleb128(&expr, end);
@@ -899,7 +899,7 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 			value = *expr++;
 			if (unlikely(value > sizeof(stack[0]))) {
 			bad_deref_size:
-				dbug_unwind(1, "invalid DW_OP_deref_size %lu in CFI expression\n", value);
+				_stp_warn("invalid DW_OP_deref_size %lu in CFI expression\n", value);
 				return 1;
 			}
 		deref: {
@@ -919,7 +919,7 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 
 		case DW_OP_rot:
 		default:
-			dbug_unwind(1, "unimplemented CFI expression operation: 0x%x\n", op);
+			_stp_warn("unimplemented CFI expression operation: 0x%x\n", op);
 			return 1;
 		}
 	}
@@ -928,16 +928,16 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 	return 0;
 
 copy_failed:
-	dbug_unwind(1, "_stp_read_address failed to access memory\n");
+	_stp_warn("_stp_read_address failed to access memory\n");
 	return 1;
 truncated:
-	dbug_unwind(1, "invalid (truncated) DWARF expression in CFI\n");
+	_stp_warn("invalid (truncated) DWARF expression in CFI\n");
 	return 1;
 overflow:
-	dbug_unwind(1, "DWARF expression stack overflow in CFI\n");
+	_stp_warn("DWARF expression stack overflow in CFI\n");
 	return 1;
 underflow:
-	dbug_unwind(1, "DWARF expression stack underflow in CFI\n");
+	_stp_warn("DWARF expression stack underflow in CFI\n");
 	return 1;
 
 #undef	NEED
@@ -963,8 +963,14 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	struct unwind_state state;
 	unsigned long addr;
 
-	if (unlikely(table_len == 0 || table_len & (sizeof(*fde) - 1))) {
-		dbug_unwind(1, "Module %s: frame_len=%d", m->name, table_len);
+	if (unlikely(table_len == 0)) {
+		// Don't _stp_warn about this, debug_frame and/or eh_frame
+		// might actually not be there.
+		dbug_unwind(1, "Module %s: no unwind frame data", m->name);
+		goto err;
+	}
+	if (unlikely(table_len & (sizeof(*fde) - 1))) {
+		_stp_warn("Module %s: frame_len=%d", m->name, table_len);
 		goto err;
 	}
 
@@ -986,11 +992,11 @@ static int unwind_frame(struct unwind_frame_info *frame,
 				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
 			endLoc = startLoc + read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
 			if (pc > endLoc) {
-				dbug_unwind(1, "pc (%lx) > endLoc(%lx)\n", pc, endLoc);
+				_stp_warn("pc (%lx) > endLoc(%lx)\n", pc, endLoc);
 				goto done;
 			}
 		} else {
-			dbug_unwind(1, "fde found in header, but cie is bad!\n");
+			_stp_warn("fde found in header, but cie is bad!\n");
 			fde = NULL;
 		}
 	}
@@ -1043,7 +1049,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	frame->call_frame = 1;
 	state.version = *ptr;
 	if (state.version != 1 && state.version != 3 && state.version != 4) {
-		dbug_unwind(1, "CIE version number is %d.  1, 3 or 4 is supported.\n", state.version);
+		_stp_warn("CIE version number is %d.  1, 3 or 4 is supported.\n", state.version);
 		goto err;	/* unsupported version */
 	}
 	if (*++ptr) {
@@ -1068,7 +1074,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 			}
 		}
 		if (ptr >= end || *ptr) {
-			dbug_unwind(1, "Problem parsing the augmentation string.\n");
+			_stp_warn("Problem parsing the augmentation string.\n");
 			goto err;
 		}
 	}
@@ -1144,7 +1150,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 		if (REG_INVALID(i)) {
 			if (state.regs[i].where == Nowhere)
 				continue;
-			dbug_unwind(2, "REG_INVALID %d\n", i);
+			_stp_warn("REG_INVALID %d\n", i);
 			goto err;
 		}
 		dbug_unwind(2, "register %d. where=%d\n", i, state.regs[i].where);
@@ -1155,7 +1161,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 			if (state.regs[i].value >= ARRAY_SIZE(reg_info)
 			    || REG_INVALID(state.regs[i].value)
 			    || reg_info[i].width > reg_info[state.regs[i].value].width) {
-				dbug_unwind(2, "case Register bad\n");
+				_stp_warn("case Register bad\n");
 				goto err;
 			}
 			switch (reg_info[state.regs[i].value].width) {
@@ -1167,7 +1173,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 				CASES;
 #undef CASE
 			default:
-				dbug_unwind(2, "default\n");
+				_stp_warn("bad Register size\n");
 				goto err;
 			}
 			break;
@@ -1194,7 +1200,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 				CASES;
 #undef CASE
 			default:
-				dbug_unwind(2, "default\n");
+				_stp_warn("bad Register size\n");
 				goto err;
 			}
 			break;
@@ -1210,7 +1216,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 			addr = cfa + state.regs[i].value * state.dataAlign;
 		value:
 			if (reg_info[i].width != sizeof(unsigned long)) {
-				dbug_unwind(2, "Value\n");
+				_stp_warn("bad Register width\n");
 				goto err;
 			}
 			FRAME_REG(i, unsigned long) = addr;
@@ -1228,7 +1234,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 				CASES;
 #undef CASE
 			default:
-				dbug_unwind(2, "default\n");
+				_stp_warn("bad Register width\n");
 				goto err;
 			}
 			break;
@@ -1238,7 +1244,7 @@ static int unwind_frame(struct unwind_frame_info *frame,
 	return 0;
 
 copy_failed:
-	dbug_unwind(1, "_stp_read_address failed to access memory\n");
+	_stp_warn("_stp_read_address failed to access memory\n");
 err:
 	return -EIO;
 
@@ -1273,6 +1279,7 @@ static int unwind(struct unwind_frame_info *frame, struct task_struct *tsk)
 	  m = _stp_kmod_sec_lookup (pc, &s);
 
 	if (unlikely(m == NULL)) {
+		// Don't _stp_warn about this, will use fallback unwinder.
 		dbug_unwind(1, "No module found for pc=%lx", pc);
 		return -EINVAL;
 	}
