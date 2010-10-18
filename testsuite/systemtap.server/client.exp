@@ -402,8 +402,15 @@ if {[regexp {^.*certinfo="([^ ]*)".*} $our_servers(0) match cert_info]} {
 } else {
     fail $test
 }
-set cmd [concat [exec which stap] --trust-servers=signer,no-prompt --use-server=$cert_info]
-eval as_root { $cmd }
+
+# Even though this action must be performed as root, Do not perform it if we
+# are already root, since it alters the state of the install tree. See PR 11442.
+# The related tests should then be expected failures.
+set effective_pid [exec /usr/bin/id -u]
+if {$effective_pid != 0} {
+    set cmd [concat [exec which stap] --trust-servers=signer,no-prompt --use-server=$cert_info]
+    eval as_root { $cmd }
+}
 
 # Our server should now be trusted as a signer, separate from the previously
 # discovered trusted signing servers.
@@ -426,6 +433,9 @@ foreach idx1 [array names current_signing_servers] {
 	incr n
     }
 }
+if {$effective_pid == 0} {
+    setup_xfail *-*-*
+}
 if {$n == 0} {
     fail "$test"
 } else {
@@ -436,29 +446,40 @@ if {$n == 0} {
 # the we specified our server by certificate serial number so that we don't
 # accidentally trust another server on the same host.
 set test "Number of new signing servers matches"
+if {$effective_pid == 0} {
+    setup_xfail *-*-*
+}
 if {[array size new_signing_servers] == [array size our_servers]} {
     pass "$test"
-} else {
-    fail "$test"
-}
-set test "New signing servers matches"
-set n 0
-foreach idx1 [array names new_signing_servers] {
-    set found 0
-    foreach idx2 [array names our_servers] {
-	if {"$our_servers($idx2)" == "$new_signing_servers($idx1)"} {
-	    set found 1
-	    break
+    set test "New signing servers matches"
+    set n 0
+    foreach idx1 [array names new_signing_servers] {
+	set found 0
+	foreach idx2 [array names our_servers] {
+	    if {"$our_servers($idx2)" == "$new_signing_servers($idx1)"} {
+		set found 1
+		break
+	    }
+	}
+	if {$found == 1} {
+	    incr n
 	}
     }
-    if {$found == 1} {
-	incr n
+    if {$effective_pid == 0} {
+	setup_xfail *-*-*
     }
-}
-if {$n != [array size new_signing_servers]} {
-    fail "$test"
+    if {$n != [array size new_signing_servers]} {
+	fail "$test"
+    } else {
+	pass "$test"
+    }
 } else {
-    pass "$test"
+    fail "$test"
+    set test "New signing servers matches"
+    if {$effective_pid == 0} {
+	setup_xfail *-*-*
+    }
+    fail "$test"
 }
 
 # Compile a simple test using --unprivileged. This will ask the server to
@@ -513,14 +534,16 @@ if {[file exists $module_name.sgn]} {
 # the group stapdev or stapusr, then we still won't be able to load
 # the module.
 set expect_failure 1
-if {[exec /usr/bin/id -u] == 0} {
+if {$effective_pid == 0} {
     set expect_failure 0
 } else {
     set id_info [exec /usr/bin/id]
     if {[regexp {.*\(stapdev\).*} "$id_info"]} {
 	set expect_failure 0
     } elseif {[regexp {.*\(stapusr\).*} "$id_info"]} {
-	set expect_failure 0
+	if {$effective_pid != 0} {
+	    set expect_failure 0
+	}
     }    
 }
 if {$expect_failure} {
@@ -553,8 +576,12 @@ if {$failed == 0} {
 # Revoke trust in our server as a module signer. This must be done as root.
 # Specify the server by certificate serial number so that we don't accidentally
 # revoke trust in a previously trusted server.
-set cmd [concat [exec which stap] --trust-servers=revoke,signer,no-prompt --use-server=$cert_info]
-eval as_root { $cmd }
+# Even though this action must be performed as root, Do not perform it if we
+# are already root, since it alters the state of the install tree. See PR 11442.
+if {$effective_pid != 0} {
+    set cmd [concat [exec which stap] --trust-servers=revoke,signer,no-prompt --use-server=$cert_info]
+    eval as_root { $cmd }
+}
 
 # Our server should no longer be trusted as a signed
 list_servers "List current signing servers after revokation" signer
