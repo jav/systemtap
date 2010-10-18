@@ -1431,7 +1431,7 @@ Optional Packages:
   --with-publican-brand=BRAND
                           building publican documentation guides using given
                           brand (defaults to "common").
-  --with-rpm              query rpm database for missing debuginfos
+  --with-rpm              query rpm database for missing debuginfos and devel headers
   --with-elfutils=DIRECTORY
                           find elfutils source code in DIRECTORY
 

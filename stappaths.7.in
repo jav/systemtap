@@ -92,7 +92,7 @@ and kernel object.
 /lib/modules/VERSION/build
 The location of kernel module building infrastructure.
 .TP
-@prefix@/doc/systemtap*/examples
+@prefix@/share/doc/systemtap*/examples
 Examples with greater detail, can be found here. Each example comes with a .txt
 or .meta file explaining what the example, sample or demo does and how it is
 ordinarily run.
