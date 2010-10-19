@@ -703,6 +703,22 @@ dwflpp::get_parent_scope(Dwarf_Die* die)
   return NULL;
 }
 
+static const char*
+cache_type_prefix(Dwarf_Die* type)
+{
+  switch (dwarf_tag(type))
+    {
+    case DW_TAG_enumeration_type:
+      return "enum ";
+    case DW_TAG_structure_type:
+    case DW_TAG_class_type:
+      // treating struct/class as equals
+      return "struct ";
+    case DW_TAG_union_type:
+      return "union ";
+    }
+  return "";
+}
 
 int
 dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
@@ -710,14 +726,12 @@ dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
   cu_type_cache_t *cache = static_cast<cu_type_cache_t*>(arg);
   const char *name = dwarf_diename(die);
 
-  if (!name)
+  if (!name || dwarf_hasattr(die, DW_AT_declaration))
     return DWARF_CB_OK;
 
-  string structure_name = name;
-
-  if (!dwarf_hasattr(die, DW_AT_declaration) &&
-      cache->find(structure_name) == cache->end())
-    (*cache)[structure_name] = *die;
+  string type_name = cache_type_prefix(die) + string(name);
+  if (cache->find(type_name) == cache->end())
+    (*cache)[type_name] = *die;
 
   return DWARF_CB_OK;
 }
@@ -740,7 +754,7 @@ dwflpp::global_alias_caching_callback_cus(Dwarf_Die *die, void *arg)
 }
 
 Dwarf_Die *
-dwflpp::declaration_resolve_other_cus(const char *name)
+dwflpp::declaration_resolve_other_cus(const string& name)
 {
   iterate_over_cus(global_alias_caching_callback_cus, this);
   for (mod_cu_type_cache_t::iterator i = global_alias_cache.begin();
@@ -755,11 +769,8 @@ dwflpp::declaration_resolve_other_cus(const char *name)
 }
 
 Dwarf_Die *
-dwflpp::declaration_resolve(const char *name)
+dwflpp::declaration_resolve(const string& name)
 {
-  if (!name)
-    return NULL;
-
   cu_type_cache_t *v = global_alias_cache[cu->addr];
   if (v == 0) // need to build the cache, just once per encountered module/cu
     {
@@ -780,6 +791,17 @@ dwflpp::declaration_resolve(const char *name)
     return declaration_resolve_other_cus(name);
 
   return & ((*v)[name]);
+}
+
+Dwarf_Die *
+dwflpp::declaration_resolve(Dwarf_Die *type)
+{
+  const char* name = dwarf_diename(type);
+  if (!name)
+    return NULL;
+
+  string type_name = cache_type_prefix(type) + string(name);
+  return declaration_resolve(type_name);
 }
 
 
@@ -2171,7 +2193,7 @@ dwflpp::translate_components(struct obstack *pool,
 
           if (dwarf_hasattr(typedie, DW_AT_declaration))
             {
-              Dwarf_Die *tmpdie = dwflpp::declaration_resolve(dwarf_diename(typedie));
+              Dwarf_Die *tmpdie = declaration_resolve(typedie);
               if (tmpdie == NULL)
                 throw semantic_error ("unresolved " + dwarf_type_name(typedie),
                                       c.tok);

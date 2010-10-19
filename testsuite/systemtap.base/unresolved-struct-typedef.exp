@@ -1,0 +1,26 @@
+# test the resolution of unresolved struct typedefs
+set test "unresolved-struct-typedef"
+
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags additional_flags=-O2"
+set test_flags "$test_flags [sdt_includes]"
+
+# we deliberately don't #include time.h in the main CU
+# instead we pull the header in as a separate CU
+set test_flags "$test_flags additional_flags=-fno-eliminate-unused-debug-types"
+set test_flags "$test_flags additional_flags=-xc"
+set test_flags "$test_flags additional_flags=/usr/include/time.h"
+
+set res [target_compile "$srcdir/$subdir/$test.c" "$test.exe" executable "$test_flags"]
+if { $res != "" } {
+  verbose "target_compile failed: $res" 2
+  fail "$test.c compile"
+  untested "$test"
+  return
+} else {
+  pass "$test.c compile"
+}
+
+set script {{ probe process(@1).mark("epoch") { println($epoch->tm_year) } }}
+stap_compile "$test" 1 "$script" "$test.exe"
+catch {exec rm -f "$test.exe"}

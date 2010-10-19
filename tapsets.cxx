@@ -2488,7 +2488,7 @@ dwarf_pretty_print::recurse_struct (Dwarf_Die* type, target_symbol* e,
 {
   if (dwarf_hasattr(type, DW_AT_declaration))
     {
-      Dwarf_Die *resolved = dw.declaration_resolve(dwarf_diename(type));
+      Dwarf_Die *resolved = dw.declaration_resolve(type);
       if (!resolved)
         {
           // could be an error, but for now just stub it
@@ -3457,7 +3457,33 @@ dwarf_cast_query::handle_query_module()
     return;
 
   // look for the type in any CU
-  Dwarf_Die* type_die = dw.declaration_resolve_other_cus(e.type_name.c_str());
+  Dwarf_Die* type_die = NULL;
+  if (startswith(e.type_name, "class "))
+    {
+      // normalize to match dwflpp::global_alias_caching_callback
+      string struct_name = "struct " + e.type_name.substr(6);
+      type_die = dw.declaration_resolve_other_cus(struct_name);
+    }
+  else
+    type_die = dw.declaration_resolve_other_cus(e.type_name);
+
+  // NB: We now index the types as "struct name"/"union name"/etc. instead of
+  // just "name".  But since we didn't require users to be explicit before, and
+  // actually sort of discouraged it, we must be flexible now.  So if a lookup
+  // fails with a bare name, try augmenting it.
+  if (!type_die &&
+      !startswith(e.type_name, "class ") &&
+      !startswith(e.type_name, "struct ") &&
+      !startswith(e.type_name, "union ") &&
+      !startswith(e.type_name, "enum "))
+    {
+      type_die = dw.declaration_resolve_other_cus("struct " + e.type_name);
+      if (!type_die)
+        type_die = dw.declaration_resolve_other_cus("union " + e.type_name);
+      if (!type_die)
+        type_die = dw.declaration_resolve_other_cus("enum " + e.type_name);
+    }
+
   if (!type_die)
     return;
 

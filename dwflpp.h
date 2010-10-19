@@ -215,8 +215,9 @@ struct dwflpp
   std::vector<Dwarf_Die> getscopes(Dwarf_Die* die);
   std::vector<Dwarf_Die> getscopes(Dwarf_Addr pc);
 
-  Dwarf_Die *declaration_resolve(const char *name);
-  Dwarf_Die *declaration_resolve_other_cus(const char *name);
+  Dwarf_Die *declaration_resolve(Dwarf_Die *type);
+  Dwarf_Die *declaration_resolve(const std::string& name);
+  Dwarf_Die *declaration_resolve_other_cus(const std::string& name);
 
   int iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * q),
                               base_query * q, const std::string& function);

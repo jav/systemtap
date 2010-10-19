@@ -2861,12 +2861,6 @@ target_symbol* parser::parse_target_symbol (const token* t)
       cop->operand = parse_expression ();
       expect_op(",");
       expect_unknown(tok_string, cop->type_name);
-      // types never start with "struct<space>" or "union<space>",
-      // so gobble it up.
-      if (startswith(cop->type_name, "struct "))
-        cop->type_name = cop->type_name.substr(7);
-      if (startswith(cop->type_name, "union "))
-        cop->type_name = cop->type_name.substr(6);
       if (peek_op (","))
         {
           next();
