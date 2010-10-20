@@ -9,7 +9,8 @@
 
 #ifdef __ASSEMBLER__
 # define _SDT_PROBE(provider, name, n, arglist)	\
-  _SDT_ASM_BODY(provider, name, _SDT_ASM_STRING_1, (_SDT_DEPAREN_##n arglist))
+  _SDT_ASM_BODY(provider, name, _SDT_ASM_STRING_1, (_SDT_DEPAREN_##n arglist)) \
+  _SDT_ASM_BASE
 # define _SDT_ASM_1(x)			x;
 # define _SDT_ASM_2(a, b)		a,b;
 # define _SDT_ASM_3(a, b, c)		a,b,c;
@@ -29,8 +30,11 @@
 #else
 # include <stdint.h>
 # define _SDT_PROBE(provider, name, n, arglist) \
-  __asm__ __volatile__ (_SDT_ASM_BODY(provider, name, _SDT_ASM_ARGS, (n)) \
-			:: _SDT_ASM_OPERANDS_##n arglist)
+  do {									    \
+    __asm__ __volatile__ (_SDT_ASM_BODY(provider, name, _SDT_ASM_ARGS, (n)) \
+			  :: _SDT_ASM_OPERANDS_##n arglist);		    \
+    __asm__ __volatile__ (_SDT_ASM_BASE);				    \
+  } while (0)
 # define _SDT_S(x)			#x
 # define _SDT_ASM_1(x)			_SDT_S(x)"\n"
 # define _SDT_ASM_2(a, b)		_SDT_S(a)","_SDT_S(b)"\n"
@@ -96,7 +100,9 @@
   _SDT_ASM_STRING(name)							      \
   pack_args args							      \
   _SDT_ASM_1(994:	.balign 4)					      \
-  _SDT_ASM_1(		.popsection)					      \
+  _SDT_ASM_1(		.popsection)
+
+#define _SDT_ASM_BASE							      \
   _SDT_ASM_1(.ifndef _.stapsdt.base)					      \
   _SDT_ASM_5(		.pushsection .stapsdt.base,"aG","progbits",	      \
 							.stapsdt.base,comdat) \
@@ -219,11 +225,13 @@
 
 #if __STDC_VERSION__ >= 199901L
 # define STAP_PROBE_ASM(provider, name, ...)		\
-  _SDT_ASM_BODY(provider, name, _SDT_ASM_STRING, (__VA_ARGS__))
+  _SDT_ASM_BODY(provider, name, _SDT_ASM_STRING, (__VA_ARGS__)) \
+  _SDT_ASM_BASE
 # define STAP_PROBE_ASM_OPERANDS(n, ...) _SDT_ASM_OPERANDS_##n(__VA_ARGS__)
 #else
 # define STAP_PROBE_ASM(provider, name, args)	\
-  _SDT_ASM_BODY(provider, name, _SDT_ASM_STRING, (args))
+  _SDT_ASM_BODY(provider, name, _SDT_ASM_STRING, (args)) \
+  _SDT_ASM_BASE
 #endif
 #define STAP_PROBE_ASM_TEMPLATE(n)	_SDT_ASM_TEMPLATE_##n
 
