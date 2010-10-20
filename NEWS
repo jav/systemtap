@@ -1,5 +1,10 @@
 * What's new in version 1.4
 
+- More kernel tracepoints are accessible to the kernel.trace("...") mechanism,
+  if kernel source trees or debuginfo are available.  These formerly "hidden"
+  tracepoints are those that are declared somewhere other than the usual
+  include/linux/trace/ headers, such as xfs and kvm.
+
 - The -t option now displays information per probe-point rather than a summary
   for each probe.  It also now shows the derivation chain for each probe-point.
 
