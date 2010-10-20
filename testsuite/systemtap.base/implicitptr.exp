@@ -40,7 +40,6 @@ foreach opt $opt_flags {
     continue
   } else {
     pass "$test.c compile $opt"
-    exec cp $test.exe /tmp/$test$opt
   }
 
   set listing ""
