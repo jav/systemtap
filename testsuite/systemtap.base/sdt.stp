@@ -1,3 +1,8 @@
+probe process(@1).mark("mark_z")
+{
+  printf("_\n");
+}
+
 probe process(@1).mark("mark_a")
 {
   printf("%d\n", $arg1);
