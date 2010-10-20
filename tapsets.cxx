@@ -8268,6 +8268,9 @@ tracepoint_builder::init_dw(systemtap_session& s)
               const char* name = dwarf_formstring (dwarf_attr (cudie, DW_AT_comp_dir, &attr));
               if (name) 
                 {
+                  if (s.verbose > 2)
+                    clog << "Located kernel source tree (DW_AT_comp_dir) at '" << name << "'" << endl;
+
                   s.kernel_source_tree = name;
                   break; // skip others; modern Kbuild uses same comp_dir for them all
                 }

@@ -1101,11 +1101,32 @@ systemtap_session::setup_kernel_release (const char* kstr)
 	  while (version_file.get(c) && c != '\n')
 	    kernel_release.push_back(c);
 	}
+
+      // PR10745
+      // Maybe it's a full kernel source tree, for purposes of PR10745.
+      // In case CONFIG_DEBUG_INFO was set, we'd find it anyway with the
+      // normal search in tapsets.cxx.  Without CONFIG_DEBUG_INFO, we'd
+      // need heuristics such as this one:
+
+      string some_random_source_only_file = kernel_build_tree + "/COPYING";
+      ifstream epic (some_random_source_only_file.c_str());
+      if (! epic.fail())
+        {
+          kernel_source_tree = kernel_build_tree;
+          if (verbose > 2)
+            clog << "Located kernel source tree (COPYING) at '"
+                 << kernel_source_tree << "'" << endl;
+        }
     }
   else
     {
       kernel_release = string (kstr);
       kernel_build_tree = "/lib/modules/" + kernel_release + "/build";
+
+      // PR10745
+      // Let's not look for the kernel_source_tree; it's definitely
+      // not THERE.  tapsets.cxx might try to find it later if tracepoints
+      // need it.
     }
 }
 
