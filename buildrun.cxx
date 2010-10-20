@@ -148,6 +148,8 @@ compile_pass (systemtap_session& s)
   //      mflags-y += -Iinclude/asm-x86/mach-default
   // but that path does not exist in an O= build tree.
   o << module_cflags << " += -Iinclude2/asm/mach-default" << endl;
+  if (s.kernel_source_tree != "")
+    o << module_cflags << " += -I" + s.kernel_source_tree << endl;
 
   // NB: don't try
   // o << module_cflags << " += -Iusr/include" << endl;
@@ -460,7 +462,7 @@ run_pass (systemtap_session& s)
 // Build a tiny kernel module to query tracepoints
 int
 make_tracequery(systemtap_session& s, string& name,
-                const vector<string>& headers)
+                const vector<string>& decls)
 {
   static unsigned tick = 0;
   string basename("tracequery_kmod_" + lex_cast(++tick));
@@ -481,6 +483,8 @@ make_tracequery(systemtap_session& s, string& name,
   ofstream omf(makefile.c_str());
   // force debuginfo generation, and relax implicit functions
   omf << "EXTRA_CFLAGS := -g -Wno-implicit-function-declaration" << (s.omit_werror ? "" : " -Werror") << endl;
+  if (s.kernel_source_tree != "")
+    omf << "EXTRA_CFLAGS += -I" + s.kernel_source_tree << endl;
   omf << "obj-m := " + basename + ".o" << endl;
   omf.close();
 
@@ -505,10 +509,11 @@ make_tracequery(systemtap_session& s, string& name,
   osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
   osrc << "  DECLARE_TRACE(name, TPPROTO(proto), TPARGS(args))" << endl;
 
-  // add the specified headers
-  for (unsigned z=0; z<headers.size(); z++)
+  // add the specified decls/#includes
+  for (unsigned z=0; z<decls.size(); z++)
     osrc << "#undef TRACE_INCLUDE_FILE\n"
-         << "#include <" << headers[z] << ">\n";
+         << "#undef TRACE_INCLUDE_PATH\n"
+         << decls[z] << "\n";
 
   // finish up the module source
   osrc << "#endif /* CONFIG_TRACEPOINTS */" << endl;

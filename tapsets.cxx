@@ -7737,18 +7737,22 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
 
   // determine which header defined this tracepoint
   string decl_file = dwarf_decl_file(&func_die);
+  header = decl_file; 
+
+#if 0 /* This convention is not enforced. */
   size_t header_pos = decl_file.rfind("trace/");
   if (header_pos == string::npos)
     throw semantic_error ("cannot parse header location for tracepoint '"
                                   + tracepoint_name + "' in '"
                                   + decl_file + "'");
   header = decl_file.substr(header_pos);
+#endif
 
   // tracepoints from FOO_event_types.h should really be included from FOO.h
   // XXX can dwarf tell us the include hierarchy?  it would be better to
   // ... walk up to see which one was directly included by tracequery.c
   // XXX: see also PR9993.
-  header_pos = header.find("_event_types");
+  size_t header_pos = header.find("_event_types");
   if (header_pos != string::npos)
     header.erase(header_pos, 12);
 
@@ -7879,18 +7883,34 @@ tracepoint_derived_probe::print_dupe_stamp(ostream& o)
 }
 
 
-static vector<string> tracepoint_extra_headers (systemtap_session& s)
+static vector<string> tracepoint_extra_decls (systemtap_session& s)
 {
   vector<string> they_live;
   // PR 9993
   // XXX: may need this to be configurable
-  they_live.push_back ("linux/skbuff.h");
+  they_live.push_back ("#include <linux/skbuff.h>");
 
   // PR11649: conditional extra header
   // for kvm tracepoints in 2.6.33ish
   if (s.kernel_config["CONFIG_KVM"] != string("")) {
-    they_live.push_back ("linux/kvm_host.h");
+    they_live.push_back ("#include <linux/kvm_host.h>");
   }
+
+  if (s.kernel_config["CONFIG_XFS_FS"] != string("")) {
+    they_live.push_back ("#define XFS_BIG_BLKNOS 1");
+    they_live.push_back ("#include \"fs/xfs/xfs_types.h\""); // in kernel-source tree
+    they_live.push_back ("struct xfs_mount;");
+    they_live.push_back ("struct xfs_inode;");
+    they_live.push_back ("struct xfs_buf;");
+    they_live.push_back ("struct xfs_bmbt_irec;");
+  }
+
+  if (s.kernel_config["CONFIG_NFSD"] != string("")) {
+    they_live.push_back ("struct rpc_task;");
+  }
+
+  they_live.push_back ("#include <asm/cputime.h>");
+
   return they_live;
 }
 
@@ -7906,9 +7926,9 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // PR9993: Add extra headers to work around undeclared types in individual
   // include/trace/foo.h files
-  const vector<string>& extra_headers = tracepoint_extra_headers (s);
-  for (unsigned z=0; z<extra_headers.size(); z++)
-    s.op->newline() << "#include <" << extra_headers[z] << ">\n";
+  const vector<string>& extra_decls = tracepoint_extra_decls (s);
+  for (unsigned z=0; z<extra_decls.size(); z++)
+    s.op->newline() << extra_decls[z] << "\n";
 
   for (unsigned i = 0; i < probes.size(); ++i)
     {
@@ -7917,6 +7937,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       // emit a separate entry function for each probe, since tracepoints
       // don't provide any sort of context pointer.
       s.op->newline() << "#undef TRACE_INCLUDE_FILE";
+      s.op->newline() << "#undef TRACE_INCLUDE_PATH";
       s.op->newline() << "#include <" << p->header << ">";
 
       // Starting in 2.6.35, at the same time NOARGS was added, the callback
@@ -8192,20 +8213,20 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
 
   // PR9993: Add extra headers to work around undeclared types in individual
   // include/trace/foo.h files
-  vector<string> short_headers = tracepoint_extra_headers(s);
+  vector<string> short_decls = tracepoint_extra_decls(s);
 
   // add each requested tracepoint header
   for (size_t i = 0; i < headers.size(); ++i)
     {
       const string &header = headers[i];
       size_t root_pos = header.rfind("/include/");
-      short_headers.push_back((root_pos != string::npos) ?
-                              header.substr(root_pos + 9) :
-                              header);
+      short_decls.push_back(string("#include <") + 
+                            ((root_pos != string::npos) ? header.substr(root_pos + 9) : header) +
+                            string(">"));
     }
 
   string tracequery_ko;
-  int rc = make_tracequery(s, tracequery_ko, short_headers);
+  int rc = make_tracequery(s, tracequery_ko, short_decls);
   if (rc != 0)
     tracequery_ko = "/dev/null";
 
@@ -8215,6 +8236,7 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
 
   return tracequery_ko;
 }
+
 
 
 bool
@@ -8227,15 +8249,56 @@ tracepoint_builder::init_dw(systemtap_session& s)
   vector<string> system_headers;
 
   glob_t trace_glob;
-  string globs[] = {
-      "/include/trace/events/*.h",
-      "/source/include/trace/events/*.h",
-      "/include/trace/*.h",
-      "/source/include/trace/*.h",
-  };
-  for (unsigned z = 0; z < sizeof(globs) / sizeof(globs[0]); z++)
+
+  // find kernel_source_tree
+  if (s.kernel_source_tree == "")
     {
-      string glob_str(s.kernel_build_tree + globs[z]);
+      unsigned found;
+      DwflPtr dwfl_ptr = setup_dwfl_kernel ("kernel", &found, s);
+      Dwfl *dwfl = dwfl_ptr.get()->dwfl;
+      if (found)
+        {
+          Dwarf_Die *cudie = 0;
+          Dwarf_Addr bias;
+          while ((cudie = dwfl_nextcu (dwfl, cudie, &bias)) != NULL)
+            {
+              if (pending_interrupts) break;
+              Dwarf_Attribute attr;
+              const char* name = dwarf_formstring (dwarf_attr (cudie, DW_AT_comp_dir, &attr));
+              if (name) 
+                {
+                  s.kernel_source_tree = name;
+                  break; // skip others; modern Kbuild uses same comp_dir for them all
+                }
+            }
+        }
+    }
+
+  // prefixes
+  vector<string> glob_prefixes;
+  glob_prefixes.push_back (s.kernel_build_tree);
+  if (s.kernel_source_tree != "")
+    glob_prefixes.push_back (s.kernel_source_tree);
+
+  // suffixes
+  vector<string> glob_suffixes;
+  glob_suffixes.push_back("include/trace/events/*.h");
+  glob_suffixes.push_back("include/trace/*.h");
+  glob_suffixes.push_back("arch/x86/kvm/*trace.h");
+  glob_suffixes.push_back("fs/xfs/linux-2.6/xfs_tr*.h");
+
+  // compute cartesian product
+  vector<string> globs;
+  for (unsigned i=0; i<glob_prefixes.size(); i++)
+    for (unsigned j=0; j<glob_suffixes.size(); j++)
+      globs.push_back (glob_prefixes[i]+string("/")+glob_suffixes[j]);
+
+  for (unsigned z = 0; z < globs.size(); z++)
+    {
+      string glob_str = globs[z];
+      if (s.verbose > 3)
+        clog << "Checking tracepoint glob " << glob_str << endl;
+
       glob(glob_str.c_str(), 0, NULL, &trace_glob);
       for (unsigned i = 0; i < trace_glob.gl_pathc; ++i)
         {
@@ -8263,7 +8326,6 @@ tracepoint_builder::init_dw(systemtap_session& s)
     for (size_t i = 0; i < system_headers.size(); ++i)
       {
         if (pending_interrupts) return false;
-
         vector<string> one_header(1, system_headers[i]);
         tracequery_path = get_tracequery_module(s, one_header);
         if (get_file_size(tracequery_path))
