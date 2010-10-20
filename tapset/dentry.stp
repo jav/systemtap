@@ -25,7 +25,11 @@ function __dentry_prepend:string(dentry:long,name:string)
         if (dname == "/" && c == "/")
                 return name;
 
-        return sprintf("%s/%s", dname, name);
+        if (name == "") {
+                return dname;
+        } else {
+                return sprintf("%s/%s", dname, name);
+        }
 }
 
 
@@ -115,5 +119,5 @@ function d_path:string(nd:long)
 	    ? @cast(nd,"nameidata")->path->mnt
 	    : @cast(nd,"nameidata")->mnt)
 
-	return task_dentry_path(task_current(), dentry, vfsmnt)
+	return sprintf("%s/", task_dentry_path(task_current(), dentry, vfsmnt))
 }
