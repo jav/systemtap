@@ -5616,17 +5616,37 @@ probe*
 sdt_query::convert_location ()
 {
   probe_point* specific_loc = new probe_point(*base_loc);
-  probe_point* derived_loc = new probe_point(*base_loc);
+  vector<probe_point::component*> derived_comps;
 
-  for (unsigned i = 0; i < derived_loc->components.size(); ++i)
-    if (derived_loc->components[i]->functor == TOK_MARK)
+  vector<probe_point::component*>::iterator it;
+  for (it = specific_loc->components.begin();
+       it != specific_loc->components.end(); ++it)
+    if ((*it)->functor == TOK_PROCESS)
+      {
+        if (have_kprobe())
+          // start the kernel probe_point
+          derived_comps.push_back(new probe_point::component(TOK_KERNEL));
+        else
+          // copy the process name
+          derived_comps.push_back(*it);
+      }
+    else if ((*it)->functor == TOK_LIBRARY)
+      {
+        if (!have_kprobe())
+          // copy the library name for process probes
+          derived_comps.push_back(*it);
+      }
+    else if ((*it)->functor == TOK_PROVIDER)
+      {
+        // replace the possibly wildcarded arg with the specific provider name
+        *it = new probe_point::component(TOK_PROVIDER,
+                                         new literal_string(provider_name));
+      }
+    else if ((*it)->functor == TOK_MARK)
       {
         // replace the possibly wildcarded arg with the specific marker name
-        specific_loc->components[i] =
-          new probe_point::component(TOK_MARK, new literal_string(probe_name));
-
-        // XXX: similarly, fill in a TOK_PROVIDER() on the base_loc if
-        // one was missing/unspecified/wildcarded.
+        *it = new probe_point::component(TOK_MARK,
+                                         new literal_string(probe_name));
 
 	if (sess.verbose > 3)
 	  switch (probe_type)
@@ -5660,36 +5680,33 @@ sdt_query::convert_location ()
           case uprobe2_type:
           case uprobe3_type:
             // process("executable").statement(probe_arg)
-            derived_loc->components[i] =
-              new probe_point::component(TOK_STATEMENT,
-                                         new literal_number(pc, true));
+            derived_comps.push_back
+              (new probe_point::component(TOK_STATEMENT,
+                                          new literal_number(pc, true)));
             break;
 
 	  case kprobe1_type:
 	  case kprobe2_type:
 	    // kernel.function("*getegid*")
-	    derived_loc->components[i] =
-	      new probe_point::component(TOK_FUNCTION, new literal_string("*getegid*"));
-	    if (derived_loc->components[i - 1]->functor == TOK_LIBRARY)
-	      derived_loc->components.erase (derived_loc->components.begin() + i - 1);
+            derived_comps.push_back
+              (new probe_point::component(TOK_FUNCTION,
+                                          new literal_string("*getegid*")));
 	    break;
 
           default: // deprecated
             // process("executable").function("*").label("_stapprobe1_MARK_NAME")
-            derived_loc->components[i] =
-              new probe_point::component(TOK_FUNCTION, new literal_string("*"));
-            derived_loc->components.push_back
+            derived_comps.push_back
+              (new probe_point::component(TOK_FUNCTION,
+                                          new literal_string("*")));
+            derived_comps.push_back
               (new probe_point::component(TOK_LABEL,
                                           new literal_string("_stapprobe1_" + pp_mark)));
             break;
           }
       }
-    else if (derived_loc->components[i]->functor == TOK_PROCESS
-             && have_kprobe())
-      {
-        derived_loc->components[i] = new probe_point::component(TOK_KERNEL);
-      }
 
+  probe_point* derived_loc = new probe_point(*specific_loc);
+  derived_loc->components = derived_comps;
   return base_probe->create_alias(derived_loc, specific_loc);
 }
 
