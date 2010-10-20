@@ -7898,7 +7898,8 @@ static vector<string> tracepoint_extra_decls (systemtap_session& s)
 
   if (s.kernel_config["CONFIG_XFS_FS"] != string("")) {
     they_live.push_back ("#define XFS_BIG_BLKNOS 1");
-    they_live.push_back ("#include \"fs/xfs/xfs_types.h\""); // in kernel-source tree
+    if (s.kernel_source_tree != "")
+      they_live.push_back ("#include \"fs/xfs/xfs_types.h\""); // in kernel-source tree
     they_live.push_back ("struct xfs_mount;");
     they_live.push_back ("struct xfs_inode;");
     they_live.push_back ("struct xfs_buf;");
