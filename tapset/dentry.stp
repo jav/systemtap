@@ -63,21 +63,18 @@ function reverse_path_walk:string(dentry:long)
 
 
 /**
- *   sfunction d_path - get the full nameidata path
+ *   sfunction task_dentry_path - get the full dentry path
  *
  *   Returns the full dirent name (full path to the root), like
  *   the kernel d_path function.
- *   @nd: Pointer to nameidata.
+ *   @task: task_struct pointer.
+ *   @dentry: direntry pointer.
+ *   @vfsmnt: vfsmnt pointer.
  */
-function d_path:string(nd:long)
+function task_dentry_path:string(task:long,dentry:long,vfsmnt:long)
 {
-        root = & @cast(task_current(), "task_struct")->fs->root
-	dentry = (@defined(@cast(nd,"nameidata")->path->dentry)
-	    ? @cast(nd,"nameidata")->path->dentry
-	    : @cast(nd,"nameidata")->dentry)
-	vfsmnt = (@defined(@cast(nd,"nameidata")->path->mnt)
-	    ? @cast(nd,"nameidata")->path->mnt
-	    : @cast(nd,"nameidata")->mnt)
+        root = & @cast(task, "task_struct")->fs->root
+
         while (1) {
                 if (dentry == @cast(root, "path")->dentry &&
                     vfsmnt == @cast(root, "path")->mnt)
@@ -98,4 +95,25 @@ function d_path:string(nd:long)
         }
 
         return sprintf("/%s", name);
+}
+
+
+
+/**
+ *   sfunction d_path - get the full nameidata path
+ *
+ *   Returns the full dirent name (full path to the root), like
+ *   the kernel d_path function.
+ *   @nd: Pointer to nameidata.
+ */
+function d_path:string(nd:long)
+{
+	dentry = (@defined(@cast(nd,"nameidata")->path->dentry)
+	    ? @cast(nd,"nameidata")->path->dentry
+	    : @cast(nd,"nameidata")->dentry)
+	vfsmnt = (@defined(@cast(nd,"nameidata")->path->mnt)
+	    ? @cast(nd,"nameidata")->path->mnt
+	    : @cast(nd,"nameidata")->mnt)
+
+	return task_dentry_path(task_current(), dentry, vfsmnt)
 }
