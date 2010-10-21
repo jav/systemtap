@@ -697,7 +697,9 @@ struct probe
   const token* tok;
   std::vector<vardecl*> locals;
   std::vector<vardecl*> unused_locals;
+  static unsigned last_probeidx;
   probe ();
+  probe (const probe& p, probe_point *l);
   void print (std::ostream& o) const;
   virtual void printsig (std::ostream &o) const;
   virtual void collect_derivation_chain (std::vector<probe*> &probes_list);

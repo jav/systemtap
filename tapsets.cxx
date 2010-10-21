@@ -5768,6 +5768,14 @@ dwarf_builder::build(systemtap_session & sess,
                   && stat (globbed, &st) == 0
                   && S_ISREG (st.st_mode)) // see find_executable()
                 {
+                  // Need to call canonicalize here, in order to path-expand
+                  // patterns like process("stap*").  Otherwise it may go through
+                  // to the next round of expansion as ("stap"), leading to a $PATH
+                  // search that's not consistent with the glob search already done.
+
+                  char *cf = canonicalize_file_name (globbed);
+                  if (cf) globbed = cf;
+
                   if (sess.verbose > 1)
                     clog << "Expanded process(\"" << module_name << "\") to "
                          << "process(\"" << globbed << "\")" << endl;
@@ -5778,8 +5786,19 @@ dwarf_builder::build(systemtap_session & sess,
                   ppc->tok = location->components[0]->tok; // overwrite [0] slot, pattern matched above
                   pp->components[0] = ppc;
 
-                  probe* new_probe = base->create_alias (pp, pp);
-                  derive_probes (sess, new_probe, finished_results, location->optional);
+                  probe* new_probe = new probe (*base, pp);
+
+                  // We override "optional = true" here, as if the
+                  // wildcarded probe point was given a "?" suffix.
+
+                  // This is because wildcard probes will be expected
+                  // by users to apply only to some subset of the
+                  // matching binaries, in the sense of "any", rather
+                  // than "all", sort of similarly how
+                  // module("*").function("...") patterns work.
+
+                  derive_probes (sess, new_probe, finished_results,
+                                 true /* NB: not location->optional */ );
                 }
             }
 

@@ -108,11 +108,27 @@ probe_point::probe_point ():
 }
 
 
+unsigned probe::last_probeidx = 0;
+
 probe::probe ():
   body (0), tok (0)
 {
-  static unsigned last_probeidx = 0;
   this->name = string ("probe_") + lex_cast(last_probeidx ++);
+}
+
+
+// Copy constructor, but with overriding probe-point.  To be used when
+// mapping script-level probe points to another one, early during pass
+// 2.  There should be no symbol resolution done yet.
+probe::probe(const probe& p, probe_point* l)
+{
+  this->name = string ("probe_") + lex_cast(last_probeidx ++);
+  this->tok = p.tok;
+  this->locations.push_back(l);
+  this->body = p.body; // NB: not needed to be copied yet; a later derived_probe will
+  this->privileged = p.privileged;
+  assert (p.locals.size() == 0);
+  assert (p.unused_locals.size() == 0);
 }
 
 

@@ -74,7 +74,7 @@ printscript(systemtap_session& s, ostream& o)
           p->collect_derivation_chain (chain);
           probe* second = (chain.size()>1) ? chain[chain.size()-2] : chain[0];
 
-          #if 0  // dump everything about the derivation chain
+          if (s.verbose > 5) {
           p->printsig(cerr); cerr << endl;
           cerr << "chain[" << chain.size() << "]:" << endl;
           for (unsigned j=0; j<chain.size(); j++)
@@ -99,7 +99,7 @@ printscript(systemtap_session& s, ostream& o)
                     }
                 }
             }
-          #endif
+          }
 
           stringstream tmps;
           const probe_alias *a = second->get_alias();

@@ -1,0 +1,24 @@
+
+set test "prcwildcard function"
+spawn stap -L {process("../sta*").function("*")}
+set count 0
+expect {
+    -re {^process[^\r\n]+\r\n} { incr count; exp_continue }
+    timeout { }
+    eof { }
+}
+catch {close}; catch {wait}
+if {$count > 100} then { pass $test } else { fail $test }
+
+
+set test "prcwildcard mark"
+spawn stap -L {process("../sta*").mark("*")}
+set count 0
+expect {
+    -re {^process[^\r\n]+\r\n} { incr count; exp_continue }
+    timeout { }
+    eof { }
+}
+catch {close}; catch {wait}
+if {$count > 5} then { pass $test } else { fail $test }
+
