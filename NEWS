@@ -5,10 +5,9 @@
   tracepoints are those that are declared somewhere other than the usual
   include/linux/trace/ headers, such as xfs and kvm.
 
-- process("...").function/.statement probes support wildcards in the
-  process-name part, to refer to all executables that match the glob
-  pattern.  (Use the optional "?" probe point flag to match any
-  executables instead of all.)
+- process("...").function/.statement/.mark probes support wildcards in the
+  process-name part, to refer to any executables that match the glob
+  pattern and the rest of the probe point.
 
 - The -t option now displays information per probe-point rather than a summary
   for each probe.  It also now shows the derivation chain for each probe-point.
