@@ -614,6 +614,8 @@ Note that for all process probes,
 names refer to executables that are searched the same way shells do: relative
 to the working directory if they contain a "/" character, otherwise in 
 .BR $PATH .
+PATH may also refer to shared libraries, in which case all proceses that
+map it at runtime would be selected for probing.
 If the PATH string contains wildcards as in the MPATTERN case, then
 standard globbing is performed to find all matching paths.  In this
 case, the 
@@ -621,10 +623,8 @@ case, the
 environment variable is not used.
 
 .PP
-PATH may sometimes name a shared library
-in which case all processes that map that shared library may be
-probed.  However, if systemtap was invoked with the
-.IR -c " or " -x
+If systemtap was invoked with the
+.IR \-c " or " \-x
 options, then process probes are restricted to the process
 hierarchy associated with the target process.
 
