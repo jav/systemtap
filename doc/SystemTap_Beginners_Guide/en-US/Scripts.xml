@@ -990,9 +990,9 @@ probe kernel.function("*@net/socket.c").return
 					 <para>This sample output contains the following information:</para>
 
 					 <itemizedlist>
-						 <listitem><para>The time (in microseconds) since the initial <command>thread_ident()</command> call for the thread (included in the string from <command>thread_ident()</command>).</para></listitem>
+						 <listitem><para>The time (in microseconds) since the initial <command>thread_indent()</command> call for the thread (included in the string from <command>thread_indent()</command>).</para></listitem>
 
-						 <listitem><para>The process name (and its corresponding ID) that made the function call (included in the string from <command>thread_ident()</command>).</para></listitem>
+						 <listitem><para>The process name (and its corresponding ID) that made the function call (included in the string from <command>thread_indent()</command>).</para></listitem>
 
 						 <listitem><para>An arrow signifying whether the call was an entry (<computeroutput>&lt;-</computeroutput>) or an exit (<computeroutput>-></computeroutput>); the indentations help you match specific function call entries with their corresponding exits.</para></listitem>
 
