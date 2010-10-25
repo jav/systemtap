@@ -5272,6 +5272,7 @@ sdt_query::handle_probe_entry()
 	  results.push_back (p);
 	}
     }
+  sess.unwindsym_modules.insert (dw.module_name);
   record_semaphore(results, i);
 }
 
