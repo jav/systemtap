@@ -58,7 +58,7 @@ public:
   void add_file(const std::string& filename);
 
   void result(std::string& r);
-  std::string get_parms();
+  std::string get_parms() { return parm_stream.str(); }
 };
 
 
@@ -72,7 +72,7 @@ hash::start()
 void
 hash::add(const unsigned char *buffer, size_t size)
 {
-  parm_stream << "," << buffer;
+  parm_stream << buffer << endl;
   mdfour_update(&md4, buffer, size);
 }
 
@@ -80,7 +80,7 @@ hash::add(const unsigned char *buffer, size_t size)
 template <typename T> void
 hash::add(const T& x)
 {
-  parm_stream << "," << x;
+  parm_stream << x << endl;
   mdfour_update(&md4, (const unsigned char *)&x, sizeof(x));
 }
 
@@ -99,16 +99,6 @@ hash::add_file(const std::string& filename)
   add(st.st_mtime);
 }
 
-string
-hash::get_parms()
-{
- string parms_str = parm_stream.str();
-
- parm_stream.clear();
- if (!parms_str.empty())
-   parms_str.erase(parms_str.begin()); // skip leading ","
- return parms_str;
-}
 
 void
 hash::result(string& r)
@@ -136,8 +126,8 @@ void create_hash_log(const string &type_str, const string &parms, const string &
 
   log_file.open(hash_log_path.c_str());
   log_file << "[" << time_str.substr(0,time_str.length()-1); // erase terminated '\n'
-  log_file << "]" << type_str;
-  log_file << ": " << parms << endl;
+  log_file << "] " << type_str << ":" << endl;
+  log_file << parms << endl;
   log_file << "result:" << result << endl;
   log_file.close();
 }
