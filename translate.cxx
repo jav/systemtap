@@ -5391,7 +5391,7 @@ dump_unwindsyms (Dwfl_Module *m,
   c->undone_unwindsym_modules.erase (modname);
 
   // release various malloc'd tables
-  if (eh_frame_hdr) free (eh_frame_hdr);
+  // if (eh_frame_hdr) free (eh_frame_hdr); -- nope, this one comes from the elf image in memory
   if (debug_frame_hdr) free (debug_frame_hdr);
 
   return DWARF_CB_OK;
