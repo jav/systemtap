@@ -55,7 +55,7 @@ public:
   void add(const std::string& s) { add((const unsigned char *)s.c_str(),
 				       s.length()); }
 
-  void add_file(const std::string& filename);
+  void add_path(const std::string& path);
 
   void result(std::string& r);
   std::string get_parms() { return parm_stream.str(); }
@@ -86,15 +86,15 @@ hash::add(const T& x)
 
 
 void
-hash::add_file(const std::string& filename)
+hash::add_path(const std::string& path)
 {
   struct stat st;
   memset (&st, 0, sizeof(st));
 
-  if (stat(filename.c_str(), &st) != 0)
+  if (stat(path.c_str(), &st) != 0)
     st.st_size = st.st_mtime = -1;
 
-  add(filename);
+  add(path);
   add(st.st_size);
   add(st.st_mtime);
 }
@@ -143,16 +143,16 @@ get_base_hash (systemtap_session& s)
 
   // Hash kernel release and arch.
   h.add(s.kernel_release);
-  h.add(s.kernel_build_tree);
+  h.add_path(s.kernel_build_tree);
   h.add(s.architecture);
 
   // Hash a few kernel version/build-id files too
   // (useful for kernel developers reusing a single source tree)
-  h.add_file(s.kernel_build_tree + "/.config");
-  h.add_file(s.kernel_build_tree + "/.version");
-  h.add_file(s.kernel_build_tree + "/include/linux/compile.h");
-  h.add_file(s.kernel_build_tree + "/include/linux/version.h");
-  h.add_file(s.kernel_build_tree + "/include/linux/utsrelease.h");
+  h.add_path(s.kernel_build_tree + "/.config");
+  h.add_path(s.kernel_build_tree + "/.version");
+  h.add_path(s.kernel_build_tree + "/include/linux/compile.h");
+  h.add_path(s.kernel_build_tree + "/include/linux/version.h");
+  h.add_path(s.kernel_build_tree + "/include/linux/utsrelease.h");
 
   // If the kernel is a git working directory, then add the git HEAD
   // revision to our hash as well.
@@ -162,19 +162,20 @@ get_base_hash (systemtap_session& s)
   ///h.add(git_revision(s.kernel_build_tree));
 
   // Hash runtime path (that gets added in as "-R path").
-  h.add(s.runtime_path);
+  h.add_path(s.runtime_path);
 
   // Hash compiler path, size, and mtime.  We're just going to assume
   // we'll be using gcc. XXX: getting kbuild to spit out out would be
-  // better.
-  h.add_file(find_executable("gcc"));
+  // better, especially since this is fooled by ccache.
+  h.add_path(find_executable("gcc"));
 
   // Hash the systemtap size and mtime.  We could use VERSION/DATE,
   // but when developing systemtap that doesn't work well (since you
   // can compile systemtap multiple times in 1 day).  Since we don't
   // know exactly where we're getting run from, we'll use
   // /proc/self/exe.
-  h.add_file("/proc/self/exe");
+  // XXX well almost exactly -- valgrind throws this off
+  h.add_path("/proc/self/exe");
 
   return h;
 }
@@ -326,7 +327,7 @@ find_tracequery_hash (systemtap_session& s, const vector<string>& headers)
 
   // Add the tracepoint headers to the computed hash
   for (size_t i = 0; i < headers.size(); ++i)
-    h.add_file(headers[i]);
+    h.add_path(headers[i]);
 
   // Add any custom kbuild flags
   for (unsigned i = 0; i < s.kbuildflags.size(); i++)
