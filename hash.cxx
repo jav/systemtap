@@ -50,17 +50,11 @@ public:
   void start();
 
   void add(const unsigned char *buffer, size_t size);
-  void add(const int x) { add((const unsigned char *)&x, sizeof(x)); }
-  void add(const long x) { add((const unsigned char *)&x, sizeof(x)); }
-  void add(const long long x) { add((const unsigned char *)&x, sizeof(x)); }
-  void add(const unsigned int x) { add((const unsigned char *)&x, sizeof(x)); }
-  void add(const unsigned long x) { add((const unsigned char *)&x,
-					sizeof(x)); }
-  void add(const unsigned long long x) { add((const unsigned char *)&x,
-					     sizeof(x)); }
+  template<typename T> void add(const T& x);
   void add(const char *s) { add((const unsigned char *)s, strlen(s)); }
   void add(const std::string& s) { add((const unsigned char *)s.c_str(),
 				       s.length()); }
+
   void add_file(const std::string& filename);
 
   void result(std::string& r);
@@ -80,6 +74,14 @@ hash::add(const unsigned char *buffer, size_t size)
 {
   parm_stream << "," << buffer;
   mdfour_update(&md4, buffer, size);
+}
+
+
+template <typename T> void
+hash::add(const T& x)
+{
+  parm_stream << "," << x;
+  mdfour_update(&md4, (const unsigned char *)&x, sizeof(x));
 }
 
 
