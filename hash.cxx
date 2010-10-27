@@ -1,5 +1,5 @@
 // Copyright (C) Andrew Tridgell 2002 (original file)
-// Copyright (C) 2006-2008 Red Hat Inc. (systemtap changes)
+// Copyright (C) 2006-2010 Red Hat Inc. (systemtap changes)
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
 #include "util.h"
 
 #include <cstdlib>
+#include <cstring>
+#include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <cerrno>
@@ -29,9 +31,42 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "mdfour.h"
 }
 
 using namespace std;
+
+
+class hash
+{
+private:
+  struct mdfour md4;
+  std::ostringstream parm_stream;
+
+public:
+  hash() { start(); }
+  hash(const hash &base) { md4 = base.md4; parm_stream << base.parm_stream.str(); }
+
+  void start();
+
+  void add(const unsigned char *buffer, size_t size);
+  void add(const int x) { add((const unsigned char *)&x, sizeof(x)); }
+  void add(const long x) { add((const unsigned char *)&x, sizeof(x)); }
+  void add(const long long x) { add((const unsigned char *)&x, sizeof(x)); }
+  void add(const unsigned int x) { add((const unsigned char *)&x, sizeof(x)); }
+  void add(const unsigned long x) { add((const unsigned char *)&x,
+					sizeof(x)); }
+  void add(const unsigned long long x) { add((const unsigned char *)&x,
+					     sizeof(x)); }
+  void add(const char *s) { add((const unsigned char *)s, strlen(s)); }
+  void add(const std::string& s) { add((const unsigned char *)s.c_str(),
+				       s.length()); }
+  void add_file(const std::string& filename);
+
+  void result(std::string& r);
+  std::string get_parms();
+};
+
 
 void
 hash::start()
