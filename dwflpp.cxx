@@ -105,6 +105,7 @@ dwflpp::~dwflpp()
   delete_map(cu_die_parent_cache);
 
   dwfl_ptr.reset();
+  delete mod_info;
 }
 
 
@@ -2410,10 +2411,8 @@ dwflpp::express_as_string (string prelude,
                            string postlude,
                            struct location *head)
 {
-  size_t bufsz = 1024;
-  char *buf = static_cast<char*>(malloc(bufsz));
-  assert(buf);
-
+  size_t bufsz = 0;
+  char *buf = 0; // NB: it would leak to pre-allocate a buffer here
   FILE *memstream = open_memstream (&buf, &bufsz);
   assert(memstream);
 
@@ -2557,7 +2556,9 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
                                   prelude, postlude, ty);
 
   /* Write the translation to a string. */
-  return express_as_string(prelude, postlude, head);
+  string result = express_as_string(prelude, postlude, head);
+  obstack_free (&pool, 0);
+  return result;
 }
 
 Dwarf_Die*
@@ -2653,7 +2654,9 @@ dwflpp::literal_stmt_for_return (Dwarf_Die *scope_die,
                                   prelude, postlude, ty);
 
   /* Write the translation to a string. */
-  return express_as_string(prelude, postlude, head);
+  string result = express_as_string(prelude, postlude, head);
+  obstack_free (&pool, 0);
+  return result;
 }
 
 Dwarf_Die*
@@ -2737,7 +2740,9 @@ dwflpp::literal_stmt_for_pointer (Dwarf_Die *start_typedie,
                                   prelude, postlude, ty);
 
   /* Write the translation to a string. */
-  return express_as_string(prelude, postlude, head);
+  string result = express_as_string(prelude, postlude, head);
+  obstack_free (&pool, 0);
+  return result;
 }
 
 Dwarf_Die*

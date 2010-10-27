@@ -52,6 +52,7 @@ void
 hash::add_file(const std::string& filename)
 {
   struct stat st;
+  memset (&st, 0, sizeof(st));
 
   if (stat(filename.c_str(), &st) != 0)
     st.st_size = st.st_mtime = -1;
