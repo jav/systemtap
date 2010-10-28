@@ -111,44 +111,6 @@ function text_strn:string(input:string, len:long, quoted:long)
 	_stp_text_str(THIS->__retvalue, THIS->input, len, THIS->quoted, 0);
 %}
 
-/**
- * sfunction tokenize - Return the next non-empty token in a string.
- * 
- * General Syntax: tokenize:string (input:string, delim:string)
- *
- * @input: String to tokenize. If NULL, returns the next non-empty token
- * in the string passed in the previous call to tokenize().
- * @delim: Token delimiter. Set of characters that delimit the tokens.
- * 
- * Description: This function returns the next non-empty token in the 
- * given input string, where the tokens are delimited by characters in
- * the delim string.  If the input string is non-NULL, it returns the 
- * first token.  If the input string is NULL, it returns the next
- * token in the string passed in the previous call to tokenize.
- * If no delimiter is found, the entire remaining input string is 
- * returned. It returns NULL when no more tokens are available.
- */
-function tokenize:string(input:string, delim:string)
-%{
-	static char str[MAXSTRINGLEN];
-	static char *str_start;
-	static char *str_end;
-	char *token = NULL;
-	char *token_end = NULL;
-
-	if (THIS->input[0]) {
-		strncpy(str, THIS->input, MAXSTRINGLEN);
-		str_start = &str[0];
-		str_end = &str[0] + strlen(str);
-	}
-	do {
-		token = strsep(&str_start, THIS->delim);
-	} while (token && !token[0]);
-	if (token) {
-		token_end = (str_start ? str_start - 1 : str_end);
-		memcpy(THIS->__retvalue, token, token_end - token + 1);
-	}
-%}
 
 /**
  * sfunction - str_replace Replaces all instances of a substring with another.

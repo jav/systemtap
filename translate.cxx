@@ -930,6 +930,11 @@ c_unparser::emit_common_header ()
   o->newline() << "int actionremaining;";
   o->newline() << "int nesting;";
   o->newline() << "string_t error_buffer;";
+  o->newline() << "#ifdef STAP_NEED_CONTEXT_TOKENIZE";
+  o->newline() << "string_t tok_str;";
+  o->newline() << "char *tok_start;";
+  o->newline() << "char *tok_end;";
+  o->newline() << "#endif";
   o->newline() << "const char *last_error;";
   // NB: last_error is used as a health flag within a probe.
   // While it's 0, execution continues
@@ -5823,14 +5828,15 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
       s.op->newline() << "#include \"access_process_vm.h\" ";
 
-      s.up->emit_common_header (); // context etc.
-
-      s.op->newline() << "#include \"probe_lock.h\" ";
-
+      // Emit embeds ahead of time, in case they affect context layout
       for (unsigned i=0; i<s.embeds.size(); i++)
         {
           s.op->newline() << s.embeds[i]->code << "\n";
         }
+
+      s.up->emit_common_header (); // context etc.
+
+      s.op->newline() << "#include \"probe_lock.h\" ";
 
       if (s.globals.size()>0) {
         s.op->newline() << "static struct {";
