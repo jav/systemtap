@@ -8027,7 +8027,12 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       // don't provide any sort of context pointer.
       s.op->newline() << "#undef TRACE_INCLUDE_FILE";
       s.op->newline() << "#undef TRACE_INCLUDE_PATH";
-      s.op->newline() << "#include <" << p->header << ">";
+
+      // strip include/ substring, the same way as done in get_tracequery_module()
+      string header = p->header;
+      size_t root_pos = header.rfind("include/");
+      header = ((root_pos != string::npos) ? header.substr(root_pos + 8) : header);
+      s.op->newline() << "#include <" << header << ">";
 
       // Starting in 2.6.35, at the same time NOARGS was added, the callback
       // always has a void* as the first parameter. PR11599
@@ -8308,9 +8313,9 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
   for (size_t i = 0; i < headers.size(); ++i)
     {
       const string &header = headers[i];
-      size_t root_pos = header.rfind("/include/");
+      size_t root_pos = header.rfind("include/");
       short_decls.push_back(string("#include <") + 
-                            ((root_pos != string::npos) ? header.substr(root_pos + 9) : header) +
+                            ((root_pos != string::npos) ? header.substr(root_pos + 8) : header) +
                             string(">"));
     }
 
