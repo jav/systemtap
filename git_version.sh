@@ -222,7 +222,7 @@ if [ "x$git_repo_dir" != "x" ] && [ "x${abs_repo_dir}" = "x${abs_srcdir}/.git" ]
         git_dirty=yes
         # git-1.4 does not understand "git-diff-files --quiet"
         # git-1.4 does not understand "git-diff-index --cached --quiet HEAD"
-        if [ "x$(git-diff-files)" = "x" ] && [ "x$(git-diff-index --cached HEAD)" = "x" ]; then
+        if [ "x$(git status --porcelain)" = "x" ]; then
             git_dirty=no
         fi
     fi
