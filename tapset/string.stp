@@ -129,7 +129,7 @@ function text_strn:string(input:string, len:long, quoted:long)
  * returned. It returns NULL when no more tokens are available.
  */
 function tokenize:string(input:string, delim:string)
-%{ /* unprivileged */
+%{
 	static char str[MAXSTRINGLEN];
 	static char *str_start;
 	static char *str_end;
