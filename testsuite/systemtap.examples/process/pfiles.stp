@@ -620,6 +620,8 @@ function print_unix_socket(sock) {
 	peername = socket_unix_peername(sock)
 	printf("%s%s", strlen(sockname) > 0 ? sockname . "\n" : "",
 		strlen(peername) > 0 ? peername . "\n" : "")
+	printf("        peercred pid: %d\n",
+	    @cast(sock, "socket")->sk->sk_peercred->pid);
 }
 
 function print_ipv4_socket(sock) {
