@@ -279,7 +279,12 @@ static void insert_bkpt(struct uprobe_probept *ppt, struct task_struct *tsk)
 	}
 	memcpy(&ppt->opcode, ppt->insn, BP_INSN_SIZE);
 	if (ppt->opcode == BREAKPOINT_INSTRUCTION) {
-		bkpt_insertion_failed(ppt, "bkpt already exists at that addr");
+		/*
+		 * To avoid filling up the log file with complaints
+		 * about breakpoints already existing, don't log this
+		 * error.
+		 */
+		//bkpt_insertion_failed(ppt, "bkpt already exists at that addr");
 		result = -EEXIST;
 		goto out;
 	}
@@ -2363,14 +2368,27 @@ static u32 uprobe_report_exec(struct utrace_attached_engine *engine,
 	uproc = utask->uproc;
 	uprobe_get_process(uproc);
 
-	down_write(&uproc->rwsem);
-	uprobe_cleanup_process(uproc);
 	/*
-	 * If [un]register_uprobe() is in progress, cancel the quiesce.
-	 * Otherwise, utrace_report_exec() might call uprobe_report_exec()
-	 * while the [un]register_uprobe thread is freeing the uproc.
+	 * Only cleanup if we're the last thread.  If we aren't,
+	 * uprobe_report_exit() will handle cleanup.
+	 *
+	 * One instance of this can happen if vfork() was called,
+	 * creating 2 tasks that share the same memory space
+	 * (CLONE_VFORK|CLONE_VM).  In this case we don't want to
+	 * remove the probepoints from the child, since that would
+	 * also remove them from the parent.
 	 */
-	clear_utrace_quiesce(utask);
+	down_write(&uproc->rwsem);
+	if (uproc->nthreads == 1) {
+		uprobe_cleanup_process(uproc);
+		/*
+		 * If [un]register_uprobe() is in progress, cancel the
+		 * quiesce.  Otherwise, utrace_report_exec() might
+		 * call uprobe_report_exec() while the
+		 * [un]register_uprobe thread is freeing the uproc.
+		 */
+		clear_utrace_quiesce(utask);
+	}
 	up_write(&uproc->rwsem);
 
 	/* If any [un]register_uprobe is pending, it'll clean up. */
