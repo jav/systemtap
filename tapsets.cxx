@@ -6401,13 +6401,16 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
           // only the same fields as we're about to emit.
           s.op->line() << " .finder={";
           if (p->pid != 0)
-            s.op->line() << " .pid=" << p->pid;
+            s.op->line() << " .pid=" << p->pid << ",";
+
+          if (p->section == "") // .statement(addr).absolute
+            s.op->line() << " .callback=&stap_uprobe_process_found,";
           else if (p->section == ".absolute") // proxy for ET_EXEC -> exec()'d program
             {
               s.op->line() << " .procname=" << lex_cast_qstring(p->module) << ",";
               s.op->line() << " .callback=&stap_uprobe_process_found,";
             }
-	  if (p->section != ".absolute") // ET_DYN
+	  else if (p->section != ".absolute") // ET_DYN
             {
 	      if (p->has_library && p->sdt_semaphore_addr != 0)
 		s.op->line() << " .procname=\"" << p->path << "\", ";
@@ -6417,7 +6420,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
             }
 
           s.op->line() << " },";
-          s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
+          if (p->module != "")
+            s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
           s.op->line() << " },";
         }
       else
