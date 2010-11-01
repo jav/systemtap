@@ -1,0 +1,6 @@
+#! stap -p1
+
+probe begin { log(last_var_is_last_string); exit(); }
+
+// Parser used to barf when last token in a file was a string
+global last_var_is_last_string="HelloWorld"

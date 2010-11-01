@@ -1705,9 +1705,12 @@ parser::parse_literal ()
       // PR11208: check if the next token is also a string literal; auto-concatenate it
       // This is complicated to the extent that we need to skip intermediate whitespace.
       // XXX: but not comments
-      while (peek()->type == tok_string && !input.ate_comment)
-        ls->value.append(next()->content); // consume and append the token
-
+      const token *n = peek();
+      while (n != NULL && n->type == tok_string && !input.ate_comment)
+        {
+          ls->value.append(next()->content); // consume and append the token
+          n = peek();
+        }
       l = ls;
     }
   else
