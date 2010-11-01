@@ -299,6 +299,8 @@ process("PATH").statement("*@FILE.c:123")
 process("PATH").function("*").return
 .br
 process("PATH").function("myfun").label("foo")
+.br
+process(PID).statement(ADDRESS).absolute
 .ESAMPLE
 
 (See the USER-SPACE section below for more information on the process
