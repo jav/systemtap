@@ -13,6 +13,8 @@
 #include <string.h>
 #include <sched.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "dtrace_fork_parent_probes.h"
 
 #if !defined(USE_SEMAPHORES)
