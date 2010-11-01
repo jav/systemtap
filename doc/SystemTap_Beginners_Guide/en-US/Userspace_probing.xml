@@ -1,0 +1,290 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-
+open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<chapter id="userspace-probing">
+	<title>User-Space Probing</title>
+
+<para>
+SystemTap initially focused on kernel-space probing.  However,
+there are many instances where user-space probing can help diagnose
+a problem.  SystemTap 0.6 added support for user-space probing to allow
+probing user-space processes.
+SystemTap includes support for probing the entry into and return from a
+function in user-space processes, probing predefined markers in
+user-space code, and monitoring user-process events.
+</para>
+
+<para>
+The SystemTap user-space probing requires the utrace kernel
+extensions which provide an API for tracking various user-space various events.
+More details about the utrace infrastructure are available at 
+<ulink url="http://sourceware.org/systemtap/wiki/utrace" />.
+The following command will determine whether the currently running Linux kernel
+provides the needed utrace support:
+</para>
+
+<screen>grep CONFIG_UTRACE /boot/config-`uname -r`</screen>
+
+<para>
+If the Linux kernel support user-space probing, the following output will
+be printed:
+</para>
+
+<screen>CONFIG_UTRACE=y</screen>
+
+<!-- FIXME Need to mention building the utrace module if needed -->
+
+<section id="uevents">
+	<title>User-Space Events</title>
+
+<para>
+All user-space event probes begin with "process".
+The "process" events can be limited to a specific running process by specifying the process ID.
+The "process" events can also be limited to monitoring a particular executable
+by specifying the path to executable (PATH).
+SystemTap makes use of the <command>PATH</command> environment variable,
+so both the name used
+on the command-line to start the executable and the absolute path
+to the executable can be used.
+Several of "process" probe events limit their scope to a
+particular executable name (PATH) because
+SystemTap must use debug information to statically analyzed where to
+places the probes, but for many "process" probes event the process ID
+and executable name are optional. 
+Any "process" event in the list below that include process ID or
+the path to the executable must include those arguments.
+The process ID and path to the executable are optional for the "process" events
+that do not list them:
+</para>
+
+<variablelist>
+
+<varlistentry>
+<term>process("<replaceable>PATH</replaceable>").function("<replaceable>function</replaceable>")</term>
+<listitem>
+<para>
+The entry to the user-space function <replaceable>function</replaceable> for the executable <replaceable>PATH</replaceable>.
+This event is the user-space analogue of the
+<command>kernel.function("<replaceable>function</replaceable>")</command> event.
+It allows wildcards for the function <replaceable>function</replaceable>
+and <command>.return</command> suffix.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>process("<replaceable>PATH</replaceable>").statement("<replaceable>statement</replaceable>")</term>
+<listitem>
+<para>
+The earliest instruction in the code for <replaceable>statement</replaceable>. This is the user-space analogue of the
+<command>kernel.statement("<replaceable>statement</replaceable>)</command>.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>process("<replaceable>PATH</replaceable>").mark("<replaceable>marker</replaceable>")</term>
+<listitem>
+<para>The static probe point <replaceable>marker</replaceable> defined in
+<replaceable>PATH</replaceable>.
+Wild cards can be used for <replaceable>marker</replaceable> to specify
+mutiple marks for a single probe.
+The static probe points may also have numbered arguments ($1, $2, etc.)
+available to the probe.
+A number of user-space packages such as Java include these static
+probe points.
+Most packages that provide these static probe points also
+provide aliases for these raw user-space mark events.
+Below is one such alias for the x86_64 Java hotspot JVM:
+ </para>
+<screen>probe hotspot.gc_begin =
+  process("/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64/jre/lib/amd64/server/l
+ibjvm.so").mark("gc__begin")</screen>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>process.begin</term>
+<listitem>
+<para>User-space process is created.
+This can be limited to a a particular process ID or a full path to the
+executable.</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>process.thread.begin</term>
+<listitem>
+<para>User-space thread is created.
+This can be limited to a a particular process ID or a full path to the
+executable.</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>process.end</term>
+<listitem>
+<para>User-space process died.
+This can be limited to a a particular process ID or a full path to the
+executable.</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>process.thread.end</term>
+<listitem>
+<para>User-space thread is destroyed.
+This can be limited to a a particular process ID or a full path to the
+executable.</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>process.syscall</term>
+<listitem>
+<para>User-space process makes a system call.
+The system call number is available via $syscall context variable, and 
+the fist six arguments are available via $arg1 through $arg6.
+The ".return" suffix will place the probe at the return from the system call.
+For the "syscall.return" the return value is available through the
+$return context variable.
+This can be limited to a a particular process ID or a full path to the
+executable.</para>
+</listitem>
+</varlistentry>
+
+</variablelist>
+
+
+</section>
+
+<section id="ufunctions">
+	<title>Accessing User-Space Data</title>
+
+<para>
+The probe events that map to actual locations in the user-space code  
+(<command>process("<replaceable>PATH</replaceable>").function("<replaceable>function</replaceable>")</command>  and
+<command>process("<replaceable>PATH</replaceable>").statement("<replaceable>statement</replaceable>")</command>)
+allow the use of "target variables" to obtain the value of user-space variables
+available at the probe.
+You can use the -L option to list the target variable available at a
+probe point.
+If the debug information is installed for the ls command,
+you can run the following command to find out what target variables are available for the <command>main</command> function:
+</para>
+
+<screen>stap -L 'process("/bin/ls").function("main")'</screen>
+
+<para>
+This will yield something similar to the following:
+</para>
+
+<screen>process("/bin/ls").function("main@/usr/src/debug/coreutils-8.4/src/ls.c:1230") $argc:int $argv:char** $sig:int[] const $__PRETTY_FUNCTION__:char[] const</screen>
+
+<para>
+Each target variables is proceeded by a '$' and 
+the type of the target variable follows the ':'.
+In C code the <command>main</command> function has two standard arguments,
+<command>$argc</command> (the number of command line arguments) and
+<command>$argv</command> (an array of strings with the argument values)
+passed into the function.
+The <command>$sig</command> is a static variable within the function and
+function.
+<command>$__PRETTY_FUNCTION__</command> is a variable used by the assert
+function.
+</para>
+
+<para>
+SystemTap tracks the typing information of the target variable and can
+examine the fields of a structure with the "->" operator.
+The "->" operator can be chained to look at data structures contained
+within data structures and follow pointers to other data structures.
+The "->" operator will print the value in the field of the structure.
+For pointers to base types such as integers and strings
+there are a number of functions listed below to access user-space data.
+The first argument for each functions is the pointer to the data item.
+</para>
+
+<variablelist>
+
+<varlistentry>
+<term>user_char(<replaceable>address</replaceable>)</term>
+<listitem>
+<para>
+Obtain the character at <replaceable>address</replaceable> for the current
+user process.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>user_short(<replaceable>address</replaceable>)</term>
+<listitem>
+<para>
+Obtain the short at <replaceable>address</replaceable> for the current
+user process.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>user_int(<replaceable>address</replaceable>)</term>
+<listitem>
+<para>
+Obtain the int at <replaceable>address</replaceable> for the current
+user process.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>user_long(<replaceable>address</replaceable>)</term>
+<listitem>
+<para>
+Obtain the long at <replaceable>address</replaceable> for the current
+user process.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>user_string(<replaceable>address</replaceable>)</term>
+<listitem>
+<para>
+Obtain the string at <replaceable>address</replaceable> for the current
+user process.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>user_string_n(<replaceable>address</replaceable>, <replaceable>n</replaceable>)</term>
+<listitem>
+<para>
+Obtain the string at <replaceable>address</replaceable> for the current
+user process and limits the string to <replaceable>n</replaceable> bytes.
+</para>
+</listitem>
+</varlistentry>
+
+</variablelist>
+
+<!-- FIXME should mention the $$arg, $$parms, pretty printing -->
+
+</section>
+
+<!--
+<section id="ustack">
+	<title>User-Space Stack Backtraces</title>
+
+<para>
+
+FIXME description of how to use the stack backtracing
+</para>
+</section>
+
+-->
+
+</chapter>
