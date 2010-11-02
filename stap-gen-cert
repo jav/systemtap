@@ -17,7 +17,8 @@
 serverdb="$1"
 shift
 
-domains="$HOSTNAME"
+# We need to keep localhost in the domain list until stap-client goes away
+domains="$HOSTNAME,localhost"
 while test $# != 0
 do
     test -n "$domains" && domains="$domains,"
