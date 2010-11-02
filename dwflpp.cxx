@@ -105,7 +105,15 @@ dwflpp::~dwflpp()
   delete_map(cu_die_parent_cache);
 
   dwfl_ptr.reset();
-  delete mod_info;
+  // NB: don't "delete mod_info;", as that may be shared
+  // between dwflpp instances, and are stored in
+  // session.module_cache[] anyway.
+}
+
+
+module_cache::~module_cache ()
+{
+  delete_map(cache);
 }
 
 

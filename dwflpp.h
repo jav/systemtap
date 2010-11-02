@@ -121,6 +121,7 @@ module_cache
   bool dwarf_collected;
 
   module_cache() : paths_collected(false), dwarf_collected(false) {}
+  ~module_cache();
 };
 
 

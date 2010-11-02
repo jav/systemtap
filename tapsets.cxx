@@ -683,6 +683,9 @@ struct dwarf_query : public base_query
 };
 
 
+static void delete_session_module_cache (systemtap_session& s); // forward decl
+
+
 struct dwarf_builder: public derived_probe_builder
 {
   map <string,dwflpp*> kern_dw; /* NB: key string could be a wildcard */
@@ -708,30 +711,14 @@ struct dwarf_builder: public derived_probe_builder
   /* NB: not virtual, so can be called from dtor too: */
   void dwarf_build_no_more (bool verbose)
   {
-    for (map<string,dwflpp*>::iterator udi = kern_dw.begin();
-         udi != kern_dw.end();
-         udi ++)
-      {
-        if (verbose)
-          clog << "dwarf_builder releasing kernel dwflpp " << udi->first << endl;
-        delete udi->second;
-      }
-    kern_dw.erase (kern_dw.begin(), kern_dw.end());
-
-    for (map<string,dwflpp*>::iterator udi = user_dw.begin();
-         udi != user_dw.end();
-         udi ++)
-      {
-        if (verbose)
-          clog << "dwarf_builder releasing user dwflpp " << udi->first << endl;
-        delete udi->second;
-      }
-    user_dw.erase (user_dw.begin(), user_dw.end());
+    delete_map(kern_dw);
+    delete_map(user_dw);
   }
 
   void build_no_more (systemtap_session &s)
   {
     dwarf_build_no_more (s.verbose > 3);
+    delete_session_module_cache (s);
   }
 
   ~dwarf_builder()
@@ -1951,6 +1938,22 @@ query_module (Dwfl_Module *mod,
       q->sess.print_error (e);
       return DWARF_CB_ABORT;
     }
+}
+
+
+// This would more naturally fit into elaborate.cxx:semantic_pass_symbols,
+// but the needed declaration for module_cache is not available there.
+// Nor for that matter in session.cxx.  Only in this CU is that field ever
+// set (in query_module() above), so we clean it up here too.
+static void
+delete_session_module_cache (systemtap_session& s)
+{
+  if (s.module_cache) {
+    if (s.verbose > 3)
+      clog << "deleting module_cache" << endl;
+    delete s.module_cache;
+    s.module_cache = 0;
+  }
 }
 
 
@@ -8268,6 +8271,8 @@ public:
       clog << "tracepoint_builder releasing dwflpp" << endl;
     delete dw;
     dw = NULL;
+
+    delete_session_module_cache (s);
   }
 
   void build(systemtap_session& s,
