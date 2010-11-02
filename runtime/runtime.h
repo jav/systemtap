@@ -132,7 +132,6 @@ static struct
 #include "copy.c"
 #include "regs.c"
 #include "regs-ia64.c"
-#include "time.c"
 
 #include "task_finder.c"
 

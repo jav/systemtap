@@ -1085,6 +1085,10 @@ c_unparser::emit_common_header ()
   if (!session->stat_decls.empty())
     o->newline() << "#include \"stat.c\"\n";
 
+  o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
+  o->newline() << "#include \"time.c\"";  // Don't we all need more?
+  o->newline() << "#endif";
+
   o->newline();
 }
 
@@ -1327,6 +1331,7 @@ c_unparser::emit_module_init ()
     }
 
   // For any partially registered/unregistered kernel facilities.
+  o->newline() << "atomic_set (&session_state, STAP_SESSION_STOPPED);";
   o->newline() << "#ifdef STAPCONF_SYNCHRONIZE_SCHED";
   o->newline() << "synchronize_sched();";
   o->newline() << "#endif";
@@ -1409,6 +1414,7 @@ c_unparser::emit_module_exit ()
   o->newline(-2) << "} while (holdon);";
 
   // cargo cult epilogue
+  o->newline() << "atomic_set (&session_state, STAP_SESSION_STOPPED);";
   o->newline() << "#ifdef STAPCONF_SYNCHRONIZE_SCHED";
   o->newline() << "synchronize_sched();";
   o->newline() << "#endif";
