@@ -34,7 +34,24 @@ be printed:
 
 <screen>CONFIG_UTRACE=y</screen>
 
-<!-- FIXME Need to mention building the utrace module if needed -->
+<para>
+The SystemTap user-space probing also needs the uprobe kernel
+module. If the uprobes kernel module is not available, you will
+see an error message like the following:
+</para>
+
+<screen>SystemTap's version of uprobes is out of date.
+As root, or a member of the 'root' group, run
+"make -C /usr/share/systemtap/runtime/uprobes".
+Pass 4: compilation failed.  Try again with another '--vp 0001' option.</screen>
+
+<para>
+You will need to generate a uprobes.ko module for the kernel as directed.
+</para>
+
+<!-- FIXME How does uprobes work for cross compilation and
+ using a compile server? -->
+
 
 <section id="uevents">
 	<title>User-Space Events</title>
