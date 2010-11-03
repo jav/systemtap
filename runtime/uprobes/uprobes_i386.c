@@ -119,15 +119,84 @@
  * f2, f3 - repnz, repz prefixes
  */
 
+static void report_bad_opcode_prefix(uprobe_opcode_t op, uprobe_opcode_t prefix)
+{
+	printk(KERN_ERR "uprobes does not currently support probing "
+		"instructions whose first byte is 0x%2.2x "
+		"with a prefix 0x%2.2x\n", op, prefix);
+}
+
+/* Figure out how uprobe_post_ssout should perform ip fixup. */
+static int setup_uprobe_post_ssout(struct uprobe_probept *ppt,
+		uprobe_opcode_t *insn)
+{
+	/*
+	 * Some of these require special treatment, but we don't know what to
+	 * do with arbitrary prefixes, so we refuse to probe them.
+	 */
+	int prefix_ok = 0;
+	switch (*insn) {
+	case 0xc3:		/* ret */
+		if ((insn - ppt->insn == 1) && (*ppt->insn == 0xf3))
+			/*
+			 * "rep ret" is an AMD kludge that's used by GCC,
+			 * so we need to treat it like a normal ret.
+			 */
+			prefix_ok = 1;
+	case 0xcb:		/* more ret/lret */
+	case 0xc2:
+	case 0xca:
+		/* eip is correct */
+		ppt->arch_info.flags |= UPFIX_ABS_IP;
+		break;
+	case 0xe8:		/* call relative - Fix return addr */
+		ppt->arch_info.flags |= UPFIX_RETURN;
+		break;
+	case 0x9a:		/* call absolute - Fix return addr */
+		ppt->arch_info.flags |= UPFIX_RETURN | UPFIX_ABS_IP;
+		break;
+	case 0xff:
+		if ((insn[1] & 0x30) == 0x10) {
+			/* call absolute, indirect */
+			/* Fix return addr; eip is correct. */
+			ppt->arch_info.flags |= UPFIX_ABS_IP | UPFIX_RETURN;
+		} else if ((insn[1] & 0x31) == 0x20 ||	/* jmp near, absolute indirect */
+			   (insn[1] & 0x31) == 0x21) {	/* jmp far, absolute indirect */
+			/* eip is correct. */
+			ppt->arch_info.flags |= UPFIX_ABS_IP;
+		}
+		break;
+	case 0xea:		/* jmp absolute -- eip is correct */
+		ppt->arch_info.flags |= UPFIX_ABS_IP;
+		break;
+	default:
+		/* Assuming that normal ip-fixup is ok for other prefixed opcodes. */
+		prefix_ok = 1;
+		break;
+	}
+
+	if (!prefix_ok && insn != ppt->insn) {
+		report_bad_opcode_prefix(*insn, *ppt->insn);
+		return -EPERM;
+	}
+
+	return 0;
+}
+
 static
 int arch_validate_probed_insn(struct uprobe_probept *ppt,
 						struct task_struct *tsk)
 {
 	uprobe_opcode_t *insn = ppt->insn;
+	int ret;
+
+	ppt->arch_info.flags = 0x0;
 
 	if (insn[0] == 0x66)
 		/* Skip operand-size prefix */
 		insn++;
+	if ((ret = setup_uprobe_post_ssout(ppt, insn)) != 0)
+		return ret;
 	if (test_bit(insn[0], good_insns))
 		return 0;
 	if (insn[0] == 0x0f) {
@@ -212,52 +281,16 @@ static
 void uprobe_post_ssout(struct uprobe_task *utask, struct uprobe_probept *ppt,
 		struct pt_regs *regs)
 {
-	long next_eip = 0;
 	long copy_eip = utask->singlestep_addr;
 	long orig_eip = ppt->vaddr;
-	uprobe_opcode_t *insn = ppt->insn;
+	unsigned long flags = ppt->arch_info.flags;
 
 	up_read(&ppt->slot->rwsem);
 
-	if (insn[0] == 0x66)
-		/* Skip operand-size prefix */
-		insn++;
-
-	switch (insn[0]) {
-	case 0xc3:		/* ret/lret */
-	case 0xcb:
-	case 0xc2:
-	case 0xca:
-		next_eip = regs->eip;
-		/* eip is already adjusted, no more changes required*/
-		break;
-	case 0xe8:		/* call relative - Fix return addr */
+	if (flags & UPFIX_RETURN)
 		adjust_ret_addr(regs->esp, (orig_eip - copy_eip), utask);
-		break;
-	case 0xff:
-		if ((insn[1] & 0x30) == 0x10) {
-			/* call absolute, indirect */
-			/* Fix return addr; eip is correct. */
-			next_eip = regs->eip;
-			adjust_ret_addr(regs->esp, (orig_eip - copy_eip),
-				utask);
-		} else if ((insn[1] & 0x31) == 0x20 ||
-			   (insn[1] & 0x31) == 0x21) {
-			/* jmp near or jmp far  absolute indirect */
-			/* eip is correct. */
-			next_eip = regs->eip;
-		}
-		break;
-	case 0xea:		/* jmp absolute -- eip is correct */
-		next_eip = regs->eip;
-		break;
-	default:
-		break;
-	}
 
-	if (next_eip)
-		regs->eip = next_eip;
-	else
+	if (!(flags & UPFIX_ABS_IP))
 		regs->eip = orig_eip + (regs->eip - copy_eip);
 }
 

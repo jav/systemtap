@@ -68,6 +68,8 @@ typedef u8 uprobe_opcode_t;
 
 #define UPFIX_RIP_RAX 0x1	/* (%rip) insn rewritten to use (%rax) */
 #define UPFIX_RIP_RCX 0x2	/* (%rip) insn rewritten to use (%rcx) */
+#define UPFIX_ABS_IP  0x4	/* %ip after SS needs no fixup */
+#define UPFIX_RETURN  0x8	/* need to adjust return address on stack */
 
 #ifdef CONFIG_X86_64
 struct uprobe_probept_arch_info {
@@ -79,7 +81,10 @@ struct uprobe_task_arch_info {
 	unsigned long saved_scratch_register;
 };
 #else
-struct uprobe_probept_arch_info {};
+struct uprobe_probept_arch_info {
+	unsigned long flags;
+};
+
 struct uprobe_task_arch_info {};
 #endif
 

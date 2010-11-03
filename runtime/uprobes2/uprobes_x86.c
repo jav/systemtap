@@ -197,10 +197,74 @@ static void report_bad_2byte_opcode(uprobe_opcode_t op)
 		"instructions with the 2-byte opcode 0x0f 0x%2.2x\n", op);
 }
 
+static void report_bad_opcode_prefix(uprobe_opcode_t op, uprobe_opcode_t prefix)
+{
+	printk(KERN_ERR "uprobes does not currently support probing "
+		"instructions whose first byte is 0x%2.2x "
+		"with a prefix 0x%2.2x\n", op, prefix);
+}
+
+/* Figure out how uprobe_post_ssout should perform ip fixup. */
+static int setup_uprobe_post_ssout(struct uprobe_probept *ppt,
+		uprobe_opcode_t *insn)
+{
+	/*
+	 * Some of these require special treatment, but we don't know what to
+	 * do with arbitrary prefixes, so we refuse to probe them.
+	 */
+	int prefix_ok = 0;
+	switch (*insn) {
+	case 0xc3:		/* ret */
+		if ((insn - ppt->insn == 1) && (*ppt->insn == 0xf3))
+			/*
+			 * "rep ret" is an AMD kludge that's used by GCC,
+			 * so we need to treat it like a normal ret.
+			 */
+			prefix_ok = 1;
+	case 0xcb:		/* more ret/lret */
+	case 0xc2:
+	case 0xca:
+		/* rip is correct */
+		ppt->arch_info.flags |= UPFIX_ABS_IP;
+		break;
+	case 0xe8:		/* call relative - Fix return addr */
+		ppt->arch_info.flags |= UPFIX_RETURN;
+		break;
+	case 0x9a:		/* call absolute - Fix return addr */
+		ppt->arch_info.flags |= UPFIX_RETURN | UPFIX_ABS_IP;
+		break;
+	case 0xff:
+		if ((insn[1] & 0x30) == 0x10) {
+			/* call absolute, indirect */
+			/* Fix return addr; rip is correct. */
+			ppt->arch_info.flags |= UPFIX_ABS_IP | UPFIX_RETURN;
+		} else if ((insn[1] & 0x31) == 0x20 ||	/* jmp near, absolute indirect */
+			   (insn[1] & 0x31) == 0x21) {	/* jmp far, absolute indirect */
+			/* rip is correct. */
+			ppt->arch_info.flags |= UPFIX_ABS_IP;
+		}
+		break;
+	case 0xea:		/* jmp absolute -- rip is correct */
+		ppt->arch_info.flags |= UPFIX_ABS_IP;
+		break;
+	default:
+		/* Assuming that normal ip-fixup is ok for other prefixed opcodes. */
+		prefix_ok = 1;
+		break;
+	}
+
+	if (!prefix_ok && insn != ppt->insn) {
+		report_bad_opcode_prefix(*insn, *ppt->insn);
+		return -EPERM;
+	}
+
+	return 0;
+}
+
 static int validate_insn_32bits(struct uprobe_probept *ppt)
 {
 	uprobe_opcode_t *insn = ppt->insn;
-	int pfx;
+	int pfx, ret;
 
 	/* Skip good instruction prefixes; reject "bad" ones. */
 	while ((pfx = check_legacy_prefix(insn[0])) == 1)
@@ -209,6 +273,8 @@ static int validate_insn_32bits(struct uprobe_probept *ppt)
 		report_bad_1byte_opcode(32, insn[0]);
 		return -EPERM;
 	}
+	if ((ret = setup_uprobe_post_ssout(ppt, insn)) != 0)
+		return ret;
 	if (test_bit(insn[0], (unsigned long*)good_insns_32))
 		return 0;
 	if (insn[0] == 0x0f) {
@@ -223,7 +289,7 @@ static int validate_insn_32bits(struct uprobe_probept *ppt)
 static int validate_insn_64bits(struct uprobe_probept *ppt)
 {
 	uprobe_opcode_t *insn = ppt->insn;
-	int pfx;
+	int pfx, ret;
 
 	/* Skip good instruction prefixes; reject "bad" ones. */
 	while ((pfx = check_legacy_prefix(insn[0])) == 1)
@@ -235,6 +301,8 @@ static int validate_insn_64bits(struct uprobe_probept *ppt)
 	/* Skip REX prefix. */
 	if ((insn[0] & 0xf0) == 0x40)
 		insn++;
+	if ((ret = setup_uprobe_post_ssout(ppt, insn)) != 0)
+		return ret;
 	if (test_bit(insn[0], (unsigned long*)good_insns_64))
 		return 0;
 	if (insn[0] == 0x0f) {
@@ -256,8 +324,8 @@ int arch_validate_probed_insn(struct uprobe_probept *ppt,
 {
 	int ret;
 
-#ifdef CONFIG_X86_64
 	ppt->arch_info.flags = 0x0;
+#ifdef CONFIG_X86_64
 	ppt->arch_info.rip_target_address = 0x0;
 #endif
 
@@ -471,12 +539,12 @@ static int handle_riprel_insn(struct uprobe_probept *ppt)
 		 * is NOT the register operand, so we use %rcx (register
 		 * #1) for the scratch register.
 		 */
-		ppt->arch_info.flags = UPFIX_RIP_RCX;
+		ppt->arch_info.flags |= UPFIX_RIP_RCX;
 		/* Change modrm from 00 000 101 to 00 000 001. */
 		*insn = 0x1;
 	} else {
 		/* Use %rax (register #0) for the scratch register. */
-		ppt->arch_info.flags = UPFIX_RIP_RAX;
+		ppt->arch_info.flags |= UPFIX_RIP_RAX;
 		/* Change modrm from 00 xxx 101 to 00 xxx 000 */
 		*insn = (reg << 3);
 	}
@@ -525,10 +593,10 @@ void uprobe_pre_ssout(struct uprobe_task *utask, struct uprobe_probept *ppt,
 	regs->ip = (long)slot->insn;
 	utask->singlestep_addr = regs->ip;
 #ifdef CONFIG_X86_64
-	if (ppt->arch_info.flags == UPFIX_RIP_RAX) {
+	if (ppt->arch_info.flags & UPFIX_RIP_RAX) {
 		utask->arch_info.saved_scratch_register = regs->ax;
 		regs->ax = ppt->arch_info.rip_target_address;
-	} else if (ppt->arch_info.flags == UPFIX_RIP_RCX) {
+	} else if (ppt->arch_info.flags & UPFIX_RIP_RCX) {
 		utask->arch_info.saved_scratch_register = regs->cx;
 		regs->cx = ppt->arch_info.rip_target_address;
 	}
@@ -603,16 +671,13 @@ static
 void uprobe_post_ssout(struct uprobe_task *utask, struct uprobe_probept *ppt,
 		struct pt_regs *regs)
 {
-	unsigned long next_ip = 0;
 	unsigned long copy_ip = utask->singlestep_addr;
 	unsigned long orig_ip = ppt->vaddr;
 	long correction = (long) (orig_ip - copy_ip);
-	uprobe_opcode_t *insn = ppt->insn;
-#ifdef CONFIG_X86_64
 	unsigned long flags = ppt->arch_info.flags;
-#endif
 
 	up_read(&ppt->slot->rwsem);
+
 #ifdef CONFIG_X86_64
 	if (flags & (UPFIX_RIP_RAX | UPFIX_RIP_RCX)) {
 		if (flags & UPFIX_RIP_RAX)
@@ -628,53 +693,11 @@ void uprobe_post_ssout(struct uprobe_task *utask, struct uprobe_probept *ppt,
 		correction += 4;
 	}
 #endif
-	/*
-	 * TODO: Move all this instruction parsing to
-	 * arch_validate_probed_insn(), and store what we learn in
-	 * ppt->arch_info.flags.
-	 *
-	 * We don't bother skipping prefixes here because none of the
-	 * instructions that require special treatment (other than
-	 * rip-relative instructions, handled above) involve prefixes.
-	 */
 
-	switch (*insn) {
-	case 0xc3:		/* ret/lret */
-	case 0xcb:
-	case 0xc2:
-	case 0xca:
-		/* rip is correct */
-		next_ip = regs->ip;
-		break;
-	case 0xe8:		/* call relative - Fix return addr */
+	if (flags & UPFIX_RETURN)
 		adjust_ret_addr(regs->sp, correction, utask);
-		break;
-	case 0x9a:		/* call absolute - Fix return addr */
-		adjust_ret_addr(regs->sp, correction, utask);
-		next_ip = regs->ip;
-		break;
-	case 0xff:
-		if ((insn[1] & 0x30) == 0x10) {
-			/* call absolute, indirect */
-			/* Fix return addr; rip is correct. */
-			next_ip = regs->ip;
-			adjust_ret_addr(regs->sp, correction, utask);
-		} else if ((insn[1] & 0x31) == 0x20 ||	/* jmp near, absolute indirect */
-			   (insn[1] & 0x31) == 0x21) {	/* jmp far, absolute indirect */
-			/* rip is correct. */
-			next_ip = regs->ip;
-		}
-		break;
-	case 0xea:		/* jmp absolute -- rip is correct */
-		next_ip = regs->ip;
-		break;
-	default:
-		break;
-	}
 
-	if (next_ip)
-		regs->ip = next_ip;
-	else
+	if (!(flags & UPFIX_ABS_IP))
 		regs->ip += correction;
 }
 
