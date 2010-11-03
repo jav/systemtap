@@ -61,6 +61,15 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
   else
     make_cmd += " -s --no-print-directory";
 
+  // NB: there appears to be no parallelism opportunity in the
+  // module-building makefiles, so while the following works, it
+  // doesn't seem to accomplish anything measurable as of F13.
+#if 0
+  long smp = sysconf(_SC_NPROCESSORS_ONLN);
+  if (smp > 1)
+    make_cmd += " -j " + lex_cast(smp);
+#endif
+
   if (strverscmp (s.kernel_base_release.c_str(), "2.6.29") < 0)
     {
       // Older kernels, before linux commit #fd54f502841c1, include
