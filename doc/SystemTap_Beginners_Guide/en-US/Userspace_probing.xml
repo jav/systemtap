@@ -9,8 +9,7 @@ open.org/docbook/xml/4.5/docbookx.dtd" [
 <para>
 SystemTap initially focused on kernel-space probing.  However,
 there are many instances where user-space probing can help diagnose
-a problem.  SystemTap 0.6 added support for user-space probing to allow
-probing user-space processes.
+a problem.  SystemTap 0.6 added support to allow probing user-space processes.
 SystemTap includes support for probing the entry into and return from a
 function in user-space processes, probing predefined markers in
 user-space code, and monitoring user-process events.
@@ -18,26 +17,26 @@ user-space code, and monitoring user-process events.
 
 <para>
 The SystemTap user-space probing requires the utrace kernel
-extensions which provide an API for tracking various user-space various events.
+extensions which provide an API for tracking various user-space events.
 More details about the utrace infrastructure are available at 
 <ulink url="http://sourceware.org/systemtap/wiki/utrace" />.
-The following command will determine whether the currently running Linux kernel
+The following command determines whether the currently running Linux kernel
 provides the needed utrace support:
 </para>
 
 <screen>grep CONFIG_UTRACE /boot/config-`uname -r`</screen>
 
 <para>
-If the Linux kernel support user-space probing, the following output will
-be printed:
+If the Linux kernel support user-space probing, the following output is printed:
 </para>
 
 <screen>CONFIG_UTRACE=y</screen>
 
 <para>
-The SystemTap user-space probing also needs the uprobe kernel
+The SystemTap user-space probing also needs the uprobes kernel
 module. If the uprobes kernel module is not available, you will
-see an error message like the following:
+see an error message like the following when attempting to run a script that requires
+the uprobes kernel module:
 </para>
 
 <screen>SystemTap's version of uprobes is out of date.
@@ -46,7 +45,7 @@ As root, or a member of the 'root' group, run
 Pass 4: compilation failed.  Try again with another '--vp 0001' option.</screen>
 
 <para>
-You will need to generate a uprobes.ko module for the kernel as directed.
+If this occurs, you need to generate a uprobes.ko module for the kernel as directed.
 </para>
 
 <!-- FIXME How does uprobes work for cross compilation and
@@ -57,23 +56,22 @@ You will need to generate a uprobes.ko module for the kernel as directed.
 	<title>User-Space Events</title>
 
 <para>
-All user-space event probes begin with "process".
-The "process" events can be limited to a specific running process by specifying the process ID.
-The "process" events can also be limited to monitoring a particular executable
+All user-space event probes begin with <emphasis>process</emphasis>.
+The process events can be limited to a specific running process by specifying the process ID.
+The process events can also be limited to monitoring a particular executable
 by specifying the path to executable (PATH).
 SystemTap makes use of the <command>PATH</command> environment variable,
-so both the name used
-on the command-line to start the executable and the absolute path
+so both the name used on the command-line to start the executable and the absolute path
 to the executable can be used.
-Several of "process" probe events limit their scope to a
+Several of user-space probe events limit their scope to a
 particular executable name (PATH) because
 SystemTap must use debug information to statically analyzed where to
-places the probes, but for many "process" probes event the process ID
+places the probes, but for many user-space probes events the process ID
 and executable name are optional. 
-Any "process" event in the list below that include process ID or
+Any <command>process</command> event in the list below that include process ID or
 the path to the executable must include those arguments.
-The process ID and path to the executable are optional for the "process" events
-that do not list them:
+The process ID and path to the executable are optional for the
+<command>process</command> events that do not list them:
 </para>
 
 <variablelist>
@@ -106,19 +104,18 @@ The earliest instruction in the code for <replaceable>statement</replaceable>. T
 <listitem>
 <para>The static probe point <replaceable>marker</replaceable> defined in
 <replaceable>PATH</replaceable>.
-Wild cards can be used for <replaceable>marker</replaceable> to specify
-mutiple marks for a single probe.
+Wildcards can be used for <replaceable>marker</replaceable> to specify
+mutiple marks with a single probe.
 The static probe points may also have numbered arguments ($1, $2, etc.)
 available to the probe.
-A number of user-space packages such as Java include these static
+A variety of user-space packages such as Java include these static
 probe points.
-Most packages that provide these static probe points also
-provide aliases for these raw user-space mark events.
+Most packages that provide static probe points also
+provide aliases for the raw user-space mark events.
 Below is one such alias for the x86_64 Java hotspot JVM:
  </para>
 <screen>probe hotspot.gc_begin =
-  process("/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64/jre/lib/amd64/server/l
-ibjvm.so").mark("gc__begin")</screen>
+  process("/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64/jre/lib/amd64/server/libjvm.so").mark("gc__begin")</screen>
 </listitem>
 </varlistentry>
 
@@ -184,7 +181,7 @@ executable.</para>
 The probe events that map to actual locations in the user-space code  
 (<command>process("<replaceable>PATH</replaceable>").function("<replaceable>function</replaceable>")</command>  and
 <command>process("<replaceable>PATH</replaceable>").statement("<replaceable>statement</replaceable>")</command>)
-allow the use of "target variables" to obtain the value of user-space variables
+allow the use of <emphasis>target variables</emphasis> to obtain the value of user-space variables
 available at the probe.
 You can use the -L option to list the target variable available at a
 probe point.
