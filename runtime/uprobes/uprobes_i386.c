@@ -50,7 +50,7 @@
 		W(0xc0, 1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0)| /* c0 */
 		W(0xd0, 1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1), /* d0 */
 		W(0xe0, 1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0)| /* e0 */
-		W(0xf0, 0,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1)  /* f0 */
+		W(0xf0, 0,0,1,1,0,1,1,1,1,1,0,0,1,1,1,1)  /* f0 */
 		/*      -------------------------------         */
 		/*      0 1 2 3 4 5 6 7 8 9 a b c d e f         */
 	};
@@ -106,6 +106,8 @@
  * 8f - Group 1 - only reg = 0 is OK
  * c6-c7 - Group 11 - only reg = 0 is OK
  * d9-df - fpu insns with some illegal encodings
+ * f2, f3 - repnz, repz prefixes.  These are also the first byte for
+ * certain floating-point instructions, such as addsd.
  * fe - Group 4 - only reg = 0 or 1 is OK
  * ff - Group 5 - only reg = 0-6 is OK
  *
@@ -116,8 +118,44 @@
  * 67 - addr16 prefix
  * ce - into
  * f0 - lock prefix
- * f2, f3 - repnz, repz prefixes
  */
+
+/*
+ * Return 1 if this is a legacy instruction prefix we support, -1 if
+ * it's one we don't support, or 0 if it's not a prefix at all.
+ */
+static inline int check_legacy_prefix(u8 byte)
+{
+	switch (byte) {
+	case 0x26:
+	case 0x2e:
+	case 0x36:
+	case 0x3e:
+	case 0xf0:
+		return -1;
+	case 0x64:
+	case 0x65:
+	case 0x66:
+	case 0x67:
+	case 0xf2:
+	case 0xf3:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+static void report_bad_1byte_opcode(uprobe_opcode_t op)
+{
+	printk(KERN_ERR "uprobes does not currently support probing "
+		"instructions whose first byte is 0x%2.2x\n", op);
+}
+
+static void report_bad_2byte_opcode(uprobe_opcode_t op)
+{
+	printk(KERN_ERR "uprobes does not currently support probing "
+		"instructions with the 2-byte opcode 0x0f 0x%2.2x\n", op);
+}
 
 static void report_bad_opcode_prefix(uprobe_opcode_t op, uprobe_opcode_t prefix)
 {
@@ -188,13 +226,17 @@ int arch_validate_probed_insn(struct uprobe_probept *ppt,
 						struct task_struct *tsk)
 {
 	uprobe_opcode_t *insn = ppt->insn;
-	int ret;
+	int pfx, ret;
 
 	ppt->arch_info.flags = 0x0;
 
-	if (insn[0] == 0x66)
-		/* Skip operand-size prefix */
+	/* Skip good instruction prefixes; reject "bad" ones. */
+	while ((pfx = check_legacy_prefix(insn[0])) == 1)
 		insn++;
+	if (pfx < 0) {
+		report_bad_1byte_opcode(insn[0]);
+		return -EPERM;
+	}
 	if ((ret = setup_uprobe_post_ssout(ppt, insn)) != 0)
 		return ret;
 	if (test_bit(insn[0], good_insns))
@@ -202,12 +244,9 @@ int arch_validate_probed_insn(struct uprobe_probept *ppt,
 	if (insn[0] == 0x0f) {
 		if (test_bit(insn[1], good_2byte_insns))
 			return 0;
-		printk(KERN_ERR "uprobes does not currently support probing "
-			"instructions with the 2-byte opcode 0x0f 0x%2.2x\n",
-			insn[1]);
-	} else 
-		printk(KERN_ERR "uprobes does not currently support probing "
-			"instructions whose first byte is 0x%2.2x\n", insn[0]);
+		report_bad_2byte_opcode(insn[1]);
+	} else
+		report_bad_1byte_opcode(insn[0]);
 	return -EPERM;
 }
 
