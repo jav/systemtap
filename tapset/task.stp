@@ -162,13 +162,12 @@ function task_gid:long (task:long) %{ /* pure */
     THIS->__retvalue = kread(&(t->gid));
     CATCH_DEREF_FAULT();
 #else
+    /* If task_gid() isn't defined, make our own. */
+#if !defined(task_gid) && defined(task_cred_xxx)
+#define task_gid(task)		(task_cred_xxx((task), gid))
+#endif
     /* XXX: We can't easily kread this rcu-protected field. */
-    /* XXX: no task_gid() in 2.6.28 */
-    struct cred *cred;
-    rcu_read_lock();
-    cred = get_task_cred (t);
-    rcu_read_unlock();
-    THIS->__retvalue = cred->gid;
+    THIS->__retvalue = task_gid (t);
 #endif
 %}
 
@@ -188,13 +187,12 @@ function task_egid:long (task:long) %{ /* pure */
     THIS->__retvalue = kread(&(t->egid));
     CATCH_DEREF_FAULT();
 #else
+    /* If task_egid() isn't defined, make our own. */
+#if !defined(task_egid) && defined(task_cred_xxx)
+#define task_egid(task)		(task_cred_xxx((task), egid))
+#endif
     /* XXX: We can't easily kread this rcu-protected field. */
-    /* XXX: no task_egid() in 2.6.28 */
-    struct cred *cred;
-    rcu_read_lock();
-    cred = get_task_cred (t);
-    rcu_read_unlock();
-    THIS->__retvalue = cred->egid;
+    THIS->__retvalue = task_egid (t);
 #endif
 %}
 

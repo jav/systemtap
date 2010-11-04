@@ -440,9 +440,10 @@ probe sunrpc.clnt.call_sync = kernel.function("rpc_call_sync") !,
 	prot = prot_from_clnt($clnt)
 	port = port_from_clnt($clnt)
 	xid  = xid_from_clnt($clnt)
-	dead = (! @defined($clnt->cl_dead)
-		? (atomic_read(&$clnt->cl_kref->refcount) == 0)
-		: $clnt->cl_dead)
+	dead = (@defined($clnt->cl_dead) ? $clnt->cl_dead
+		: (@defined(&$clnt->cl_kref->refcount)
+		   ? (atomic_read(&$clnt->cl_kref->refcount) == 0)
+		   : (atomic_read(&$clnt->cl_count) == 0)))
 
 	proc = proc_from_msg($msg)
 	procname = (@defined($msg->rpc_proc->p_name)
@@ -489,9 +490,10 @@ probe sunrpc.clnt.call_async = kernel.function("rpc_call_async") !,
 	prot = prot_from_clnt($clnt)
 	port = port_from_clnt($clnt)
 	xid  = xid_from_clnt($clnt)
-	dead = (! @defined($clnt->cl_dead)
-		? (atomic_read(&$clnt->cl_kref->refcount) == 0)
-		: $clnt->cl_dead)
+	dead = (@defined($clnt->cl_dead) ? $clnt->cl_dead
+		: (@defined(&$clnt->cl_kref->refcount)
+		   ? (atomic_read(&$clnt->cl_kref->refcount) == 0)
+		   : (atomic_read(&$clnt->cl_count) == 0)))
 
 	proc = proc_from_msg($msg)
 	procname = (@defined($msg->rpc_proc->p_name)

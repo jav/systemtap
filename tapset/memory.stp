@@ -215,7 +215,8 @@ probe vm.brk = kernel.function("do_brk") {
  *  The process that tried to consume excessive memory, and thus
  *  triggered the OOM.
  */
-probe vm.oom_kill = kernel.function("__oom_kill_task")
+probe vm.oom_kill = kernel.function("oom_kill_process") !,
+		    kernel.function("__oom_kill_task")
 {
     name = "oom_kill"
     task = $p
