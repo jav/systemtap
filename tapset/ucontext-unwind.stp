@@ -48,7 +48,7 @@ function print_ubacktrace () %{
       if (uregs)
 	{
 	  _stp_stack_print(uregs, _STP_SYM_FULL, CONTEXT->pi, MAXTRACE,
-			   current, CONTEXT->ri, valid);
+			   current, &CONTEXT->uwcontext, CONTEXT->ri, valid);
 	  return;
 	}
     }
@@ -99,7 +99,7 @@ function sprint_ubacktrace:string () %{
 	{
 	  _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, _STP_SYM_SIMPLE,
 			     uregs, CONTEXT->pi, MAXTRACE,
-			     current, CONTEXT->ri, valid);
+			     current, &CONTEXT->uwcontext, CONTEXT->ri, valid);
 	  return;
 	}
     }
@@ -141,7 +141,7 @@ function print_ubacktrace_brief () %{
       if (uregs)
 	{
 	  _stp_stack_print(uregs, _STP_SYM_BRIEF, CONTEXT->pi, MAXTRACE,
-			   current, CONTEXT->ri, valid);
+			   current, &CONTEXT->uwcontext, CONTEXT->ri, valid);
 	  return;
 	}
     }
@@ -185,7 +185,7 @@ function ubacktrace:string () %{
 	{
 	  _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, _STP_SYM_NONE,
 			     uregs, CONTEXT->pi, MAXTRACE,
-			     current, CONTEXT->ri, valid);
+			     current, &CONTEXT->uwcontext, CONTEXT->ri, valid);
 	  return;
 	}
     }

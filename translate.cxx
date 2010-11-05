@@ -959,6 +959,9 @@ c_unparser::emit_common_header ()
   o->newline() << "#endif";
   o->newline() << "struct uretprobe_instance *ri;";
 
+  o->newline() << "#if defined(STP_NEED_UNWIND_DATA)";
+  o->newline() << "struct unwind_context uwcontext;";
+  o->newline() << "#endif";
 
   // PR10516: probe locals
   o->newline() << "union {";

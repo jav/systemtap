@@ -50,34 +50,34 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 #endif
 
 static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
-                              struct task_struct *tsk,
+			      struct task_struct *tsk,
+			      struct unwind_context *uwcontext,
 			      struct uretprobe_instance *ri, int uregs_valid)
 {
 #ifdef STP_USE_DWARF_UNWINDER
         int start_levels = levels;
-	// FIXME: large stack allocation
-	struct unwind_frame_info info;
+	struct unwind_frame_info *info = &uwcontext->info;
 	int sanitize = tsk && ! uregs_valid;
-	arch_unw_init_frame_info(&info, regs, sanitize);
+	arch_unw_init_frame_info(info, regs, sanitize);
 
 	while (levels) {
-		int ret = unwind(&info, tsk);
+		int ret = unwind(uwcontext, tsk);
 #ifdef STAPCONF_UPROBE_GET_PC
                 unsigned long maybe_pc = 0;
                 if (ri) {
-                        maybe_pc = uprobe_get_pc(ri, UNW_PC(&info),
-                                                 UNW_SP(&info));
+                        maybe_pc = uprobe_get_pc(ri, UNW_PC(info),
+                                                 UNW_SP(info));
                         if (!maybe_pc)
                                 printk("SYSTEMTAP ERROR: uprobe_get_return returned 0\n");
                         else
-                                UNW_PC(&info) = maybe_pc;
+                                UNW_PC(info) = maybe_pc;
                 }
 #endif
-		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(&info), UNW_SP(&info));
-		if (ret == 0 && _stp_valid_pc_addr(UNW_PC(&info), tsk)) {
-			_stp_print_addr(UNW_PC(&info), verbose, tsk);
+		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(info), UNW_SP(info));
+		if (ret == 0 && _stp_valid_pc_addr(UNW_PC(info), tsk)) {
+			_stp_print_addr(UNW_PC(info), verbose, tsk);
 			levels--;
-			if (UNW_PC(&info) != _stp_kretprobe_trampoline)
+			if (UNW_PC(info) != _stp_kretprobe_trampoline)
 			  continue;
 		}
 		/* If an error happened or we hit a kretprobe trampoline,
@@ -85,9 +85,9 @@ static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
 		 * address use fallback backtrace, unless user task backtrace.
 		 * FIXME: is there a way to unwind across kretprobe
 		 * trampolines? PR9999. */
-		if ((ret < 0 || UNW_PC(&info) == _stp_kretprobe_trampoline)
+		if ((ret < 0 || UNW_PC(info) == _stp_kretprobe_trampoline)
 		    && ! tsk)
-			_stp_stack_print_fallback(UNW_SP(&info), verbose, levels);
+			_stp_stack_print_fallback(UNW_SP(info), verbose, levels);
 		return;
 	}
 #else /* ! STP_USE_DWARF_UNWINDER */

@@ -232,10 +232,9 @@ compile_pass (systemtap_session& s)
 
   // o << "CFLAGS += -fno-unit-at-a-time" << endl;
 
-  // 512 bytes should be enough for anybody
-  // XXX but it's not enough for unwind_frame -- PR10821
-  // XXX temporarily bumping to 600 bytes
-  o << "EXTRA_CFLAGS += $(call cc-option,-Wframe-larger-than=600)" << endl;
+  // 256 bytes should be enough for anybody
+  // XXX this doesn't validate varargs, per gcc bug #41633
+  o << "EXTRA_CFLAGS += $(call cc-option,-Wframe-larger-than=256)" << endl;
 
   // Assumes linux 2.6 kbuild
   o << "EXTRA_CFLAGS += -Wno-unused" << (s.omit_werror ? "" : " -Werror") << endl;

@@ -106,8 +106,8 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
                                             /*const*/ struct pt_regs *regs,
 					    int sanitize)
 {
+	memset(info, 0, sizeof(*info));
 	if (sanitize) {
-		memset(&info->regs, 0, sizeof(info->regs));
 		info->regs.r11 = regs->r11;
 		info->regs.r10 = regs->r10;
 		info->regs.r9 = regs->r9;
@@ -138,7 +138,6 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
 	} else {
 		info->regs = *regs;
 	}
-	info->call_frame = 0;
 }
 
 static inline void arch_unw_init_blocked(struct unwind_frame_info *info)

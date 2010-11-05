@@ -127,8 +127,9 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
 
 static void _stp_stack_print(struct pt_regs *regs, int verbose,
 			     struct kretprobe_instance *pi, int levels,
-                             struct task_struct *tsk,
-                             struct uretprobe_instance *ri, int uregs_valid)
+			     struct task_struct *tsk,
+			     struct unwind_context *context,
+			     struct uretprobe_instance *ri, int uregs_valid)
 {
 	/* print the current address */
 	if (pi) {
@@ -155,7 +156,8 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose,
 	}
 
 	/* print rest of stack... */
-	__stp_stack_print(regs, verbose, levels, tsk, ri, uregs_valid);
+	__stp_stack_print(regs, verbose, levels, tsk,
+			  context, ri, uregs_valid);
 }
 
 /** Writes stack backtrace to a string
@@ -168,6 +170,7 @@ static void _stp_stack_sprint(char *str, int size, int flags,
 			      struct pt_regs *regs,
 			      struct kretprobe_instance *pi,
 			      int levels, struct task_struct *tsk,
+			      struct unwind_context *context,
 			      struct uretprobe_instance *ri, int uregs_valid)
 {
 	/* To get an hex string, we use a simple trick.
@@ -183,7 +186,8 @@ static void _stp_stack_sprint(char *str, int size, int flags,
 				flags, tsk);
 
 	_stp_print_addr((int64_t) REG_IP(regs), flags, tsk);
-	__stp_stack_print(regs, flags, levels, tsk, ri, uregs_valid);
+	__stp_stack_print(regs, flags, levels, tsk,
+			  context, ri, uregs_valid);
 
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;
