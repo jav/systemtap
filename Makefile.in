@@ -77,7 +77,8 @@ DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(srcdir)/stappaths.7.in $(srcdir)/stap-server.8.in \
 	$(top_srcdir)/initscript/systemtap.in \
 	$(top_srcdir)/initscript/stap-server.in $(srcdir)/run-stap.in \
-	$(srcdir)/dtrace.in depcomp $(am__noinst_HEADERS_DIST) $(oldinclude_HEADERS)
+	$(srcdir)/dtrace.in depcomp $(am__noinst_HEADERS_DIST) \
+	$(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -86,8 +87,9 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = includes/sys/sdt-config.h stappaths.7 stap-server.8 \
-	 initscript/systemtap initscript/stap-server run-stap dtrace
+CONFIG_CLEAN_FILES = includes/sys/sdt-config.h stappaths.7 \
+	stap-server.8 initscript/systemtap initscript/stap-server \
+	run-stap dtrace
 CONFIG_CLEAN_VPATH_FILES =
 @BUILD_TRANSLATOR_TRUE@am__EXEEXT_1 = stap$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
@@ -409,7 +411,8 @@ oldinclude_HEADERS = includes/sys/sdt.h includes/sys/sdt-config.h
 BUILT_SOURCES = git_version.stamp $(am__append_23)
 CLEANFILES = git_version.h $(am__append_24) $(pkglibexec_PROGRAMS)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
-PHONIES = $(am__append_20) $(am__append_26) runcheck dist-gzip
+PHONIES = $(am__append_20) $(am__append_26) runcheck dist-gzip uprobes \
+	install-uprobes
 @BUILD_TRANSLATOR_TRUE@stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ \
 @BUILD_TRANSLATOR_TRUE@	-D_FILE_OFFSET_BITS=64 $(am__append_16)
 @BUILD_TRANSLATOR_TRUE@stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ \
@@ -871,7 +874,6 @@ stap_client_connect-nsscommon.obj: nsscommon.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='nsscommon.c' object='stap_client_connect-nsscommon.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_client_connect_CFLAGS) $(CFLAGS) -c -o stap_client_connect-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
-
 
 stap_server_connect-stap-server-connect.o: stap-server-connect.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_server_connect_CFLAGS) $(CFLAGS) -MT stap_server_connect-stap-server-connect.o -MD -MP -MF $(DEPDIR)/stap_server_connect-stap-server-connect.Tpo -c -o stap_server_connect-stap-server-connect.o `test -f 'stap-server-connect.c' || echo '$(srcdir)/'`stap-server-connect.c
@@ -1965,6 +1967,10 @@ testsuite/stap: run-stap
 	(echo '#!/bin/sh'; echo "exec `pwd`/run-stap" '$${1+"$$@"}') > $@.new
 	chmod 555 $@.new
 	mv -f $@.new $@
+uprobes:
+	$(MAKE) -C $(srcdir)/runtime/uprobes clean default
+install-uprobes:
+	$(MAKE) -C $(DESTDIR)$(pkgdatadir)/runtime/uprobes clean default
 
 .PHONY: $(PHONIES)
 

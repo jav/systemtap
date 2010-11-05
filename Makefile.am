@@ -334,6 +334,12 @@ RPMBUILDFLAGS=
 
 PHONIES += dist-gzip
 
+PHONIES += uprobes install-uprobes
+uprobes:
+	$(MAKE) -C $(srcdir)/runtime/uprobes clean default
+install-uprobes:
+	$(MAKE) -C $(DESTDIR)$(pkgdatadir)/runtime/uprobes clean default
+
 .PHONY: $(PHONIES)
 
 dist-gzip:
