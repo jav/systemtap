@@ -397,8 +397,8 @@ function socket_optname:string (sock:long) %{ /* pure */
         int optnum;
         const char *optname;
         int show_val;
-    } *p;
-    struct optname_item optname_entries[] = {
+    } const *p;
+    static const struct optname_item optname_entries[] = {
         { SOL_SOCKET, SO_DEBUG,     "SO_DEBUG",     0 },
         { SOL_SOCKET, SO_REUSEADDR, "SO_REUSEADDR", 0 },
         { SOL_SOCKET, SO_DONTROUTE, "SO_DONTROUTE", 0 },
