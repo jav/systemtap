@@ -20,11 +20,13 @@
  *
  */
 
+#define _XOPEN_SOURCE
+#define _BSD_SOURCE
 #include "staprun.h"
 #include <string.h>
 #include <sys/uio.h>
 #include <glob.h>
-
+#include <time.h>
 
 
 /* used in dbug, _err and _perr */
@@ -33,6 +35,7 @@ char *__name__ = "staprun";
 extern long delete_module(const char *, unsigned int);
 
 int send_relocations ();
+int send_tzinfo ();
 
 
 static int run_as(int exec_p, uid_t uid, gid_t gid, const char *path, char *const argv[])
@@ -232,6 +235,8 @@ int init_staprun(void)
 		}
 		if (send_relocations() < 0)
 			return -1;
+                if (send_tzinfo() < 0)
+                        return -1;
 	}
 	return 0;
 }
@@ -482,6 +487,35 @@ int send_relocations ()
   if (rc < 0) goto out;
   rc = send_relocation_kernel ();
   send_relocation_modules ();
+  close_ctl_channel ();
+ out:
+  return rc;
+}
+
+
+int send_tzinfo ()
+{
+  int rc;
+  struct _stp_msg_tzinfo tzi;
+  time_t now_t;
+  struct tm* now;
+
+  rc = init_ctl_channel (modname, 0);
+  if (rc < 0) goto out;
+
+  /* NB: This is not good enough; it sends DST-unaware numbers. */
+#if 0
+  tzset ();
+  tzi.tz_gmtoff = timezone;
+  strncpy (tzi.tz_name, tzname[0], STP_TZ_NAME_LEN);
+#endif
+
+  time (& now_t);
+  now = localtime (& now_t);
+  tzi.tz_gmtoff = - now->tm_gmtoff;
+  strncpy (tzi.tz_name, now->tm_zone, STP_TZ_NAME_LEN);
+
+  send_request(STP_TZINFO, & tzi, sizeof(tzi));
   close_ctl_channel ();
  out:
   return rc;

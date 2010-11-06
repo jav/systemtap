@@ -1,5 +1,7 @@
 * What's new in version 1.4
 
+- The new tz_ctime() tapset function prints times in the local time zone.
+
 - More kernel tracepoints are accessible to the kernel.trace("...") mechanism,
   if kernel source trees or debuginfo are available.  These formerly "hidden"
   tracepoints are those that are declared somewhere other than the usual
