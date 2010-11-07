@@ -732,7 +732,7 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 			s64 s64;
 		} u;
 		const u8 op = *expr++;
-		dbug_unwind(3, " expr op 0x%x (%i left)\n", op, end - expr);
+		dbug_unwind(3, " expr op 0x%x (%ld left)\n", op, (long)(end - expr));
 		switch (op) {
 		case DW_OP_nop:
 			break;
