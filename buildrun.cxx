@@ -437,6 +437,7 @@ run_pass (systemtap_session& s)
     + " "
     + (s.verbose>1 ? "-v " : "")
     + (s.verbose>2 ? "-v " : "")
+    + (s.suppress_warnings ? "-w " : "")
     + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
 
   if (s.cmd != "")

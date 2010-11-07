@@ -550,6 +550,8 @@ int stp_main_loop(void)
       break;
 #endif
     case STP_OOB_DATA:
+      if ((strncmp(recvbuf.payload.data, "WARNING:", 7) == 0) && suppress_warnings)
+         break;
       eprintf("%.*s", (int) nb, recvbuf.payload.data);
       if (strncmp(recvbuf.payload.data, "ERROR:", 5) == 0){
         error_detected = 1;

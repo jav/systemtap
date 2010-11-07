@@ -178,6 +178,7 @@ extern int kernel_ptr_size;
 
 /* flags */
 extern int verbose;
+extern int suppress_warnings;
 extern unsigned int buffer_size;
 extern char *modname;
 extern char *modpath;
