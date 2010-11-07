@@ -45,7 +45,7 @@ function tz_name() {
  * local time zone.  The string length may vary.  The time zone information is
  * passed by staprun at script startup only.
  */
-function tz_ctime(s) {
-   return (ctime(s - tz_gmtoff()) . " " . tz_name())
+function tz_ctime(epochsecs) {
+   return (ctime(epochsecs - tz_gmtoff()) . " " . tz_name())
 }
 
