@@ -392,6 +392,10 @@ static int _stp_snprint_addr(char *str, size_t len, unsigned long address,
   if (flags & (_STP_SYM_SYMBOL | _STP_SYM_MODULE))
     name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
 
+  if (modname && (flags & _STP_SYM_MODULE_BASENAME)) {
+     modname = strrchr (modname, '/') ?: modname;
+  }
+
   if (name && (flags & _STP_SYM_SYMBOL)) {
     if ((flags & _STP_SYM_MODULE) && modname && *modname) {
       if (flags & _STP_SYM_OFFSET) {

@@ -1,5 +1,10 @@
 * What's new in version 1.4
 
+- The print_ubacktrace and usym* functions attempt to print the full
+  path of the user-space binaries' paths, instead of just the basename.
+  The maximum saved path length is set by -DTASK_FINDER_VMA_ENTRY_PATHLEN,
+  default 64.
+
 - The new tz_ctime() tapset function prints times in the local time zone.
 
 - More kernel tracepoints are accessible to the kernel.trace("...") mechanism,

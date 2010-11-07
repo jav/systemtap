@@ -33,6 +33,8 @@
 #define _STP_SYM_POST_SPACE 128
 /* Adds a newline character, doesn't combine with _STP_SYM_POST_SPACE. */
 #define _STP_SYM_NEWLINE    256
+/* Adds only module " [`basename name`]" if found, use with _STP_SYM_MODULE. */
+#define _STP_SYM_MODULE_BASENAME 512
 
 /* Used for backtraces in hex string form. */
 #define _STP_SYM_NONE	(_STP_SYM_HEXSTR | _STP_SYM_POST_SPACE)
@@ -44,7 +46,7 @@
 			 | _STP_SYM_SIZE | _STP_SYM_PRE_SPACE \
 			 | _STP_SYM_NEWLINE)
 /* Simple symbol format, as used in backtraces for strings. */
-#define _STP_SYM_SIMPLE (_STP_SYM_SYMBOL | _STP_SYM_MODULE \
+#define _STP_SYM_SIMPLE (_STP_SYM_SYMBOL | _STP_SYM_MODULE | _STP_SYM_MODULE_BASENAME \
 			 | _STP_SYM_OFFSET | _STP_SYM_NEWLINE)
 /* All symbol information (as used by [u]symdata). */
 #define _STP_SYM_DATA   (_STP_SYM_SYMBOL | _STP_SYM_MODULE \
