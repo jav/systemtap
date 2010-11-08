@@ -998,11 +998,11 @@ static int unwind_frame(struct unwind_context *context,
 				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
 			endLoc = startLoc + read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
 			if (pc > endLoc) {
-				_stp_warn("pc (%lx) > endLoc(%lx)\n", pc, endLoc);
+                                dbug_unwind(1, "pc (%lx) > endLoc(%lx)\n", pc, endLoc);
 				goto done;
 			}
 		} else {
-			_stp_warn("fde found in header, but cie is bad!\n");
+			dbug_unwind(1, "fde found in header, but cie is bad!\n");
 			fde = NULL;
 		}
 	}
@@ -1271,6 +1271,7 @@ static int unwind(struct unwind_context *context,
 	struct unwind_frame_info *frame = &context->info;
 	unsigned long pc = UNW_PC(frame) - frame->call_frame;
 	int res;
+        const char *module_name = 0;
 
 	dbug_unwind(1, "pc=%lx, %lx", pc, UNW_PC(frame));
 
@@ -1279,14 +1280,33 @@ static int unwind(struct unwind_context *context,
 
 	if (tsk)
 	  {
-	    m = _stp_umod_lookup (pc, tsk, NULL, NULL, NULL);
+	    m = _stp_umod_lookup (pc, tsk, & module_name, NULL, NULL);
 	    if (m)
 	      s = &m->sections[0];
 	  }
 	else
-	  m = _stp_kmod_sec_lookup (pc, &s);
+          {
+            preempt_disable(); /* probably redundant */
+            m = _stp_kmod_sec_lookup (pc, &s);
+            if (!m) {
+#ifdef STAPCONF_MODULE_TEXT_ADDRESS
+                struct module *ko = __module_text_address (pc);
+                if (ko) { module_name = ko->name; }
+                else { 
+                  /* Possible heuristic: we could assume we're talking
+                     about the kernel.  If __kernel_text_address()
+                     were SYMBOL_EXPORT'd, we could call that and be
+                     more sure. */
+                } 
+#endif
+            }
+            preempt_enable_no_resched();
+          }
 
 	if (unlikely(m == NULL)) {
+                if (module_name)
+                        _stp_warn ("Missing unwind data for module, rerun with 'stap -d %s'\n",
+                                   module_name); 
 		// Don't _stp_warn about this, will use fallback unwinder.
 		dbug_unwind(1, "No module found for pc=%lx", pc);
 		return -EINVAL;
@@ -1300,6 +1320,12 @@ static int unwind(struct unwind_context *context,
 	  res = unwind_frame (context, tsk, m, s, m->eh_frame,
 			      m->eh_frame_len, 1);
 	}
+
+        /* This situation occurs where some unwind data was found, but
+           it was lacking somehow.  */
+        if (res != 0) {
+                dbug_unwind (2, "unwinding failed: %d\n", res);
+        }
 
 	return res;
 }

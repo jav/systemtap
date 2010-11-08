@@ -193,6 +193,7 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-utrace-regset.c", "STAPCONF_UTRACE_REGSET", NULL);
   output_autoconf(s, o, "autoconf-uprobe-get-pc.c", "STAPCONF_UPROBE_GET_PC", NULL);
   output_exportconf(s, o, "cpu_khz", "STAPCONF_CPU_KHZ");
+  output_exportconf(s, o, "__module_text_address", "STAPCONF_MODULE_TEXT_ADDRESS");
 
   output_autoconf(s, o, "autoconf-probe-kernel.c", "STAPCONF_PROBE_KERNEL", NULL);
   output_autoconf(s, o, "autoconf-save-stack-trace.c",
