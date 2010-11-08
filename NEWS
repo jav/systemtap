@@ -8,7 +8,8 @@
 - The print_ubacktrace and usym* functions attempt to print the full
   path of the user-space binaries' paths, instead of just the basename.
   The maximum saved path length is set by -DTASK_FINDER_VMA_ENTRY_PATHLEN,
-  default 64.
+  default 64.  Warning messages are produced if unwinding fails due to
+  a missing 'stap -d MODULE' option, providing preloaded unwind data.
 
 - The new tz_ctime() tapset function prints times in the local time zone.
 
