@@ -334,13 +334,17 @@ void send_a_relocation (const char* module, const char* reloc, unsigned long lon
 {
   struct _stp_msg_relocation msg;
 
-  if (strlen(module) >= STP_MODULE_NAME_LEN)
-    { _perr ("module name too long: %s", module); return; }
-  strcpy (msg.module, module);
-
-  if (strlen(reloc) >= STP_SYMBOL_NAME_LEN)
-    { _perr ("reloc name too long: %s", reloc); return; }
-  strcpy (msg.reloc, reloc);
+  if (strlen(module) >= STP_MODULE_NAME_LEN-1) {
+          dbug (1, "module name too long: %s", module);
+          return; 
+  }
+  strncpy (msg.module, module, STP_MODULE_NAME_LEN);
+  
+  if (strlen(reloc) >= STP_SYMBOL_NAME_LEN-1) {
+          dbug (1, "reloc name too long: %s", module);
+          return; 
+  }
+  strncpy (msg.reloc, reloc, STP_MODULE_NAME_LEN);
 
   msg.address = address;
 
