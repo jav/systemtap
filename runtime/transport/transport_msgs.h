@@ -9,8 +9,8 @@
  * later version.
  */
 
-#define STP_MODULE_NAME_LEN 64
-#define STP_SYMBOL_NAME_LEN 64
+#define STP_MODULE_NAME_LEN 128
+#define STP_SYMBOL_NAME_LEN 128
 #define STP_TZ_NAME_LEN 64
 
 struct _stp_trace {
