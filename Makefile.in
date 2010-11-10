@@ -448,7 +448,7 @@ LDADD =
 EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
 EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
 TEST_COV_DIR = coverage
-SUBDIRS = doc grapher runtime/staprun
+SUBDIRS = . runtime/staprun grapher doc
 DIST_SUBDIRS = testsuite $(SUBDIRS)
 EXTRA_DIST = man/tapset*.3stap
 
