@@ -2591,7 +2591,7 @@ static u32 uprobe_report_exec(
 {
 	struct uprobe_process *uproc;
 	struct uprobe_task *utask;
-	int uproc_freed;
+	u32 ret = UTRACE_RESUME;
 
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = utask->uproc;
@@ -2605,7 +2605,8 @@ static u32 uprobe_report_exec(
 	 * creating 2 tasks that share the same memory space
 	 * (CLONE_VFORK|CLONE_VM).  In this case we don't want to
 	 * remove the probepoints from the child, since that would
-	 * also remove them from the parent.
+	 * also remove them from the parent.  Instead, just detach
+	 * as if this were a simple thread exit.
 	 */
 	down_write(&uproc->rwsem);
 	if (uproc->nthreads == 1) {
@@ -2619,12 +2620,18 @@ static u32 uprobe_report_exec(
 		 * [un]register_uprobe thread is freeing the uproc.
 		 */
 		clear_utrace_quiesce(utask, false);
+	} else {
+		uprobe_free_task(utask, 1);
+		uproc->nthreads--;
+		ret = UTRACE_DETACH;
 	}
 	up_write(&uproc->rwsem);
 
 	/* If any [un]register_uprobe is pending, it'll clean up. */
-	uproc_freed = uprobe_put_process(uproc, true);
-	return (uproc_freed ? UTRACE_DETACH : UTRACE_RESUME);
+	if (uprobe_put_process(uproc, true))
+		ret = UTRACE_DETACH;
+
+	return ret;
 }
 
 static const struct utrace_engine_ops uprobe_utrace_ops =
