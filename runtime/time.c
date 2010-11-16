@@ -151,6 +151,10 @@ __stp_init_time(void *info)
     init_timer(&time->timer);
     time->timer.expires = jiffies + 1;
     time->timer.function = __stp_time_timer_callback;
+
+#ifndef STAPCONF_ADD_TIMER_ON
+    add_timer(&time->timer);
+#endif
 }
 
 #ifdef CONFIG_CPU_FREQ
@@ -237,10 +241,13 @@ _stp_init_time(void)
 #else
     ret = on_each_cpu(__stp_init_time, NULL, 1);
 #endif
+
+#ifdef STAPCONF_ADD_TIMER_ON
     for_each_online_cpu(cpu) {
         stp_time_t *time = per_cpu_ptr(stp_time, cpu);
         add_timer_on(&time->timer, cpu);
     }
+#endif
 
 #ifdef CONFIG_CPU_FREQ
     if (!ret && !__stp_constant_freq()) {
