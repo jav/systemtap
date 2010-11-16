@@ -172,7 +172,6 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-hrtimer-getset-expires.c", "STAPCONF_HRTIMER_GETSET_EXPIRES", NULL);
   output_autoconf(s, o, "autoconf-inode-private.c", "STAPCONF_INODE_PRIVATE", NULL);
   output_autoconf(s, o, "autoconf-constant-tsc.c", "STAPCONF_CONSTANT_TSC", NULL);
-  output_autoconf(s, o, "autoconf-tsc-khz.c", "STAPCONF_TSC_KHZ", NULL);
   output_autoconf(s, o, "autoconf-ktime-get-real.c", "STAPCONF_KTIME_GET_REAL", NULL);
   output_autoconf(s, o, "autoconf-x86-uniregs.c", "STAPCONF_X86_UNIREGS", NULL);
   output_autoconf(s, o, "autoconf-nameidata.c", "STAPCONF_NAMEIDATA_CLEANUP", NULL);
@@ -192,6 +191,7 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-regset.c", "STAPCONF_REGSET", NULL);
   output_autoconf(s, o, "autoconf-utrace-regset.c", "STAPCONF_UTRACE_REGSET", NULL);
   output_autoconf(s, o, "autoconf-uprobe-get-pc.c", "STAPCONF_UPROBE_GET_PC", NULL);
+  output_exportconf(s, o, "tsc_khz", "STAPCONF_TSC_KHZ");
   output_exportconf(s, o, "cpu_khz", "STAPCONF_CPU_KHZ");
   output_exportconf(s, o, "__module_text_address", "STAPCONF_MODULE_TEXT_ADDRESS");
   output_exportconf(s, o, "add_timer_on", "STAPCONF_ADD_TIMER_ON");
