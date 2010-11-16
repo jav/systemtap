@@ -5544,6 +5544,18 @@ add_unwindsym_vdso (systemtap_session &s)
     }
 }
 
+static void
+prepare_symbol_data (systemtap_session& s)
+{
+  // step 0: run ldd on any user modules if requested
+  if (s.unwindsym_ldd)
+    add_unwindsym_ldd (s);
+  // step 0.5: add vdso(s) when vma tracker was requested
+  if (vma_tracker_enabled (s))
+    add_unwindsym_vdso (s);
+  // NB: do this before the ctx.unwindsym_modules copy is taken
+}
+
 void
 emit_symbol_data (systemtap_session& s)
 {
@@ -5552,14 +5564,6 @@ emit_symbol_data (systemtap_session& s)
   s.op->newline() << "#include " << lex_cast_qstring (symfile);
 
   ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
-
-  // step 0: run ldd on any user modules if requested
-  if (s.unwindsym_ldd)
-    add_unwindsym_ldd (s);
-  // step 0.5: add vdso(s) when vma tracker was requested
-  if (vma_tracker_enabled (s))
-    add_unwindsym_vdso (s);
-  // NB: do this before the ctx.unwindsym_modules copy is taken
 
   unwindsym_dump_context ctx = { s, kallsyms_out, 0, ~0, s.unwindsym_modules };
 
@@ -5702,6 +5706,12 @@ struct recursion_info: public traversing_visitor
 };
 
 
+int
+prepare_translate_pass (systemtap_session& s)
+{
+  prepare_symbol_data (s);
+  return 0;
+}
 
 
 int

@@ -665,6 +665,9 @@ passes_0_4 (systemtap_session &s)
 
   if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) return rc;
 
+  rc = prepare_translate_pass (s);
+  if (rc || pending_interrupts) return rc;
+
   // Generate hash.  There isn't any point in generating the hash
   // if last_pass is 2, since we'll quit before using it.
   if (s.use_script_cache)
