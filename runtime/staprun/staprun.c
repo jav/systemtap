@@ -119,19 +119,7 @@ static int enable_uprobes(void)
 	if (run_as(0, uid, gid, argv[0], argv) == 0)
 		return 0;
 
-	/*
-	 * TODO: If user can't setresuid to root here, staprun will exit.
-	 * Is there a situation where that would fail but the subsequent
-	 * attempt to insert_module() would succeed?
-	 */
-	dbug(2, "Inserting uprobes module from /lib/modules, if any.\n");
-	i = 0;
-	argv[i++] = "/sbin/modprobe";
-	argv[i++] = "-q";
-	argv[i++] = "uprobes";
-	argv[i] = NULL;
-	if (run_as(0, 0, 0, argv[0], argv) == 0)
-		return 0;
+        /* NB: don't use /sbin/modprobe, without more env. sanitation. */
 
 	/* This module may be signed, so use insert_module to load it.  */
 	snprintf (runtimeko, sizeof(runtimeko), "%s/uprobes/uprobes.ko",
@@ -190,9 +178,16 @@ static int remove_module(const char *name, int verb)
 		return 0;
 	}
 
-        /* We could call init_ctl_channel / close_ctl_channel here, as a heuristic
-           to determine whether the module is being used by some other stapio process.
-           However, delete_module() does basically the same thing. */
+        /* We call init_ctl_channel/close_ctl_channel to check whether
+           the module is a systemtap-built one (having the right files),
+           and that it's already unattached (because otherwise it'd EBUSY
+           the opens. */
+        ret = init_ctl_channel (name, 0);
+        if (ret < 0) {
+                err("Error, '%s' is not a zombie systemtap module.\n", name);
+                return ret;
+        }
+        close_ctl_channel ();
 
 	dbug(2, "removing module %s\n", name);
 	STAP_PROBE1(staprun, remove__module, name);
@@ -227,7 +222,7 @@ int init_staprun(void)
                      without first removing the kernel module.  This would block
                      a subsequent rerun attempt.  So here we gingerly try to
                      unload it first. */
-		  int ret = delete_module (modname, O_NONBLOCK);
+                  int ret = remove_module (modname, 0);
 		  err("Retrying, after attempted removal of module %s (rc %d)\n", modname, ret);
 		  /* Then we try an insert a second time.  */
 		  if (insert_stap_module() < 0)
