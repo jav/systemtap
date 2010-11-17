@@ -9,6 +9,8 @@
 #ifndef SESSION_H
 #define SESSION_H
 
+#include "config.h"
+
 #include <list>
 #include <string>
 #include <vector>
