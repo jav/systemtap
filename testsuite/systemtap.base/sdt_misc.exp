@@ -498,7 +498,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if { $ok == 47 } {
+if { $ok == 49 } {
     pass "$test wildcard $pbtype_mssg"
 } else {
     fail "$test wildcard ($ok) $pbtype_mssg"

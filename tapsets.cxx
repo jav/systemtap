@@ -4926,10 +4926,18 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
                   functioncall *fc = new functioncall;
 		  switch (precision)
 		    {
-		    case 4: case -4:
-		      fc->function = "user_int"; break;
-		    case 8: case -8:
-		      fc->function = "user_long"; break;
+		    case 1: case -1:
+		      fc->function = "user_int8"; break;
+		    case 2:
+		      fc->function = "user_uint16"; break;
+		    case -2:
+		      fc->function = "user_int16"; break;
+		    case 4:
+		      fc->function = "user_uint32"; break;
+		    case -4:
+		      fc->function = "user_int32"; break;
+                    case 8: case -8:
+		      fc->function = "user_int64"; break;
 		    default: fc->function = "user_long";
 		    }
                   fc->tok = e->tok;

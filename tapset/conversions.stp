@@ -7,6 +7,17 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+%{
+#define STP_GET_USER(t)							\
+	assert_is_myproc();						\
+	if (!access_ok(VERIFY_READ, (t *) (intptr_t) THIS->addr, sizeof(t))) \
+		goto fault;						\
+	if (__stp_get_user(THIS->__retvalue, (t *) (intptr_t) THIS->addr)) { \
+fault:									\
+		THIS->__retvalue = 0;					\
+	}
+%}
+
 /**
  * sfunction kernel_string - Retrieves string from kernel memory.
  *
@@ -359,14 +370,37 @@ function user_string_n_quoted:string (addr:long, n:long) %{ /* pure */ /* unpriv
  * Returns zero when user space data is not accessible.
  */
 function user_short:long (addr:long) %{ /* pure */ /* unprivileged */
-        assert_is_myproc();
-	if (!access_ok(VERIFY_READ, (short *) (intptr_t) THIS->addr, sizeof(short)))
-		goto fault;
-	if (__stp_get_user(THIS->__retvalue, (short *) (intptr_t) THIS->addr)) {
-fault:
-		THIS->__retvalue = 0;
-	}
+        STP_GET_USER(short);	 
 %}
+
+/**
+ * sfunction user_int16 - Retrieves a short value stored in user space.
+ * 
+ * General Syntax: user_int16:long(addr:long)
+ *
+ * @addr: The user space address to retrieve the short from.
+ *
+ * Description: Returns the short value from a given user space address.
+ * Returns zero when user space data is not accessible.
+ */
+function user_int16:long (addr:long) %{ /* pure */ /* unprivileged */
+	 STP_GET_USER(short)  
+%}
+
+/**
+ * sfunction user_uint16 - Retrieves an unsigned short value stored in user space.
+ * 
+ * General Syntax: user_uint16:long(addr:long)
+ *
+ * @addr: The user space address to retrieve the unsigned short from.
+ *
+ * Description: Returns the short value from a given user space address.
+ * Returns zero when user space data is not accessible.
+ */
+function user_uint16:long (addr:long) %{ /* pure */ /* unprivileged */
+	 STP_GET_USER(unsigned short)
+%}
+
 
 /**
  * sfunction user_short_warn - Retrieves a short value stored in user space.
@@ -403,13 +437,21 @@ fault:
  * Returns zero when user space data is not accessible.
  */
 function user_int:long (addr:long) %{ /* pure */ /* unprivileged */
-        assert_is_myproc();
-	if (!access_ok(VERIFY_READ, (int *) (intptr_t) THIS->addr, sizeof(int)))
-		goto fault;
-	if (__stp_get_user(THIS->__retvalue, (int *) (intptr_t) THIS->addr)) {
-fault:
-		THIS->__retvalue = 0;
-	}
+	STP_GET_USER(int);
+%}
+
+/**
+ * sfunction user_int32 - Retrieves an int value stored in user space.
+ * 
+ * General Syntax: user_int32:long(addr:long)
+ *
+ * @addr: The user space address to retrieve the int from.
+ *
+ * Description: Returns the int value from a given user space address.
+ * Returns zero when user space data is not accessible.
+ */
+function user_int32:long (addr:long) %{ /* pure */ /* unprivileged */
+	 STP_GET_USER(int);
 %}
 
 /**
@@ -434,6 +476,20 @@ fault:
 		_stp_warn(CONTEXT->error_buffer);
 		THIS->__retvalue = 0;
 	}
+%}
+
+/**
+ * sfunction user_uint32 - Retrieves an unsigned int value stored in user space.
+ * 
+ * General Syntax: user_uint32:long(addr:long)
+ *
+ * @addr: The user space address to retrieve the unsigned int from.
+ *
+ * Description: Returns the int value from a given user space address.
+ * Returns zero when user space data is not accessible.
+ */
+function user_uint32:long (addr:long) %{ /* pure */ /* unprivileged */
+	 STP_GET_USER(unsigned int)
 %}
 
 /**
@@ -476,6 +532,24 @@ function user_long:long (addr:long) %{ /* pure */ /* unprivileged */
 fault:
 			THIS->__retvalue = 0;
 	}
+%}
+
+/**
+ * sfunction user_int64 - Retrieves a 64 bit int value stored in user space.
+ * 
+ * General Syntax: user_int64:long(addr:long)
+ * 
+ * @addr: The user space address to retrieve the 64 bit int from.
+ *
+ * Description: Returns the 64 bit int value from a given user space address.
+ * Returns zero when user space data is not accessible.
+ */
+function user_int64:long (addr:long) %{ /* pure */ /* unprivileged */
+#if __SIZEOF_LONG__ == 8
+	 STP_GET_USER(long)
+#else
+	 STP_GET_USER(long long)
+#endif
 %}
 
 /**
@@ -536,13 +610,11 @@ fault:
  * Returns zero when user space data is not accessible.
  */
 function user_char:long (addr:long) %{ /* pure */ /* unprivileged */
-        assert_is_myproc();
-	if (!access_ok(VERIFY_READ, (char *) (intptr_t) THIS->addr, sizeof(char)))
-		goto fault;
-	if (__stp_get_user(THIS->__retvalue, (char *) (intptr_t) THIS->addr)) {
-fault:
-		THIS->__retvalue = 0;
-	}
+	 STP_GET_USER(char)
+%}
+
+function user_int8:long (addr:long) %{ /* pure */ /* unprivileged */
+	 STP_GET_USER(char)
 %}
 
 /**
