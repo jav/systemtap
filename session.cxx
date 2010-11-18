@@ -148,9 +148,7 @@ systemtap_session::systemtap_session ():
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
   client_options = false;
-#if HAVE_NSS
   NSPR_Initialized = false;
-#endif
 
   /*  adding in the XDG_DATA_DIRS variable path,
    *  this searches in conjunction with SYSTEMTAP_TAPSET

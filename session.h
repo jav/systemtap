@@ -150,9 +150,7 @@ struct systemtap_session
   // to be cleared in the systemtap_session ctor (session.cxx).
 
   // Client/server
-#if HAVE_NSS
   bool NSPR_Initialized;
-#endif
   void NSPR_init ();
   bool client_options;
   std::string client_options_disallowed;
