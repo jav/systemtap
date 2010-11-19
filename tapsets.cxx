@@ -4829,7 +4829,31 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       rc = regexp_match (asmarg, "^[i\\$][-]?[0-9][0-9]*$", matches);
       if (! rc)
         {
-	  literal_number* ln = new literal_number(lex_cast<int>(matches[0].substr(1))); // assume decimal
+	  string sn = matches[0].substr(1);
+	  int64_t n;
+	  try
+	    {
+	      // We have to pay attention to the size & sign, as gcc sometimes
+	      // propagates constants that don't quite match, like a negative
+	      // value to fill an unsigned type.
+	      switch (precision)
+		{
+		case -1: n = lex_cast<  int8_t>(sn); break;
+		case  1: n = lex_cast< uint8_t>(sn); break;
+		case -2: n = lex_cast< int16_t>(sn); break;
+		case  2: n = lex_cast<uint16_t>(sn); break;
+		case -4: n = lex_cast< int32_t>(sn); break;
+		case  4: n = lex_cast<uint32_t>(sn); break;
+		default:
+		case -8: n = lex_cast< int64_t>(sn); break;
+		case  8: n = lex_cast<uint64_t>(sn); break;
+		}
+	    }
+	  catch (std::runtime_error&)
+	    {
+	      goto not_matched;
+	    }
+	  literal_number* ln = new literal_number(n);
 	  ln->tok = e->tok;
           argexpr = ln;
           goto matched;
