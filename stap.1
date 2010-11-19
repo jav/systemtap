@@ -1249,15 +1249,22 @@ the root user;
 .IP \(bu 4
 a member of the
 .I stapdev
-group; or
+and
+.I stapusr
+groups; or
 .IP \(bu 4
 a member of the
 .I stapusr
 group.
 .PP
+The root user or a user who is a member of both the
+.I stapdev
+and
+.I stapusr
+groups can build and run any systemtap script.
 Members of the
 .I stapusr
-group can only use modules under the following conditions:
+group can only use pre-built modules under the following conditions:
 .IP \(bu 4
 The module is located in
 the /lib/modules/VERSION/systemtap directory.  This directory
