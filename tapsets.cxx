@@ -4865,13 +4865,15 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           if (dwarf_regs.find (regname) != dwarf_regs.end()) // known register
             {
               embedded_expr *get_arg1 = new embedded_expr;
+              string type = (precision < 0 ? "(int" : "(uint")
+                  + lex_cast(abs(precision) * 8) + "_t)";
               get_arg1->tok = e->tok;
               get_arg1->code = string("/* unprivileged */ /* pure */")
+                + string(" (int64_t)") + type
                 + (is_user_module (process_name)
                    ? string("u_fetch_register(")
                    : string("k_fetch_register("))
                 + lex_cast(dwarf_regs[regname]) + string(")");
-              // XXX: may we ever need to cast that to a narrower type?
               argexpr = get_arg1;
               goto matched;
             }
