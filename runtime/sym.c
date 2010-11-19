@@ -235,7 +235,7 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 	return NULL;
 }
 
-static int _stp_build_id_check (struct _stp_module *m, unsigned long notes_addr, bool user_module)
+static int _stp_build_id_check (struct _stp_module *m, unsigned long notes_addr, int user_module)
 {
   int j;
   for (j=0; j<m->build_id_len; j++) {
@@ -324,7 +324,7 @@ static int _stp_module_check(void)
                                        notes_addr, base_addr);
                             continue;
                     }
-		    _stp_build_id_check (m, notes_addr, false);
+		    _stp_build_id_check (m, notes_addr, 0);
 		} /* end checking */
 	} /* end loop */
 	return 0;
@@ -358,7 +358,7 @@ static int _stp_usermodule_check(struct task_struct *tsk, const char *path_name,
 		     notes_addr, addr);
 	  continue;
 	}
-	_stp_build_id_check (m, notes_addr, true);
+	_stp_build_id_check (m, notes_addr, 1);
       }
     }
 
