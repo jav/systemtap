@@ -1,26 +1,10 @@
-
-
 set test uprobes
 
-# Compile a little C program to use as the user-space probing victim
-set path "jennie.c"
-set fp [open $path "w"]
-puts $fp "int main (int argc, char *argv[])"
-puts $fp "{"
-puts $fp "if (argc > 1) main (argc - 1, argv);"
-puts $fp "return 0;"
-puts $fp "}"
-close $fp
-
-# too easy
-if [file exists $path] then { pass "$test prep" } else { fail "$test prep" }
-
-catch {exec gcc -g -o jennie jennie.c} err
+catch {exec gcc -g -o jennie $srcdir/$subdir/jennie.c} err
 if {$err == "" && [file exists jennie]} then { pass "$test compile" } else { fail "$test compile" }
 
 if {! [uprobes_p]} {
     untested "$test -p4"; untested "$test -p5"
-    catch {exec rm -f jennie.c jennie}
     return
 }
 
@@ -29,7 +13,6 @@ if {$rc == 0} then { pass "$test -p4" } else { fail "$test -p4" }
 
 if {! [installtest_p]} {
     untested "$test -p5";
-    catch {exec rm -f jennie.c jennie}
     return
 }
 
@@ -45,4 +28,4 @@ expect {
 if {$ok == 10} then { pass "$test -p5" } else { fail "$test -p5 ($ok)" }
 catch {wait; close}
 
-catch {exec rm -f jennie.c jennie}
+catch {exec rm -f jennie}
