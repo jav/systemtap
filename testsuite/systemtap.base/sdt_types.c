@@ -100,8 +100,13 @@ main (int argc, char **argv)
   long long int * volatile long_long_int_ptr_volatile_var = &long_long_int_var;
   STAP_PROBE2(provider,long_long_int_ptr_volatile_var,long_long_int_ptr_volatile_var,&long_long_int_var);
 
+#if defined(STAP_SDT_V1)
+#define ARRAY(x) (&(x)[0])
+#else
+#define ARRAY(x) (x)
+#endif
   char arr_char [] = "!~";
-  STAP_PROBE1(provider,arr_char,&arr_char);
+  STAP_PROBE1(provider,arr_char,ARRAY(arr_char));
   struct {
     int int_var;
   } arr_struct [2] = {{
@@ -109,7 +114,8 @@ main (int argc, char **argv)
     },{
       .int_var=2,
     }};
-  STAP_PROBE1(provider,arr_struct,&arr_struct);
+  STAP_PROBE1(provider,arr_struct,ARRAY(arr_struct));
+
   struct {
     unsigned int bit1_0:1;
     unsigned int bit1_1:1;
