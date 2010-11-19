@@ -393,7 +393,8 @@ probe process(@1).mark("bitfields_small_var")
   if ($arg1 != 1 || $arg2 != 0 || $arg3 != 97 || $arg4 != 1
       || $arg5 != 0 || $arg6 != 122 || $arg7 != 1 || $arg8 != 0)
     printf("FAIL: bitfields_small_var\n")
-
+  else
+    printf("PASS: bitfields_small_var\n")
 }
 
 probe process(@1).mark("bitfields_bit_var")
