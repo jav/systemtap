@@ -497,6 +497,10 @@ make_tracequery(systemtap_session& s, string& name,
   if (s.kernel_source_tree != "")
     omf << "EXTRA_CFLAGS += -I" + s.kernel_source_tree << endl;
   omf << "obj-m := " + basename + ".o" << endl;
+
+  // RHBZ 655231: later rhel6 kernels' module-signing kbuild logic breaks out-of-tree modules
+  omf << "CONFIG_MODULE_SIG := n" << endl;
+
   omf.close();
 
   // create our source file
@@ -569,6 +573,9 @@ make_typequery_kmod(systemtap_session& s, const vector<string>& headers, string&
   string makefile(dir + "/Makefile");
   ofstream omf(makefile.c_str());
   omf << "EXTRA_CFLAGS := -g -fno-eliminate-unused-debug-types" << endl;
+
+  // RHBZ 655231: later rhel6 kernels' module-signing kbuild logic breaks out-of-tree modules
+  omf << "CONFIG_MODULE_SIG := n" << endl;
 
   // NB: We use -include instead of #include because that gives us more power.
   // Using #include searches relative to the source's path, which in this case
