@@ -72,7 +72,7 @@ global BIO_READ = 0, BIO_WRITE = 1
  *
  *  @name      - name of the probe point
  *  @devname   - block device name
- *  @ino       - i-node number of the mapped file
+ *  @ino       - i-node number of the mapped file, -1 for 0-byte I/O
  *  @sector    - beginning sector for the entire bio
  *  @flags     - see below
  *  	BIO_UPTODATE    0       ok after I/O completion
@@ -101,7 +101,7 @@ probe ioblock.request = kernel.function ("generic_make_request")
 {
 	name = "ioblock.request"
         devname = __bio_devname($bio)
-        ino = __bio_ino($bio)
+        ino = $bio->bi_vcnt ? __bio_ino($bio) : -1;
 
         sector = $bio->bi_sector
         flags = $bio->bi_flags
@@ -123,7 +123,7 @@ probe ioblock.request = kernel.function ("generic_make_request")
  *
  *  @name      - name of the probe point
  *  @devname   - block device name
- *  @ino       - i-node number of the mapped file
+ *  @ino       - i-node number of the mapped file, -1 for 0-byte I/O
  *  @bytes_done - number of bytes transferred
  *  @sector    - beginning sector for the entire bio
  *  @flags     - see below
@@ -150,7 +150,7 @@ probe ioblock.end = kernel.function("bio_endio")
 {
 	name = "ioblock.end"
         devname = __bio_devname($bio)
-        ino = __bio_ino($bio)
+        ino = $bio->bi_vcnt ? __bio_ino($bio) : -1;
 
         bytes_done = (@defined($bytes_done) ? $bytes_done : $bio->bi_size)
         error = $error
@@ -201,7 +201,7 @@ probe ioblock_trace.bounce = kernel.trace("block_bio_bounce")
 	name = "ioblock_trace.bounce"
 	q = $q
         devname = __bio_devname($bio)
-        ino = __bio_ino($bio)
+        ino = $bio->bi_vcnt ? __bio_ino($bio) : -1;
 
         bytes_done = $bio->bi_size
         sector = $bio->bi_sector
@@ -253,7 +253,7 @@ probe ioblock_trace.request = kernel.trace("block_bio_queue")
 	name = "ioblock_trace.request"
 	q = $q
         devname = __bio_devname($bio)
-        ino = __bio_ino($bio)
+        ino = $bio->bi_vcnt ? __bio_ino($bio) : -1;
 
         bytes_done = $bio->bi_size
         sector = $bio->bi_sector
@@ -304,7 +304,7 @@ probe ioblock_trace.end = kernel.trace("block_bio_complete")
 	name = "ioblock_trace.end"
 	q = $q
         devname = __bio_devname($bio)
-        ino = __bio_ino($bio)
+        ino = $bio->bi_vcnt ? __bio_ino($bio) : -1;
 
         bytes_done = $bio->bi_size
 
