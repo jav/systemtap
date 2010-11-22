@@ -294,7 +294,7 @@ probe process(@1).mark("long_int_ptr_volatile_var")
     printf("PASS: long_int_ptr_volatile_var\n")
 }
 
-probe process(@1).mark("long_long_int_var")
+probe process(@1).mark("long_long_int_var") ?
 {
   if ($arg1 != 65536)
     printf("FAIL: long_long_int_var\n")
@@ -302,7 +302,7 @@ probe process(@1).mark("long_long_int_var")
     printf("PASS: long_long_int_var\n")
 }
 
-probe process(@1).mark("const_long_long_int_var")
+probe process(@1).mark("const_long_long_int_var") ?
 {
   if ($arg1 != -65536)
     printf("FAIL: const_long_long_int_var\n")
@@ -310,7 +310,7 @@ probe process(@1).mark("const_long_long_int_var")
     printf("PASS: const_long_long_int_var\n")
 }
 
-probe process(@1).mark("volatile_long_long_int_var")
+probe process(@1).mark("volatile_long_long_int_var") ?
 {
   if ($arg1 != -65536)
     printf("FAIL: volatile_long_long_int_var %#x\n", $arg1)
@@ -318,7 +318,7 @@ probe process(@1).mark("volatile_long_long_int_var")
     printf("PASS: volatile_long_long_int_var\n")
 }
 
-probe process(@1).mark("ptr_long_long_int_var")
+probe process(@1).mark("ptr_long_long_int_var") ?
 {
   if ($arg1 != $arg2)
     printf("FAIL: ptr_long_long_int_var\n")
@@ -330,7 +330,7 @@ probe process(@1).mark("ptr_long_long_int_var")
     printf("PASS: ptr_long_long_int_var\n")
 }
 
-probe process(@1).mark("ptr_const_long_long_int_var")
+probe process(@1).mark("ptr_const_long_long_int_var") ?
 {
   if ($arg1 != $arg2)
     printf("FAIL: ptr_const_long_long_int_var\n")
@@ -338,7 +338,7 @@ probe process(@1).mark("ptr_const_long_long_int_var")
     printf("PASS: ptr_const_long_long_int_var\n")
 }
 
-probe process(@1).mark("long_long_int_ptr_const_var")
+probe process(@1).mark("long_long_int_ptr_const_var") ?
 {
   if ($arg1 != $arg2)
     printf("FAIL: long_long_int_ptr_const_var\n")
@@ -346,7 +346,7 @@ probe process(@1).mark("long_long_int_ptr_const_var")
     printf("PASS: long_long_int_ptr_const_var\n")
 }
 
-probe process(@1).mark("ptr_volatile_long_long_int_var")
+probe process(@1).mark("ptr_volatile_long_long_int_var") ?
 {
   if ($arg1 != $arg2)
     printf("FAIL: ptr_volatile_long_long_int_var\n")
@@ -354,7 +354,7 @@ probe process(@1).mark("ptr_volatile_long_long_int_var")
     printf("PASS: ptr_volatile_long_long_int_var\n")
 }
 
-probe process(@1).mark("long_long_int_ptr_volatile_var")
+probe process(@1).mark("long_long_int_ptr_volatile_var") ?
 {
   if ($arg1 != $arg2)
     printf("FAIL: long_long_int_ptr_volatile_var\n")
@@ -406,4 +406,21 @@ probe process(@1).mark("primary_colors_var")
     printf("FAIL: primary_colors_var\n")
   else
     printf("PASS: primary_colors_var\n")
+}
+
+probe process(@1).mark("constants")
+{
+  if ($arg1 != 0x7fffffff)
+    printf("FAIL: constants (%#x != 0x7fffffff)\n", $arg1)
+  else
+    printf("PASS: constants\n")
+  if ($arg2 != 0x7e)
+    printf("FAIL: constants (%#x != '~' 0x7e)\n", $arg2)
+  else
+    printf("PASS: constants\n")
+  arr_char = user_string ($arg3);
+  if (arr_char != "constants")
+    printf("FAIL: constants (%s !+ \"constants\")\n", arr_char)
+  else
+    printf("PASS: constants\n")
 }
