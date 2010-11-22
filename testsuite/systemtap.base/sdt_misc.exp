@@ -177,23 +177,30 @@ if {$ok == 4 && $ko == 0} {
 
 # same set of flags as sdt.exp
 set extra_type_flags {{""} {additional_flags=-std=gnu89} {additional_flags=-ansi} {additional_flags=-pedantic} {additional_flags=-ansi additional_flags=-pedantic} {additional_flags=-O2} {additional_flags="-O3"}}
+set extra_type_mssgs {{} {-std=gnu89} {-ansi} {-pedantic} {-ansi -pedantic} {-O2} {-O3}}
 set type_xfail {0 0 0 0 0 1 1}
-for {set j 0} {$j < [llength $extra_type_flags]} {incr j} {
-set type_flag [lindex $extra_type_flags $j]
+set type_language {{""} {additional_flags=-x additional_flags=c++}}
+set type_language_mssgs {{} {-x c++}}
 
-set type_flags "$sup_flags $type_flag"
+for {set j 0} {$j < [llength $extra_type_flags]} {incr j} {
+set extra_type_mssg [lindex $extra_type_mssgs $j]
+
+for {set l 0} {$l < [llength $type_language]} {incr l} {
+set type_language_mssg [lindex $type_language_mssgs $l]
+set type_flags "$sup_flags [lindex $extra_type_flags $j] [lindex $type_language $l]"
 set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $type_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "$test compiling types $pbtype_mssg $type_flag"
+    untested "$test"
+    fail "$test compiling types $pbtype_mssg $extra_type_mssg $type_language_mssg"
 } else {
-    pass "$test compiling types $pbtype_mssg $type_flag"
+    pass "$test compiling types $pbtype_mssg $extra_type_mssg $type_language_mssg"
 }
 
 set ok 0
 set notok 0
 set fail "types"
-verbose -log "spawn $stap_path -g -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x # $pbtype_mssg $type_flag "
+verbose -log "spawn $stap_path -g -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x # $pbtype_mssg $extra_type_mssg"
 spawn $stap_path -g -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x
 
 expect {
@@ -209,16 +216,15 @@ catch {close}; catch {wait}
 
 if { $notok != 0 || $ok == 0} {
     if { [lindex $type_xfail $j]} {
-	xfail "$test types $fail $pbtype_mssg $type_flag"
+	xfail "$test types $fail $pbtype_mssg $extra_type_mssg $type_language_mssg"
     } else {
-	fail "$test types $fail $pbtype_mssg $type_flag"
+	fail "$test types $fail $pbtype_mssg $extra_type_mssg $type_language_mssg"
     }
 } else {
-    pass "$test types $pbtype_mssg $type_flag"
+    pass "$test types $pbtype_mssg $extra_type_mssg $type_language_mssg"
 }
-}
-
-# end extra_type_flags
+} ; # end type_language
+} ; # end extra_type_flags
 
 # 4. Test probe in shared object
 
@@ -398,7 +404,6 @@ if {$ok == 1} {
     fail "$test ($ok) $pbtype_mssg --types"
 }
 
-# for {set i 0}
-}
+} ; # end pbtype_flags
 
 cleanup_handler $verbose
