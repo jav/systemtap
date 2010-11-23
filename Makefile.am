@@ -323,11 +323,11 @@ runcheck: testsuite/stap testsuite/dtrace
 		SYSTEMTAP_PATH="`cd testsuite; pwd`" \
 		SYSTEMTAP_RUNTIME="`cd $(srcdir)/runtime; pwd`"
 testsuite/stap: run-stap
-	(echo '#!/bin/sh'; echo "exec `pwd`/$*" '$${1+"$$@"}') > $@.new
+	(echo '#!/bin/sh'; echo "exec `pwd`/run-stap" '$${1+"$$@"}') > $@.new
 	chmod 555 $@.new
 	mv -f $@.new $@
 testsuite/dtrace: dtrace
-	(echo '#!/bin/sh'; echo "exec `pwd`/$*" '$${1+"$$@"}') > $@.new
+	(echo '#!/bin/sh'; echo "exec `pwd`/dtrace" '$${1+"$$@"}') > $@.new
 	chmod 555 $@.new
 	mv -f $@.new $@
 
