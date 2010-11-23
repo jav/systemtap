@@ -1959,12 +1959,16 @@ installcheck:
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
 # All the variables are overridden by run-stap, but SYSTEMTAP_RUNTIME
 # is used by the testsuite scripts themselves.
-runcheck: testsuite/stap
+runcheck: testsuite/stap testsuite/dtrace
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" \
 		SYSTEMTAP_PATH="`cd testsuite; pwd`" \
 		SYSTEMTAP_RUNTIME="`cd $(srcdir)/runtime; pwd`"
 testsuite/stap: run-stap
-	(echo '#!/bin/sh'; echo "exec `pwd`/run-stap" '$${1+"$$@"}') > $@.new
+	(echo '#!/bin/sh'; echo "exec `pwd`/$*" '$${1+"$$@"}') > $@.new
+	chmod 555 $@.new
+	mv -f $@.new $@
+testsuite/dtrace: dtrace
+	(echo '#!/bin/sh'; echo "exec `pwd`/$*" '$${1+"$$@"}') > $@.new
 	chmod 555 $@.new
 	mv -f $@.new $@
 uprobes:
