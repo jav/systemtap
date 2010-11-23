@@ -30,7 +30,7 @@ probe process(@1).mark("ptr_char_var") {
     printf("PASS: ptr_char_var\n")
 }
 
-probe process(@1).mark("ptr_const_char_var") 
+probe process(@1).mark("ptr_const_char_var")
 {
   if ($arg1 != $arg2)
     printf("FAIL: ptr_const_char_var (%#d != %#d)\n", $arg1, $arg2)
@@ -424,4 +424,12 @@ probe process(@1).mark("constants")
     printf("FAIL: constants (%s !+ \"constants\")\n", arr_char)
   else
     printf("PASS: constants\n")
+}
+
+probe process(@1).mark("incomplete_type")
+{
+  if ($arg1 != 0)
+    printf("FAIL: incomplete_type (%#x != 0)\n", $arg1)
+  else
+    printf("PASS: incomplete_type\n")
 }

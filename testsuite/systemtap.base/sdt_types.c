@@ -2,8 +2,10 @@
 #include <stdint.h>
 #include <values.h>
 
+struct opaque;
+
 int
-main (int argc, char **argv) 
+main (int argc, char **argv)
 {
 
   char char_var = '~';
@@ -96,6 +98,8 @@ main (int argc, char **argv)
     blue = 2
   } primary_colors_var = green;
 
+  struct opaque *incomplete_type = 0;
+
   /* char */
   STAP_PROBE1(provider,char_var,char_var);
   STAP_PROBE1(provider,const_char_var,const_char_var);
@@ -178,6 +182,9 @@ main (int argc, char **argv)
 
   STAP_PROBE3(provider,constants,0x7fffffff,'~',"constants");
 
+  STAP_PROBE1(provider, incomplete_type, incomplete_type);
+
   STAP_PROBE(provider,something__dash__dash__something);
+
   return 0;
 }
