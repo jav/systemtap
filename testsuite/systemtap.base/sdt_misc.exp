@@ -191,8 +191,9 @@ set type_flags "$sup_flags [lindex $extra_type_flags $j] [lindex $type_language 
 set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $type_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    untested "$test"
     fail "$test compiling types $pbtype_mssg $extra_type_mssg $type_language_mssg"
+    untested "$test types $pbtype_mssg $extra_type_mssg $type_language_mssg"
+    continue
 } else {
     pass "$test compiling types $pbtype_mssg $extra_type_mssg $type_language_mssg"
 }
