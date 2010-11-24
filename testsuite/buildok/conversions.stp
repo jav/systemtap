@@ -28,4 +28,13 @@ probe begin {
   print (user_long_warn(2342))
   print (user_char(2342))
   print (user_char_warn(2342))
+
+  print (user_int8(2342))
+  print (user_uint8(2342))
+  print (user_int16(2342))
+  print (user_uint16(2342))
+  print (user_int32(2342))
+  print (user_uint32(2342))
+  print (user_int64(2342))
+  print (user_uint64(2342))
 }
