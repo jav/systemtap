@@ -51,11 +51,15 @@
 #endif
 #define _SDT_ASM_STRING(x)		_SDT_ASM_STRING_1(x)
 
+#define _SDT_ARGARRAY(x)	(__builtin_classify_type (x) == 14	\
+				 || __builtin_classify_type (x) == 5)
 
 #ifdef __cplusplus
-# define _SDT_ARGSIGNED(x)	__sdt_type<__typeof (x)>::__sdt_signed
-# define _SDT_ARGSIZE(x)	__sdt_type<__typeof (x)>::__sdt_size
-# define _SDT_ARGVAL(x)		__sdt_type<__typeof (x)>::__sdt_value (x)
+# define _SDT_ARGSIGNED(x)	(!_SDT_ARGARRAY (x) \
+				 && __sdt_type<__typeof (x)>::__sdt_signed)
+# define _SDT_ARGSIZE(x)	(_SDT_ARGARRAY (x) \
+				 ? sizeof (void *) : sizeof (x))
+# define _SDT_ARGVAL(x)		(x)
 
 # include <cstddef>
 # include <limits>
@@ -66,9 +70,6 @@ struct __sdt_type
   static const bool __sdt_signed
   = (std::numeric_limits<__sdt_T>::is_signed
      && std::numeric_limits<__sdt_T>::is_integer);
-  static const size_t __sdt_size = sizeof (__sdt_T);
-  static inline __sdt_T __sdt_value (const __sdt_T __x)
-  { return __x; }
 };
 
 template<typename __sdt_E>
@@ -78,21 +79,20 @@ template<typename __sdt_E, size_t __sdt_N>
 struct __sdt_type<__sdt_E[__sdt_N]> : public __sdt_type<__sdt_E *> {};
 
 #elif !defined(__ASSEMBLER__)
-extern unsigned long long __sdt_unsp;
-# define _SDT_ARGARRAY(x)	(__builtin_classify_type (x) == 14)
-# define _SDT_NONARRAY(x)	__builtin_choose_expr (_SDT_ARGARRAY (x), \
-						       (x) + 0, (x))
+__extension__ extern unsigned long long __sdt_unsp;
 # define _SDT_ARGINTTYPE(x)						\
   __typeof (__builtin_choose_expr (((__builtin_classify_type (x)	\
 				     + 3) & -4) == 4, (x), 0U))
 # define _SDT_ARGSIGNED(x)						\
-  (!(__builtin_constant_p ((((unsigned long long)			\
-			     (_SDT_ARGINTTYPE (x)) __sdt_unsp)		\
-			    & (1ULL << (sizeof (unsigned long long)	\
-					* __CHAR_BIT__ - 1))) == 0)	\
-     || (_SDT_ARGINTTYPE (x)) -1 > (_SDT_ARGINTTYPE (x)) 0))
-# define _SDT_ARGSIZE(x)	(sizeof (_SDT_NONARRAY (x)))
-# define _SDT_ARGVAL(x)		_SDT_NONARRAY (x)
+  (!__extension__							\
+   (__builtin_constant_p ((((unsigned long long)			\
+			    (_SDT_ARGINTTYPE (x)) __sdt_unsp)		\
+			   & (1ULL << (sizeof (unsigned long long)	\
+				       * __CHAR_BIT__ - 1))) == 0)	\
+    || (_SDT_ARGINTTYPE (x)) -1 > (_SDT_ARGINTTYPE (x)) 0))
+# define _SDT_ARGSIZE(x)	\
+  (_SDT_ARGARRAY (x) ? sizeof (void *) : sizeof (x))
+# define _SDT_ARGVAL(x)		(x)
 #endif
 
 #if defined __powerpc__ || defined __powerpc64__
