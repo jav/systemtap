@@ -9,6 +9,8 @@
 #ifndef SESSION_H
 #define SESSION_H
 
+#include "config.h"
+
 #include <list>
 #include <string>
 #include <vector>
@@ -82,7 +84,6 @@ struct systemtap_session
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).
   void setup_kernel_release (const char* kstr);
-  int parse_kernel_config ();
   void insert_loaded_modules ();
 
   // command line parsing
@@ -150,9 +151,7 @@ struct systemtap_session
   // to be cleared in the systemtap_session ctor (session.cxx).
 
   // Client/server
-#if HAVE_NSS
   bool NSPR_Initialized;
-#endif
   void NSPR_init ();
   bool client_options;
   std::string client_options_disallowed;

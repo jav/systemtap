@@ -50,7 +50,7 @@
 		W(0xc0, 1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0)| /* c0 */
 		W(0xd0, 1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1), /* d0 */
 		W(0xe0, 1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0)| /* e0 */
-		W(0xf0, 0,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1)  /* f0 */
+		W(0xf0, 0,0,1,1,0,1,1,1,1,1,0,0,1,1,1,1)  /* f0 */
 		/*      -------------------------------         */
 		/*      0 1 2 3 4 5 6 7 8 9 a b c d e f         */
 	};
@@ -106,6 +106,8 @@
  * 8f - Group 1 - only reg = 0 is OK
  * c6-c7 - Group 11 - only reg = 0 is OK
  * d9-df - fpu insns with some illegal encodings
+ * f2, f3 - repnz, repz prefixes.  These are also the first byte for
+ * certain floating-point instructions, such as addsd.
  * fe - Group 4 - only reg = 0 or 1 is OK
  * ff - Group 5 - only reg = 0-6 is OK
  *
@@ -116,29 +118,135 @@
  * 67 - addr16 prefix
  * ce - into
  * f0 - lock prefix
- * f2, f3 - repnz, repz prefixes
  */
+
+/*
+ * Return 1 if this is a legacy instruction prefix we support, -1 if
+ * it's one we don't support, or 0 if it's not a prefix at all.
+ */
+static inline int check_legacy_prefix(u8 byte)
+{
+	switch (byte) {
+	case 0x26:
+	case 0x2e:
+	case 0x36:
+	case 0x3e:
+	case 0xf0:
+		return -1;
+	case 0x64:
+	case 0x65:
+	case 0x66:
+	case 0x67:
+	case 0xf2:
+	case 0xf3:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+static void report_bad_1byte_opcode(uprobe_opcode_t op)
+{
+	printk(KERN_ERR "uprobes does not currently support probing "
+		"instructions whose first byte is 0x%2.2x\n", op);
+}
+
+static void report_bad_2byte_opcode(uprobe_opcode_t op)
+{
+	printk(KERN_ERR "uprobes does not currently support probing "
+		"instructions with the 2-byte opcode 0x0f 0x%2.2x\n", op);
+}
+
+static void report_bad_opcode_prefix(uprobe_opcode_t op, uprobe_opcode_t prefix)
+{
+	printk(KERN_ERR "uprobes does not currently support probing "
+		"instructions whose first byte is 0x%2.2x "
+		"with a prefix 0x%2.2x\n", op, prefix);
+}
+
+/* Figure out how uprobe_post_ssout should perform ip fixup. */
+static int setup_uprobe_post_ssout(struct uprobe_probept *ppt,
+		uprobe_opcode_t *insn)
+{
+	/*
+	 * Some of these require special treatment, but we don't know what to
+	 * do with arbitrary prefixes, so we refuse to probe them.
+	 */
+	int prefix_ok = 0;
+	switch (*insn) {
+	case 0xc3:		/* ret */
+		if ((insn - ppt->insn == 1) && (*ppt->insn == 0xf3))
+			/*
+			 * "rep ret" is an AMD kludge that's used by GCC,
+			 * so we need to treat it like a normal ret.
+			 */
+			prefix_ok = 1;
+	case 0xcb:		/* more ret/lret */
+	case 0xc2:
+	case 0xca:
+		/* eip is correct */
+		ppt->arch_info.flags |= UPFIX_ABS_IP;
+		break;
+	case 0xe8:		/* call relative - Fix return addr */
+		ppt->arch_info.flags |= UPFIX_RETURN;
+		break;
+	case 0x9a:		/* call absolute - Fix return addr */
+		ppt->arch_info.flags |= UPFIX_RETURN | UPFIX_ABS_IP;
+		break;
+	case 0xff:
+		if ((insn[1] & 0x30) == 0x10) {
+			/* call absolute, indirect */
+			/* Fix return addr; eip is correct. */
+			ppt->arch_info.flags |= UPFIX_ABS_IP | UPFIX_RETURN;
+		} else if ((insn[1] & 0x31) == 0x20 ||	/* jmp near, absolute indirect */
+			   (insn[1] & 0x31) == 0x21) {	/* jmp far, absolute indirect */
+			/* eip is correct. */
+			ppt->arch_info.flags |= UPFIX_ABS_IP;
+		}
+		break;
+	case 0xea:		/* jmp absolute -- eip is correct */
+		ppt->arch_info.flags |= UPFIX_ABS_IP;
+		break;
+	default:
+		/* Assuming that normal ip-fixup is ok for other prefixed opcodes. */
+		prefix_ok = 1;
+		break;
+	}
+
+	if (!prefix_ok && insn != ppt->insn) {
+		report_bad_opcode_prefix(*insn, *ppt->insn);
+		return -EPERM;
+	}
+
+	return 0;
+}
 
 static
 int arch_validate_probed_insn(struct uprobe_probept *ppt,
 						struct task_struct *tsk)
 {
 	uprobe_opcode_t *insn = ppt->insn;
+	int pfx, ret;
 
-	if (insn[0] == 0x66)
-		/* Skip operand-size prefix */
+	ppt->arch_info.flags = 0x0;
+
+	/* Skip good instruction prefixes; reject "bad" ones. */
+	while ((pfx = check_legacy_prefix(insn[0])) == 1)
 		insn++;
+	if (pfx < 0) {
+		report_bad_1byte_opcode(insn[0]);
+		return -EPERM;
+	}
+	if ((ret = setup_uprobe_post_ssout(ppt, insn)) != 0)
+		return ret;
 	if (test_bit(insn[0], good_insns))
 		return 0;
 	if (insn[0] == 0x0f) {
 		if (test_bit(insn[1], good_2byte_insns))
 			return 0;
-		printk(KERN_ERR "uprobes does not currently support probing "
-			"instructions with the 2-byte opcode 0x0f 0x%2.2x\n",
-			insn[1]);
-	} else 
-		printk(KERN_ERR "uprobes does not currently support probing "
-			"instructions whose first byte is 0x%2.2x\n", insn[0]);
+		report_bad_2byte_opcode(insn[1]);
+	} else
+		report_bad_1byte_opcode(insn[0]);
 	return -EPERM;
 }
 
@@ -212,52 +320,16 @@ static
 void uprobe_post_ssout(struct uprobe_task *utask, struct uprobe_probept *ppt,
 		struct pt_regs *regs)
 {
-	long next_eip = 0;
 	long copy_eip = utask->singlestep_addr;
 	long orig_eip = ppt->vaddr;
-	uprobe_opcode_t *insn = ppt->insn;
+	unsigned long flags = ppt->arch_info.flags;
 
 	up_read(&ppt->slot->rwsem);
 
-	if (insn[0] == 0x66)
-		/* Skip operand-size prefix */
-		insn++;
-
-	switch (insn[0]) {
-	case 0xc3:		/* ret/lret */
-	case 0xcb:
-	case 0xc2:
-	case 0xca:
-		next_eip = regs->eip;
-		/* eip is already adjusted, no more changes required*/
-		break;
-	case 0xe8:		/* call relative - Fix return addr */
+	if (flags & UPFIX_RETURN)
 		adjust_ret_addr(regs->esp, (orig_eip - copy_eip), utask);
-		break;
-	case 0xff:
-		if ((insn[1] & 0x30) == 0x10) {
-			/* call absolute, indirect */
-			/* Fix return addr; eip is correct. */
-			next_eip = regs->eip;
-			adjust_ret_addr(regs->esp, (orig_eip - copy_eip),
-				utask);
-		} else if ((insn[1] & 0x31) == 0x20 ||
-			   (insn[1] & 0x31) == 0x21) {
-			/* jmp near or jmp far  absolute indirect */
-			/* eip is correct. */
-			next_eip = regs->eip;
-		}
-		break;
-	case 0xea:		/* jmp absolute -- eip is correct */
-		next_eip = regs->eip;
-		break;
-	default:
-		break;
-	}
 
-	if (next_eip)
-		regs->eip = next_eip;
-	else
+	if (!(flags & UPFIX_ABS_IP))
 		regs->eip = orig_eip + (regs->eip - copy_eip);
 }
 

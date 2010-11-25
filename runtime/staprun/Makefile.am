@@ -36,4 +36,7 @@ stap_merge_LDADD =
 # Why the "id -u" condition?  This way, an unprivileged user can run
 # make install, and have "sudo stap ...." or "sudo staprun ...." work later.
 install-exec-hook:
-	[ `id -u` -ne 0 ] || chmod 04111 "$(DESTDIR)$(bindir)/staprun"
+	if [ `id -u` -eq 0 ]; then \
+		getent group stapusr >/dev/null && chgrp stapusr "$(DESTDIR)$(bindir)/staprun"; \
+		chmod 04110 "$(DESTDIR)$(bindir)/staprun"; \
+	fi

@@ -31,7 +31,7 @@ bin_PROGRAMS += stap
 man_MANS += stap.1
 bin_SCRIPTS += dtrace
 
-pkglibexec_PROGRAMS = 
+pkglibexec_PROGRAMS =
 
 if HAVE_NSS
 man_MANS += stap-authorize-signing-cert.8
@@ -295,7 +295,7 @@ if BUILD_SERVER
 endif
 	(cd $(srcdir)/man; for f in *.3*; do rm -rf "$(DESTDIR)$(man3dir)/$$f"; done)
 
-SUBDIRS = doc grapher runtime/staprun
+SUBDIRS = . runtime/staprun grapher doc
 DIST_SUBDIRS = testsuite $(SUBDIRS)
 EXTRA_DIST = man/tapset*.3stap
 
@@ -318,12 +318,16 @@ installcheck:
 PHONIES += runcheck
 # All the variables are overridden by run-stap, but SYSTEMTAP_RUNTIME
 # is used by the testsuite scripts themselves.
-runcheck: testsuite/stap
+runcheck: testsuite/stap testsuite/dtrace
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" \
 		SYSTEMTAP_PATH="`cd testsuite; pwd`" \
 		SYSTEMTAP_RUNTIME="`cd $(srcdir)/runtime; pwd`"
 testsuite/stap: run-stap
 	(echo '#!/bin/sh'; echo "exec `pwd`/run-stap" '$${1+"$$@"}') > $@.new
+	chmod 555 $@.new
+	mv -f $@.new $@
+testsuite/dtrace: dtrace
+	(echo '#!/bin/sh'; echo "exec `pwd`/dtrace" '$${1+"$$@"}') > $@.new
 	chmod 555 $@.new
 	mv -f $@.new $@
 
@@ -333,6 +337,12 @@ testsuite/stap: run-stap
 RPMBUILDFLAGS=
 
 PHONIES += dist-gzip
+
+PHONIES += uprobes install-uprobes
+uprobes:
+	$(MAKE) -C $(srcdir)/runtime/uprobes clean default
+install-uprobes:
+	$(MAKE) -C $(DESTDIR)$(pkgdatadir)/runtime/uprobes clean default
 
 .PHONY: $(PHONIES)
 

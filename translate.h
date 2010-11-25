@@ -97,6 +97,10 @@ struct unparser
 };
 
 
+// Preparation done before checking the script cache, especially
+// anything that might affect the hashed name.
+int prepare_translate_pass (systemtap_session& s);
+
 int translate_pass (systemtap_session& s);
 
 

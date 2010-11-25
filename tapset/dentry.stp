@@ -1,5 +1,5 @@
 // dentry tapset
-// Copyright (c) 2009 Red Hat Inc.
+// Copyright (c) 2009-2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -46,6 +46,20 @@ function d_name:string(dentry:long)
         return kernel_string_n(@cast(dentry, "dentry")->d_name->name, len);
 }
 
+
+/**
+ *   sfunction inode_name - get the inode name
+ * 
+ *   Returns the first path basename associated with the given inode.
+ *   @inode: Pointer to inode.
+ */
+function inode_name:string(inode:long)
+{
+        i_dentry = & @cast(inode, "struct inode")->i_dentry;
+        d_alias = @cast(i_dentry, "struct list_head")->next;
+        dentry = d_alias - (& @cast(0, "struct dentry")->d_alias);
+        return reverse_path_walk(dentry);
+}
 
 
 /**
@@ -121,3 +135,4 @@ function d_path:string(nd:long)
 
 	return sprintf("%s/", task_dentry_path(task_current(), dentry, vfsmnt))
 }
+

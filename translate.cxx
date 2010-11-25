@@ -959,6 +959,9 @@ c_unparser::emit_common_header ()
   o->newline() << "#endif";
   o->newline() << "struct uretprobe_instance *ri;";
 
+  o->newline() << "#if defined(STP_NEED_UNWIND_DATA)";
+  o->newline() << "struct unwind_context uwcontext;";
+  o->newline() << "#endif";
 
   // PR10516: probe locals
   o->newline() << "union {";
@@ -4902,7 +4905,7 @@ dump_unwindsyms (Dwfl_Module *m,
       }
 #endif
 
-    if (modname != "kernel" && modname[0] != '/') // => kernel module
+     if (modname != "kernel")
       {
         Dwarf_Addr reloc_vaddr = build_id_vaddr;
         const char *secname;
@@ -4918,10 +4921,13 @@ dump_unwindsyms (Dwfl_Module *m,
         // process("...") ones may have relocation bases like '.dynamic',
         // and so we'll have to store not just a generic offset but
         // the relocation section/symbol name too: just like we do
-        // for probe PC addresses themselves.
-        if (!secname || strcmp(secname, ".note.gnu.build-id"))
-          throw semantic_error ("unexpected build-id reloc section " +
-                                string(secname ?: "null"));
+        // for probe PC addresses themselves.  We want to set build_id_vaddr for
+        // user modules even though they will not have a secname.
+
+	if (modname[0] != '/')
+	  if (!secname || strcmp(secname, ".note.gnu.build-id"))
+	    throw semantic_error ("unexpected build-id reloc section " +
+				  string(secname ?: "null"));
 
         build_id_vaddr = reloc_vaddr;
       }
@@ -5370,7 +5376,7 @@ dump_unwindsyms (Dwfl_Module *m,
    * See also:
    *    http://sources.redhat.com/ml/systemtap/2009-q4/msg00574.html
    */
-  if (build_id_len > 0 && (build_id_vaddr > base + extra_offset)) {
+  if (build_id_len > 0) {
     c->output << ".build_id_bits = \"" ;
     for (int j=0; j<build_id_len;j++)
       c->output << "\\x" << hex
@@ -5387,9 +5393,10 @@ dump_unwindsyms (Dwfl_Module *m,
     if (modname == "kernel")
       c->output << ".build_id_offset = 0x" << hex << build_id_vaddr - (base + extra_offset)
                 << dec << ",\n";
+    // ET_DYN: task finder gives the load address. ET_EXEC: this is absolute address
     else
       c->output << ".build_id_offset = 0x" << hex
-                << build_id_vaddr - base
+                << build_id_vaddr /* - base */
                 << dec << ",\n";
   } else
     c->output << ".build_id_len = 0,\n";
@@ -5537,6 +5544,18 @@ add_unwindsym_vdso (systemtap_session &s)
     }
 }
 
+static void
+prepare_symbol_data (systemtap_session& s)
+{
+  // step 0: run ldd on any user modules if requested
+  if (s.unwindsym_ldd)
+    add_unwindsym_ldd (s);
+  // step 0.5: add vdso(s) when vma tracker was requested
+  if (vma_tracker_enabled (s))
+    add_unwindsym_vdso (s);
+  // NB: do this before the ctx.unwindsym_modules copy is taken
+}
+
 void
 emit_symbol_data (systemtap_session& s)
 {
@@ -5545,14 +5564,6 @@ emit_symbol_data (systemtap_session& s)
   s.op->newline() << "#include " << lex_cast_qstring (symfile);
 
   ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
-
-  // step 0: run ldd on any user modules if requested
-  if (s.unwindsym_ldd)
-    add_unwindsym_ldd (s);
-  // step 0.5: add vdso(s) when vma tracker was requested
-  if (vma_tracker_enabled (s))
-    add_unwindsym_vdso (s);
-  // NB: do this before the ctx.unwindsym_modules copy is taken
 
   unwindsym_dump_context ctx = { s, kallsyms_out, 0, ~0, s.unwindsym_modules };
 
@@ -5695,6 +5706,12 @@ struct recursion_info: public traversing_visitor
 };
 
 
+int
+prepare_translate_pass (systemtap_session& s)
+{
+  prepare_symbol_data (s);
+  return 0;
+}
 
 
 int

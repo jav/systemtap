@@ -62,8 +62,8 @@ set testscript {
     }
 }
 
-set output "handler: main_handler ($testexename)
-handler: lib_handler (lib${testlibname}.so)"
+set output "handler: main_handler ([pwd]/$testexename)
+handler: lib_handler ([pwd]/lib${testlibname}.so)"
 
 # Used to need to run stap with both the exe and the libraries used as -d args.
 # Now use --ldd to pick up both exe and the library we just linked in.

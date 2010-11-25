@@ -46,12 +46,54 @@
 
 # define _SDT_ARGFMT(no)		%n[_SDT_S##no]@_SDT_ARGTMPL(_SDT_A##no)
 # define _SDT_ARG(n, x)			\
-  [_SDT_S##n] "n" (((__typeof((x) + 0)) -1L > (__typeof((x) + 0)) 0	\
-		    ? -1 : 1)						\
-		   * (int) sizeof ((x) + 0)),				\
-  [_SDT_A##n] "nor" ((x) + 0)
+  [_SDT_S##n] "n" ((_SDT_ARGSIGNED (x) ? 1 : -1) * (int) _SDT_ARGSIZE (x)), \
+  [_SDT_A##n] "nor" (_SDT_ARGVAL (x))
 #endif
 #define _SDT_ASM_STRING(x)		_SDT_ASM_STRING_1(x)
+
+#define _SDT_ARGARRAY(x)	(__builtin_classify_type (x) == 14	\
+				 || __builtin_classify_type (x) == 5)
+
+#ifdef __cplusplus
+# define _SDT_ARGSIGNED(x)	(!_SDT_ARGARRAY (x) \
+				 && __sdt_type<__typeof (x)>::__sdt_signed)
+# define _SDT_ARGSIZE(x)	(_SDT_ARGARRAY (x) \
+				 ? sizeof (void *) : sizeof (x))
+# define _SDT_ARGVAL(x)		(x)
+
+# include <cstddef>
+# include <limits>
+
+template<typename __sdt_T>
+struct __sdt_type
+{
+  static const bool __sdt_signed
+  = (std::numeric_limits<__sdt_T>::is_signed
+     && std::numeric_limits<__sdt_T>::is_integer);
+};
+
+template<typename __sdt_E>
+struct __sdt_type<__sdt_E[]> : public __sdt_type<__sdt_E *> {};
+
+template<typename __sdt_E, size_t __sdt_N>
+struct __sdt_type<__sdt_E[__sdt_N]> : public __sdt_type<__sdt_E *> {};
+
+#elif !defined(__ASSEMBLER__)
+__extension__ extern unsigned long long __sdt_unsp;
+# define _SDT_ARGINTTYPE(x)						\
+  __typeof (__builtin_choose_expr (((__builtin_classify_type (x)	\
+				     + 3) & -4) == 4, (x), 0U))
+# define _SDT_ARGSIGNED(x)						\
+  (!__extension__							\
+   (__builtin_constant_p ((((unsigned long long)			\
+			    (_SDT_ARGINTTYPE (x)) __sdt_unsp)		\
+			   & (1ULL << (sizeof (unsigned long long)	\
+				       * __CHAR_BIT__ - 1))) == 0)	\
+    || (_SDT_ARGINTTYPE (x)) -1 > (_SDT_ARGINTTYPE (x)) 0))
+# define _SDT_ARGSIZE(x)	\
+  (_SDT_ARGARRAY (x) ? sizeof (void *) : sizeof (x))
+# define _SDT_ARGVAL(x)		(x)
+#endif
 
 #if defined __powerpc__ || defined __powerpc64__
 # define _SDT_ARGTMPL(id)	%I[id]%[id]

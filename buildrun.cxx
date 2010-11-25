@@ -61,6 +61,15 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
   else
     make_cmd += " -s --no-print-directory";
 
+  // NB: there appears to be no parallelism opportunity in the
+  // module-building makefiles, so while the following works, it
+  // doesn't seem to accomplish anything measurable as of F13.
+#if 0
+  long smp = sysconf(_SC_NPROCESSORS_ONLN);
+  if (smp > 1)
+    make_cmd += " -j " + lex_cast(smp);
+#endif
+
   if (strverscmp (s.kernel_base_release.c_str(), "2.6.29") < 0)
     {
       // Older kernels, before linux commit #fd54f502841c1, include
@@ -163,7 +172,6 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-hrtimer-getset-expires.c", "STAPCONF_HRTIMER_GETSET_EXPIRES", NULL);
   output_autoconf(s, o, "autoconf-inode-private.c", "STAPCONF_INODE_PRIVATE", NULL);
   output_autoconf(s, o, "autoconf-constant-tsc.c", "STAPCONF_CONSTANT_TSC", NULL);
-  output_autoconf(s, o, "autoconf-tsc-khz.c", "STAPCONF_TSC_KHZ", NULL);
   output_autoconf(s, o, "autoconf-ktime-get-real.c", "STAPCONF_KTIME_GET_REAL", NULL);
   output_autoconf(s, o, "autoconf-x86-uniregs.c", "STAPCONF_X86_UNIREGS", NULL);
   output_autoconf(s, o, "autoconf-nameidata.c", "STAPCONF_NAMEIDATA_CLEANUP", NULL);
@@ -183,7 +191,10 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-regset.c", "STAPCONF_REGSET", NULL);
   output_autoconf(s, o, "autoconf-utrace-regset.c", "STAPCONF_UTRACE_REGSET", NULL);
   output_autoconf(s, o, "autoconf-uprobe-get-pc.c", "STAPCONF_UPROBE_GET_PC", NULL);
+  output_exportconf(s, o, "tsc_khz", "STAPCONF_TSC_KHZ");
   output_exportconf(s, o, "cpu_khz", "STAPCONF_CPU_KHZ");
+  output_exportconf(s, o, "__module_text_address", "STAPCONF_MODULE_TEXT_ADDRESS");
+  output_exportconf(s, o, "add_timer_on", "STAPCONF_ADD_TIMER_ON");
 
   output_autoconf(s, o, "autoconf-probe-kernel.c", "STAPCONF_PROBE_KERNEL", NULL);
   output_autoconf(s, o, "autoconf-save-stack-trace.c",
@@ -223,10 +234,9 @@ compile_pass (systemtap_session& s)
 
   // o << "CFLAGS += -fno-unit-at-a-time" << endl;
 
-  // 512 bytes should be enough for anybody
-  // XXX but it's not enough for unwind_frame -- PR10821
-  // XXX temporarily bumping to 600 bytes
-  o << "EXTRA_CFLAGS += $(call cc-option,-Wframe-larger-than=600)" << endl;
+  // 256 bytes should be enough for anybody
+  // XXX this doesn't validate varargs, per gcc bug #41633
+  o << "EXTRA_CFLAGS += $(call cc-option,-Wframe-larger-than=256)" << endl;
 
   // Assumes linux 2.6 kbuild
   o << "EXTRA_CFLAGS += -Wno-unused" << (s.omit_werror ? "" : " -Werror") << endl;
@@ -429,6 +439,7 @@ run_pass (systemtap_session& s)
     + " "
     + (s.verbose>1 ? "-v " : "")
     + (s.verbose>2 ? "-v " : "")
+    + (s.suppress_warnings ? "-w " : "")
     + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
 
   if (s.cmd != "")
@@ -486,6 +497,10 @@ make_tracequery(systemtap_session& s, string& name,
   if (s.kernel_source_tree != "")
     omf << "EXTRA_CFLAGS += -I" + s.kernel_source_tree << endl;
   omf << "obj-m := " + basename + ".o" << endl;
+
+  // RHBZ 655231: later rhel6 kernels' module-signing kbuild logic breaks out-of-tree modules
+  omf << "CONFIG_MODULE_SIG := n" << endl;
+
   omf.close();
 
   // create our source file
@@ -558,6 +573,9 @@ make_typequery_kmod(systemtap_session& s, const vector<string>& headers, string&
   string makefile(dir + "/Makefile");
   ofstream omf(makefile.c_str());
   omf << "EXTRA_CFLAGS := -g -fno-eliminate-unused-debug-types" << endl;
+
+  // RHBZ 655231: later rhel6 kernels' module-signing kbuild logic breaks out-of-tree modules
+  omf << "CONFIG_MODULE_SIG := n" << endl;
 
   // NB: We use -include instead of #include because that gives us more power.
   // Using #include searches relative to the source's path, which in this case

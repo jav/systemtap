@@ -27,6 +27,9 @@ int init_ctl_channel(const char *name, int verb)
 			return -2;
 	}
 
+	if (access(buf, R_OK|W_OK) != 0)
+		return -5;
+
 	control_channel = open(buf, O_RDWR);
 	dbug(2, "Opened %s (%d)\n", buf, control_channel);
 	if (control_channel < 0) {

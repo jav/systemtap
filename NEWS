@@ -1,5 +1,18 @@
 * What's new in version 1.4
 
+- Warning messages from the script may now be suppressed with the stap
+  and/or staprun -w option.  By default, duplicate warning messages are
+  suppressed (up to a certain limit).  With stap --vp 00002 and above,
+  the duplicate elimination is defeated.
+
+- The print_ubacktrace and usym* functions attempt to print the full
+  path of the user-space binaries' paths, instead of just the basename.
+  The maximum saved path length is set by -DTASK_FINDER_VMA_ENTRY_PATHLEN,
+  default 64.  Warning messages are produced if unwinding fails due to
+  a missing 'stap -d MODULE' option, providing preloaded unwind data.
+
+- The new tz_ctime() tapset function prints times in the local time zone.
+
 - More kernel tracepoints are accessible to the kernel.trace("...") mechanism,
   if kernel source trees or debuginfo are available.  These formerly "hidden"
   tracepoints are those that are declared somewhere other than the usual

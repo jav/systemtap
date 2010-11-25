@@ -1,0 +1,57 @@
+if {! [installtest_p]} { return }
+
+set test "warnings2 default"
+spawn stap -e {probe begin {warn ("1") warn ("2") warn ("1") exit ()}}
+set ok1 0
+set ok2 0
+expect {
+    -timeout 30
+    -re {^WARNING: 1\r\n} { incr ok1; exp_continue }
+    -re {^WARNING: 2\r\n} { incr ok2; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+if {$ok1 == 1 && $ok2 == 1} {
+    pass $test
+} else {
+    fail "$test ($ok1 $ok2)"
+}
+
+set test "warnings2 -w"
+spawn stap -w -e {probe begin {warn ("1") warn ("2") warn ("1") exit ()}}
+set ok1 0
+set ok2 0
+expect {
+    -timeout 30
+    -re {^WARNING: 1\r\n} { incr ok1; exp_continue }
+    -re {^WARNING: 2\r\n} { incr ok2; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+if {$ok1 == 0 && $ok2 == 0} {
+    pass $test
+} else {
+    fail "$test ($ok1 $ok2)"
+}
+
+
+set test "warnings2 -v"
+spawn stap -vv -e {probe begin {warn ("1") warn ("2") warn ("1") exit ()}}
+set ok1 0
+set ok2 0
+expect {
+    -timeout 30
+    -re {^WARNING: 1\r\n} { incr ok1; exp_continue }
+    -re {^WARNING: 2\r\n} { incr ok2; exp_continue }
+    -re {^[^\r\n]*\r\n} { exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+if {$ok1 == 2 && $ok2 == 1} {
+    pass $test
+} else {
+    fail "$test ($ok1 $ok2)"
+}

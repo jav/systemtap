@@ -7,7 +7,7 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2007, 2010 Red Hat Inc.
+ * Copyright (C) 2007-2010 Red Hat Inc.
  */
 
 #include "staprun.h"
@@ -19,6 +19,7 @@
 
 /* variables needed by parse_args() */
 int verbose;
+int suppress_warnings;
 int target_pid;
 unsigned int buffer_size;
 char *target_cmd;
@@ -102,6 +103,7 @@ void parse_args(int argc, char **argv)
 
 	/* Initialize option variables. */
 	verbose = 0;
+	suppress_warnings = 0;
 	target_pid = 0;
 	buffer_size = 0;
 	target_cmd = NULL;
@@ -114,7 +116,7 @@ void parse_args(int argc, char **argv)
 	fsize_max = 0;
 	fnum_max = 0;
 
-	while ((c = getopt(argc, argv, "ALu::vb:t:dc:o:x:S:D")) != EOF) {
+	while ((c = getopt(argc, argv, "ALu::vb:t:dc:o:x:S:Dw")) != EOF) {
 		switch (c) {
 		case 'u':
 			need_uprobes = 1;
@@ -123,6 +125,9 @@ void parse_args(int argc, char **argv)
 			break;
 		case 'v':
 			verbose++;
+			break;
+		case 'w':
+			suppress_warnings=1;
 			break;
 		case 'b':
 			buffer_size = (unsigned)atoi(optarg);
@@ -236,9 +241,11 @@ void parse_args(int argc, char **argv)
 
 void usage(char *prog)
 {
-	err("\n%s [-v]  [-c cmd ] [-x pid] [-u user] [-A|-L|-d]\n"
+	err("\n%s [-v] [-w] [-u] [-c cmd ] [-x pid] [-u user] [-A|-L|-d]\n"
                 "\t[-b bufsize] [-o FILE [-D] [-S size[,N]]] MODULE [module-options]\n", prog);
 	err("-v              Increase verbosity.\n");
+	err("-w              Suppress warnings.\n");
+	err("-u              Load uprobes.ko\n");
 	err("-c cmd          Command \'cmd\' will be run and staprun will\n");
 	err("                exit when it does.  The '_stp_target' variable\n");
 	err("                will contain the pid for the command.\n");
@@ -262,10 +269,17 @@ void usage(char *prog)
 	err("                assumed to be the maximum file size in MB.\n");
 	err("                When the number of output files reaches N, it\n");
 	err("                switches to the first output file. You can omit\n");
-	err("                the second argument.\n");
+	err("                the second argument.\n\n");
 	err("MODULE can be either a module name or a module path.  If a\n");
-	err("module name is used, it is looked for in the following\n");
-	err("directory: /lib/modules/`uname -r`/systemtap\n");
+	err("module name is used, it is searched in the following directory:\n");
+        {
+                struct utsname utsbuf;
+                int rc = uname (& utsbuf);
+                if (! rc)
+                        err("/lib/modules/%s/systemtap\n", utsbuf.release);
+                else
+                        err("/lib/modules/`uname -r`/systemtap\n");
+        }
 	exit(1);
 }
 

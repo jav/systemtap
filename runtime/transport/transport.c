@@ -2,7 +2,7 @@
  * transport.c - stp transport functions
  *
  * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Red Hat Inc, 2005-2009
+ * Copyright (C) Red Hat Inc, 2005-2010
  * Copyright (C) Intel Corporation, 2006
  *
  * This file is part of systemtap, and is free software.  You can
@@ -507,6 +507,20 @@ static void _stp_transport_fs_close(void)
 		_stp_unlock_transport_dir();
 	}
 }
+
+
+/* NB: Accessed from tzinfo.stp tapset */
+static uint64_t tz_gmtoff;
+static char tz_name[MAXSTRINGLEN];
+
+static void _stp_handle_tzinfo (struct _stp_msg_tzinfo* tzi)
+{
+        tz_gmtoff = tzi->tz_gmtoff;
+        strlcpy (tz_name, tzi->tz_name, MAXSTRINGLEN);
+        /* We may silently truncate the incoming string,
+         * for example if MAXSTRINGLEN < STP_TZ_NAME_LEN-1 */
+}
+
 
 
 #endif /* _TRANSPORT_C_ */

@@ -20,11 +20,13 @@
  *
  */
 
+#define _XOPEN_SOURCE
+#define _BSD_SOURCE
 #include "staprun.h"
 #include <string.h>
 #include <sys/uio.h>
 #include <glob.h>
-
+#include <time.h>
 
 
 /* used in dbug, _err and _perr */
@@ -33,6 +35,7 @@ char *__name__ = "staprun";
 extern long delete_module(const char *, unsigned int);
 
 int send_relocations ();
+int send_tzinfo ();
 
 
 static int run_as(int exec_p, uid_t uid, gid_t gid, const char *path, char *const argv[])
@@ -116,19 +119,7 @@ static int enable_uprobes(void)
 	if (run_as(0, uid, gid, argv[0], argv) == 0)
 		return 0;
 
-	/*
-	 * TODO: If user can't setresuid to root here, staprun will exit.
-	 * Is there a situation where that would fail but the subsequent
-	 * attempt to insert_module() would succeed?
-	 */
-	dbug(2, "Inserting uprobes module from /lib/modules, if any.\n");
-	i = 0;
-	argv[i++] = "/sbin/modprobe";
-	argv[i++] = "-q";
-	argv[i++] = "uprobes";
-	argv[i] = NULL;
-	if (run_as(0, 0, 0, argv[0], argv) == 0)
-		return 0;
+        /* NB: don't use /sbin/modprobe, without more env. sanitation. */
 
 	/* Try the specified module or the one from the runtime.  */
 	if (uprobes_path)
@@ -191,9 +182,16 @@ static int remove_module(const char *name, int verb)
 		return 0;
 	}
 
-        /* We could call init_ctl_channel / close_ctl_channel here, as a heuristic
-           to determine whether the module is being used by some other stapio process.
-           However, delete_module() does basically the same thing. */
+        /* We call init_ctl_channel/close_ctl_channel to check whether
+           the module is a systemtap-built one (having the right files),
+           and that it's already unattached (because otherwise it'd EBUSY
+           the opens. */
+        ret = init_ctl_channel (name, 0);
+        if (ret < 0) {
+                err("Error, '%s' is not a zombie systemtap module.\n", name);
+                return ret;
+        }
+        close_ctl_channel ();
 
 	dbug(2, "removing module %s\n", name);
 	STAP_PROBE1(staprun, remove__module, name);
@@ -228,7 +226,7 @@ int init_staprun(void)
                      without first removing the kernel module.  This would block
                      a subsequent rerun attempt.  So here we gingerly try to
                      unload it first. */
-		  int ret = delete_module (modname, O_NONBLOCK);
+                  int ret = remove_module (modname, 0);
 		  err("Retrying, after attempted removal of module %s (rc %d)\n", modname, ret);
 		  /* Then we try an insert a second time.  */
 		  if (insert_stap_module() < 0)
@@ -236,6 +234,8 @@ int init_staprun(void)
 		}
 		if (send_relocations() < 0)
 			return -1;
+                if (send_tzinfo() < 0)
+                        return -1;
 	}
 	return 0;
 }
@@ -333,13 +333,17 @@ void send_a_relocation (const char* module, const char* reloc, unsigned long lon
 {
   struct _stp_msg_relocation msg;
 
-  if (strlen(module) >= STP_MODULE_NAME_LEN)
-    { _perr ("module name too long: %s", module); return; }
-  strcpy (msg.module, module);
-
-  if (strlen(reloc) >= STP_SYMBOL_NAME_LEN)
-    { _perr ("reloc name too long: %s", reloc); return; }
-  strcpy (msg.reloc, reloc);
+  if (strlen(module) >= STP_MODULE_NAME_LEN-1) {
+          dbug (1, "module name too long: %s", module);
+          return; 
+  }
+  strncpy (msg.module, module, STP_MODULE_NAME_LEN);
+  
+  if (strlen(reloc) >= STP_SYMBOL_NAME_LEN-1) {
+          dbug (1, "reloc name too long: %s", module);
+          return; 
+  }
+  strncpy (msg.reloc, reloc, STP_MODULE_NAME_LEN);
 
   msg.address = address;
 
@@ -486,6 +490,35 @@ int send_relocations ()
   if (rc < 0) goto out;
   rc = send_relocation_kernel ();
   send_relocation_modules ();
+  close_ctl_channel ();
+ out:
+  return rc;
+}
+
+
+int send_tzinfo ()
+{
+  int rc;
+  struct _stp_msg_tzinfo tzi;
+  time_t now_t;
+  struct tm* now;
+
+  rc = init_ctl_channel (modname, 0);
+  if (rc < 0) goto out;
+
+  /* NB: This is not good enough; it sends DST-unaware numbers. */
+#if 0
+  tzset ();
+  tzi.tz_gmtoff = timezone;
+  strncpy (tzi.tz_name, tzname[0], STP_TZ_NAME_LEN);
+#endif
+
+  time (& now_t);
+  now = localtime (& now_t);
+  tzi.tz_gmtoff = - now->tm_gmtoff;
+  strncpy (tzi.tz_name, now->tm_zone, STP_TZ_NAME_LEN);
+
+  send_request(STP_TZINFO, & tzi, sizeof(tzi));
   close_ctl_channel ();
  out:
   return rc;

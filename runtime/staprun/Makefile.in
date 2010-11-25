@@ -219,9 +219,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -D_GNU_SOURCE -I$(srcdir)/../../includes \
-	-I$(builddir)/../../includes/sys \
-	-DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' \
-	-DPKGDATADIR='"${pkgdatadir}"' \
+	-I$(builddir)/../../includes/sys -DBINDIR='"$(bindir)"' \
+	-DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR='"${pkgdatadir}"' \
 	-DPKGLIBDIR='"$(pkglibexecdir)"'
 AM_CFLAGS = -Wall -Werror -Wunused -W -Wformat=2 \
 	-Wno-format-nonliteral @PIECFLAGS@
@@ -746,7 +745,10 @@ uninstall-man: uninstall-man8
 # Why the "id -u" condition?  This way, an unprivileged user can run
 # make install, and have "sudo stap ...." or "sudo staprun ...." work later.
 install-exec-hook:
-	[ `id -u` -ne 0 ] || chmod 04111 "$(DESTDIR)$(bindir)/staprun"
+	if [ `id -u` -eq 0 ]; then \
+		getent group stapusr >/dev/null && chgrp stapusr "$(DESTDIR)$(bindir)/staprun"; \
+		chmod 04110 "$(DESTDIR)$(bindir)/staprun"; \
+	fi
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

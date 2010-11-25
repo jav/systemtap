@@ -262,7 +262,7 @@ find_script_hash (systemtap_session& s, const string& script)
   for (set<string>::iterator it = s.unwindsym_modules.begin();
        it != s.unwindsym_modules.end();
        it++)
-    h.add(*it);
+    h.add_path(*it);
     // XXX: a build-id of each module might be even better
 
   // Add in pass 2 script output.

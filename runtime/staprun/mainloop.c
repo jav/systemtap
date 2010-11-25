@@ -13,6 +13,7 @@
 #include "staprun.h"
 #include <sys/utsname.h>
 #include <sys/ptrace.h>
+#include <search.h>
 #include <wordexp.h>
 
 
@@ -550,9 +551,62 @@ int stp_main_loop(void)
       break;
 #endif
     case STP_OOB_DATA:
-      eprintf("%.*s", (int) nb, recvbuf.payload.data);
-      if (strncmp(recvbuf.payload.data, "ERROR:", 5) == 0){
-        error_detected = 1;
+      if (strncmp(recvbuf.payload.data, "WARNING:", 7) == 0) {
+              if (suppress_warnings) break;
+              if (verbose) { /* don't eliminate duplicates */
+                      eprintf("%.*s", (int) nb, recvbuf.payload.data);
+                      break;
+              } else { /* eliminate duplicates */
+                      static void *seen = 0;
+                      static unsigned seen_count = 0;
+                      char *dupstr = strndup (recvbuf.payload.data, (int) nb);
+                      char *retval;
+
+                      if (! dupstr) {
+                              /* OOM, should not happen. */
+                              eprintf("%.*s", (int) nb, recvbuf.payload.data);
+                              break;
+                      }
+
+                      retval = tfind (dupstr, & seen, (int (*)(const void*, const void*))strcmp);
+                      if (! retval) { /* new message */
+                              eprintf("%s", dupstr);
+
+                              /* We set a maximum for stored warning messages,
+                                 to prevent a misbehaving script/environment
+                                 from emitting countless _stp_warn()s, and
+                                 overflow staprun's memory. */
+#define MAX_STORED_WARNINGS 1024
+                              if (seen_count++ == MAX_STORED_WARNINGS) {
+                                      eprintf("WARNING deduplication table full\n");
+                                      free (dupstr);
+                              }
+                              else if (seen_count > MAX_STORED_WARNINGS) {
+                                      /* Be quiet in the future, but stop counting to
+                                         preclude overflow. */
+                                      free (dupstr);
+                                      seen_count = MAX_STORED_WARNINGS+1;
+                              }
+                              else if (seen_count < MAX_STORED_WARNINGS) {
+                                      /* NB: don't free dupstr; it's going into the tree. */
+                                      retval = tsearch (dupstr, & seen,
+                                                        (int (*)(const void*, const void*))strcmp);
+                                      if (retval == 0) {
+                                              /* OOM, should not happen */
+                                              /* Next time we should get the 'full' message. */
+                                              free (dupstr);
+                                              seen_count = MAX_STORED_WARNINGS;
+                                      }
+                              }
+                      } else { /* old message */
+                              free (dupstr);
+                      }
+              } /* duplicate elimination */
+      } else if (strncmp(recvbuf.payload.data, "ERROR:", 5) == 0) {
+              eprintf("%.*s", (int) nb, recvbuf.payload.data);
+              error_detected = 1;
+      } else { /* neither warning nor error */
+              eprintf("%.*s", (int) nb, recvbuf.payload.data);
       }
       break;
     case STP_EXIT:

@@ -1,0 +1,61 @@
+set test "rep_ret"
+
+# This test is only for i386 and x86_64
+# Test 32-on-64 when available
+set arches [list "-default"]
+switch -regexp $::tcl_platform(machine) {
+    {^i\d86$} {}
+    {^x86_64$} { lappend arches "-m32" }
+    default { unsupported "$test"; return }
+}
+
+foreach arch $arches {
+
+  set exe ${test}${arch}
+  verbose "testing $exe"
+
+  set test_flags "additional_flags=-g"
+  set test_flags "$test_flags additional_flags=-fomit-frame-pointer"
+
+  if {$arch != "-default"} {
+    set test_flags "$test_flags additional_flags=$arch"
+  }
+
+  set res [target_compile $srcdir/$subdir/$test.c $exe executable "$test_flags"]
+  if { $res != "" } {
+    verbose "target_compile $exe failed: $res" 2
+    fail "${test}.c compile ${arch}"
+    untested "$exe"
+    return
+  } else {
+    pass "${test}.c compile ${arch}"
+  }
+
+  if {[installtest_p] && [uprobes_p]} {
+    set ok 0
+    set bad 0
+    set warn 0
+
+    spawn stap -e {probe process(@1).function("*") { println(probefunc()) }} ./$exe -c ./$exe
+    expect {
+      -re {^main\r\n} { incr ok; exp_continue }
+      -re {^rep_ret\r\n} { incr ok; exp_continue }
+      -re {^repnz_ret\r\n} { incr bad; exp_continue }
+      -re {^WARNING: [^\r\n]*failed[^\r\n]*repnz_ret[^\r\n]*\r\n} { incr warn; exp_continue }
+      -re {^WARNING: Number of errors: 0, skipped probes: 1\r\n} { incr warn; exp_continue }
+      timeout { fail "$exe (timeout)" }
+      eof { }
+    }
+    wait
+
+    if {$ok == 2 && $bad == 0 && $warn == 2} {
+      pass "$exe"
+    } else {
+      fail "$exe ($ok, $bad, $warn)"
+    }
+  } else {
+    untested "$exe"
+  }
+  catch {exec rm -f $exe}
+
+}

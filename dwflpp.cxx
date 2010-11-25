@@ -279,7 +279,7 @@ dwflpp::function_name_matches(const string& pattern)
 
 
 bool
-dwflpp::function_scope_matches(const vector<string> scopes)
+dwflpp::function_scope_matches(const vector<string>& scopes)
 {
   // walk up the containing scopes
   Dwarf_Die* die = function;

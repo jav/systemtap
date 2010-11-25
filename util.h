@@ -6,6 +6,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <cctype>
+extern "C" {
+#include <stdint.h>
+}
 
 const char *get_home_directory(void);
 size_t get_file_size(const std::string &path);
@@ -48,6 +51,25 @@ inline OUT lex_cast(std::string const & in)
   std::istringstream ss(in);
   OUT out;
   if (!(ss >> out && ss.eof()))
+    throw std::runtime_error("bad lexical cast");
+  return out;
+}
+
+
+// We want [u]int8_t to be treated numerically, not just extracting a char.
+template <>
+inline int8_t lex_cast(std::string const & in)
+{
+  int16_t out = lex_cast<int16_t>(in);
+  if (out < -128 || out > 127)
+    throw std::runtime_error("bad lexical cast");
+  return out;
+}
+template <>
+inline uint8_t lex_cast(std::string const & in)
+{
+  uint16_t out = lex_cast<uint16_t>(in);
+  if (out > 0xff && out < 0xff80) // don't error if it looks sign-extended
     throw std::runtime_error("bad lexical cast");
   return out;
 }

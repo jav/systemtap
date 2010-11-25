@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * control channel
- * Copyright (C) 2007-2009 Red Hat Inc.
+ * Copyright (C) 2007-2010 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -23,6 +23,7 @@ static DEFINE_SPINLOCK(_stp_ctl_ready_lock);
 #endif
 
 static void _stp_cleanup_and_exit(int send_exit);
+static void _stp_handle_tzinfo (struct _stp_msg_tzinfo* tzi);
 
 static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
@@ -68,6 +69,17 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 	case STP_RELOCATION:
           	_stp_do_relocation (buf, count);
           	break;
+
+        case STP_TZINFO:
+        {
+                struct _stp_msg_tzinfo tzi;
+                if (count < sizeof(tzi))
+                        return 0;
+                if (copy_from_user(&tzi, buf, sizeof(tzi)))
+                        return -EFAULT;
+                _stp_handle_tzinfo(&tzi);
+        }
+        break;
 
 	case STP_READY:
 		break;

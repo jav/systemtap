@@ -37,7 +37,12 @@ typedef u8 uprobe_opcode_t;
 #define BREAKPOINT_SIGNAL SIGTRAP
 #define SSTEP_SIGNAL SIGTRAP
 
-struct uprobe_probept_arch_info {};
+#define UPFIX_ABS_IP  0x4	/* %ip after SS needs no fixup */
+#define UPFIX_RETURN  0x8	/* need to adjust return address on stack */
+
+struct uprobe_probept_arch_info {
+       unsigned long flags;
+};
 struct uprobe_task_arch_info {};
 
 /* Architecture specific switch for where the IP points after a bp hit */

@@ -266,10 +266,10 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/examples examples
 # Fix paths in the example & testsuite scripts
 find examples testsuite -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+stap@#!%{_bindir}/stap@'
 
-# Because "make install" may install staprun with mode 04111, the
+# Because "make install" may install staprun with whatever mode, the
 # post-processing programs rpmbuild runs won't be able to read it.
 # So, we change permissions so that they can read it.  We'll set the
-# permissions back to 04111 in the %files section below.
+# permissions back to 04110 in the %files section below.
 chmod 755 $RPM_BUILD_ROOT%{_bindir}/staprun
 
 #install the useful stap-prep script
@@ -428,7 +428,7 @@ exit 0
 
 %files runtime
 %defattr(-,root,root)
-%attr(4111,root,root) %{_bindir}/staprun
+%attr(4110,root,stapusr) %{_bindir}/staprun
 %{_bindir}/stap-merge
 %{_bindir}/stap-report
 %{_bindir}/stap-authorize-signing-cert

@@ -43,6 +43,12 @@ prints a list of supported options.
 .B \-v
 Verbose mode.
 .TP
+.B \-w
+Suppress warnings from the script.
+.TP
+.B \-u
+Load the uprobes.ko module.
+.TP
 .B \-c CMD
 Command CMD will be run and the
 .I staprun
@@ -199,14 +205,14 @@ structures and potentially private user information.  See the
 .IR stap (1)
 manual page for additional information on safety and security.
 .PP
-To increase system security, only the root user and members of the
-.I stapdev
-group can use
+To increase system security, only the root user and members of both
+.I stapdev " and " staprun
+groups can use
 .I staprun
 to insert systemtap modules (or attach to existing ones).
 Members of the
 .I stapusr
-group can use
+group only can use
 .I staprun
 to insert or remove systemtap modules (or attach to existing systemtap modules)
 under the following conditions:
