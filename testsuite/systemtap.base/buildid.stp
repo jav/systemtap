@@ -1,0 +1,2 @@
+probe process (@1).function("foo").label("label") 
+{printf("x=%d\n",$x)}
