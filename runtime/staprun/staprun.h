@@ -32,7 +32,6 @@
 #include <linux/limits.h>
 #include <sys/wait.h>
 #include <sys/statfs.h>
-#include <linux/version.h>
 #include <syslog.h>
 
 /* Include config.h to pick up dependency for --prefix usage. */
