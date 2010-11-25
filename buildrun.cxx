@@ -441,7 +441,7 @@ run_pass (systemtap_session& s)
     staprun_cmd += "-b " + lex_cast(s.buffer_size) + " ";
 
   if (s.need_uprobes)
-    staprun_cmd += "-u ";
+    staprun_cmd += "-u" + s.uprobes_path + " ";
 
   if (s.load_only)
     staprun_cmd += (s.output_file.empty() ? "-L " : "-D ");

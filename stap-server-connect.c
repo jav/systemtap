@@ -382,6 +382,7 @@ static void handleRequest (const char* requestDirName, const char* responseDirNa
   char stapstdout[PATH_MAX];
   char stapstderr[PATH_MAX];
   char staprc[PATH_MAX];
+  char stapsymvers[PATH_MAX];
 #define MAXSTAPARGC 1000 /* sorry, too lazy to dynamically allocate */
   char* stapargv[MAXSTAPARGC];
   int stapargc=0;
@@ -391,6 +392,7 @@ static void handleRequest (const char* requestDirName, const char* responseDirNa
   FILE* f;
   int unprivileged = 0;
   int stapargv_freestart = 0;
+  struct stat st;
 
   stapargv[stapargc++] = getenv ("SYSTEMTAP_STAP") ?: STAP_PREFIX "/bin/stap";
 
@@ -578,9 +580,35 @@ static void handleRequest (const char* requestDirName, const char* responseDirNa
                     errWarn("stap-sign-module");
                 }
             }
-        }
 
-      /* XXX: What about uprobes.ko? */
+	  /* If uprobes.ko is required, then we need to return it to the client.
+	     uprobes.ko was requires if the file "Module.symvers" is not empty in
+	     the temp directory.  */
+	  snprintf (stapsymvers, PATH_MAX, "%s/Module.symvers", new_staptmpdir);
+	  rc = stat (stapsymvers, & st);
+	  if (rc == 0 && st.st_size != 0)
+	    {
+	      /* uprobes.ko is required. Link to it from the response directory.  */
+	      char *lnargv[10];
+	      lnargv[0] = "/bin/ln";
+	      lnargv[1] = "-s";
+	      lnargv[2] = PKGDATADIR "/runtime/uprobes/uprobes.ko";
+	      lnargv[3] = (char*)responseDirName;
+	      lnargv[4] = NULL;
+	      rc = spawn_and_wait (lnargv, NULL, NULL, NULL, NULL);
+	      if (rc != PR_SUCCESS)
+		errWarn("stap uprobes.ko link");
+
+	      /* In unprivileged mode, we need to return the signature as well. */
+	      if (unprivileged) 
+		{
+		  lnargv[2] = PKGDATADIR "/runtime/uprobes/uprobes.ko.sgn";
+		  rc = spawn_and_wait (lnargv, NULL, NULL, NULL, NULL);
+		  if (rc != PR_SUCCESS)
+		    errWarn("stap uprobes.ko.sgn link");
+		}
+	    }
+        }
     }
 
   /* Free up all the arg string copies.  Note that the first few were alloc'd
@@ -948,15 +976,6 @@ server_main(unsigned short port, SECKEYPrivateKey *privKey)
   prStatus = PR_SetSocketOption(listenSocket, &socketOption);
   if (prStatus != PR_SUCCESS)
     exitErr("PR_SetSocketOption");
-
-#if 0
-  /* This cipher is not on by default. The Acceptance test
-   * would like it to be. Turn this cipher on.
-   */
-  secStatus = SSL_CipherPrefSetDefault(SSL_RSA_WITH_NULL_MD5, PR_TRUE);
-  if (secStatus != SECSuccess)
-    exitErr("SSL_CipherPrefSetDefault:SSL_RSA_WITH_NULL_MD5");
-#endif
 
   /* Configure the network connection. */
   addr.inet.family = PR_AF_INET;

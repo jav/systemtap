@@ -138,6 +138,7 @@ systemtap_session::systemtap_session ():
   poison_cache = false;
   tapset_compile_coverage = false;
   need_uprobes = false;
+  uprobes_path = "";
   consult_symtab = false;
   ignore_vmlinux = false;
   ignore_dwarf = false;
@@ -1031,38 +1032,6 @@ systemtap_session::parse_kernel_config ()
   kcf.close();
   return 0;
 }
-
-int
-systemtap_session::parse_kernel_exports ()
-{
-  string kernel_exports_file = kernel_build_tree + "/Module.symvers";
-  struct stat st;
-  int rc = stat(kernel_exports_file.c_str(), &st);
-  if (rc != 0)
-    {
-	clog << "Checking \"" << kernel_exports_file << "\" failed: " << strerror(errno) << endl
-	     << "Ensure kernel development headers & makefiles are installed." << endl;
-	return rc;
-    }
-
-  ifstream kef (kernel_exports_file.c_str());
-  string line;
-  while (getline (kef, line))
-    {
-      vector<string> tokens;
-      tokenize (line, tokens, "\t");
-      if (tokens.size() == 4 &&
-          tokens[2] == "vmlinux" &&
-          tokens[3].substr(0,13) == string("EXPORT_SYMBOL"))
-        kernel_exports.insert (tokens[1]);
-    }
-  if (verbose > 2)
-    clog << "Parsed kernel \"" << kernel_exports_file << "\", number of vmlinux exports: " << kernel_exports.size() << endl;
-  
-  kef.close();
-  return 0;
-}
-
 
 void systemtap_session::insert_loaded_modules()
 {

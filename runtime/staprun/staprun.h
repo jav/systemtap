@@ -190,6 +190,7 @@ extern int attach_mod;
 extern int delete_mod;
 extern int load_only;
 extern int need_uprobes;
+extern const char *uprobes_path;
 extern int daemon_mode;
 extern off_t fsize_max;
 extern int fnum_max;

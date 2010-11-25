@@ -83,7 +83,6 @@ struct systemtap_session
   // to be cleared in the systemtap_session ctor (session.cxx).
   void setup_kernel_release (const char* kstr);
   int parse_kernel_config ();
-  int parse_kernel_exports ();
   void insert_loaded_modules ();
 
   // command line parsing
@@ -142,6 +141,7 @@ struct systemtap_session
   bool prologue_searching;
   bool tapset_compile_coverage;
   bool need_uprobes;
+  std::string uprobes_path;
   bool load_only; // flight recorder mode
   bool omit_werror;
   bool unprivileged;

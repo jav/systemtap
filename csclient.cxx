@@ -808,6 +808,13 @@ compile_server_client::process_response ()
 		  s.module_name = components.back ();
 		  s.module_name.erase(s.module_name.size() - 3);
 		}
+
+	      // If a uprobes.ko module was returned, then make note of it.
+	      if (file_exists (s.tmpdir + "/server/uprobes.ko"))
+		{
+		  s.need_uprobes = true;
+		  s.uprobes_path = s.tmpdir + "/server/uprobes.ko";
+		}
 	    }
 	}
       else if (s.have_script)

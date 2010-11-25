@@ -7,7 +7,7 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2007 Red Hat Inc.
+ * Copyright (C) 2007, 2010 Red Hat Inc.
  */
 
 #include "staprun.h"
@@ -27,6 +27,7 @@ int attach_mod;
 int delete_mod;
 int load_only;
 int need_uprobes;
+const char *uprobes_path = NULL;
 int daemon_mode;
 off_t fsize_max;
 int fnum_max;
@@ -113,10 +114,12 @@ void parse_args(int argc, char **argv)
 	fsize_max = 0;
 	fnum_max = 0;
 
-	while ((c = getopt(argc, argv, "ALuvb:t:dc:o:x:S:D")) != EOF) {
+	while ((c = getopt(argc, argv, "ALu::vb:t:dc:o:x:S:D")) != EOF) {
 		switch (c) {
 		case 'u':
 			need_uprobes = 1;
+			if (optarg)
+			  uprobes_path = strdup (optarg);
 			break;
 		case 'v':
 			verbose++;
