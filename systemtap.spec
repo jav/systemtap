@@ -480,6 +480,7 @@ exit 0
 %config(noreplace) %{_sysconfdir}/sysconfig/stap-server
 %dir %attr(0755,stap-server,stap-server) %{_localstatedir}/log/stap-server
 %ghost %config %attr(0644,stap-server,stap-server) %{_localstatedir}/log/stap-server/log
+%ghost %attr(0755,stap-server,stap-server) %{_localstatedir}/run/stap-server
 %doc initscript/README.stap-server
 
 %files sdt-devel
@@ -497,7 +498,7 @@ exit 0
 %dir %{_sysconfdir}/systemtap/script.d
 %config(noreplace) %{_sysconfdir}/systemtap/config
 %dir %{_localstatedir}/cache/systemtap
-%dir %{_localstatedir}/run/systemtap
+%ghost %{_localstatedir}/run/systemtap
 %doc initscript/README.systemtap
 
 %if %{with_grapher}
