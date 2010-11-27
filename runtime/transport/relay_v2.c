@@ -4,7 +4,7 @@
  * code started as a proposed relayfs interface called 'utt'.  It has
  * been modified and simplified for systemtap.
  *
- * Changes Copyright (C) 2009 Red Hat Inc.
+ * Changes Copyright (C) 2009-2010 Red Hat Inc.
  *
  * Original utt code by:
  *   Copyright (C) 2006 Jens Axboe <axboe@suse.de>
@@ -42,7 +42,7 @@
  * to be changed. */
 struct _stp_relay_data_type {
 	struct rchan *rchan;
-	enum _stp_transport_state transport_state;
+	atomic_t /* enum _stp_transport_state */ transport_state;
 	struct dentry *dropped_file;
 	atomic_t dropped;
 	atomic_t wakeup;
@@ -133,7 +133,10 @@ static void __stp_relay_wakeup_timer(unsigned long val)
 #endif
 	}
 
- 	mod_timer(&_stp_relay_data.timer, jiffies + STP_RELAY_TIMER_INTERVAL);
+	if (atomic_read(&_stp_relay_data.transport_state) == STP_TRANSPORT_RUNNING)
+        	mod_timer(&_stp_relay_data.timer, jiffies + STP_RELAY_TIMER_INTERVAL);
+        else
+		dbug_trans(0, "relay_v2 wakeup timer expiry\n");
 }
 
 static void __stp_relay_timer_init(void)
@@ -149,7 +152,7 @@ static void __stp_relay_timer_init(void)
 
 static enum _stp_transport_state _stp_transport_get_state(void)
 {
-	return _stp_relay_data.transport_state;
+	return atomic_read (&_stp_relay_data.transport_state);
 }
 
 static void _stp_transport_data_fs_overwrite(int overwrite)
@@ -242,19 +245,19 @@ static struct rchan_callbacks __stp_relay_callbacks = {
 
 static void _stp_transport_data_fs_start(void)
 {
-	if (_stp_relay_data.transport_state == STP_TRANSPORT_INITIALIZED) {
+	if (atomic_read (&_stp_relay_data.transport_state) == STP_TRANSPORT_INITIALIZED) {
+		atomic_set (&_stp_relay_data.transport_state, STP_TRANSPORT_RUNNING);
 		/* We're initialized.  Now start the timer. */
 		__stp_relay_timer_init();
-		_stp_relay_data.transport_state = STP_TRANSPORT_RUNNING;
 	}
 }
 
 static void _stp_transport_data_fs_stop(void)
 {
-	if (_stp_relay_data.transport_state == STP_TRANSPORT_RUNNING) {
+	if (atomic_read (&_stp_relay_data.transport_state) == STP_TRANSPORT_RUNNING) {
+		atomic_set (&_stp_relay_data.transport_state, STP_TRANSPORT_STOPPED);
 		del_timer_sync(&_stp_relay_data.timer);
 		dbug_trans(0, "flushing...\n");
-		_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
 		if (_stp_relay_data.rchan)
 			relay_flush(_stp_relay_data.rchan);
 	}
@@ -277,7 +280,7 @@ static int _stp_transport_data_fs_init(void)
 	u64 npages;
 	struct sysinfo si;
 
-	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+	atomic_set(&_stp_relay_data.transport_state, STP_TRANSPORT_STOPPED);
 	_stp_relay_data.overwrite_flag = 0;
 	atomic_set(&_stp_relay_data.dropped, 0);
 	_stp_relay_data.dropped_file = NULL;
@@ -337,7 +340,7 @@ static int _stp_transport_data_fs_init(void)
 		goto err;
 	}
 	dbug_trans(1, "returning 0...\n");
-	_stp_relay_data.transport_state = STP_TRANSPORT_INITIALIZED;
+	atomic_set (&_stp_relay_data.transport_state, STP_TRANSPORT_INITIALIZED);
 
 	return 0;
 
