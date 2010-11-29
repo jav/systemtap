@@ -47,7 +47,8 @@ main (int argc, char **argv)
   volatile long int *ptr_volatile_long_int_var = &long_int_var;
   long int * volatile long_int_ptr_volatile_var = &long_int_var;
 
-#ifndef __STDC__
+  /* c89 doesn't define __STDC_VERSION. With -pedantic warns about long long. */
+#ifndef NO_LONG_LONG
   long long int long_long_int_var = 65536;
   const long long int const_long_long_int_var = -65536;
   volatile long long int volatile_long_long_int_var = -65536;
@@ -143,7 +144,7 @@ main (int argc, char **argv)
   STAP_PROBE2(provider,long_int_ptr_volatile_var,long_int_ptr_volatile_var,&long_int_var);
 
   /* long long */
-#ifndef __STDC__
+#ifndef NO_LONG_LONG
   STAP_PROBE1(provider,long_long_int_var,long_long_int_var);
   STAP_PROBE1(provider,const_long_long_int_var,const_long_long_int_var);
   STAP_PROBE1(provider,volatile_long_long_int_var,volatile_long_long_int_var);

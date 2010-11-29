@@ -9,7 +9,7 @@ set test "sdt_misc"
 # 6. Test .mark probe wildcard matching
 # 7. Test types defined in sdt_misc_.d.  This requires -g
 
-set v_flags {{-DSTAP_SDT_V1} {-DSTAP_SDT_V2} {-DSTAP_SDT_V2}  {-DSTAP_SDT_V3}}
+set v_flags {{-DSTAP_SDT_V1} {-DSTAP_SDT_V2} {-DSTAP_SDT_V2} {-DSTAP_SDT_V3}}
 set pbtype_mssgs {{V1_uprobe} {V2_kprobe} {V2_uprobe} {V3_uprobe}}
 set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
 switch -regexp $::tcl_platform(machine) {
@@ -176,26 +176,42 @@ if {$ok == 4 && $ko == 0} {
 # 3. Test passing various C types to .mark probes
 
 # same set of flags as sdt.exp
-set extra_type_flags {{""} {additional_flags=-std=gnu89} {additional_flags=-ansi} {additional_flags=-pedantic} {additional_flags=-ansi additional_flags=-pedantic} {additional_flags=-O2} {additional_flags="-O3"}}
-set extra_type_mssgs {{} {-std=gnu89} {-ansi} {-pedantic} {-ansi -pedantic} {-O2} {-O3}}
-set type_xfail {0 0 0 0 0 1 1}
-set type_language {{""} {additional_flags=-x additional_flags=c++}}
-set type_language_mssgs {{} {-x c++}}
+set extra_type_flags {{additional_flags=-O2}
+    {additional_flags=-O3}
+    {additional_flags=-std=c89}
+    {additional_flags=-std=c99}
+    {additional_flags=-std=gnu99}
+    {c++ additional_flags=-std=c++98 additional_flags=-x additional_flags=c++}
+    {c++ additional_flags=-std=gnu++98 additional_flags=-x additional_flags=c++}
+    {c++ additional_flags=-std=c++0x additional_flags=-x additional_flags=c++}
+    {c++ additional_flags=-std=gnu++0x additional_flags=-x additional_flags=c++}
+}
+set extra_type_mssgs {-O2 -O3 c89 c99 gnu99 c++98 gnu++98 c++0x gnu++0x}
+# __STDC_VERSION__ could be used, but g++ has no equivalent
+set has_long_long {{} {} additional_flags=-DNO_LONG_LONG {} {} additional_flags=-DNO_LONG_LONG additional_flags=-DNO_LONG_LONG {} {}}
+set type_xfail {1 1 0 0 0 0 0 0 0}
+set type_pedantics_idx {1 1 2 2 2 2 2 2 2} 
+set type_pedantics {{} additional_flags=-pedantic} ; # don't compile -O2 -O3 with -pedantic
+set type_pedantic_mssgs {{} -pedantic}
 
 for {set j 0} {$j < [llength $extra_type_flags]} {incr j} {
 set extra_type_mssg [lindex $extra_type_mssgs $j]
 
-for {set l 0} {$l < [llength $type_language]} {incr l} {
-set type_language_mssg [lindex $type_language_mssgs $l]
-set type_flags "$sup_flags [lindex $extra_type_flags $j] [lindex $type_language $l]"
+for {set p 0} {$p < [lindex $type_pedantics_idx $j]} {incr p} {
+set type_pedantic_mssg [lindex $type_pedantic_mssgs $p]
+set type_flags "$sup_flags [lindex $extra_type_flags $j] [lindex $type_pedantics $p] [lindex $has_long_long $j]"
 set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $type_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "$test compiling types $pbtype_mssg $extra_type_mssg $type_language_mssg"
-    untested "$test types $pbtype_mssg $extra_type_mssg $type_language_mssg"
-    continue
+    if { $pbtype_mssgs == "V3_uprobe" } {
+	xfail "$test compiling types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
+    } else {
+	fail "$test compiling types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
+    }
+    untested "$test types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
+    continue ; # type_pedantics_idx
 } else {
-    pass "$test compiling types $pbtype_mssg $extra_type_mssg $type_language_mssg"
+    pass "$test compiling types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
 }
 
 set ok 0
@@ -217,14 +233,14 @@ catch {close}; catch {wait}
 
 if { $notok != 0 || $ok == 0} {
     if { [lindex $type_xfail $j]} {
-	xfail "$test types $fail $pbtype_mssg $extra_type_mssg $type_language_mssg"
+	xfail "$test types $fail $pbtype_mssg $extra_type_mssg"
     } else {
-	fail "$test types $fail $pbtype_mssg $extra_type_mssg $type_language_mssg"
+	fail "$test types $fail $pbtype_mssg $extra_type_mssg"
     }
 } else {
-    pass "$test types $pbtype_mssg $extra_type_mssg $type_language_mssg"
+    pass "$test types $pbtype_mssg $extra_type_mssg"
 }
-} ; # end type_language
+} ; # end type_pedantics_idx
 } ; # end extra_type_flags
 
 # 4. Test probe in shared object
@@ -365,7 +381,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if { $ok == 43 } {
+if { $ok == 51 } {
     pass "$test wildcard $pbtype_mssg"
 } else {
     fail "$test wildcard ($ok) $pbtype_mssg"
