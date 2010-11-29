@@ -10,7 +10,9 @@
 #if defined (__i386__) || defined (__x86_64__)
 #include <asm/cpufeature.h>
 #endif
-#ifdef STAPCONF_TSC_KHZ
+#if defined (STAPCONF_TSC_KHZ) && \
+    !(defined (__x86_64__) && LINUX_VERSION_CODE < KERNEL_VERSION(2,6,21))
+// x86_64 didn't need a specific header until 2.6.21.  Otherwise:
 #include <asm/tsc.h>
 #endif
 #ifdef STAPCONF_KTIME_GET_REAL
