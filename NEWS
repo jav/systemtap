@@ -32,7 +32,18 @@
   o --list-servers now accepts an expanded range of arguments.
   o a new --trust-servers option has been added to stap to replace several
     old certificate-management scripts.
-  See 'man stap' for complete details.
+  o The following tools are now deprecated and will be removed in release 1.5:
+      stap-client
+      stap-authorize-server-cert
+      stap-authorize-signing-cert
+      stap-find-or-start-server
+      stap-find-servers
+  See man stap(1) for complete details.
+
+- The compile-server now returns the uprobes.ko to the client when it is
+  required by the script being compiled. The integrated compile-server client
+  now makes it available to be loaded by staprun. The old (deprecated)
+  stap-client does not do this.
 
 - Starting in release 1.5, these old variables/functions will be deprecated
   and will only be available when the '--compatible=1.4' flag is used:
