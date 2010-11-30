@@ -252,11 +252,16 @@ get_daemon_pid () { # script
   cat "$STAT_PATH/$1"
 }
 
+# Check whether a script is running.  Returns:
+# 0: running
+# 4: running, but no pidfile
+# 3: not running
+# 1: not running, but pidfile remains
 check_running () { # script
   local m f
   f="$STAT_PATH/$1"
   m=`$LSMOD | grep "^$1 "`
-  if [ "$m" ]; then
+  if [ -n "$m" ]; then
     [ -f "$f" ] && return 0 # running
     return 4 # another script is running
   else
@@ -440,7 +445,7 @@ sort_dependency () { # scripts
 }
 
 start_script () { # script
-  local tmpdir s=$1
+  local tmpdir s=$1 ret count=0
   check_running $s
   ret=$?
   [ $ret -eq 0 ] && return 0 # already running
@@ -467,6 +472,18 @@ start_script () { # script
   eval log \"Exec: $STAPRUN $opts $CACHE_PATH/$s.ko\"
   $STAPRUN $opts "$CACHE_PATH/$s.ko" 2>> "$LOG_FILE" > ./pid
   ret=$?
+
+  # When the staprun '-D' option (run in background as a daemon) is
+  # used, staprun detaches from the terminal and *then* prints the new
+  # pid.  So, it is possible to check the ./pid file before it has
+  # been written.  To avoid this, wait a bit (if necessary).
+  while [ $count -lt 10 ]; do
+    # when the file exists and has a size > 0, quit
+    [ -s ./pid ] && break
+    sleep 1
+    count=`expr $count + 1`
+  done
+
   [ x`cat ./pid` = x ] && echo 0 > ./pid
   if [ $ret -eq 0 ]; then
       logex cp -f ./pid "$STAT_PATH/$s"
@@ -521,21 +538,50 @@ start () {
 }
 
 stop_script () { # script
-  local p
-  check_running "$1"
-  ret=$?
-  [ $ret -eq 1 ] && rm -f "$STAT_PATH/$1"
-  [ $ret -ne 0 ] && return 0
+  local p f count=0
 
-  p=`get_daemon_pid $1`
-  if [ $p -ne 0 ]; then
-    logex kill -TERM $p
-  else
-    logex $STAPRUN -d "$1"
-  fi
-  [ $? -ne 0 ] && return 1
-  rm -f "$STAT_PATH/$1"
-  return $?
+  f="$STAT_PATH/$1"
+  while [ $count -lt 10 ]; do
+    check_running "$1"
+    ret=$?
+
+    # If the module is isn't running, we're done.
+    [ $ret -eq 3 ] && return 0
+    # If the module isn't loaded but the pidfile remains, remove the
+    # old pidfile and return.
+    if [ $ret -eq 1 ]; then
+      rm -f $f
+      return 0
+    fi
+
+    # Try to either kill the stap process that is handling the
+    # module (which will cause the module to be unloaded) or use
+    # staprun to delete the module.  (Note that staprun will only
+    # delete systemtap modules.)
+    p=`get_daemon_pid $1`
+    if [ $p -ne 0 ]; then
+      logex kill -TERM $p
+    else
+      logex $STAPRUN -d "$1"
+    fi
+    [ $? -ne 0 ] && return 1
+
+    # At this point the module should be unloaded, but the pidfile
+    # will still be present.  If so, remove the pidfile and return.
+    # Otherwise, wait a bit for the module to unload and try again.
+    check_running "$1"
+    ret=$?
+    [ $ret -eq 3 ] && return 0
+    if [ $ret -eq 1 ]; then
+      rm -f $f
+      return 0
+    fi
+    sleep 1
+    count=`expr $count + 1`
+  done
+
+  do_failure $"Failed to stop script \"$1\" after $count attempts"
+  return 1
 }
 
 stop () {
