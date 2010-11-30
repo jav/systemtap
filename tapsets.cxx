@@ -24,7 +24,6 @@
 #include "setupdwfl.h"
 #include <gelf.h>
 
-#include "sys/sdt.h"
 #include "sdt-compat.h"
 
 #include <cstdlib>

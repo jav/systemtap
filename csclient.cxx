@@ -11,7 +11,7 @@
 #include "session.h"
 #include "csclient.h"
 #include "util.h"
-#include "sys/sdt.h"
+#include "stap-probe.h"
 
 #include <sys/times.h>
 #include <vector>
@@ -170,7 +170,7 @@ signing_cert_db_path ()
 int
 compile_server_client::passes_0_4 ()
 {
-  STAP_PROBE1(stap, client__start, &s);
+  PROBE1(stap, client__start, &s);
 
 #if ! HAVE_NSS
   // This code will never be called, if we don't have NSS, but it must still
@@ -255,7 +255,7 @@ compile_server_client::passes_0_4 ()
 	}
     }
 
-  STAP_PROBE1(stap, client__end, &s);
+  PROBE1(stap, client__end, &s);
 
   return rc;
 #endif // HAVE_NSS

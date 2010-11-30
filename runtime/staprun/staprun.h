@@ -37,8 +37,8 @@
 /* Include config.h to pick up dependency for --prefix usage. */
 #include "config.h"
 
-/* For STAP_PROBE in staprun.c, staprun_funcs.c, mainloop.c and common.c */
-#include "sys/sdt.h"
+/* For probes in staprun.c, staprun_funcs.c, mainloop.c and common.c */
+#include "stap-probe.h"
 
 extern void eprintf(const char *fmt, ...);
 extern void switch_syslog(const char *name);

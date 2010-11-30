@@ -194,7 +194,7 @@ static int remove_module(const char *name, int verb)
         close_ctl_channel ();
 
 	dbug(2, "removing module %s\n", name);
-	STAP_PROBE1(staprun, remove__module, name);
+	PROBE1(staprun, remove__module, name);
 	ret = delete_module (name, O_NONBLOCK);
 	if (ret != 0) {
                 /* XXX: maybe we should just accept this, with a

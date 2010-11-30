@@ -23,7 +23,7 @@
 #include "task_finder.h"
 #include "csclient.h"
 
-#include "sys/sdt.h"
+#include "stap-probe.h"
 
 #include <cstdlib>
 
@@ -422,7 +422,7 @@ passes_0_4 (systemtap_session &s)
 
   // PASS 0: setting up
   s.verbose = s.perpass_verbose[0];
-  STAP_PROBE1(stap, pass0__start, &s);
+  PROBE1(stap, pass0__start, &s);
 
 
   // For PR1477, we used to override $PATH and $LC_ALL and other stuff
@@ -458,7 +458,7 @@ passes_0_4 (systemtap_session &s)
   // and reasonably timely exit.
   setup_signals(&handle_interrupt);
 
-  STAP_PROBE1(stap, pass0__end, &s);
+  PROBE1(stap, pass0__end, &s);
 
   struct tms tms_before;
   times (& tms_before);
@@ -466,7 +466,7 @@ passes_0_4 (systemtap_session &s)
   gettimeofday (&tv_before, NULL);
 
   // PASS 1a: PARSING USER SCRIPT
-  STAP_PROBE1(stap, pass1a__start, &s);
+  PROBE1(stap, pass1a__start, &s);
 
   struct stat user_file_stat;
   int user_file_stat_rc = -1;
@@ -518,7 +518,7 @@ passes_0_4 (systemtap_session &s)
   version_suffixes.push_back ("");
 
   // PASS 1b: PARSING LIBRARY SCRIPTS
-  STAP_PROBE1(stap, pass1b__start, &s);
+  PROBE1(stap, pass1b__start, &s);
 
   set<pair<dev_t, ino_t> > seen_library_files;
 
@@ -626,7 +626,7 @@ passes_0_4 (systemtap_session &s)
          << "Try again with another '--vp 1' option."
          << endl;
 
-  STAP_PROBE1(stap, pass1__end, &s);
+  PROBE1(stap, pass1__end, &s);
 
   if (rc || s.last_pass == 1 || pending_interrupts) return rc;
 
@@ -635,7 +635,7 @@ passes_0_4 (systemtap_session &s)
 
   // PASS 2: ELABORATION
   s.verbose = s.perpass_verbose[1];
-  STAP_PROBE1(stap, pass2__start, &s);
+  PROBE1(stap, pass2__start, &s);
   rc = semantic_pass (s);
 
   if (s.listing_mode || (rc == 0 && s.last_pass == 2))
@@ -661,7 +661,7 @@ passes_0_4 (systemtap_session &s)
   /* Print out list of missing files.  XXX should be "if (rc)" ? */
   missing_rpm_list_print(s,"-debuginfo");
 
-  STAP_PROBE1(stap, pass2__end, &s);
+  PROBE1(stap, pass2__end, &s);
 
   if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) return rc;
 
@@ -703,7 +703,7 @@ passes_0_4 (systemtap_session &s)
   s.verbose = s.perpass_verbose[2];
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
-  STAP_PROBE1(stap, pass3__start, &s);
+  PROBE1(stap, pass3__start, &s);
 
   rc = translate_pass (s);
 
@@ -728,7 +728,7 @@ passes_0_4 (systemtap_session &s)
          << "Try again with another '--vp 001' option."
          << endl;
 
-  STAP_PROBE1(stap, pass3__end, &s);
+  PROBE1(stap, pass3__end, &s);
 
   if (rc || s.last_pass == 3 || pending_interrupts) return rc;
 
@@ -736,7 +736,7 @@ passes_0_4 (systemtap_session &s)
   s.verbose = s.perpass_verbose[3];
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
-  STAP_PROBE1(stap, pass4__start, &s);
+  PROBE1(stap, pass4__start, &s);
 
   if (s.use_cache)
     {
@@ -786,7 +786,7 @@ passes_0_4 (systemtap_session &s)
 	}
     }
 
-  STAP_PROBE1(stap, pass4__end, &s);
+  PROBE1(stap, pass4__end, &s);
 
   return rc;
 }
@@ -803,7 +803,7 @@ pass_5 (systemtap_session &s)
   // NB: this message is a judgement call.  The other passes don't emit
   // a "hello, I'm starting" message, but then the others aren't interactive
   // and don't take an indefinite amount of time.
-  STAP_PROBE1(stap, pass5__start, &s);
+  PROBE1(stap, pass5__start, &s);
   if (s.verbose) clog << "Pass 5: starting run." << endl;
   int rc = run_pass (s);
   struct tms tms_after;
@@ -823,7 +823,7 @@ pass_5 (systemtap_session &s)
     // Interrupting pass-5 to quit is normal, so we want an EXIT_SUCCESS below.
     pending_interrupts = 0;
 
-  STAP_PROBE1(stap, pass5__end, &s);
+  PROBE1(stap, pass5__end, &s);
 
   return rc;
 }
@@ -832,7 +832,7 @@ static void
 cleanup (systemtap_session &s, int rc)
 {
   // PASS 6: cleaning up
-  STAP_PROBE1(stap, pass6__start, &s);
+  PROBE1(stap, pass6__start, &s);
 
   // update the database information
   if (!rc && s.tapset_compile_coverage && !pending_interrupts) {
@@ -846,7 +846,7 @@ cleanup (systemtap_session &s, int rc)
   // Clean up temporary directory.  Obviously, be careful with this.
   remove_temp_dir (s);
 
-  STAP_PROBE1(stap, pass6__end, &s);
+  PROBE1(stap, pass6__end, &s);
 }
 
 int

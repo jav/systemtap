@@ -50,6 +50,14 @@ if test "$enable_prologues" = yes; then
   AC_DEFINE([ENABLE_PROLOGUES],[],[make -P prologue-searching default])
 fi])
 
+AC_ARG_ENABLE([sdt-probes],
+  [AS_HELP_STRING([--disable-sdt-probes],
+                  [disable process.mark probes in stap, staprun, stapio])])
+AS_IF([test "x$enable_sdt_probes" != xno], [
+  AC_DEFINE([ENABLE_SDT_PROBES], [1],
+            [Define to 1 to enable process.mark probes in stap, staprun, stapio.])
+])
+
 AC_ARG_ENABLE([ssp],
   [AS_HELP_STRING([--disable-ssp], [disable gcc stack-protector])])
 AS_IF([test "x$enable_ssp" != xno],[

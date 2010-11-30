@@ -539,7 +539,7 @@ int stp_main_loop(void)
     }
 
     nb -= sizeof(recvbuf.type);
-    STAP_PROBE3(staprun, recv__ctlmsg, recvbuf.type, recvbuf.payload.data, nb);
+    PROBE3(staprun, recv__ctlmsg, recvbuf.type, recvbuf.payload.data, nb);
 
     switch (recvbuf.type) {
 #if STP_TRANSPORT_VERSION == 1

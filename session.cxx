@@ -20,8 +20,6 @@
 #include "util.h"
 #include "git_version.h"
 
-#include "sys/sdt.h"
-
 #include <cerrno>
 #include <cstdlib>
 

@@ -119,7 +119,7 @@ int insert_module(
 	 * check_permissions will exit(-1) if permissions are insufficient*/
 	assert_permissions (module_realpath, module_fd, module_file, sbuf.st_size);
 
-	STAP_PROBE1(staprun, insert__module, (char*)module_realpath);
+	PROBE1(staprun, insert__module, (char*)module_realpath);
 	/* Actually insert the module */
 	ret = init_module(module_file, sbuf.st_size, opts);
 	saved_errno = errno;

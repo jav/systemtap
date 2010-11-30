@@ -16,7 +16,7 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "util.h"
-#include "sys/sdt.h"
+#include "stap-probe.h"
 #include <stdexcept>
 #include <cerrno>
 #include <map>
@@ -426,7 +426,7 @@ int
 stap_system(int verbose, const std::string& command)
 {
   const char *cmd = command.c_str();
-  STAP_PROBE1(stap, stap_system__start, cmd);
+  PROBE1(stap, stap_system__start, cmd);
   char const * const argv[] = { "sh", "-c", cmd, NULL };
   int ret, status;
 
@@ -436,7 +436,7 @@ stap_system(int verbose, const std::string& command)
     clog << "Running " << command << endl;
 
   ret = posix_spawn(&spawned_pid, "/bin/sh", NULL, NULL, const_cast<char * const *>(argv), environ);
-  STAP_PROBE2(stap, stap_system__spawn, ret, spawned_pid);
+  PROBE2(stap, stap_system__spawn, ret, spawned_pid);
   if (ret == 0)
     {
       ret = waitpid(spawned_pid, &status, 0);
@@ -459,7 +459,7 @@ stap_system(int verbose, const std::string& command)
         clog << "Spawn error (" << ret << "): " << strerror(ret) << endl;
       ret = -1;
     }
-  STAP_PROBE1(stap, stap_system__complete, ret);
+  PROBE1(stap, stap_system__complete, ret);
   spawned_pid = 0;
   return ret;
 }

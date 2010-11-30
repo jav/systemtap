@@ -40,6 +40,14 @@ AS_IF([test "x$enable_pie" = xyes],[
 AC_SUBST(PIECFLAGS)
 AC_SUBST(PIELDFLAGS)
 
+AC_ARG_ENABLE([sdt-probes],
+  [AS_HELP_STRING([--disable-sdt-probes],
+                  [disable process.mark probes in staprun, stapio])])
+AS_IF([test "x$enable_sdt_probes" != xno], [
+  AC_DEFINE([ENABLE_SDT_PROBES], [1],
+            [Define to 1 to enable process.mark probes in staprun, stapio.])
+])
+
 PKG_CHECK_MODULES([nss], [nss >= 3], [have_nss=yes], [have_nss=no])
 AM_CONDITIONAL([HAVE_NSS], [test $have_nss = yes])
 AS_IF([test $have_nss = yes], [
