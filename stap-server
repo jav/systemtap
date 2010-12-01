@@ -332,7 +332,7 @@ echo_server_options () {
 	echo -n " -B \"`quote_for_cmd "$b"`\""
     done
     echo -n " -u \"`quote_for_cmd "$USER"`\""
-    echo -n " -n \"`quote_for_cmd "$NICKNAME"`\""
+    test -n "$NICKNAME" && echo -n " -n \"`quote_for_cmd "$NICKNAME"`\""
     echo
 }
 
@@ -604,7 +604,7 @@ eval_server_command () {
 }
 
 start_server () {
-    clog $"Starting $prog for $RELEASE $ARCH: " -n
+    clog $"Starting $prog `echo_server_options`"
 
     # Is there already a server running for the requested kernel release
     # and arch?
@@ -740,7 +740,7 @@ stop () { # server-cmds
           # If a nickname was specified, but the corresponding config was not
 	  # found, it is an error.
 	  if test -n "$NICKNAME_NOT_FOUND"; then
-	      clog "No configuration found for the nickname '$NICKNAME_NOT_FOUND'" -n
+	      clog "No configuration found for the nickname '$NICKNAME_NOT_FOUND'"
 	      NICKNAME="$NICKNAME_NOT_FOUND"
 	      do_failure $"$prog stop `echo_server_options`"
 	      NICKNAME_NOT_FOUND=
@@ -758,7 +758,7 @@ stop () { # server-cmds
 	  # This server is not running, but give a success stop status anyway.
 	  test $first = 0 && echo
 	  first=0
-	  clog $"Stopping $prog for $RELEASE $ARCH: " -n
+	  clog $"Stopping $prog `echo_server_options`"
 	  do_success $"$prog stop `echo_server_options`"
       done
   else
@@ -781,7 +781,7 @@ stop () { # server-cmds
 
       test $first = 0 && echo
       first=0
-      clog $"Stopping $prog for $RELEASE $ARCH: " -n
+      clog $"Stopping $prog `echo_server_options`"
 
       local this_rc=0
       if server_still_running $pid; then
@@ -950,7 +950,7 @@ function condrestart () { # server-list
 
       # Now see if this server is running
       if ! status "${this_server_cmds[@]}" >/dev/null 2>&1; then
-	clog $"$prog for $RELEASE $ARCH is not running" -n
+	clog $"$prog `echo_server_options` is not running"
 	do_success "$prog `echo_server_options` is not running"
 	unset this_server_cmds
 	continue
