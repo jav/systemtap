@@ -217,12 +217,12 @@ The following variables may be assigned:
 .B CONFIG_PATH
 Specifies the absolute path of the directory containing the default server
 configurations
-(default: \fI@prefix@/etc/stap\-server/conf.d\fR).
+(default: \fI@prefix@/etc/stap\-server/conf.d/\fR).
 
 .TP
 .B STAT_PATH
 Specifies the absolute path of the running server status directory
-(default: \fI@prefix@/var/run/stap\-server\fR).
+(default: \fI@prefix@/var/run/stap\-server/\fR).
 
 .TP
 .B LOG_FILE
@@ -378,21 +378,64 @@ order to limit the potential effects of bugs or mischevious users.
 Consider the following prophylactic measures.
 .TP
 1
-Run stap-server as an unprivileged user, never as root.
+Run stap\-server as an unprivileged user, never as root.
+
+When invoked as a
+service (i.e. \fBservice stap\-server\fR ...), each server is run,
+by default, as the user \fIstap\-server\fR.
+When invoked directly (i.e. \fBstap\-server\fR ...), each server is run,
+by default, as the invoking user. In each case, another user may be selected by
+using the \fI\-u\fR option on invocation, by specifying
+\fISTAP_USER=\fRusername in the global configuration file or by specifying
+\fIUSER=\fRusername in an individual server configuration file. The invoking
+user must have authority to run processes as another user.
+See \fICONFIGURATION\fR.
+
+The selected user must have write access to the server log file (default: \fI@prefix@/var/log/stap\-server.log\fR). The location of the server log file may
+be changed by setting \fILOG_FILE=\fRpath in the global configuration file.
+See \fICONFIGURATION\fR.
+
+The selected user must have 
+read/write access to the directory containing the server status files
+(default: \fI@prefix@/var/run/stap\-server/\fR). The location of the server
+status files may be changed by setting \fISTAT_PATH=\fRpath in the global
+configuration file.
+See \fICONFIGURATION\fR.
+
+The selected user must have 
+read/write access to the uprobes.ko build directory and its files
+(default: \fI@prefix@/share/systemtap/runtime/uprobes/\fR).
+
+Neither form of stap\-server will run if the selected user is root.
+
 .TP
 2
 Run stap-server with resource limits that impose maximum 
 cpu time, file size, memory consumption, in order to bound
 the effects of processing excessively large or bogus inputs.
+
+When the user running the servers is \fIstap\-server\fR,
+each server is run with limits equivalent to 
+
+  ulimit -f 50000 -s 1000 -t 60 -u 20 -v 500000
+
+otherwise, no limits are imposed.
+
 .TP
 3
-Run stap-server with a $TMPDIR environment variable that
+Run stap-server with a TMPDIR environment variable that
 points to a separate and/or quota-enforced directory, in
 order to prevent filling up of important filesystems.
+
+The default TMPDIR is \fI/tmp/\fR.
+
 .TP
 4
 Activate network firewalls to limit stap client connections
 to relatively trustworthy networks.
+
+For automatic selection of servers by clients, \fIavahi\fR must be installed
+on both the server and client hosts and \fImDNS\fR messages must be allowed through the firewall.
 
 .PP
 The systemtap server and its related utilities use the Secure Socket Layer
@@ -424,6 +467,10 @@ Default location of status files for running servers.
 Default log file.
 
 .TP
+@prefix@/share/systemtap/runtime/uprobes/
+Location of the uprobes.ko build directory.
+
+.TP
 /lib/modules/
 Location of installed kernels.
 
@@ -434,6 +481,7 @@ Location of installed kernels.
 .IR stapfuncs (3stap),
 .IR stappaths (7),
 .IR stapex (3stap),
+.IR avahi ,
 .IR ulimit (1),
 .IR NSS ,
 .IR certutil
