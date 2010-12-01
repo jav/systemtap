@@ -161,6 +161,9 @@ struct systemtap_session
   std::vector<std::string> server_args;
   std::string winning_server;
 
+  // Remote execution
+  std::vector<std::string> remote_uris;
+
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).
 
@@ -274,8 +277,6 @@ struct systemtap_session
 
 // global counter of SIGINT/SIGTERM's received
 extern int pending_interrupts;
-
-int passes_0_4 ();
 
 #endif // SESSION_H
 

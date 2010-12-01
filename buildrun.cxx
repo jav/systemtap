@@ -431,8 +431,8 @@ uprobes_pass (systemtap_session& s)
   return rc;
 }
 
-int
-run_pass (systemtap_session& s)
+string
+make_run_command (systemtap_session& s, const string& module)
 {
   // for now, just spawn staprun
   string staprun_cmd = string(getenv("SYSTEMTAP_STAPRUN") ?: BINDIR "/staprun")
@@ -460,13 +460,16 @@ run_pass (systemtap_session& s)
   if (!s.size_option.empty())
     staprun_cmd += "-S " + s.size_option + " ";
 
-  staprun_cmd += s.tmpdir + "/" + s.module_name + ".ko";
+  if (module.empty())
+    staprun_cmd += s.tmpdir + "/" + s.module_name + ".ko";
+  else
+    staprun_cmd += module;
 
   // add module arguments
   for (unsigned i=0; i<s.globalopts.size(); i++)
     staprun_cmd += " " + s.globalopts[i];
 
-  return stap_system (s.verbose, staprun_cmd);
+  return staprun_cmd;
 }
 
 

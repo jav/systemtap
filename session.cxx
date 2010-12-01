@@ -78,28 +78,7 @@ systemtap_session::systemtap_session ():
   kernel_release = string (buf.release);
   release = kernel_release;
   kernel_build_tree = "/lib/modules/" + kernel_release + "/build";
-
-  // PR4186: Copy logic from coreutils uname (uname -i) to squash
-  // i?86->i386.  Actually, copy logic from linux top-level Makefile
-  // to squash uname -m -> $(SUBARCH).
-  //
-  // This logic needs to match the logic in the stap_get_arch shell
-  // function in stap-env.
-
-  machine = buf.machine;
-  if (machine == "i486") machine = "i386";
-  else if (machine == "i586") machine = "i386";
-  else if (machine == "i686") machine = "i386";
-  else if (machine == "sun4u") machine = "sparc64";
-  else if (machine.substr(0,3) == "arm") machine = "arm";
-  else if (machine == "sa110") machine = "arm";
-  else if (machine == "s390x") machine = "s390";
-  else if (machine.substr(0,3) == "ppc") machine = "powerpc";
-  else if (machine.substr(0,4) == "mips") machine = "mips";
-  else if (machine.substr(0,3) == "sh2") machine = "sh";
-  else if (machine.substr(0,3) == "sh3") machine = "sh";
-  else if (machine.substr(0,3) == "sh4") machine = "sh";
-  architecture = machine;
+  architecture = machine = normalize_machine(buf.machine);
 
   for (unsigned i=0; i<5; i++) perpass_verbose[i]=0;
   verbose = 0;
@@ -420,6 +399,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_LIST_SERVERS 17
 #define LONG_OPT_TRUST_SERVERS 18
 #define LONG_OPT_ALL_MODULES 19
+#define LONG_OPT_REMOTE 20
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -447,6 +427,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "list-servers", 2, &long_opt, LONG_OPT_LIST_SERVERS },
         { "trust-servers", 2, &long_opt, LONG_OPT_TRUST_SERVERS },
         { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
+        { "remote", 1, &long_opt, LONG_OPT_REMOTE },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -862,6 +843,14 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
                   return 1;
               }
               insert_loaded_modules();
+              break;
+
+            case LONG_OPT_REMOTE:
+              if (client_options) {
+                  cerr << "ERROR: --remote is invalid with --client-options" << endl;
+                  return 1;
+              }
+              remote_uris.push_back(optarg);
               break;
 
             default:

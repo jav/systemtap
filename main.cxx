@@ -22,6 +22,7 @@
 #include "rpm_finder.h"
 #include "task_finder.h"
 #include "csclient.h"
+#include "remote.h"
 
 #include "stap-probe.h"
 
@@ -404,7 +405,7 @@ static int
 passes_0_4 (systemtap_session &s)
 {
   int rc = 0;
-  
+
   // Create a temporary directory to build within.
   // Be careful with this, as "s.tmpdir" is "rm -rf"'d at the end.
   create_temp_dir (s);
@@ -792,7 +793,7 @@ passes_0_4 (systemtap_session &s)
 }
 
 static int
-pass_5 (systemtap_session &s)
+pass_5 (systemtap_session &s, remote* target)
 {
   // PASS 5: RUN
   s.verbose = s.perpass_verbose[4];
@@ -805,7 +806,7 @@ pass_5 (systemtap_session &s)
   // and don't take an indefinite amount of time.
   PROBE1(stap, pass5__start, &s);
   if (s.verbose) clog << "Pass 5: starting run." << endl;
-  int rc = run_pass (s);
+  int rc = target->run (s);
   struct tms tms_after;
   times (& tms_after);
   unsigned _sc_clk_tck = sysconf (_SC_CLK_TCK);
@@ -873,12 +874,37 @@ main (int argc, char * const argv [])
   // a script has already been checked in systemtap_session::check_options.
   if (s.have_script)
     {
+      // XXX Eventually we should be looping over all remotes and running at
+      // ... least pass-5 in parallel.  For now, just deal with one.
+      remote *target = NULL;
+      if (s.remote_uris.size() > 1)
+        {
+          cerr << "Only one remote is supported at this time" << endl;
+          rc = 1;
+        }
+      else if (s.remote_uris.size() == 1)
+        {
+          target = remote::create(s, s.remote_uris[0]);
+          if (target)
+            {
+              // XXX need to deal with command-line vs. implied arch/release
+              s.machine = s.architecture = target->get_arch();
+              s.setup_kernel_release(target->get_release().c_str());
+            }
+        }
+      else
+        target = remote::create(s, "direct");
+
+      if (!target)
+        rc = 1;
+
       // Run passes 0-4, either locally or using a compile-server.
-      rc = passes_0_4 (s);
+      if (rc == 0)
+        rc = passes_0_4 (s);
 
       // Run pass 5, if requested
       if (rc == 0 && s.last_pass >= 5 && ! pending_interrupts)
-	rc = pass_5 (s);
+	rc = pass_5 (s, target);
     }
 
   // Pass 6. Cleanup

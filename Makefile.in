@@ -141,7 +141,7 @@ loc2c_test_LINK = $(CCLD) $(loc2c_test_CFLAGS) $(CFLAGS) \
 @BUILD_TRANSLATOR_TRUE@	stap-rpm_finder.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-setupdwfl.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-csclient.$(OBJEXT) \
-@BUILD_TRANSLATOR_TRUE@	$(am__objects_1)
+@BUILD_TRANSLATOR_TRUE@	stap-remote.$(OBJEXT) $(am__objects_1)
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
 	$(LDFLAGS) -o $@
@@ -396,7 +396,8 @@ oldinclude_HEADERS = includes/sys/sdt.h includes/sys/sdt-config.h
 @BUILD_TRANSLATOR_TRUE@	tapset-itrace.cxx tapset-utrace.cxx \
 @BUILD_TRANSLATOR_TRUE@	task_finder.cxx dwflpp.cxx \
 @BUILD_TRANSLATOR_TRUE@	rpm_finder.cxx setupdwfl.cxx \
-@BUILD_TRANSLATOR_TRUE@	csclient.cxx $(am__append_15)
+@BUILD_TRANSLATOR_TRUE@	csclient.cxx remote.cxx \
+@BUILD_TRANSLATOR_TRUE@	$(am__append_15)
 @BUILD_TRANSLATOR_TRUE@noinst_HEADERS = sdt-compat.h
 @BUILD_TRANSLATOR_TRUE@stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ \
 @BUILD_TRANSLATOR_TRUE@	$(am__append_14) $(am__append_19)
@@ -710,6 +711,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-mdfour.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-nsscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-parse.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-remote.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-rpm_finder.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-session.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-setupdwfl.Po@am__quote@
@@ -1340,6 +1342,22 @@ stap-csclient.obj: csclient.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='csclient.cxx' object='stap-csclient.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-csclient.obj `if test -f 'csclient.cxx'; then $(CYGPATH_W) 'csclient.cxx'; else $(CYGPATH_W) '$(srcdir)/csclient.cxx'; fi`
+
+stap-remote.o: remote.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-remote.o -MD -MP -MF $(DEPDIR)/stap-remote.Tpo -c -o stap-remote.o `test -f 'remote.cxx' || echo '$(srcdir)/'`remote.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-remote.Tpo $(DEPDIR)/stap-remote.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='remote.cxx' object='stap-remote.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-remote.o `test -f 'remote.cxx' || echo '$(srcdir)/'`remote.cxx
+
+stap-remote.obj: remote.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-remote.obj -MD -MP -MF $(DEPDIR)/stap-remote.Tpo -c -o stap-remote.obj `if test -f 'remote.cxx'; then $(CYGPATH_W) 'remote.cxx'; else $(CYGPATH_W) '$(srcdir)/remote.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-remote.Tpo $(DEPDIR)/stap-remote.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='remote.cxx' object='stap-remote.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-remote.obj `if test -f 'remote.cxx'; then $(CYGPATH_W) 'remote.cxx'; else $(CYGPATH_W) '$(srcdir)/remote.cxx'; fi`
 
 stap_sign_module-modsign.o: modsign.cxx
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT stap_sign_module-modsign.o -MD -MP -MF $(DEPDIR)/stap_sign_module-modsign.Tpo -c -o stap_sign_module-modsign.o `test -f 'modsign.cxx' || echo '$(srcdir)/'`modsign.cxx
