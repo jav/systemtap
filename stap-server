@@ -2,7 +2,7 @@
 #
 # stap-server script for managing the systemtap compile server
 #
-# Copyright (C) 2008, 2009 Red Hat Inc.
+# Copyright (C) 2008-2010 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -331,7 +331,7 @@ echo_server_options () {
     for b in "${BUILD[@]}"; do
 	echo -n " -B \"`quote_for_cmd "$b"`\""
     done
-    test -n "$USER" && echo -n " -u \"`quote_for_cmd "$USER"`\""
+    echo -n " -u \"`quote_for_cmd "$USER"`\""
     echo -n " -n \"`quote_for_cmd "$NICKNAME"`\""
     echo
 }
@@ -362,6 +362,7 @@ init_server_opts () {
   NICKNAME_NOT_FOUND=
   RUNTIME=
   USER=$STAP_USER
+  test -z "$USER" && USER=`id -un`
 }
 
 # Double quotes, backslashes within generated command
@@ -516,6 +517,7 @@ load_server_config () {
       [ -z "$ARCH" ]     && ARCH=`get_arch`
       [ -z "$RELEASE" ]  && RELEASE=`get_release`
       [ -z "$USER" ]     && USER=$STAP_USER
+      [ -z "$USER" ]     && USER=`id -un`
       add_server_commands
       SERVER_CMDS+=("EXEC")
     fi
@@ -627,7 +629,7 @@ start_server () {
 
     # Start the server here.
     local pid
-    if [ -n "$USER" ]; then
+    if [ "$USER" != "`id -un`" ]; then
 	pid=`runuser -s /bin/bash - $USER -c "$server_cmd"`
     else
 	pid=`eval $server_cmd`
@@ -783,7 +785,7 @@ stop () { # server-cmds
 
       local this_rc=0
       if server_still_running $pid; then
-	  if [ -n "$USER" ]; then
+	  if [ "$USER" != "`id -un`" ]; then
 	      runuser -s /bin/bash - $USER -c "$STAP_STOP_SERVER $pid"
 	  else
 	      eval $STAP_STOP_SERVER $pid
