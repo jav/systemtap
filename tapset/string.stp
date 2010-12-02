@@ -130,6 +130,7 @@ function str_replace:string (prnt_str:string, srch_str:string, rplc_str:string)
 	char *ptr_base = THIS->prnt_str;
 	int strlen_srch_str = strlen(THIS->srch_str);
 
+	THIS->__retvalue[0] = '\0';
 	if(strlen_srch_str == 0) {
 		strlcat(THIS->__retvalue, ptr_base, MAXSTRINGLEN);
 		return;

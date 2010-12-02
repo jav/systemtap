@@ -31,6 +31,6 @@ function daddr_to_string:string(daddr:long)
 %{ /* pure */
 	union { __u32 d; unsigned char addr[4]; } u;
 	u.d = THIS->daddr;
-	sprintf(THIS->__retvalue, "%d.%d.%d.%d",
+	snprintf(THIS->__retvalue, MAXSTRINGLEN, "%d.%d.%d.%d",
 			u.addr[0], u.addr[1], u.addr[2], u.addr[3]);
 %}

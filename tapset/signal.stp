@@ -782,9 +782,10 @@ function get_sa_handler:long (act:long)
 function sigset_mask_str:string (mask:long) %{ /* pure */
 	int i, len;
 	char *str = THIS->__retvalue, tmp[5];
+	str[0] = '\0';
 	for (i = 1; i < _NSIG; ++i, THIS->mask >>=1)
 		if (THIS->mask & 1) {
-			sprintf(tmp, "%u,", i);
+			snprintf(tmp, sizeof(tmp), "%u,", i);
 			strlcat(str, tmp, MAXSTRINGLEN);
 		}
 	len = strlen(str);
@@ -811,6 +812,7 @@ function is_sig_blocked:long (task:long, sig:long) %{ /* pure */
 function sa_flags_str:string (sa_flags:long) %{ /* pure */
 	int len;
 	char *str = THIS->__retvalue;
+	str[0] = '\0';
 	if (THIS->sa_flags & 0x00000001u) strlcat(str, "NOCLDSTOP|", MAXSTRINGLEN);
 	if (THIS->sa_flags & 0x00000002u) strlcat(str, "NOCLDWAIT|", MAXSTRINGLEN);
 	if (THIS->sa_flags & 0x00000004u) strlcat(str, "SIGINFO|", MAXSTRINGLEN);

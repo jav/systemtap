@@ -385,6 +385,7 @@ function __sem_flags:string(semflg:long)
 	int mode = semflg & S_IRWXUGO;
 	int len;
 
+	str[0] = '\0';
 	if (mode)
 		snprintf(str, MAXSTRINGLEN, "%#o|", mode); 
 	if (semflg & IPC_CREAT)
@@ -577,6 +578,7 @@ function _sys_pipe2_flag_str:string (f:long)
   char *str = THIS->__retvalue;
   int len;
 
+  str[0] = '\0';
 #if defined(O_NONBLOCK)
   if (flags & O_NONBLOCK)
     strlcat(str, "O_NONBLOCK|", MAXSTRINGLEN);
@@ -779,13 +781,14 @@ function _mlockall_flags_str:string(flags:long)
 	int len;
 	long f = THIS->flags;
 	char *str = THIS->__retvalue;
+	str[0] = '\0';
 	if (f & MCL_CURRENT)
 		strlcat(str, "MCL_CURRENT|", MAXSTRINGLEN);
 	if (f & MCL_FUTURE)
 		strlcat(str, "MCL_FUTURE|", MAXSTRINGLEN);
 	len = strlen(str);
 	if (len)
-		str[strlen(str)-1] = 0;
+		str[strlen(str)-1] = '\0';
 	else	
 		snprintf(str, MAXSTRINGLEN, "0x%lx", f);
 %}
@@ -796,13 +799,14 @@ function _module_flags_str:string(flags:long)
 	int len;
 	long flags = THIS->flags;
 	char *str = THIS->__retvalue;
+	str[0] = '\0';
 	if (flags & O_TRUNC)
 		strlcat(str,"O_TRUNC|", MAXSTRINGLEN);
 	if (flags & O_NONBLOCK)
 		strlcat(str,"O_NONBLOCK|", MAXSTRINGLEN);
 	len = strlen(str);
 	if (len)
-		str[strlen(str)-1] = 0;
+		str[strlen(str)-1] = '\0';
 %}
 
 function _sched_policy_str(policy) {
@@ -907,6 +911,7 @@ function _mountflags_str:string(op:long)
 %{ /* pure */
 	int len, op = THIS->op;
 	char *str = THIS->__retvalue;
+	str[0] = '\0';
 	if (op & MS_BIND)
 		strlcat(str,"MS_BIND|",MAXSTRINGLEN);
 	if (op & MS_DIRSYNC)
@@ -937,7 +942,7 @@ function _mountflags_str:string(op:long)
 		strlcat(str,"MS_VERBOSE|",MAXSTRINGLEN);
 	len = strlen(str);
 	if (len)
-		str[strlen(str)-1] = 0;
+		str[strlen(str)-1] = '\0';
 %}
 
 function _umountflags_str:string(op:long) 
@@ -945,8 +950,9 @@ function _umountflags_str:string(op:long)
 	int len, op = THIS->op;
 	char *str = THIS->__retvalue;
 	if (op == 0)
-		strlcat(str,"0",MAXSTRINGLEN);
+		strlcpy(str,"0",MAXSTRINGLEN);
 	else {
+		str[0] = '\0';
 		if (op & MNT_FORCE)
 			strlcat(str,"MNT_FORCE|",MAXSTRINGLEN);
 		if (op & MNT_DETACH)
@@ -955,7 +961,7 @@ function _umountflags_str:string(op:long)
 			strlcat(str,"MNT_EXPIRE|",MAXSTRINGLEN);
 		len = strlen(str);
 		if (len)
-			str[strlen(str)-1] = 0;
+			str[strlen(str)-1] = '\0';
 	}
 %}
 
@@ -1682,6 +1688,7 @@ function _eventfd2_flag_str:string(f:long)
   char *str = THIS->__retvalue;
   int len;
 
+  str[0] = '\0';
 #if defined(EFD_CLOEXEC) && defined(EFD_NONBLOCK)
   if (flags & EFD_NONBLOCK)
     strlcat(str, "EFD_NONBLOCK|", MAXSTRINGLEN);
@@ -1691,7 +1698,7 @@ function _eventfd2_flag_str:string(f:long)
 
   len = strlen(str);
   if (len)
-    str[strlen(str)-1] = 0;
+    str[strlen(str)-1] = '\0';
 %}
 
 %{
@@ -1705,6 +1712,7 @@ function _signalfd4_flags_str:string(f:long)
   char *str = THIS->__retvalue;
   int len;
 
+  str[0] = '\0';
 #if defined(SFD_CLOEXEC) && defined(SFD_NONBLOCK)
   if (flags & SFD_NONBLOCK)
     strlcat(str, "SFD_NONBLOCK|", MAXSTRINGLEN);
@@ -1714,7 +1722,7 @@ function _signalfd4_flags_str:string(f:long)
 
   len = strlen(str);
   if (len)
-    str[strlen(str)-1] = 0;
+    str[strlen(str)-1] = '\0';
 %}
 
 %{
@@ -1728,6 +1736,7 @@ function _inotify_init1_flag_str:string(f:long)
   char *str = THIS->__retvalue;
   int len;
 
+  str[0] = '\0';
 #if defined(IN_CLOEXEC) && defined(IN_NONBLOCK)
   if (flags & IN_NONBLOCK)
     strlcat(str, "IN_NONBLOCK|", MAXSTRINGLEN);
@@ -1737,7 +1746,7 @@ function _inotify_init1_flag_str:string(f:long)
 
   len = strlen(str);
   if (len)
-    str[strlen(str)-1] = 0;
+    str[strlen(str)-1] = '\0';
 %}
 
 function _dup3_flag_str:string(f:long)

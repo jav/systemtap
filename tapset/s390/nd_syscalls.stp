@@ -137,46 +137,52 @@ function get_32mmap_args:string (args:long)
 		u32     offset;
 	}a;
 
-
 	char proto[60];
 	char flags[256];
 
-	if(_stp_copy_from_user((char *)&a,
-				(char *)THIS->args, sizeof(a))== 0){
-
+	if(_stp_copy_from_user((char *)&a, (char *)THIS->args, sizeof(a))== 0){
 		/* _mprotect_prot_str */
 		proto[0] = '\0';
 		if(a.prot){
-			if(a.prot & 1) strcat (proto, "PROT_READ|");
-			if(a.prot & 2) strcat (proto, "PROT_WRITE|");
-			if(a.prot & 4) strcat (proto, "PROT_EXEC|");
+                        if(a.prot & 1)
+                                strlcat (proto, "PROT_READ|", sizeof(proto));
+                        if(a.prot & 2)
+                                strlcat (proto, "PROT_WRITE|", sizeof(proto));
+                        if(a.prot & 4)
+                                strlcat (proto, "PROT_EXEC|", sizeof(proto));
 		} else {
-			strcat (proto, "PROT_NONE");
+                        strlcat (proto, "PROT_NONE", sizeof(proto));
 		}
 		if (proto[0] != '\0') proto[strlen(proto)-1] = '\0';
 
 		/* _mmap_flags */
 		flags[0]='\0';
-		if (a.flags & 1) strcat (flags, "MAP_SHARED|");
-		if (a.flags & 2) strcat (flags, "MAP_PRIVATE|");
-		if (a.flags & 0x10) strcat (flags, "MAP_FIXED|");
-		if (a.flags & 0x20) strcat (flags, "MAP_ANONYMOUS|");
-		if (a.flags & 0x100) strcat (flags, "MAP_GROWSDOWN|");
-		if (a.flags & 0x800) strcat (flags, "MAP_DENYWRITE|");
-		if (a.flags & 0x1000) strcat (flags, "MAP_EXECUTABLE|");
-		if (a.flags & 0x2000) strcat (flags, "MAP_LOCKED|");
-		if (a.flags & 0x4000) strcat (flags, "MAP_NORESERVE|");
-		if (a.flags & 0x8000) strcat (flags, "MAP_POPULATE|");
-		if (a.flags & 0x10000) strcat (flags, "MAP_NONBLOCK|");
-		if (flags[0] != '\0') flags[strlen(flags)-1] = '\0';
+                if (a.flags & 1) strlcat (flags, "MAP_SHARED|", sizeof(flags));
+                if (a.flags & 2)
+                        strlcat (flags, "MAP_PRIVATE|", sizeof(flags));
+                if (a.flags & 0x10)
+                        strlcat (flags, "MAP_FIXED|", sizeof(flags));
+                if (a.flags & 0x20)
+                        strlcat (flags, "MAP_ANONYMOUS|", sizeof(flags));
+                if (a.flags & 0x100)
+                        strlcat (flags, "MAP_GROWSDOWN|", sizeof(flags));
+                if (a.flags & 0x800)
+                        strlcat (flags, "MAP_DENYWRITE|", sizeof(flags));
+                if (a.flags & 0x1000)
+                        strlcat (flags, "MAP_EXECUTABLE|", sizeof(flags));
+                if (a.flags & 0x2000)
+                        strlcat (flags, "MAP_LOCKED|", sizeof(flags));
+                if (a.flags & 0x4000)
+                        strlcat (flags, "MAP_NORESERVE|", sizeof(flags));
+                if (a.flags & 0x8000)
+                        strlcat (flags, "MAP_POPULATE|", sizeof(flags));
+                if (a.flags & 0x10000)
+                        strlcat (flags, "MAP_NONBLOCK|", sizeof(flags));
+                if (flags[0] != '\0') flags[strlen(flags)-1] = '\0';
 
-		sprintf(THIS->__retvalue,"0x%x, %d, %s, %s, %d, %d",
-				a.addr,
-				a.len,
-				proto,
-				flags,
-				a.fd,
-				a.offset);
+                snprintf (THIS->__retvalue, MAXSTRINGLEN,
+                          "0x%x, %d, %s, %s, %d, %d", a.addr, a.len,
+                          proto, flags, a.fd, a.offset);
 	}else{
 		strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}
