@@ -532,7 +532,7 @@ static char *_stp_eh_enc_name(signed type)
 	hi = (type & DW_EH_PE_ADJUST) >> 4;
 	low = type & DW_EH_PE_FORM;
 	if (hi > 5 || low > 4 || (low == 0 && (type & DW_EH_PE_signed))) {
-		sprintf(buf, "ERROR:encoding=0x%x", type);
+	    snprintf(buf, sizeof(buf), "ERROR:encoding=0x%x", type);
 		return buf;
 	}
 

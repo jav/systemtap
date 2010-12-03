@@ -295,6 +295,9 @@ int init_relayfs(void)
 			if (outfile_name) {
 				/* special case: for testing we sometimes want to write to /dev/null */
 				if (strcmp(outfile_name, "/dev/null") == 0) {
+					/* This strcpy() is OK, since
+					 * we know buf is PATH_MAX
+					 * bytes long. */
 					strcpy(buf, "/dev/null");
 				} else {
 					len = stap_strfloctime(buf, PATH_MAX,

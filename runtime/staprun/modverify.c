@@ -188,6 +188,8 @@ check_cert_db_permissions (const char *cert_db_path) {
       return 0;
     }
 
+  /* These uses of sprintf() are OK, since we just allocated the
+   * string to be the correct length. */
   sprintf (fileName, "%s/cert8.db", cert_db_path);
   rc &= check_db_file_permissions (fileName);
   sprintf (fileName, "%s/key3.db", cert_db_path);

@@ -696,7 +696,7 @@ static int _stp_transport_data_fs_init(void)
 			_stp_transport_data_fs_close();
 			return -EINVAL;
 		}
-		sprintf(cpu_file, "trace%d", cpu);
+		snprintf(cpu_file, sizeof(cpu_file), "trace%d", cpu);
 		__stp_entry[cpu] = debugfs_create_file(cpu_file, 0600,
 						       _stp_get_module_dir(),
 						       (void *)(long)cpu,

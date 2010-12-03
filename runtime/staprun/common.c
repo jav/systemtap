@@ -52,6 +52,8 @@ static char *get_abspath(char *path)
 	if (len + 2 + strlen(path) >= PATH_MAX)
 		return NULL;
 	path_buf[len] = '/';
+	/* Note that this strcpy() call is OK, since we checked
+	 * the length earlier to make sure the string would fit. */
 	strcpy(&path_buf[len + 1], path);
 	return path_buf;
 }
@@ -81,6 +83,9 @@ int make_outfile_name(char *buf, int max, int fnum, int cpu, time_t t, int bulk)
 	}
 	/* special case: for testing we sometimes want to write to /dev/null */
 	if (strcmp(outfile_name, "/dev/null") == 0) {
+		/* This strcpy() call is OK since we know that the
+		 * buffer is at least PATH_MAX bytes long at this
+		 * point. */
 		strcpy(buf, "/dev/null");
 	} else {
 		if (bulk) {

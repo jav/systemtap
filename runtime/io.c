@@ -20,6 +20,10 @@
 
 #define WARN_STRING "WARNING: "
 #define ERR_STRING "ERROR: "
+#if (STP_LOG_BUF_LEN < 10) /* sizeof(WARN_STRING) */
+#error "STP_LOG_BUF_LEN is too short"
+#endif
+
 enum code { INFO=0, WARN, ERROR, DBUG };
 
 static void _stp_vlog (enum code type, const char *func, int line, const char *fmt, va_list args)
@@ -34,9 +38,13 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
 	if (type == DBUG) {
 		start = _stp_snprintf(buf, STP_LOG_BUF_LEN, "%s:%d: ", func, line);
 	} else if (type == WARN) {
+		/* This strcpy() is OK, since we know STP_LOG_BUF_LEN
+		 * is > sizeof(WARN_STRING). */
 		strcpy (buf, WARN_STRING);
 		start = sizeof(WARN_STRING) - 1;
 	} else if (type == ERROR) {
+		/* This strcpy() is OK, since we know STP_LOG_BUF_LEN
+		 * is > sizeof(ERR_STRING) (which is < sizeof(WARN_STRING). */
 		strcpy (buf, ERR_STRING);
 		start = sizeof(ERR_STRING) - 1;
 	}

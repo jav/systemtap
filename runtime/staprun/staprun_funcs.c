@@ -73,6 +73,8 @@ int insert_module(
 			_perr("[re]allocating memory failed");
 			return -1;
 		}
+		/* Note that these strcat() calls are OK, since we just
+		 * allocated space for the resulting string. */
 		strcat(opts, " ");
 		strcat(opts, options[i]);
 	}
@@ -247,10 +249,12 @@ check_signature(const char *path, const void *module_data, off_t module_size)
 
   /* Add the .sgn suffix to the canonicalized module path to get the signature
      file path.  */
-  if (strlen (path) >= PATH_MAX - 4) {
+  if (strlen (path) >= PATH_MAX - 5) {
     err("Path \"%s.sgn\" is too long.", path);
     return -1;
   }
+  /* This use of sprintf() is OK, since we just checked the final
+   * string's length. */
   sprintf (signature_realpath, "%s.sgn", path);
 
   rc = verify_module (signature_realpath, path, module_data, module_size);
@@ -301,6 +305,8 @@ check_stap_module_path(const char *module_path, int module_fd)
 	 * /lib/modules/`uname -r`/systemtapmod.ko, put a '/' on the
 	 * end of staplib_dir_realpath. */
 	if (strlen(staplib_dir_realpath) < (PATH_MAX - 1))
+		/* Note that this strcat() is OK, since we just
+		 * checked the length of the resulting string.  */
 		strcat(staplib_dir_realpath, "/");
 	else {
 		err("ERROR: Path \"%s\" is too long.", staplib_dir_realpath);
