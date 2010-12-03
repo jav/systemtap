@@ -1,0 +1,96 @@
+probe process(@1).mark("a") 
+{ if ($arg1 == 86) {printf ("PASS: %sh\n", $$name)}
+  else {printf ("FAIL: %sh (%#x != 0x78)\n",$$name, $arg1)}
+  if ($arg2 == 120) {printf ("PASS: %sl\n", $$name)}
+  else {printf ("FAIL: %sl (%#x != 0x56)\n", $$name, $arg2)}
+  if ($arg3 == 22136) {printf ("PASS: %sx\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x5678)\n", $$name, $arg3)}}
+
+probe process(@1).mark("b") 
+{ if ($arg1 == 86) {printf ("PASS: %sh\n", $$name)}
+  else {printf ("FAIL: %sh (%#x != 0x78)\n",$$name, $arg1)}
+  if ($arg2 == 120) {printf ("PASS: %sl\n", $$name)}
+  else {printf ("FAIL: %sl (%#x != 0x56)\n", $$name, $arg2)}
+  if ($arg3 == 22136) {printf ("PASS: %sx\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x5678)\n", $$name, $arg3)}}
+
+probe process(@1).mark("c") 
+{ if ($arg1 == 86) {printf ("PASS: %sh\n", $$name)}
+  else {printf ("FAIL: %sh (%#x != 0x78)\n",$$name, $arg1)}
+  if ($arg2 == 120) {printf ("PASS: %sl\n", $$name)}
+  else {printf ("FAIL: %sl (%#x != 0x56)\n", $$name, $arg2)}
+  if ($arg3 == 22136) {printf ("PASS: %sx\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x5678)\n", $$name, $arg3)}}
+
+probe process(@1).mark("d") 
+{ if ($arg1 == 86) {printf ("PASS: %sh\n", $$name)}
+  else {printf ("FAIL: %sh (%#x != 0x78)\n",$$name, $arg1)}
+  if ($arg2 == 120) {printf ("PASS: %sl\n", $$name)}
+  else {printf ("FAIL: %sl (%#x != 0x56)\n", $$name, $arg2)}
+  if ($arg3 == 22136) {printf ("PASS: %sx\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x5678)\n", $$name, $arg3)}}
+
+probe process(@1).mark("sil") ?
+{ if ($arg1 == 120) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x56)\n",$$name, $arg1)}}
+
+probe process(@1).mark("dil") ?
+{ if ($arg1 == 120) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x56)\n",$$name, $arg1)}}
+
+probe process(@1).mark("si") 
+{ if ($arg1 == 22136) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x5678)\n", $$name, $arg1)}}
+
+probe process(@1).mark("di") 
+{ if ($arg1 == 22136) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x5678)\n", $$name, $arg1)}}
+
+probe process(@1).mark("r8") ?
+{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
+  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+
+probe process(@1).mark("r9") ?
+{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
+  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+
+probe process(@1).mark("r10") ?
+{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
+  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+
+probe process(@1).mark("r11") ?
+{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
+  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+
+probe process(@1).mark("r12") ?
+{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
+  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+
+probe process(@1).mark("r13") ?
+{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
+  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+
+probe process(@1).mark("r14") ?
+{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
+  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+
+probe process(@1).mark("r15") ?
+{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
+  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+

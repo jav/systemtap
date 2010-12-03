@@ -8,6 +8,7 @@ set test "sdt_misc"
 # 5. Test attaching to a running process with markers in a shared object
 # 6. Test .mark probe wildcard matching
 # 7. Test types defined in sdt_misc_.d.  This requires -g
+# 8. Test V3 asm support
 
 set v_flags {{-DSTAP_SDT_V1} {-DSTAP_SDT_V2} {-DSTAP_SDT_V2} {-DSTAP_SDT_V3}}
 set pbtype_mssgs {{V1_uprobe} {V2_kprobe} {V2_uprobe} {V3_uprobe}}
@@ -15,10 +16,8 @@ set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_
 switch -regexp $::tcl_platform(machine) {
     ^(x86_64|i.86)$ {
 	lappend pbtype_flags {}
-	lappend pbtype_flags {}
     }
     default {
-	lappend pbtype_flags {additional_flags=-g}
 	lappend pbtype_flags {additional_flags=-g}
     }
 }
@@ -422,5 +421,40 @@ if {$ok == 1} {
 }
 
 } ; # end pbtype_flags
+
+# 8. Test V3 asm support
+
+if {[regexp $::tcl_platform(machine) "^(x86_64|i.86)$"]} {
+set res [target_compile $srcdir/$subdir/sdt_asm.S sdt_asm.x executable [sdt_includes]]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "$test compiling sdt_asm.S"
+} else {
+    pass "$test compiling sdt_asm.S"
+}
+
+set ok 0
+set notok 0
+set fail "asm"
+verbose -log "spawn $stap_path -c [pwd]/sdt_asm.x $srcdir/$subdir/sdt_asm.stp [pwd]/sdt_asm.x"
+spawn $stap_path -c [pwd]/sdt_asm.x $srcdir/$subdir/sdt_asm.stp [pwd]/sdt_asm.x
+
+expect {
+    -timeout 180
+    -re {FAIL: [a-z0-9]} { regexp " .*$" $expect_out(0,string) s;
+	incr notok; set fail "$fail $s"; exp_continue }
+    -re {PASS: [a-z0-9]} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+catch {close}; catch {wait}
+
+if { $notok != 0 || $ok == 0} {
+    fail "$test asm ($ok) $fail"
+} else {
+    pass "$test asm ($ok)"
+}
+} ; # x86_64 | i.86
 
 cleanup_handler $verbose

@@ -4657,16 +4657,16 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
        probe target process/file, not upon the host.  So we can't just
        #ifdef _i686_ etc. */
     if (elf_machine == EM_X86_64) {
-      dwarf_regs["%rax"] = dwarf_regs["%eax"] = dwarf_regs["%ax"] = dwarf_regs["%al"] = 0;
-      dwarf_regs["%rdx"] = dwarf_regs["%edx"] = dwarf_regs["%dx"] = dwarf_regs["%dl"] = 1;
-      dwarf_regs["%rcx"] = dwarf_regs["%ecx"] = dwarf_regs["%cx"] = dwarf_regs["%cl"] = 2;
-      dwarf_regs["%rbx"] = dwarf_regs["%ebx"] = dwarf_regs["%bx"] = dwarf_regs["%bl"] = 3;
+      dwarf_regs["%rax"] = dwarf_regs["%eax"] = dwarf_regs["%ax"] = dwarf_regs["%al"] = dwarf_regs["%ah"] = 0;
+      dwarf_regs["%rdx"] = dwarf_regs["%edx"] = dwarf_regs["%dx"] = dwarf_regs["%dl"] = dwarf_regs["%dh"] = 1;
+      dwarf_regs["%rcx"] = dwarf_regs["%ecx"] = dwarf_regs["%cx"] = dwarf_regs["%cl"] = dwarf_regs["%ch"] = 2;
+      dwarf_regs["%rbx"] = dwarf_regs["%ebx"] = dwarf_regs["%bx"] = dwarf_regs["%bl"] = dwarf_regs["%bh"] = 3;
       dwarf_regs["%rsi"] = dwarf_regs["%esi"] = dwarf_regs["%si"] = dwarf_regs["%sil"] = 4;
       dwarf_regs["%rdi"] = dwarf_regs["%edi"] = dwarf_regs["%di"] = dwarf_regs["%dil"] = 5;
       dwarf_regs["%rbp"] = dwarf_regs["%ebp"] = dwarf_regs["%bp"] = 6;
       dwarf_regs["%rsp"] = dwarf_regs["%esp"] = dwarf_regs["%sp"] = 7;
-      dwarf_regs["%r8"]  = dwarf_regs["%r8d"]  = dwarf_regs["%r8w"]	= dwarf_regs["%r8b"]  = 8;
-      dwarf_regs["%r9"]  = dwarf_regs["%r9d"]  = dwarf_regs["%r9w"]	= dwarf_regs["%r9b"]  = 9;
+      dwarf_regs["%r8"]  = dwarf_regs["%r8d"]  = dwarf_regs["%r8w"] = dwarf_regs["%r8b"]  = 8;
+      dwarf_regs["%r9"]  = dwarf_regs["%r9d"]  = dwarf_regs["%r9w"] = dwarf_regs["%r9b"]  = 9;
       dwarf_regs["%r10"] = dwarf_regs["%r10d"] = dwarf_regs["%r10w"] = dwarf_regs["%r10b"] = 10;
       dwarf_regs["%r11"] = dwarf_regs["%r11d"] = dwarf_regs["%r11w"] = dwarf_regs["%r11b"] = 11;
       dwarf_regs["%r12"] = dwarf_regs["%r12d"] = dwarf_regs["%r12w"] = dwarf_regs["%r12b"] = 12;
@@ -4674,10 +4674,10 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
       dwarf_regs["%r14"] = dwarf_regs["%r14d"] = dwarf_regs["%r14w"] = dwarf_regs["%r14b"] = 14;
       dwarf_regs["%r15"] = dwarf_regs["%r15d"] = dwarf_regs["%r15w"] = dwarf_regs["%r15b"] = 15;
     } else if (elf_machine == EM_386) {
-      dwarf_regs["%eax"] = dwarf_regs["%ax"] = dwarf_regs["%al"] = 0;
-      dwarf_regs["%ecx"] = dwarf_regs["%cx"] = dwarf_regs["%cl"] = 1;
-      dwarf_regs["%edx"] = dwarf_regs["%dx"] = dwarf_regs["%dl"] = 2;
-      dwarf_regs["%ebx"] = dwarf_regs["%bx"] = dwarf_regs["%bl"] = 3;
+      dwarf_regs["%eax"] = dwarf_regs["%ax"] = dwarf_regs["%al"] = dwarf_regs["%ah"] = 0;
+      dwarf_regs["%ecx"] = dwarf_regs["%cx"] = dwarf_regs["%cl"] = dwarf_regs["%ch"] = 1;
+      dwarf_regs["%edx"] = dwarf_regs["%dx"] = dwarf_regs["%dl"] = dwarf_regs["%dh"] = 2;
+      dwarf_regs["%ebx"] = dwarf_regs["%bx"] = dwarf_regs["%bl"] = dwarf_regs["%bh"] = 3;
       dwarf_regs["%esp"] = dwarf_regs["%sp"] = 4;
       dwarf_regs["%ebp"] = dwarf_regs["%bp"] = 5;
       dwarf_regs["%esi"] = dwarf_regs["%si"] = dwarf_regs["%sil"] = 6;
@@ -4733,6 +4733,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   bool need_debug_info;
 
   void visit_target_symbol (target_symbol* e);
+  __uint64_t get_register_width (string);
 };
 
 
@@ -4805,7 +4806,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       string percent_regnames;
       string regnames;
       vector<string> matches;
-      int precision = 0;
+      int precision;
       int rc;
 
       // Parse the leading length
@@ -4815,6 +4816,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  precision = lex_cast<int>(asmarg.substr(0, asmarg.find('@')));
 	  asmarg = asmarg.substr(asmarg.find('@')+1);
 	}
+      else precision = 8;
 
       // test for a numeric literal.
       // Only accept (signed) decimals throughout. XXX
@@ -4888,15 +4890,26 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           if (dwarf_regs.find (regname) != dwarf_regs.end()) // known register
             {
               embedded_expr *get_arg1 = new embedded_expr;
+	      string width_adjust;
+	      switch (get_register_width (regname))
+		{
+		case 0xff: width_adjust = ") & 0xff"; break;
+		case 0xff00: width_adjust = ">>8) & 0xff"; break;
+		case 0xffff:
+		  width_adjust = (precision > 0) ? ") & 0xffff" : ")";
+		  break;
+		default: width_adjust = ")";
+		}
               string type = (precision < 0 ? "(int" : "(uint")
-                  + lex_cast(abs(precision) * 8) + "_t)";
+                  + lex_cast(abs(precision) * 8) + "_t)((";
               get_arg1->tok = e->tok;
               get_arg1->code = string("/* unprivileged */ /* pure */")
                 + string(" (int64_t)") + type
                 + (is_user_module (process_name)
                    ? string("u_fetch_register(")
                    : string("k_fetch_register("))
-                + lex_cast(dwarf_regs[regname]) + string(")");
+                + lex_cast(dwarf_regs[regname]) + string("))")
+		+ width_adjust;
               argexpr = get_arg1;
               goto matched;
             }
@@ -5016,6 +5029,31 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       e->chain (er);
       provide (e);
     }
+}
+
+
+__uint64_t
+sdt_uprobe_var_expanding_visitor::get_register_width (string regname)
+{
+  if (elf_machine == EM_X86_64 || elf_machine == EM_386) {
+    int regno = dwarf_regs.find (regname)->second;
+    // al,bl,cl,dl
+    if (regno < 4 && regname[2] == 'l') return 0xff;
+    // ah,bh,ch,dh
+    else if (regno < 4 && regname[2] == 'h') return 0xff00;
+    // ax,bx,cx,dx
+    else if (regno < 4 && regname[2] == 'x') return 0xffff;
+    // sil,dil,bpl,spl
+    else if (regno < 8 && regname.rfind('l') != regname.npos) return 0xff; // sil
+    // si,di,bp,sp
+    else if (regno < 8 && regname.length() == 3) return 0xffff; // si
+    // r8b-r15b
+    else if (regno < 16 && regname.rfind('b') != regname.npos) return 0xff; // r8b
+    // r8w-r15w
+    else if (regno < 16 && regname.rfind('w') != regname.npos) return 0xffff; // r8w
+    else return 0xffffffff;
+  }
+  else return 0xffffffff;
 }
 
 
