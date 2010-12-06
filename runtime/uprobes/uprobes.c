@@ -279,7 +279,12 @@ static void insert_bkpt(struct uprobe_probept *ppt, struct task_struct *tsk)
 	}
 	memcpy(&ppt->opcode, ppt->insn, BP_INSN_SIZE);
 	if (ppt->opcode == BREAKPOINT_INSTRUCTION) {
-		bkpt_insertion_failed(ppt, "bkpt already exists at that addr");
+		/*
+		 * To avoid filling up the log file with complaints
+		 * about breakpoints already existing, don't log this
+		 * error.
+		 */
+		//bkpt_insertion_failed(ppt, "bkpt already exists at that addr");
 		result = -EEXIST;
 		goto out;
 	}
@@ -2280,8 +2285,9 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 	down_write(&uproc->rwsem);
 	get_task_struct(child);
 
-	if (clone_flags & CLONE_THREAD) {
-		/* New thread in the same process */
+	if (clone_flags & (CLONE_THREAD|CLONE_VM)) {
+		/* New thread in the same process (CLONE_THREAD) or
+		 * processes sharing the same memory space (CLONE_VM). */
 		ctask = uprobe_add_task(child, uproc);
 		BUG_ON(!ctask);
 		if (IS_ERR(ctask))
@@ -2356,25 +2362,45 @@ static u32 uprobe_report_exec(struct utrace_attached_engine *engine,
 {
 	struct uprobe_process *uproc;
 	struct uprobe_task *utask;
-	int uproc_freed;
+	u32 ret = UTRACE_ACTION_RESUME;
 
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = utask->uproc;
 	uprobe_get_process(uproc);
 
-	down_write(&uproc->rwsem);
-	uprobe_cleanup_process(uproc);
 	/*
-	 * If [un]register_uprobe() is in progress, cancel the quiesce.
-	 * Otherwise, utrace_report_exec() might call uprobe_report_exec()
-	 * while the [un]register_uprobe thread is freeing the uproc.
+	 * Only cleanup if we're the last thread.  If we aren't,
+	 * uprobe_report_exit() will handle cleanup.
+	 *
+	 * One instance of this can happen if vfork() was called,
+	 * creating 2 tasks that share the same memory space
+	 * (CLONE_VFORK|CLONE_VM).  In this case we don't want to
+	 * remove the probepoints from the child, since that would
+	 * also remove them from the parent.  Instead, just detach
+	 * as if this were a simple thread exit.
 	 */
-	clear_utrace_quiesce(utask);
+	down_write(&uproc->rwsem);
+	if (uproc->nthreads == 1) {
+		uprobe_cleanup_process(uproc);
+		/*
+		 * If [un]register_uprobe() is in progress, cancel the
+		 * quiesce.  Otherwise, utrace_report_exec() might
+		 * call uprobe_report_exec() while the
+		 * [un]register_uprobe thread is freeing the uproc.
+		 */
+		clear_utrace_quiesce(utask);
+        } else {
+                uprobe_free_task(utask);
+                uproc->nthreads--;
+                ret = UTRACE_ACTION_DETACH;
+	}
 	up_write(&uproc->rwsem);
 
 	/* If any [un]register_uprobe is pending, it'll clean up. */
-	uproc_freed = uprobe_put_process(uproc);
-	return (uproc_freed ? UTRACE_ACTION_DETACH : UTRACE_ACTION_RESUME);
+	if (uprobe_put_process(uproc))
+		ret = UTRACE_ACTION_DETACH;
+
+	return ret;
 }
 
 static const struct utrace_engine_ops uprobe_utrace_ops =

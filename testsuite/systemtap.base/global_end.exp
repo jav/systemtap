@@ -16,9 +16,9 @@ expect {
     -re {gamma="abcdefghijklmnopqrstuvwxyz"} { incr ok; exp_continue }
     -re {iota."two".="twelve"} { incr ok; exp_continue }
     -re {iota."one".="eleven"} { incr ok; exp_continue }
-    -re {epsilon."one",1. @count=0x4 @min=0x1 @max=0x4 @sum=0xa @avg=0x2} { incr ok; exp_continue }
-    -re {epsilon."two",2. @count=0x4 @min=0xa @max=0x28 @sum=0x64 @avg=0x19} { incr ok; exp_continue }
-    -re {phi @count=0x4 @min=0x1 @max=0x4 @sum=0xa @avg=0x2} { incr ok; exp_continue }
+    -re {epsilon."one",1. @count=4 @min=1 @max=4 @sum=10 @avg=2} { incr ok; exp_continue }
+    -re {epsilon."two",2. @count=4 @min=10 @max=40 @sum=100 @avg=25} { incr ok; exp_continue }
+    -re {phi @count=4 @min=1 @max=4 @sum=10 @avg=2} { incr ok; exp_continue }
 
     timeout { fail "$test (timeout)" }
     eof { }
@@ -47,5 +47,5 @@ expect {
 catch {close}; catch {wait}
 
 # PR6954
-setup_xfail 6954 "*-*-*"
+setup_kfail 6954 "*-*-*"
 if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }

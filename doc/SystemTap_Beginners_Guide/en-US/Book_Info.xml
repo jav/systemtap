@@ -4,17 +4,17 @@
 
 <bookinfo id="SystemTap_Beginners_Guide">
 	<title>SystemTap Beginners Guide</title>
-	<subtitle condition="RedHat">Introduction to SystemTap (for Red Hat Enterprise Linux 5.4)</subtitle>
-	<subtitle condition="fedora">Introduction to SystemTap (for Fedora 10)</subtitle>
+	<subtitle condition="RedHat">Introduction to SystemTap (for Red Hat Enterprise Linux)</subtitle>
+	<subtitle condition="fedora">Introduction to SystemTap (for Fedora)</subtitle>
 	<edition>2.0</edition>
-	
+
 	<productname>Systemtap</productname>
-	<productnumber>1.0</productnumber>
-	
+	<productnumber>1.4</productnumber>
+
 	<pubsnumber>2</pubsnumber>
 	<abstract condition="RedHat"><para>This guide provides basic instructions on how to use SystemTap to monitor different subsystems of &PRODUCT; in finer detail. The <citetitle>SystemTap Beginners Guide</citetitle> is recommended for users who have taken <ulink url="https://www.redhat.com/courses/rh133_red_hat_linux_system_administration_and_rhct_exam/">RHCT</ulink> or have a similar level of expertise in &PRODUCT;.</para></abstract>
-	
-	<abstract condition="fedora"><para>This guide provides basic instructions on how to use SystemTap to monitor different subsystems of Fedora 10 in finer detail. The <citetitle>SystemTap Beginners Guide</citetitle> is recommended for users who have taken <ulink url="https://www.redhat.com/courses/rh133_red_hat_linux_system_administration_and_rhct_exam/">RHCT</ulink> or have a similar level of expertise in Fedora 10.</para></abstract>
+
+	<abstract condition="fedora"><para>This guide provides basic instructions on how to use SystemTap to monitor different subsystems of Fedora in finer detail. The <citetitle>SystemTap Beginners Guide</citetitle> is recommended for users who have taken <ulink url="https://www.redhat.com/courses/rh133_red_hat_linux_system_administration_and_rhct_exam/">RHCT</ulink> or have a similar level of expertise in Fedora.</para></abstract>
 	<corpauthor>
 		<inlinemediaobject>
 			<imageobject>
@@ -26,7 +26,7 @@
 	<copyright>
 		<year>&YEAR;</year>
 		<holder>&HOLDER;</holder>
-	</copyright> 
+	</copyright>
  	<xi:include href="Legal_Notice.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 <!-- <xi:include href="Common_Content/Legal_Notice.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>-->
 	<xi:include href="Author_Group.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />

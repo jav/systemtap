@@ -606,52 +606,66 @@ function sock_flags_num2str:string (flags:long)
 #ifndef SOCK_PASSSEC
 #define SOCK_PASSSEC 4   /* introduced in 2.6.18 */
 #endif
-	char str[60];
 	unsigned long flags = THIS->flags;
 
-	str[0] = '\0';
+	THIS->__retvalue[0] = '\0';
 	if (test_bit (SOCK_ASYNC_NOSPACE, &flags))
-		strcat (str, "ASYNC_NOSPACE|");
+		strlcat (THIS->__retvalue, "ASYNC_NOSPACE|", MAXSTRINGLEN);
 	if (test_bit (SOCK_ASYNC_WAITDATA, &flags))
-		strcat (str, "ASYNC_WAITDATA|");
+		strlcat (THIS->__retvalue, "ASYNC_WAITDATA|", MAXSTRINGLEN);
 	if (test_bit (SOCK_NOSPACE, &flags))
-		strcat (str, "NOSPACE|");
+		strlcat (THIS->__retvalue, "NOSPACE|", MAXSTRINGLEN);
 	if (test_bit (SOCK_PASSCRED, &flags))
-		strcat (str, "PASSCRED|");
+		strlcat (THIS->__retvalue, "PASSCRED|", MAXSTRINGLEN);
 	if (test_bit (SOCK_PASSSEC, &flags))
-		strcat (str, "PASSSEC|");
-	if (str[0] != '\0') str[strlen(str)-1] = '\0';
-	strlcpy (THIS->__retvalue, str, MAXSTRINGLEN);
+		strlcat (THIS->__retvalue, "PASSSEC|", MAXSTRINGLEN);
+	if (THIS->__retvalue[0] != '\0')
+		THIS->__retvalue[strlen(THIS->__retvalue)-1] = '\0';
 %}
 
 ######### MESSAGE FLAGS HELPER FUNCTIONS #########
 
 function msg_flags_num2str:string (flags:long)
 %{ /* pure */
-	char str[256];
+	THIS->__retvalue[0] = '\0';
 
-	str[0] = '\0';
+	if (THIS->flags & MSG_OOB)
+		strlcat (THIS->__retvalue, "OOB|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_PEEK)
+		strlcat (THIS->__retvalue, "PEEK|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_DONTROUTE)
+		strlcat (THIS->__retvalue, "DONTROUTE|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_TRYHARD)
+		strlcat (THIS->__retvalue, "TRYHARD|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_CTRUNC)
+		strlcat (THIS->__retvalue, "CTRUNC|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_PROBE)
+		strlcat (THIS->__retvalue, "PROBE|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_TRUNC)
+		strlcat (THIS->__retvalue, "TRUNC|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_DONTWAIT)
+		strlcat (THIS->__retvalue, "DONTWAIT|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_EOR)
+		strlcat (THIS->__retvalue, "EOR|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_WAITALL)
+		strlcat (THIS->__retvalue, "WAITALL|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_FIN)
+		strlcat (THIS->__retvalue, "FIN|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_SYN)
+		strlcat (THIS->__retvalue, "SYN|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_CONFIRM)
+		strlcat (THIS->__retvalue, "CONFIRM|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_RST)
+		strlcat (THIS->__retvalue, "RST|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_ERRQUEUE)
+		strlcat (THIS->__retvalue, "ERRQUEUE|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_NOSIGNAL)
+		strlcat (THIS->__retvalue, "NOSIGNAL|", MAXSTRINGLEN);
+	if (THIS->flags & MSG_MORE)
+		strlcat (THIS->__retvalue, "MORE|", MAXSTRINGLEN);
 
-	if (THIS->flags & MSG_OOB) strcat (str, "OOB|");
-	if (THIS->flags & MSG_PEEK) strcat (str, "PEEK|");
-	if (THIS->flags & MSG_DONTROUTE) strcat (str, "DONTROUTE|");
-	if (THIS->flags & MSG_TRYHARD) strcat (str, "TRYHARD|");
-	if (THIS->flags & MSG_CTRUNC) strcat (str, "CTRUNC|");
-	if (THIS->flags & MSG_PROBE) strcat (str, "PROBE|");
-	if (THIS->flags & MSG_TRUNC) strcat (str, "TRUNC|");
-	if (THIS->flags & MSG_DONTWAIT) strcat (str, "DONTWAIT|");
-	if (THIS->flags & MSG_EOR) strcat (str, "EOR|");
-	if (THIS->flags & MSG_WAITALL) strcat (str, "WAITALL|");
-	if (THIS->flags & MSG_FIN) strcat (str, "FIN|");
-	if (THIS->flags & MSG_SYN) strcat (str, "SYN|");
-	if (THIS->flags & MSG_CONFIRM) strcat (str, "CONFIRM|");
-	if (THIS->flags & MSG_RST) strcat (str, "RST|");
-	if (THIS->flags & MSG_ERRQUEUE) strcat (str, "ERRQUEUE|");
-	if (THIS->flags & MSG_NOSIGNAL) strcat (str, "NOSIGNAL|");
-	if (THIS->flags & MSG_MORE) strcat (str, "MORE|");
-
-	if (str[0] != '\0') str[strlen(str)-1] = '\0';
-	strlcpy (THIS->__retvalue, str, MAXSTRINGLEN);
+	if (THIS->__retvalue[0] != '\0')
+		THIS->__retvalue[strlen(THIS->__retvalue)-1] = '\0';
 %}
 
 ###########################

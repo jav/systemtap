@@ -32,14 +32,13 @@
 #include <linux/limits.h>
 #include <sys/wait.h>
 #include <sys/statfs.h>
-#include <linux/version.h>
 #include <syslog.h>
 
 /* Include config.h to pick up dependency for --prefix usage. */
 #include "config.h"
 
-/* For STAP_PROBE in staprun.c, staprun_funcs.c, mainloop.c and common.c */
-#include "sys/sdt.h"
+/* For probes in staprun.c, staprun_funcs.c, mainloop.c and common.c */
+#include "stap-probe.h"
 
 extern void eprintf(const char *fmt, ...);
 extern void switch_syslog(const char *name);
@@ -178,6 +177,7 @@ extern int kernel_ptr_size;
 
 /* flags */
 extern int verbose;
+extern int suppress_warnings;
 extern unsigned int buffer_size;
 extern char *modname;
 extern char *modpath;
@@ -190,6 +190,7 @@ extern int attach_mod;
 extern int delete_mod;
 extern int load_only;
 extern int need_uprobes;
+extern const char *uprobes_path;
 extern int daemon_mode;
 extern off_t fsize_max;
 extern int fnum_max;

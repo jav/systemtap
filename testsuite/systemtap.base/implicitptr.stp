@@ -1,0 +1,21 @@
+probe process(@1).mark("foo_*")
+{
+  printf("foo: %d %d %d %d\n",
+	 $i, $j[0], $k[0][0], $l[0][0][0]);
+  newval = 99;
+  $i = newval;
+  printf("changed foo (%d): %d %d %d %d\n", newval,
+	 $i, $j[0], $k[0][0], $l[0][0][0]);
+}
+
+probe process(@1).mark("bar_*")
+{
+  printf("p = { { &%d, %d }, { &%d, %d } }\n",
+	 $p[0]->x[0], $p[0]->y, $p[1]->x[0], $p[1]->y);
+}
+
+probe process(@1).mark("add_*")
+{
+  printf("*a->x=%d, a->y=%d, *b->x=%d, b->y=%d\n",
+  	 $a->x[0], $a->y, $b->x[0], $b->y);
+}

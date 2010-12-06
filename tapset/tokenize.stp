@@ -1,0 +1,48 @@
+// Tokenize tapset
+// Copyright (C) 2010 Red Hat, Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#define STAP_NEED_CONTEXT_TOKENIZE 1
+%}
+
+/**
+ * sfunction tokenize - Return the next non-empty token in a string.
+ * 
+ * General Syntax: tokenize:string (input:string, delim:string)
+ *
+ * @input: String to tokenize. If NULL, returns the next non-empty token
+ * in the string passed in the previous call to tokenize().
+ * @delim: Token delimiter. Set of characters that delimit the tokens.
+ * 
+ * Description: This function returns the next non-empty token in the 
+ * given input string, where the tokens are delimited by characters in
+ * the delim string.  If the input string is non-NULL, it returns the 
+ * first token.  If the input string is NULL, it returns the next
+ * token in the string passed in the previous call to tokenize.
+ * If no delimiter is found, the entire remaining input string is 
+ * returned. It returns NULL when no more tokens are available.
+ */
+function tokenize:string(input:string, delim:string)
+%{ /* unprivileged */
+	char *token = NULL;
+	char *token_end = NULL;
+
+	if (THIS->input[0]) {
+		strncpy(CONTEXT->tok_str, THIS->input, MAXSTRINGLEN);
+		CONTEXT->tok_start = &CONTEXT->tok_str[0];
+		CONTEXT->tok_end = &CONTEXT->tok_str[0] + strlen(CONTEXT->tok_str);
+	}
+	do {
+		token = strsep(& CONTEXT->tok_start, THIS->delim);
+	} while (token && !token[0]);
+	if (token) {
+		token_end = (CONTEXT->tok_start ? CONTEXT->tok_start - 1 : CONTEXT->tok_end);
+		memcpy(THIS->__retvalue, token, token_end - token + 1);
+	}
+%}
+

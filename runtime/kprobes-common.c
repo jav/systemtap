@@ -11,6 +11,8 @@
 #ifndef _KPROBE_COMMON_C_
 #define _KPROBE_COMMON_C_
 
+#ifdef KPROBES_TASK_FINDER
+
 /* The task_finder_callback */
 static int stap_kprobe_process_found (struct stap_task_finder_target *finder, struct task_struct *tsk, int register_p, int process_p) {
   struct stap_dwarf_probe *p = container_of(finder, struct stap_dwarf_probe, finder);
@@ -57,5 +59,7 @@ static int stap_kprobe_mmap_found (struct stap_task_finder_target *finder, struc
   }
   return 0;
 }
+
+#endif /* KPROBES_TASK_FINDER */
 
 #endif /* _KPROBE_COMMON_C_ */

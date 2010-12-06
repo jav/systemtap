@@ -1,0 +1,30 @@
+CFLAGS += -g -O2
+
+DTRACE := dtrace
+
+PARENT_OBJS := dtrace_fork_parent.o dtrace_fork_parent_probes.o
+
+CHILD_OBJS := dtrace_child.o dtrace_child_probes.o
+
+TARGETS := dtrace_fork_parent dtrace_child
+
+BUILT_SOURCES := dtrace_fork_parent_probes.h dtrace_child_probes.h
+
+all: $(TARGETS)
+
+dtrace_fork_parent: $(PARENT_OBJS)
+
+dtrace_fork_parent.c: dtrace_fork_parent_probes.h
+
+dtrace_child: $(CHILD_OBJS)
+
+dtrace_child.c: dtrace_child_probes.h
+
+%.h: %.d
+	$(DTRACE) -C -h -s $< -o $@
+
+%.o: %.d
+	$(DTRACE) -C -G -s $< -o $@
+
+clean:
+	rm -f $(PARENT_OBJS) $(CHILD_OBJS) $(TARGETS) $(BUILT_SOURCES)

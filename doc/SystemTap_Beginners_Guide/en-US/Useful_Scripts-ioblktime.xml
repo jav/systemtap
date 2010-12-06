@@ -30,56 +30,52 @@
 </indexterm>
 
 	<para>
-		This section describes how to track the amount of time each block I/O requests spends 
+		This section describes how to track the amount of time each block I/O requests spends
 		waiting for completion. This is useful in determining whether there are too many
 		outstanding block I/O operations at any given time.
 	</para>
-	
+
 <formalpara id="ioblktime">
 	<title>ioblktime.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/io/ioblktime.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/io/ioblktime.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
 
 <!-- <remark>what does $count do, specifically?</remark> -->
 
 <para>
-	<xref linkend="ioblktime"/> computes the average waiting time for block I/O per device, 
-	and prints a list every 10 seconds. As always, you can revise this refresh rate by 
+	<xref linkend="ioblktime"/> computes the average waiting time for block I/O per device,
+	and prints a list every 10 seconds. As always, you can revise this refresh rate by
 	editing the specified value in <command>probe timer.s(10), end {</command>.
-</para>	
-<para>	
-	In some cases, there can be too many outstanding block 
-	I/O operations, at which point the script can exceed the default number of 
-	<command>MAXMAPENTRIES</command>. <command>MAXMAPENTRIES</command> is the maximum number of 
+</para>
+<para>
+	In some cases, there can be too many outstanding block
+	I/O operations, at which point the script can exceed the default number of
+	<command>MAXMAPENTRIES</command>. <command>MAXMAPENTRIES</command> is the maximum number of
 	rows in an array if the array size is not specified explicitly when declared. If the script
-	exceeds the default <command>MAXMAPENTRIES</command> value of 2048, run the script again with 
+	exceeds the default <command>MAXMAPENTRIES</command> value of 2048, run the script again with
 	the <command>stap</command> option <command>-DMAXMAPENTRIES=10000</command>.
 </para>
-	
+
 
 <example id="ioblktimeoutput">
 	<title><xref linkend="ioblktime"/> Sample Output</title>
-<screen>
-    device  rw total (us)      count   avg (us)
+<screen>    device  rw total (us)      count   avg (us)
        sda   W       9659          6       1609
       dm-0   W      20278          6       3379
       dm-0   R      20524          5       4104
-       sda   R      19277          5       3855
-</screen>
+       sda   R      19277          5       3855</screen>
 </example>
 
 <para>
-	<xref linkend="ioblktimeoutput"/> displays the device name, operations performed 
-	(<command>rw</command>), total wait time of all operations (<command>total(us)</command>), 
+	<xref linkend="ioblktimeoutput"/> displays the device name, operations performed
+	(<command>rw</command>), total wait time of all operations (<command>total(us)</command>),
 	number of operations (<command>count</command>), and average
-	wait time for all those operations (<command>avg (us)</command>). The times tallied by the 
+	wait time for all those operations (<command>avg (us)</command>). The times tallied by the
 	script are in microseconds.
-</para>	
-	
+</para>
+
 <!--
 global reads, writes, total_io
 

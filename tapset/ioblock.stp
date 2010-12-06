@@ -11,13 +11,18 @@
 %{
 #include <linux/bio.h>
 #include <linux/genhd.h>
+#ifdef STAPCONF_BLK_TYPES
+#include <linux/blk_types.h>
+#else
+#define REQ_WRITE               (1 << BIO_RW)
+#endif
 %}
 
 /* get i-node number of mapped file */
 function __bio_ino:long(bio:long)
 %{ /* pure */
     struct bio *bio = (struct bio *)(long)THIS->bio;
-    struct page *bv_page = bio? kread(&(bio->bi_io_vec[0].bv_page)) : NULL;
+    struct page *bv_page = (bio && bio->bi_vcnt) ? kread(&(bio->bi_io_vec[0].bv_page)) : NULL;
     struct address_space *mapping;
     struct inode *host;
     THIS->__retvalue = -1;
@@ -36,7 +41,7 @@ function __bio_ino:long(bio:long)
 function bio_rw_num:long(rw:long)
 %{ /* pure */
     long rw = (long)THIS->rw;
-    THIS->__retvalue = (rw & (1 << BIO_RW));
+    THIS->__retvalue = (rw & REQ_WRITE);
 %}
 
 /* returns R for read, W for write */

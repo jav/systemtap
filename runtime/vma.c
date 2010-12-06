@@ -112,6 +112,9 @@ static int _stp_vma_mmap_cb(struct stap_task_finder_target *tgt,
 	int i, res;
 	struct _stp_module *module = NULL;
 	const char *name = (dentry != NULL) ? dentry->d_name.name : NULL;
+        
+        if (path == NULL || *path == '\0') /* unknown? */
+                path = (char *)name; /* we'll copy this soon, in ..._add_vma_... */
 
 #ifdef DEBUG_TASK_FINDER_VMA
 	_stp_dbug(__FUNCTION__, __LINE__,
@@ -136,10 +139,13 @@ static int _stp_vma_mmap_cb(struct stap_task_finder_target *tgt,
 			     atm. */
 			  res = stap_add_vma_map_info(tsk->group_leader,
 						      addr, addr + length,
-						      name, module);
+						      path, module);
 			  /* Warn, but don't error out. */
-			  if (res != 0)
-				_stp_warn ("Couldn't register module '%s' for pid %d\n", _stp_modules[i]->path, tsk->group_leader->pid);
+			  if (res != 0) {
+				_stp_warn ("Couldn't register module '%s' for pid %d (%d)\n", _stp_modules[i]->path, tsk->group_leader->pid, res);
+				if (res == -ENOMEM)
+					_stp_warn ("Try increasing -DTASK_FINDER_VMA_ENTRY_ITEMS\n");
+			  }
 			  return 0;
 			}
 		}
@@ -153,11 +159,11 @@ static int _stp_vma_mmap_cb(struct stap_task_finder_target *tgt,
 		    || _stp_target == tsk->group_leader->pid)
 		  {
 		    res = stap_add_vma_map_info(tsk->group_leader, addr,
-						addr + length, name, NULL);
+						addr + length, path, NULL);
 #ifdef DEBUG_TASK_FINDER_VMA
 		    _stp_dbug(__FUNCTION__, __LINE__,
 			      "registered '%s' for %d (res:%d)\n",
-			      name, tsk->group_leader->pid,
+			      path, tsk->group_leader->pid,
 			      res);
 #endif
 		  }

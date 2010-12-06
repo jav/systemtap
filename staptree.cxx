@@ -108,11 +108,27 @@ probe_point::probe_point ():
 }
 
 
+unsigned probe::last_probeidx = 0;
+
 probe::probe ():
   body (0), tok (0)
 {
-  static unsigned last_probeidx = 0;
   this->name = string ("probe_") + lex_cast(last_probeidx ++);
+}
+
+
+// Copy constructor, but with overriding probe-point.  To be used when
+// mapping script-level probe points to another one, early during pass
+// 2.  There should be no symbol resolution done yet.
+probe::probe(const probe& p, probe_point* l)
+{
+  this->name = string ("probe_") + lex_cast(last_probeidx ++);
+  this->tok = p.tok;
+  this->locations.push_back(l);
+  this->body = p.body; // NB: not needed to be copied yet; a later derived_probe will
+  this->privileged = p.privileged;
+  assert (p.locals.size() == 0);
+  assert (p.unused_locals.size() == 0);
 }
 
 
@@ -1120,7 +1136,7 @@ probe::collect_derivation_chain (std::vector<probe*> &probes_list)
 }
 
 
-void probe_point::print (ostream& o) const
+void probe_point::print (ostream& o, bool print_extras) const
 {
   for (unsigned i=0; i<components.size(); i++)
     {
@@ -1130,6 +1146,8 @@ void probe_point::print (ostream& o) const
       if (c->arg)
         o << "(" << *c->arg << ")";
     }
+  if (!print_extras)
+    return;
   if (sufficient)
     o << "!";
   else if (optional) // sufficient implies optional
@@ -1138,10 +1156,10 @@ void probe_point::print (ostream& o) const
     o<< " if (" << *condition << ")";
 }
 
-string probe_point::str ()
+string probe_point::str (bool print_extras) const
 {
   ostringstream o;
-  print(o);
+  print(o, print_extras);
   return o.str();
 }
 

@@ -22,7 +22,9 @@
 #include "hash.h"
 #include "dwflpp.h"
 #include "setupdwfl.h"
-#include "sys/sdt.h"
+#include <gelf.h>
+
+#include "sdt-compat.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -49,8 +51,10 @@ extern "C" {
 #include <fnmatch.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <math.h>
 #include <regex.h>
+#include <unistd.h>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -67,11 +71,8 @@ using namespace __gnu_cxx;
 string
 common_probe_init (derived_probe* p)
 {
-  ostringstream o;
-  o << "STAP_PROBE_INIT(&" << p->name << ", "
-    << lex_cast_qstring (*p->sole_location()) << ", "
-    << lex_cast_qstring (*p->script_location()) << ")";
-  return o.str();
+  assert(p->session_index != (unsigned)-1);
+  return "(&stap_probes[" + lex_cast(p->session_index) + "])";
 }
 
 
@@ -79,6 +80,10 @@ void
 common_probe_entryfn_prologue (translator_output* o, string statestr,
                                string probe, bool overload_processing)
 {
+  o->newline() << "#ifdef STP_ALIBI";
+  o->newline() << "atomic_inc(&(" << probe << "->alibi));";
+  o->newline() << "#else";
+
   o->newline() << "struct context* __restrict__ c;";
   o->newline() << "#if !INTERRUPTIBLE";
   o->newline() << "unsigned long flags;";
@@ -89,6 +94,10 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   else
     o->newline() << "#ifdef STP_TIMING";
   o->newline() << "cycles_t cycles_atstart = get_cycles ();";
+  o->newline() << "#endif";
+
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "Stat stat = " << probe << "->timing;";
   o->newline() << "#endif";
 
   o->newline() << "#if INTERRUPTIBLE";
@@ -122,7 +131,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "atomic_inc (& skipped_count_reentrant);";
   o->newline() << "#ifdef DEBUG_REENTRANCY";
   o->newline() << "_stp_warn (\"Skipped %s due to %s residency on cpu %u\\n\", "
-               << probe << ".pp, c->probe_point ?: \"?\", smp_processor_id());";
+               << probe << "->pp, c->probe_point ?: \"?\", smp_processor_id());";
   // NB: There is a conceivable race condition here with reading
   // c->probe_point, knowing that this other probe is sort of running.
   // However, in reality, it's interrupted.  Plus even if it were able
@@ -141,9 +150,9 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "#if defined __ia64__";
   o->newline() << "c->unwaddr = 0;";
   o->newline() << "#endif";
-  o->newline() << "c->probe_point = " << probe << ".pp;";
+  o->newline() << "c->probe_point = " << probe << "->pp;";
   o->newline() << "#ifdef STP_NEED_PROBE_NAME";
-  o->newline() << "c->probe_name = " << probe << ".pn;";
+  o->newline() << "c->probe_name = " << probe << "->pn;";
   o->newline() << "#else";
   o->newline() << "c->probe_name = 0;";
   o->newline() << "#endif";
@@ -159,9 +168,6 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->actionremaining = MAXACTION_INTERRUPTIBLE;";
   o->newline() << "#else";
   o->newline() << "c->actionremaining = MAXACTION;";
-  o->newline() << "#endif";
-  o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "c->statp = 0;";
   o->newline() << "#endif";
   o->newline() << "c->ri = 0;";
   // NB: The following would actually be incorrect.
@@ -196,7 +202,7 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->indent(-1);
 
   o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "if (likely (c->statp)) _stp_stat_add(*c->statp, cycles_elapsed);";
+  o->newline() << "if (likely (stat)) _stp_stat_add(stat, cycles_elapsed);";
   o->newline() << "#endif";
 
   if (overload_processing)
@@ -261,6 +267,8 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->newline() << "#else";
   o->newline() << "local_irq_restore (flags);";
   o->newline() << "#endif";
+
+  o->newline() << "#endif // STP_ALIBI";
 }
 
 
@@ -419,7 +427,7 @@ protected:
 
 private:
   list<string> args;
-  void saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_expanding_visitor& v);
+  void saveargs(dwarf_query& q, Dwarf_Die* scope_die, Dwarf_Addr dwfl_addr);
 };
 
 
@@ -453,15 +461,21 @@ struct uprobe_derived_probe: public dwarf_derived_probe
 
   void emit_unprivileged_assertion (translator_output*);
   void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged_process_owner (o); }
+  void getargs(std::list<std::string> &arg_set) const;
+  void saveargs(int nargs);
+private:
+  list<string> args;
 };
 
 struct dwarf_derived_probe_group: public derived_probe_group
 {
 private:
+  bool has_semaphores;
   multimap<string,dwarf_derived_probe*> probes_by_module;
   typedef multimap<string,dwarf_derived_probe*>::iterator p_b_m_iterator;
 
 public:
+  dwarf_derived_probe_group(): has_semaphores(false) {}
   void enroll (dwarf_derived_probe* probe);
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
@@ -670,6 +684,9 @@ struct dwarf_query : public base_query
 };
 
 
+static void delete_session_module_cache (systemtap_session& s); // forward decl
+
+
 struct dwarf_builder: public derived_probe_builder
 {
   map <string,dwflpp*> kern_dw; /* NB: key string could be a wildcard */
@@ -695,30 +712,14 @@ struct dwarf_builder: public derived_probe_builder
   /* NB: not virtual, so can be called from dtor too: */
   void dwarf_build_no_more (bool verbose)
   {
-    for (map<string,dwflpp*>::iterator udi = kern_dw.begin();
-         udi != kern_dw.end();
-         udi ++)
-      {
-        if (verbose)
-          clog << "dwarf_builder releasing kernel dwflpp " << udi->first << endl;
-        delete udi->second;
-      }
-    kern_dw.erase (kern_dw.begin(), kern_dw.end());
-
-    for (map<string,dwflpp*>::iterator udi = user_dw.begin();
-         udi != user_dw.end();
-         udi ++)
-      {
-        if (verbose)
-          clog << "dwarf_builder releasing user dwflpp " << udi->first << endl;
-        delete udi->second;
-      }
-    user_dw.erase (user_dw.begin(), user_dw.end());
+    delete_map(kern_dw);
+    delete_map(user_dw);
   }
 
   void build_no_more (systemtap_session &s)
   {
     dwarf_build_no_more (s.verbose > 3);
+    delete_session_module_cache (s);
   }
 
   ~dwarf_builder()
@@ -815,7 +816,9 @@ dwarf_query::query_module_dwarf()
 
       // For simple cases, no wildcard and no source:line, we can do a very
       // quick function lookup in a module-wide cache.
-      if (spec_type == function_alone && !dw.name_has_wildcard(function))
+      if (spec_type == function_alone &&
+          !dw.name_has_wildcard(function) &&
+          !startswith(function, "_Z"))
         query_module_functions();
       else
         dw.iterate_over_cus(&query_cu, this);
@@ -1063,7 +1066,7 @@ bad:
 
 
 void
-dwarf_query::add_probe_point(const string& funcname,
+dwarf_query::add_probe_point(const string& dw_funcname,
 			     const char* filename,
 			     int line,
 			     Dwarf_Die* scope_die,
@@ -1072,10 +1075,17 @@ dwarf_query::add_probe_point(const string& funcname,
   string reloc_section; // base section for relocation purposes
   Dwarf_Addr reloc_addr; // relocated
   const string& module = dw.module_name; // "kernel" or other
+  string funcname = dw_funcname;
 
   assert (! has_absolute); // already handled in dwarf_builder::build()
 
   reloc_addr = dw.relocate_address(addr, reloc_section);
+
+  // If we originally used the linkage name, then let's call it that way
+  const char* linkage_name;
+  if (scope_die && startswith (this->function, "_Z")
+      && (linkage_name = dwarf_linkage_name (scope_die)))
+    funcname = linkage_name;
 
   if (sess.verbose > 1)
     {
@@ -1442,9 +1452,13 @@ query_srcfile_line (const dwarf_line_t& line, void * arg)
 	  if (q->sess.verbose>3)
 	    clog << "function DIE lands on srcfile\n";
 	  if (q->has_statement_str)
-	    query_statement (i->name, i->decl_file,
-			     lineno, // NB: not q->line !
-                             &(i->die), addr, q);
+            {
+              Dwarf_Die scope;
+              q->dw.inner_die_containing_pc(i->die, addr, scope);
+              query_statement (i->name, i->decl_file,
+                               lineno, // NB: not q->line !
+                               &scope, addr, q);
+            }
 	  else
 	    query_func_info (i->entrypc, *i, q);
 	}
@@ -1459,8 +1473,12 @@ query_srcfile_line (const dwarf_line_t& line, void * arg)
 	  if (q->sess.verbose>3)
 	    clog << "inline instance DIE lands on srcfile\n";
 	  if (q->has_statement_str)
-	    query_statement (i->name, i->decl_file,
-			     q->line[0], &(i->die), addr, q);
+            {
+              Dwarf_Die scope;
+              q->dw.inner_die_containing_pc(i->die, addr, scope);
+              query_statement (i->name, i->decl_file,
+                               q->line[0], &scope, addr, q);
+            }
 	  else
 	    query_inline_instance_info (*i, q);
 	}
@@ -1921,6 +1939,22 @@ query_module (Dwfl_Module *mod,
       q->sess.print_error (e);
       return DWARF_CB_ABORT;
     }
+}
+
+
+// This would more naturally fit into elaborate.cxx:semantic_pass_symbols,
+// but the needed declaration for module_cache is not available there.
+// Nor for that matter in session.cxx.  Only in this CU is that field ever
+// set (in query_module() above), so we clean it up here too.
+static void
+delete_session_module_cache (systemtap_session& s)
+{
+  if (s.module_cache) {
+    if (s.verbose > 3)
+      clog << "deleting module_cache" << endl;
+    delete s.module_cache;
+    s.module_cache = 0;
+  }
 }
 
 
@@ -2460,7 +2494,7 @@ dwarf_pretty_print::recurse_struct (Dwarf_Die* type, target_symbol* e,
 {
   if (dwarf_hasattr(type, DW_AT_declaration))
     {
-      Dwarf_Die *resolved = dw.declaration_resolve(dwarf_diename(type));
+      Dwarf_Die *resolved = dw.declaration_resolve(type);
       if (!resolved)
         {
           // could be an error, but for now just stub it
@@ -3039,10 +3073,9 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 
   target_symbol *tsym = new target_symbol(*e);
 
-  string format = "=%#x";
-  if (!e->components.empty() &&
-      e->components[0].type == target_symbol::comp_pretty_print)
-    format = "=%s";
+  bool pretty = (!e->components.empty() &&
+                 e->components[0].type == target_symbol::comp_pretty_print);
+  string format = pretty ? "=%s" : "=%#x";
 
   // Convert $$parms to sprintf of a list of parms and active local vars
   // which we recursively evaluate
@@ -3080,60 +3113,84 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       // non-.return probe: support $$parms, $$vars, $$locals
       bool first = true;
       Dwarf_Die result;
-      vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
-      if (dwarf_child (&scopes[0], &result) == 0)
-        do
-          {
-            switch (dwarf_tag (&result))
+      vector<Dwarf_Die> scopes = q.dw.getscopes(scope_die);
+      for (unsigned i = 0; i < scopes.size(); ++i)
+        {
+          if (dwarf_tag(&scopes[i]) == DW_TAG_compile_unit)
+            break; // we don't want file-level variables
+          if (dwarf_child (&scopes[i], &result) == 0)
+            do
               {
-              case DW_TAG_variable:
-                if (e->name == "$$parms")
-                  continue;
-                break;
-              case DW_TAG_formal_parameter:
-                if (e->name == "$$locals")
-                  continue;
-                break;
-
-              default:
-                continue;
-              }
-
-            const char *diename = dwarf_diename (&result);
-            if (! diename) continue;
-
-            if (! first)
-              pf->raw_components += " ";
-            pf->raw_components += diename;
-
-            tsym->name = "$";
-            tsym->name += diename;
-
-            // Ignore any variable that isn't accessible.
-            tsym->saved_conversion_error = 0;
-            expression *texp = tsym;
-            replace (texp); // NB: throws nothing ...
-            if (tsym->saved_conversion_error) // ... but this is how we know it happened.
-              {
-                if (q.sess.verbose>2)
+                switch (dwarf_tag (&result))
                   {
-                    for (semantic_error *c = tsym->saved_conversion_error;
-                         c != 0;
-                         c = c->chain) {
-                        clog << "variable location problem: " << c->what() << endl;
-                    }
+                  case DW_TAG_variable:
+                    if (e->name == "$$parms")
+                      continue;
+                    break;
+                  case DW_TAG_formal_parameter:
+                    if (e->name == "$$locals")
+                      continue;
+                    break;
+
+                  default:
+                    continue;
                   }
 
-                pf->raw_components += "=?";
+                const char *diename = dwarf_diename (&result);
+                if (! diename) continue;
+
+                if (! first)
+                  pf->raw_components += " ";
+                pf->raw_components += diename;
+                first = false;
+
+                // Write a placeholder for ugly aggregates
+                Dwarf_Die type;
+                if (!pretty && dwarf_attr_die(&result, DW_AT_type, &type))
+                  {
+                    q.dw.resolve_unqualified_inner_typedie(&type, &type, e);
+                    switch (dwarf_tag(&type))
+                      {
+                      case DW_TAG_union_type:
+                      case DW_TAG_structure_type:
+                      case DW_TAG_class_type:
+                        pf->raw_components += "={...}";
+                        continue;
+
+                      case DW_TAG_array_type:
+                        pf->raw_components += "=[...]";
+                        continue;
+                      }
+                  }
+
+                tsym->name = "$";
+                tsym->name += diename;
+
+                // Ignore any variable that isn't accessible.
+                tsym->saved_conversion_error = 0;
+                expression *texp = tsym;
+                replace (texp); // NB: throws nothing ...
+                if (tsym->saved_conversion_error) // ... but this is how we know it happened.
+                  {
+                    if (q.sess.verbose>2)
+                      {
+                        for (semantic_error *c = tsym->saved_conversion_error;
+                             c != 0;
+                             c = c->chain) {
+                            clog << "variable location problem: " << c->what() << endl;
+                        }
+                      }
+
+                    pf->raw_components += "=?";
+                  }
+                else
+                  {
+                    pf->raw_components += format;
+                    pf->args.push_back(texp);
+                  }
               }
-            else
-              {
-                pf->raw_components += format;
-                pf->args.push_back(texp);
-              }
-            first = false;
-          }
-        while (dwarf_siblingof (&result, &result) == 0);
+            while (dwarf_siblingof (&result, &result) == 0);
+        }
     }
 
   pf->components = print_format::string_to_components(pf->raw_components);
@@ -3352,14 +3409,7 @@ dwarf_var_expanding_visitor::getscopes(target_symbol *e)
 {
   if (scopes.empty())
     {
-      // If the address is at the beginning of the scope_die, we can do a fast
-      // getscopes from there.  Otherwise we need to look it up by address.
-      Dwarf_Addr entrypc;
-      if (q.dw.die_entrypc(scope_die, &entrypc) && entrypc == addr)
-        scopes = q.dw.getscopes(scope_die);
-      else
-        scopes = q.dw.getscopes(addr);
-
+      scopes = q.dw.getscopes(scope_die);
       if (scopes.empty())
         throw semantic_error ("unable to find any scopes containing "
                               + lex_cast_hex(addr)
@@ -3413,7 +3463,33 @@ dwarf_cast_query::handle_query_module()
     return;
 
   // look for the type in any CU
-  Dwarf_Die* type_die = dw.declaration_resolve_other_cus(e.type_name.c_str());
+  Dwarf_Die* type_die = NULL;
+  if (startswith(e.type_name, "class "))
+    {
+      // normalize to match dwflpp::global_alias_caching_callback
+      string struct_name = "struct " + e.type_name.substr(6);
+      type_die = dw.declaration_resolve_other_cus(struct_name);
+    }
+  else
+    type_die = dw.declaration_resolve_other_cus(e.type_name);
+
+  // NB: We now index the types as "struct name"/"union name"/etc. instead of
+  // just "name".  But since we didn't require users to be explicit before, and
+  // actually sort of discouraged it, we must be flexible now.  So if a lookup
+  // fails with a bare name, try augmenting it.
+  if (!type_die &&
+      !startswith(e.type_name, "class ") &&
+      !startswith(e.type_name, "struct ") &&
+      !startswith(e.type_name, "union ") &&
+      !startswith(e.type_name, "enum "))
+    {
+      type_die = dw.declaration_resolve_other_cus("struct " + e.type_name);
+      if (!type_die)
+        type_die = dw.declaration_resolve_other_cus("union " + e.type_name);
+      if (!type_die)
+        type_die = dw.declaration_resolve_other_cus("enum " + e.type_name);
+    }
+
   if (!type_die)
     return;
 
@@ -3661,7 +3737,8 @@ dwarf_derived_probe::join_group (systemtap_session& s)
     s.dwarf_derived_probes = new dwarf_derived_probe_group ();
   s.dwarf_derived_probes->enroll (this);
 
-  enable_task_finder(s);
+  if (sdt_semaphore_addr != 0)
+    enable_task_finder(s);
 }
 
 
@@ -3681,18 +3758,18 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                                          Dwarf_Addr addr,
                                          dwarf_query& q,
                                          Dwarf_Die* scope_die /* may be null */)
-  : derived_probe (q.base_probe, new probe_point(*q.base_loc) /* .components soon rewritten */ ),
+  : derived_probe (q.base_probe, q.base_loc, true /* .components soon rewritten */ ),
     module (module), section (section), addr (addr),
     path (q.path),
     has_process (q.has_process),
     has_return (q.has_return),
     has_maxactive (q.has_maxactive),
-    has_library (q.has_library), 
+    has_library (q.has_library),
     maxactive_val (q.maxactive_val),
     user_path (q.user_path),
     user_lib (q.user_lib),
     access_vars(false),
-    saved_longs(0), saved_strings(0), 
+    saved_longs(0), saved_strings(0),
     entry_handler(0)
 {
   if (user_lib.size() != 0)
@@ -3774,7 +3851,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
         }
       // Save the local variables for listing mode
       if (q.sess.listing_mode_vars)
-         saveargs(q, scope_die, v);
+         saveargs(q, scope_die, dwfl_addr);
     }
   // else - null scope_die - $target variables will produce an error during translate phase
 
@@ -3845,69 +3922,114 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
 
 void
-dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die, dwarf_var_expanding_visitor& v)
+dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die,
+                              Dwarf_Addr dwfl_addr)
 {
   if (null_die(scope_die))
     return;
 
-  string type_name;
-  Dwarf_Die type_die;
+  bool verbose = q.sess.verbose > 2;
 
-  if (has_return &&
-      dwarf_attr_die (scope_die, DW_AT_type, &type_die) &&
-      dwarf_type_name(&type_die, type_name))
-    args.push_back("$return:"+type_name);
+  if (verbose)
+    clog << "saveargs: examining '" << (dwarf_diename(scope_die) ?: "<unknown>")
+         << "' (dieoffset: " << lex_cast_hex(dwarf_dieoffset(scope_die)) << ")\n";
 
-  /* Pretend that we aren't in a .return for a moment, just so we can
-   * check whether variables are accessible.  We don't want any of the
-   * entry-saving code generated during listing mode.  This works
-   * because the set of $context variables available in a .return
-   * probe (apart from $return) is the same set as available for the
-   * corresponding .call probe, since we collect those variables at
-   * .call time. */
-  bool saved_has_return = has_return;
-  q.has_return = has_return = false;
+  if (has_return)
+    {
+      /* Only save the return value if it has a type. */
+      string type_name;
+      Dwarf_Die type_die;
+      if (dwarf_attr_die (scope_die, DW_AT_type, &type_die) &&
+          dwarf_type_name(&type_die, type_name))
+        args.push_back("$return:"+type_name);
+
+      else if (verbose)
+        clog << "saveargs: failed to retrieve type name for return value"
+             << " (dieoffset: " << lex_cast_hex(dwarf_dieoffset(scope_die))
+             << ")\n";
+    }
 
   Dwarf_Die arg;
-  vector<Dwarf_Die> scopes = q.dw.getscopes_die(scope_die);
-  if (dwarf_child (&scopes[0], &arg) == 0)
-    do
-      {
-        switch (dwarf_tag (&arg))
+  vector<Dwarf_Die> scopes = q.dw.getscopes(scope_die);
+  for (unsigned i = 0; i < scopes.size(); ++i)
+    {
+      if (dwarf_tag(&scopes[i]) == DW_TAG_compile_unit)
+        break; // we don't want file-level variables
+      if (dwarf_child (&scopes[i], &arg) == 0)
+        do
           {
-          case DW_TAG_variable:
-          case DW_TAG_formal_parameter:
-            break;
+            switch (dwarf_tag (&arg))
+              {
+              case DW_TAG_variable:
+              case DW_TAG_formal_parameter:
+                break;
 
-          default:
-            continue;
+              default:
+                continue;
+              }
+
+            /* Ignore this local if it has no name. */
+            const char *arg_name = dwarf_diename (&arg);
+            if (!arg_name)
+              {
+                if (verbose)
+                  clog << "saveargs: failed to retrieve name for local (dieoffset: "
+                       << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+                continue;
+              }
+
+            if (verbose)
+              clog << "saveargs: finding location for local '"
+                   << arg_name << "' (dieoffset: "
+                   << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+
+            /* Ignore this local if it has no location (or not at this PC). */
+            /* NB: It still may not be directly accessible, e.g. if it is an
+             * aggregate type, implicit_pointer, etc., but the user can later
+             * figure out how to access the interesting parts. */
+            Dwarf_Attribute attr_mem;
+            if (!dwarf_attr_integrate (&arg, DW_AT_const_value, &attr_mem))
+              {
+                Dwarf_Op *expr;
+                size_t len;
+                if (!dwarf_attr_integrate (&arg, DW_AT_location, &attr_mem))
+                  {
+                    if (verbose)
+                      clog << "saveargs: failed to resolve the location for local '"
+                           << arg_name << "' (dieoffset: "
+                           << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+                    continue;
+                  }
+                else if (!(dwarf_getlocation_addr(&attr_mem, dwfl_addr, &expr,
+                                                  &len, 1) == 1 && len > 0))
+                  {
+                    if (verbose)
+                      clog << "saveargs: local '" << arg_name << "' (dieoffset: "
+                           << lex_cast_hex(dwarf_dieoffset(&arg))
+                           << ") is not available at this address ("
+                           << lex_cast_hex(dwfl_addr) << ")\n";
+                    continue;
+                  }
+              }
+
+            /* Ignore this local if it has no type. */
+            string type_name;
+            Dwarf_Die type_die;
+            if (!dwarf_attr_die (&arg, DW_AT_type, &type_die) ||
+                !dwarf_type_name(&type_die, type_name))
+              {
+                if (verbose)
+                  clog << "saveargs: failed to retrieve type name for local '"
+                       << arg_name << "' (dieoffset: "
+                       << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+                continue;
+              }
+
+            /* This local looks good -- save it! */
+            args.push_back("$"+string(arg_name)+":"+type_name);
           }
-
-        const char *arg_name = dwarf_diename (&arg);
-        if (!arg_name)
-          continue;
-
-        type_name.clear();
-        if (!dwarf_attr_die (&arg, DW_AT_type, &type_die) ||
-            !dwarf_type_name(&type_die, type_name))
-          continue;
-
-        /* trick from visit_target_symbol_context */
-        target_symbol *tsym = new target_symbol;
-        tsym->tok = q.base_loc->components.front()->tok;
-        tsym->name = "$";
-        tsym->name += arg_name;
-
-        /* Ignore any variable that isn't accessible */
-        tsym->saved_conversion_error = 0;
-        v.require (tsym);
-        if (!tsym->saved_conversion_error)
-           args.push_back("$"+string(arg_name)+":"+type_name);
-      }
-    while (dwarf_siblingof (&arg, &arg) == 0);
-
-  /* restore the .return status of the probe */
-  q.has_return = has_return = saved_has_return;
+        while (dwarf_siblingof (&arg, &arg) == 0);
+    }
 }
 
 
@@ -4056,6 +4178,8 @@ dwarf_derived_probe::emit_probe_local_init(translator_output * o)
 void
 dwarf_derived_probe_group::enroll (dwarf_derived_probe* p)
 {
+  if (p->sdt_semaphore_addr != 0)
+    has_semaphores = true;
   probes_by_module.insert (make_pair (p->module, p));
 
   // XXX: probes put at the same address should all share a
@@ -4152,13 +4276,16 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
 #undef CALCIT
 
   s.op->newline() << "const unsigned long address;";
-  s.op->newline() << "struct stap_probe probe;";
-  s.op->newline() << "void (* const entry_ph) (struct context*);";
-  s.op->newline() << "const unsigned long sdt_sem_offset;";
-  s.op->newline() << "unsigned long sdt_sem_address;";
-  s.op->newline() << "struct task_struct *tsk;";
-  s.op->newline() << "const char *pathname;";
-  s.op->newline() << "struct stap_task_finder_target finder;";
+  s.op->newline() << "struct stap_probe * const probe;";
+  s.op->newline() << "struct stap_probe * const entry_probe;";
+  if (has_semaphores)
+    {
+      s.op->newline() << "const unsigned long sdt_sem_offset;";
+      s.op->newline() << "unsigned long sdt_sem_address;";
+      s.op->newline() << "struct task_struct *tsk;";
+      s.op->newline() << "const char *pathname;";
+      s.op->newline() << "struct stap_task_finder_target finder;";
+    }
   s.op->newline(-1) << "} stap_dwarf_probes[] = {";
   s.op->indent(1);
 
@@ -4181,7 +4308,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
           if (p->saved_strings)
             s.op->line() << " .saved_strings=" << p->saved_strings << ",";
           if (p->entry_handler)
-            s.op->line() << " .entry_ph=&" << p->entry_handler->name << ",";
+            s.op->line() << " .entry_probe=" << common_probe_init (p->entry_handler) << ",";
         }
       if (p->locations[0]->optional)
         s.op->line() << " .optional_p=1,";
@@ -4213,8 +4340,6 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
 	    }
 
 	}
-      else
-	s.op->line() << " .sdt_sem_offset=0,";
 
       s.op->line() << " },";
     }
@@ -4243,7 +4368,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
-  s.op->newline() << "(*sdp->probe.ph) (c);";
+  s.op->newline() << "(*sdp->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
@@ -4266,7 +4391,10 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // XXX: it would be nice to give a more verbose error though; BUG_ON later?
   s.op->line() << "];";
 
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
+  s.op->newline() << "struct stap_probe *sp = entry ? sdp->entry_probe : sdp->probe;";
+  s.op->newline() << "if (sp) {";
+  s.op->indent(1);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sp");
   s.op->newline() << "c->regs = regs;";
 
   // for assisting runtime's backtrace logic and accessing kretprobe data packets
@@ -4277,21 +4405,17 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
   s.op->newline() << "{";
-  s.op->indent(1);
-  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
-  s.op->newline() << "if (entry) {";
-  s.op->indent(1);
-  s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
-  s.op->newline() << "(sdp->entry_ph) (c);";
-  s.op->newline(-1) << "} else {";
-  s.op->indent(1);
-  s.op->newline() << "SET_REG_IP(regs, (unsigned long)inst->ret_addr);";
-  s.op->newline() << "(sdp->probe.ph) (c);";
-  s.op->newline(-1) << "}";
+  s.op->newline(1) << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "if (entry)";
+  s.op->newline(1) << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
+  s.op->newline(-1) << "else";
+  s.op->newline(1) << "SET_REG_IP(regs, (unsigned long)inst->ret_addr);";
+  s.op->newline(-1) << "(sp->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
   common_probe_entryfn_epilogue (s.op);
+  s.op->newline(-1) << "}";
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
 
@@ -4308,6 +4432,8 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
 
   s.op->newline();
+  if (has_semaphores)
+    s.op->newline() << "#define KPROBES_TASK_FINDER 1";
   s.op->newline() << "#include \"kprobes-common.c\"";
   s.op->newline();
 }
@@ -4316,19 +4442,12 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
 void
 dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 {
-  p_b_m_iterator it;
-  for (it = probes_by_module.begin(); it != probes_by_module.end(); it++)
-    {
-      dwarf_derived_probe* p = it->second;
-      if (p->sdt_semaphore_addr != 0)
-	break;
-    }
-  if (it != probes_by_module.end()) // Ignore if there are no semaphores
+  if (has_semaphores) // Ignore if there are no semaphores
     {
       s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_dwarf_probes); i++) {";
       s.op->newline(1) << "int rc;";
       s.op->newline() << "struct stap_dwarf_probe *p = &stap_dwarf_probes[i];";
-      s.op->newline() << "probe_point = p->probe.pp;"; // for error messages
+      s.op->newline() << "probe_point = p->probe->pp;"; // for error messages
       s.op->newline() << "if (p->sdt_sem_offset) {";
       s.op->newline(1) << "rc = stap_register_task_finder_target(&p->finder);";
       s.op->newline(-1) << "}";
@@ -4341,7 +4460,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
   s.op->newline() << "unsigned long relocated_addr = _stp_kmodule_relocate (sdp->module, sdp->section, sdp->address);";
   s.op->newline() << "if (relocated_addr == 0) continue;"; // quietly; assume module is absent
-  s.op->newline() << "probe_point = sdp->probe.pp;"; // for error messages
+  s.op->newline() << "probe_point = sdp->probe->pp;"; // for error messages
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "kp->u.krp.kp.addr = (void *) relocated_addr;";
   s.op->newline() << "if (sdp->maxactive_p) {";
@@ -4351,7 +4470,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "kp->u.krp.handler = &enter_kretprobe_probe;";
   s.op->newline() << "#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)";
-  s.op->newline() << "if (sdp->entry_ph) {";
+  s.op->newline() << "if (sdp->entry_probe) {";
   s.op->newline(1) << "kp->u.krp.entry_handler = &enter_kretprobe_entry_probe;";
   s.op->newline() << "kp->u.krp.data_size = sdp->saved_longs * sizeof(int64_t) + ";
   s.op->newline() << "                      sdp->saved_strings * MAXSTRINGLEN;";
@@ -4419,14 +4538,17 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 void
 dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
-  s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
-  s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
-  s.op->newline() << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
-  s.op->newline() << "if (sdp->sdt_sem_address && __access_process_vm_noflush (sdp->tsk, sdp->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0)) {";
-  s.op->newline(1) << "sdt_semaphore --;";
-  s.op->newline() << "__access_process_vm_noflush (sdp->tsk, sdp->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
+  if (has_semaphores)
+    {
+      s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
+      s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
+      s.op->newline() << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
+      s.op->newline() << "if (sdp->sdt_sem_address && __access_process_vm_noflush (sdp->tsk, sdp->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0)) {";
+      s.op->newline(1) << "sdt_semaphore --;";
+      s.op->newline() << "__access_process_vm_noflush (sdp->tsk, sdp->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
+      s.op->newline(-1) << "}";
+      s.op->newline(-1) << "}";
+    }
 
   //Unregister kprobes by batch interfaces.
   s.op->newline() << "#if defined(STAPCONF_UNREGISTER_KPROBES)";
@@ -4471,12 +4593,12 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.krp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.krp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/1 on '%s': %d\\n\", sdp->probe.pp, kp->u.krp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/1 on '%s': %d\\n\", sdp->probe->pp, kp->u.krp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline() << "atomic_add (kp->u.krp.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.krp.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->probe.pp, kp->u.krp.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->probe->pp, kp->u.krp.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "} else {";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES)";
@@ -4485,7 +4607,7 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->probe.pp, kp->u.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->probe->pp, kp->u.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "}";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES) && defined(__ia64__)";
@@ -4495,86 +4617,6 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline(-1) << "}";
 }
 
-struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
-{
-  sdt_uprobe_var_expanding_visitor(systemtap_session& s,
-                                   int elf_machine,
-                                   const string & process_name,
-				   const string & provider_name,
-				   const string & probe_name,
-				   const string & arg_string,
-				   int arg_count):
-    session (s), process_name (process_name),
-    provider_name (provider_name), probe_name (probe_name), arg_count (arg_count)
-  {
-    /* Register name mapping table depends on the elf machine of this particular
-       probe target process/file, not upon the host.  So we can't just
-       #ifdef _i686_ etc. */
-    if (elf_machine == EM_X86_64) {
-      reg_prefix = "";
-      dwarf_regs["rax"] = dwarf_regs["eax"] = dwarf_regs["ax"] = dwarf_regs["al"] = 0;
-      dwarf_regs["rdx"] = dwarf_regs["edx"] = dwarf_regs["dx"] = dwarf_regs["dl"] = 1;
-      dwarf_regs["rcx"] = dwarf_regs["ecx"] = dwarf_regs["cx"] = dwarf_regs["cl"] = 2;
-      dwarf_regs["rbx"] = dwarf_regs["ebx"] = dwarf_regs["bx"] = dwarf_regs["bl"] = 3;
-      dwarf_regs["rsi"] = dwarf_regs["esi"] = dwarf_regs["si"] = dwarf_regs["sil"] = 4;
-      dwarf_regs["rdi"] = dwarf_regs["edi"] = dwarf_regs["di"] = dwarf_regs["dil"] = 5;
-      dwarf_regs["rbp"] = dwarf_regs["ebp"] = dwarf_regs["bp"] = 6;
-      dwarf_regs["rsp"] = dwarf_regs["esp"] = dwarf_regs["sp"] = 7;
-      dwarf_regs["r8"]  = dwarf_regs["r8d"]  = dwarf_regs["r8w"]	= dwarf_regs["r8b"]  = 8;
-      dwarf_regs["r9"]  = dwarf_regs["r9d"]  = dwarf_regs["r9w"]	= dwarf_regs["r9b"]  = 9;
-      dwarf_regs["r10"] = dwarf_regs["r10d"] = dwarf_regs["r10w"] = dwarf_regs["r10b"] = 10;
-      dwarf_regs["r11"] = dwarf_regs["r11d"] = dwarf_regs["r11w"] = dwarf_regs["r11b"] = 11;
-      dwarf_regs["r12"] = dwarf_regs["r12d"] = dwarf_regs["r12w"] = dwarf_regs["r12b"] = 12;
-      dwarf_regs["r13"] = dwarf_regs["r13d"] = dwarf_regs["r13w"] = dwarf_regs["r13b"] = 13;
-      dwarf_regs["r14"] = dwarf_regs["r14d"] = dwarf_regs["r14w"] = dwarf_regs["r14b"] = 14;
-      dwarf_regs["r15"] = dwarf_regs["r15d"] = dwarf_regs["r15w"] = dwarf_regs["r15b"] = 15;
-    } else if (elf_machine == EM_386) {
-      reg_prefix = "";
-      dwarf_regs["eax"] = dwarf_regs["ax"] = dwarf_regs["al"] = 0;
-      dwarf_regs["ecx"] = dwarf_regs["cx"] = dwarf_regs["cl"] = 1;
-      dwarf_regs["edx"] = dwarf_regs["dx"] = dwarf_regs["dl"] = 2;
-      dwarf_regs["ebx"] = dwarf_regs["bx"] = dwarf_regs["bl"] = 3;
-      dwarf_regs["esp"] = dwarf_regs["sp"] = 4;
-      dwarf_regs["ebp"] = dwarf_regs["bp"] = 5;
-      dwarf_regs["esi"] = dwarf_regs["si"] = dwarf_regs["sil"] = 6;
-      dwarf_regs["edi"] = dwarf_regs["di"] = dwarf_regs["dil"] = 7;
-    } else if (elf_machine == EM_PPC || elf_machine == EM_PPC64) {
-      reg_prefix = "r";
-      dwarf_regs["r0"] = 0; dwarf_regs["r1"] = 1; dwarf_regs["r2"] = 2;
-      dwarf_regs["r3"] = 3; dwarf_regs["r4"] = 4; dwarf_regs["r5"] = 5;
-      dwarf_regs["r6"] = 6; dwarf_regs["r7"] = 7; dwarf_regs["r8"] = 8;
-      dwarf_regs["r9"] = 9; dwarf_regs["r10"] = 10; dwarf_regs["r11"] = 11;
-      dwarf_regs["r12"] = 12; dwarf_regs["r13"] = 13; dwarf_regs["r14"] = 14;
-      dwarf_regs["r15"] = 15; dwarf_regs["r16"] = 16; dwarf_regs["r17"] = 17;
-      dwarf_regs["r18"] = 18; dwarf_regs["r19"] = 19; dwarf_regs["r20"] = 20;
-      dwarf_regs["r21"] = 21; dwarf_regs["r22"] = 22; dwarf_regs["r23"] = 23;
-      dwarf_regs["r24"] = 24; dwarf_regs["r25"] = 25; dwarf_regs["r26"] = 26;
-      dwarf_regs["r27"] = 27; dwarf_regs["r28"] = 28; dwarf_regs["r29"] = 29;
-      dwarf_regs["r30"] = 30; dwarf_regs["r31"] = 31; 
-    }
-    else if (arg_count) {
-      throw semantic_error (string("Unsupported architecture ")
-                            + "(" + process_name + " ELF code " + lex_cast(elf_machine) + ")"
-                            + "for dwarfless sdt probes.");
-    }
-
-
-    need_debug_info = false;
-    tokenize(arg_string, arg_tokens, " ");
-    assert(arg_count >= 0 && arg_count <= 10);
-  }
-  systemtap_session& session;
-  const string & process_name;
-  const string & provider_name;
-  const string & probe_name;
-  int arg_count;
-  vector<string> arg_tokens;
-  map<string,int> dwarf_regs;
-  string reg_prefix;
-  bool need_debug_info;
-
-  void visit_target_symbol (target_symbol* e);
-};
 
 struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
 {
@@ -4597,6 +4639,103 @@ struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
 
   void visit_target_symbol (target_symbol* e);
 };
+
+
+struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
+{
+  sdt_uprobe_var_expanding_visitor(systemtap_session& s,
+                                   int elf_machine,
+                                   const string & process_name,
+				   const string & provider_name,
+				   const string & probe_name,
+				   const string & arg_string,
+				   int ac):
+    session (s), elf_machine (elf_machine), process_name (process_name),
+    provider_name (provider_name), probe_name (probe_name), arg_count ((unsigned) ac)
+  {
+    /* Register name mapping table depends on the elf machine of this particular
+       probe target process/file, not upon the host.  So we can't just
+       #ifdef _i686_ etc. */
+    if (elf_machine == EM_X86_64) {
+      dwarf_regs["%rax"] = dwarf_regs["%eax"] = dwarf_regs["%ax"] = dwarf_regs["%al"] = dwarf_regs["%ah"] = 0;
+      dwarf_regs["%rdx"] = dwarf_regs["%edx"] = dwarf_regs["%dx"] = dwarf_regs["%dl"] = dwarf_regs["%dh"] = 1;
+      dwarf_regs["%rcx"] = dwarf_regs["%ecx"] = dwarf_regs["%cx"] = dwarf_regs["%cl"] = dwarf_regs["%ch"] = 2;
+      dwarf_regs["%rbx"] = dwarf_regs["%ebx"] = dwarf_regs["%bx"] = dwarf_regs["%bl"] = dwarf_regs["%bh"] = 3;
+      dwarf_regs["%rsi"] = dwarf_regs["%esi"] = dwarf_regs["%si"] = dwarf_regs["%sil"] = 4;
+      dwarf_regs["%rdi"] = dwarf_regs["%edi"] = dwarf_regs["%di"] = dwarf_regs["%dil"] = 5;
+      dwarf_regs["%rbp"] = dwarf_regs["%ebp"] = dwarf_regs["%bp"] = 6;
+      dwarf_regs["%rsp"] = dwarf_regs["%esp"] = dwarf_regs["%sp"] = 7;
+      dwarf_regs["%r8"]  = dwarf_regs["%r8d"]  = dwarf_regs["%r8w"] = dwarf_regs["%r8b"]  = 8;
+      dwarf_regs["%r9"]  = dwarf_regs["%r9d"]  = dwarf_regs["%r9w"] = dwarf_regs["%r9b"]  = 9;
+      dwarf_regs["%r10"] = dwarf_regs["%r10d"] = dwarf_regs["%r10w"] = dwarf_regs["%r10b"] = 10;
+      dwarf_regs["%r11"] = dwarf_regs["%r11d"] = dwarf_regs["%r11w"] = dwarf_regs["%r11b"] = 11;
+      dwarf_regs["%r12"] = dwarf_regs["%r12d"] = dwarf_regs["%r12w"] = dwarf_regs["%r12b"] = 12;
+      dwarf_regs["%r13"] = dwarf_regs["%r13d"] = dwarf_regs["%r13w"] = dwarf_regs["%r13b"] = 13;
+      dwarf_regs["%r14"] = dwarf_regs["%r14d"] = dwarf_regs["%r14w"] = dwarf_regs["%r14b"] = 14;
+      dwarf_regs["%r15"] = dwarf_regs["%r15d"] = dwarf_regs["%r15w"] = dwarf_regs["%r15b"] = 15;
+    } else if (elf_machine == EM_386) {
+      dwarf_regs["%eax"] = dwarf_regs["%ax"] = dwarf_regs["%al"] = dwarf_regs["%ah"] = 0;
+      dwarf_regs["%ecx"] = dwarf_regs["%cx"] = dwarf_regs["%cl"] = dwarf_regs["%ch"] = 1;
+      dwarf_regs["%edx"] = dwarf_regs["%dx"] = dwarf_regs["%dl"] = dwarf_regs["%dh"] = 2;
+      dwarf_regs["%ebx"] = dwarf_regs["%bx"] = dwarf_regs["%bl"] = dwarf_regs["%bh"] = 3;
+      dwarf_regs["%esp"] = dwarf_regs["%sp"] = 4;
+      dwarf_regs["%ebp"] = dwarf_regs["%bp"] = 5;
+      dwarf_regs["%esi"] = dwarf_regs["%si"] = dwarf_regs["%sil"] = 6;
+      dwarf_regs["%edi"] = dwarf_regs["%di"] = dwarf_regs["%dil"] = 7;
+    } else if (elf_machine == EM_PPC || elf_machine == EM_PPC64) {
+      dwarf_regs["%r0"] = 0; dwarf_regs["%r1"] = 1; dwarf_regs["%r2"] = 2;
+      dwarf_regs["%r3"] = 3; dwarf_regs["%r4"] = 4; dwarf_regs["%r5"] = 5;
+      dwarf_regs["%r6"] = 6; dwarf_regs["%r7"] = 7; dwarf_regs["%r8"] = 8;
+      dwarf_regs["%r9"] = 9; dwarf_regs["%r10"] = 10; dwarf_regs["%r11"] = 11;
+      dwarf_regs["%r12"] = 12; dwarf_regs["%r13"] = 13; dwarf_regs["%r14"] = 14;
+      dwarf_regs["%r15"] = 15; dwarf_regs["%r16"] = 16; dwarf_regs["%r17"] = 17;
+      dwarf_regs["%r18"] = 18; dwarf_regs["%r19"] = 19; dwarf_regs["%r20"] = 20;
+      dwarf_regs["%r21"] = 21; dwarf_regs["%r22"] = 22; dwarf_regs["%r23"] = 23;
+      dwarf_regs["%r24"] = 24; dwarf_regs["%r25"] = 25; dwarf_regs["%r26"] = 26;
+      dwarf_regs["%r27"] = 27; dwarf_regs["%r28"] = 28; dwarf_regs["%r29"] = 29;
+      dwarf_regs["%r30"] = 30; dwarf_regs["%r31"] = 31;
+      // PR11821: unadorned register "names" without -mregnames
+      dwarf_regs["0"] = 0; dwarf_regs["1"] = 1; dwarf_regs["2"] = 2;
+      dwarf_regs["3"] = 3; dwarf_regs["4"] = 4; dwarf_regs["5"] = 5;
+      dwarf_regs["6"] = 6; dwarf_regs["7"] = 7; dwarf_regs["8"] = 8;
+      dwarf_regs["9"] = 9; dwarf_regs["10"] = 10; dwarf_regs["11"] = 11;
+      dwarf_regs["12"] = 12; dwarf_regs["13"] = 13; dwarf_regs["14"] = 14;
+      dwarf_regs["15"] = 15; dwarf_regs["16"] = 16; dwarf_regs["17"] = 17;
+      dwarf_regs["18"] = 18; dwarf_regs["19"] = 19; dwarf_regs["20"] = 20;
+      dwarf_regs["21"] = 21; dwarf_regs["22"] = 22; dwarf_regs["23"] = 23;
+      dwarf_regs["24"] = 24; dwarf_regs["25"] = 25; dwarf_regs["26"] = 26;
+      dwarf_regs["27"] = 27; dwarf_regs["28"] = 28; dwarf_regs["29"] = 29;
+      dwarf_regs["30"] = 30; dwarf_regs["31"] = 31;
+    } else if (elf_machine == EM_S390) {
+      dwarf_regs["%r0"] = 0; dwarf_regs["%r1"] = 1; dwarf_regs["%r2"] = 2;
+      dwarf_regs["%r3"] = 3; dwarf_regs["%r4"] = 4; dwarf_regs["%r5"] = 5;
+      dwarf_regs["%r6"] = 6; dwarf_regs["%r7"] = 7; dwarf_regs["%r8"] = 8;
+      dwarf_regs["%r9"] = 9; dwarf_regs["%r10"] = 10; dwarf_regs["%r11"] = 11;
+      dwarf_regs["%r12"] = 12; dwarf_regs["%r13"] = 13; dwarf_regs["%r14"] = 14;
+      dwarf_regs["%r15"] = 15;
+    } else if (arg_count) {
+      /* permit this case; just fall back to dwarf */
+    }
+
+    need_debug_info = false;
+    tokenize(arg_string, arg_tokens, " ");
+    assert(arg_count >= 0 && arg_count <= 10);
+  }
+
+  systemtap_session& session;
+  int elf_machine;
+  const string & process_name;
+  const string & provider_name;
+  const string & probe_name;
+  unsigned arg_count;
+  vector<string> arg_tokens;
+  map<string,int> dwarf_regs;
+  bool need_debug_info;
+
+  void visit_target_symbol (target_symbol* e);
+  __uint64_t get_register_width (string);
+};
+
 
 void
 sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
@@ -4623,7 +4762,20 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  provide(myname);
 	  return;
 	}
-      if (arg_count == 0)
+
+      unsigned argno = 0; // the N in $argN
+      try
+	{
+	  if (startswith(e->name, "$arg"))
+	    argno = lex_cast<unsigned>(e->name.substr(4));
+	}
+      catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
+	{
+          argno = 0;
+	}
+
+      if (arg_count == 0 || // a sdt.h variant without .probe-stored arg_count
+          argno < 1 || argno > arg_count) // a $argN with out-of-range N
 	{
 	  // NB: Either
 	  // 1) uprobe1_type $argN or $FOO (we don't know the arg_count)
@@ -4634,148 +4786,274 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  return;
 	}
 
-      int argno = -1;
-      try
+      assert (arg_tokens.size() >= argno);
+      string asmarg = arg_tokens[argno-1];   // $arg1 => arg_tokens[0]
+
+      // Now we try to parse this thing, which is an assembler operand
+      // expression.  If we can't, we warn, back down to need_debug_info
+      // and hope for the best.  Here is the syntax for a few architectures.
+      // Note that the power iN syntax is only for V3 sdt.h; gcc emits N.
+      //      literal	reg	reg	reg +	
+      //	      	      indirect offset
+      // x86	$N	%rR	(%rR)	N(%rR)
+      // power	iN	R	(R)	N(R)
+      // ia64	N	rR	[r16]	
+      // s390	N	%rR	0(rR)	N(r15)
+      // arm	#N	rR	[rR]	[rR, #N]
+
+      expression* argexpr = 0; // filled in in case of successful parse
+
+      string percent_regnames;
+      string regnames;
+      vector<string> matches;
+      int precision;
+      int rc;
+
+      // Parse the leading length
+
+      if (asmarg.find('@') != string::npos)
 	{
-	  if (startswith(e->name, "$arg"))
-	    argno = lex_cast<int>(e->name.substr(4));
+	  precision = lex_cast<int>(asmarg.substr(0, asmarg.find('@')));
+	  asmarg = asmarg.substr(asmarg.find('@')+1);
 	}
-      catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
-	{
-	}
-      if (argno < 0)
-	throw semantic_error("invalid variable, must be of the form $argN", e->tok);
-      if (argno < 1 || argno > arg_count)
-	throw semantic_error("invalid argument number", e->tok);
+      else precision = 8;
 
-      enum arg_type
-      {
-	literal_arg,
-	register_arg,
-	memory_arg
-      } arg_type;
-      functioncall *fc = new functioncall;
-      binary_expression *be = new binary_expression;
-      literal_number* ln = NULL;
-      string reg;
-      string disp_str;
-      int disp = 0;
-      // NB: uprobes-based sdt.h; $argFOO gets resolved later.
+      // test for a numeric literal.
+      // Only accept (signed) decimals throughout. XXX
 
-      string tok = arg_tokens[argno-1];
-
-      regex_t	 preg;
-      // this pattern matches 0xD(%R) | (%R) | %R
-      const char *pattern = "\\([0x]*-*[0-9]*\\)\\([(]*\\)\\(%*[0-9a-z][0-9a-z]*\\)\\([)]*\\)";
-      int	 rc;
-      size_t	 nmatch = 5;
-      regmatch_t pmatch[5];
-
-      if (0 != (rc = regcomp(&preg, pattern, 0)))
-	throw semantic_error("Failed to parse probe operand");
-      if (0 != (rc = regexec(&preg, arg_tokens[argno-1].c_str(), nmatch, pmatch, 0)))
-	{
-	  // Do we have a numeric literal?
-	  // Check this separately instead of complicating the above pattern.
-	  if (0 != (rc = regcomp(&preg, "\\$[0-9][0-9]*", 0)))
-	    throw semantic_error("Failed to parse probe operand");
-	  if (0 != (rc = regexec(&preg, arg_tokens[argno-1].c_str(), nmatch, pmatch, 0)))
-	    throw semantic_error("Unsupported assembler operand while accessing "
-				 + probe_name + " " + e->name + " " + arg_tokens[argno-1],
-				 e->tok);
-	  arg_type = literal_arg;
-	  ln = new literal_number(lex_cast<int>(arg_tokens[argno-1].substr(pmatch[0].rm_so+1)));
-	  ln->tok = e->tok;
-	}
-      else
-	{
-	  // Is there a displacement?
-	  if (pmatch[2].rm_so > pmatch[1].rm_so)
+      // PR11821.  NB: on powerpc, literals are not prefixed with $,
+      // so this regex does not match.  But that's OK, since without
+      // -mregnames, we can't tell them apart from register numbers
+      // anyway.  With -mregnames, we could, if gcc somehow
+      // communicated to us the presence of that option, but alas it
+      // doesn't.  http://gcc.gnu.org/PR44995.
+      rc = regexp_match (asmarg, "^[i\\$][-]?[0-9][0-9]*$", matches);
+      if (! rc)
+        {
+	  string sn = matches[0].substr(1);
+	  int64_t n;
+	  try
 	    {
-	      disp_str = arg_tokens[argno-1].substr(pmatch[1].rm_so);
-	      disp = lex_cast<int>(disp_str.substr(0,pmatch[1].rm_eo - pmatch[1].rm_so));
-	    }
-	  // Is there an indirect register?
-	  if ((arg_tokens[argno-1][pmatch[2].rm_so]) == '(')
-	    arg_type = memory_arg;
-	  else
-	    arg_type = register_arg;
-	  // Is there a register?
-	  if (pmatch[3].rm_eo >= pmatch[3].rm_so)
-	    {
-	      reg = arg_tokens[argno-1].substr(pmatch[3].rm_so);
-	      reg.erase(pmatch[3].rm_eo - pmatch[3].rm_so);
-	      if (reg[0] == '%')
-		reg.erase(0,1);
-	      else
+	      // We have to pay attention to the size & sign, as gcc sometimes
+	      // propagates constants that don't quite match, like a negative
+	      // value to fill an unsigned type.
+	      switch (precision)
 		{
-		  // Handle reg XY which is recognized as disp X reg Y
-		  if (arg_type == register_arg)
-		    {
-		      reg.insert (0, disp_str.substr(0,pmatch[1].rm_eo - pmatch[1].rm_so));
-		      disp = 0;
-		    }
-		  reg.insert (0, reg_prefix);
+		case -1: n = lex_cast<  int8_t>(sn); break;
+		case  1: n = lex_cast< uint8_t>(sn); break;
+		case -2: n = lex_cast< int16_t>(sn); break;
+		case  2: n = lex_cast<uint16_t>(sn); break;
+		case -4: n = lex_cast< int32_t>(sn); break;
+		case  4: n = lex_cast<uint32_t>(sn); break;
+		default:
+		case -8: n = lex_cast< int64_t>(sn); break;
+		case  8: n = lex_cast<uint64_t>(sn); break;
 		}
 	    }
-	  if (reg.length() == 0)
-	    throw semantic_error("Unsupported assembler operand while accessing "
-				 + probe_name + " " + e->name, e->tok);
-	  // synthesize user_long(%{fetch_register(R)%} + D)
-	  fc->function = "user_long";
-	  fc->tok = e->tok;
-	  be->tok = e->tok;
+	  catch (std::runtime_error&)
+	    {
+	      goto not_matched;
+	    }
+	  literal_number* ln = new literal_number(n);
+	  ln->tok = e->tok;
+          argexpr = ln;
+          goto matched;
+        }
 
-	  embedded_expr *get_arg1 = new embedded_expr;
-	  get_arg1->tok = e->tok;
-	  get_arg1->code = string("/* unprivileged */ /* pure */")
-	    + (is_user_module (process_name)
-	       ? string("u_fetch_register(")
-	       : string("k_fetch_register("))
-	    + lex_cast(dwarf_regs[reg]) + string(")");
-	  // XXX: may we ever need to cast that to a narrower type?
+      if (dwarf_regs.empty())
+	goto not_matched;
+      
+      // Build regex pieces out of the known dwarf_regs.  We keep two separate
+      // lists: ones with the % prefix (and thus unambigiuous even despite PR11821),
+      // and ones with no prefix (and thus only usable in unambiguous contexts).
+      for (map<string,int>::iterator ri = dwarf_regs.begin(); ri != dwarf_regs.end(); ri++)
+        {
+          string regname = ri->first;
+          assert (regname != "");
+          regnames += string("|")+regname;
+          if (regname[0]=='%')
+            percent_regnames += string("|")+regname;
+        }
+      // clip off leading |
+      regnames = regnames.substr(1);
+      percent_regnames = percent_regnames.substr(1);
 
-	  be->left = get_arg1;
-	  be->op = "+";
-	  literal_number* inc = new literal_number(disp);
-	  inc->tok = e->tok;
-	  be->right = inc;
-	  fc->args.push_back(be);
-	}
+      // test for REGISTER
+      // NB: Because PR11821, we must use percent_regnames here.
+      if (elf_machine == EM_PPC || elf_machine == EM_PPC64)
+	rc = regexp_match (asmarg, string("^(")+regnames+string(")$"), matches);
+      else
+	rc = regexp_match (asmarg, string("^(")+percent_regnames+string(")$"), matches);
+      if (! rc)
+        {
+          string regname = matches[1];
+          if (dwarf_regs.find (regname) != dwarf_regs.end()) // known register
+            {
+              embedded_expr *get_arg1 = new embedded_expr;
+	      string width_adjust;
+	      switch (get_register_width (regname))
+		{
+		case 0xff: width_adjust = ") & 0xff"; break;
+		case 0xff00: width_adjust = ">>8) & 0xff"; break;
+		case 0xffff:
+		  width_adjust = (precision > 0) ? ") & 0xffff" : ")";
+		  break;
+		default: width_adjust = ")";
+		}
+              string type = (precision < 0 ? "(int" : "(uint")
+                  + lex_cast(abs(precision) * 8) + "_t)((";
+              get_arg1->tok = e->tok;
+              get_arg1->code = string("/* unprivileged */ /* pure */")
+                + string(" (int64_t)") + type
+                + (is_user_module (process_name)
+                   ? string("u_fetch_register(")
+                   : string("k_fetch_register("))
+                + lex_cast(dwarf_regs[regname]) + string("))")
+		+ width_adjust;
+              argexpr = get_arg1;
+              goto matched;
+            }
+          // invalid register name, fall through
+        }
+
+      // test for OFFSET(REGISTER)
+      // NB: Despite PR11821, we can use regnames here, since the parentheses
+      // make things unambiguous.
+      rc = regexp_match (asmarg, string("^([-]?[0-9]*)[(](")+regnames+string(")[)]$"), matches);
+      if (! rc)
+        {
+          string dispstr = matches[1];
+          int64_t disp = 0;
+              if (dispstr == "")
+                disp = 0;
+              else
+                try
+                  {
+                    disp = lex_cast<int64_t>(dispstr); // should decode positive/negative hex/decimal
+                  }
+                catch (const runtime_error& f) // unparseable offset
+                  {
+                    goto not_matched; // can't just 'break' out of
+                                      // this case or use a sentinel
+                                      // value, unfortunately
+                  }
+
+              string regname = matches[2];
+              if (dwarf_regs.find (regname) != dwarf_regs.end()) // known register
+                {
+                  // synthesize user_long(%{fetch_register(R)%} + D)
+
+                  embedded_expr *get_arg1 = new embedded_expr;
+                  get_arg1->tok = e->tok;
+                  get_arg1->code = string("/* unprivileged */ /* pure */")
+                    + (is_user_module (process_name)
+                       ? string("u_fetch_register(")
+                       : string("k_fetch_register("))
+                    + lex_cast(dwarf_regs[regname]) + string(")");
+                  // XXX: may we ever need to cast that to a narrower type?
+
+                  literal_number* inc = new literal_number(disp);
+                  inc->tok = e->tok;
+
+                  binary_expression *be = new binary_expression;
+                  be->tok = e->tok;
+                  be->left = get_arg1;
+                  be->op = "+";
+                  be->right = inc;
+
+                  functioncall *fc = new functioncall;
+		  switch (precision)
+		    {
+		    case 1: case -1:
+		      fc->function = "user_int8"; break;
+		    case 2:
+		      fc->function = "user_uint16"; break;
+		    case -2:
+		      fc->function = "user_int16"; break;
+		    case 4:
+		      fc->function = "user_uint32"; break;
+		    case -4:
+		      fc->function = "user_int32"; break;
+                    case 8: case -8:
+		      fc->function = "user_int64"; break;
+		    default: fc->function = "user_long";
+		    }
+                  fc->tok = e->tok;
+                  fc->args.push_back(be);
+
+                  argexpr = fc;
+                  goto matched;
+                }
+              // invalid register name, fall through
+        }
+
+    not_matched:
+      // The asmarg operand was not recognized.  Back down to dwarf.
+      if (! session.suppress_warnings)
+        session.print_warning ("Downgrading SDT_V2 probe argument to dwarf, can't parse '"+asmarg+"'", e->tok);
+      assert (argexpr == 0);
+      need_debug_info = true;
+      provide (e);
+      return;
+
+    matched:
+      assert (argexpr != 0);
+
+      if (session.verbose > 2)
+        clog << "mapped asm operand " << asmarg << " to " << *argexpr << endl;
 
       if (e->components.empty()) // We have a scalar
-	{
-	  if (e->addressof)
-	    throw semantic_error("cannot take address of sdt variable", e->tok);
+        {
+          if (e->addressof)
+            throw semantic_error("cannot take address of sdt variable", e->tok);
+          provide (argexpr);
+          return;
+        }
+      else  // $var->foo
+        {
+          cast_op *cast = new cast_op;
+          cast->name = "@cast";
+          cast->tok = e->tok;
+          cast->operand = argexpr;
+          cast->components = e->components;
+          cast->type_name = probe_name + "_arg" + lex_cast(argno);
+          cast->module = process_name;
+          cast->visit(this);
+          return;
+        }
 
-	  if (arg_type == memory_arg)
-	    provide(fc);
-	  else if (arg_type == register_arg)
-	    provide(be);
-	  else if (arg_type == literal_arg)
-	    provide(ln);
-	  return;
-	}
-      cast_op *cast = new cast_op;
-      cast->name = "@cast";
-      cast->tok = e->tok;
-      if (arg_type == memory_arg)
-	cast->operand = fc;
-      else if (arg_type == register_arg)
-	cast->operand = be;
-      else if (arg_type == literal_arg)
-	provide(ln);
-      cast->components = e->components;
-      cast->type_name = probe_name + "_arg" + lex_cast(argno);
-      cast->module = process_name;
-
-      cast->visit(this);
+      /* NOTREACHED */
     }
   catch (const semantic_error &er)
     {
       e->chain (er);
       provide (e);
     }
+}
+
+
+__uint64_t
+sdt_uprobe_var_expanding_visitor::get_register_width (string regname)
+{
+  if (elf_machine == EM_X86_64 || elf_machine == EM_386) {
+    int regno = dwarf_regs.find (regname)->second;
+    // al,bl,cl,dl
+    if (regno < 4 && regname[2] == 'l') return 0xff;
+    // ah,bh,ch,dh
+    else if (regno < 4 && regname[2] == 'h') return 0xff00;
+    // ax,bx,cx,dx
+    else if (regno < 4 && regname[2] == 'x') return 0xffff;
+    // sil,dil,bpl,spl
+    else if (regno < 8 && regname.rfind('l') != regname.npos) return 0xff; // sil
+    // si,di,bp,sp
+    else if (regno < 8 && regname.length() == 3) return 0xffff; // si
+    // r8b-r15b
+    else if (regno < 16 && regname.rfind('b') != regname.npos) return 0xff; // r8b
+    // r8w-r15w
+    else if (regno < 16 && regname.rfind('w') != regname.npos) return 0xffff; // r8w
+    else return 0xffffffff;
+  }
+  else return 0xffffffff;
 }
 
 
@@ -4844,7 +5122,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  get_arg1->function = "pointer_arg";
 	  get_arg1->tok = e->tok;
 	  // arg3 is the pointer to a struct of arguments
-	  literal_number* num = new literal_number(3); 
+	  literal_number* num = new literal_number(3);
 	  num->tok = e->tok;
 	  get_arg1->args.push_back(num);
 
@@ -4895,6 +5173,7 @@ struct sdt_query : public base_query
 
 private:
   stap_sdt_probe_type probe_type;
+  enum {probe_section=0, note_section=1} probe_loc;
   probe * base_probe;
   probe_point * base_loc;
   literal_map_t const & params;
@@ -4908,7 +5187,8 @@ private:
   size_t probe_scn_offset;
   size_t probe_scn_addr;
   uint64_t arg_count;
-  uint64_t pc;
+  GElf_Addr base;
+  GElf_Addr pc;
   string arg_string;
   string probe_name;
   string provider_name;
@@ -4916,12 +5196,22 @@ private:
 
   bool init_probe_scn();
   bool get_next_probe();
+  void iterate_over_probe_entries();
+  void handle_probe_entry();
+
+  static void setup_note_probe_entry_callback (void *object, int type, const char *data, size_t len);
+  void setup_note_probe_entry (int type, const char *data, size_t len);
 
   void convert_probe(probe *base);
   void record_semaphore(vector<derived_probe *> & results, unsigned start);
   probe* convert_location();
-  bool have_uprobe() {return probe_type == uprobe1_type || probe_type == uprobe2_type;}
+  bool have_uprobe() {return probe_type == uprobe1_type || probe_type == uprobe2_type || probe_type == uprobe3_type;}
   bool have_kprobe() {return probe_type == kprobe1_type || probe_type == kprobe2_type;}
+  bool have_debuginfo_uprobe(bool need_debug_info)
+  {return probe_type == uprobe1_type
+      || ((probe_type == uprobe2_type || probe_type == uprobe3_type)
+	  && need_debug_info);}
+  bool have_debuginfoless_uprobe() {return probe_type == uprobe2_type || probe_type == uprobe3_type;}
 };
 
 
@@ -4950,6 +5240,122 @@ sdt_query::sdt_query(probe * base_probe, probe_point * base_loc,
 
 
 void
+sdt_query::handle_probe_entry()
+{
+  if (! have_uprobe()
+      && !probes_handled.insert(probe_name).second)
+    return;
+
+  if (sess.verbose > 3)
+    {
+      clog << "matched probe_name " << probe_name << " probe_type ";
+      switch (probe_type)
+	{
+	case uprobe1_type:
+	  clog << "uprobe1 at 0x" << hex << pc << dec << endl;
+	  break;
+	case uprobe2_type:
+	  clog << "uprobe2 at 0x" << hex << pc << dec << endl;
+	  break;
+	case uprobe3_type:
+	  clog << "uprobe3 at 0x" << hex << pc << dec << endl;
+	  break;
+	case kprobe1_type:
+	  clog << "kprobe1" << endl;
+	  break;
+	case kprobe2_type:
+	  clog << "kprobe2" << endl;
+	  break;
+	}
+    }
+
+  // Extend the derivation chain
+  probe *new_base = convert_location();
+  probe_point *new_location = new_base->locations[0];
+
+  bool kprobe_found = false;
+  bool need_debug_info = false;
+
+  Dwarf_Addr bias;
+  Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw.mod_info->mod, &bias))
+	      ?: dwfl_module_getelf (dw.mod_info->mod, &bias));
+
+  if (have_kprobe())
+    {
+      convert_probe(new_base);
+      kprobe_found = true;
+      // Expand the local variables in the probe body
+      sdt_kprobe_var_expanding_visitor svv (module_val,
+					    provider_name,
+					    probe_name,
+					    arg_string,
+					    arg_count);
+      svv.replace (new_base->body);
+    }
+  else
+    {
+      /* Figure out the architecture of this particular ELF file.
+	 The dwarfless register-name mappings depend on it. */
+      GElf_Ehdr ehdr_mem;
+      GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
+      if (em == 0) { dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
+      int elf_machine = em->e_machine;
+      sdt_uprobe_var_expanding_visitor svv (sess, elf_machine,
+					    module_val,
+					    provider_name,
+					    probe_name,
+					    arg_string,
+					    arg_count);
+      svv.replace (new_base->body);
+      need_debug_info = svv.need_debug_info;
+    }
+
+  unsigned i = results.size();
+
+  if (have_kprobe())
+    derive_probes(sess, new_base, results);
+
+  else
+    {
+      // XXX: why not derive_probes() in the uprobes case too?
+      literal_map_t params;
+      for (unsigned i = 0; i < new_location->components.size(); ++i)
+	{
+	  probe_point::component *c = new_location->components[i];
+	  params[c->functor] = c->arg;
+	}
+
+      dwarf_query q(new_base, new_location, dw, params, results, "", "");
+      q.has_mark = true; // enables mid-statement probing
+
+      // V2 probes need dwarf info in case of a variable reference
+      if (have_debuginfo_uprobe(need_debug_info))
+	dw.iterate_over_modules(&query_module, &q);
+      else if (have_debuginfoless_uprobe())
+	{
+	  string section;
+	  Dwarf_Addr reloc_addr = q.statement_num_val + bias;
+	  if (dwfl_module_relocations (q.dw.mod_info->mod) > 0)
+	    {
+	      dwfl_module_relocate_address (q.dw.mod_info->mod, &reloc_addr);
+	      section = ".dynamic";
+	    }
+	  else
+	    section = ".absolute";
+
+	  uprobe_derived_probe* p =
+	    new uprobe_derived_probe ("", "", 0, q.module_val, section,
+				      q.statement_num_val, reloc_addr, q, 0);
+	  p->saveargs (arg_count);
+	  results.push_back (p);
+	}
+    }
+  sess.unwindsym_modules.insert (dw.module_name);
+  record_semaphore(results, i);
+}
+
+
+void
 sdt_query::handle_query_module()
 {
   if (!init_probe_scn())
@@ -4958,116 +5364,19 @@ sdt_query::handle_query_module()
   if (sess.verbose > 3)
     clog << "TOK_MARK: " << pp_mark << " TOK_PROVIDER: " << pp_provider << endl;
 
-  while (get_next_probe())
+  if (probe_loc == note_section)
     {
-      if (! have_uprobe()
-	  && !probes_handled.insert(probe_name).second)
-        continue;
+      GElf_Shdr shdr_mem;
+      GElf_Shdr *shdr = dw.get_section (".stapsdt.base", &shdr_mem);
 
-      if (sess.verbose > 3)
-	{
-	  clog << "matched probe_name " << probe_name << " probe_type ";
-	  switch (probe_type)
-	    {
-	    case uprobe1_type:
-	      clog << "uprobe1 at 0x" << hex << pc << dec << endl;
-	      break;
-	    case uprobe2_type:
-	      clog << "uprobe2 at 0x" << hex << pc << dec << endl;
-	      break;
-	    case kprobe1_type:
-	      clog << "kprobe1" << endl;
-	      break;
-	    case kprobe2_type:
-	      clog << "kprobe2" << endl;
-	      break;
-	    }
-	}
-
-      // Extend the derivation chain
-      probe *new_base = convert_location();
-      probe_point *new_location = new_base->locations[0];
-
-      bool kprobe_found = false;
-      bool need_debug_info = false;
-      if (have_kprobe())
-        {
-          convert_probe(new_base);
-          kprobe_found = true;
-	  // Expand the local variables in the probe body
-	  sdt_kprobe_var_expanding_visitor svv (module_val,
-						provider_name,
-						probe_name,
-						arg_string,
-						arg_count);
-	  svv.replace (new_base->body);
-        }
+      if (shdr)
+	base = shdr->sh_addr;
       else
-	{
-          /* Figure out the architecture of this particular ELF file.
-             The dwarfless register-name mappings depend on it. */
-          Dwarf_Addr bias;
-          Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw.mod_info->mod, &bias))
-                      ?: dwfl_module_getelf (dw.mod_info->mod, &bias));
-          GElf_Ehdr ehdr_mem;
-          GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
-          if (em == 0) { dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
-          int elf_machine = em->e_machine;
-	  sdt_uprobe_var_expanding_visitor svv (sess, elf_machine,
-                                                module_val,
-						provider_name,
-						probe_name,
-						arg_string,
-						arg_count);
-	  svv.replace (new_base->body);
-	  need_debug_info = svv.need_debug_info;
-	}
-      
-      unsigned i = results.size();
-
-      if (have_kprobe())
-        derive_probes(sess, new_base, results);
-
-      else
-        {
-          // XXX: why not derive_probes() in the uprobes case too?
-          literal_map_t params;
-          for (unsigned i = 0; i < new_location->components.size(); ++i)
-            {
-              probe_point::component *c = new_location->components[i];
-              params[c->functor] = c->arg;
-            }
-
-	  dwarf_query q(new_base, new_location, dw, params, results, "", "");
-	  q.has_mark = true; // enables mid-statement probing
-
-	  // V2 probes need dwarf info in case of a variable reference
-	  if (probe_type == uprobe1_type
-	      || (probe_type == uprobe2_type && need_debug_info))
-	    dw.iterate_over_modules(&query_module, &q);
-	  else if (probe_type == uprobe2_type)
-	    {
-	      Dwarf_Addr bias;
-	      string section;
-	      Elf* elf = dwfl_module_getelf (q.dw.mod_info->mod, &bias);
-	      assert(elf);
-	      Dwarf_Addr reloc_addr = q.statement_num_val + bias;
-	      if (dwfl_module_relocations (q.dw.mod_info->mod) > 0)
-	      	{
-	      	  dwfl_module_relocate_address (q.dw.mod_info->mod, &reloc_addr);
-	      	  section = ".dynamic";
-	      	}
-	      else
-	      	section = ".absolute";
-
-	      uprobe_derived_probe* p =
-		new uprobe_derived_probe ("", "", 0, q.module_val, section,
-					  q.statement_num_val, reloc_addr, q, 0);
-	      results.push_back (p);
-	    }
-        }
-      record_semaphore(results, i);
+	base = 0;
+      dw.iterate_over_notes ((void*) this, &sdt_query::setup_note_probe_entry_callback);
     }
+  else
+    iterate_over_probe_entries ();
 }
 
 
@@ -5076,68 +5385,133 @@ sdt_query::init_probe_scn()
 {
   Elf* elf;
   GElf_Shdr shdr_mem;
-  GElf_Shdr *shdr = NULL;
-  Dwarf_Addr bias;
-  size_t shstrndx;
 
-  // Explicitly look in the main elf file first.
-  elf = dwfl_module_getelf (dw.module, &bias);
-  Elf_Scn *probe_scn = NULL;
-
-  dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
-
-  bool have_probes = false;
-
-  // Is there a .probes section?
-  while ((probe_scn = elf_nextscn (elf, probe_scn)))
+  GElf_Shdr *shdr = dw.get_section (".note.stapsdt", &shdr_mem);
+  if (shdr)
     {
-      shdr = gelf_getshdr (probe_scn, &shdr_mem);
-      assert (shdr != NULL);
-
-      if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".probes") == 0)
-	{
-	  have_probes = true;
-	  break;
-	}
+      probe_loc = note_section;
+      return true;
     }
 
-  // Older versions put .probes section in the debuginfo dwarf file,
-  // so check if it actually exists, if not take a look in the debuginfo file
-  if (! have_probes || (have_probes && shdr->sh_type == SHT_NOBITS))
+  shdr = dw.get_section (".probes", &shdr_mem, &elf);
+  if (shdr)
     {
-      elf = dwarf_getelf (dwfl_module_getdwarf (dw.module, &bias));
-      if (! elf)
-	return false;
-      dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
-      probe_scn = NULL;
-      while ((probe_scn = elf_nextscn (elf, probe_scn)))
-	{
-	  shdr = gelf_getshdr (probe_scn, &shdr_mem);
-	  if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name),
-		      ".probes") == 0)
-	    {
-	      have_probes = true;
-	      break;
-	    }
-	}
+      pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
+      probe_scn_offset = 0;
+      probe_scn_addr = shdr->sh_addr;
+      assert (pdata != NULL);
+      if (sess.verbose > 4)
+	clog << "got .probes elf scn_addr@0x" << probe_scn_addr << dec
+	     << ", size: " << pdata->d_size << endl;
+      probe_loc = probe_section;
+      return true;
     }
-
-  if (!have_probes)
+  else
     return false;
-
-  pdata = elf_getdata_rawchunk (elf, shdr->sh_offset, shdr->sh_size, ELF_T_BYTE);
-  probe_scn_offset = 0;
-  probe_scn_addr = shdr->sh_addr;
-  assert (pdata != NULL);
-  if (sess.verbose > 4)
-    clog << "got .probes elf scn_addr@0x" << probe_scn_addr << dec
-	 << ", size: " << pdata->d_size << endl;
-  return true;
 }
 
-bool
-sdt_query::get_next_probe()
+void
+sdt_query::setup_note_probe_entry_callback (void *object, int type, const char *data, size_t len)
 {
+  sdt_query *me = (sdt_query*)object;
+  me->setup_note_probe_entry (type, data, len);
+}
+
+
+void
+sdt_query::setup_note_probe_entry (int type, const char *data, size_t len)
+{
+  //  if (nhdr.n_namesz == sizeof _SDT_NOTE_NAME
+  //      && !memcmp (data->d_buf + name_off,
+  //		  _SDT_NOTE_NAME, sizeof _SDT_NOTE_NAME))
+
+  // probes are in the .note.stapsdt section
+#define _SDT_NOTE_TYPE 3
+  if (type != _SDT_NOTE_TYPE)
+    return;
+
+  union
+  {
+    Elf64_Addr a64[3];
+    Elf32_Addr a32[3];
+  } buf;
+  Dwarf_Addr bias;
+  Elf* elf = (dwfl_module_getelf (dw.mod_info->mod, &bias));
+  Elf_Data dst =
+    {
+      &buf, ELF_T_ADDR, EV_CURRENT,
+      gelf_fsize (elf, ELF_T_ADDR, 3, EV_CURRENT), 0, 0
+    };
+  assert (dst.d_size <= sizeof buf);
+
+  if (len < dst.d_size + 3)
+    return;
+
+  Elf_Data src =
+    {
+      (void *) data, ELF_T_ADDR, EV_CURRENT,
+      dst.d_size, 0, 0
+    };
+
+  if (gelf_xlatetom (elf, &dst, &src,
+		      elf_getident (elf, NULL)[EI_DATA]) == NULL)
+    printf ("gelf_xlatetom: %s", elf_errmsg (-1));
+
+  probe_type = uprobe3_type;
+  const char * provider = data + dst.d_size;
+  provider_name = provider;
+  const char *name = (const char*)memchr (provider, '\0', data + len - provider);
+  probe_name = ++name;
+
+  // Did we find a matching probe?
+  if (! (dw.function_name_matches_pattern (probe_name, pp_mark)
+	 && ((pp_provider == "")
+	     || dw.function_name_matches_pattern (provider_name, pp_provider))))
+    return;
+
+  const char *args = (const char*)memchr (name, '\0', data + len - name);
+  if (args++ == NULL ||
+      memchr (args, '\0', data + len - name) != data + len - 1)
+    if (name == NULL)
+      return;
+  arg_string = args;
+
+  arg_count = 0;
+  for (unsigned i = 0; i < arg_string.length(); i++)
+    if (arg_string[i] == ' ')
+      arg_count += 1;
+  if (arg_string.length() != 0)
+    arg_count += 1;
+  
+  GElf_Addr base_ref;
+  if (gelf_getclass (elf) == ELFCLASS32)
+    {
+      pc = buf.a32[0];
+      base_ref = buf.a32[1];
+      semaphore = buf.a32[2];
+    }
+  else
+    {
+      pc = buf.a64[0];
+      base_ref = buf.a64[1];
+      semaphore = buf.a64[2];
+    }
+
+  semaphore += base - base_ref;
+  pc += base - base_ref;
+
+  if (sess.verbose > 4)
+    clog << "saw .note.stapsdt " << probe_name << (provider_name != "" ? " (provider "+provider_name+") " : "")
+	     << "@0x" << hex << pc << dec << endl;
+
+  handle_probe_entry();
+}
+
+
+void
+sdt_query::iterate_over_probe_entries()
+{
+  // probes are in the .probe section
   while (probe_scn_offset < pdata->d_size)
     {
       stap_sdt_probe_entry_v1 *pbe_v1 = (stap_sdt_probe_entry_v1 *) ((char*)pdata->d_buf + probe_scn_offset);
@@ -5164,7 +5538,7 @@ sdt_query::get_next_probe()
       if (probe_type == uprobe1_type || probe_type == kprobe1_type)
 	{
 	  if (pbe_v1->name == 0) // No name possibly means we have a .so with a relocation
-	    return false;
+	    return;
 	  semaphore = 0;
 	  probe_name = (char*)((char*)pdata->d_buf + pbe_v1->name - (char*)probe_scn_addr);
           provider_name = ""; // unknown
@@ -5180,7 +5554,7 @@ sdt_query::get_next_probe()
       else if (probe_type == uprobe2_type || probe_type == kprobe2_type)
 	{
 	  if (pbe_v2->name == 0) // No name possibly means we have a .so with a relocation
-	    return false;
+	    return;
 	  semaphore = pbe_v2->semaphore;
 	  probe_name = (char*)((char*)pdata->d_buf + pbe_v2->name - (char*)probe_scn_addr);
 	  provider_name = (char*)((char*)pdata->d_buf + pbe_v2->provider - (char*)probe_scn_addr);
@@ -5198,11 +5572,8 @@ sdt_query::get_next_probe()
 
       if (dw.function_name_matches_pattern (probe_name, pp_mark)
           && ((pp_provider == "") || dw.function_name_matches_pattern (provider_name, pp_provider)))
-	return true;
-      else
-	continue;
+	handle_probe_entry ();
     }
-  return false;
 }
 
 
@@ -5223,7 +5594,8 @@ sdt_query::record_semaphore (vector<derived_probe *> & results, unsigned start)
       addr  = lookup_symbol_address(dw.module, semaphore.c_str());
     if (addr)
       {
-        if (dwfl_module_relocations (dw.module) > 0)
+        if (probe_type != uprobe3_type
+	    && dwfl_module_relocations (dw.module) > 0)
           dwfl_module_relocate_address (dw.module, &addr);
         // XXX: relocation basis?
         for (unsigned i = start; i < results.size(); ++i)
@@ -5325,17 +5697,37 @@ probe*
 sdt_query::convert_location ()
 {
   probe_point* specific_loc = new probe_point(*base_loc);
-  probe_point* derived_loc = new probe_point(*base_loc);
+  vector<probe_point::component*> derived_comps;
 
-  for (unsigned i = 0; i < derived_loc->components.size(); ++i)
-    if (derived_loc->components[i]->functor == TOK_MARK)
+  vector<probe_point::component*>::iterator it;
+  for (it = specific_loc->components.begin();
+       it != specific_loc->components.end(); ++it)
+    if ((*it)->functor == TOK_PROCESS)
+      {
+        if (have_kprobe())
+          // start the kernel probe_point
+          derived_comps.push_back(new probe_point::component(TOK_KERNEL));
+        else
+          // copy the process name
+          derived_comps.push_back(*it);
+      }
+    else if ((*it)->functor == TOK_LIBRARY)
+      {
+        if (!have_kprobe())
+          // copy the library name for process probes
+          derived_comps.push_back(*it);
+      }
+    else if ((*it)->functor == TOK_PROVIDER)
+      {
+        // replace the possibly wildcarded arg with the specific provider name
+        *it = new probe_point::component(TOK_PROVIDER,
+                                         new literal_string(provider_name));
+      }
+    else if ((*it)->functor == TOK_MARK)
       {
         // replace the possibly wildcarded arg with the specific marker name
-        specific_loc->components[i] =
-          new probe_point::component(TOK_MARK, new literal_string(probe_name));
-
-        // XXX: similarly, fill in a TOK_PROVIDER() on the base_loc if
-        // one was missing/unspecified/wildcarded.
+        *it = new probe_point::component(TOK_MARK,
+                                         new literal_string(probe_name));
 
 	if (sess.verbose > 3)
 	  switch (probe_type)
@@ -5348,13 +5740,16 @@ sdt_query::convert_location ()
               clog << "probe_type == uprobe2, use statement addr: 0x"
 		   << hex << pc << dec << endl;
             break;
-
-	  case kprobe1_type:
-	    clog << "probe_type == kprobe1" << endl;
-	    break;
-	  case kprobe2_type:
-	    clog << "probe_type == kprobe2" << endl;
-	    break;
+	    case uprobe3_type:
+              clog << "probe_type == uprobe3, use statement addr: 0x"
+		   << hex << pc << dec << endl;
+	      break;
+	    case kprobe1_type:
+	      clog << "probe_type == kprobe1" << endl;
+	      break;
+	    case kprobe2_type:
+	      clog << "probe_type == kprobe2" << endl;
+	      break;
 	    default:
               clog << "probe_type == use_uprobe_no_dwarf, use label name: "
 		   << "_stapprobe1_" << pp_mark << endl;
@@ -5364,37 +5759,35 @@ sdt_query::convert_location ()
           {
           case uprobe1_type:
           case uprobe2_type:
+          case uprobe3_type:
             // process("executable").statement(probe_arg)
-            derived_loc->components[i] =
-              new probe_point::component(TOK_STATEMENT,
-                                         new literal_number(pc, true));
+            derived_comps.push_back
+              (new probe_point::component(TOK_STATEMENT,
+                                          new literal_number(pc, true)));
             break;
 
 	  case kprobe1_type:
 	  case kprobe2_type:
 	    // kernel.function("*getegid*")
-	    derived_loc->components[i] =
-	      new probe_point::component(TOK_FUNCTION, new literal_string("*getegid*"));
-	    if (derived_loc->components[i - 1]->functor == TOK_LIBRARY)
-	      derived_loc->components.erase (derived_loc->components.begin() + i - 1);
+            derived_comps.push_back
+              (new probe_point::component(TOK_FUNCTION,
+                                          new literal_string("*getegid*")));
 	    break;
 
           default: // deprecated
             // process("executable").function("*").label("_stapprobe1_MARK_NAME")
-            derived_loc->components[i] =
-              new probe_point::component(TOK_FUNCTION, new literal_string("*"));
-            derived_loc->components.push_back
+            derived_comps.push_back
+              (new probe_point::component(TOK_FUNCTION,
+                                          new literal_string("*")));
+            derived_comps.push_back
               (new probe_point::component(TOK_LABEL,
                                           new literal_string("_stapprobe1_" + pp_mark)));
             break;
           }
       }
-    else if (derived_loc->components[i]->functor == TOK_PROCESS
-             && have_kprobe())
-      {
-        derived_loc->components[i] = new probe_point::component(TOK_KERNEL);
-      }
 
+  probe_point* derived_loc = new probe_point(*specific_loc);
+  derived_loc->components = derived_comps;
   return base_probe->create_alias(derived_loc, specific_loc);
 }
 
@@ -5419,11 +5812,79 @@ dwarf_builder::build(systemtap_session & sess,
     }
   else if (get_param (parameters, TOK_MODULE, module_name))
     {
+      // NB: glob patterns get expanded later, during the offline
+      // elfutils module listing.
       dw = get_kern_dw(sess, module_name);
     }
   else if (get_param (parameters, TOK_PROCESS, module_name))
     {
       string library_name;
+
+      // PR6456  process("/bin/*")  glob handling
+      if (contains_glob_chars (module_name))
+        {
+          // Expand glob via rewriting the probe-point process("....")
+          // parameter, asserted to be the first one.
+
+          assert (location->components.size() > 0);
+          assert (location->components[0]->functor == TOK_PROCESS);
+          assert (location->components[0]->arg);
+          literal_string* lit = dynamic_cast<literal_string*>(location->components[0]->arg);
+          assert (lit);
+
+          // Evaluate glob here, and call derive_probes recursively with each match.
+          glob_t the_blob;
+          int rc = glob (module_name.c_str(), 0, NULL, & the_blob);
+          if (rc) throw semantic_error ("glob " + module_name + " error (" + lex_cast (rc) + ")");
+          for (unsigned i = 0; i < the_blob.gl_pathc; ++i)
+            {
+              if (pending_interrupts) return;
+
+              const char* globbed = the_blob.gl_pathv[i];
+              struct stat st;
+
+              if (access (globbed, X_OK) == 0
+                  && stat (globbed, &st) == 0
+                  && S_ISREG (st.st_mode)) // see find_executable()
+                {
+                  // Need to call canonicalize here, in order to path-expand
+                  // patterns like process("stap*").  Otherwise it may go through
+                  // to the next round of expansion as ("stap"), leading to a $PATH
+                  // search that's not consistent with the glob search already done.
+
+                  char *cf = canonicalize_file_name (globbed);
+                  if (cf) globbed = cf;
+
+                  if (sess.verbose > 1)
+                    clog << "Expanded process(\"" << module_name << "\") to "
+                         << "process(\"" << globbed << "\")" << endl;
+                  // synthesize a new probe_point, with the glob-expanded string
+                  probe_point *pp = new probe_point (*location);
+                  probe_point::component* ppc = new probe_point::component (TOK_PROCESS,
+                                                                            new literal_string (globbed));
+                  ppc->tok = location->components[0]->tok; // overwrite [0] slot, pattern matched above
+                  pp->components[0] = ppc;
+
+                  probe* new_probe = new probe (*base, pp);
+
+                  // We override "optional = true" here, as if the
+                  // wildcarded probe point was given a "?" suffix.
+
+                  // This is because wildcard probes will be expected
+                  // by users to apply only to some subset of the
+                  // matching binaries, in the sense of "any", rather
+                  // than "all", sort of similarly how
+                  // module("*").function("...") patterns work.
+
+                  derive_probes (sess, new_probe, finished_results,
+                                 true /* NB: not location->optional */ );
+                }
+            }
+
+          globfree (& the_blob);
+          return; // avoid falling through
+        }
+
       user_path = find_executable (module_name); // canonicalize it
       if (get_param (parameters, TOK_LIBRARY, library_name))
 	{
@@ -5501,7 +5962,7 @@ dwarf_builder::build(systemtap_session & sess,
                   break;
                 }
             }
-          
+
           sess.print_warning ("cannot probe .return of " + lex_cast(i_n_r) + " inlined function(s):" + quicklist);
           // There will be also a "no matches" semantic error generated.
         }
@@ -5837,6 +6298,11 @@ module_info::update_symtab(cu_function_cache_t *funcs)
       if (dwarf_func_inline(&func->second) != 0)
         continue;
 
+      // XXX We may want to make additional efforts to match mangled elf names
+      // to dwarf too.  MIPS_linkage_name can help, but that's sometimes
+      // missing, so we may also need to try matching by address.  See also the
+      // notes about _Z in dwflpp::iterate_over_functions().
+
       func_info *fi = sym_table->lookup_symbol(func->first);
       if (!fi)
         continue;
@@ -5896,6 +6362,22 @@ uprobe_derived_probe::join_group (systemtap_session& s)
   // Ask buildrun.cxx to build extra module if needed, and
   // signal staprun to load that module
   s.need_uprobes = true;
+}
+
+
+void
+uprobe_derived_probe::getargs(std::list<std::string> &arg_set) const
+{
+  dwarf_derived_probe::getargs(arg_set);
+  arg_set.insert(arg_set.end(), args.begin(), args.end());
+}
+
+
+void
+uprobe_derived_probe::saveargs(int nargs)
+{
+  for (int i = 1; i <= nargs; i++)
+    args.push_back("$arg" + lex_cast (i) + ":long");
 }
 
 
@@ -5997,13 +6479,16 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
           // only the same fields as we're about to emit.
           s.op->line() << " .finder={";
           if (p->pid != 0)
-            s.op->line() << " .pid=" << p->pid;
+            s.op->line() << " .pid=" << p->pid << ",";
+
+          if (p->section == "") // .statement(addr).absolute
+            s.op->line() << " .callback=&stap_uprobe_process_found,";
           else if (p->section == ".absolute") // proxy for ET_EXEC -> exec()'d program
             {
               s.op->line() << " .procname=" << lex_cast_qstring(p->module) << ",";
               s.op->line() << " .callback=&stap_uprobe_process_found,";
             }
-	  if (p->section != ".absolute") // ET_DYN
+	  else if (p->section != ".absolute") // ET_DYN
             {
 	      if (p->has_library && p->sdt_semaphore_addr != 0)
 		s.op->line() << " .procname=\"" << p->path << "\", ";
@@ -6013,10 +6498,11 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
             }
 
           s.op->line() << " },";
-          s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
+          if (p->module != "")
+            s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
           s.op->line() << " },";
         }
-      else 
+      else
         ; // skip it in this pass, already have a suitable stap_uprobe_tf slot for it.
     }
   s.op->newline(-1) << "};";
@@ -6066,7 +6552,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
   s.op->newline() << "SET_REG_IP(regs, inst->vaddr);";
-  s.op->newline() << "(*sups->probe.ph) (c);";
+  s.op->newline() << "(*sups->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
   s.op->newline(-1) << "}";
 
@@ -6091,7 +6577,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
   s.op->newline() << "SET_REG_IP(regs, inst->ret_addr);";
-  s.op->newline() << "(*sups->probe.ph) (c);";
+  s.op->newline() << "(*sups->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
   s.op->newline(-1) << "}";
 
@@ -6123,7 +6609,7 @@ uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   // Set up the task_finders
   s.op->newline() << "for (i=0; i<sizeof(stap_uprobe_finders)/sizeof(stap_uprobe_finders[0]); i++) {";
   s.op->newline(1) << "struct stap_uprobe_tf *stf = & stap_uprobe_finders[i];";
-  s.op->newline() << "probe_point = stf->pathname;"; // for error messages; XXX: would prefer pp() or something better 
+  s.op->newline() << "probe_point = stf->pathname;"; // for error messages; XXX: would prefer pp() or something better
   s.op->newline() << "rc = stap_register_task_finder_target (& stf->finder);";
 
   // NB: if (rc), there is no need (XXX: nor any way) to clean up any
@@ -6164,18 +6650,16 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "struct task_struct *tsk;";
   s.op->newline() << "rcu_read_lock();";
 
-  // XXX: what a gross cut & paste job from tapset/task.stp, just for a lousy pid->task_struct* lookup
-  s.op->newline() << "#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,31)";
-  s.op->newline() << "  { struct pid *p_pid = find_get_pid(pid);";
-  s.op->newline() << "  tsk = pid_task(p_pid, PIDTYPE_PID);";
-  s.op->newline() << "  put_pid(p_pid); }";
-  s.op->newline() << "#else";
+  // Do a pid->task_struct* lookup.  For 2.6.24+, this code assumes
+  // that the pid is always in the global namespace, not in any
+  // private namespace.
   s.op->newline() << "#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)";
-  s.op->newline() << "  tsk = find_task_by_vpid (pid);";
+  // We'd like to call find_task_by_pid_ns() here, but it isn't
+  // exported.  So, we call what it calls...
+  s.op->newline() << "  tsk = pid_task(find_pid_ns(pid, &init_pid_ns), PIDTYPE_PID);";
   s.op->newline() << "#else";
   s.op->newline() << "  tsk = find_task_by_pid (pid);";
   s.op->newline() << "#endif /* 2.6.24 */";
-  s.op->newline() << "#endif /* 2.6.31 */";
 
   s.op->newline() << "if (tsk) {"; // just in case the thing exited while we weren't watching
   s.op->newline(1) << "if (__access_process_vm_noflush(tsk, sup->sdt_sem_address, &sdt_semaphore, sizeof(sdt_semaphore), 0)) {";
@@ -6275,7 +6759,7 @@ kprobe_derived_probe::kprobe_derived_probe (probe *base,
 					    const string& path,
 					    const string& library
 					    ):
-  derived_probe (base, location),
+  derived_probe (base, location, true /* .components soon rewritten */ ),
   symbol_name (name), addr (stmt_addr),
   has_return (has_return), has_statement (has_statement),
   has_maxactive (has_maxactive), has_path (has_path),
@@ -6414,7 +6898,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 #undef CALCIT
 
   s.op->newline() << "unsigned long address;";
-  s.op->newline() << "struct stap_probe probe;";
+  s.op->newline() << "struct stap_probe * const probe;";
   s.op->newline(-1) << "} stap_dwarfless_probes[] = {";
   s.op->indent(1);
 
@@ -6468,7 +6952,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
-  s.op->newline() << "(*sdp->probe.ph) (c);";
+  s.op->newline() << "(*sdp->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
@@ -6502,7 +6986,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
-  s.op->newline() << "(*sdp->probe.ph) (c);";
+  s.op->newline() << "(*sdp->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
@@ -6561,7 +7045,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "#endif";
 
-  s.op->newline() << "probe_point = sdp->probe.pp;"; // for error messages
+  s.op->newline() << "probe_point = sdp->probe->pp;"; // for error messages
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "kp->u.krp.kp.addr = addr;";
   s.op->newline() << "kp->u.krp.kp.symbol_name = (char *) symbol_name;";
@@ -6662,12 +7146,12 @@ kprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.krp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.krp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/1 on '%s': %d\\n\", sdp->probe.pp, kp->u.krp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/1 on '%s': %d\\n\", sdp->probe->pp, kp->u.krp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline() << "atomic_add (kp->u.krp.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.krp.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->probe.pp, kp->u.krp.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->probe->pp, kp->u.krp.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "} else {";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES)";
@@ -6676,7 +7160,7 @@ kprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
   s.op->newline() << "#ifdef STP_TIMING";
   s.op->newline() << "if (kp->u.kp.nmissed)";
-  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->probe.pp, kp->u.kp.nmissed);";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->probe->pp, kp->u.kp.nmissed);";
   s.op->newline(-1) << "#endif";
   s.op->newline(-1) << "}";
   s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES) && defined(__ia64__)";
@@ -6724,7 +7208,7 @@ kprobe_builder::build(systemtap_session & sess,
     path = find_executable (path);
   if (has_library)
     library = find_executable (library, "LD_LIBRARY_PATH");
- 
+
   if (has_function_str)
     {
       if (has_module_str)
@@ -6813,7 +7297,7 @@ hwbkpt_derived_probe::hwbkpt_derived_probe (probe *base,
                                             bool has_only_write_access,
                                             bool has_rw_access
                                             ):
-  derived_probe (base, location),
+  derived_probe (base, location, true /* .components soon rewritten */ ),
   hwbkpt_addr (addr),
   symbol_name (symname),
   hwbkpt_len (len)
@@ -6875,7 +7359,7 @@ void hwbkpt_derived_probe_group::enroll (hwbkpt_derived_probe* p, systemtap_sess
   else if (s.architecture == "s390")
     max_hwbkpt_probes_by_arch = 1;
 
-  if (hwbkpt_probes.size() >= max_hwbkpt_probes_by_arch) 
+  if (hwbkpt_probes.size() >= max_hwbkpt_probes_by_arch)
     if (! s.suppress_warnings)
       s.print_warning ("Too many hardware breakpoint probes requested for " + s.architecture
                        + "(" + lex_cast(hwbkpt_probes.size()) +
@@ -6918,7 +7402,7 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "const unsigned long address;";
   s.op->newline() << "uint8_t atype;";
   s.op->newline() << "unsigned int len;";
-  s.op->newline() << "struct stap_probe probe;";
+  s.op->newline() << "struct stap_probe * const probe;";
   s.op->newline() << "} stap_hwbkpt_probes[] = {";
   s.op->indent(1);
 
@@ -6964,7 +7448,7 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct stap_hwbkpt_probe *sdp = &stap_hwbkpt_probes[i];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
   s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "(*sdp->probe.ph) (c);";
+  s.op->newline() << "(*sdp->probe->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
@@ -6986,14 +7470,14 @@ hwbkpt_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "else { ";
   s.op->newline(1) << "hp->bp_addr = kallsyms_lookup_name(hwbkpt_symbol_name);";
   s.op->newline() << "if (!hp->bp_addr) { ";
-  s.op->newline(1) << "_stp_warn(\"Probe %s registration skipped: invalid symbol %s \",sdp->probe.pp,hwbkpt_symbol_name);";
+  s.op->newline(1) << "_stp_warn(\"Probe %s registration skipped: invalid symbol %s \",sdp->probe->pp,hwbkpt_symbol_name);";
   s.op->newline() << "continue;";
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
   s.op->newline() << "hp->bp_type = sdp->atype;";
 
   // On x86 & x86-64, hp->bp_len is not just a number but a macro/enum (!?!).
-  if (s.architecture == "i386" || s.architecture == "x86_64" ) 
+  if (s.architecture == "i386" || s.architecture == "x86_64" )
     {
       s.op->newline() << "switch(sdp->len) {";
       s.op->newline() << "case 1:";
@@ -7018,7 +7502,7 @@ hwbkpt_derived_probe_group::emit_module_init (systemtap_session& s)
   else // other architectures presumed straightforward
     s.op->newline() << "hp->bp_len = sdp->len;";
 
-  s.op->newline() << "probe_point = sdp->probe.pp;"; // for error messages
+  s.op->newline() << "probe_point = sdp->probe->pp;"; // for error messages
   s.op->newline() << "stap_hwbkpt_ret_array[i] = register_wide_hw_breakpoint(hp, (void *)&enter_hwbkpt_probe);";
   s.op->newline() << "if (IS_ERR(stap_hwbkpt_ret_array[i])) {";
   s.op->newline(1) << "int err_code = PTR_ERR(stap_hwbkpt_ret_array[i]);";
@@ -7409,7 +7893,7 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
                                                     dwflpp& dw, Dwarf_Die& func_die,
                                                     const string& tracepoint_name,
                                                     probe* base, probe_point* loc):
-  derived_probe (base, new probe_point(*loc) /* .components soon rewritten */),
+  derived_probe (base, loc, true /* .components soon rewritten */),
   sess (s), tracepoint_name (tracepoint_name)
 {
   // create synthetic probe point name; preserve condition
@@ -7423,18 +7907,22 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
 
   // determine which header defined this tracepoint
   string decl_file = dwarf_decl_file(&func_die);
+  header = decl_file; 
+
+#if 0 /* This convention is not enforced. */
   size_t header_pos = decl_file.rfind("trace/");
   if (header_pos == string::npos)
     throw semantic_error ("cannot parse header location for tracepoint '"
                                   + tracepoint_name + "' in '"
                                   + decl_file + "'");
   header = decl_file.substr(header_pos);
+#endif
 
   // tracepoints from FOO_event_types.h should really be included from FOO.h
   // XXX can dwarf tell us the include hierarchy?  it would be better to
   // ... walk up to see which one was directly included by tracequery.c
   // XXX: see also PR9993.
-  header_pos = header.find("_event_types");
+  size_t header_pos = header.find("_event_types");
   if (header_pos != string::npos)
     header.erase(header_pos, 12);
 
@@ -7565,18 +8053,35 @@ tracepoint_derived_probe::print_dupe_stamp(ostream& o)
 }
 
 
-static vector<string> tracepoint_extra_headers (systemtap_session& s)
+static vector<string> tracepoint_extra_decls (systemtap_session& s)
 {
   vector<string> they_live;
   // PR 9993
   // XXX: may need this to be configurable
-  they_live.push_back ("linux/skbuff.h");
+  they_live.push_back ("#include <linux/skbuff.h>");
 
   // PR11649: conditional extra header
   // for kvm tracepoints in 2.6.33ish
   if (s.kernel_config["CONFIG_KVM"] != string("")) {
-    they_live.push_back ("linux/kvm_host.h");
+    they_live.push_back ("#include <linux/kvm_host.h>");
   }
+
+  if (s.kernel_config["CONFIG_XFS_FS"] != string("")) {
+    they_live.push_back ("#define XFS_BIG_BLKNOS 1");
+    if (s.kernel_source_tree != "")
+      they_live.push_back ("#include \"fs/xfs/xfs_types.h\""); // in kernel-source tree
+    they_live.push_back ("struct xfs_mount;");
+    they_live.push_back ("struct xfs_inode;");
+    they_live.push_back ("struct xfs_buf;");
+    they_live.push_back ("struct xfs_bmbt_irec;");
+  }
+
+  if (s.kernel_config["CONFIG_NFSD"] != string("")) {
+    they_live.push_back ("struct rpc_task;");
+  }
+
+  they_live.push_back ("#include <asm/cputime.h>");
+
   return they_live;
 }
 
@@ -7592,9 +8097,9 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // PR9993: Add extra headers to work around undeclared types in individual
   // include/trace/foo.h files
-  const vector<string>& extra_headers = tracepoint_extra_headers (s);
-  for (unsigned z=0; z<extra_headers.size(); z++)
-    s.op->newline() << "#include <" << extra_headers[z] << ">\n";
+  const vector<string>& extra_decls = tracepoint_extra_decls (s);
+  for (unsigned z=0; z<extra_decls.size(); z++)
+    s.op->newline() << extra_decls[z] << "\n";
 
   for (unsigned i = 0; i < probes.size(); ++i)
     {
@@ -7603,7 +8108,13 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       // emit a separate entry function for each probe, since tracepoints
       // don't provide any sort of context pointer.
       s.op->newline() << "#undef TRACE_INCLUDE_FILE";
-      s.op->newline() << "#include <" << p->header << ">";
+      s.op->newline() << "#undef TRACE_INCLUDE_PATH";
+
+      // strip include/ substring, the same way as done in get_tracequery_module()
+      string header = p->header;
+      size_t root_pos = header.rfind("include/");
+      header = ((root_pos != string::npos) ? header.substr(root_pos + 8) : header);
+      s.op->newline() << "#include <" << header << ">";
 
       // Starting in 2.6.35, at the same time NOARGS was added, the callback
       // always has a void* as the first parameter. PR11599
@@ -7632,7 +8143,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << ")";
       s.op->newline(-2) << "{";
 
-      s.op->newline(1) << "static const struct stap_probe probe = "
+      s.op->newline(1) << "struct stap_probe * const probe = "
                        << common_probe_init (p) << ";";
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "probe");
       s.op->newline() << "c->marker_name = "
@@ -7646,7 +8157,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
             s.op->line() << p->args[j].typecast;
             s.op->line() << "__tracepoint_arg_" << p->args[j].name << ";";
           }
-      s.op->newline() << "(*probe.ph) (c);";
+      s.op->newline() << "(*probe->ph) (c);";
       common_probe_entryfn_epilogue (s.op);
       s.op->newline(-1) << "}";
 
@@ -7835,6 +8346,8 @@ public:
       clog << "tracepoint_builder releasing dwflpp" << endl;
     delete dw;
     dw = NULL;
+
+    delete_session_module_cache (s);
   }
 
   void build(systemtap_session& s,
@@ -7878,20 +8391,20 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
 
   // PR9993: Add extra headers to work around undeclared types in individual
   // include/trace/foo.h files
-  vector<string> short_headers = tracepoint_extra_headers(s);
+  vector<string> short_decls = tracepoint_extra_decls(s);
 
   // add each requested tracepoint header
   for (size_t i = 0; i < headers.size(); ++i)
     {
       const string &header = headers[i];
-      size_t root_pos = header.rfind("/include/");
-      short_headers.push_back((root_pos != string::npos) ?
-                              header.substr(root_pos + 9) :
-                              header);
+      size_t root_pos = header.rfind("include/");
+      short_decls.push_back(string("#include <") + 
+                            ((root_pos != string::npos) ? header.substr(root_pos + 8) : header) +
+                            string(">"));
     }
 
   string tracequery_ko;
-  int rc = make_tracequery(s, tracequery_ko, short_headers);
+  int rc = make_tracequery(s, tracequery_ko, short_decls);
   if (rc != 0)
     tracequery_ko = "/dev/null";
 
@@ -7901,6 +8414,7 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
 
   return tracequery_ko;
 }
+
 
 
 bool
@@ -7913,15 +8427,59 @@ tracepoint_builder::init_dw(systemtap_session& s)
   vector<string> system_headers;
 
   glob_t trace_glob;
-  string globs[] = {
-      "/include/trace/events/*.h",
-      "/source/include/trace/events/*.h",
-      "/include/trace/*.h",
-      "/source/include/trace/*.h",
-  };
-  for (unsigned z = 0; z < sizeof(globs) / sizeof(globs[0]); z++)
+
+  // find kernel_source_tree
+  if (s.kernel_source_tree == "")
     {
-      string glob_str(s.kernel_build_tree + globs[z]);
+      unsigned found;
+      DwflPtr dwfl_ptr = setup_dwfl_kernel ("kernel", &found, s);
+      Dwfl *dwfl = dwfl_ptr.get()->dwfl;
+      if (found)
+        {
+          Dwarf_Die *cudie = 0;
+          Dwarf_Addr bias;
+          while ((cudie = dwfl_nextcu (dwfl, cudie, &bias)) != NULL)
+            {
+              if (pending_interrupts) break;
+              Dwarf_Attribute attr;
+              const char* name = dwarf_formstring (dwarf_attr (cudie, DW_AT_comp_dir, &attr));
+              if (name) 
+                {
+                  if (s.verbose > 2)
+                    clog << "Located kernel source tree (DW_AT_comp_dir) at '" << name << "'" << endl;
+
+                  s.kernel_source_tree = name;
+                  break; // skip others; modern Kbuild uses same comp_dir for them all
+                }
+            }
+        }
+    }
+
+  // prefixes
+  vector<string> glob_prefixes;
+  glob_prefixes.push_back (s.kernel_build_tree);
+  if (s.kernel_source_tree != "")
+    glob_prefixes.push_back (s.kernel_source_tree);
+
+  // suffixes
+  vector<string> glob_suffixes;
+  glob_suffixes.push_back("include/trace/events/*.h");
+  glob_suffixes.push_back("include/trace/*.h");
+  glob_suffixes.push_back("arch/x86/kvm/*trace.h");
+  glob_suffixes.push_back("fs/xfs/linux-2.6/xfs_tr*.h");
+
+  // compute cartesian product
+  vector<string> globs;
+  for (unsigned i=0; i<glob_prefixes.size(); i++)
+    for (unsigned j=0; j<glob_suffixes.size(); j++)
+      globs.push_back (glob_prefixes[i]+string("/")+glob_suffixes[j]);
+
+  for (unsigned z = 0; z < globs.size(); z++)
+    {
+      string glob_str = globs[z];
+      if (s.verbose > 3)
+        clog << "Checking tracepoint glob " << glob_str << endl;
+
       glob(glob_str.c_str(), 0, NULL, &trace_glob);
       for (unsigned i = 0; i < trace_glob.gl_pathc; ++i)
         {
@@ -7949,7 +8507,6 @@ tracepoint_builder::init_dw(systemtap_session& s)
     for (size_t i = 0; i < system_headers.size(); ++i)
       {
         if (pending_interrupts) return false;
-
         vector<string> one_header(1, system_headers[i]);
         tracequery_path = get_tracequery_module(s, one_header);
         if (get_file_size(tracequery_path))

@@ -222,11 +222,17 @@ def update_buckets(failed=True):
     # if bucketA is set, we've just finished up with it (or bucketB).
     elif len(probes.bucketA) > 0:
         if probes.bucketA_result == 0:
-            probes.bucketA_result = (1 if not failed else 2)
+            if not failed:
+                probes.bucketA_result = 1
+            else:
+                probes.bucketA_result = 2
             print "bucketA %s with %d probes..." % \
                 (probes.bucketA_result_str(), len(probes.bucketA))
         else:
-            probes.bucketB_result = (1 if not failed else 2)
+            if not failed:
+                probes.bucketB_result = 1
+            else:
+                probes.bucketB_result = 2
             print "bucketB %s with %d probes..." % \
                 (probes.bucketB_result_str(), len(probes.bucketB))
 
@@ -562,3 +568,4 @@ run_tests()
 # Finish up.
 dump_output()
 register_script(False)
+print >>sys.stderr, "Finished."

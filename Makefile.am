@@ -7,32 +7,37 @@ AUTOMAKE_OPTIONS = no-dist foreign
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 oldincludedir = ${includedir}/sys
 
-AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"' -I$(srcdir)/includes
+AM_CPPFLAGS = -DBINDIR='"$(bindir)"' \
+	      -DSYSCONFDIR='"$(sysconfdir)"' \
+	      -DPKGDATADIR='"${pkgdatadir}"' \
+	      -DPKGLIBDIR='"$(pkglibexecdir)"' \
+	      -I$(srcdir)/includes -I$(builddir)/includes/sys
 
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 
 man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
-dtrace.1 \
-stappaths.7 \
-staprun.8
+dtrace.1 stap-merge.1\
+stappaths.7
 
-bin_PROGRAMS = staprun
 bin_SCRIPTS = stap-report
-pkglibexec_PROGRAMS = stapio
 pkglibexec_SCRIPTS = stap-env
-oldinclude_HEADERS = includes/sys/sdt.h
+oldinclude_HEADERS = includes/sys/sdt.h includes/sys/sdt-config.h
+
+bin_PROGRAMS =
 
 if BUILD_TRANSLATOR
 bin_PROGRAMS += stap
 man_MANS += stap.1
 bin_SCRIPTS += dtrace
 
+pkglibexec_PROGRAMS =
+
 if HAVE_NSS
 man_MANS += stap-authorize-signing-cert.8
 bin_SCRIPTS += stap-authorize-signing-cert
 pkglibexec_PROGRAMS += stap-sign-module
-pkglibexec_SCRIPTS += stap-gen-cert stap-authorize-cert 
+pkglibexec_SCRIPTS += stap-gen-cert stap-authorize-cert
 
 if BUILD_SERVER
 man_MANS += stap-client.8 stap-server.8 stap-authorize-server-cert.8
@@ -51,6 +56,7 @@ stap_SOURCES = main.cxx session.cxx \
 	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
 	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx \
 	setupdwfl.cxx csclient.cxx
+noinst_HEADERS = sdt-compat.h
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 stap_DEPENDENCIES =
 endif
@@ -157,38 +163,7 @@ install-elfutils:
 	done
 install-exec-local: install-elfutils
 endif
-
 endif
-
-staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
-	runtime/staprun/ctl.c runtime/staprun/common.c
-
-staprun_CPPFLAGS = $(AM_CPPFLAGS)
-staprun_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -DSINGLE_THREADED -fno-strict-aliasing -fno-builtin-strftime -D_FILE_OFFSET_BITS=64
-staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-staprun_LDADD =
-
-if HAVE_NSS
-staprun_SOURCES += runtime/staprun/modverify.c nsscommon.c
-staprun_CFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
-staprun_LDADD += -lnss3 -lnspr4
-endif
-
-stapio_SOURCES = runtime/staprun/stapio.c \
-	runtime/staprun/mainloop.c runtime/staprun/common.c \
-	runtime/staprun/ctl.c \
-	runtime/staprun/relay.c runtime/staprun/relay_old.c
-stapio_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ -fno-strict-aliasing -fno-builtin-strftime
-stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-stapio_LDADD = -lpthread
-
-
-install-exec-hook:
-	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
-
-# Why the "id -u" condition?  This way, an unprivileged user can run
-# make install, and have "sudo stap ...." or "sudo staprun ...." work later.
-
 
 CLEANFILES +=  $(pkglibexec_PROGRAMS)
 
@@ -320,14 +295,14 @@ if BUILD_SERVER
 endif
 	(cd $(srcdir)/man; for f in *.3*; do rm -rf "$(DESTDIR)$(man3dir)/$$f"; done)
 
-SUBDIRS = doc grapher
+SUBDIRS = . runtime/staprun grapher doc
 DIST_SUBDIRS = testsuite $(SUBDIRS)
 EXTRA_DIST = man/tapset*.3stap
 
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
         PWD=`pwd`; \
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)" PKGLIBDIR="$(pkglibexecdir)";
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$$LD_LIBRARY_PATH$${LD_LIBRARY_PATH:+:}$$PWD/lib-elfutils:$$PWD/lib-elfutils/systemtap SYSTEMTAP_PATH=$$PWD SYSTEMTAP_INCLUDES=$$PWD/includes RUNTESTFLAGS="$(RUNTESTFLAGS)" PKGLIBDIR="$(pkglibexecdir)";
 
 installcheck:
 	if test \! -e $(DESTDIR)$(bindir)/stap; then \
@@ -340,6 +315,21 @@ installcheck:
 	fi;
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
 
+PHONIES += runcheck
+# All the variables are overridden by run-stap, but SYSTEMTAP_RUNTIME
+# is used by the testsuite scripts themselves.
+runcheck: testsuite/stap testsuite/dtrace
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" \
+		SYSTEMTAP_PATH="`cd testsuite; pwd`" \
+		SYSTEMTAP_RUNTIME="`cd $(srcdir)/runtime; pwd`"
+testsuite/stap: run-stap
+	(echo '#!/bin/sh'; echo "exec `pwd`/run-stap" '$${1+"$$@"}') > $@.new
+	chmod 555 $@.new
+	mv -f $@.new $@
+testsuite/dtrace: dtrace
+	(echo '#!/bin/sh'; echo "exec `pwd`/dtrace" '$${1+"$$@"}') > $@.new
+	chmod 555 $@.new
+	mv -f $@.new $@
 
 # Any extra flags, such as:
 #     --define "with_docs 0"
@@ -347,6 +337,12 @@ installcheck:
 RPMBUILDFLAGS=
 
 PHONIES += dist-gzip
+
+PHONIES += uprobes install-uprobes
+uprobes:
+	$(MAKE) -C $(srcdir)/runtime/uprobes clean default
+install-uprobes:
+	$(MAKE) -C $(DESTDIR)$(pkgdatadir)/runtime/uprobes clean default
 
 .PHONY: $(PHONIES)
 

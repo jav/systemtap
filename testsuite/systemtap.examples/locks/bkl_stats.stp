@@ -18,7 +18,7 @@
  * Author: William Cohen <wcohen@redhat.com> 
  */
 
-global holder_time, wait_time
+global holder_time
 global holder_stats, wait_stats
 global names
 
@@ -51,24 +51,11 @@ function print_stats() {
   }
 }
 
-%(kernel_v>="2.6.33" %?
- probe kernel.function("_lock_kernel")
-%:
- probe kernel.function("lock_kernel")
-%)
+probe kernel.function("_lock_kernel").return!,
+      kernel.function("lock_kernel").return
 {
   t = gettimeofday_us()
-  wait_time[tid()] = t
-}
-
-%(kernel_v>="2.6.33" %?
- probe kernel.function("_lock_kernel").return
-%:
- probe kernel.function("lock_kernel").return
-%)
-{
-  t = gettimeofday_us()
-  s = wait_time[tid()]
+  s = @entry(gettimeofday_us())
   holder_time[tid()] = t
   # record the amount of time waiting for the lock
   if (s) {
@@ -77,11 +64,8 @@ function print_stats() {
   }
 }
 
-%(kernel_v>="2.6.33" %?
- probe kernel.function("_unlock_kernel")
-%:
- probe kernel.function("unlock_kernel")
-%)
+probe kernel.function("_unlock_kernel")!,
+      kernel.function("unlock_kernel")
 {
   t = gettimeofday_us()
   s = holder_time[tid()]

@@ -1,0 +1,112 @@
+set test "buildid"
+
+if {![installtest_p]} { untested $test; return }
+
+proc cleanup_handler { verbose } {
+    if { $verbose == 0 } {
+	catch {exec rm -f bid.hex bid.ko bid.stp buildid1.ro buildid2.ro buildid.c buildid.o buildid.ro buildid.x libbid1.so libbid.so
+	}
+    }
+}
+
+proc error_handler { res message } {
+global verbose
+if { $res == 0 } {
+    verbose $message 2
+    fail $message
+    cleanup_handler $verbose
+    return 1
+} else {
+    pass $message
+    return 0
+}
+}
+
+# Not Shared
+
+set bid_srcpath $srcdir/$subdir/buildid.c
+set res [target_compile $bid_srcpath "[pwd]/buildid.o" object "additional_flags=-g"]
+if { [error_handler [expr {$res==""}] "buildid.o"] } { return }
+
+set res [target_link "buildid.o" "buildid.ro" "-r"]
+if { [error_handler [expr {$res==""}] "buildid.ro"] } { return }
+
+set bid_exepath [pwd]/buildid.x
+set res [target_compile "" $bid_exepath executable "additional_flags=buildid.ro"]
+if { [error_handler [expr {$res==""}] "$bid_exepath"] } { return }
+
+set ok 0
+set bid_stp $srcdir/$subdir/buildid.stp
+system "stap -m bid -p4 $bid_stp $bid_exepath"
+spawn staprun -u [pwd]/bid.ko -c $bid_exepath
+expect {
+    -timeout 180
+    -re {x=1} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+catch {close}; catch {wait}
+error_handler [expr $ok==1] "nonshared build id ok ($ok)"
+
+# now alter the build id using objcopy
+
+set bid_bid $srcdir/$subdir/buildid.hex
+system "objcopy --remove-section=.note.gnu.build-id buildid.ro buildid1.ro"
+system "objcopy --add-section .note.gnu.build-id=$bid_bid buildid1.ro buildid2.ro"
+set res [target_compile "" $bid_exepath executable "additional_flags=buildid2.ro"]
+if { [error_handler [expr {$res==""}] "$bid_exepath"] } { return }
+
+set ok 0
+spawn staprun -u [pwd]/bid.ko -c $bid_exepath
+expect {
+    -timeout 180
+    -re {ERROR: Build-id mismatch} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+catch {close}; catch {wait}
+error_handler [expr $ok==1] "nonshared build id !ok ($ok)"
+
+# Shared
+
+set bid_flags "additional_flags=-DNO_MAIN"
+set bid_flags "$bid_flags additional_flags=-shared"
+set bid_flags "$bid_flags additional_flags=-g"
+set res [target_compile $bid_srcpath "libbid.so" executable $bid_flags]
+if { [error_handler [expr {$res==""}] "libbid.so"] } { return }
+
+set bid_flags "additional_flags=-DONLY_MAIN"
+set bid_flags "$bid_flags additional_flags=-Wl,-rpath,[pwd]"
+set bid_flags "$bid_flags additional_flags=-L[pwd]"
+set bid_flags "$bid_flags additional_flags=-lbid"
+set res [target_compile $bid_srcpath "$bid_exepath" executable $bid_flags]
+if { [error_handler [expr {$res==""}] "$bid_exepath"] } { return }
+
+set ok 0
+system "stap -m bid -p4 $bid_stp libbid.so"
+spawn staprun -u [pwd]/bid.ko -c $bid_exepath
+expect {
+    -timeout 180
+    -re {x=1} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+catch {close}; catch {wait}
+error_handler [expr $ok==1] "shared build id ok ($ok)"
+
+# now alter the build id using objcopy
+
+system "objcopy --remove-section=.note.gnu.build-id libbid.so libbid1.so"
+system "objcopy --add-section .note.gnu.build-id=$bid_bid libbid1.so libbid.so"
+
+set ok 0
+spawn staprun -u [pwd]/bid.ko -c $bid_exepath
+expect {
+    -timeout 180
+    -re {ERROR: Build-id mismatch} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+error_handler [expr $ok==1] "shared build id !ok ($ok)"
+
+cleanup_handler $verbose

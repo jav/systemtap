@@ -2,7 +2,7 @@
 #
 # stap-server script for managing the systemtap compile server
 #
-# Copyright (C) 2008, 2009 Red Hat Inc.
+# Copyright (C) 2008-2010 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -129,7 +129,7 @@ slog () { # message
   log "$1"
 }
 logex () { # command
-  eval log \"Exec: $@\"
+  eval log \"Exec: "$@"\"
   "$@" >> "$LOG_FILE" 2>&1
   return $?
 }
@@ -150,44 +150,44 @@ parse_args () { # arguments
   while [ -n "$1" ]; do
     case "$1" in
       -a)
-	OPT_SERVER_CMDS="$OPT_SERVER_CMDS ARCH='$2'"
+	SERVER_CMDS+=("ARCH=\"`quote_for_cmd "$2"`\"")
         shift 1
 	;;
       -B)
-	OPT_SERVER_CMDS="$OPT_SERVER_CMDS BUILD='$2'"
+	SERVER_CMDS+=("BUILD+=(\"`quote_for_cmd "$2"`\")")
         shift 1
 	;;
       -c)
-        OPT_CONFIG_FILE=$2
+        OPT_CONFIG_FILE="$2"
         shift 1
         ;;
       -i)
 	process_i
 	;;
       -I)
-	OPT_SERVER_CMDS="$OPT_SERVER_CMDS INCLUDE='$2'"
+	SERVER_CMDS+=("INCLUDE+=(\"`quote_for_cmd "$2"`\")")
         shift 1
 	;;
       -n)
-	process_n $2
+	process_n "$2"
         shift 1
 	;;
       -p)
-	process_p $2
+	process_p "$2"
 	test $? = 0 || rc=1
         shift 1
 	;;
       -r)
-	process_r $2
+	process_r "$2"
 	test $? = 0 || rc=1
         shift 1
 	;;
       -R)
-	OPT_SERVER_CMDS="$OPT_SERVER_CMDS RUNTIME='$2'"
+	SERVER_CMDS+=("RUNTIME=\"`quote_for_cmd "$2"`\"")
         shift 1
 	;;
       -u)
-	OPT_SERVER_CMDS="$OPT_SERVER_CMDS USER='$2'"
+	SERVER_CMDS+=("USER=\"`quote_for_cmd "$2"`\"")
         shift 1
 	;;
       --)
@@ -200,7 +200,7 @@ parse_args () { # arguments
   done
 
   # Add an EXEC command to the end if any server options were specified
-  test -n "$OPT_SERVER_CMDS" && OPT_SERVER_CMDS="$OPT_SERVER_CMDS EXEC"
+  test -n "$SERVER_CMDS" && SERVER_CMDS+=("EXEC")
 
   test $rc != 0 && echo_usage
   return $rc
@@ -211,7 +211,7 @@ process_i () {
   cd /lib/modules
   local release
   for release in `ls`; do
-      test -n "$OPT_SERVER_CMDS" && OPT_SERVER_CMDS="$OPT_SERVER_CMDS EXEC"
+      test -n "$SERVER_CMDS" && SERVER_CMDS+=("EXEC")
       process_r $release
   done
 
@@ -226,24 +226,24 @@ process_n () {
   local pid=`get_server_pid_by_nickname "$target_NICKNAME"`
   if [ -n "$pid" ]; then
       # Read the configuration and add it to the configuration commands.
-      . $STAT_PATH/$pid
-      OPT_SERVER_CMDS="$OPT_SERVER_CMDS `echo_server_commands`"
+      interpret_server_status "$STAT_PATH/$pid.stat" || continue
+      add_server_commands
       return
   fi
 
   # Is there a server configuration with this nickname?
   for f in "$CONFIG_PATH"/*.conf; do
     if [ -f "$f" ]; then
-      . "$f"
+      interpret_server_config "$f" || continue
       test "X$NICKNAME" = "X$target_NICKNAME" || continue
-      OPT_SERVER_CMDS="$OPT_SERVER_CMDS `echo_server_commands`"
+      add_server_commands
       return
     fi
   done
 
   # No server configuration could be found for this nickname. Add a
   # NICKNAME_NOT_FOUND=... command to the configuration commands.
-  OPT_SERVER_CMDS="$OPT_SERVER_CMDS NICKNAME_NOT_FOUND='$target_NICKNAME'"
+  SERVER_CMDS+=("NICKNAME_NOT_FOUND=\"`quote_for_cmd "$target_NICKNAME"`\"")
 }
 
 # Process the -p flag.
@@ -251,22 +251,21 @@ process_p () {
   local pid="$1"
 
   # Are we managing a server with the given pid?
-  test ! -f $STAT_PATH/$pid && echo "No stap-server running as pid $pid" && \
+  test ! -f "$STAT_PATH/$pid.stat" && echo "No stap-server running as pid $pid" && \
       exit 1
 
-  # Add the configuration of the server running as $pid to OPT_SERVER_CMDS
-  . $STAT_PATH/$pid
-  OPT_SERVER_CMDS="$CONFIG_SERVER_CMDS `echo_server_commands`"
-
+  # Add the configuration of the server running as $pid to SERVER_CMDS
+  interpret_server_status "$STAT_PATH/$pid.stat" || exit 1
+  add_server_commands
   return 0
 }
 
 # Process the -r flag.
 process_r () {
-    local first_char=`expr "$1" : '\(.\).*'`
+    local first_char="${1:1:1}"
 
     if test "$first_char" = "/"; then # fully specified path
-        local kernel_build_tree=$1
+        local kernel_build_tree="$1"
         local version_file_name="$kernel_build_tree/include/config/kernel.release"
         # The file include/config/kernel.release within the kernel
         # build tree is used to pull out the version information
@@ -275,22 +274,22 @@ process_r () {
 	    echo "Missing $version_file_name"
 	    return 1
 	fi
-	OPT_SERVER_CMDS="$OPT_SERVER_CMDS RELEASE='$kernel_release'"
+	SERVER_CMDS+=("RELEASE=\"`quote_for_cmd "$kernel_release"`\"")
 	return 0
     fi
 
     # kernel release specified directly
-    OPT_SERVER_CMDS="$OPT_SERVER_CMDS RELEASE='$1'"
+    SERVER_CMDS+=("RELEASE=\"`quote_for_cmd "$1"`\"")
     return 0
 }
 
 load_config () {
   # Include configs
   if [ -f "$CONFIG_FILE" ]; then
-    . "$CONFIG_FILE"
+      interpret_config_file "$CONFIG_FILE"
   fi
   if [ -f "$OPT_CONFIG_FILE" ]; then
-    . "$OPT_CONFIG_FILE"
+    interpret_config_file "$OPT_CONFIG_FILE"
   fi
 }
 
@@ -304,58 +303,37 @@ get_arch () {
     stap_get_arch
 }
 
-echo_server_commands () {
-    # Echo the configuration command string.
-    echo -n "ARCH='$ARCH'"
-    echo -n " RELEASE='$RELEASE'"
-    echo -n " RUNTIME='$RUNTIME'"
-    for i in $INCLUDE; do
-	echo -n " INCLUDE='$i'"
+add_server_commands () {
+    # Add commands based on the current state to SERVER_CMDS
+    SERVER_CMDS+=("ARCH=\"`quote_for_cmd "$ARCH"`\"")
+    SERVER_CMDS+=("RELEASE=\"`quote_for_cmd "$RELEASE"`\"")
+    SERVER_CMDS+=("RUNTIME=\"`quote_for_cmd "$RUNTIME"`\"")
+    SERVER_CMDS+=("INCLUDE=()")
+    for i in "${INCLUDE[@]}"; do
+	SERVER_CMDS+=("INCLUDE+=(\"`quote_for_cmd "$i"`\")")
     done
-    for b in $BUILD; do
-	echo -n " BUILD='$b'"
+    SERVER_CMDS+=("BUILD=()")
+    for b in "${BUILD[@]}"; do
+	SERVER_CMDS+=("BUILD+=(\"`quote_for_cmd "$b"`\")")
     done
-    echo -n " USER='$USER'"
-    echo -n " NICKNAME='$NICKNAME'"
-    echo
+    SERVER_CMDS+=("USER=\"`quote_for_cmd "$USER"`\"")
+    SERVER_CMDS+=("NICKNAME=\"`quote_for_cmd "$NICKNAME"`\"")
 }
 
 echo_server_options () {
-    # Echo the configuration options.
-    echo -n "-a '$ARCH'"
-    echo -n " -r '$RELEASE'"
-    test -n "$RUNTIME" && echo -n " -R '$RUNTIME'"
-    for i in $INCLUDE; do
-	echo -n " -I '$i'"
+    # Echo the current state.
+    echo -n "-a \"`quote_for_cmd "$ARCH"`\""
+    echo -n " -r \"`quote_for_cmd "$RELEASE"`\""
+    test -n "$RUNTIME" && echo -n " -R \"`quote_for_cmd "$RUNTIME"`\""
+    for i in "${INCLUDE[@]}"; do
+	echo -n " -I \"`quote_for_cmd "$i"`\""
     done
-    for b in $BUILD; do
-	echo -n " -B '$b'"
+    for b in "${BUILD[@]}"; do
+	echo -n " -B \"`quote_for_cmd "$b"`\""
     done
-    test -n "$USER" && echo -n " -u '$USER'"
-    echo -n " -n '$NICKNAME'"
+    echo -n " -u \"`quote_for_cmd "$USER"`\""
+    test -n "$NICKNAME" && echo -n " -n \"`quote_for_cmd "$NICKNAME"`\""
     echo
-}
-
-load_server_config () {
-  CONFIG_SERVER_CMDS=
-  for f in "$CONFIG_PATH"/*.conf; do
-    if [ -f "$f" ]; then
-      # Obtain a configuration from each config file.
-      # Ensure that we get the correct defaults for items not specified.
-      local ARCH=
-      local BUILD=
-      local INCLUDE=
-      local RUNTIME=
-      local USER=
-      local RELEASE=
-      . "$f"
-      # Other options default to empty. These ones don't.
-      [ -z "$ARCH" ]     && ARCH=`get_arch`
-      [ -z "$RELEASE" ]  && RELEASE=`get_release`
-      [ -z "$USER" ]     && USER=$STAP_USER
-      CONFIG_SERVER_CMDS="$CONFIG_SERVER_CMDS `echo_server_commands` EXEC"
-    fi
-  done
 }
 
 prepare_stat_dir () {
@@ -375,29 +353,181 @@ prepare_log_dir () {
   return 0
 }
 
-stat_file () { # server-spec
-    echo $STAT_PATH/$1
-}
-
-default_server_cmds () {
-  echo "EXEC"
-}
-
 init_server_opts () {
   ARCH=`get_arch`
   RELEASE=`get_release`
-  BUILD=
-  INCLUDE=
+  unset BUILD
+  unset INCLUDE
   NICKNAME=
   NICKNAME_NOT_FOUND=
   RUNTIME=
   USER=$STAP_USER
+  test -z "$USER" && USER=`id -un`
+}
+
+# Double quotes, backslashes within generated command
+# arguments must be quoted.
+quote_for_cmd () {
+    echo "$1" | \
+	sed -e 's/\\/\\\\/g' \
+	    -e 's/"/\\"/g'
+}
+
+# Interpret the contents of a global config file.
+interpret_config_file () {
+    local config_file="$1"
+
+    # Save the results locally first, in case there is an error.
+    local local_CONFIG_PATH=
+    local local_STAT_PATH=
+    local local_LOG_FILE=
+    local local_STAP_USER=
+
+    local input
+    while read -r -u3 input
+    do
+	case "$input" in
+	    CONFIG_PATH=*)
+              local_CONFIG_PATH="${input:12}"
+	      ;;
+	    STAT_PATH=*)
+              local_STAT_PATH="${input:10}"
+	      ;;
+	    LOG_FILE=*)
+              local_LOG_FILE="${input:9}"
+	      ;;
+	    STAP_USER=*)
+              local_STAP_USER="${input:10}"
+	      ;;
+	    \#*)
+	      ;; # Comment, do nothing
+	    "")
+	      ;; # Empty line, do nothing
+	    *)
+	      echo $"Invalid input, \"$input\", in $config_file" >&2
+	      exit 1
+	      ;;
+	esac
+    done 3< "$config_file"
+
+    # Now set the results globally
+    test -n "$local_CONFIG_PATH" && CONFIG_PATH="$local_CONFIG_PATH"
+    test -n "$local_STAT_PATH"   && STAT_PATH="$local_STAT_PATH"
+    test -n "$local_LOG_FILE"    && LOG_FILE="$local_LOG_FILE"
+    test -n "$local_STAP_USER"   && STAP_USER="$local_STAP_USER"
+}
+
+# Interpret the contents of a server config file.
+interpret_server_config () {
+    local config_file="$1"
+
+    # Save the results locally first, in case there is an error.
+    local local_ARCH=
+    local local_RELEASE=
+    local local_BUILD=()
+    local local_INCLUDE=()
+    local local_RUNTIME=
+    local local_USER=
+    local local_NICKNAME=
+
+    local input
+    while read -r -u3 input
+    do
+	case "$input" in
+	    ARCH=*)
+              local_ARCH="${input:5}"
+	      ;;
+	    RELEASE=*)
+              local_RELEASE="${input:8}"
+	      ;;
+	    BUILD=*)
+	      if [ -z "${input:6}" -o "${input:6}" = "()" ]; then
+		  local_BUILD=()
+	      else
+		  local_BUILD=("${input:6}")
+	      fi
+	      ;;
+	    BUILD+=*)
+	      test -z "${input:7}" -o "${input:7}" = "()" || \
+		  local_BUILD+=("${input:7}")
+	      ;;
+	    INCLUDE=*)
+	      if [ -z "${input:8}" -o "${input:8}" = "()" ]; then
+		  local_INCLUDE=()
+	      else
+		  local_INCLUDE=("${input:8}")
+	      fi
+	      ;;
+	    INCLUDE+=*)
+	      test -z "${input:8}" -o "${input:8}" = "()" || \
+		  local_INCLUDE+=("${input:9}")
+	      ;;
+	    RUNTIME=*)
+              local_RUNTIME="${input:8}"
+	      ;;
+	    USER=*)
+              local_USER="${input:5}"
+	      ;;
+	    NICKNAME=*)
+              local_NICKNAME="${input:9}"
+	      ;;
+	    \#*)
+	      ;; # Comment, do nothing
+	    "")
+	      ;; # Empty line, do nothing
+	    *)
+	      echo $"Invalid input, \"$input\", in $config_file" >&2
+	      exit 1
+	      ;;
+	esac
+    done 3< "$config_file"
+
+    # Now set the results globally. All variables are expected to be set, even
+    # if to nothing.
+    ARCH="$local_ARCH"
+    RELEASE="$local_RELEASE"
+    BUILD=("${local_BUILD[@]}")
+    INCLUDE=("${local_INCLUDE[@]}")
+    RUNTIME="$local_RUNTIME"
+    USER="$local_USER"
+    NICKNAME="$local_NICKNAME"
+}
+
+# Interpret the contents of a server status file.
+interpret_server_status () {
+    # The contents of the server status files are currently the same as
+    # that of server config files.
+    interpret_server_config "$1"
+}
+
+# Load the default server config and add the results to SERVER_CMDS.
+load_server_config () {
+  for f in "$CONFIG_PATH"/*.conf; do
+    if [ -f "$f" ]; then
+      # Obtain a configuration from each config file.
+      # Ensure that we get the correct defaults for items not specified.
+      local ARCH=
+      local BUILD=()
+      local INCLUDE=()
+      local RUNTIME=
+      local USER=
+      local RELEASE=
+      interpret_server_config "$f" || continue
+      # Other options default to empty. These ones don't.
+      [ -z "$ARCH" ]     && ARCH=`get_arch`
+      [ -z "$RELEASE" ]  && RELEASE=`get_release`
+      [ -z "$USER" ]     && USER=$STAP_USER
+      [ -z "$USER" ]     && USER=`id -un`
+      add_server_commands
+      SERVER_CMDS+=("EXEC")
+    fi
+  done
 }
 
 server_still_running () { # PID
     (ps -e | grep stap-serverd | grep -q $1) && return 0 # Still running
 
-    rm -f $STAT_PATH/$1
+    rm -f "$STAT_PATH/$1.stat"
     return 1 # Not running
 }
 
@@ -406,33 +536,33 @@ get_server_pid_by_config () {
     # servers alters it.
     local target_ARCH="$ARCH"
     local target_RELEASE="$RELEASE"
-    local target_INCLUDE="$INCLUDE"
     local target_RUNTIME="$RUNTIME"
-    local target_BUILD="$BUILD"
+    local target_INCLUDE=("${INCLUDE[@]}")
+    local target_BUILD=("${BUILD[@]}")
     local target_USER="$USER"
     local target_NICKNAME="$NICKNAME"
 
     # Check the status file for each running server to see if it matches
     # the one currently configured. We're checking for a given configuration,
     # so don't compare the nickname.
-    for f in $STAT_PATH/*; do
-	test ! -e $f && continue
-	. $f
+    for f in "$STAT_PATH"/*.stat; do
+	test ! -e "$f" && continue
+	interpret_server_status "$f" || continue
 	test "X$ARCH"     = "X$target_ARCH"     || continue
 	test "X$RELEASE"  = "X$target_RELEASE"  || continue
 	test "X$INCLUDE"  = "X$target_INCLUDE"  || continue
 	test "X$RUNTIME"  = "X$target_RUNTIME"  || continue
 	test "X$BUILD"    = "X$target_BUILD"    || continue
 	test "X$USER"     = "X$target_USER"     || continue
-	echo `basename $f` # Server has a pid
+	echo `basename "$f" | sed 's/.stat//'` # Server has a pid
 	return
     done
 
     ARCH="$target_ARCH"
     RELEASE="$target_RELEASE"
-    INCLUDE="$target_INCLUDE"
     RUNTIME="$target_RUNTIME"
-    BUILD="$target_BUILD"
+    INCLUDE=("${target_INCLUDE[@]}")
+    BUILD=("${target_BUILD[@]}")
     USER="$target_USER"
     NICKNAME="$target_NICKNAME"
 }
@@ -444,22 +574,22 @@ get_server_pid_by_nickname () {
 
     # Check the status file for each running server to see if the nickname
     # matches the one we want.
-    for f in $STAT_PATH/*; do
-	test ! -e $f && continue
-	. $f
+    for f in "$STAT_PATH"/*.stat; do
+	test ! -e "$f" && continue
+	interpret_server_status "$f" || continue
 	test "X$NICKNAME" = "X$target_NICKNAME" || continue
-	echo `basename $f` # Server with nickname was found
+	echo `basename "$f" | sed 's/\.stat//'` # Server with nickname was found
 	return
     done
 }
 
 managed_servers () {
-  if [ ! -d $STAT_PATH ]; then
+  if [ ! -d "$STAT_PATH" ]; then
       echo ""
       return 1
   fi
-  cd $STAT_PATH
-  local list=`ls`
+  cd "$STAT_PATH"
+  local list=`ls | sed 's/\.stat//'`
   if [ -z "$list" ]; then
       echo ""
       return 1
@@ -470,25 +600,11 @@ managed_servers () {
 
 eval_server_command () {
     local cmd="$1"
-
-    # Accumulate the results of BUILD and INCLUDE commands.
-    if echo $cmd | grep -q ^BUILD; then
-	local prevBUILD="$BUILD"
-	eval $cmd
-	BUILD="$prevBUILD $BUILD"
-	BUILD=`echo $BUILD | sed 's/^ //'`
-    elif echo $cmd | grep -q ^INCLUDE; then
-	local prevINCLUDE="$INCLUDE"
-	eval $cmd
-	INCLUDE="$prevINCLUDE $INCLUDE"
-	INCLUDE=`echo $INCLUDE | sed 's/^ //'`
-    else
-	eval $cmd
-    fi
+    eval $cmd
 }
 
 start_server () {
-    clog $"Starting $prog for $RELEASE $ARCH: " -n
+    clog $"Starting $prog `echo_server_options`"
 
     # Is there already a server running for the requested kernel release
     # and arch?
@@ -501,26 +617,26 @@ start_server () {
     fi
 
     # Construct the server start command.
-    local server_cmd="$STAP_START_SERVER -r '$RELEASE' -a '$ARCH'"
-    for b in $BUILD; do
-	server_cmd="$server_cmd -B '$b'"
+    local server_cmd="$STAP_START_SERVER -r \"`quote_for_cmd "$RELEASE"`\" -a \"`quote_for_cmd "$ARCH"`\""
+    for b in "${BUILD[@]}"; do
+	server_cmd="$server_cmd -B \"`quote_for_cmd "$b"`\""
     done
-    for i in $INCLUDE; do
-	server_cmd="$server_cmd -I '$i'"
+    for i in "${INCLUDE[@]}"; do
+	server_cmd="$server_cmd -I \"`quote_for_cmd "$i"`\""
     done
-    test -n "$RUNTIME" && server_cmd="$server_cmd -R '$RUNTIME'"
-    server_cmd="$server_cmd --log=$LOG_FILE"
+    test -n "$RUNTIME" && server_cmd="$server_cmd -R \"`quote_for_cmd "$RUNTIME"`\""
+    server_cmd="$server_cmd --log=\"`quote_for_cmd "$LOG_FILE"`\""
 
     # Start the server here.
     local pid
-    if [ -n "$USER" ]; then
+    if [ "$USER" != "`id -un`" ]; then
 	pid=`runuser -s /bin/bash - $USER -c "$server_cmd"`
     else
 	pid=`eval $server_cmd`
     fi
     if [ $? != 0 -o -z "$pid" ]; then
 	if [ -n "$pid" ]; then
-	    rm -f $STAT_PATH/$pid
+	    rm -f "$STAT_PATH/$pid.stat"
 	fi
 	do_failure $"$prog start `echo_server_options`"
 	return 1 # Failure
@@ -530,14 +646,18 @@ start_server () {
     test -z "$NICKNAME" && NICKNAME="$pid"
 
     # Write the configuration to the status file.
-    local server_status_file=$STAT_PATH/$pid
-    echo "ARCH='$ARCH'" > $server_status_file
-    echo "USER='$USER'" >> $server_status_file
-    echo "BUILD='$BUILD'" >> $server_status_file
-    echo "INCLUDE='$INCLUDE'" >> $server_status_file
-    echo "NICKNAME='$NICKNAME'" >> $server_status_file
-    echo "RUNTIME='$RUNTIME'" >> $server_status_file
-    echo "RELEASE='$RELEASE'" >> $server_status_file
+    local server_status_file="$STAT_PATH/$pid.stat"
+    echo "ARCH=$ARCH" > "$server_status_file"
+    echo "USER=$USER" >> "$server_status_file"
+    for b in "${BUILD[@]}"; do
+	echo "BUILD+=$b" >> "$server_status_file"
+    done
+    for i in "${INCLUDE[@]}"; do
+	echo "INCLUDE+=$i" >> "$server_status_file"
+    done
+    echo "NICKNAME=$NICKNAME" >> "$server_status_file"
+    echo "RUNTIME=$RUNTIME" >> "$server_status_file"
+    echo "RELEASE=$RELEASE" >> "$server_status_file"
 
     do_success $"$prog start `echo_server_options`"
 }
@@ -550,14 +670,15 @@ start () { # server-cmds
   fi
 
   # Start the specified servers
-  server_cmds="$1"
+  local server_cmds=("$@")
+
   # If none specified, start the configured servers
   if [ -z "$server_cmds" ]; then
+    unset SERVER_CMDS
     load_server_config
-    server_cmds="$CONFIG_SERVER_CMDS"
-
+    server_cmds=("${SERVER_CMDS[@]}")
     # If none configured, start the default servers
-    [ -z "$server_cmds" ] && server_cmds=`default_server_cmds`
+    test -z "$server_cmds" && server_cmds=("EXEC")
   fi
 
   # Start each requested server in turn
@@ -566,11 +687,11 @@ start () { # server-cmds
   init_server_opts
   local cmd
   local prevCmd
-  for cmd in $server_cmds; do
-      prevCmd=$cmd
+  for cmd in "${server_cmds[@]}"; do
+      prevCmd="$cmd"
       # Evaluate commands until the EXEC command is found.
       if test "$cmd" != "EXEC"; then
-	  eval_server_command $cmd
+	  eval_server_command "$cmd"
 	  # A specified nickname only sticks if it is the final command.
 	  # Otherwise, we have a configuration based on a nicknamed
 	  # configuration.
@@ -599,17 +720,17 @@ start () { # server-cmds
 stop () { # server-cmds
   local first=1
   local server_list=
-  server_cmds="$1"
+  local server_cmds=("$@")
   if [ -n "$server_cmds" ]; then
       # Get the pids of all the requested servers.
       init_server_opts
       local cmd
       local prevCmd
-      for cmd in $server_cmds; do
-	  prevCmd=$cmd
+      for cmd in "${server_cmds[@]}"; do
+	  prevCmd="$cmd"
           # Evaluate commands until the EXEC command is found.
 	  if test "$cmd" != "EXEC"; then
-	      eval_server_command $cmd
+	      eval_server_command "$cmd"
 	      # A specified nickname only sticks if it is the final command.
 	      # Otherwise, we have a configuration based on a nicknamed
 	      # configuration.
@@ -619,7 +740,7 @@ stop () { # server-cmds
           # If a nickname was specified, but the corresponding config was not
 	  # found, it is an error.
 	  if test -n "$NICKNAME_NOT_FOUND"; then
-	      clog "No configuration found for the nickname '$NICKNAME_NOT_FOUND'" -n
+	      clog "No configuration found for the nickname '$NICKNAME_NOT_FOUND'"
 	      NICKNAME="$NICKNAME_NOT_FOUND"
 	      do_failure $"$prog stop `echo_server_options`"
 	      NICKNAME_NOT_FOUND=
@@ -637,7 +758,7 @@ stop () { # server-cmds
 	  # This server is not running, but give a success stop status anyway.
 	  test $first = 0 && echo
 	  first=0
-	  clog $"Stopping $prog for $RELEASE $ARCH: " -n
+	  clog $"Stopping $prog `echo_server_options`"
 	  do_success $"$prog stop `echo_server_options`"
       done
   else
@@ -653,15 +774,18 @@ stop () { # server-cmds
   local rc=0
   local pid
   for pid in $server_list; do
-      . $STAT_PATH/$pid
+      if ! interpret_server_status "$STAT_PATH/$pid.stat"; then
+	  rc=1
+	  continue
+      fi
 
       test $first = 0 && echo
       first=0
-      clog $"Stopping $prog for $RELEASE $ARCH: " -n
+      clog $"Stopping $prog `echo_server_options`"
 
       local this_rc=0
       if server_still_running $pid; then
-	  if [ -n "$USER" ]; then
+	  if [ "$USER" != "`id -un`" ]; then
 	      runuser -s /bin/bash - $USER -c "$STAP_STOP_SERVER $pid"
 	  else
 	      eval $STAP_STOP_SERVER $pid
@@ -673,7 +797,7 @@ stop () { # server-cmds
 	  fi
       fi
       if [ $this_rc = 0 ]; then
-	  rm -f $STAT_PATH/$pid
+	  rm -f "$STAT_PATH/$pid.stat"
 	  do_success $"$prog stop `echo_server_options`"
       fi
   done
@@ -687,17 +811,17 @@ status () { # server-list
   # Report status for the specified servers or all running servers, if none
   # specified.
   local server_list=
-  server_cmds="$1"
+  local server_cmds=("$@")
   if [ -n "$server_cmds" ]; then
       # Get the pids of all the requested servers.
       init_server_opts
       local cmd
       local prevCmd
-      for cmd in $server_cmds; do
-	  prevCmd=$cmd
+      for cmd in "${server_cmds[@]}"; do
+	  prevCmd="$cmd"
           # Evaluate commands until the EXEC command is found.
 	  if test "$cmd" != "EXEC"; then
-	      eval_server_command $cmd
+	      eval_server_command "$cmd"
 	      # A specified nickname only sticks if it is the final command.
 	      # Otherwise, we have a configuration based on a nicknamed
 	      # configuration.
@@ -720,7 +844,7 @@ status () { # server-list
 	      continue
 	  fi
 	  # This server is not running
-	  echo "stap-server `echo_server_options`"
+	  echo "stap-server `echo_server_options` is not running"
 	  rc=3
       done
   else
@@ -734,7 +858,10 @@ status () { # server-list
   # Get status of each server in turn
   local pid
   for pid in $server_list; do
-      . $STAT_PATH/$pid
+      if ! interpret_server_status "$STAT_PATH/$pid.stat"; then
+	  rc=1
+	  continue
+      fi
       if ! server_still_running $pid; then
 	  echo "stap-server `echo_server_options` started as PID $pid is no longer running"
 	  rc=1
@@ -749,24 +876,30 @@ status () { # server-list
 # Restart or start if not running
 function restart () { # server-cmds
   # Restart the specified servers or all servers, if none specified.
-  local server_cmds="$1"
+  local rc=0
+  local server_cmds=("$@")
   if [ -z "$server_cmds" ]; then
       local server_list=`managed_servers`
       local pid
       for pid in $server_list; do
-	  . $STAT_PATH/$pid
-	  server_cmds="$server_cmds `echo_server_commands` EXEC"
+	  if ! interpret_server_status "$STAT_PATH/$pid.stat"; then
+	      rc=1
+	      continue
+	  fi
+	  unset SERVER_CMDS
+	  add_server_commands
+	  server_cmds+=("${SERVER_CMDS[@]}")
+	  server_cmds+=("EXEC")
       done
   fi
 
   # Stop the specified servers, or all if none specified
-  stop "$server_cmds"
-  local rc=$?
+  stop "${server_cmds[@]}" || rc=1
   echo
 
   # Restart the same servers. If none were specified then
   # start the configured or default server(s)).
-  start "$server_cmds"
+  start "${server_cmds[@]}"
   local this_rc=$?
   [ $this_rc != 0 ] && rc=$this_rc
 
@@ -777,13 +910,20 @@ function restart () { # server-cmds
 function condrestart () { # server-list
   # Restart the specified servers or all servers, if none specified,
   # but only if they are already running.
-  local server_cmds="$1"
+  local rc=0
+  local server_cmds=("$@")
   if [ -z "$server_cmds" ]; then
       local server_list=`managed_servers`
       local pid
       for pid in $server_list; do
-	  . $STAT_PATH/$pid
-	  server_cmds="$server_cmds `echo_server_commands` EXEC"
+	  if ! interpret_server_status "$STAT_PATH/$pid.stat"; then
+	      rc=1
+	      continue
+	  fi
+	  unset SERVER_CMDS
+	  add_server_commands
+	  server_cmds+=("${SERVER_CMDS[@]}")
+	  server_cmds+=("EXEC")
       done
       # No server specified or running?
       if [ -z "$server_cmds" ]; then
@@ -794,15 +934,14 @@ function condrestart () { # server-list
   fi
 
   # For each server in the list, stop it if it is running
-  local start_cmds=
   local first=1
-  local server_cmd=
+  local this_server_cmds
   local cmd
-  for cmd in $server_cmds; do
+  for cmd in "${server_cmds[@]}"; do
       # Execute and collect commands until the EXEC command is found.
-      server_cmd="$server_cmd $cmd"
+      this_server_cmds+=("$cmd")
       if test "$cmd" != "EXEC"; then
-	  eval_server_command $cmd
+	  eval_server_command "$cmd"
 	  continue
       fi
 
@@ -810,26 +949,26 @@ function condrestart () { # server-list
       first=0
 
       # Now see if this server is running
-      if ! status "$server_cmd" >/dev/null 2>&1; then
-	clog $"$prog for $RELEASE $ARCH is not running" -n
+      if ! status "${this_server_cmds[@]}" >/dev/null 2>&1; then
+	clog $"$prog `echo_server_options` is not running"
 	do_success "$prog `echo_server_options` is not running"
-	server_cmd=
+	unset this_server_cmds
 	continue
       fi
 
-      start_cmds="$start_cmds $server_cmd"
+      start_cmds+=("${this_server_cmds[@]}")
 
-      stop "$server_cmd"
+      stop "${this_server_cmds[@]}"
       this_rc=$?
       [ $this_rc != 0 ] && rc=$this_rc
 
-      server_cmd=
+      unset this_server_cmds
   done
 
   # Now restart the servers that were running
-  if [ "X$start_cmds" != "X" ]; then
+  if [ -n "$start_cmds" ]; then
       echo
-      start "$start_cmds"
+      start "${start_cmds[@]}"
       local this_rc=$?
       [ $this_rc != 0 ] && rc=$this_rc
   fi
@@ -849,7 +988,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-OPTS=`getopt -s bash -u -o 'a:B:c:iI:n:p:r:R:u:' -- $@`
+OPTS=`getopt -s bash -u -o 'a:B:c:iI:n:p:r:R:u:' -- "$@"`
 if [ $? -ne 0 ]; then
   echo "Error: Argument parse error: $@" >&2
   echo_usage
@@ -857,56 +996,48 @@ if [ $? -ne 0 ]; then
 fi
 
 # Initialize server specs
-OPT_SERVER_CMDS=
-parse_args $OPTS || exit 2
+parse_args "$@" || exit 2
 load_config
 
 RETVAL=0
 
 case $CMD in
-  start)
-  # Start specified servers. If none specified, start configured servers
-  start "$OPT_SERVER_CMDS"
-  RETVAL=$?
-  ;;
-  stop)
-  # Stop specified servers
-  stop "$OPT_SERVER_CMDS"
-  RETVAL=$?
-  ;;
-  # Restart specified servers
-  restart)
-  restart "$OPT_SERVER_CMDS"
-  RETVAL=$?
-  ;;
-  # Restart specified servers if they are running
-  condrestart|try-restart)
-  condrestart "$OPT_SERVER_CMDS"
-  RETVAL=$?
-  ;;
-  # Give status on specified servers
-  status)
-  status "$OPT_SERVER_CMDS"
-  exit $?
-  ;;
-  # Reloading config without stop/restart is not supported
-  reload)
-  RETVAL=3
-  ;;
-  # Reload config with stop/start
-  force-reload)
-  # stop all running servers
-  stop
-  echo
-  # Restart specified servers
-  # If none specified, restart configured servers
-  start "$OPT_SERVER_CMDS"
-  RETVAL=$?
-  ;;
+  start) # Start specified servers. If none specified, start configured servers
+    start "${SERVER_CMDS[@]}"
+    RETVAL=$?
+    ;;
+  stop) # Stop specified servers
+    stop "${SERVER_CMDS[@]}"
+    RETVAL=$?
+    ;;
+  restart) # Restart specified servers
+    restart "${SERVER_CMDS[@]}"
+    RETVAL=$?
+    ;;
+  condrestart|try-restart) # Restart specified servers if they are running
+    condrestart "${SERVER_CMDS[@]}"
+    RETVAL=$?
+    ;;
+  status) # Give status on specified servers
+    status "${SERVER_CMDS[@]}"
+    exit $?
+    ;;
+  reload) # Reloading config without stop/restart is not supported
+    RETVAL=3
+    ;;
+  force-reload) # Reload config with stop/start
+    # stop all running servers
+    stop
+    echo
+    # Restart specified servers
+    # If none specified, restart configured servers
+    start "${SERVER_CMDS[@]}"
+    RETVAL=$?
+    ;;
   usage|*)
-  echo_usage
-  RETVAL=0
-  ;;
+    echo_usage
+    RETVAL=0
+    ;;
 esac
 
 echo

@@ -1,0 +1,648 @@
+# Don't attempt these tests if TOOL_OPTS=server has been specified. This is
+# because TOOL_OPTS=server starts a server using setup_server which creates
+# a dummy stap on the PATH which always specifies --use-server. We don't want
+# that here. We want to use the real stap and supply client-side options
+# as we see fit.
+if {[use_server_p]} then {
+    untested "Compile-Server Client Tests"
+    return
+}
+
+# There is no server running as part of the test suite. So let's start with
+# a clean slate in terms of trust.
+exec rm -fr $env(SYSTEMTAP_DIR)/ssl
+
+# Test the --list-servers option and return an array of the servers found.
+proc list_servers { TEST_NAME SERVER_SPEC args } {
+    set failed 0
+    set n 0
+    array unset ::servers
+    set cmd [concat stap --list-servers=$SERVER_SPEC $args]
+    send_log "executing: $cmd\n"
+    eval spawn $cmd
+    expect {
+	-timeout 150
+	-re "^Systemtap Compile Server Status for '${SERVER_SPEC}'\r\n" {
+	    exp_continue
+	}
+	-re {^No servers found\r\n} {
+	}
+	-re {^ host=[^\r]*\r\n} {
+	    set ::servers($n) "$expect_out(0,string)"
+	    incr n
+	    exp_continue
+	}
+	-re {^[^\r]*\r\n} {
+	    set failed 1
+	}
+	timeout { 
+	    exec kill -INT -[exp_pid]
+	    wait
+	    set failed 1
+	}
+    }
+    catch close
+
+    if {$failed != 0} {
+	fail "$TEST_NAME"
+    } else {
+	pass "$TEST_NAME"
+    }
+}
+
+# There may be other servers running. Let's keep track of them.
+list_servers "List existing online servers" online
+array unset existing_online_servers
+array set existing_online_servers [array get servers]
+
+# There may be existing trusted servers. Keep track of them.
+list_servers "List existing trusted servers" trusted
+array unset existing_trusted_servers
+array set existing_trusted_servers [array get servers]
+
+# There may be existing trusted signers. Keep track of them.
+list_servers "List existing signing servers" signer
+array unset existing_signing_servers
+array set existing_signing_servers [array get servers]
+
+# If we query all known servers, it should contain exactly the union of the
+# above three queries.
+list_servers "List all existing servers" all
+array unset all_existing_servers
+array set all_existing_servers [array get servers]
+
+set test "Verify existing online server list"
+set failed 0
+foreach idx1 [array names existing_online_servers] {
+    set found 0
+    foreach idx2 [array names all_existing_servers] {
+	if {"$existing_online_servers($idx1)" == "$all_existing_servers($idx2)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	set failed 1
+	fail "$test $idx1"
+    }
+}
+if {$failed == 0} {
+    pass "$test"
+}
+set test "Verify existing trusted server list"
+set failed 0
+foreach idx1 [array names existing_trusted_servers] {
+    set found 0
+    foreach idx2 [array names all_existing_servers] {
+	if {"$existing_trusted_servers($idx1)" == "$all_existing_servers($idx2)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	set failed 1
+	fail "$test $idx1"
+    }
+}
+if {$failed == 0} {
+    pass "$test"
+}
+set test "Verify existing signing server list"
+set failed 0
+foreach idx1 [array names existing_signing_servers] {
+    set found 0
+    foreach idx2 [array names all_existing_servers] {
+	if {"$existing_signing_servers($idx1)" == "$all_existing_servers($idx2)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	set failed 1
+	fail "$test $idx1"
+    }
+}
+if {$failed == 0} {
+    pass "$test"
+}
+set test "Verify all existing server list"
+set failed 0
+foreach idx1 [array names all_existing_servers] {
+    set found 0
+    foreach idx2 [array names existing_online_servers] {
+	if {"$existing_online_servers($idx2)" == "$all_existing_servers($idx1)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	foreach idx2 [array names existing_trusted_servers] {
+	    if {"$existing_trusted_servers($idx2)" == "$all_existing_servers($idx1)"} {
+		set found 1
+		break
+	    }
+	}
+	if {$found == 0} {
+	    foreach idx2 [array names existing_signing_servers] {
+		if {"$existing_signing_servers($idx2)" == "$all_existing_servers($idx1)"} {
+		    set found 1
+		    break
+		}
+	    }
+	    if {$found == 0} {
+		set failed 1
+		fail "$test $idx1"
+	    }
+	}
+    }
+}
+if {$failed == 0} {
+    pass "$test"
+}
+
+# Now start our own server and make sure we can work with it.
+if {! [start_server]} {
+    untested "Compile-server client tests against a server"
+    return;
+}
+
+# Our server should now appear online, separate from the previously discovered
+# online servers. Note that our server could generate serveral listings
+# because it could appear at more than one ip address,
+list_servers "List current online servers" online
+array unset current_online_servers
+array set current_online_servers [array get servers]
+
+set test "New online servers"
+set n 0
+foreach idx1 [array names current_online_servers] {
+    set found 0
+    foreach idx2 [array names existing_online_servers] {
+	if {"$existing_online_servers($idx2)" == "$current_online_servers($idx1)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	set new_online_servers($n) "$current_online_servers($idx1)"
+	incr n
+    }
+}
+if {$n == 0} {
+    fail "$test"
+} else {
+    pass "$test"
+}
+
+# Our server should now be trusted, separate from the previously discovered
+# trusted servers.
+list_servers "List current trusted servers" trusted
+array unset current_trusted_servers
+array set current_trusted_servers [array get servers]
+
+set test "New trusted servers"
+set n 0
+foreach idx1 [array names current_trusted_servers] {
+    set found 0
+    foreach idx2 [array names existing_trusted_servers] {
+	if {"$existing_trusted_servers($idx2)" == "$current_trusted_servers($idx1)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	set new_trusted_servers($n) "$current_trusted_servers($idx1)"
+	incr n
+    }
+}
+if {$n == 0} {
+    fail "$test"
+} else {
+    pass "$test"
+}
+
+# The new servers should automatically be trusted, so the new_trusted_servers
+# array should be a subset of the new_online_servers
+# array, but not necessarilty vice-versa, since new servers may have come
+# online independently of our testing.
+set test "Verify new trusted server list"
+set failed 0
+foreach idx1 [array names new_trusted_servers] {
+    set found 0
+    foreach idx2 [array names new_online_servers] {
+	if {"$new_trusted_servers($idx1)" == "$new_online_servers($idx2)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	set failed 1
+	fail "$test $idx1"
+    }
+}
+if {$failed == 0} {
+    pass "$test"
+}
+
+# The newly trusted servers represent the server we just started.
+array unset our_servers
+array set our_servers [array get new_trusted_servers]
+
+# The new servers should not be trusted as signers so there should be no new
+# signing servers.
+list_servers "List current signing servers" signer
+array unset current_signing_servers
+array set current_signing_servers [array get servers]
+
+set test "No new signing servers"
+set failed 0
+foreach idx1 [array names current_signing_servers] {
+    set found 0
+    foreach idx2 [array names existing_signing_servers] {
+	if {"$existing_signing_servers($idx2)" == "$current_signing_servers($idx1)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	set failed 1
+	fail "$test $idx1"
+    }
+}
+if {$failed == 0} {
+    pass "$test"
+}
+
+# Revoke trust in our server. Specify the server by host name.
+set test "Server has host name"
+if {[regexp {^ host=([^ ]*).*} $our_servers(0) match host_name]} {
+    pass $test
+} else {
+    fail $test
+}
+set cmd [concat stap --trust-servers=ssl,revoke,no-prompt --use-server=$host_name]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+    -timeout 150
+    timeout { 
+	exec kill -INT -[exp_pid]
+	wait
+	set failed 1
+    }
+}
+catch close
+
+# Our server should no longer be trusted.
+list_servers "List current trusted servers after revokation by host name" trusted
+array unset current_trusted_servers
+array set current_trusted_servers [array get servers]
+
+set test "No longer trusted after revokation by host name"
+set failed 0
+foreach idx1 [array names current_trusted_servers] {
+    set found 0
+    foreach idx2 [array names existing_trusted_servers] {
+	if {"$existing_trusted_servers($idx2)" == "$current_trusted_servers($idx1)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	set failed 1
+	fail "$test $idx1"
+    }
+}
+if {$failed == 0} {
+    pass "$test"
+}
+
+# Reinstate trust in our server. Specify the server by ip address.
+# The default for --trusted servers is 'ssl'.
+set test "Server has ip address"
+if {[regexp {^.*ip=([^ ]*).*} $our_servers(0) match ip_address]} {
+    pass $test
+} else {
+    fail $test
+}
+set cmd [concat stap --trust-servers=no-prompt --use-server=$ip_address]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+    -timeout 150
+    timeout { 
+	exec kill -INT -[exp_pid]
+	wait
+	set failed 1
+    }
+}
+catch close
+
+# Our server should be trusted again, separate from the previously discovered
+# trusted servers.
+list_servers "List current trusted servers after reinstatement by ip address" trusted
+array unset current_trusted_servers
+array set current_trusted_servers [array get servers]
+
+set test "New trusted servers after reinstatement by ip address"
+array unset new_trusted_servers
+set n 0
+foreach idx1 [array names current_trusted_servers] {
+    set found 0
+    foreach idx2 [array names existing_trusted_servers] {
+	if {"$existing_trusted_servers($idx2)" == "$current_trusted_servers($idx1)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	set new_trusted_servers($n) "$current_trusted_servers($idx1)"
+	incr n
+    }
+}
+if {$n == 0} {
+    fail "$test"
+} else {
+    pass "$test"
+}
+
+# The new_trusted_servers array should now match the our_servers array, since
+# the our_servers array is a copy of the original new_trusted_servers array.
+set test "Number of new trusted servers matches after reinstatement by ip address"
+if {[array size new_trusted_servers] == [array size our_servers]} {
+    pass "$test"
+} else {
+    fail "$test"
+}
+set test "New trusted servers matches after reinstatement by ip address"
+set n 0
+foreach idx1 [array names new_trusted_servers] {
+    set found 0
+    foreach idx2 [array names our_servers] {
+	if {"$our_servers($idx2)" == "$new_trusted_servers($idx1)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 1} {
+	incr n
+    }
+}
+if {$n != [array size new_trusted_servers]} {
+    fail "$test"
+} else {
+    pass "$test"
+}
+
+# Trust our server as a module signer. This must be done as root. Specify
+# the server by certificate serial number.
+set test "Server has certificate serial number"
+if {[regexp {^.*certinfo="([^ ]*)".*} $our_servers(0) match cert_info]} {
+    pass $test
+} else {
+    fail $test
+}
+
+# Even though this action must be performed as root, Do not perform it if we
+# are already root, since it alters the state of the install tree. See PR 11442.
+# The related tests should then be expected failures.
+set effective_pid [exec /usr/bin/id -u]
+if {$effective_pid != 0} {
+    set cmd [concat [exec which stap] --trust-servers=signer,no-prompt --use-server=$cert_info]
+    eval as_root { $cmd }
+}
+
+# Our server should now be trusted as a signer, separate from the previously
+# discovered trusted signing servers.
+list_servers "List current signing servers" signer
+array unset current_signing_servers
+array set current_signing_servers [array get servers]
+
+set test "New signing servers"
+set n 0
+foreach idx1 [array names current_signing_servers] {
+    set found 0
+    foreach idx2 [array names existing_signing_servers] {
+	if {"$existing_signing_servers($idx2)" == "$current_signing_servers($idx1)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	set new_signing_servers($n) "$current_signing_servers($idx1)"
+	incr n
+    }
+}
+if {$effective_pid == 0} {
+    setup_xfail *-*-*
+}
+if {$n == 0} {
+    fail "$test"
+} else {
+    pass "$test"
+}
+
+# The new_signing_servers array should now match the our_servers array, since
+# the we specified our server by certificate serial number so that we don't
+# accidentally trust another server on the same host.
+set test "Number of new signing servers matches"
+if {$effective_pid == 0} {
+    setup_xfail *-*-*
+}
+if {[array size new_signing_servers] == [array size our_servers]} {
+    pass "$test"
+    set test "New signing servers matches"
+    set n 0
+    foreach idx1 [array names new_signing_servers] {
+	set found 0
+	foreach idx2 [array names our_servers] {
+	    if {"$our_servers($idx2)" == "$new_signing_servers($idx1)"} {
+		set found 1
+		break
+	    }
+	}
+	if {$found == 1} {
+	    incr n
+	}
+    }
+    if {$effective_pid == 0} {
+	setup_xfail *-*-*
+    }
+    if {$n != [array size new_signing_servers]} {
+	fail "$test"
+    } else {
+	pass "$test"
+    }
+} else {
+    fail "$test"
+    set test "New signing servers matches"
+    if {$effective_pid == 0} {
+	setup_xfail *-*-*
+    }
+    fail "$test"
+}
+
+# Compile a simple test using --unprivileged. This will ask the server to
+# check and sign the module. Specify the server using host name and port.
+set test "Server has port number"
+if {[regexp {^.*port=([^ ]*).*} $our_servers(0) match port_num]} {
+    pass $test
+} else {
+    fail $test
+}
+set test "Compile module using server"
+set failed 0
+set module_name ""
+set cmd [concat stap -p4 --unprivileged $srcdir/systemtap.server/hello.stp --use-server=$host_name:$port_num]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+    -timeout 150
+    -re {^stap_[0-9]*\.ko\r\n} {
+	set module_name [string trim "$expect_out(0,string)" \r\n]
+    }
+    timeout { 
+	exec kill -INT -[exp_pid]
+	wait
+	set failed 1
+    }
+}
+catch close
+if {$failed == 0} {
+    pass "$test"
+}
+send_log "'$module_name'\n"
+
+# Make sure that the module was returned
+set test "Module was created"
+if {[file exists $module_name]} {
+    pass "$test"
+} else {
+    fail "$test"
+}
+
+# Make sure that the module was signed
+set test "Module was signed"
+if {[file exists $module_name.sgn]} {
+    pass "$test"
+} else {
+    fail "$test"
+}
+
+# Make sure we can load the module. This will verify that the signature
+# is correct and trusted. If we are not root or a member of either
+# the group stapdev or stapusr, then we still won't be able to load
+# the module.
+set expect_failure 1
+if {$effective_pid == 0} {
+    set expect_failure 0
+} else {
+    set id_info [exec /usr/bin/id]
+    if {[regexp {.*\(stapdev\).*} "$id_info"]} {
+	set expect_failure 0
+    } elseif {[regexp {.*\(stapusr\).*} "$id_info"]} {
+	if {$effective_pid != 0} {
+	    set expect_failure 0
+	}
+    }    
+}
+if {$expect_failure} {
+    setup_xfail *-*-*
+}
+set test "Load and run signed module when trusted"
+set failed 1
+set cmd [concat staprun $module_name]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+    -timeout 150
+    -re {^Hello From Server\r\n} {
+	set failed 0
+    }
+    timeout { 
+	exec kill -INT -[exp_pid]
+	wait
+	set failed 1
+    }
+}
+catch close
+if {$failed == 0} {
+    pass "$test"
+} else {
+    fail "$test"
+}
+
+
+# Revoke trust in our server as a module signer. This must be done as root.
+# Specify the server by certificate serial number so that we don't accidentally
+# revoke trust in a previously trusted server.
+# Even though this action must be performed as root, Do not perform it if we
+# are already root, since it alters the state of the install tree. See PR 11442.
+if {$effective_pid != 0} {
+    set cmd [concat [exec which stap] --trust-servers=revoke,signer,no-prompt --use-server=$cert_info]
+    eval as_root { $cmd }
+}
+
+# Our server should no longer be trusted as a signed
+list_servers "List current signing servers after revokation" signer
+array unset current_signing_servers
+array set current_signing_servers [array get servers]
+
+set test "No longer trusted as a signer after revokation"
+set failed 0
+foreach idx1 [array names current_signing_servers] {
+    set found 0
+    foreach idx2 [array names existing_signing_servers] {
+	if {"$existing_signing_servers($idx2)" == "$current_signing_servers($idx1)"} {
+	    set found 1
+	    break
+	}
+    }
+    if {$found == 0} {
+	set failed 1
+	fail "$test $idx1"
+    }
+}
+if {$failed == 0} {
+    pass "$test"
+}
+
+# Since our server is no longer a trusted signer, attempting
+# to load and run the module now should fail unless we
+# are root or a member of the group stapdev.
+set expect_failure 1
+if {[exec /usr/bin/id -u] == 0} {
+    set expect_failure 0
+} else {
+    if {[regexp {.*\(stapdev\).*} "$id_info"]} {
+	set expect_failure 0
+    }
+}
+if {$expect_failure} {
+    setup_xfail *-*-*
+}
+set test "Load and run signed module when not trusted"
+set failed 1
+set cmd [concat staprun $module_name]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+    -timeout 150
+    -re {^Hello From Server\r\n} {
+	set failed 0
+    }
+    timeout { 
+	exec kill -INT -[exp_pid]
+	wait
+	set failed 1
+    }
+}
+catch close
+if {$failed == 0} {
+    pass "$test"
+} else {
+    fail "$test"
+}
+
+# Shutdown the server we started
+shutdown_server

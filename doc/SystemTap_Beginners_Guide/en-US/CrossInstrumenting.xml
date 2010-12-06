@@ -16,10 +16,10 @@
     cross-compiling script from here:
     http://sources.redhat.com/ml/systemtap/2008-q3/msg00310.html
   </remark>
-  
+
 <indexterm>
 <primary>kernel modules from SystemTap scripts, building</primary>
-</indexterm> 
+</indexterm>
 <indexterm>
 	<primary>building kernel modules from SystemTap scripts</primary>
 </indexterm>
@@ -32,10 +32,10 @@
 <indexterm>
 	<primary>compiling instrumentation/kernel modules from SystemTap scripts</primary>
 </indexterm>
-  
+
 <indexterm>
 <primary>cross-compiling</primary>
-</indexterm>		
+</indexterm>
   <remark>
     above; add short description, significance, howto, script (test first)
   </remark>
@@ -47,11 +47,11 @@
     <xref linkend="systemtapsession"/> in
     <xref linkend="understanding-architecture-tools"/> for more information).
   </para>
-	
+
   <para>
     Normally, however, SystemTap scripts can only be run on systems where SystemTap is deployed (as in <xref linkend="using-setup"/>). This could mean that if you want to run SystemTap on ten systems, you would need to deploy SystemTap on <emphasis>all</emphasis> those systems.  In some cases, this may be neither feasible nor desired. For instance, corporate policy may prohibit an administrator from installing RPMs that provide compilers or debug information on specific machines, which will prevent the deployment of SystemTap.
   </para>
-	
+
   <para>
     To work around this, you can resort to <firstterm>cross-instrumentation</firstterm>. Cross-instrumentation is the process of generating SystemTap instrumentation module from a SystemTap script on one computer to be used on another computer. This process offers the following benefits:
   </para>
@@ -63,7 +63,7 @@
 <indexterm>
 <primary>advantages of cross-instrumentation</primary>
 </indexterm>
-	
+
   <itemizedlist>
     <listitem>
       <para>
@@ -77,25 +77,25 @@
       </para>
     </listitem>
   </itemizedlist>
-	
-<!-- 	
+
+<!--
 
 	<para>
 		Such a task does not scale well as the number of systems you are monitoring increases. As such, if you need to run a SystemTap script against a wide number of machines, you can simplify your deployment and monitoring through <firstterm>cross-instrumentation</firstterm>.
-	</para>	
-	
+	</para>
+
 	<para>
 		<firstterm>Cross-instrumentation</firstterm> is the process of building the resulting kernel module from a SystemTap script on a <emphasis>host</emphasis> machine to be loaded on another <emphasis>target machine</emphasis>. In a manner of speaking, this process allows you to "run" SystemTap scripts on a machine without having to install the necessary debug RPMs for its kernel.
-	</para>	
-	
-	
+	</para>
+
+
 	<para>
 		To illustrate; Tom has 25 systems, all of which have the same kernel. If Tom wants to run the SystemTap <filename>script.stp</filename> on all of them, he could install SystemTap and the necessary debug RPMs <emphasis>on each of the 25 machines</emphasis>. This is a tedious enough task to perform on 25 systems; what more if each system had a different kernel?
-	</para>	
-		Alternatively, however, Tom can simply perform cross-instrumentation; this allows him to simply deploy SystemTap fully on one machine, build the necessary kernel module from <filename>script.stp</filename> on that machine, and load that module on each of the other systems. 
-	</para>	
-	
-	-->	
+	</para>
+		Alternatively, however, Tom can simply perform cross-instrumentation; this allows him to simply deploy SystemTap fully on one machine, build the necessary kernel module from <filename>script.stp</filename> on that machine, and load that module on each of the other systems.
+	</para>
+
+	-->
   <note>
     <title>Note</title>
 
@@ -124,7 +124,7 @@
 	  system</emphasis>.
 	</para>
       </listitem>
-	
+
       <listitem>
 	<para>
 <indexterm>
@@ -142,7 +142,7 @@
 	  systems</emphasis>.
 	</para>
       </listitem>
-	
+
       <listitem>
 	<para>
 <indexterm>
@@ -160,7 +160,7 @@
 	  SystemTap scripts).
 	</para>
       </listitem>
-	
+
       <listitem>
 	<para>
 <indexterm>
@@ -180,11 +180,11 @@
       </listitem>
     </itemizedlist>
   </note>
-		
-<!--		
+
+<!--
 		running a SystemTap script on a target system where SystemTap is not installed. Normally, to run a SystemTap script on a system, you need to deploy SystemTap on it first (as in <xref linkend="installproper"/>).
 	</para>	-->
-	
+
 <!--	<para>
 		This section teaches you how to deploy SystemTap on a host machine, from which you can create the necessary kernel module/s to be loaded on client machines. These kernel modules are built from SystemTap scripts you wish to run on the client machine.
 	</para>-->
@@ -212,7 +212,7 @@
 	Install the <filename>systemtap-runtime</filename> RPM on each
 	<emphasis>target system</emphasis>.
       </para>
-    </step>	
+    </step>
 
     <step>
       <para>
@@ -259,9 +259,7 @@
     appropriate values):
   </para>
 
-<screen>
-stap -r <replaceable>kernel_version</replaceable> <replaceable>script</replaceable> -m <replaceable>module_name</replaceable>
-</screen>
+<screen>stap -r <replaceable>kernel_version</replaceable> <replaceable>script</replaceable> -m <replaceable>module_name</replaceable></screen>
 
   <para>
     Here, <command><replaceable>kernel_version</replaceable></command> refers to
@@ -290,16 +288,14 @@ stap -r <replaceable>kernel_version</replaceable> <replaceable>script</replaceab
       To determine the architecture notation of a running kernel, run
       <command>uname -m</command>.
     </para>
-  </note>	
+  </note>
 
   <para>
     Once the the <emphasis>instrumentation module</emphasis> is compiled, copy
     it to the <emphasis>target system</emphasis> and then load it using:
   </para>
 
-<screen>
-staprun <replaceable>module_name</replaceable>.ko
-</screen>
+<screen>staprun <replaceable>module_name</replaceable>.ko</screen>
 
   <para>
     For example, to create the
@@ -321,10 +317,10 @@ staprun <replaceable>module_name</replaceable>.ko
   </para>
 
   <para><command>staprun simple.ko</command></para>
-	
+
 <!--<procedure id="preppingxcompile">
 	<title>Preparing for a Cross-Compile</title>
-	
+
 <step>
 	<para>Note the version of the target system's kernel on which you wish to use SystemTap. You can do this by logging onto the target system and running <command>uname -r</command> (assuming the system is running the kernel on which you wish to use SystemTap), or by inspecting <filename>/boot</filename>.</para>
 </step>	-->

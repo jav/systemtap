@@ -1,7 +1,7 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap], 1.2, systemtap@sources.redhat.com, systemtap)
+AC_INIT([systemtap], 1.4, systemtap@sources.redhat.com, systemtap)
 dnl                  ^^^ see also NEWS, systemtap.spec, testsuite/configure.ac
 
 AC_PREREQ(2.59)
@@ -50,6 +50,14 @@ if test "$enable_prologues" = yes; then
   AC_DEFINE([ENABLE_PROLOGUES],[],[make -P prologue-searching default])
 fi])
 
+AC_ARG_ENABLE([sdt-probes],
+  [AS_HELP_STRING([--disable-sdt-probes],
+                  [disable process.mark probes in stap, staprun, stapio])])
+AS_IF([test "x$enable_sdt_probes" != xno], [
+  AC_DEFINE([ENABLE_SDT_PROBES], [1],
+            [Define to 1 to enable process.mark probes in stap, staprun, stapio.])
+])
+
 AC_ARG_ENABLE([ssp],
   [AS_HELP_STRING([--disable-ssp], [disable gcc stack-protector])])
 AS_IF([test "x$enable_ssp" != xno],[
@@ -64,6 +72,20 @@ AS_IF([test "x$enable_ssp" != xno],[
        AC_MSG_NOTICE([Compiler does not support -fstack-protector-all et al.])
        CFLAGS="$save_CFLAGS"
        CXXFLAGS="$save_CXXFLAGS"])])
+
+
+dnl Link with gold if possible
+dnl but: https://bugzilla.redhat.com/show_bug.cgi?id=636603
+dnl
+dnl AC_PATH_PROG(GOLD, [ld.gold], [no])
+dnl if test "x$GOLD" != "xno"
+dnl then
+dnl   mkdir -p Bdir
+dnl   ln -sf $GOLD Bdir/ld
+dnl   LDFLAGS="$LDFLAGS -B`pwd`/Bdir/"
+dnl   AC_MSG_NOTICE([using ld.gold to link])
+dnl fi
+
 
 # Compiling without fPIE by default (see PR 9922)
 AC_ARG_ENABLE([pie],
@@ -348,13 +370,13 @@ AS_IF([test "x$enable_grapher" != xno],
    PKG_CHECK_MODULES([gtkmm], [gtkmm-2.4 >= 2.8.0],
      have_gtkmm="yes", have_gtkmm="no")
    AS_IF([test "x${have_gtkmm}" == "xno" -a x"$enable_grapher" == "xyes"],
-     AC_MSG_WARN([systemtap cannot find required gtkmm libs (gtkmm24-devel version 2.8.0 or higher may need to be installed)]))   
+     AC_MSG_WARN([systemtap cannot find required gtkmm libs (gtkmm24-devel version 2.8.0 or higher may need to be installed)]))
 
    dnl Check for libglade
    PKG_CHECK_MODULES([libglade], [libglademm-2.4 >= 2.6.7],
      have_libglade="yes", have_libglade="no")
    AS_IF([test "x${have_libglade}" == "xno" -a x"$enable_grapher" == "xyes"],
-     AC_MSG_WARN([systemtap cannot find required libglade libs (libglademm24-devel version 2.6.7 or higher may need to be installed)]))   
+     AC_MSG_WARN([systemtap cannot find required libglade libs (libglademm24-devel version 2.6.7 or higher may need to be installed)]))
 
    dnl Check for needed boost headers
    have_boost_headers="yes"
@@ -412,14 +434,21 @@ AC_SUBST(elfutils_abs_srcdir, `AS_IF([test $build_elfutils = yes],
 if test $enable_translator = yes; then
   if test $build_elfutils = no; then
     # Need libdwfl-capable recent elfutils http://elfutils.fedorahosted.org/
+
+    # On modern debian/ubuntu, libebl has been merged into libdw
+    # http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=457543
+    save_LIBS="$LIBS"
+    AC_CHECK_LIB(ebl, ebl_get_elfmachine,[ebl_LIBS=-lebl],[ebl_LIBS=])
+    LIBS="$save_LIBS"
+
     save_LIBS="$LIBS"
     AC_CHECK_LIB(dw, dwfl_module_getsym,[],[
       AC_MSG_ERROR([missing elfutils development headers/libraries (install elfutils-devel, libebl-dev, libdw-dev and/or libebl-devel)])],
-      [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
+      [-Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf])
     AC_CHECK_LIB(dw, dwarf_getelf,[],[
       AC_MSG_ERROR([elfutils, libdw too old, need 0.126+])],
-      [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
-    stap_LIBS="$stap_LIBS -Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
+      [-Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf])
+    stap_LIBS="$stap_LIBS -Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf"
     LIBS="$save_LIBS"
   else
     # We built our own and stap_LDFLAGS points at the install.
@@ -429,6 +458,7 @@ fi
 
 AC_SUBST(stap_LIBS)
 AC_MSG_NOTICE([stap will link $stap_LIBS])
+
 
 dnl Plop in the build (configure) date
 date=`date +%Y-%m-%d`
@@ -445,6 +475,28 @@ AC_CHECK_HEADERS([tr1/unordered_map])
 AC_CHECK_HEADERS([tr1/memory])
 AC_CHECK_HEADERS([boost/shared_ptr.hpp])
 AC_LANG_POP(C++)
+
+
+AC_CACHE_CHECK([for assembler .section "?" flags support], stap_cv_sectionq, [
+old_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wa,--fatal-warnings"
+AC_COMPILE_IFELSE([asm(".section .note.foo,\"?\",\"note\"\n"
+		       ".byte 1, 2, 3\n"
+		       ".previous\n"
+		       ".section .text,\"axG\",\"progbits\",foogroup,comdat\n"
+		       ".byte 1\n"
+		       ".pushsection .note.foo,\"?\",\"note\"\n"
+		       ".byte 4, 5, 6\n"
+		       ".popsection\n"
+		       ".byte 2\n");],
+		  stap_cv_sectionq=yes, stap_cv_sectionq=no)
+CFLAGS="$oldCFLAGS"])
+AC_SUBST(support_section_question)
+support_section_question=0
+if test $stap_cv_sectionq = yes; then
+  support_section_question=1
+fi
+AC_CONFIG_FILES([includes/sys/sdt-config.h])
 
 
 if test $build_elfutils = yes -a $enable_translator = yes; then
@@ -511,12 +563,12 @@ doc/beginners/Makefile doc/SystemTap_Tapset_Reference/Makefile \
 grapher/Makefile \
 grapher/stapgraph.1 \
 stappaths.7 \
+stap-server.8 \
 initscript/systemtap initscript/stap-server ])
-AC_CONFIG_SUBDIRS(testsuite)
+AC_CONFIG_SUBDIRS(testsuite runtime/staprun)
 if test $enable_translator == "yes"; then
 	AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
 fi
-AC_CONFIG_FILES([run-staprun], [chmod +x run-staprun])
 AC_CONFIG_FILES([dtrace], [chmod +x dtrace])
 
 # Setup "shadow" directory doc/beginners that has everything setup for

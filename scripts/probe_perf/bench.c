@@ -30,7 +30,7 @@
 #define rowsize 	 40
 
 /* Puzzle */
-#define size	 	 511
+#define SIZE	 	 511
 #define classmax 	 3
 #define typemax 	 12
 #define d 		 8
@@ -125,7 +125,7 @@ float rma[rowsize + 1][rowsize + 1], rmb[rowsize + 1][rowsize + 1],
 /* Puzzle */
 int piececount[classmax + 1],
   class[typemax + 1],
-  piecemax[typemax + 1], puzzl[size + 1], p[typemax + 1][size + 1], n, kount;
+  piecemax[typemax + 1], puzzl[SIZE + 1], p[typemax + 1][SIZE + 1], n, kount;
 
 /* Bubble, Quick */
 int sortlist[sortelements + 1], biggest, littlest, top;
@@ -543,7 +543,7 @@ Place (i, j)
     if (p[i][k])
       puzzl[j + k] = true;
   piececount[class[i]] = piececount[class[i]] - 1;
-  for (k = j; k <= size; k++)
+  for (k = j; k <= SIZE; k++)
     if (!puzzl[k])
       {
 	return (k);
@@ -598,14 +598,14 @@ BENCH_TRIAL:
 Puzzle ()
 {
   int i, j, k, m;
-  for (m = 0; m <= size; m++)
+  for (m = 0; m <= SIZE; m++)
     puzzl[m] = true;
   for (i = 1; i <= 5; i++)
     for (j = 1; j <= 5; j++)
       for (k = 1; k <= 5; k++)
 	puzzl[i + d * (j + d * k)] = false;
   for (i = 0; i <= typemax; i++)
-    for (m = 0; m <= size; m++)
+    for (m = 0; m <= SIZE; m++)
       p[i][m] = false;
   for (i = 0; i <= 3; i++)
     for (j = 0; j <= 1; j++)

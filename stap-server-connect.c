@@ -97,7 +97,7 @@ exitErr(char *function)
 static SECStatus readDataFromSocket(PRFileDesc *sslSocket, const char *requestFileName)
 {
   PRFileDesc *local_file_fd;
-  PRFileInfo  info;
+  PRInt32     numBytesExpected;
   PRInt32     numBytesRead;
   PRInt32     numBytesWritten;
   PRInt32     totalBytes;
@@ -115,7 +115,7 @@ static SECStatus readDataFromSocket(PRFileDesc *sslSocket, const char *requestFi
 
   /* Read the number of bytes to be received.  */
   /* XXX: impose a limit to prevent disk space consumption DoS */
-  numBytesRead = PR_Read(sslSocket, & info.size, sizeof (info.size));
+  numBytesRead = PR_Read(sslSocket, & numBytesExpected, sizeof (numBytesExpected));
   if (numBytesRead == 0) /* EOF */
     {
       fprintf (stderr, "Error reading size of request file\n");
@@ -126,9 +126,11 @@ static SECStatus readDataFromSocket(PRFileDesc *sslSocket, const char *requestFi
       errWarn("PR_Read");
       return SECFailure;
     }
+  /* Convert numBytesExpected from network byte order to host byte order.  */
+  numBytesExpected = ntohl (numBytesExpected);
 
   /* Read until EOF or until the expected number of bytes has been read. */
-  for (totalBytes = 0; totalBytes < info.size; totalBytes += numBytesRead)
+  for (totalBytes = 0; totalBytes < numBytesExpected; totalBytes += numBytesRead)
     {
       numBytesRead = PR_Read(sslSocket, buffer, READ_BUFFER_SIZE);
       if (numBytesRead == 0)
@@ -155,9 +157,9 @@ static SECStatus readDataFromSocket(PRFileDesc *sslSocket, const char *requestFi
 #endif
     }
 
-  if (totalBytes != info.size)
+  if (totalBytes != numBytesExpected)
     {
-      fprintf (stderr, "Expected %d bytes, got %d\n", info.size, totalBytes);
+      fprintf (stderr, "Expected %d bytes, got %d\n", numBytesExpected, totalBytes);
       return SECFailure;
     }
 
@@ -380,6 +382,7 @@ static void handleRequest (const char* requestDirName, const char* responseDirNa
   char stapstdout[PATH_MAX];
   char stapstderr[PATH_MAX];
   char staprc[PATH_MAX];
+  char stapsymvers[PATH_MAX];
 #define MAXSTAPARGC 1000 /* sorry, too lazy to dynamically allocate */
   char* stapargv[MAXSTAPARGC];
   int stapargc=0;
@@ -389,6 +392,7 @@ static void handleRequest (const char* requestDirName, const char* responseDirNa
   FILE* f;
   int unprivileged = 0;
   int stapargv_freestart = 0;
+  struct stat st;
 
   stapargv[stapargc++] = getenv ("SYSTEMTAP_STAP") ?: STAP_PREFIX "/bin/stap";
 
@@ -576,9 +580,35 @@ static void handleRequest (const char* requestDirName, const char* responseDirNa
                     errWarn("stap-sign-module");
                 }
             }
-        }
 
-      /* XXX: What about uprobes.ko? */
+	  /* If uprobes.ko is required, then we need to return it to the client.
+	     uprobes.ko was requires if the file "Module.symvers" is not empty in
+	     the temp directory.  */
+	  snprintf (stapsymvers, PATH_MAX, "%s/Module.symvers", new_staptmpdir);
+	  rc = stat (stapsymvers, & st);
+	  if (rc == 0 && st.st_size != 0)
+	    {
+	      /* uprobes.ko is required. Link to it from the response directory.  */
+	      char *lnargv[10];
+	      lnargv[0] = "/bin/ln";
+	      lnargv[1] = "-s";
+	      lnargv[2] = PKGDATADIR "/runtime/uprobes/uprobes.ko";
+	      lnargv[3] = (char*)responseDirName;
+	      lnargv[4] = NULL;
+	      rc = spawn_and_wait (lnargv, NULL, NULL, NULL, NULL);
+	      if (rc != PR_SUCCESS)
+		errWarn("stap uprobes.ko link");
+
+	      /* In unprivileged mode, we need to return the signature as well. */
+	      if (unprivileged) 
+		{
+		  lnargv[2] = PKGDATADIR "/runtime/uprobes/uprobes.ko.sgn";
+		  rc = spawn_and_wait (lnargv, NULL, NULL, NULL, NULL);
+		  if (rc != PR_SUCCESS)
+		    errWarn("stap uprobes.ko.sgn link");
+		}
+	    }
+        }
     }
 
   /* Free up all the arg string copies.  Note that the first few were alloc'd
@@ -946,15 +976,6 @@ server_main(unsigned short port, SECKEYPrivateKey *privKey)
   prStatus = PR_SetSocketOption(listenSocket, &socketOption);
   if (prStatus != PR_SUCCESS)
     exitErr("PR_SetSocketOption");
-
-#if 0
-  /* This cipher is not on by default. The Acceptance test
-   * would like it to be. Turn this cipher on.
-   */
-  secStatus = SSL_CipherPrefSetDefault(SSL_RSA_WITH_NULL_MD5, PR_TRUE);
-  if (secStatus != SECSuccess)
-    exitErr("SSL_CipherPrefSetDefault:SSL_RSA_WITH_NULL_MD5");
-#endif
 
   /* Configure the network connection. */
   addr.inet.family = PR_AF_INET;

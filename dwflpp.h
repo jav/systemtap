@@ -1,5 +1,5 @@
 // C++ interface to dwfl
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -121,6 +121,7 @@ module_cache
   bool dwarf_collected;
 
   module_cache() : paths_collected(false), dwarf_collected(false) {}
+  ~module_cache();
 };
 
 
@@ -196,7 +197,7 @@ struct dwflpp
 
   bool function_name_matches_pattern(const std::string& name, const std::string& pattern);
   bool function_name_matches(const std::string& pattern);
-  bool function_scope_matches(const std::vector<std::string> scopes);
+  bool function_scope_matches(const std::vector<std::string>& scopes);
 
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
                                              const char *, Dwarf_Addr,
@@ -215,8 +216,9 @@ struct dwflpp
   std::vector<Dwarf_Die> getscopes(Dwarf_Die* die);
   std::vector<Dwarf_Die> getscopes(Dwarf_Addr pc);
 
-  Dwarf_Die *declaration_resolve(const char *name);
-  Dwarf_Die *declaration_resolve_other_cus(const char *name);
+  Dwarf_Die *declaration_resolve(Dwarf_Die *type);
+  Dwarf_Die *declaration_resolve(const std::string& name);
+  Dwarf_Die *declaration_resolve_other_cus(const std::string& name);
 
   int iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * q),
                               base_query * q, const std::string& function);
@@ -245,6 +247,13 @@ struct dwflpp
                                               Dwarf_Addr,
                                               dwarf_query *));
 
+  int iterate_over_notes (void *object,
+			  void (*callback)(void *object, int type,
+					   const char *data, size_t len));
+
+  GElf_Shdr * get_section(std::string section_name, GElf_Shdr *shdr_mem,
+                          Elf **elf_ret=NULL);
+
   void collect_srcfiles_matching (std::string const & pattern,
                                   std::set<std::string> & filtered_srcfiles);
 
@@ -258,6 +267,8 @@ struct dwflpp
   void function_line (int *linep);
 
   bool die_has_pc (Dwarf_Die & die, Dwarf_Addr pc);
+  bool inner_die_containing_pc(Dwarf_Die& scope, Dwarf_Addr addr,
+                               Dwarf_Die& result);
 
   std::string literal_stmt_for_local (std::vector<Dwarf_Die>& scopes,
                                       Dwarf_Addr pc,
@@ -368,6 +379,7 @@ private:
 
   struct location *translate_location(struct obstack *pool,
                                       Dwarf_Attribute *attr,
+                                      Dwarf_Die *die,
                                       Dwarf_Addr pc,
                                       Dwarf_Attribute *fb_attr,
                                       struct location **tail,
@@ -376,6 +388,7 @@ private:
   bool find_struct_member(const target_symbol::component& c,
                           Dwarf_Die *parentdie,
                           Dwarf_Die *memberdie,
+                          std::vector<Dwarf_Die>& dies,
                           std::vector<Dwarf_Attribute>& locs);
 
   void translate_components(struct obstack *pool,

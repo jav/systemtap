@@ -137,7 +137,8 @@ Use bulk mode (percpu files) for kernel-to-user data transfer.
 .TP
 .B \-t
 Collect timing information on the number of times probe executes
-and average amount of time spent in each probe.
+and average amount of time spent in each probe-point. Also shows 
+the derivation for each probe-point.
 .TP
 .BI \-s NUM
 Use NUM megabyte buffers for kernel-to-user data transfer.  On a
@@ -155,9 +156,9 @@ be used to override limit parameters described below.
 Add the given make directive to the kernel module build's make invocation.
 These can be used to add or override kconfig options.
 .TP
-.BI \-G " var1=val"
-Sets the value of global variable var1 to val when staprun is invoked. Global
-variables contained within a module are treated as module options.
+.BI \-G " NAME=VALUE"
+Sets the value of global variable NAME to VALUE when staprun is invoked.
+This applies to scalar variables declared global in the script/tapset.
 .TP
 .BI \-R " DIR"
 Look for the systemtap runtime sources in the given directory.
@@ -190,8 +191,8 @@ ldd to be necessary for user-space binaries being probe or listed with
 the \-d option.  Caution: this can make the probe modules considerably
 larger.
 .TP
-.BI \-\-all-modules
-Equivalent to specifying "-d" for each kernel modules that are
+.BI \-\-all\-modules
+Equivalent to specifying "-dkernel" and a "-d" for each kernel module that is
 currently loaded.  Caution: this can make the probe modules considerably
 larger.
 .TP
@@ -209,9 +210,9 @@ a specific process.
 .TP
 .BI \-l " PROBE"
 Instead of running a probe script, just list all available probe
-points matching the given pattern.  The pattern may include wildcards
-and aliases.  The process result code will indicate failure if there
-are no matches.
+points matching the given single probe point.  The pattern may include
+wildcards and aliases, but not comma-separated multiple probe points.
+The process result code will indicate failure if there are no matches.
 .TP
 .BI \-L " PROBE"
 Similar to "-l", but list probe points and script-level local variables.
@@ -271,25 +272,118 @@ systemtap script fails to run.  See the DEPRECATION section for more
 details.
 
 .TP
-.BI \-\-use\-server
-Use a compatible compile server (automatically found) for phases 1 through 4.
+\fB\-\-use\-server \fR[\fIHOSTNAME\fR[\fI:PORT\fR] | \fIIP_ADDRESS\fR[\fI:PORT\fR] | \fICERT_SERIAL\fR]
+Specify compile\-server(s) to be used for compilation and/or in conjunction
+with
+.I \-\-list\-servers
+and
+.I \-\-trust\-servers
+(see below). If no argument is
+supplied, then the default in unprivileged mode (see
+.IR \-\-unprivileged )
+is to select compatible servers which are trusted as SSL peers and as
+module signers and currently online. Otherwise the default is to select
+compatible servers which are trusted as SSL peers
+and currently online.
+.I \-\-use\-server
+may be
+specified more than once, in which case a list of servers is accumulated
+in the order specified. Servers may be specified by host name, ip address, or
+by certificate serial number (obtained using
+.IR \-\-list\-servers ).
+The latter is most commonly used when revoking
+trust in a server (see
+.I \-\-trust-servers
+below). If a server is specified by host name or ip address, then an optional
+port number may be specified. This is useful for accessing servers which are
+not on the local network or to specify a particular server.
 
 .TP
-.BI \-\-list\-servers " SERVERS"
-Display the status of the requested SERVERS, where SERVERS is a comma\-separated
-list of server attributes. Currently supported attribues are:
+.BI \-\-list\-servers " [SERVERS]"
+Display the status of the requested
+.IR SERVERS ,
+where
+.I SERVERS
+is a comma\-separated
+list of server attributes. The list of attributes is combined to filter the
+list of servers displayed. Supported attributes are:
 .RS
 .TP
+.BI all
+specifies all known servers (trusted SSL peers, trusted module signers, online
+servers).
+.TP
+.BI specified
+specifies servers specified using
+.IR \-\-use\-server .
+.TP
 .BI online
-displays information about servers which are currently online.
+filters the output by retaining information about servers which are currently
+online.
+.TP
+.BI trusted
+filters the output by retaining information about servers which are trusted as
+SSL peers.
+.TP
+.BI signer
+filters the output by retaining information about servers which are trusted as
+module signers (see
+.IR \-\-unprivileged ).
 .TP
 .BI compatible
-displays information about servers which are compatible with the current
-kernel release and architecture.
+filters the output by retaining information about servers which are compatible
+with the current kernel release and architecture.
 .RE
 
-The default, if no argument is specified is online,compatible, which displays
-information about compatible servers which are currently online.
+If no argument is provided, then the default is
+.BR specified . 
+If no servers were specified using
+.IR \-\-use\-server ,
+then the default servers for
+.IR \-\-use-server
+are listed.
+
+.TP
+.BI \-\-trust\-servers " [TRUST_SPEC]"
+Grant or revoke trust in compile\-servers, specified using
+.IR \-\-use-server
+as specified by TRUST_SPEC,
+where TRUST_SPEC is a comma\-separated list specifying the trust which is to
+be granted or revoked. Supported elements are:
+.RS
+.TP
+.BI ssl
+trust the specified servers as SSL peers.
+.TP
+.BI signer
+trust the specified servers as module signers (see
+.IR \-\-unprivileged ).
+Only root can specify
+.BR signer.
+.TP
+.BI all\-users
+grant trust as an ssl peer for all users on the local host. The default is
+to grant trust as an ssl peer for the current user only. Trust as a module
+signer is always granted for all users. Only root can specify
+.BR all\-users .
+.TP
+.BI revoke
+revoke the specified trust. The default is to grant it.
+.TP
+.BI no\-prompt
+do not prompt the user for confirmation before carrying out the requested
+action. The default is to prompt the user for confirmation.
+.RE
+
+If no argument is provided, then the default is
+.BR ssl . 
+If no servers were specified using
+.IR \-\-use\-server ,
+then no trust will be granted or revoked.
+
+Unless \fBno\-prompt\fR has been specified,
+the user will be prompted to confirm the trust to be granted or revoked before
+the operation is performed.
 
 .SH ARGUMENTS
 
@@ -908,6 +1002,16 @@ Multiple headers may be specified in sequence to resolve a codependency.
 @cast(task, "task_struct",
       "kernel<linux/sched.h><linux/fs_struct.h>")->fs->umask
 .ESAMPLE
+Values acquired by 
+.BR @cast
+may be pretty-printed by the 
+.BR
+$ " and " $$
+suffix operators, the same way as described in the CONTEXT VARIABLES
+section of the
+.IR stapprobes (3stap) 
+manual page.
+
 .PP
 When in guru mode, the translator will also allow scripts to assign new
 values to members of typecasted pointers.
@@ -1137,8 +1241,6 @@ absence of this file, a default will be created with the limit set to 64MiB.
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
 structures and potentially private user information.
-It acquires
-either root privileges
 
 To actually run the kernel objects it builds, a user must be one of
 the following:
@@ -1147,22 +1249,29 @@ the root user;
 .IP \(bu 4
 a member of the
 .I stapdev
-group; or
+and
+.I stapusr
+groups; or
 .IP \(bu 4
 a member of the
 .I stapusr
 group.
 .PP
+The root user or a user who is a member of both the
+.I stapdev
+and
+.I stapusr
+groups can build and run any systemtap script.
 Members of the
 .I stapusr
-group can only use modules under the following conditions:
+group can only use pre-built modules under the following conditions:
 .IP \(bu 4
 The module is located in
 the /lib/modules/VERSION/systemtap directory.  This directory
 must be owned by root and not be world writable.
 .IP \(bu 4
 The module has been signed by a trusted signer. Trusted signers are normally
-systemtap compile servers which sign modules when the --unprivileged option is
+systemtap compile\-servers which sign modules when the --unprivileged option is
 specified by the client. See the
 .IR stap-server (8)
 manual page for a for more information.
@@ -1248,6 +1357,11 @@ should use, default unlimited.  The memory size includes the size of
 the module itself, plus any additional allocations.  This only tracks
 direct allocations by the systemtap runtime.  This does not track
 indirect allocations (as done by kprobes/uprobes/etc. internals). 
+.TP
+TASK_FINDER_VMA_ENTRY_ITEMS
+Maximum number of VMA pages that will be tracked at runtime. This might
+get exhausted for system wide probes inspecting shared library variables
+and/or user backtraces. Defaults to 1536.
 .TP
 STP_PROCFS_BUFSIZE
 Size of procfs probe read buffers (in bytes).  Defaults to
@@ -1380,6 +1494,46 @@ that require the given \-\-compatible flag to use:
 .TP 
 \-\-compatible=1.2
 (none yet) 
+.TP
+\-\-compatible=1.3
+The tapset alias 'syscall.compat_pselect7a' was misnamed.  It should
+have been 'syscall.compat_pselect7' (without the trailing 'a').
+Starting in release 1.4, the old name will be deprecated.
+.TP
+\-\-compatible=1.4
+In the 'syscall.add_key' probe, the 'description_auddr' variable
+has been deprecated in favor of the new 'description_uaddr'
+variable.
+.IP
+In the 'syscall.fgetxattr', 'syscall.fsetxattr', 'syscall.getxattr',
+\'syscall.lgetxattr', 'syscall.lremovexattr', 'nd_syscall.fgetxattr',
+\'nd_syscall.fremovexattr', 'nd_syscall.fsetxattr', 'nd_syscall.getxattr',
+and 'nd_syscall.lremovexattr' probes, the 'name2' variable has been
+deprecated in favor of the new 'name_str' variable.
+.IP
+In the 'nd_syscall.accept' probe the 'flag_str' variable
+has been deprecated in favor of the new 'flags_str' variable.
+.IP
+In the 'nd_syscall.dup' probe the 'old_fd' variable has been
+deprecated in favor of the new 'oldfd' variable.
+.IP
+The tapset alias 'nd_syscall.compat_pselect7a' was misnamed.  It should
+have been 'nd_syscall.compat_pselect7' (without the trailing 'a').
+.IP
+The tapset function 'cpuid' is deprecated in favor of the better known 'cpu'.
+.IP
+In the i386 'syscall.sigaltstack' probe, the 'ussp' variable has
+been deprecated in favor of the new 'uss_uaddr' variable.
+.IP
+In the ia64 'syscall.sigaltstack' probe, the 'ss_uaddr' and
+\'oss_uaddr' variables have been deprecated in favor of the new
+\'uss_uaddr' and 'uoss_uaddr' variables.
+.IP
+The powerpc tapset alias 'syscall.compat_sysctl' was deprecated
+and renamed 'syscall.sysctl32'.
+.IP
+In the x86_64 'syscall.sigaltstack' probe, the 'regs_uaddr'
+variable has been deprecated in favor of the new 'regs' variable.
 .\" e.g. tapset_function()
 .\" e.g. post-incrementing a frobozz in a while loop
 
@@ -1387,8 +1541,6 @@ that require the given \-\-compatible flag to use:
 .\" .TP
 .\" support removed in version X.Y
 .\" really_old_tapset_function()
-
-.PP
 
 .SH FILES
 .\" consider autoconf-substituting these directories
@@ -1403,7 +1555,6 @@ stappaths (7) manual page.
 .IR staprun (8),
 .IR stapvars (3stap),
 .IR stapex (3stap),
-.IR stap-client (8),
 .IR stap-server (8),
 .IR awk (1),
 .IR gdb (1)

@@ -8,22 +8,7 @@
 #ifndef CSCLIENT_H
 #define CSCLIENT_H
 
-// Information about compile servers.
-struct compile_server_info
-{
-  std::string host_name;
-  std::string ip_address;
-  unsigned short port;
-  std::string sysinfo;
-};
-
-enum compile_server_properties {
-  compile_server_trusted    = 0x1,
-  compile_server_online     = 0x2,
-  compile_server_compatible = 0x4,
-  compile_server_signer     = 0x8,
-  compile_server_specified  = 0x10
-};
+struct compile_server_info;
 
 class compile_server_client
 {
@@ -48,7 +33,7 @@ private:
   );
   int add_package_args ();
   int add_package_arg (const std::string &arg);
-  int compile_using_server (const compile_server_info &server);
+  int compile_using_server (const std::vector<compile_server_info> &servers);
 
   int read_from_file (const std::string &fname, int &data);
   int write_to_file (const std::string &fname, const std::string &data);
@@ -65,12 +50,7 @@ private:
 };
 
 // Utility functions
-void query_server_status (const systemtap_session &s);
-void query_server_status (const systemtap_session &s, const std::string &status_string);
-void get_server_info (const systemtap_session &s, int pmask, std::vector<compile_server_info> &servers);
-void get_online_server_info (std::vector<compile_server_info> &servers);
-void keep_compatible_server_info (const systemtap_session &s, std::vector<compile_server_info> &servers);
-
-std::ostream &operator<< (std::ostream &s, const compile_server_info &i);
+void query_server_status (systemtap_session &s);
+void manage_server_trust (systemtap_session &s);
 
 #endif // CSCLIENT_H

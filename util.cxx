@@ -16,12 +16,13 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "util.h"
-#include "sys/sdt.h"
+#include "stap-probe.h"
 #include <stdexcept>
 #include <cerrno>
 #include <map>
 #include <string>
 #include <fstream>
+#include <cassert>
 
 extern "C" {
 #include <fcntl.h>
@@ -70,6 +71,18 @@ get_file_size(const string &path)
 }
 
 // Get the size of a file in bytes
+size_t
+get_file_size(int fd)
+{
+  struct stat file_info;
+
+  if (fstat(fd, &file_info) == 0)
+    return file_info.st_size;
+  else
+    return 0;
+}
+
+// Check that a file is present
 bool
 file_exists (const string &path)
 {
@@ -156,7 +169,7 @@ error:
 
 // Make sure a directory exists.
 int
-create_dir(const char *dir)
+create_dir(const char *dir, int mode)
 {
   struct stat st;
   if (stat(dir, &st) == 0)
@@ -167,8 +180,24 @@ create_dir(const char *dir)
       return 1;
     }
 
-  if (mkdir(dir, 0777) != 0 && errno != EEXIST)
-    return 1;
+  // Create the directory. We must create each component
+  // of the path ourselves.
+  vector<string> components;
+  tokenize (dir, components, "/");
+  string path;
+  if (*dir == '/')
+    {
+      // Absolute path
+      path = "/";
+    }
+  unsigned limit = components.size ();
+  assert (limit != 0);
+  for (unsigned ix = 0; ix < limit; ++ix)
+    {
+      path += components[ix] + '/';
+      if (mkdir(path.c_str (), mode) != 0 && errno != EEXIST)
+	return 1;
+    }
 
   return 0;
 }
@@ -397,7 +426,7 @@ int
 stap_system(int verbose, const std::string& command)
 {
   const char *cmd = command.c_str();
-  STAP_PROBE1(stap, stap_system__start, cmd);
+  PROBE1(stap, stap_system__start, cmd);
   char const * const argv[] = { "sh", "-c", cmd, NULL };
   int ret, status;
 
@@ -407,7 +436,7 @@ stap_system(int verbose, const std::string& command)
     clog << "Running " << command << endl;
 
   ret = posix_spawn(&spawned_pid, "/bin/sh", NULL, NULL, const_cast<char * const *>(argv), environ);
-  STAP_PROBE2(stap, stap_system__spawn, ret, spawned_pid);
+  PROBE2(stap, stap_system__spawn, ret, spawned_pid);
   if (ret == 0)
     {
       ret = waitpid(spawned_pid, &status, 0);
@@ -430,7 +459,7 @@ stap_system(int verbose, const std::string& command)
         clog << "Spawn error (" << ret << "): " << strerror(ret) << endl;
       ret = -1;
     }
-  STAP_PROBE1(stap, stap_system__complete, ret);
+  PROBE1(stap, stap_system__complete, ret);
   spawned_pid = 0;
   return ret;
 }
@@ -441,6 +470,7 @@ kill_stap_spawn(int sig)
 {
   return spawned_pid ? kill(spawned_pid, sig) : 0;
 }
+
 
 
 void assert_regexp_match (const string& name, const string& value, const string& re)
@@ -470,6 +500,54 @@ void assert_regexp_match (const string& name, const string& value, const string&
            << " ('" << value << "' vs. '" << re << "') rc=" << rc << endl;
       exit(1);
     }
+}
+
+
+int regexp_match (const string& value, const string& re, vector<string>& matches)
+{
+  typedef map<string,regex_t*> cache;  // separate cache because we use different regcomp options
+  static cache compiled;
+  cache::iterator it = compiled.find (re);
+  regex_t* r = 0;
+  if (it == compiled.end())
+    {
+      r = new regex_t;
+      int rc = regcomp (r, re.c_str(), REG_EXTENDED); /* REG_ICASE? */
+      if (rc) {
+        cerr << "regcomp " << re << " error rc=" << rc << endl;
+        exit(1);
+      }
+      compiled[re] = r;
+    }
+  else
+    r = it->second;
+
+
+  // run regexec
+#define maxmatches 10
+  regmatch_t rm[maxmatches];
+
+  int rc = regexec (r, value.c_str(), maxmatches, rm, 0);
+  if (rc) return rc;
+
+  matches.erase(matches.begin(), matches.end());
+  for (unsigned i=0; i<maxmatches; i++) // XXX: ideally, the number of actual subexpressions in re
+    {
+      if (rm[i].rm_so >= 0)
+        matches.push_back(value.substr (rm[i].rm_so, rm[i].rm_eo-rm[i].rm_so));
+      else
+        matches.push_back("");
+    }
+
+  return 0;
+}
+
+
+bool contains_glob_chars (const string& str)
+{
+  return (str.find("*") != str.npos ||
+          str.find("?") != str.npos ||
+          str.find("[") != str.npos);
 }
 
 

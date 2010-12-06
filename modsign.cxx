@@ -276,25 +276,22 @@ main(int argc, char **argv)
     cert_db_path = argv[2];
   else {
     // Use the default database for this user.
-    if (geteuid () == 0)
-      cert_db_path = SYSCONFDIR "/systemtap/ssl/server";
-    else {
-      stap_dir = getenv ("SYSTEMTAP_DIR");
+    stap_dir = getenv ("SYSTEMTAP_DIR");
+    if (stap_dir == NULL) {
+      stap_dir = getenv("HOME");
       if (stap_dir == NULL) {
-	stap_dir = getenv("HOME");
-	if (stap_dir == NULL) {
-	  pwd = getpwuid(getuid());
-	  if (pwd)
-	    stap_dir = pwd->pw_dir;
-	  else {
-	    cerr << "Unable to determine the certificate database path." << endl;
-	    return 1;
-	  }
+	pwd = getpwuid(getuid());
+	if (pwd)
+	  stap_dir = pwd->pw_dir;
+	else {
+	  cerr << "Unable to determine the certificate database path." << endl;
+	  return 1;
 	}
       }
-      cert_db_path = stap_dir;
-      cert_db_path += "/.systemtap/ssl/server";
+      cert_db_path = string (stap_dir) + "/.systemtap/ssl/server";
     }
+    else
+      cert_db_path = string (stap_dir) + "/ssl/server";
   }
 
   if (! check_cert_db_path (cert_db_path))

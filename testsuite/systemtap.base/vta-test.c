@@ -1,34 +1,64 @@
 #include <stdlib.h>
 #include "sys/sdt.h"
 
+struct ci
+{
+  int i;
+};
+
+struct cui
+{
+  unsigned int i;
+};
+
+struct cull
+{
+  unsigned long long i;
+};
+
 void
 t1 (int i)
 {
-  srandom (i);
+  int a[] = { 17, 23 };
+  struct ci c;
+  c.i = i;
+  srandom (c.i);
   i = 6;
-  srandom (i);
+  c.i = i;
+  srandom (c.i);
   STAP_PROBE(test, t1);
-  srandom (i + 4);
+  c.i = i;
+  srandom (c.i + 4);
 }
 
 void
 t2 (unsigned int i)
 {
-  srandom (i);
+  int a[] = { 17, 23 };
+  struct cui c;
+  c.i = i;
+  srandom (c.i);
   i = 0xdeadbeef;
-  srandom (i);
+  c.i = i;
+  srandom (c.i);
   STAP_PROBE(test, t2);
-  srandom (i + 4);
+  c.i = i;
+  srandom (c.i + 4);
 }
 
 void
 t3 (unsigned long long i)
 {
-  srandom (i);
+  int a[] = { 17, 23 };
+  struct cull c;
+  c.i = i;
+  srandom (c.i);
   i = 0xdeadbeef87654321LL;
-  srandom (i);
+  c.i = i;
+  srandom (c.i);
   STAP_PROBE(test, t3);
-  srandom (i + 4);
+  c.i = i;
+  srandom (c.i + 4);
 }
 
 int

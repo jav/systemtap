@@ -1,12 +1,13 @@
 # DW_AT_const_value (blocks).
 set test "const_value"
 set ::result_string {i: 2
-j: 21}
+j: 21
+a: {17, 23}}
 
 set test_flags "additional_flags=-g"
 # We need -O2 to get const_value encodings in dwarf.
 set test_flags "$test_flags additional_flags=-O2"
-set test_flags "$test_flags additional_flags=-I$srcdir/../includes"
+set test_flags "$test_flags [sdt_includes]"
 
 set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
 if { $res != "" } {
@@ -41,7 +42,7 @@ set ::result_string {f: bar}
 set test_flags "additional_flags=-g"
 # We need -O2 to get const_value encodings in dwarf.
 set test_flags "$test_flags additional_flags=-O2"
-set test_flags "$test_flags additional_flags=-I$srcdir/../includes"
+set test_flags "$test_flags [sdt_includes]"
 
 set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
 if { $res != "" } {
@@ -59,7 +60,7 @@ if { $res != "" } {
 if {[installtest_p] && [uprobes_p]} {
   set dw_at_c {DW_AT_const_value}
   if {![catch {exec readelf --debug-dump=info $test.exe | grep "$dw_at_c"}]} {
-    setup_xfail 10739 "*-*-*"
+    setup_kfail 10739 "*-*-*"
     stap_run2 $srcdir/$subdir/$test.stp -c ./$test.exe
   } {
     untested "$test (no-const-value)"

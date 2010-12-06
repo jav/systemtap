@@ -15,6 +15,7 @@ use File::Copy;
 use File::Find;
 use File::Path;
 use Text::Wrap;
+use HTML::Entities;
 
 my $inputdir;
 if ($#ARGV >= 0) {
@@ -51,11 +52,18 @@ sub add_meta_txt(*;$) {
     #print $file "exits: $scripts{$meta}{exit}, ";
     #print $file "status: $scripts{$meta}{status}\n";
 
-    print $file "keywords: $scripts{$meta}{keywords}\n\n";
+    print $file "keywords: $scripts{$meta}{keywords}\n";
 
     $Text::Wrap::columns = 72;
     my $description = wrap('  ', '  ', $scripts{$meta}{description});
-    print $file "$description\n\n\n";
+    print $file "\n$description\n";
+
+    $Text::Wrap::separator = " \\\n";
+    my $usage = wrap('', '  ', $scripts{$meta}{test_installcheck});
+    print $file "\n  # $usage\n";
+    $Text::Wrap::separator = "\n";
+
+    print $file "\n\n";
 }
 
 # Adds a formatted meta entry to a given file handle as text.
@@ -78,7 +86,15 @@ sub add_meta_html(*;$) {
     }
     print $file "<br>\n";
 
-    print $file "<p>$scripts{$meta}{description}";
+    print $file "<p>".encode_entities($scripts{$meta}{description});
+
+    $Text::Wrap::separator = " \\\n";
+    my $usage = wrap('', '', $scripts{$meta}{test_installcheck});
+    $Text::Wrap::separator = "\n";
+    my $usage = encode_entities($usage);
+
+    print $file "<p><font size=\"-2\"><pre># $usage</pre></font>";
+
     print $file "</p></li>\n";
 }
 
@@ -207,6 +223,7 @@ sub parse_meta_files {
 	my $exit;
 	my $output;
 	my $description;
+	my $test_installcheck;
 	while (<FILE>) {
 	    if (/^title: (.*)/) { $title = $1; }
 	    if (/^name: (.*)/) { $name = $1; }
@@ -215,6 +232,7 @@ sub parse_meta_files {
 	    if (/^exit: (.*)/) { $exit = $1; }
 	    if (/^output: (.*)/) { $output = $1; }
 	    if (/^description: (.*)/) { $description = $1; }
+	    if (/^test_installcheck: (.*)/) { $test_installcheck = $1; }
 	}
 	close FILE;
 
@@ -236,7 +254,8 @@ sub parse_meta_files {
 	    status => $status,
 	    exit => $exit,
 	    output => $output,
-	    description => $description
+	    description => $description,
+	    test_installcheck => $test_installcheck
 	};
 
 	# chop off the search dir prefix.

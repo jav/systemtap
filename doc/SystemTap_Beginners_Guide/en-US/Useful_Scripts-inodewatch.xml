@@ -5,7 +5,7 @@
 
 	<section id="inodewatchsect">
 		<title>Monitoring Reads and Writes to a File</title>
-		
+
 <indexterm>
 <primary>script examples</primary>
 <secondary>monitoring reads and writes to a file</secondary>
@@ -19,7 +19,7 @@
 <indexterm>
 <primary>monitoring reads and writes to a file</primary>
 <secondary>examples of SystemTap scripts</secondary>
-</indexterm>	
+</indexterm>
 
 <indexterm>
 <primary>file reads/writes, monitoring</primary>
@@ -39,22 +39,20 @@
 <remark>
 WAR STORY: monitoring inode activity http://sourceware.org/systemtap/wiki/WSFileMonitor?highlight=((WarStories))
 </remark>
-		
+
 <remark>
 no script in examples
-</remark>	
-				
-		
+</remark>
+
+
 	<para>This section describes how to monitor reads from and writes to a file in real time. </para>
-	
+
 <formalpara id="inodewatch">
-	<title>inodewatch-simple.stp</title>
+	<title>inodewatch.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/inodewatch-simple.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/io/inodewatch.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
-</formalpara>		
+</formalpara>
 
 <remark>need to add references to sources/man pages that explain how "dev_nr = $file->f_dentry->d_inode->i_sb->s_dev" and "($1 &lt;&lt; 20 | $2)".</remark>
 
@@ -85,7 +83,7 @@ file as arguments on the command line:</para>
 	<listitem><para>The file's major device number.</para></listitem>
 
 	<listitem><para>The file's minor device number.</para></listitem>
-			
+
 	<listitem><para>The file's <command>inode</command> number.</para></listitem>
 </itemizedlist>
 <indexterm>
@@ -106,9 +104,7 @@ file as arguments on the command line:</para>
 
 <para>For instance: if you wish to monitor <filename>/etc/crontab</filename>, run <command>stat -c '%D %i' /etc/crontab</command> first. This gives the following output:</para>
 
-<screen>
-805 1078319
-</screen>
+<screen>805 1078319</screen>
 <indexterm>
 	<primary>script examples</primary>
 	<secondary>inode number</secondary>
@@ -131,13 +127,11 @@ file as arguments on the command line:</para>
 
 <example id="inodewatchoutput">
 	<title><xref linkend="inodewatch"/> Sample Output</title>
-<screen>
-cat(16437) vfs_read 0x800005/1078319
-cat(16437) vfs_read 0x800005/1078319
-</screen>
+<screen>cat(16437) vfs_read 0x800005/1078319
+cat(16437) vfs_read 0x800005/1078319</screen>
 </example>
 
-<!--  
+<!--
       probe kernel.function ("vfs_write"),
       kernel.function ("vfs_read")
       {
@@ -149,7 +143,7 @@ if (dev_nr == ($1 &lt;&lt; 20 | $2) # major/minor device
 printf ("%s(%d) %s 0x%x/%u\n",
 execname(), pid(), probefunc(), dev_nr, inode_nr)
 }
-      
+
       -->
 
 	</section>

@@ -1,0 +1,77 @@
+set test "implicitptr"
+set ::result_string {foo: 22 22 22 22
+changed foo (99): 99 99 99 99
+p = { { &100, 200 }, { &100, 200 } }
+*a->x=200, a->y=400, *b->x=100, b->y=200
+*a->x=100, a->y=200, *b->x=100, b->y=200
+p = { { &200, 400 }, { &100, 200 } }
+*a->x=300, a->y=600, *b->x=200, b->y=200
+*a->x=200, a->y=200, *b->x=200, b->y=200
+p = { { &300, 600 }, { &200, 200 } }}
+
+set listspec "process(\"$test.exe\").statement(\"foo@*:7\")"
+
+proc exe_uses_implicit_ptr {exe} {
+  if {[catch {exec readelf --debug-dump=info,loc $exe | \
+		  egrep -q {implicit_pointer| f2 .*User defined location op}} \
+	   results options]} {
+    verbose -log "exe_uses_implicit_ptr caught: $results"
+    return 0
+  } else {
+    verbose -log "exe_uses_implicit_ptr ran: {$results}"
+    if {$results == ""} {
+      return 1
+    } else {
+      return 0
+    }
+  }
+}
+
+set opt_flags {{-O0} {-O1} {-O2} {-O3}}
+foreach opt $opt_flags {
+  set test_flags "additional_flags=-g additional_flags=$opt"
+
+  set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
+  if {$res != ""} {
+    verbose -log "target_compile failed: $res" 2
+    fail "$test.c compile $opt"
+    untested "probe listing $test$opt"
+    untested "$test$opt"
+    continue
+  } else {
+    pass "$test.c compile $opt"
+  }
+
+  set listing ""
+  catch {set listing [exec stap -L $listspec 2>@1]}
+  verbose -log "stap -L $listspec reports: $listing"
+  set listing [lsort [lrange [split $listing] 1 end]]
+  if {$listing == {{$i:int}}} {
+    set avail 0
+    pass "probe listing $test$opt (i)"
+  } elseif {$listing == {{$i:int} {$j:int*} {$k:int**} {$l:int***}}} {
+    set avail 1
+    pass "probe listing $test$opt (ijkl)"
+  } else {
+    verbose -log "listified: $listing"
+    fail "probe listing $test$opt"
+    set avail -1
+  }
+
+  if {$avail} {
+    if {[installtest_p] && [uprobes_p]} {
+      stap_run3 "$test$opt" $srcdir/$subdir/$test.stp \
+	  -g -c ./$test.exe $test.exe
+    } else {
+      untested "$test$opt"
+    }
+  } elseif {[exe_uses_implicit_ptr $test.exe]} {
+    verbose -log "$test$opt uses implicit_ptr but -L missed it"
+    fail "$test$opt"
+  } else {
+    verbose -log "$test$opt did not use implicit_ptr, skipping"
+    untested "$test$opt"
+  }
+
+  catch {exec rm -f $test.exe}
+}

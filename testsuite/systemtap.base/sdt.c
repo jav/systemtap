@@ -1,5 +1,10 @@
 #include "sys/sdt.h"
 
+static void call0(void)
+{
+  STAP_PROBE(test, mark_z);
+}
+
 static void call1(int a)
 {
   STAP_PROBE1(test, mark_a, a);
@@ -55,6 +60,7 @@ main (int argc, char **argv)
 {
   int a, b, c, d, e, f, g, h, i, j;
   a = 1; b = 2; c = 3; d = 4; e = 5; f = 6; g = 7; h = 8; i = 9; j = 10;
+  call0();
   call1(a);
   call2(a, b);
   call3(a, b, c);

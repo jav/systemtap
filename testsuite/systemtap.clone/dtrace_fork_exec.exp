@@ -1,0 +1,53 @@
+set TEST_NAME "dtrace_fork_exec"
+set build_dir ""
+set test_progs {"dtrace_fork_parent" "dtrace_child"}
+
+if {![installtest_p]} { untested $TEST_NAME; return }
+if {![uprobes_p]} { untested $TEST_NAME; return }
+
+source $srcdir/$subdir/test_progs.tcl
+
+proc run_test_prog {} {
+    global build_dir
+    catch { exec $build_dir/dtrace_fork_parent $build_dir/dtrace_child }
+    return 0
+}
+
+# Since we can't guarentee the order of parent/child execution, we
+# have to be flexible on output.
+set output_string "parent - pid: \[0-9\]+\r\nparent - child pid( before exec)?: \[0-9\]+\r\nparent - child pid( before exec)?: \[0-9\]+\r\nchild - pid: \[0-9\]+\r\nparent - finished\r\n"
+
+# Build everything (without semaphores)
+set TEST_NAME "dtrace_fork_exec1"
+if {[build_test_progs "Makefile.fork_exec" $test_progs] == 0} {
+    fail "$TEST_NAME - build failure"
+    cleanup_test_progs
+    return
+} else {
+    pass "$TEST_NAME - build success"
+}
+
+# Run the test (without semaphores)
+set TEST_NAME "dtrace_fork_exec2"
+stap_run $TEST_NAME run_test_prog $output_string \
+  $srcdir/$subdir/dtrace_fork_exec.stp $build_dir/dtrace_fork_parent \
+  $build_dir/dtrace_child
+
+# Build everything (with semaphores)
+set TEST_NAME "dtrace_fork_exec3"
+if {[build_test_progs "Makefile.fork_exec" $test_progs "-DUSE_SEMAPHORES"] == 0} {
+    fail "$TEST_NAME - build failure"
+    cleanup_test_progs
+    return
+} else {
+    pass "$TEST_NAME - build success"
+}
+
+# Run the test (with semaphores)
+set TEST_NAME "dtrace_fork_exec4"
+stap_run $TEST_NAME run_test_prog $output_string \
+  $srcdir/$subdir/dtrace_fork_exec.stp $build_dir/dtrace_fork_parent \
+  $build_dir/dtrace_child
+
+# Cleanup
+cleanup_test_progs

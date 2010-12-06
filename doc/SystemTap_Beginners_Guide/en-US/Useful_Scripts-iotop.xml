@@ -30,13 +30,11 @@
 </indexterm>
 
 	<para>This section describes how to monitor I/O activity on the system.</para>
-	
+
 <formalpara id="iotop">
 	<title>iotop.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/io/iotop.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/io/iotop.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
 
@@ -46,8 +44,7 @@
 
 <example id="iotopoutput">
 	<title><xref linkend="iotop"/> Sample Output</title>
-<screen>
-[...]	
+<screen>[...]
          Process           KB Read      KB Written
             Xorg             50287               0
          staprun              3328               0
@@ -70,8 +67,7 @@
   NetworkManager                23               0
       irqbalance                16               0
  pam_timestamp_c                 9               0
-        sendmail                 4               0
-</screen>
+        sendmail                 4               0</screen>
 </example>
 
 <para><xref linkend="iotopoutput"/> displays top I/O writes and reads within a random 10-second interval. Note that <xref linkend="iotop"/> also detects I/O resulting from SystemTap activity &mdash; <xref linkend="iotopoutput"/> displays reads done by <command>staprun</command>.</para>

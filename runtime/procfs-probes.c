@@ -17,13 +17,14 @@ struct _stp_procfs_data {
 
 struct stap_procfs_probe {
 	const char *path;
-	struct stap_probe read_probe;
-	struct stap_probe write_probe;
+	struct stap_probe * const read_probe;
+	struct stap_probe * const write_probe;
 
 	char *buffer;
 	const size_t bufsize;
 	size_t count;
 	int needs_fill;
+	const int permissions;
 
 	struct mutex lock;
 	int opencount;
@@ -123,14 +124,14 @@ _stp_proc_release_file(struct inode *inode, struct file *filp)
 
 static ssize_t
 _stp_proc_read_file(struct file *file, char __user *buf, size_t count,
-		    loff_t *ppos)
+		    loff_t *ppos) 
 {
 	struct stap_procfs_probe *spp = file->private_data;
 	ssize_t retval = 0;
 
 	/* If we don't have a probe read function, just return 0 to
 	 * indicate there isn't any data here. */
-	if (spp == NULL || spp->read_probe.ph == NULL) {
+	if (spp == NULL || spp->read_probe == NULL) {
 		goto out;
 	}
 
@@ -150,14 +151,14 @@ out:
 
 static ssize_t
 _stp_proc_write_file(struct file *file, const char __user *buf, size_t count,
-		     loff_t *ppos)
+		     loff_t *ppos) 
 {
 	struct stap_procfs_probe *spp = file->private_data;
 	struct _stp_procfs_data pdata;
 	ssize_t len;
 
 	/* If we don't have a write probe, return EIO. */
-	if (spp->write_probe.ph == NULL) {
+	if (spp->write_probe == NULL) {
 		len = -EIO;
 		goto out;
 	}
@@ -178,7 +179,7 @@ static struct file_operations _stp_proc_fops = {
 	.read		= _stp_proc_read_file,
 	.write		= _stp_proc_write_file,
 	.llseek		= generic_file_llseek,
-	.release	= _stp_proc_release_file
+	.release	= _stp_proc_release_file,
 };
 
 #endif /* _STP_PROCFS_PROBES_C_ */

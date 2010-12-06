@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAP-SERVER 8 @DATE@ "Red Hat"
+.TH STAP-SERVER 8 
 .SH NAME
 stap\-server \- systemtap server management
 
@@ -30,8 +30,7 @@ stap\-server \- systemtap server management
 
 .SH DESCRIPTION
 
-A systemtap compile server listens for connections from clients
-(\fIstap\-client\fR)
+A systemtap compile server listens for connections from stap clients
 on a secure SSL network port and accepts requests to run the
 .I stap
 front end. Each server advertises its presence and configuration on the local
@@ -161,8 +160,8 @@ This option allows the specification of a server configuration by nickname.
 When \fB\-n\fR is specified, a currently running server with the given nickname
 will be searched for. If no currently running server with the given nickname is
 found, a server configuration with the given nickname will be searched for in
-\fI/etc/stap\-server/conf.d/*.conf\fR, or the path configured in
-\fI/etc/sysconfig/stap\-server\fR or the config file specified by the
+\fI@prefix@/etc/stap\-server/conf.d/*.conf\fR, or the path configured in
+\fI@prefix@/etc/sysconfig/stap\-server\fR or the config file specified by the
 \fB\-c\fR option. If a server configuration for the given
 nickname is found, the
 \fB\-a\fR, \fB\-r\fR, \fB\-I\fR, \fB\-R\fR, \fB\-B\fR and \fB\-u\fR options for
@@ -206,25 +205,29 @@ specify which servers are to be started by default.
 
 .SH Global Configuration
 
-The Global Configuration file (\fI/etc/sysconfig/stap\-server\fR)
-is a shell script fragment which may contain
-settings for the following variables:
+The Global Configuration file (\fI@prefix@/etc/sysconfig/stap\-server\fR) contains
+variable assignments used to configure the overall operation of the service.
+Each line beginning with a '#' character is ignored. All other lines must be
+of the form \fIVARIABLE=VALUE\fR. This is not a shell script. The entire
+contents of the line after the = will be assigned as\-is to the variable.
+
+The following variables may be assigned:
 
 .TP
 .B CONFIG_PATH
 Specifies the absolute path of the directory containing the default server
 configurations
-(default: \fI/etc/stap\-server/conf.d\fR).
+(default: \fI@prefix@/etc/stap\-server/conf.d/\fR).
 
 .TP
 .B STAT_PATH
 Specifies the absolute path of the running server status directory
-(default: \fI/var/run/stap\-server\fR).
+(default: \fI@prefix@/var/run/stap\-server/\fR).
 
 .TP
 .B LOG_FILE
 Specifies the absolute path of the log file
-(default: \fI/var/log/stap\-server.log\fR).
+(default: \fI@prefix@/var/log/stap\-server.log\fR).
 
 .TP
 .B STAP_USER
@@ -236,13 +239,20 @@ Specifies the userid which will be used to run the server(s)
 
 Each server configuration file configures a server to be started when no
 server is specified for the \fIstart\fR action, or an action behaving like the
-\fIstart\fR action (see \fIARGUMENTS\fR).
-Each configuration file is a
-shell script fragment with a filename suffix of \fI.conf\fR. The default
-location of these files is \fI/etc/stap\-server/conf.d/\fR, but this can be
-overridden using the \fB\-c\fR option (see \fIOPTIONS\fR).
+\fIstart\fR action (see \fIARGUMENTS\fR). Each configuration file contains
+variable assignments used to configure an individual server.
 
-The following variables may be set:
+Each line beginning with a '#' character is ignored. All other lines must be
+of the form \fIVARIABLE=VALUE\fR. This is not a shell script. The entire
+contents of the line after the = will be assigned as\-is to the variable.
+
+Each configuration file must have a
+filename suffix of \fI.conf\fR. The default
+location of these files is \fI@prefix@/etc/stap\-server/conf.d/\fR, but this can be
+overridden in the global configuration file using the \fB\-c\fR option
+(see \fIOPTIONS\fR).
+
+The following variables may be assigned:
 .TP
 .B ARCH
 Specifies the target architecture for this server and corresponds to the
@@ -260,15 +270,19 @@ of the kernel running on the host will be used.
 .TP
 .B BUILD
 Specifies options to be passed to the \fImake\fR process used by
-\fIsystemtap\fR to build kernel modules
-and corresponds to one or more
-\fB\-B\fR options (see \fIOPTIONS\fR).
+\fIsystemtap\fR to build kernel modules.
+This an array variable with each element corresponding to a
+\fB\-B\fR option (see \fIOPTIONS\fR). Using the form \fBBUILD=STRING\fR clears
+the array and sets the first element to \fBSTRING\fR. Using the form
+\fBBUILD+=STRING\fR adds \fBSTRING\fR as an additional element to the array.
  
 .TP
 .B INCLUDE
-Specifies a list of directories to be searched by the server for tapsets
-and corresponds to one or more
-\fB\-I\fR options (see \fIOPTIONS\fR).
+Specifies a list of directories to be searched by the server for tapsets.
+This an array variable with each element corresponding to an
+\fB\-I\fR option (see \fIOPTIONS\fR). Using the form \fBINCLUDE=PATH\fR clears
+the array and sets the first element to \fBPATH\fR. Using the form
+\fBINCLUDE+=PATH\fR adds \fBPATH\fR as an additional element to the array.
 
 .TP
 .B RUNTIME
@@ -317,8 +331,8 @@ host.
 .PP
 In order to use a server running on another host, that server\[aq]s certificate
 must be installed on the client\[aq]s host.
-See the
-.IR stap\-authorize\-server\-cert (8)
+See the \fI\-\-trust\-servers\fR option in the
+.IR stap (1)
 manual page for more details.
 
 .SH EXAMPLES
@@ -364,21 +378,64 @@ order to limit the potential effects of bugs or mischevious users.
 Consider the following prophylactic measures.
 .TP
 1
-Run stap-server as an unprivileged user, never as root.
+Run stap\-server as an unprivileged user, never as root.
+
+When invoked as a
+service (i.e. \fBservice stap\-server\fR ...), each server is run,
+by default, as the user \fIstap\-server\fR.
+When invoked directly (i.e. \fBstap\-server\fR ...), each server is run,
+by default, as the invoking user. In each case, another user may be selected by
+using the \fI\-u\fR option on invocation, by specifying
+\fISTAP_USER=\fRusername in the global configuration file or by specifying
+\fIUSER=\fRusername in an individual server configuration file. The invoking
+user must have authority to run processes as another user.
+See \fICONFIGURATION\fR.
+
+The selected user must have write access to the server log file (default: \fI@prefix@/var/log/stap\-server.log\fR). The location of the server log file may
+be changed by setting \fILOG_FILE=\fRpath in the global configuration file.
+See \fICONFIGURATION\fR.
+
+The selected user must have 
+read/write access to the directory containing the server status files
+(default: \fI@prefix@/var/run/stap\-server/\fR). The location of the server
+status files may be changed by setting \fISTAT_PATH=\fRpath in the global
+configuration file.
+See \fICONFIGURATION\fR.
+
+The selected user must have 
+read/write access to the uprobes.ko build directory and its files
+(default: \fI@prefix@/share/systemtap/runtime/uprobes/\fR).
+
+Neither form of stap\-server will run if the selected user is root.
+
 .TP
 2
 Run stap-server with resource limits that impose maximum 
 cpu time, file size, memory consumption, in order to bound
 the effects of processing excessively large or bogus inputs.
+
+When the user running the servers is \fIstap\-server\fR,
+each server is run with limits equivalent to 
+
+  ulimit -f 50000 -s 1000 -t 60 -u 20 -v 500000
+
+otherwise, no limits are imposed.
+
 .TP
 3
-Run stap-server with a $TMPDIR environment variable that
+Run stap-server with a TMPDIR environment variable that
 points to a separate and/or quota-enforced directory, in
 order to prevent filling up of important filesystems.
+
+The default TMPDIR is \fI/tmp/\fR.
+
 .TP
 4
-Activate network firewalls to limit stap-client connections
+Activate network firewalls to limit stap client connections
 to relatively trustworthy networks.
+
+For automatic selection of servers by clients, \fIavahi\fR must be installed
+on both the server and client hosts and \fImDNS\fR messages must be allowed through the firewall.
 
 .PP
 The systemtap server and its related utilities use the Secure Socket Layer
@@ -394,20 +451,24 @@ access permissions before making use of any certificate database.
 
 .SH FILES
 .TP
-/etc/sysconfig/stap\-server/
+@prefix@/etc/sysconfig/stap\-server/
 Global configuration file.
 
 .TP
-/etc/stap\-server/conf.d/*.conf
+@prefix@/etc/stap\-server/conf.d/*.conf
 Configuration files for default servers.
 
 .TP
-/var/run/stap\-server/
+@prefix@/var/run/stap\-server/
 Default location of status files for running servers.
 
 .TP
-/var/log/stap\-server.log
+@prefix@/var/log/stap\-server.log
 Default log file.
+
+.TP
+@prefix@/share/systemtap/runtime/uprobes/
+Location of the uprobes.ko build directory.
 
 .TP
 /lib/modules/
@@ -416,11 +477,11 @@ Location of installed kernels.
 .SH SEE ALSO
 .IR stap (1),
 .IR staprun (8),
-.IR stap\-client (8),
-.IR stap\-authorize\-server\-cert (8),
 .IR stapprobes (3stap),
 .IR stapfuncs (3stap),
+.IR stappaths (7),
 .IR stapex (3stap),
+.IR avahi ,
 .IR ulimit (1),
 .IR NSS ,
 .IR certutil

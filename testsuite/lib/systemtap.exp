@@ -109,7 +109,7 @@ proc setup_systemtap_environment {} {
 # Set up the environment so that tests will be performed using the systemtap
 # client and server.
 proc setup_server {} {
-    global srcdir env server_pid net_path installed_stap
+    global srcdir env net_path installed_stap
 
     # Make sure that the necessary resources are available to run the client/server.
     if {[catch {exec /usr/bin/which avahi-publish-service} dummy]} then {
@@ -120,6 +120,60 @@ proc setup_server {} {
     # A place for some temporary files and scripts.
     set net_path [exec pwd]/net
     exec /bin/mkdir -p $net_path
+
+    # Start the server
+    if {! [start_server]} then {
+	return 0
+    }
+
+    # See what avahi finds. Give the server a chance to advertise.
+    exec sleep 1
+    catch { exec avahi-browse _stap._tcp -t -r | grep -A4 {^=.*Systemtap.Compile} } looksee
+    verbose -log "avahi-browse found:\n$looksee"
+
+    # Make sure that stap can find the server.
+    set use_server --use-server
+    set res [catch { exec stap --list-servers=online,trusted,compatible 2>@ stdout | grep "^ host" } looksee]
+    verbose -log "stap --list-servers found:\n$looksee"
+    if {$res != 0} then {
+	print "Unable to automatically find a systemtap server -- check firewall settings for mDNS"
+	# Try to discover the port the server is listening on from the server
+	# log.
+	set res [catch { exec /bin/cat [exec pwd]/server.log | awk "/^Systemtap Compile Server on port .* ready/ {print \$6}" } server_port]
+	if {$res != 0} then {
+	    print "Unable to discover the port used by the systemtap server"
+	    return 0
+	}
+	set server_spec $env(HOSTNAME):$server_port
+	print "Client/Server tests will be run by contacting the server directly as $server_spec"
+
+	# Make sure stap can contact the server directly
+	set use_server --use-server=$server_spec
+	set res [catch {exec stap $use_server -p2 -e {probe begin {exit()}}} looksee]
+	if {$res != 0} then {
+	    print "Unable to contact the server at $server_spec directly"
+	    return 0
+	}
+    }
+
+    # Substitute a script on the PATH in place of stap which calls the real
+    # stap with the --use-server flag.
+    set path "$net_path/stap"
+    set fp [open $path "w"]
+    puts $fp "#!/bin/sh"
+    puts $fp "[exec which stap] $use_server \"\$@\""
+    close $fp
+    exec chmod +x $path
+
+    # Add the wrapper script to the PATH after creating it
+    set installed_stap [exec which stap]
+    set env(PATH) "$net_path:$env(PATH)"
+
+    return 1
+}
+
+proc start_server {} {
+    global srcdir env server_pid
 
     # Server management scripts and data are installed if this is an
     # install test, otherwise there is some setup to do.
@@ -141,40 +195,15 @@ proc setup_server {} {
     exec touch $logfile
     exec chmod 666 $logfile
 
-    # Try to find or start the server.
+    # Try to start the server.
     set server_pid [exec env STAP_PR11197_OVERRIDE=1 env SYSTEMTAP_STAP=[exec which stap] stap-start-server --log=$logfile]
     if { "$server_pid" == "" } then {
 	print "Cannot start a systemtap server"
 	set server_pid 0
 	return 0
     } else {
-	print "Started a systemtap server as PID==$server_pid"
+	verbose -log "Started a systemtap server as PID==$server_pid"
     }
-
-    # See what avahi finds
-    catch { exec avahi-browse _stap._tcp -t -r | grep -A4 {^=.*Systemtap.Compile} } looksee
-    verbose -log "avahi-browse found:\n$looksee"
-
-    # Make sure that stap can find the server.
-    set lines [exec stap --list-servers=online,compatible 2>@ stdout | wc -l]
-    if {$lines < 2} then {
-	print "Unable to find a systemtap server -- check firewall settings"
-	shutdown_server
-	return 0
-    }
-
-    # Substitute a script on the PATH in place of stap which calls the real
-    # stap with the --use-server flag.
-    set path "$net_path/stap"
-    set fp [open $path "w"]
-    puts $fp "#!/bin/sh"
-    puts $fp "[exec which stap] --use-server \"\$@\""
-    close $fp
-    exec chmod +x $path
-
-    # Add the wrapper script to the PATH after creating it
-    set installed_stap [exec which stap]
-    set env(PATH) "$net_path:$env(PATH)"
 
     return 1
 }
@@ -183,7 +212,7 @@ proc shutdown_server {} {
     global server_pid net_path
 
     if { $server_pid != 0 } then {
-	print "Stopping the systemtap server with PID==$server_pid"
+	verbose -log "Stopping the systemtap server with PID==$server_pid"
 	exec stap-stop-server $server_pid
 	set server_pid 0
     }
@@ -196,12 +225,15 @@ proc shutdown_server {} {
     foreach module [glob -nocomplain [exec pwd]/stap_*.ko] {
 	exec /bin/rm -f $module
     }
+    foreach sig [glob -nocomplain [exec pwd]/stap_*.ko.sgn] {
+	exec /bin/rm -f $sig
+    }
 }
 
 proc get_system_info {} {
     global Host Snapshot Distro GCC_Version env
-    
-    set Host [exec /bin/uname -a] 
+
+    set Host [exec /bin/uname -a]
     if [file exists ../SNAPSHOT] {
 	set Snapshot [exec /bin/cat ../SNAPSHOT]
     } elseif [file exists $env(SRCDIR)/../SNAPSHOT] {
@@ -230,11 +262,38 @@ proc get_system_info {} {
 }
 
 if {! [setup_systemtap_environment]} then {
-    return 0
+    cleanup
+    exit 1
 }
 
 print_systemtap_version
 get_system_info
+
+# PR11798: die if kernel-devel is not sufficient to build any modules
+if {[catch {exec stap -p4 -e {probe begin {exit()}}} result]} {
+    puts "\n\n\n**** failed systemtap kernel-devel smoke test:\n"
+    puts $result
+#    puts "****\n"
+#    puts $options
+    puts "\n**** aborting testing.\n"
+    cleanup
+    exit 1
+}
+
+# PR11798: die also if kernel-debuginfo is not available
+# NB: if one introduced a [kernel_debuginfo_p] proc like the
+# ones for uprobes/utrace above, and sprinkled it throughout,
+# then this wouldn't have to be a failing condition.
+if {[catch {exec stap -p4 -e {probe syscall.open {println (argstr)}}} result]} {
+    puts "\n\n\n**** failed systemtap kernel-debuginfo smoke test:\n"
+    puts $result
+#    puts "****\n"
+#    puts $options
+    puts "\n**** aborting testing.\n"
+    cleanup
+    exit 1
+}
+
 
 proc systemtap_init {args} {}
 proc systemtap_version {} {}
@@ -268,9 +327,9 @@ proc stap_run_batch {args} {
         spawn $args
     }
 
-    expect { 
+    expect {
 	-timeout -1
-        -re {[^\r]*\r} { verbose -log $expect_out(0,string); exp_continue } 
+        -re {[^\r]*\r} { verbose -log $expect_out(0,string); exp_continue }
         eof { }
     }
     set results [wait]
@@ -296,3 +355,27 @@ proc as_root { command } {
      verbose -log "RC $res"
      return  $res
  }
+
+proc sdt_includes {} {
+  global srcdir env
+
+  # The wrapper sys/sdt.h for testing STAP_SDT_V[12] is here.
+  set dirs [list $srcdir]
+
+  if {[installtest_p]} {
+    # Use the installed <sys/sdt.h>.
+    lappend dirs $env(SYSTEMTAP_INCLUDES)
+  } else {
+    # Find <sys/sdt.h> in the source tree.
+    lappend dirs $srcdir/../includes
+    # The uninstalled, configured sdt-config.h has to be found here.
+    lappend dirs ../includes/sys
+  }
+
+  set flags ""
+  foreach dir $dirs {
+      set flags "$flags additional_flags=-isystem${dir}"
+  }
+
+  return $flags
+}

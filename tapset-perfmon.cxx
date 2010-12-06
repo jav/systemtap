@@ -53,7 +53,7 @@ perf_derived_probe::perf_derived_probe (probe* p, probe_point* l,
                                         int64_t type,
                                         int64_t config,
                                         int64_t i):
-  derived_probe (p, new probe_point(*l) /* .components soon rewritten */),
+  derived_probe (p, l, true /* .components soon rewritten */),
   event_type (type), event_config (config), interval (i)
 {
   vector<probe_point::component*>& comps = this->sole_location()->components;
@@ -135,7 +135,7 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "    && user_mode(regs))";
   s.op->newline(1)<< "c->regflags |= _STP_REGS_USER_FLAG;";
 
-  s.op->newline(-1) << "(*stp->probe.ph) (c);";
+  s.op->newline(-1) << "(*stp->probe->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
 }
@@ -150,7 +150,7 @@ perf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(1) << "struct stap_perf_probe* stp = & stap_perf_probes [i];";
   s.op->newline() << "rc = _stp_perf_init(stp);";
   s.op->newline() << "if (rc) {";
-  s.op->newline(1) << "probe_point = stp->probe.pp;";
+  s.op->newline(1) << "probe_point = stp->probe->pp;";
   s.op->newline() << "for (j=0; j<i; j++) {";
   s.op->newline(1) << "_stp_perf_del(& stap_perf_probes [j]);";
   s.op->newline(-1) << "}"; // for unwind loop

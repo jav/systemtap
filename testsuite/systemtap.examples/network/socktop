@@ -349,6 +349,10 @@ probe timer.s('$P_INTERVAL')
 	if (iter == 0) exit();
 }
 '
+saved_status=$?
 
 # Cleanup
 test -n "$MOD_GEN" && rm -f ${MOD_NAME}.ko
+
+# Exit with the status of 'stap', not the cleanup commands.
+exit $saved_status

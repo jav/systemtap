@@ -16,6 +16,7 @@ extern "C" {
 #ifdef HAVE_ELFUTILS_VERSION_H
 #include <elfutils/version.h>
 #endif
+#include <dwarf.h>
 }
 
 #include <string>
@@ -29,35 +30,36 @@ extern "C" {
 #define DW_TAG_rvalue_reference_type 0x42
 #endif
 
+#if ! _ELFUTILS_PREREQ(0, 148)
+#define DW_AT_linkage_name 0x6e
+#endif
+
 
 // NB: "rc == 0" means OK in this case
 void dwfl_assert(const std::string& desc, int rc);
 
-// Throw error if pointer is NULL.
-template <typename T>
-void dwfl_assert(const std::string& desc, T* ptr)
-{
-  if (!ptr)
-    dwfl_assert(desc, -1);
-}
-
 // Throw error if pointer is NULL
-template <typename T>
-void dwfl_assert(const std::string& desc, const T* ptr)
+inline void
+dwfl_assert(const std::string& desc, const void* ptr)
 {
   if (!ptr)
     dwfl_assert(desc, -1);
 }
 
 // Throw error if condition is false
-void dwfl_assert(const std::string& desc, bool condition);
+inline void
+dwfl_assert(const std::string& desc, bool condition)
+{
+  if (!condition)
+    dwfl_assert(desc, -1);
+}
 
 // NB: "rc == 0" means OK in this case
 void dwarf_assert(const std::string& desc, int rc);
 
 // Throw error if pointer is NULL
-template <typename T>
-void dwarf_assert(const std::string& desc, T* ptr)
+inline void
+dwarf_assert(const std::string& desc, const void* ptr)
 {
   if (!ptr)
     dwarf_assert(desc, -1);
@@ -115,6 +117,18 @@ dwarf_attr_die (Dwarf_Die *die, unsigned int attr, Dwarf_Die *result)
   Dwarf_Attribute attr_mem;
   return dwarf_formref_die (dwarf_attr_integrate (die, attr, &attr_mem),
                             result);
+}
+
+
+// Retrieve the linkage name of a die, either by the MIPS vendor extension or
+// DWARF4's standardized attribute.
+inline const char *
+dwarf_linkage_name (Dwarf_Die *die)
+{
+  Dwarf_Attribute attr_mem;
+  return dwarf_formstring
+    (dwarf_attr_integrate (die, DW_AT_MIPS_linkage_name, &attr_mem)
+     ?: dwarf_attr_integrate (die, DW_AT_linkage_name, &attr_mem));
 }
 
 

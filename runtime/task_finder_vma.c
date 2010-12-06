@@ -28,13 +28,20 @@ static DEFINE_RWLOCK(__stp_tf_vma_lock);
 #define TASK_FINDER_VMA_ENTRY_ITEMS 1536
 #endif
 
+#ifndef TASK_FINDER_VMA_ENTRY_PATHLEN
+#define TASK_FINDER_VMA_ENTRY_PATHLEN 64
+#elif TASK_FINDER_VMA_ENTRY_PATHLEN < 8
+#error "gimme a little more TASK_FINDER_VMA_ENTRY_PATHLEN"
+#endif
+
+
 struct __stp_tf_vma_entry {
 	struct hlist_node hlist;
 
 	pid_t pid;
 	unsigned long vm_start;
 	unsigned long vm_end;
-	const char *name;
+        char path[TASK_FINDER_VMA_ENTRY_PATHLEN]; /* mmpath name, if known */
 
 	// User data (possibly stp_module)
 	void *user;
@@ -130,7 +137,7 @@ __stp_tf_get_vma_map_entry_internal(struct task_struct *tsk,
 static int
 stap_add_vma_map_info(struct task_struct *tsk,
 		      unsigned long vm_start, unsigned long vm_end,
-		      const char *name, void *user)
+		      const char *path, void *user)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -162,7 +169,16 @@ stap_add_vma_map_info(struct task_struct *tsk,
 	entry->pid = tsk->pid;
 	entry->vm_start = vm_start;
 	entry->vm_end = vm_end;
-	entry->name = name;
+        if (strlen(path) >= TASK_FINDER_VMA_ENTRY_PATHLEN-3)
+          {
+            strncpy (entry->path, "...", TASK_FINDER_VMA_ENTRY_PATHLEN);
+            strlcpy (entry->path+3, &path[strlen(path)-TASK_FINDER_VMA_ENTRY_PATHLEN+4],
+                     TASK_FINDER_VMA_ENTRY_PATHLEN-3);
+          }
+        else
+          {
+            strlcpy (entry->path, path, TASK_FINDER_VMA_ENTRY_PATHLEN);
+          }
 	entry->user = user;
 
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
@@ -203,7 +219,7 @@ stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start)
 static int
 stap_find_vma_map_info(struct task_struct *tsk, unsigned long addr,
 		       unsigned long *vm_start, unsigned long *vm_end,
-		       const char **name, void **user)
+		       const char **path, void **user)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -227,8 +243,8 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long addr,
 			*vm_start = found_entry->vm_start;
 		if (vm_end != NULL)
 			*vm_end = found_entry->vm_end;
-		if (name != NULL)
-			*name = found_entry->name;
+		if (path != NULL)
+			*path = found_entry->path;
 		if (user != NULL)
 			*user = found_entry->user;
 		rc = 0;
@@ -244,7 +260,7 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long addr,
 static int
 stap_find_vma_map_info_user(struct task_struct *tsk, void *user,
 			    unsigned long *vm_start, unsigned long *vm_end,
-			    const char **name)
+			    const char **path)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
@@ -267,8 +283,8 @@ stap_find_vma_map_info_user(struct task_struct *tsk, void *user,
 			*vm_start = found_entry->vm_start;
 		if (vm_end != NULL)
 			*vm_end = found_entry->vm_end;
-		if (name != NULL)
-			*name = found_entry->name;
+		if (path != NULL)
+			*path = found_entry->path;
 		rc = 0;
 	}
 	read_unlock_irqrestore(&__stp_tf_vma_lock, flags);

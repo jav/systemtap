@@ -9,18 +9,13 @@ function stap_test() {
 # Compile bench
 $STAP/bin/dtrace -G -s bench_.d -D$1
 $STAP/bin/dtrace --types -h -s bench_.d -D$1
-if [ "$3"x = "semx" ] ; then
-   IMPLICIT_ENABLED="-DSTAP_SDT_IMPLICIT_ENABLED"
-else
-   IMPLICIT_ENABLED=""
-fi
-$GCC/bin/gcc -D$1 -DLOOP=10 bench_.o bench.c -o bench-$2$3.x -I. -I$STAP/include -g $IMPLICIT_ENABLED
+$GCC/bin/gcc -D$1 -DLOOP=10 bench_.o bench.c -o bench-$2$3.x -I$TESTSRC -I. -isystem $STAP/include -g
 if [ $? -ne 0 ]; then echo "error compiling bench-$2$3"; return; fi
 ./bench-$2$3.x > /dev/null
 
-# Compile stapbenchmod
-$STAP/bin/stap -DSTP_NO_OVERLOAD=1 -g -p4 -m stapbench_$2$3 bench.stp ./bench-$2$3.x $1 >/dev/null
-if [ $? -ne 0 ]; then echo "error compiling stapbench_$2$3"; return; fi
+# Run bench with stap
+taskset 1 $STAP/bin/stap -DSTP_NO_OVERLOAD=1 -g -p4 -m stapbench_$2$3 bench.stp ./bench-$2$3.x $1 >/dev/null
+if [ $? -ne 0 ]; then echo "error running stapbench_$2$3 with stap"; return; fi
 
 # Parse /usr/bin/time, bench.x, bench.stp output to get statistics
 (
@@ -71,15 +66,20 @@ END {
 
 }
 
+usage () {
+echo 'Usage $0 -testsrcdir /testsuite/src/top/dir [-k] [-stapdir /stap/top/dir] [-gccdir /gcc/top/dir] [-help]'
+exit
+}
+
 # Main
 
 while test ! -z "$1" ; do
     if [ "$1" = "-gccdir" ] ; then GCC=$2 ; shift
     elif [ "$1" = "-stapdir" ] ; then STAP=$2 ; shift
+    elif [ "$1" = "-testsrcdir" ] ; then TESTSRC=$2 ; shift
     elif [ "$1" = "-k" ] ; then KEEP=1 ;
     elif [ "$1" = "-h" -o "$1" = "-help" -o "$1" = "?" ] ; then
-        echo 'Usage $0 [-k] [-stapdir /stap/top/dir] [-gccdir /gcc/top/dir] [-help]'
-        exit
+	usage
     else echo Unrecognized arg "$1" 
         exit
     fi
@@ -93,8 +93,8 @@ if [ ! -z "$GCC" ] ; then
  fi
 else
  GCC=/usr/
- echo Using /usr/bin/gcc
 fi
+echo Using $GCC/bin/gcc
 
 if [ ! -z "$STAP" ] ; then
  if [ ! -x "$STAP/bin/stap" ] ; then
@@ -103,27 +103,31 @@ if [ ! -z "$STAP" ] ; then
  fi
 else
  STAP=/usr/
- echo Using /usr/bin/stap
 fi
+echo Using /usr/bin/stap
 
-echo -e "\n##### NO SDT #####\n"
+if [ ! -z "$TESTSRC" ] ; then
+ if [ ! -r "$TESTSRC/sys/sdt.h" ] ; then
+    echo $TESTSRC/sys/sdt.h does not exist
+    exit
+ fi
+else
+ echo You must specify the directory where the testsuite sources are found.
+ usage
+fi
+echo Using $TESTSRC/sys/sdt.h
+
+echo -e "\n##### LABEL (NO SDT)  #####\n"
 stap_test NO_STAP_SDT nosdt
 
-echo -e "\n##### KPROBE SEM #####\n"
-stap_test EXPERIMENTAL_KPROBE_SDT kprobe sem
-
-echo -e "\n##### KPROBE NO SEM #####\n"
+echo -e "\n##### KPROBE #####\n"
 stap_test EXPERIMENTAL_KPROBE_SDT kprobe
 
-echo -e "\n##### UPROBE SEM #####\n"
-stap_test UPROBE_SDT uprobe sem
-
-echo -e "\n##### UPROBE NO SEM #####\n"
+echo -e "\n##### UPROBE V1 #####\n"
 stap_test UPROBE_SDT uprobe
 
-echo -e "\n##### UPROBE V2 SEM #####\n"
-stap_test STAP_SDT_V2 uprobe2 sem
-
-echo -e "\n##### UPROBE V2 NO SEM #####\n"
+echo -e "\n##### UPROBE V2 #####\n"
 stap_test STAP_SDT_V2 uprobe2
 
+echo -e "\n##### UPROBE V3 #####\n"
+stap_test STAP_SDT_V3 uprobe3

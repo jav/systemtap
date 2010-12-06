@@ -1,5 +1,5 @@
 // C++ interface to dwfl
-// Copyright (C) 2005-2009 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -105,6 +105,15 @@ dwflpp::~dwflpp()
   delete_map(cu_die_parent_cache);
 
   dwfl_ptr.reset();
+  // NB: don't "delete mod_info;", as that may be shared
+  // between dwflpp instances, and are stored in
+  // session.module_cache[] anyway.
+}
+
+
+module_cache::~module_cache ()
+{
+  delete_map(cache);
 }
 
 
@@ -270,7 +279,7 @@ dwflpp::function_name_matches(const string& pattern)
 
 
 bool
-dwflpp::function_scope_matches(const vector<string> scopes)
+dwflpp::function_scope_matches(const vector<string>& scopes)
 {
   // walk up the containing scopes
   Dwarf_Die* die = function;
@@ -703,6 +712,22 @@ dwflpp::get_parent_scope(Dwarf_Die* die)
   return NULL;
 }
 
+static const char*
+cache_type_prefix(Dwarf_Die* type)
+{
+  switch (dwarf_tag(type))
+    {
+    case DW_TAG_enumeration_type:
+      return "enum ";
+    case DW_TAG_structure_type:
+    case DW_TAG_class_type:
+      // treating struct/class as equals
+      return "struct ";
+    case DW_TAG_union_type:
+      return "union ";
+    }
+  return "";
+}
 
 int
 dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
@@ -710,14 +735,12 @@ dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
   cu_type_cache_t *cache = static_cast<cu_type_cache_t*>(arg);
   const char *name = dwarf_diename(die);
 
-  if (!name)
+  if (!name || dwarf_hasattr(die, DW_AT_declaration))
     return DWARF_CB_OK;
 
-  string structure_name = name;
-
-  if (!dwarf_hasattr(die, DW_AT_declaration) &&
-      cache->find(structure_name) == cache->end())
-    (*cache)[structure_name] = *die;
+  string type_name = cache_type_prefix(die) + string(name);
+  if (cache->find(type_name) == cache->end())
+    (*cache)[type_name] = *die;
 
   return DWARF_CB_OK;
 }
@@ -740,7 +763,7 @@ dwflpp::global_alias_caching_callback_cus(Dwarf_Die *die, void *arg)
 }
 
 Dwarf_Die *
-dwflpp::declaration_resolve_other_cus(const char *name)
+dwflpp::declaration_resolve_other_cus(const string& name)
 {
   iterate_over_cus(global_alias_caching_callback_cus, this);
   for (mod_cu_type_cache_t::iterator i = global_alias_cache.begin();
@@ -755,11 +778,8 @@ dwflpp::declaration_resolve_other_cus(const char *name)
 }
 
 Dwarf_Die *
-dwflpp::declaration_resolve(const char *name)
+dwflpp::declaration_resolve(const string& name)
 {
-  if (!name)
-    return NULL;
-
   cu_type_cache_t *v = global_alias_cache[cu->addr];
   if (v == 0) // need to build the cache, just once per encountered module/cu
     {
@@ -780,6 +800,17 @@ dwflpp::declaration_resolve(const char *name)
     return declaration_resolve_other_cus(name);
 
   return & ((*v)[name]);
+}
+
+Dwarf_Die *
+dwflpp::declaration_resolve(Dwarf_Die *type)
+{
+  const char* name = dwarf_diename(type);
+  if (!name)
+    return NULL;
+
+  string type_name = cache_type_prefix(type) + string(name);
+  return declaration_resolve(type_name);
 }
 
 
@@ -838,6 +869,30 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
           if (rc != DWARF_CB_OK) break;
         }
     }
+  else if (startswith(function, "_Z"))
+    {
+      // C++ names are mangled starting with a "_Z" prefix.  Most of the time
+      // we can discover the mangled name from a die's MIPS_linkage_name
+      // attribute, so we read that to match against the user's function
+      // pattern.  Note that this isn't perfect, as not all will have that
+      // attribute (notably ctors and dtors), but we do what we can...
+      for (it = v->begin(); it != v->end(); ++it)
+        {
+          if (pending_interrupts) return DWARF_CB_ABORT;
+          Dwarf_Die& die = it->second;
+          const char* linkage_name = NULL;
+          if ((linkage_name = dwarf_linkage_name (&die))
+              && function_name_matches_pattern (linkage_name, function))
+            {
+              if (sess.verbose > 4)
+                clog << "function cache " << module_name << ":" << cu_name()
+                     << " match " << linkage_name << " vs " << function << endl;
+
+              rc = (*callback)(& die, q);
+              if (rc != DWARF_CB_OK) break;
+            }
+        }
+    }
   else if (name_has_wildcard (function))
     {
       for (it = v->begin(); it != v->end(); ++it)
@@ -856,7 +911,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, base_query * 
             }
         }
     }
-  else // not a wildcard and no match in this CU
+  else // not a linkage name or wildcard and no match in this CU
     {
       // do nothing
     }
@@ -949,6 +1004,56 @@ dwflpp::iterate_over_globals (Dwarf_Die *cu_die,
   while (rc == DWARF_CB_OK && dwarf_siblingof(&die, &die) == 0);
 
   return rc;
+}
+
+
+/* For each notes section in the current module call 'callback', use
+ * 'data' for the notes buffer and pass 'object' back in case
+ * 'callback' is a method */
+
+int
+dwflpp::iterate_over_notes (void *object, void (*callback)(void *object, int type, const char *data, size_t len))
+{
+  Dwarf_Addr bias;
+  Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (module, &bias))
+              ?: dwfl_module_getelf (module, &bias));
+  size_t shstrndx;
+  if (elf_getshdrstrndx (elf, &shstrndx))
+    return elf_errno();
+
+  GElf_Addr base = (GElf_Addr) -1;
+
+  Elf_Scn *scn = NULL;
+
+  vector<Dwarf_Die> notes;
+
+  while ((scn = elf_nextscn (elf, scn)) != NULL)
+    {
+      GElf_Shdr shdr;
+      if (gelf_getshdr (scn, &shdr) == NULL)
+	  continue;
+      switch (shdr.sh_type)
+	{
+	case SHT_NOTE:
+	  if (!(shdr.sh_flags & SHF_ALLOC))
+	    {
+	      if (base == (GElf_Addr) -1)
+		base = 0;
+
+	      Elf_Data *data = elf_getdata (scn, NULL);
+	      size_t next;
+	      GElf_Nhdr nhdr;
+	      size_t name_off;
+	      size_t desc_off;
+	      for (size_t offset = 0;
+		   (next = gelf_getnote (data, offset, &nhdr, &name_off, &desc_off)) > 0;
+		   offset = next)
+		(*callback) (object, nhdr.n_type, (const char*)((long)(data->d_buf) + (long)desc_off), nhdr.n_descsz);
+	    }
+	  break;
+	}
+    }
+  return 0;
 }
 
 
@@ -1076,6 +1181,8 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
       set<int> lines_probed;
       pair<set<int>::iterator,bool> line_probed;
       int ret = 0;
+
+      if (pending_interrupts) break;
 
       ret = dwarf_getsrc_file (module_dwarf, srcfile, l, 0,
 					 &srcsp, &nsrcs);
@@ -1208,8 +1315,24 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
 
                   vector<Dwarf_Die> scopes = getscopes_die(&die);
                   if (scopes.size() > 1)
-                    callback(function, name, file, dline,
-                             &scopes[1], stmt_addr, q);
+                    {
+                      Dwarf_Die scope;
+                      if (!inner_die_containing_pc(scopes[1], stmt_addr, scope)
+                          && !sess.suppress_warnings)
+                        {
+                          ostringstream msg;
+                          msg << "label '" << name << "' at address "
+                              << lex_cast_hex(stmt_addr) << " (dieoffset: "
+                              << lex_cast_hex(dwarf_dieoffset(&die))
+                              << ") is not contained by its scope '"
+                              << (dwarf_diename(&scope) ?: "<unknown>")
+                              << "' (dieoffset: " << lex_cast_hex(dwarf_dieoffset(&scope))
+                              << ") -- bad debuginfo?";
+                          sess.print_warning (msg.str());
+                        }
+                      callback(function, name, file, dline,
+                               &scope, stmt_addr, q);
+                    }
                 }
             }
           break;
@@ -1511,6 +1634,45 @@ dwflpp::die_has_pc (Dwarf_Die & die, Dwarf_Addr pc)
 }
 
 
+bool
+dwflpp::inner_die_containing_pc(Dwarf_Die& scope, Dwarf_Addr addr,
+                                Dwarf_Die& result)
+{
+  result = scope;
+
+  // Sometimes we're in a bad scope to begin with -- just let it be.  This can
+  // happen for example if the compiler outputs a label PC that's just outside
+  // the lexical scope.  We can't really do anything about that, but variables
+  // will probably not be accessible in this case.
+  if (!die_has_pc(scope, addr))
+    return false;
+
+  Dwarf_Die child;
+  int rc = dwarf_child(&result, &child);
+  while (rc == 0)
+    {
+      switch (dwarf_tag (&child))
+        {
+        // lexical tags to recurse within the same starting scope
+        // NB: this intentionally doesn't cross into inlines!
+        case DW_TAG_lexical_block:
+        case DW_TAG_with_stmt:
+        case DW_TAG_catch_block:
+        case DW_TAG_try_block:
+        case DW_TAG_entry_point:
+          if (die_has_pc(child, addr))
+            {
+              result = child;
+              rc = dwarf_child(&result, &child);
+              continue;
+            }
+        }
+      rc = dwarf_siblingof(&child, &child);
+    }
+  return true;
+}
+
+
 void
 dwflpp::loc2c_error (void *, const char *fmt, ...)
 {
@@ -1733,7 +1895,8 @@ dwflpp::find_variable_and_frame_base (vector<Dwarf_Die>& scopes,
 
 struct location *
 dwflpp::translate_location(struct obstack *pool,
-                           Dwarf_Attribute *attr, Dwarf_Addr pc,
+                           Dwarf_Attribute *attr, Dwarf_Die *die,
+			   Dwarf_Addr pc,
                            Dwarf_Attribute *fb_attr,
                            struct location **tail,
                            const target_symbol *e)
@@ -1748,6 +1911,7 @@ dwflpp::translate_location(struct obstack *pool,
   if (dwarf_whatattr (attr) == DW_AT_data_member_location)
     {
       Dwarf_Op offset_loc;
+      memset(&offset_loc, 0, sizeof(Dwarf_Op));
       offset_loc.atom = DW_OP_plus_uconst;
       if (dwarf_formudata (attr, &offset_loc.number) == 0)
         return c_translate_location (pool, &loc2c_error, this,
@@ -1782,7 +1946,9 @@ dwflpp::translate_location(struct obstack *pool,
 
     case 0:			/* Shouldn't happen.  */
       throw semantic_error ("not accessible at this address ("
-                            + lex_cast_hex(pc) + ")", e->tok);
+                            + lex_cast_hex(pc) + ", dieoffset: "
+			    + lex_cast_hex(dwarf_dieoffset(die)) + ")",
+			    e->tok);
 
     default:			/* Shouldn't happen.  */
     case -1:
@@ -1873,6 +2039,7 @@ bool
 dwflpp::find_struct_member(const target_symbol::component& c,
                            Dwarf_Die *parentdie,
                            Dwarf_Die *memberdie,
+                           vector<Dwarf_Die>& dies,
                            vector<Dwarf_Attribute>& locs)
 {
   Dwarf_Attribute attr;
@@ -1904,7 +2071,7 @@ dwflpp::find_struct_member(const target_symbol::component& c,
           // for inherited members
           Dwarf_Die subdie;
           if (dwarf_attr_die (&die, DW_AT_type, &subdie) &&
-              find_struct_member(c, &subdie, memberdie, locs))
+              find_struct_member(c, &subdie, memberdie, dies, locs))
             goto success;
         }
       else if (name == c.member)
@@ -1921,7 +2088,10 @@ success:
   /* As we unwind the recursion, we need to build the chain of
    * locations that got to the final answer. */
   if (dwarf_attr_integrate (&die, DW_AT_data_member_location, &attr))
-    locs.insert(locs.begin(), attr);
+    {
+      dies.insert(dies.begin(), die);
+      locs.insert(locs.begin(), attr);
+    }
 
   /* Union members don't usually have a location,
    * but just use the containing union's location.  */
@@ -2032,7 +2202,7 @@ dwflpp::translate_components(struct obstack *pool,
 
           if (dwarf_hasattr(typedie, DW_AT_declaration))
             {
-              Dwarf_Die *tmpdie = dwflpp::declaration_resolve(dwarf_diename(typedie));
+              Dwarf_Die *tmpdie = declaration_resolve(typedie);
               if (tmpdie == NULL)
                 throw semantic_error ("unresolved " + dwarf_type_name(typedie),
                                       c.tok);
@@ -2040,8 +2210,9 @@ dwflpp::translate_components(struct obstack *pool,
             }
 
             {
+              vector<Dwarf_Die> dies;
               vector<Dwarf_Attribute> locs;
-              if (!find_struct_member(c, typedie, vardie, locs))
+              if (!find_struct_member(c, typedie, vardie, dies, locs))
                 {
                   /* Add a file:line hint for anonymous types */
                   string source;
@@ -2068,7 +2239,8 @@ dwflpp::translate_components(struct obstack *pool,
 
               for (unsigned j = 0; j < locs.size(); ++j)
                 if (pool)
-                  translate_location (pool, &locs[j], pc, NULL, tail, e);
+                  translate_location (pool, &locs[j], &dies[j],
+                                      pc, NULL, tail, e);
             }
 
           dwarf_die_type (vardie, typedie, c.tok);
@@ -2247,10 +2419,8 @@ dwflpp::express_as_string (string prelude,
                            string postlude,
                            struct location *head)
 {
-  size_t bufsz = 1024;
-  char *buf = static_cast<char*>(malloc(bufsz));
-  assert(buf);
-
+  size_t bufsz = 0;
+  char *buf = 0; // NB: it would leak to pre-allocate a buffer here
   FILE *memstream = open_memstream (&buf, &bufsz);
   assert(memstream);
 
@@ -2287,13 +2457,7 @@ dwflpp::express_as_string (string prelude,
 Dwarf_Addr
 dwflpp::vardie_from_symtable (Dwarf_Die *vardie, Dwarf_Addr *addr)
 {
-  const char *name;
-  Dwarf_Attribute attr_mem;
-  name = dwarf_formstring (dwarf_attr_integrate (vardie,
-                                                 DW_AT_MIPS_linkage_name,
-                                                 &attr_mem));
-  if (!name)
-    name = dwarf_diename (vardie);
+  const char *name = dwarf_linkage_name (vardie) ?: dwarf_diename (vardie);
 
   if (sess.verbose > 2)
     clog << "finding symtable address for " << name << "\n";
@@ -2356,6 +2520,7 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
       && dwarf_attr_integrate (&vardie, DW_AT_location, &attr_mem) == NULL)
     {
       Dwarf_Op addr_loc;
+      memset(&addr_loc, 0, sizeof(Dwarf_Op));
       addr_loc.atom = DW_OP_addr;
       // If it is an external variable try the symbol table. PR10622.
       if (dwarf_attr_integrate (&vardie, DW_AT_external, &attr_mem) != NULL
@@ -2375,7 +2540,7 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
                            e->tok);
     }
   else
-    head = translate_location (&pool, &attr_mem, pc, fb_attr, &tail, e);
+    head = translate_location (&pool, &attr_mem, &vardie, pc, fb_attr, &tail, e);
 
   /* Translate the ->bar->baz[NN] parts. */
 
@@ -2399,7 +2564,9 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
                                   prelude, postlude, ty);
 
   /* Write the translation to a string. */
-  return express_as_string(prelude, postlude, head);
+  string result = express_as_string(prelude, postlude, head);
+  obstack_free (&pool, 0);
+  return result;
 }
 
 Dwarf_Die*
@@ -2495,7 +2662,9 @@ dwflpp::literal_stmt_for_return (Dwarf_Die *scope_die,
                                   prelude, postlude, ty);
 
   /* Write the translation to a string. */
-  return express_as_string(prelude, postlude, head);
+  string result = express_as_string(prelude, postlude, head);
+  obstack_free (&pool, 0);
+  return result;
 }
 
 Dwarf_Die*
@@ -2579,7 +2748,9 @@ dwflpp::literal_stmt_for_pointer (Dwarf_Die *start_typedie,
                                   prelude, postlude, ty);
 
   /* Write the translation to a string. */
-  return express_as_string(prelude, postlude, head);
+  string result = express_as_string(prelude, postlude, head);
+  obstack_free (&pool, 0);
+  return result;
 }
 
 Dwarf_Die*
@@ -2867,6 +3038,66 @@ dwflpp::get_blacklist_section(Dwarf_Addr addr)
         }
     }
   return blacklist_section;
+}
+
+
+/* Find the section named 'section_name'  in the current module
+ * returning the section header using 'shdr_mem' */
+
+GElf_Shdr *
+dwflpp::get_section(string section_name, GElf_Shdr *shdr_mem, Elf **elf_ret)
+{
+  GElf_Shdr *shdr = NULL;
+  Elf* elf;
+  Dwarf_Addr bias;
+  size_t shstrndx;
+
+  // Explicitly look in the main elf file first.
+  elf = dwfl_module_getelf (module, &bias);
+  Elf_Scn *probe_scn = NULL;
+
+  dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
+
+  bool have_section = false;
+
+  while ((probe_scn = elf_nextscn (elf, probe_scn)))
+    {
+      shdr = gelf_getshdr (probe_scn, shdr_mem);
+      assert (shdr != NULL);
+
+      if (elf_strptr (elf, shstrndx, shdr->sh_name) == section_name)
+	{
+	  have_section = true;
+	  break;
+	}
+    }
+
+  // Older versions may put the section in the debuginfo dwarf file,
+  // so check if it actually exists, if not take a look in the debuginfo file
+  if (! have_section || (have_section && shdr->sh_type == SHT_NOBITS))
+    {
+      elf = dwarf_getelf (dwfl_module_getdwarf (module, &bias));
+      if (! elf)
+	return NULL;
+      dwfl_assert ("getshdrstrndx", elf_getshdrstrndx (elf, &shstrndx));
+      probe_scn = NULL;
+      while ((probe_scn = elf_nextscn (elf, probe_scn)))
+	{
+	  shdr = gelf_getshdr (probe_scn, shdr_mem);
+	  if (elf_strptr (elf, shstrndx, shdr->sh_name) == section_name)
+	    {
+	      have_section = true;
+	      break;
+	    }
+	}
+    }
+
+  if (!have_section)
+    return NULL;
+
+  if (elf_ret)
+    *elf_ret = elf;
+  return shdr;
 }
 
 

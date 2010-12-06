@@ -18,8 +18,8 @@
 <indexterm>
 <primary>summarizing disk I/O traffic</primary>
 <secondary>script examples</secondary>
-</indexterm>		
-		
+</indexterm>
+
 		<remark>
 			NO ENTRY IN WAR STORIES: Summarize Disk Read/Write Traffic
 			http://sourceware.org/systemtap/examples/io/disktop.stp
@@ -58,35 +58,33 @@
 <primary>identifying heaviest disk reads/writes</primary>
 <secondary>script examples</secondary>
 </indexterm>
-	
+
 	<para>This section describes how to identify which processes are performing the heaviest disk reads/writes to the system.</para>
-	
+
 <formalpara id="scriptdisktop">
 	<title>disktop.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/io/disktop.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/io/disktop.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
-</formalpara>		
+</formalpara>
 
 <para><xref linkend="scriptdisktop"/> outputs the top ten processes responsible for the heaviest reads/writes to disk. <xref linkend="disktopoutput"/> displays a sample output for this script, and includes the following data per listed process:</para>
 
 <itemizedlist>
 	<listitem><para><computeroutput>UID</computeroutput> &mdash; user ID. A user ID of <computeroutput>0</computeroutput> refers to the root user.</para></listitem>
-	
+
 	<listitem><para><computeroutput>PID</computeroutput> &mdash; the ID of the listed process.</para></listitem>
-	
+
 	<listitem><para><computeroutput>PPID</computeroutput> &mdash; the process ID of the listed process's <emphasis>parent process</emphasis>.</para></listitem>
-	
+
 	<listitem><para><computeroutput>CMD</computeroutput> &mdash; the name of the listed process.</para></listitem>
-	
+
 	<listitem><para><computeroutput>DEVICE</computeroutput> &mdash; which storage device the listed process is reading from or writing to.</para></listitem>
-	
+
 	<listitem><para><computeroutput>T</computeroutput> &mdash; the type of action performed by the listed process; <computeroutput>W</computeroutput> refers to write, while <computeroutput>R</computeroutput> refers to read.</para></listitem>
-	
+
 	<listitem><para><computeroutput>BYTES</computeroutput> &mdash; the amount of data read to or written from disk.</para></listitem>
-</itemizedlist>	
+</itemizedlist>
 <!-- next 2 indexterms for ctime(), example of usage -->
 
 <indexterm>
@@ -105,7 +103,7 @@
 </indexterm>
 
 
-	
+
 <para>The time and date in the output of <xref linkend="scriptdisktop"/> is returned by the functions <command>ctime()</command> and <command>gettimeofday_s()</command>. <command>ctime()</command> derives calendar time in terms of seconds passed since the Unix epoch (January 1, 1970). <command>gettimeofday_s()</command> counts the <emphasis>actual</emphasis> number of seconds since Unix epoch, which gives a fairly accurate human-readable timestamp for the output.</para>
 <!-- next 3 indexterms for $return -->
 <indexterm>
@@ -124,19 +122,18 @@
 	<primary>$return</primary>
 	<secondary>sample usage</secondary>
 	<tertiary>local variables</tertiary>
-</indexterm>	
+</indexterm>
 <para>
 	In this script, the <command>$return</command> is a local variable that stores the
-	actual number of bytes each process reads or writes from the virtual file system. 
-	<command>$return</command> can only be used in return probes (e.g. 
+	actual number of bytes each process reads or writes from the virtual file system.
+	<command>$return</command> can only be used in return probes (e.g.
 	<command>vfs.read.return</command> and <command>vfs.read.return</command>).
 </para>
-	
+
 <!--<remark>needinfo: what does $return do?</remark> 	-->
 <example id="disktopoutput">
 	<title><xref linkend="scriptdisktop"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
 Mon Sep 29 03:38:28 2008 , Average:  19Kb/sec, Read: 7Kb, Write: 89Kb
 
 UID      PID     PPID                       CMD   DEVICE    T    BYTES
@@ -148,13 +145,11 @@ Mon Sep 29 03:38:38 2008 , Average:   1Kb/sec, Read: 7Kb, Write: 1Kb
 
 UID      PID     PPID                       CMD   DEVICE    T    BYTES
 0     2758     2757           pam_timestamp_c     sda5    R         8064
-0     2885        1                     cupsd     sda5    W         1678
-</screen>
+0     2885        1                     cupsd     sda5    W         1678</screen>
 </example>
 
 <!--
-<programlisting>
-global io_stat,device
+<programlisting>global io_stat,device
 global read_bytes,write_bytes
 
 probe kernel.function("vfs_read").return {
@@ -201,16 +196,15 @@ probe timer.ms(5000) {
 	delete io_stat
 	delete device
 	read_bytes = 0
-	write_bytes = 0	
+	write_bytes = 0
 }
 
 probe end{
 	delete io_stat
 	delete device
 	delete read_bytes
-	delete write_bytes	
-}
-</programlisting>
+	delete write_bytes
+}</programlisting>
 -->
 
 	</section>

@@ -1,0 +1,70 @@
+#procfs_umask.exp
+# Test cases for procfs umask probes 
+set test "PROCFS_UMASK"
+set ok 0
+set ko 0
+if {![installtest_p]} { untested $test; return }
+
+proc match_perm_val {paths perms} {
+    global test
+    global ok
+    global ko
+    if {![catch { exec stat --format=%a "/proc/systemtap/$test/$paths"} permission]} {
+	if { $permission == $perms } {
+	    incr ok
+	} else {
+	    incr ko
+	    verbose -log "permissions problem, $paths should have $perms permissions, not $permission."
+	}
+    } else { 
+	incr ko
+	verbose -log "stat problem, an error has occured while testing the $paths file."
+    }
+}
+
+proc check_perm_val {} {
+    global test
+    global ok
+    global ko
+    foreach paths { "umask-000-r" "umask-000-w" "umask-004-r" "umask-020-w"
+		    "umask-044-r" "umask-022-w" "umask-400-r" "umask-200-w" 
+		    "umask-440-r" "umask-202-w" "umask-404-r" "umask-002-w"
+          } perms { 444 222 440 202 400 200 44 22 4 20 40 220 } {
+	match_perm_val $paths $perms
+    }
+    if {$ok > 0 && $ko == 0} {
+	pass "$test"
+    } else { fail "$test" } 
+}
+
+set systemtap_script {
+    global value
+    probe procfs("umask-000-r").umask(000).read {$value = "100\n" }
+    probe procfs("umask-000-w").umask(000).write {printf("the val is, %s", $value)}
+    probe procfs("umask-004-r").umask(004).read {$value = "200\n"}
+    probe procfs("umask-020-w").umask(020).write {printf("the val is, %s", $value)}
+    probe procfs("umask-044-r").umask(044).read {$value = "300\n"}
+    probe procfs("umask-022-w").umask(022).write {printf("the val is, %s", $value)}
+    probe procfs("umask-400-r").umask(400).read {$value = "400\n"}
+    probe procfs("umask-200-w").umask(200).write {printf("the val is, %s", $value)}
+    probe procfs("umask-440-r").umask(440).read {$value = "500\n"}
+    probe procfs("umask-202-w").umask(202).write {printf("the val is, %s", $value)}
+    probe procfs("umask-404-r").umask(404).read {$value = "600\n"}
+    probe procfs("umask-002-w").umask(002).write {printf("the val is, %s", $value)}
+    
+    probe begin {
+	value = "600\n"
+        printf("systemtap starting probe\n")
+    }
+
+    probe end {
+        printf("systemtap ending probe\n")
+	printf("Testing permissions\n")
+    }
+}
+
+# test procfs umask probes
+set output_string "Testing permissions\r\n"
+stap_run $test check_perm_val $output_string -e $systemtap_script -m $test 
+
+exec /bin/rm -f ${test}.ko

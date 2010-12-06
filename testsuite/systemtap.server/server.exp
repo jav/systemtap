@@ -18,7 +18,7 @@ foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
     # ... as well as this one
     switch $test {
 	buildok/thirtythree.stp { # uses --ldd
-		if {$rc != 0} { setup_kfail 1155 *-*-* } }
+		if {$rc != 0} { setup_xfail *-*-* } }
     }
     if {$rc == 0} { pass "$test with server" } else { fail "$test with server" }
 }

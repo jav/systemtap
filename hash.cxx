@@ -1,5 +1,5 @@
 // Copyright (C) Andrew Tridgell 2002 (original file)
-// Copyright (C) 2006-2008 Red Hat Inc. (systemtap changes)
+// Copyright (C) 2006-2010 Red Hat Inc. (systemtap changes)
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
 #include "util.h"
 
 #include <cstdlib>
+#include <cstring>
+#include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <cerrno>
@@ -29,9 +31,36 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "mdfour.h"
 }
 
 using namespace std;
+
+
+class hash
+{
+private:
+  struct mdfour md4;
+  std::ostringstream parm_stream;
+
+public:
+  hash() { start(); }
+  hash(const hash &base) { md4 = base.md4; parm_stream << base.parm_stream.str(); }
+
+  void start();
+
+  void add(const unsigned char *buffer, size_t size);
+  template<typename T> void add(const T& x);
+  void add(const char *s) { add((const unsigned char *)s, strlen(s)); }
+  void add(const std::string& s) { add((const unsigned char *)s.c_str(),
+				       s.length()); }
+
+  void add_path(const std::string& path);
+
+  void result(std::string& r);
+  std::string get_parms() { return parm_stream.str(); }
+};
+
 
 void
 hash::start()
@@ -43,34 +72,33 @@ hash::start()
 void
 hash::add(const unsigned char *buffer, size_t size)
 {
-  parm_stream << "," << buffer;
+  parm_stream << buffer << endl;
   mdfour_update(&md4, buffer, size);
 }
 
 
+template <typename T> void
+hash::add(const T& x)
+{
+  parm_stream << x << endl;
+  mdfour_update(&md4, (const unsigned char *)&x, sizeof(x));
+}
+
+
 void
-hash::add_file(const std::string& filename)
+hash::add_path(const std::string& path)
 {
   struct stat st;
+  memset (&st, 0, sizeof(st));
 
-  if (stat(filename.c_str(), &st) != 0)
+  if (stat(path.c_str(), &st) != 0)
     st.st_size = st.st_mtime = -1;
 
-  add(filename);
+  add(path);
   add(st.st_size);
   add(st.st_mtime);
 }
 
-string
-hash::get_parms()
-{
- string parms_str = parm_stream.str();
-
- parm_stream.clear();
- if (!parms_str.empty())
-   parms_str.erase(parms_str.begin()); // skip leading ","
- return parms_str;
-}
 
 void
 hash::result(string& r)
@@ -98,8 +126,8 @@ void create_hash_log(const string &type_str, const string &parms, const string &
 
   log_file.open(hash_log_path.c_str());
   log_file << "[" << time_str.substr(0,time_str.length()-1); // erase terminated '\n'
-  log_file << "]" << type_str;
-  log_file << ": " << parms << endl;
+  log_file << "] " << type_str << ":" << endl;
+  log_file << parms << endl;
   log_file << "result:" << result << endl;
   log_file.close();
 }
@@ -115,16 +143,16 @@ get_base_hash (systemtap_session& s)
 
   // Hash kernel release and arch.
   h.add(s.kernel_release);
-  h.add(s.kernel_build_tree);
+  h.add_path(s.kernel_build_tree);
   h.add(s.architecture);
 
   // Hash a few kernel version/build-id files too
   // (useful for kernel developers reusing a single source tree)
-  h.add_file(s.kernel_build_tree + "/.config");
-  h.add_file(s.kernel_build_tree + "/.version");
-  h.add_file(s.kernel_build_tree + "/include/linux/compile.h");
-  h.add_file(s.kernel_build_tree + "/include/linux/version.h");
-  h.add_file(s.kernel_build_tree + "/include/linux/utsrelease.h");
+  h.add_path(s.kernel_build_tree + "/.config");
+  h.add_path(s.kernel_build_tree + "/.version");
+  h.add_path(s.kernel_build_tree + "/include/linux/compile.h");
+  h.add_path(s.kernel_build_tree + "/include/linux/version.h");
+  h.add_path(s.kernel_build_tree + "/include/linux/utsrelease.h");
 
   // If the kernel is a git working directory, then add the git HEAD
   // revision to our hash as well.
@@ -134,19 +162,20 @@ get_base_hash (systemtap_session& s)
   ///h.add(git_revision(s.kernel_build_tree));
 
   // Hash runtime path (that gets added in as "-R path").
-  h.add(s.runtime_path);
+  h.add_path(s.runtime_path);
 
   // Hash compiler path, size, and mtime.  We're just going to assume
   // we'll be using gcc. XXX: getting kbuild to spit out out would be
-  // better.
-  h.add_file(find_executable("gcc"));
+  // better, especially since this is fooled by ccache.
+  h.add_path(find_executable("gcc"));
 
   // Hash the systemtap size and mtime.  We could use VERSION/DATE,
   // but when developing systemtap that doesn't work well (since you
   // can compile systemtap multiple times in 1 day).  Since we don't
   // know exactly where we're getting run from, we'll use
   // /proc/self/exe.
-  h.add_file("/proc/self/exe");
+  // XXX well almost exactly -- valgrind throws this off
+  h.add_path("/proc/self/exe");
 
   return h;
 }
@@ -233,7 +262,7 @@ find_script_hash (systemtap_session& s, const string& script)
   for (set<string>::iterator it = s.unwindsym_modules.begin();
        it != s.unwindsym_modules.end();
        it++)
-    h.add(*it);
+    h.add_path(*it);
     // XXX: a build-id of each module might be even better
 
   // Add in pass 2 script output.
@@ -298,7 +327,7 @@ find_tracequery_hash (systemtap_session& s, const vector<string>& headers)
 
   // Add the tracepoint headers to the computed hash
   for (size_t i = 0; i < headers.size(); ++i)
-    h.add_file(headers[i]);
+    h.add_path(headers[i]);
 
   // Add any custom kbuild flags
   for (unsigned i = 0; i < s.kbuildflags.size(); i++)

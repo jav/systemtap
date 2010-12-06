@@ -18,7 +18,7 @@
 <indexterm>
 <primary>determining time spent in kernel and user space</primary>
 <secondary>examples of SystemTap scripts</secondary>
-</indexterm>		
+</indexterm>
 <indexterm>
 	<primary>time spent in kernel/user space, determining</primary>
 	<secondary>examples of SystemTap scripts</secondary>
@@ -31,22 +31,20 @@
 	<primary>user and kernel space, determining time spent in</primary>
 	<secondary>examples of SystemTap scripts</secondary>
 </indexterm>
-	
+
 <remark>
 	http://sourceware.org/systemtap/examples/profiling/thread-times.stp
-</remark>	
-				
+</remark>
+
 
 <para>This section illustrates how to determine the amount of time any given thread is spending in either kernel or user-space.</para>
 
 <formalpara id="threadtimes">
 		<title>thread-times.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/profiling/thread-times.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/profiling/thread-times.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
-</formalpara>		
+</formalpara>
 <indexterm>
 	<primary>script examples</primary>
 	<secondary>CPU ticks</secondary>
@@ -70,8 +68,7 @@
 
 <example id="threadtimesoutput">
 	<title><xref linkend="threadtimes"/> Sample Output</title>
-<screen>
-  tid   %user %kernel (of 20002 ticks)
+<screen>  tid   %user %kernel (of 20002 ticks)
     0   0.00%  87.88%
 32169   5.24%   0.03%
  9815   3.33%   0.36%
@@ -91,11 +88,10 @@
  3883   0.00%   0.00%
  3775   0.00%   0.00%
  3943   0.00%   0.00%
- 3873   0.00%   0.00%
-</screen>
+ 3873   0.00%   0.00%</screen>
 </example>
 
-<!-- 
+<!--
      function pc:long () %{ /* pure */
      if (CONTEXT->regs)
 THIS->__retvalue = (uint64_t) REG_IP (CONTEXT->regs);
@@ -142,8 +138,8 @@ delete uticks
 delete kticks
 delete ticks
 delete tids
-}     
-     
+}
+
      -->
 	</section>
 

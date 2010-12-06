@@ -25,8 +25,8 @@ struct stap_uprobe_spec {
   unsigned tfi;
   unsigned return_p:1;
   unsigned long address;
-  struct stap_probe probe;
   unsigned long sdt_sem_offset;
+  struct stap_probe * const probe;
  };
 
 static int stap_uprobe_process_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p);

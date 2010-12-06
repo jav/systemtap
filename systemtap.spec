@@ -11,7 +11,7 @@
 %{!?publican_brand: %global publican_brand fedora}
 
 Name: systemtap
-Version: 1.2
+Version: 1.4
 Release: 1%{?dist}
 # for version, see also configure.ac
 Summary: Instrumentation System
@@ -266,10 +266,10 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/examples examples
 # Fix paths in the example & testsuite scripts
 find examples testsuite -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+stap@#!%{_bindir}/stap@'
 
-# Because "make install" may install staprun with mode 04111, the
+# Because "make install" may install staprun with whatever mode, the
 # post-processing programs rpmbuild runs won't be able to read it.
 # So, we change permissions so that they can read it.  We'll set the
-# permissions back to 04111 in the %files section below.
+# permissions back to 04110 in the %files section below.
 chmod 755 $RPM_BUILD_ROOT%{_bindir}/staprun
 
 #install the useful stap-prep script
@@ -340,8 +340,8 @@ if test ! -e ~stap-server/.systemtap/ssl/server/stap.cert; then
    runuser -s /bin/sh - stap-server -c %{_libexecdir}/%{name}/stap-gen-cert >/dev/null
    # Authorize the certificate as a trusted ssl peer and as a trusted signer
    # on the local host.
-   %{_bindir}/stap-authorize-server-cert ~stap-server/.systemtap/ssl/server/stap.cert
-   %{_bindir}/stap-authorize-signing-cert ~stap-server/.systemtap/ssl/server/stap.cert
+   %{_libexecdir}/%{name}/stap-authorize-cert ~stap-server/.systemtap/ssl/server/stap.cert %{_sysconfdir}/systemtap/ssl/client >/dev/null
+   %{_libexecdir}/%{name}/stap-authorize-cert ~stap-server/.systemtap/ssl/server/stap.cert %{_sysconfdir}/systemtap/staprun >/dev/null
 fi
 
 # Activate the service
@@ -428,7 +428,8 @@ exit 0
 
 %files runtime
 %defattr(-,root,root)
-%attr(4111,root,root) %{_bindir}/staprun
+%attr(4110,root,stapusr) %{_bindir}/staprun
+%{_bindir}/stap-merge
 %{_bindir}/stap-report
 %{_bindir}/stap-authorize-signing-cert
 %{_libexecdir}/%{name}/stapio
@@ -479,12 +480,14 @@ exit 0
 %config(noreplace) %{_sysconfdir}/sysconfig/stap-server
 %dir %attr(0755,stap-server,stap-server) %{_localstatedir}/log/stap-server
 %ghost %config %attr(0644,stap-server,stap-server) %{_localstatedir}/log/stap-server/log
+%ghost %attr(0755,stap-server,stap-server) %{_localstatedir}/run/stap-server
 %doc initscript/README.stap-server
 
 %files sdt-devel
 %defattr(-,root,root)
 %{_bindir}/dtrace
 %{_includedir}/sys/sdt.h
+%{_includedir}/sys/sdt-config.h
 %doc README AUTHORS NEWS COPYING
 
 %files initscript
@@ -495,7 +498,7 @@ exit 0
 %dir %{_sysconfdir}/systemtap/script.d
 %config(noreplace) %{_sysconfdir}/systemtap/config
 %dir %{_localstatedir}/cache/systemtap
-%dir %{_localstatedir}/run/systemtap
+%ghost %{_localstatedir}/run/systemtap
 %doc initscript/README.systemtap
 
 %if %{with_grapher}
@@ -507,6 +510,9 @@ exit 0
 
 
 %changelog
+* Wed Jul 21 2010 Josh Stone <jistone@redhat.com> - 1.3-1
+- Upstream release.
+
 * Mon Mar 22 2010 Frank Ch. Eigler <fche@redhat.com> - 1.2-1
 - Upstream release.
 

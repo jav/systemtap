@@ -10,7 +10,9 @@
 #if defined (__i386__) || defined (__x86_64__)
 #include <asm/cpufeature.h>
 #endif
-#ifdef STAPCONF_TSC_KHZ
+#if defined (STAPCONF_TSC_KHZ) && \
+    !(defined (__x86_64__) && LINUX_VERSION_CODE < KERNEL_VERSION(2,6,21))
+// x86_64 didn't need a specific header until 2.6.21.  Otherwise:
 #include <asm/tsc.h>
 #endif
 #ifdef STAPCONF_KTIME_GET_REAL
@@ -55,9 +57,6 @@ typedef struct __stp_time_t {
 } stp_time_t;
 
 static void *stp_time = NULL;
-
-/* Flag to tell the timer callback whether to reregister */
-static int stp_timer_reregister = 0;
 
 /* Try to estimate the number of CPU cycles in a millisecond - i.e. kHz.  This
  * relies heavily on the accuracy of udelay.  By calling udelay twice, we
@@ -134,7 +133,7 @@ __stp_time_timer_callback(unsigned long val)
        XXX: The worst that can probably happen is that we get
 	    two consecutive timer resets.  */
 
-    if (likely(stp_timer_reregister))
+    if (likely(atomic_read(&session_state) != STAP_SESSION_STOPPED))
         mod_timer(&time->timer, jiffies + 1);
 }
 
@@ -154,7 +153,10 @@ __stp_init_time(void *info)
     init_timer(&time->timer);
     time->timer.expires = jiffies + 1;
     time->timer.function = __stp_time_timer_callback;
+
+#ifndef STAPCONF_ADD_TIMER_ON
     add_timer(&time->timer);
+#endif
 }
 
 #ifdef CONFIG_CPU_FREQ
@@ -208,7 +210,6 @@ _stp_kill_time(void)
 {
     if (stp_time) {
         int cpu;
-        stp_timer_reregister = 0;
         for_each_online_cpu(cpu) {
             stp_time_t *time = per_cpu_ptr(stp_time, cpu);
             del_timer_sync(&time->timer);
@@ -229,19 +230,25 @@ _stp_kill_time(void)
 static int
 _stp_init_time(void)
 {
-    int ret = 0;
+    int cpu, ret = 0;
 
     _stp_kill_time();
 
     stp_time = _stp_alloc_percpu(sizeof(stp_time_t));
     if (unlikely(stp_time == 0))
 	    return -1;
-    
-    stp_timer_reregister = 1;
+
 #ifdef STAPCONF_ONEACHCPU_RETRY
     ret = on_each_cpu(__stp_init_time, NULL, 0, 1);
 #else
     ret = on_each_cpu(__stp_init_time, NULL, 1);
+#endif
+
+#ifdef STAPCONF_ADD_TIMER_ON
+    for_each_online_cpu(cpu) {
+        stp_time_t *time = per_cpu_ptr(stp_time, cpu);
+        add_timer_on(&time->timer, cpu);
+    }
 #endif
 
 #ifdef CONFIG_CPU_FREQ
@@ -250,7 +257,6 @@ _stp_init_time(void)
                 CPUFREQ_TRANSITION_NOTIFIER);
 
         if (!ret) {
-            int cpu;
             for_each_online_cpu(cpu) {
                 unsigned long flags;
                 int freq_khz = cpufreq_get(cpu);

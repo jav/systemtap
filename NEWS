@@ -1,7 +1,99 @@
-* What's new
+* What's new in version 1.4
 
-- New stap option -G allows setting global variables and invoke
-  staprun in one step.
+- Warning messages from the script may now be suppressed with the stap
+  and/or staprun -w option.  By default, duplicate warning messages are
+  suppressed (up to a certain limit).  With stap --vp 00002 and above,
+  the duplicate elimination is defeated.
+
+- The print_ubacktrace and usym* functions attempt to print the full
+  path of the user-space binaries' paths, instead of just the basename.
+  The maximum saved path length is set by -DTASK_FINDER_VMA_ENTRY_PATHLEN,
+  default 64.  Warning messages are produced if unwinding fails due to
+  a missing 'stap -d MODULE' option, providing preloaded unwind data.
+
+- The new tz_ctime() tapset function prints times in the local time zone.
+
+- More kernel tracepoints are accessible to the kernel.trace("...") mechanism,
+  if kernel source trees or debuginfo are available.  These formerly "hidden"
+  tracepoints are those that are declared somewhere other than the usual
+  include/linux/trace/ headers, such as xfs and kvm.
+
+- debuginfo-based process("...").function/.statement/.mark probes support
+  wildcards in the process-name part, to refer to any executable files that
+  match the glob pattern and the rest of the probe point.
+
+- The -t option now displays information per probe-point rather than a summary
+  for each probe.  It also now shows the derivation chain for each probe-point.
+
+- The implementation of the integrated compile-server client has been
+  extended.
+  o --use-server now accepts an argument representing a particular server and
+    may be specified more than once.
+  o --list-servers now accepts an expanded range of arguments.
+  o a new --trust-servers option has been added to stap to replace several
+    old certificate-management scripts.
+  o The following tools are now deprecated and will be removed in release 1.5:
+      stap-client
+      stap-authorize-server-cert
+      stap-authorize-signing-cert
+      stap-find-or-start-server
+      stap-find-servers
+  See man stap(1) for complete details.
+
+- The compile-server now returns the uprobes.ko to the client when it is
+  required by the script being compiled. The integrated compile-server client
+  now makes it available to be loaded by staprun. The old (deprecated)
+  stap-client does not do this.
+
+- Starting in release 1.5, these old variables/functions will be deprecated
+  and will only be available when the '--compatible=1.4' flag is used:
+
+  - In the 'syscall.add_key' probe, the 'description_auddr' variable
+    has been deprecated in favor of the new 'description_uaddr'
+    variable.
+  - In the 'syscall.fgetxattr', 'syscall.fsetxattr',
+    'syscall.getxattr', 'syscall.lgetxattr', and
+    'syscall.lremovexattr' probes, the 'name2' variable has been
+    deprecated in favor of the new 'name_str' variable.
+  - In the 'nd_syscall.accept' probe the 'flag_str' variable
+    has been deprecated in favor of the new 'flags_str' variable.
+  - In the 'nd_syscall.dup' probe the 'old_fd' variable has been
+    deprecated in favor of the new 'oldfd' variable.
+  - In the 'nd_syscall.fgetxattr', 'nd_syscall.fremovexattr',
+    'nd_syscall.fsetxattr', 'nd_syscall.getxattr', and
+    'nd_syscall.lremovexattr' probes, the 'name2' variable has been 
+    deprecated in favor of the new 'name_str' variable.
+  - The tapset alias 'nd_syscall.compat_pselect7a' was misnamed.  It should
+    have been 'nd_syscall.compat_pselect7' (without the trailing 'a').
+  - The tapset function 'cpuid' is deprecated in favor of the better known 
+    'cpu'.
+  - In the i386 'syscall.sigaltstack' probe, the 'ussp' variable has
+    been deprecated in favor of the new 'uss_uaddr' variable.
+  - In the ia64 'syscall.sigaltstack' probe, the 'ss_uaddr' and
+    'oss_uaddr' variables have been deprecated in favor of the new
+    'uss_uaddr' and 'uoss_uaddr' variables.
+  - The powerpc tapset alias 'syscall.compat_sysctl' was deprecated
+    and renamed 'syscall.sysctl32'.
+  - In the x86_64 'syscall.sigaltstack' probe, the 'regs_uaddr'
+    variable has been deprecated in favor of the new 'regs' variable.
+
+* What's new in version 1.3, 2010-07-21
+
+- The uprobes kernel module now has about half the overhead when probing
+  NOPs, which is particularly relevant for sdt.h markers.
+
+- New stap option -G VAR=VALUE allows overriding global variables
+  by passing the settings to staprun as module options.
+
+- The tapset alias 'syscall.compat_pselect7a' was misnamed.  It should
+  have been 'syscall.compat_pselect7' (without the trailing 'a').
+  Starting in release 1.4, the old name will be deprecated and
+  will only be available when the '--compatible=1.3' flag is used.
+
+- A new procfs parameter .umask(UMASK) which provides modification of
+  file permissions using the proper umask value.  Default file
+  permissions for a read probe are 0400, 0200 for a write probe, and
+  0600 for a file with a read and write probe.
 
 - It is now possible in some situations to use print_ubacktrace() to
   get a user space stack trace from a kernel probe point. e.g. for
@@ -66,13 +158,14 @@
   are now accepted in scripts.  They are mapped to the double-underscore
   form ("foo__bar").
 
-- Prototype support for debuginfo-less <sys/sdt.h> user-space markers
-  is included for some architectures (i686 and x86-64 initially).
-  Compile your sdt.h-instrumented program with -DSTAP_SDT_V2 to
-  activate this mode.  This implementation also supports preserving
+- More robust <sys/sdt.h> user-space markers support is included.  For
+  some platforms (x86*, ppc*), this can let systemtap probe the markers
+  without debuginfo.  This implementation also supports preserving
   the "provider" name associated with a marker:
     probe process("foo").provider("bar").mark("baz") to match
     STAP_PROBE<n>(bar, baz <...>)
+  (Compile with -DSTAP_SDT_V1 to revert to the previous implementation.
+  Systemtap supports pre-existing or new binaries using them.)
 
 - Embedded-C may be used within expressions as values, when in guru mode:
      num = %{ LINUX_VERSION_CODE %}               // int64_t
@@ -108,7 +201,7 @@
   and a deprecation policy are being introduced, in case future
   tapset/language changes break valid scripts.
 
-* What's new in version 1.2
+* What's new in version 1.2, 2010-03-22
 
 - Prototype support for "perf events", where the kernel supports the
   2.6.33 in-kernel API.  Probe points may refer to low-level 
@@ -157,7 +250,7 @@
      probe kernel.data(ADDRESS).length(LEN).write
      probe kernel.data("SYMBOL_NAME").write
 
-* What's new in version 1.1
+* What's new in version 1.1, 2010-01-15
 
 - New tracepoint based tapset for memory subsystem.
 
@@ -222,7 +315,7 @@
   symbols. DW_AT_const_value is now supported when no DW_AT_location
   is available.
 
-* What's new in verson 1.0
+* What's new in verson 1.0, 2009-09-22
 
 - process().mark() probes now use an enabling semaphore to reduce the
   computation overhead of dormant probes.
@@ -334,7 +427,7 @@
 - Support for recognizing DW_OP_{stack,implicit}_value DWARF expressions
   as emitted by GCC 4.5.
 
-* What's new in version 0.9.9
+* What's new in version 0.9.9, 2009-08-04
 
 - Systemwide kernel .function.return (kretprobe) maxactive defaults may
   be overridden with the -DKRETACTIVE=nnn parameter.
@@ -392,7 +485,7 @@
   - pgrp() returns the process group ID of the current process
   - str_replace() performs string replacement
 
-* What's new in version 0.9.8
+* What's new in version 0.9.8, 2009-06-11
 
 - Miscellaneous new tapset functions:
   - sid() returns the session ID of the current process
@@ -416,7 +509,7 @@
   will be verified by staprun against tampering.  Otherwise, you should
   notice no difference in the operation of stap or staprun.
 
-* What's new in version 0.9.7
+* What's new in version 0.9.7, 2009-04-23
 
 - @cast can now determine its type information using an explicit header
   specification.  For example:
@@ -454,7 +547,7 @@
   on the current restrictions and possible changes in the future and
   give feedback if you want to influence future developments.
 
-* What's new in version 0.9.5
+* What's new in version 0.9.5, 2009-03-27
 
 - New probes process().insn and process().insn.block that allows
   inspection of the process after each instruction or block of
@@ -534,7 +627,7 @@
 
 - Security fix for CVE-2009-0784: stapusr module-path checking race.
 
-* What's new in version 0.9
+* What's new in version 0.9, 2009-02-19
 
 - Typecasting is now supported using the @cast operator.  A script can
   define a pointer type for a "long" value, and then access type members
@@ -630,7 +723,7 @@
   interrupt handlers' run time would be included in the self-assessed
   overhead of running probe handlers.
 
-* What's new in version 0.8
+* What's new in version 0.8, 2008-11-13
 
 - Cache limiting is now available.  If the compiled module cache size is
   over a limit specified in the $SYSTEMTAP_DIR/cache/cache_mb_limit file,
@@ -721,7 +814,7 @@
   expands to an empty string for a void function, or "return=0xf00".
 
 
-* What's new in version 0.7
+* What's new in version 0.7, 2008-07-15
 
 - .statement("func@file:*") and .statement("func@file:M-N") probes are now
   supported to allow matching a range of lines in a function.  This allows
@@ -772,7 +865,7 @@
   global odds, evens;
   global little[10], big[5];
 
-* What's new in version 0.6
+* What's new in version 0.6, 2007-12-15
 
 - A copy of the systemtap tutorial and language reference guide
   are now included.
@@ -897,7 +990,7 @@
   println() is like print() but adds a newline at the end;
   printd() is like a sequence of print()s, with a specified field delimiter.
 
-* What's new since version 0.5.14?
+* What's new since version 0.5.14?, 2007-07-03
 
 - The way in which command line arguments for scripts are substituted has
   changed.  Previously, $1 etc. would interpret the corresponding command
@@ -916,7 +1009,7 @@
   # As before, $1... is recognized only at the beginning of a token
   % stap -e 'probe begin {foo$1=5}'
 
-* What's new since version 0.5.13?
+* What's new since version 0.5.13?, 2007-03-26
 
 - The way in which systemtap resolves function/inline probes has changed:
    .function(...) - now refers to all functions, inlined or not
@@ -926,7 +1019,7 @@
    .function(...).return - as before, but now pairs best with .function().call
    .statement() is unchanged.
 
-* What's new since version 0.5.12?
+* What's new since version 0.5.12?, 2007-01-01
 
 - When running in -p4 (compile-only) mode, the compiled .ko file name
   is printed on standard output.
@@ -968,7 +1061,7 @@
 
      kernel.statement(0xfeedface).absolute: raw, unvalidated, guru mode only
 
-* What's new since version 0.5.10?
+* What's new since version 0.5.10?, 2006-10-19
 
 - Offline processing of debugging information, enabling general
   cross-compilation of probe scripts to remote hosts, without

@@ -22,7 +22,7 @@ This manual page was generated on @DATE@ for systemtap @VERSION@.
 The following section will list the main paths in systemtap that are 
 important to know and may be required to reference.
 .TP
-Systemtap Tapset Path: @prefix@/share/systemtap/tapset/
+Tapset Path: @prefix@/share/systemtap/tapset/
 Systemtap data directory for cached systemtap files, unless overridden
 by the
 .I SYSTEMTAP_TAPSET
@@ -35,19 +35,49 @@ These are described in the
 .IR stapfuncs "(3stap) and " stapprobes (3stap)
 manual pages.
 .TP
-Systemtap Runtime Path: @prefix@/share/systemtap/runtime/
+Runtime Path: @prefix@/share/systemtap/runtime/
 The runtime sources, unless overridden by the
 .I SYSTEMTAP_RUNTIME
 environment variable.
 .TP
-Systemtap Staprun Path: @prefix@/bin/staprun/
+Staprun Path: @prefix@/bin/staprun/
 The auxiliary program supervising module loading, interaction, and
 unloading.
 .TP
-Systemtap Stapio Path: @prefix@/libexec/systemtap/stapio/
+Stapio Path: @prefix@/libexec/systemtap/stapio/
 The Systemtap module input and output handler.
 .TP
 sdt.h Path: @oldincludedir@/include/sys/std.h
+.TP
+Debuginfo Path: /usr/lib/debug/lib/modules/Kernel-Debuginfo-Version/
+The location of kernel debugging information when packaged into the
+.IR kernel\-debuginfo
+RPM, unless overridden by the
+.I SYSTEMTAP_DEBUGINFO_PATH
+environment variable.  The default value for this variable is
+.I \+:.debug:/usr/lib/debug:build 
+and can be changed using $env SYSTEMTAP_DEBUGINFO_PATH=/path/to/vmlinux .
+Elfutils searches vmlinux in this path and it interprets the path as a base
+directory of which various subdirectories will be searched for finding modules.
+By default, systemtap will also look for vmlinux in these locations:
+
+.SAMPLE
+/boot/vmlinux\-`uname \-r` 
+/lib/modules/`uname \-r`/vmlinux
+/lib/modules/`uname \-r`/vmlinux.debug
+/lib/modules/`uname \-r`/build/vmlinux
+/lib/modules/`uname \-r`/.debug/vmlinux.debug
+/usr/lib/debug/lib/modules/`uname \-r`/vmlinux.debug
+/var/cache/abrt-di/usr/debug/lib/modules/`uname \-r`/
+/var/cache/abrt-di/usr/lib/debug/lib/modules/`uname \-r`/vmlinux.debug
+.PP
+.ESAMPLE
+.IP
+      
+Debuginfo for user-space applications have source files located in /usr/src/debug/
+Further file information on user-space applications can be determined per-basis using
+rpm -ql <package>-debuginfo. For supported user-space applications information please 
+visit the systemtap wiki. 
 .TP
 $HOME/.systemtap
 Systemtap data directory for cached systemtap files, unless overridden
@@ -62,40 +92,36 @@ and kernel object.
 /lib/modules/VERSION/build
 The location of kernel module building infrastructure.
 .TP
-/usr/lib/debug/lib/modules/Kernel-Debuginfo-Version/
-The location of kernel debugging information when packaged into the
-.IR kernel\-debuginfo
-RPM, unless overridden by the
-.I SYSTEMTAP_DEBUGINFO_PATH
-environment variable.  The default value for this variable is
-.IR \+:.debug:/usr/lib/debug:build .
-Elfutils searches vmlinux in this path and it interprets the path as a base
-directory of which various subdirectories will be searched for finding modules.
-.TP
-@prefix@/doc/systemtap*/examples
+@prefix@/share/doc/systemtap*/examples
 Examples with greater detail, can be found here. Each example comes with a .txt
 or .meta file explaining what the example, sample or demo does and how it is
 ordinarily run.
 .TP
-stap-authorize-server-cert  -  Certfile
-@sysconfdir@/systemtap/ssl/server
-For root users (EUID=0), the database can be found in
+$SYSTEMTAP_DIR/ssl/server
+User's server\-side SSL certificate database. If SYSTEMTAP_DIR is not
+set, the default is $HOME/.systemtap.
 .TP
-stap-authorize-server-cert  -  Dirname 
-@sysconfdir@/systemtap/ssl/client
-Global client\-side certificate database for root users (EUID=0)
-can be found in.
+$SYSTEMTAP_DIR/ssl/client
+User's private client\-side SSL certificate database. If SYSTEMTAP_DIR is not
+set, the default is $HOME/.systemtap.
 .TP
-stap-authorize-signing-cert  -  Certfile
-@sysconfdir@/systemtap/ssl/server
-For root users (EUID=0), the database can be found in
+@prefix@/etc/systemtap/ssl/client
+Global client\-side SSL certificate database.
 .TP
-stap-authorize-signing-cert  -  Dirname
-@sysconfdir@/systemtap/staprun/
+@prefix@/etc/systemtap/staprun/
 \fIstaprun\fR\[aq]s trusted signer certificate database.
 .TP
-@sysconfdir@/systemtap/ssl/client/
-Public (root\[aq]s) client side certificate database.
+@prefix@/etc/sysconfig/stap-server/
+stap-server service global configuration file.
+.TP
+@prefix@/etc/stap-server/conf.d/*.conf
+stap-server service configuration files for default servers.
+.TP
+@prefix@/var/run/stap-server/
+stap-server service default location of status files for running servers.
+.TP
+@prefix@/var/log/stap-server.log
+stap-server service default log file.
 
 
 .PP
@@ -110,7 +136,6 @@ Public (root\[aq]s) client side certificate database.
 .IR staprun (8),
 .IR stapvars (3stap),
 .IR stapex (3stap),
-.IR stap-client (8),
 .IR stap-server (8),
 .IR awk (1),
 .IR gdb (1)
@@ -119,5 +144,5 @@ Public (root\[aq]s) client side certificate database.
 .SH BUGS
 Use the Bugzilla link of the project web page or our mailing list.
 .nh
-.BR http://sources.redhat.com/systemtap/ , <systemtap@sources.redhat.com> .
+.BR http://sources.redhat.com/systemtap/  ,  <systemtap@sources.redhat.com> .
 .hy

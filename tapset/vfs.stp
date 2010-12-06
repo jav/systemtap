@@ -928,33 +928,56 @@ probe _vfs.generic_commit_write = kernel.function("generic_commit_write") ?
 	argstr = sprintf("%p, %p, %d, %d", $file, $page, $from, $to)
 }
 
-probe _vfs.block_prepare_write = kernel.function("__block_prepare_write")
+probe _vfs.block_prepare_write = kernel.function("__block_write_begin") !,
+				 kernel.function("__block_prepare_write")
 {
-	_inode = $inode
 	page = $page
-	# write_from and write_upto are deprecated
-	write_from = $from
-	write_upto = $to
-	from = $from
-	to = $to
+	if (@defined($pos)) {
+		_inode = __page_ino($page)
+		from = $pos & (%{ PAGE_CACHE_SIZE  %} - 1)
+		to = from + $len		
+		# write_from and write_upto are deprecated
+		write_from = from
+		write_upto = to
+	}
+	else {
+		_inode = $inode
+		# write_from and write_upto are deprecated
+		write_from = $from
+		write_upto = $to
+		from = $from
+		to = $to
+	}
 
 	name = "_vfs.generic_commit_write"
-	argstr = sprintf("%p, %d, %d", $page, $from, $to)
+	argstr = sprintf("%p, %d, %d", $page, from, to)
 }
 
 probe _vfs.block_prepare_write.return =
+	kernel.function("__block_write_begin").return !,
 	kernel.function("__block_prepare_write").return
 {
 	name = "_vfs.block_prepare_write"
 	retstr = sprintf("%d", $return)
 
-	_inode = $inode
 	page = $page
-	# write_from and write_upto are deprecated
-	write_from = $from
-	write_upto = $to
-	from = $from
-	to = $to
+	if (@defined($pos)) {
+		_inode = __page_ino($page)
+		from = $pos & (%{ PAGE_CACHE_SIZE  %} - 1)
+		to = from + $len		
+		# write_from and write_upto are deprecated
+		write_from = from
+		write_upto = to
+	}
+	else {
+		_inode = $inode
+		# write_from and write_upto are deprecated
+		write_from = $from
+		write_upto = $to
+		from = $from
+		to = $to
+	}
+	page = $page
 
 	ret = $return
 	error = ret < 0 ? ret : 0
@@ -963,7 +986,7 @@ probe _vfs.block_prepare_write.return =
 
 probe _vfs.block_write_begin = kernel.function("block_write_begin") ?
 {
-	file = $file
+	file = (@defined($file) ? $file : 0)
 	pos = $pos
 	len = $len
 	flags = $flags
@@ -971,7 +994,7 @@ probe _vfs.block_write_begin = kernel.function("block_write_begin") ?
 	_inode = __address_inode($mapping)
 
 	name = "_vfs.block_write_begin"
-	argstr = sprintf("%p, %d, %d, %x", $file, $pos, $len, $flags)
+	argstr = sprintf("%p, %d, %d, %x", file, $pos, $len, $flags)
 }
 
 probe _vfs.block_write_begin.return =
@@ -980,7 +1003,7 @@ probe _vfs.block_write_begin.return =
 	name = "_vfs.block_write_begin"
 	retstr = sprintf("%d", $return)
 
-	file = $file
+	file = (@defined($file) ? $file : 0)
 	pos = $pos
 	len = $len
 	flags = $flags

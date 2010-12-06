@@ -95,7 +95,12 @@ probe syscall.add_key = kernel.function("sys_add_key").call ?
 {
 	name = "add_key"
 	type_uaddr = $_type
+# 'description_auddr' should have been 'description_uaddr'.  Deprecate
+# the old name.
+%(systemtap_v <= "1.4" %?
 	description_auddr = $_description
+%)
+	description_uaddr = $_description
 	payload_uaddr = $_payload
 	plen = $plen
 	ringid = $ringid
@@ -390,6 +395,7 @@ probe syscall.clock_gettime.return = kernel.function("sys_clock_gettime").return
 probe syscall.clock_nanosleep = kernel.function("sys_clock_nanosleep").call
 {
 	name = "clock_nanosleep"
+	flags = $flags
 	if ($flags == 1)
 		flag_str = "TIMER_ABSTIME"
 	else
@@ -412,6 +418,7 @@ probe syscall.compat_clock_nanosleep = kernel.function("compat_clock_nanosleep")
                                        kernel.function("compat_sys_clock_nanosleep").call ?
 {
 	name = "compat_clock_nanosleep"
+	flags = $flags
 	if ($flags == 1)
 		flag_str = "TIMER_ABSTIME"
 	else
@@ -527,6 +534,7 @@ probe syscall.dup2 = kernel.function("sys_dup2").call
 	name = "dup2"
 	oldfd = $oldfd
 	newfd = $newfd
+	flags = 0
 	argstr = sprintf("%d, %d", $oldfd, $newfd)
 }
 probe syscall.dup2.return = kernel.function("sys_dup2").return
@@ -772,17 +780,16 @@ probe syscall.faccessat.return = kernel.function("sys_faccessat").return ?
 	retstr = returnstr(1)
 }
 
-%(arch != "x86_64" %?
 # fadvise64 __________________________________________________
 # long sys_fadvise64(int fd, loff_t offset, size_t len,  int advice)
 #
 probe syscall.fadvise64 = kernel.function("sys_fadvise64").call ?
 {
 	name = "fadvise64"
-	fd = $fd
-	offset = $offset
-	len = $len
-	advice = $advice
+	fd = (@defined($fd) ? $fd : 0)
+	offset = (@defined($offset) ? $offset : 0)
+	len = (@defined($len) ? $len : 0)
+	advice = (@defined($advice) ? $advice : 0)
 	argstr = sprintf("%d, %d, %d, %s", $fd, $offset, $len, _fadvice_advice_str($advice))
 }
 probe syscall.fadvise64.return = kernel.function("sys_fadvise64").return ?
@@ -797,10 +804,10 @@ probe syscall.fadvise64.return = kernel.function("sys_fadvise64").return ?
 probe syscall.fadvise64_64 = kernel.function("sys_fadvise64_64").call ?
 {
 	name = "fadvise64_64"
-	fd = $fd
-	offset = $offset
-	len = $len
-	advice = $advice
+	fd = (@defined($fd) ? $fd : 0)
+	offset = (@defined($offset) ? $offset : 0)
+	len = (@defined($len) ? $len : 0)
+	advice = (@defined($advice) ? $advice : 0)
 	argstr = sprintf("%d, %d, %d, %s", $fd, $offset, $len, _fadvice_advice_str($advice))
 }
 probe syscall.fadvise64_64.return = kernel.function("sys_fadvise64_64").return ?
@@ -808,45 +815,6 @@ probe syscall.fadvise64_64.return = kernel.function("sys_fadvise64_64").return ?
 	name = "fadvise64_64"
 	retstr = returnstr(1)
 }
-%:
-# FIXME x86_64 has problems resolving parameters
-
-# fadvise64 __________________________________________________
-# long sys_fadvise64(int fd, loff_t offset, size_t len,  int advice)
-#
-probe syscall.fadvise64 = kernel.function("sys_fadvise64").call
-{
-	name = "fadvise64"
-	fd = 0
-	offset = 0
-	len = 0
-	advice = 0
-	argstr = ""
-}
-probe syscall.fadvise64.return = kernel.function("sys_fadvise64").return
-{
-	name = "fadvise64"
-	retstr = returnstr(1)
-}
-
-# fadvise64_64 _______________________________________________
-# long sys_fadvise64_64(int fd, loff_t offset, loff_t len,  int advice)
-#
-probe syscall.fadvise64_64 = kernel.function("sys_fadvise64_64").call
-{
-	name = "fadvise64_64"
-	fd = 0
-	offset = 0
-	len = 0
-	advice = 0
-	argstr = ""
-}
-probe syscall.fadvise64_64.return = kernel.function("sys_fadvise64_64").return
-{
-	name = "fadvise64_64"
-	retstr = returnstr(1)
-}
-%)
 
 # fchdir _____________________________________________________
 # long sys_fchdir(unsigned int fd)
@@ -999,8 +967,11 @@ probe syscall.fgetxattr = kernel.function("sys_fgetxattr").call
 {
 	name = "fgetxattr"
 	filedes = $fd
-#FIXME
+# 'name2' should have been 'name_str'.  Deprecate the old name.
+%(systemtap_v <= "1.4" %?
 	name2 = user_string($name)
+%)
+	name_str = user_string($name)
 	value_uaddr = $value
 	size  = $size
 	argstr = sprintf("%d, %s, %p, %d", filedes, user_string_quoted($name), value_uaddr, size)
@@ -1117,7 +1088,8 @@ probe syscall.fremovexattr = kernel.function("sys_fremovexattr").call
 	name = "fremovexattr"
 	filedes = $fd
 	name_uaddr = $name
-	argstr = sprintf("FIXME PLEASE")
+	name_str = user_string($name)
+	argstr = sprintf("%d, %s", $fd, user_string_quoted($name))
 }
 probe syscall.fremovexattr.return = kernel.function("sys_fremovexattr").return
 {
@@ -1138,12 +1110,16 @@ probe syscall.fsetxattr = kernel.function("sys_fsetxattr").call
 {
 	name = "fsetxattr"
 	filedes = $fd
-# FIXME
+# 'name2' should have been 'name_str'.  Deprecate the old name.
+%(systemtap_v <= "1.4" %?
 	name2 = user_string($name)
+%)
+	name_uaddr = $name
+	name_str = user_string($name)
 	value_uaddr = $value
 	size = $size
 	flags = $flags
-	argstr = sprintf("%d, %s, %p, %d, %p", filedes, user_string_quoted($name), value_uaddr, size, flags)
+	argstr = sprintf("%d, %s, %p, %d, %p", $fd, user_string_quoted($name), $value, $size, $flags)
 }
 probe syscall.fsetxattr.return = kernel.function("sys_fsetxattr").return
 {
@@ -1310,7 +1286,7 @@ probe syscall.futex = kernel.function("sys_futex").call ?
 	utime_uaddr = $utime
 	uaddr2_uaddr = $uaddr2
 	val3 = $val3
-	if (op == 0)
+	if ($op == 0)
 		argstr = sprintf("%p, %s, %d, %s", $uaddr, _futex_op_str($op),
 			$val, _struct_timespec_u($utime, 1))
 	else
@@ -1331,7 +1307,7 @@ probe syscall.compat_futex = kernel.function("compat_sys_futex").call ?
 	utime_uaddr = $utime
 	uaddr2_uaddr = $uaddr2
 	val3 = $val3
-	if (op == 0)
+	if ($op == 0)
 		argstr = sprintf("%p, %s, %d, %s", $uaddr, _futex_op_str($op),
 			$val, _struct_compat_timespec_u($utime, 1))
 	else
@@ -1870,8 +1846,11 @@ probe syscall.getxattr = kernel.function("sys_getxattr").call
 {
 	name = "getxattr"
 	path = user_string(@defined($pathname) ? $pathname : $path)
-	# FIXME
+# 'name2' should have been 'name_str'.  Deprecate the old name.
+%(systemtap_v <= "1.4" %?
 	name2 = user_string($name)
+%)
+	name_str = user_string($name)
 	value_uaddr = $value
 	size = $size
 	argstr = sprintf("%s, %s, %p, %d",
@@ -2274,8 +2253,11 @@ probe syscall.lgetxattr = kernel.function("sys_lgetxattr").call
 {
 	name = "lgetxattr"
 	path = user_string(@defined($pathname) ? $pathname : $path)
-	# FIXME
+# 'name2' should have been 'name_str'.  Deprecate the old name.
+%(systemtap_v <= "1.4" %?
 	name2 = user_string($name)
+%)
+	name_str = user_string($name)
 	value_uaddr = $value
 	size = $size
 	argstr = sprintf("%s, %s, %p, %d",
@@ -2436,7 +2418,11 @@ probe syscall.lremovexattr = kernel.function("sys_lremovexattr").call
 {
 	name = "lremovexattr"
 	name_uaddr = $name
+# 'name2' should have been 'name_str'.  Deprecate the old name.
+%(systemtap_v <= "1.4" %?
 	name2 = user_string($name)
+%)
+	name_str = user_string($name)
 	path_uaddr = (@defined($pathname) ? $pathname : $path)
 	path = user_string(@defined($pathname) ? $pathname : $path)
 	argstr = sprintf("%s, %s",
@@ -3010,6 +2996,9 @@ probe syscall.msgctl.return = kernel.function("sys_msgctl").return ?
 probe syscall.compat_sys_msgctl = kernel.function("compat_sys_msgctl").call ?
 {
 	name = "compat_sys_msgctl"
+	msqid = $first
+	cmd = $second
+	buf_uaddr = $uptr
 	argstr = sprintf("%d, %d, %p", $first, $second, $uptr)
 }
 probe syscall.compat_sys_msgctl.return = kernel.function("compat_sys_msgctl").return ?
@@ -3065,7 +3054,12 @@ probe syscall.msgrcv.return = kernel.function("sys_msgrcv").return ?
 probe syscall.compat_sys_msgrcv = kernel.function("compat_sys_msgrcv").call ?
 {
 	name = "compat_sys_msgrcv"
-	argstr = sprintf("%d, %d, %d, %p", $first, $second, $third, $uptr)
+	msqid = $first
+	msgp_uaddr = $uptr
+	msgsz = $second
+	msgtyp = $msgtyp
+	msgflg = $third
+	argstr = sprintf("%d, %p, %d, %d", $first, $uptr, $second, $third)
 }
 probe syscall.compat_sys_msgrcv.return = kernel.function("compat_sys_msgrcv").return ?
 {
@@ -3100,7 +3094,11 @@ probe syscall.msgsnd.return = kernel.function("sys_msgsnd").return ?
 probe syscall.compat_sys_msgsnd = kernel.function("compat_sys_msgsnd").call ?
 {
 	name = "compat_sys_msgsnd"
-	argstr = sprintf("%d, %d, %d, %p", $first, $second, $third, $uptr)
+	msqid = $first
+	msgp_uaddr = $uptr
+	msgsz = $second
+	msgflg = $third
+	argstr = sprintf("%d, %p, %d, %d", $first, $uptr, $second, $third)
 }
 probe syscall.compat_sys_msgsnd.return = kernel.function("compat_sys_msgsnd").return ?
 {

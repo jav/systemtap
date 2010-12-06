@@ -7,7 +7,7 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2007 Red Hat Inc.
+ * Copyright (C) 2007-2010 Red Hat Inc.
  */
 
 #include "staprun.h"
@@ -15,10 +15,11 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <assert.h>
-
+#include <string.h>
 
 /* variables needed by parse_args() */
 int verbose;
+int suppress_warnings;
 int target_pid;
 unsigned int buffer_size;
 char *target_cmd;
@@ -27,6 +28,7 @@ int attach_mod;
 int delete_mod;
 int load_only;
 int need_uprobes;
+const char *uprobes_path = NULL;
 int daemon_mode;
 off_t fsize_max;
 int fnum_max;
@@ -50,6 +52,8 @@ static char *get_abspath(char *path)
 	if (len + 2 + strlen(path) >= PATH_MAX)
 		return NULL;
 	path_buf[len] = '/';
+	/* Note that this strcpy() call is OK, since we checked
+	 * the length earlier to make sure the string would fit. */
 	strcpy(&path_buf[len + 1], path);
 	return path_buf;
 }
@@ -79,6 +83,9 @@ int make_outfile_name(char *buf, int max, int fnum, int cpu, time_t t, int bulk)
 	}
 	/* special case: for testing we sometimes want to write to /dev/null */
 	if (strcmp(outfile_name, "/dev/null") == 0) {
+		/* This strcpy() call is OK since we know that the
+		 * buffer is at least PATH_MAX bytes long at this
+		 * point. */
 		strcpy(buf, "/dev/null");
 	} else {
 		if (bulk) {
@@ -101,6 +108,7 @@ void parse_args(int argc, char **argv)
 
 	/* Initialize option variables. */
 	verbose = 0;
+	suppress_warnings = 0;
 	target_pid = 0;
 	buffer_size = 0;
 	target_cmd = NULL;
@@ -113,13 +121,18 @@ void parse_args(int argc, char **argv)
 	fsize_max = 0;
 	fnum_max = 0;
 
-	while ((c = getopt(argc, argv, "ALuvb:t:dc:o:x:S:D")) != EOF) {
+	while ((c = getopt(argc, argv, "ALu::vb:t:dc:o:x:S:Dw")) != EOF) {
 		switch (c) {
 		case 'u':
 			need_uprobes = 1;
+			if (optarg)
+			  uprobes_path = strdup (optarg);
 			break;
 		case 'v':
 			verbose++;
+			break;
+		case 'w':
+			suppress_warnings=1;
 			break;
 		case 'b':
 			buffer_size = (unsigned)atoi(optarg);
@@ -233,9 +246,11 @@ void parse_args(int argc, char **argv)
 
 void usage(char *prog)
 {
-	err("\n%s [-v]  [-c cmd ] [-x pid] [-u user] [-A|-L|-d]\n"
+	err("\n%s [-v] [-w] [-u] [-c cmd ] [-x pid] [-u user] [-A|-L|-d]\n"
                 "\t[-b bufsize] [-o FILE [-D] [-S size[,N]]] MODULE [module-options]\n", prog);
 	err("-v              Increase verbosity.\n");
+	err("-w              Suppress warnings.\n");
+	err("-u              Load uprobes.ko\n");
 	err("-c cmd          Command \'cmd\' will be run and staprun will\n");
 	err("                exit when it does.  The '_stp_target' variable\n");
 	err("                will contain the pid for the command.\n");
@@ -259,10 +274,17 @@ void usage(char *prog)
 	err("                assumed to be the maximum file size in MB.\n");
 	err("                When the number of output files reaches N, it\n");
 	err("                switches to the first output file. You can omit\n");
-	err("                the second argument.\n");
+	err("                the second argument.\n\n");
 	err("MODULE can be either a module name or a module path.  If a\n");
-	err("module name is used, it is looked for in the following\n");
-	err("directory: /lib/modules/`uname -r`/systemtap\n");
+	err("module name is used, it is searched in the following directory:\n");
+        {
+                struct utsname utsbuf;
+                int rc = uname (& utsbuf);
+                if (! rc)
+                        err("/lib/modules/%s/systemtap\n", utsbuf.release);
+                else
+                        err("/lib/modules/`uname -r`/systemtap\n");
+        }
 	exit(1);
 }
 
@@ -284,7 +306,7 @@ void usage(char *prog)
  */
 void parse_modpath(const char *inpath)
 {
-	const char *mptr = rindex(inpath, '/');
+	const char *mptr = strrchr(inpath, '/');
 	char *ptr;
 
 	dbug(3, "inpath=%s\n", inpath);
@@ -334,7 +356,7 @@ void parse_modpath(const char *inpath)
 
 			dbug(2, "modpath=\"%s\"\n", modpath);
 
-			mptr = rindex(modpath, '/');
+			mptr = strrchr(modpath, '/');
 			mptr++;
 		}
 	} else {
@@ -355,7 +377,7 @@ void parse_modpath(const char *inpath)
 		exit(1);
 	}
 
-	ptr = rindex(modname, '.');
+	ptr = strrchr(modname, '.');
 	if (ptr)
 		*ptr = '\0';
 
@@ -451,7 +473,7 @@ int send_request(int type, void *data, int len)
 	char buf[1024];
         int rc = 0;
 
-    STAP_PROBE3(stapio, send__ctlmsg, type, data, len);
+	PROBE3(stapio, send__ctlmsg, type, data, len);
 	/* Before doing memcpy, make sure 'buf' is big enough. */
 	if ((len + 4) > (int)sizeof(buf)) {
 		_err("exceeded maximum send_request size.\n");

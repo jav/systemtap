@@ -1,7 +1,7 @@
 /* -*- linux-c -*- 
  * transport_msgs.h - messages exchanged between module and userspace
  *
- * Copyright (C) Red Hat Inc, 2006-2008
+ * Copyright (C) Red Hat Inc, 2006-2010
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -9,8 +9,9 @@
  * later version.
  */
 
-#define STP_MODULE_NAME_LEN 64
-#define STP_SYMBOL_NAME_LEN 64
+#define STP_MODULE_NAME_LEN 128
+#define STP_SYMBOL_NAME_LEN 128
+#define STP_TZ_NAME_LEN 64
 
 struct _stp_trace {
 	uint32_t sequence;	/* event number */
@@ -35,6 +36,7 @@ enum
 	STP_SUBBUFS_CONSUMED,
 	STP_REALTIME_DATA,
 	STP_REQUEST_EXIT,
+        STP_TZINFO,
 	STP_MAX_CMD
 };
 
@@ -54,6 +56,7 @@ static const char *_stp_command_name[] = {
 	"STP_SUBBUFS_CONSUMED",
 	"STP_REALTIME_DATA",
 	"STP_REQUEST_EXIT",
+	"STP_TZINFO",
 };
 #endif /* DEBUG_TRANS */
 
@@ -105,4 +108,10 @@ struct _stp_msg_relocation
 	char module[STP_MODULE_NAME_LEN];
 	char reloc[STP_SYMBOL_NAME_LEN];
 	uint64_t address;
+};
+
+struct _stp_msg_tzinfo 
+{
+        int64_t tz_gmtoff;
+        char tz_name[STP_TZ_NAME_LEN];
 };

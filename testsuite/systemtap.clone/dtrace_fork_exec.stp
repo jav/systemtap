@@ -1,0 +1,38 @@
+global output_string
+
+# Parent probes
+probe process(@1).mark("main")
+{
+	output_string .= sprintf("parent - pid: %d\n", $arg1)
+}
+probe process(@1).mark("child")
+{
+	output_string .= sprintf("parent - child pid before exec: %d\n", $arg1)
+}
+probe process(@1).mark("child_pid")
+{
+	output_string .= sprintf("parent - child pid: %d\n", $arg1)
+}
+probe process(@1).mark("finished")
+{
+	output_string .= sprintf("parent - finished\n")
+	exit()
+}
+
+# Child probes
+probe process(@2).mark("main")
+{
+	output_string .= sprintf("child - pid: %d\n", $arg1)
+}
+
+# Testsuite glue
+probe begin
+{
+	printf("systemtap starting probe\n");
+}
+
+probe end
+{
+	printf("systemtap ending probe\n");
+	printf("%s", output_string);
+}

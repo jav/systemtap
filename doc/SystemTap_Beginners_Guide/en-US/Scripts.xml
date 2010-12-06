@@ -7,11 +7,11 @@
 <indexterm>
 <primary>scripts</primary>
 <secondary>introduction</secondary>
-</indexterm>	
+</indexterm>
  <indexterm>
 <primary>SystemTap scripts</primary>
 <secondary>introduction</secondary>
-</indexterm> 
+</indexterm>
 
 
 
@@ -81,7 +81,7 @@
       An event and its corresponding handler is collectively called a
       <emphasis>probe</emphasis>. A SystemTap script can have multiple probes.
     </para>
-	
+
     <para>
       A probe's handler is commonly referred to as a <emphasis>probe
       body</emphasis>.
@@ -95,16 +95,16 @@
     to view a history of commands executed once the program is run.
   </para>
 <!--	<para>
-		In terms of application development, using events and handlers is similar to inserting <command>print</command> statements in a program's sequence of commands. These <command>print</command> statements allow you to view a history of commands executed once the program is run. 
+		In terms of application development, using events and handlers is similar to inserting <command>print</command> statements in a program's sequence of commands. These <command>print</command> statements allow you to view a history of commands executed once the program is run.
 	</para>	-->
-	
+
   <para>
     SystemTap scripts allow insertion of the instrumentation code without
     recompilation of the code and allows more flexibility with regard to
     handlers. Events serve as the triggers for handlers to run; handlers can be
     specified to record specified data and print it in a certain manner.
   </para>
-	
+
   <formalpara id="scriptformats">
     <title>Format</title>
 <indexterm>
@@ -131,10 +131,8 @@
       SystemTap scripts use the file extension <filename>.stp</filename>, and
       contains probes written in the following format:
     </para>
-  </formalpara>	
-<screen>
-probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}
-</screen>
+  </formalpara>
+<screen>probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}</screen>
 
   <para>
     SystemTap supports multiple events per probe; multiple events are delimited
@@ -146,7 +144,7 @@ probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}
 <primary>scripts</primary>
 <secondary>introduction</secondary>
 <tertiary>statement blocks</tertiary>
-</indexterm>  
+</indexterm>
 <indexterm>
 <primary>SystemTap scripts</primary>
 <secondary>introduction</secondary>
@@ -158,19 +156,19 @@ probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}
 <tertiary>introduction</tertiary>
 </indexterm>
   <para>
-	Each probe has a corresponding <firstterm>statement block</firstterm>. This statement block is 
-	enclosed in braces (<command>{ }</command>) and contains the statements to be executed per event. 
-	SystemTap executes these statements in sequence; special separators or 
+	Each probe has a corresponding <firstterm>statement block</firstterm>. This statement block is
+	enclosed in braces (<command>{ }</command>) and contains the statements to be executed per event.
+	SystemTap executes these statements in sequence; special separators or
 	terminators are generally not necessary between multiple statements.
   </para>
 
 <note>
 	<title>Note</title>
 	<para>
-		Statement blocks in SystemTap scripts follow the same syntax and semantics as the C 
+		Statement blocks in SystemTap scripts follow the same syntax and semantics as the C
 		programming language. A statement block can be nested within another statement block.
   	</para>
-</note>	
+</note>
 <indexterm>
 <primary>scripts</primary>
 <secondary>introduction</secondary>
@@ -188,15 +186,13 @@ probe	<replaceable>event</replaceable> {<replaceable>statements</replaceable>}
 </indexterm>
   <para>
     Systemtap allows you to write functions to factor out code to be used by a
-    number of probes. Thus, rather than repeatedly writing the same 
+    number of probes. Thus, rather than repeatedly writing the same
     series of statements in multiple probes, you can just place the instructions
     in a <firstterm>function</firstterm>, as in:
   </para>
 
-<screen>
-function <replaceable>function_name</replaceable>(<replaceable>arguments</replaceable>) {<replaceable>statements</replaceable>}
-probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>(<replaceable>arguments</replaceable>)}
-</screen>
+<screen>function <replaceable>function_name</replaceable>(<replaceable>arguments</replaceable>) {<replaceable>statements</replaceable>}
+probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>(<replaceable>arguments</replaceable>)}</screen>
 
   <para>
     The <command><replaceable>statements</replaceable></command> in
@@ -207,7 +203,7 @@ probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>
   </para>
 
 <!--
-	<para>The <replaceable>exit()</replaceable> condition is optional; this condition safely terminates the session once the script successfully collects the required information the first time.</para>	
+	<para>The <replaceable>exit()</replaceable> condition is optional; this condition safely terminates the session once the script successfully collects the required information the first time.</para>
 	-->
   <important>
     <title>Important</title>
@@ -225,7 +221,7 @@ probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>
 <indexterm>
 <primary>Events</primary>
 <secondary>introduction</secondary>
-</indexterm>	
+</indexterm>
     <para>
       SystemTap events can be broadly classified into two types:
       <firstterm>synchronous</firstterm> and
@@ -285,13 +281,13 @@ probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>
 	    <replaceable>system_call</replaceable>. If the exit from a syscall
 	    is desired, appending a <command>.return</command> to the event
 	    monitor the exit of the system call instead. For example, to specify
-	    the entry and exit of the system call <command>close</command>, use 
+	    the entry and exit of the system call <command>close</command>, use
 	    <command>syscall.close</command> and
 	    <command>syscall.close.return</command> respectively.
 	  </para>
-	</listitem>	
+	</listitem>
 </varlistentry>
-	
+
 <varlistentry>
 	<term>vfs.<replaceable>file_operation</replaceable></term>
 	<listitem>
@@ -311,9 +307,9 @@ probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>
 	    event, appending a <command>.return</command> to the event monitors
 	    the exit of the <replaceable>file_operation</replaceable> operation.
 	  </para>
-	</listitem>	
+	</listitem>
 </varlistentry>
-	
+
 <varlistentry>
 	<term>kernel.function("<replaceable>function</replaceable>")</term>
 	<listitem>
@@ -356,10 +352,8 @@ probe <replaceable>event</replaceable> {<replaceable>function_name</replaceable>
 
 <example id="wildcards">
 <title>wildcards.stp</title>
-<programlisting>
-probe kernel.function("*@net/socket.c") { }
-probe kernel.function("*@net/socket.c").return { }
-</programlisting>	
+<programlisting>probe kernel.function("*@net/socket.c") { }
+probe kernel.function("*@net/socket.c").return { }</programlisting>
 </example>
 
 	  <remark>Wild cards also work for other types of events, e.g. syscall.*</remark>
@@ -368,7 +362,7 @@ probe kernel.function("*@net/socket.c").return { }
 	    In the previous example, the first probe's event specifies the entry
 	    of ALL functions in the kernel source file
 	    <filename>net/socket.c</filename>. The second probe specifies the
-	    exit of all those functions. Note that in this example, 
+	    exit of all those functions. Note that in this example,
 	    there are no statements in the handler;
 	    as such, no information will be collected or displayed.
 	  </para>
@@ -415,14 +409,12 @@ probe kernel.function("*@net/socket.c").return { }
 <secondary>Events</secondary>
 </indexterm>
 	  <para>Allows you to probe functions within modules. For example:</para>
-		
+
 <example id="eventsmodules"><title>moduleprobe.stp</title>
-<programlisting>
-probe module("ext3").function("*") { }
-probe module("ext3").function("*").return { }
-</programlisting>	
+<programlisting>probe module("ext3").function("*") { }
+probe module("ext3").function("*").return { }</programlisting>
 </example>
-		
+
 		<para>
 			The first probe in <xref linkend="eventsmodules"/>
 		points to the entry of <emphasis>all</emphasis> functions for
@@ -434,11 +426,11 @@ probe module("ext3").function("*").return { }
 		in the probe handlers, and as such will not print any useful
 		data (as in <xref linkend="wildcards"/>).
 	        </para>
-		
+
 		<para>
-			A system's kernel modules are typically located in <filename>/lib/modules/<replaceable>kernel_version</replaceable></filename>, where <replaceable>kernel_version</replaceable> refers to the currently loaded kernel version. Modules use the file name extension <filename>.ko</filename>. 
-		</para>	
-		
+			A system's kernel modules are typically located in <filename>/lib/modules/<replaceable>kernel_version</replaceable></filename>, where <replaceable>kernel_version</replaceable> refers to the currently loaded kernel version. Modules use the file name extension <filename>.ko</filename>.
+		</para>
+
 	</listitem>
       </varlistentry>
     </variablelist>
@@ -478,13 +470,13 @@ probe module("ext3").function("*").return { }
 <indexterm>
 <primary><command>begin</command></primary>
 <secondary>Events</secondary>
-</indexterm>		
+</indexterm>
 	  <para>
 	    The startup of a SystemTap session; i.e. as soon as the SystemTap
 	    script is run.
 	  </para>
-	</listitem>	
-      </varlistentry>	
+	</listitem>
+      </varlistentry>
 
       <varlistentry>
 	<term>end</term>
@@ -499,7 +491,7 @@ probe module("ext3").function("*").return { }
 <secondary>Events</secondary>
 </indexterm>
 	  <para>The end of a SystemTap session.</para>
-	</listitem>	
+	</listitem>
       </varlistentry>
       <varlistentry>
 	<term>timer events</term>
@@ -518,14 +510,12 @@ probe module("ext3").function("*").return { }
 	    An event that specifies a handler to be executed periodically.
 	    For example:
 	  </para>
-		
+
 <example id="timer"><title>timer-s.stp</title>
-<programlisting>
-probe timer.s(4)
+<programlisting>probe timer.s(4)
 {
   printf("hello world\n")
-}
-</programlisting>
+}</programlisting>
 </example>
 
 	  <para>
@@ -533,7 +523,7 @@ probe timer.s(4)
 	    <command>hello world</command> every 4 seconds. Note that you can
 	    also use the following timer events:
 	  </para>
-	
+
 <itemizedlist>
 <listitem><para><command>timer.ms(<replaceable>milliseconds</replaceable>)</command></para></listitem>
 
@@ -569,7 +559,7 @@ probe timer.s(4)
       </para>
     </important>
 
-<remark>is reference appropriate? too advanced for readers (it seems so to me)? please advise.</remark> 
+<remark>is reference appropriate? too advanced for readers (it seems so to me)? please advise.</remark>
 
   </section>
 <!-- stophere -->
@@ -580,31 +570,29 @@ probe timer.s(4)
 		<secondary>introduction</secondary>
 	</indexterm>
 	<para> Consider the following sample script: </para>
-	
+
 <example id="helloworld"><title>helloworld.stp</title>
-<programlisting>
-probe begin
+<programlisting>probe begin
 {
   printf ("hello world\n")
   exit ()
-}
-</programlisting>	
+}</programlisting>
 </example>
-	
+
 	<para>
 		In <xref linkend="helloworld"/>, the event <command>begin</command>
 		(i.e. the start of the session) triggers the handler enclosed in
 		<command>{ }</command>, which simply prints <command>hello
 			world</command> followed by a new-line, then exits.
-	</para>	
-	
+	</para>
+
 	<note>
 		<title>Note</title>
 		<indexterm>
 			<primary>functions (used in handlers)</primary>
 			<secondary><command>exit()</command></secondary>
 		</indexterm>
-		
+
 		<indexterm>
 			<primary><command>exit()</command></primary>
 			<secondary>functions</secondary>
@@ -616,14 +604,14 @@ probe begin
 			<keycombo><keycap>Ctrl</keycap><keycap>C</keycap></keycombo>.
 		</para>
 	</note>
-	
+
 	<formalpara id="printf">
 		<title>printf ( ) Statements</title>
 		<indexterm>
 			<primary><command>printf()</command></primary>
 			<secondary>format strings</secondary>
 		</indexterm>
-		
+
 		<para>
 			The <command>printf ()</command> statement is one of the simplest
 			functions for printing data. <command>printf ()</command> can also be
@@ -631,16 +619,15 @@ probe begin
 			following format:
 		</para>
 	</formalpara>
-	
-	
-	<programlisting>
-		printf ("<replaceable>format string</replaceable>\n", <replaceable>arguments</replaceable>)
+
+
+	<programlisting>		printf ("<replaceable>format string</replaceable>\n", <replaceable>arguments</replaceable>)
 	</programlisting>
 	<indexterm>
 		<primary><command>printf()</command></primary>
 		<secondary>format strings</secondary>
 	</indexterm>
-	
+
 	<indexterm>
 		<primary>format strings</primary>
 		<secondary><command>printf()</command></secondary>
@@ -655,7 +642,7 @@ probe begin
 		<primary><command>printf()</command></primary>
 		<secondary>format specifiers</secondary>
 	</indexterm>
-	
+
 	<indexterm>
 		<primary>format specifiers</primary>
 		<secondary><command>printf()</command></secondary>
@@ -667,14 +654,14 @@ probe begin
 		specifiers, each matching a corresponding argument; multiple arguments
 		are delimited by a comma (<command>,</command>).
 	</para>
-	
+
 	<note>
 		<title>Note</title>
 		<indexterm>
 			<primary><command>printf()</command></primary>
 			<secondary>syntax and format</secondary>
 		</indexterm>
-		
+
 		<indexterm>
 			<primary>syntax and format</primary>
 			<secondary><command>printf()</command></secondary>
@@ -689,19 +676,17 @@ probe begin
 			identical to that of the C-style <command>printf</command>.
 		</para>
 	</note>
-	
+
 	<para> To illustrate this, consider the following probe example: </para>
-	
+
 <example id="syscall-open">
 <title>variables-in-printf-statements.stp</title>
-<programlisting>
-probe syscall.open
+<programlisting>probe syscall.open
 {
   printf ("%s(%d) open\n", execname(), pid())
-}
-</programlisting>
+}</programlisting>
 </example>
-	
+
 	<para>
 		<xref linkend="syscall-open"/> instructs SystemTap to probe all entries to
 		the system call <command>open</command>; for each event, it prints the
@@ -709,36 +694,34 @@ probe syscall.open
 		<command>pid()</command> (the current process ID number), followed by the word
 		<command>open</command>. A snippet of this probe's output would look like:
 	</para>
-	
+
 	<remark>editorial review: does a clarification that "format specifier1" is
 		to "argument1", "format specifier2" is to "argument2", or is this clear
 		enough? </remark>
-	
-<screen>
-vmware-guestd(2206) open
+
+<screen>vmware-guestd(2206) open
 hald(2360) open
 hald(2360) open
 hald(2360) open
 df(3433) open
 df(3433) open
 df(3433) open
-hald(2360) open
-</screen>
-	
+hald(2360) open</screen>
+
 	<formalpara id="systemtapscript-functions">
 		<title>SystemTap Functions</title>
 		<indexterm>
 			<primary>functions</primary>
 		</indexterm>
-		
+
 		<indexterm>
 			<primary>SystemTap script functions</primary>
 		</indexterm>
-		
+
 		<indexterm>
 			<primary>handler functions</primary>
 		</indexterm>
-		
+
 		<para>
 			SystemTap supports a wide variety of functions that can be used as
 			<command>printf ()</command> arguments. <xref linkend="syscall-open"/>
@@ -746,13 +729,13 @@ hald(2360) open
 			process that called a kernel function/performed a system call) and
 			<command>pid()</command> (current process ID).
 		</para>
-	</formalpara>		
-	
+	</formalpara>
+
 	<remark>is "handler function" an appropriate term? wcohen: use "SystemTap functions" to match up language in man pages</remark>
-	
-	<para>The following is a list of commonly-used SystemTap functions:</para>	
+
+	<para>The following is a list of commonly-used SystemTap functions:</para>
 	<variablelist>
-		
+
 		<varlistentry>
 			<term>tid()</term>
 			<listitem>
@@ -761,23 +744,23 @@ hald(2360) open
 					<secondary><command>tid()</command></secondary>
 <!-- 					<tertiary><command>tid()</command></tertiary> -->
 				</indexterm>
-				
+
 				<indexterm>
 					<primary>functions</primary>
 					<secondary><command>tid()</command></secondary>
 <!-- 					<tertiary></tertiary> -->
 				</indexterm>
-				
+
 				<indexterm>
 					<primary><command>tid()</command></primary>
 					<secondary>functions</secondary>
 <!-- 					<tertiary>handler </tertiary> -->
 				</indexterm>
-				
+
 				<para>The ID of the current thread.</para>
-			</listitem>	
-		</varlistentry>	
-		
+			</listitem>
+		</varlistentry>
+
 		<varlistentry>
 			<term>uid()</term>
 			<listitem>
@@ -786,7 +769,7 @@ hald(2360) open
 					<!--<secondary>handler functions</secondary>-->
 					<secondary><command>uid()</command></secondary>
 				</indexterm>
-<!--				
+<!--
 				<indexterm>
 					<primary>handler functions</primary>
 					<secondary>Handlers</secondary>
@@ -799,9 +782,9 @@ hald(2360) open
 <!-- 					<tertiary>handler functions</tertiary> -->
 				</indexterm>
 				<para>The ID of the current user.</para>
-			</listitem>	
+			</listitem>
 		</varlistentry>
-		
+
 		<varlistentry>
 			<term>cpu()</term>
 			<listitem>
@@ -810,7 +793,7 @@ hald(2360) open
 					<!--<secondary>handler functions</secondary>-->
 					<secondary><command>cpu()</command></secondary>
 				</indexterm>
-<!--				
+<!--
 				<indexterm>
 					<primary>handler functions</primary>
 					<secondary>Handlers</secondary>
@@ -821,11 +804,11 @@ hald(2360) open
 					<primary><command>cpu()</command></primary>
 					<secondary>functions</secondary>
 <!-- 					<tertiary>handler functions</tertiary> -->
-				</indexterm>		
+				</indexterm>
 				<para>The current CPU number.</para>
-			</listitem>	
+			</listitem>
 		</varlistentry>
-		
+
 		<varlistentry>
 			<term>gettimeofday_s()</term>
 			<listitem>
@@ -834,7 +817,7 @@ hald(2360) open
 					<!--<secondary>handler functions</secondary>-->
 					<secondary><command>gettimeofday_s()</command></secondary>
 				</indexterm>
-<!--				
+<!--
 				<indexterm>
 					<primary>handler functions</primary>
 					<secondary>Handlers</secondary>
@@ -846,11 +829,11 @@ hald(2360) open
 					<secondary>functions</secondary>
 <!-- 					<tertiary>handler functions</tertiary> -->
 				</indexterm>
-				
+
 				<para>The number of seconds since UNIX epoch (January 1, 1970).</para>
-			</listitem>	
+			</listitem>
 		</varlistentry>
-		
+
 		<varlistentry>
 			<term>ctime()</term>
 			<listitem>
@@ -859,7 +842,7 @@ hald(2360) open
 					<!--<secondary>handler functions</secondary>-->
 					<secondary><command>ctime()</command></secondary>
 				</indexterm>
-<!--				
+<!--
 				<indexterm>
 					<primary>handler functions</primary>
 					<secondary>Handlers</secondary>
@@ -870,22 +853,22 @@ hald(2360) open
 					<primary><command>ctime()</command></primary>
 					<secondary>functions</secondary>
 <!-- 					<tertiary>handler functions</tertiary> -->
-				</indexterm>				
+				</indexterm>
 				<para>
 					Convert number of seconds since UNIX epoch to date.
 				</para>
-			</listitem>	
+			</listitem>
 		</varlistentry>
-		
+
 		<!--
 		    <varlistentry>
 			    <term>get_cycles()</term>
 			    <listitem>
 				    <para>A snapshot of the hardware cycle counter.</para>
-			    </listitem>	
+			    </listitem>
 		    </varlistentry>
 		    -->
-		    
+
 		    <varlistentry>
 			    <term>pp()</term>
 			    <listitem>
@@ -894,7 +877,7 @@ hald(2360) open
 					    <!--<secondary>handler functions</secondary>-->
 					    <secondary><command>pp()</command></secondary>
 				    </indexterm>
-<!--				    
+<!--
 				    <indexterm>
 					    <primary>handler functions</primary>
 					    <secondary>Handlers</secondary>
@@ -907,17 +890,17 @@ hald(2360) open
 <!-- 					    <tertiary>handler functions</tertiary> -->
 				    </indexterm>
 				    <para>A string describing the probe point currently being handled.</para>
-			    </listitem>	
+			    </listitem>
 		    </varlistentry>
 		    <!-- removed, doesnt work as expected anymore
 			 <varlistentry>
 				 <term>probefunc()</term>
 				 <listitem>
 					 <para>If known, the name of the function in which the probe was placed.</para>
-				 </listitem>	
+				 </listitem>
 			 </varlistentry>
 			 -->
-			 
+
 			 <varlistentry>
 				 <term>thread_indent()</term>
 				 <listitem>
@@ -926,7 +909,7 @@ hald(2360) open
 						 <!--<secondary>handler functions</secondary>-->
 						 <secondary><command>thread_indent()</command></secondary>
 					 </indexterm>
-<!--					 
+<!--
 					 <indexterm>
 						 <primary>handler functions</primary>
 						 <secondary>Handlers</secondary>
@@ -947,16 +930,16 @@ hald(2360) open
 						 string with some generic trace data along with an appropriate number
 						 of indentation spaces.
 					 </para>
-					 
+
 					 <para>
 						 The generic data included in the returned string includes a
-						 timestamp (number of microseconds since the 
+						 timestamp (number of microseconds since the
 						 first call to <command>thread_indent()</command> by the thread),
 						 a process name, and the thread ID. This allows you to
 						 identify what functions were called, who called them, and the
 						 duration of each function call.
-					 </para>	
-					 
+					 </para>
+
 					 <para>
 						 If call entries and exits immediately precede each other, it is easy
 						 to match them. However, in most cases, after a first function call
@@ -965,32 +948,29 @@ hald(2360) open
 						 an entry with its corresponding exit by indenting the next function
 						 call if it is not the exit of the previous one.
 					 </para>
-					 
+
 					 <para>
 						 Consider the following example on the use of
 						 <command>thread_indent()</command>:
 					 </para>
-					 
+
 <example id="thread_indent"><title>thread_indent.stp</title>
-<programlisting>
-probe kernel.function("*@net/socket.c") 
+<programlisting>probe kernel.function("*@net/socket.c")
 {
   printf ("%s -> %s\n", thread_indent(1), probefunc())
 }
-probe kernel.function("*@net/socket.c").return 
+probe kernel.function("*@net/socket.c").return
 {
   printf ("%s &lt;- %s\n", thread_indent(-1), probefunc())
-}
-</programlisting>
+}</programlisting>
 </example>
-					 
+
 					 <para>
 						 <xref linkend="thread_indent"/> prints out the
 						 <command>thread_indent()</command> and probe functions at each event
 						 in the following format:</para>
-					 
-<screen>
-0 ftp(7223): -&gt; sys_socketcall
+
+<screen>0 ftp(7223): -&gt; sys_socketcall
 1159 ftp(7223):  -&gt; sys_socket
 2173 ftp(7223):   -&gt; __sock_create
 2286 ftp(7223):    -&gt; sock_alloc_inode
@@ -1005,27 +985,26 @@ probe kernel.function("*@net/socket.c").return
 4699 ftp(7223):    &lt;- sock_map_file
 4715 ftp(7223):   &lt;- sock_map_fd
 4732 ftp(7223):  &lt;- sys_socket
-4775 ftp(7223): &lt;- sys_socketcall
-</screen>
-					 
+4775 ftp(7223): &lt;- sys_socketcall</screen>
+
 					 <para>This sample output contains the following information:</para>
-					 
+
 					 <itemizedlist>
-						 <listitem><para>The time (in microseconds) since the initial <command>thread_ident()</command> call for the thread (included in the string from <command>thread_ident()</command>).</para></listitem>
-						 
-						 <listitem><para>The process name (and its corresponding ID) that made the function call (included in the string from <command>thread_ident()</command>).</para></listitem>
-						 
+						 <listitem><para>The time (in microseconds) since the initial <command>thread_indent()</command> call for the thread (included in the string from <command>thread_indent()</command>).</para></listitem>
+
+						 <listitem><para>The process name (and its corresponding ID) that made the function call (included in the string from <command>thread_indent()</command>).</para></listitem>
+
 						 <listitem><para>An arrow signifying whether the call was an entry (<computeroutput>&lt;-</computeroutput>) or an exit (<computeroutput>-></computeroutput>); the indentations help you match specific function call entries with their corresponding exits.</para></listitem>
-						 
+
 						 <listitem><para>The name of the function called by the process.</para></listitem>
-					 </itemizedlist>	
-					 
+					 </itemizedlist>
+
 					 <remark>remember to add a reference later to "tapsets" from here, to clarify
 						 that thread_indent is defined in tapsets as a special function of sorts</remark>
-					 
-				 </listitem>	
+
+				 </listitem>
 			 </varlistentry>
-			 
+
 			 <varlistentry>
 				 <term>name</term>
 				 <listitem>
@@ -1042,19 +1021,19 @@ probe kernel.function("*@net/socket.c").return
 <indexterm>
 <primary>name</primary>
 <secondary>local variables</secondary>
-</indexterm>					 
+</indexterm>
 <!--					 <indexterm>
 						 <primary>functions</primary>
 						 <secondary>handler functions</secondary>
 						 <tertiary><command>name</command></tertiary>
 					 </indexterm>
-					 
+
 					 <indexterm>
 						 <primary>handler functions</primary>
 						 <secondary>Handlers</secondary>
 						 <tertiary><command>name</command></tertiary>
 					 </indexterm>
-					 
+
 					 <indexterm>
 						 <primary><command>name</command></primary>
 						 <secondary>Handlers</secondary>
@@ -1064,19 +1043,19 @@ probe kernel.function("*@net/socket.c").return
 						 only be used in probes that use the event
 						 <command>syscall.<replaceable>system_call</replaceable></command>.
 					 </para>
-				 </listitem>	
+				 </listitem>
 			 </varlistentry>
-			 
+
 			 <varlistentry>
 				 <term>target()</term>
 				 <listitem>
-					 
+
 					 <indexterm>
 						 <primary>functions</primary>
 <!-- 						 <secondary>handler functions</secondary> -->
 						 <secondary><command>target()</command></secondary>
 					 </indexterm>
-<!--					 
+<!--
 					 <indexterm>
 						 <primary>handler functions</primary>
 						 <secondary>Handlers</secondary>
@@ -1098,17 +1077,15 @@ probe kernel.function("*@net/socket.c").return
 						 <command>target()</command> as the variable in the script to refer
 						 to it. For example:
 					 </para>
-					 
+
 <example id="targetexample">
 <title>targetexample.stp</title>
-<programlisting>
-probe syscall.* {
+<programlisting>probe syscall.* {
   if (pid() == target())
     printf("%s/n", name)
-}	
-</programlisting>
+}	</programlisting>
 </example>
-					 
+
 					 <para>
 						 When <xref linkend="targetexample"/> is run with the argument
 						 <command>-x <replaceable>process ID</replaceable></command>, it
@@ -1116,7 +1093,7 @@ probe syscall.* {
 						 <command>syscall.*</command>) and prints out the name of all system
 						 calls made by the specified process.
 					 </para>
-					 
+
 					 <para>
 						 This has the same effect as specifying <command>if (pid() ==
 							 <replaceable>process ID</replaceable>)</command> each time you wish
@@ -1126,46 +1103,46 @@ probe syscall.* {
 						 argument each time you wish to run the script (e.g. <command>stap
 							 targetexample.stp -x <replaceable>process ID</replaceable></command>).
 					 </para>
-					 <!--		
+					 <!--
 							<note>
 								<title>Note</title>
 								<para>In <xref linkend="targetexample"/>, <command>name</command> instructs SystemTap to capture the name of the process</para>
 							</note>	-->
-							
+
 						</listitem>
 					</varlistentry>
-					
-					<!--	
+
+					<!--
 						<varlistentry>
 							<term></term>
 							<listitem>
 								<para></para>
-							</listitem>	
+							</listitem>
 						</varlistentry>
-						-->	
-					</variablelist>		
-					
+						-->
+					</variablelist>
+
 					<para>For more information about supported SystemTap functions, refer to
 						<command>man stapfuncs</command>.
 					</para>
-					
+
 					<remark>will need a complete listing of supported handler functions? also, SystemTap function descriptions seem ambiguous, please advise.</remark>
-					
-					<!--	
+
+					<!--
 						<para>
-							<replaceable>variable</replaceable> can be either <command>%s</command> for strings, or <command>%d</command> for numbers, depending on the <replaceable>handler function</replaceable> used. Each <command>printf ()</command> statement can contain multiple <replaceable>variable</replaceable>s, with each one corresponding to a matching <replaceable>handler function</replaceable>. Multiple <replaceable>handler function</replaceable>s are delimited by comma (<command>,</command>). 
-						</para>	
-						
+							<replaceable>variable</replaceable> can be either <command>%s</command> for strings, or <command>%d</command> for numbers, depending on the <replaceable>handler function</replaceable> used. Each <command>printf ()</command> statement can contain multiple <replaceable>variable</replaceable>s, with each one corresponding to a matching <replaceable>handler function</replaceable>. Multiple <replaceable>handler function</replaceable>s are delimited by comma (<command>,</command>).
+						</para>
+
 						<command>printf ()</command> is a SystemTap-supported C statement, and can also trap data using a wide variety
-						
-						SystemTap supports a wide variety of handler functions that can trap data when triggered by events. One way to display these functions is to use the <command>print()</command>   
-					</para>	
-					
-					
+
+						SystemTap supports a wide variety of handler functions that can trap data when triggered by events. One way to display these functions is to use the <command>print()</command>
+					</para>
+
+
 					<para>
-						<xref linkend="wildcards"/> illustrates an example of a SystemTap script that contains no handlers. SystemTap will still be able to run the script, but no information will be displayed. 	
+						<xref linkend="wildcards"/> illustrates an example of a SystemTap script that contains no handlers. SystemTap will still be able to run the script, but no information will be displayed.
 					</para>
 					-->
-					
+
   </section>
 </section>

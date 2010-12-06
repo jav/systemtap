@@ -18,8 +18,8 @@
 <indexterm>
 <primary>tallying function calls</primary>
 <secondary>examples of SystemTap scripts</secondary>
-</indexterm>		
-		
+</indexterm>
+
 
 <indexterm>
 <primary>counting function calls</primary>
@@ -35,22 +35,20 @@
 <remark>
 	WAR STORY: Function call count http://sourceware.org/systemtap/wiki/WSFunctionCallCount?highlight=((WarStories))
 </remark>
-		
+
 <remark>
 no script in examples
-</remark>	
-				
-		
+</remark>
+
+
 	<para>This section describes how to identify how many times the system called a specific kernel function in a 30-second sample. Depending on your use of wildcards, you can also use this script to target multiple kernel functions.</para>
-	
+
 <formalpara id="countcalls">
 	<title>functioncallcount.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/profiling/functioncallcount.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/profiling/functioncallcount.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
-</formalpara>		
+</formalpara>
 
 <para><xref linkend="countcalls"/> takes the targeted kernel function as an argument. The argument supports wildcards, which enables you to target multiple kernel functions up to a certain extent.</para>
 <indexterm>
@@ -68,13 +66,12 @@ no script in examples
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
 
-<para>You can increase the sample time by editing the timer in the second probe (<command>timer.ms()</command>). The output of <xref linkend="countcalls"/> contains the name of the function called and how many times it was called during the sample time (in alphabetical order). <xref linkend="countcallsoutput"/> contains an excerpt from the output of <command>stap countcalls.stp "*@mm/*.c"</command>:</para>
-	
+<para>The output of <xref linkend="countcalls"/> contains the name of the function called and how many times it was called during the sample time (in alphabetical order). <xref linkend="countcallsoutput"/> contains an excerpt from the output of <command>stap functioncallcount.stp "*@mm/*.c"</command>:</para>
+
 
 <example id="countcallsoutput">
 	<title><xref linkend="countcalls"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
 __vma_link 97
 __vma_link_file 66
 __vma_link_list 97
@@ -101,13 +98,12 @@ atomic_add_negative 97
 atomic_dec_and_test 5153
 atomic_inc 470
 atomic_inc_and_test 1
-[...]
-</screen>
+[...]</screen>
 </example>
 <!--probe kernel.function(@1) {  # probe function passed as argument from stdin
 called[probefunc()] &lt;&lt;&lt; 1  # add a count efficiently
 }
-global called          
+global called
 probe end,timer.ms(30000) {
 foreach (fn+ in called)  # Sort by function name
 #       (fn in called-)  # Sort by call count (in decreasing order)

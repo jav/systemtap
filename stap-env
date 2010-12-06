@@ -26,18 +26,13 @@ stap_tmpdir_prefix_server=stap.server
 stap_avahi_service_tag=_stap._tcp
 
 # NSS certificate databases
-stap_root_ssl_db=$stap_sysconfdir/systemtap/ssl
+ssl_global_ssl_db=$stap_sysconfdir/systemtap/ssl
 if test "X$SYSTEMTAP_DIR" = "X"; then
     stap_user_ssl_db=$HOME/.systemtap/ssl
 else
     stap_user_ssl_db=$SYSTEMTAP_DIR/ssl
 fi
-
-if test $EUID = 0; then
-    stap_ssl_db=$stap_root_ssl_db
-else
-    stap_ssl_db=$stap_user_ssl_db
-fi
+stap_ssl_db=$stap_user_ssl_db
 
 stap_signing_db=$stap_sysconfdir/systemtap/staprun
 stap_certfile=stap.cert
@@ -46,19 +41,21 @@ function stap_get_arch {
   # PR4186: Copy logic from coreutils uname (uname -i) to squash
   # i?86->i386.  Actually, copy logic from linux top-level Makefile
   # to squash uname -m -> $(SUBARCH).
+  #
+  # This logic needs to match the logic in the systemtap_session
+  # constructor in session.cxx.
 
   local machine=`uname -m`
   case $machine in
       i?86) machine="i386" ;;
-      x86_64) machine="x86_64" ;;
-      sun) machine="sparc64" ;;
+      sun4u) machine="sparc64" ;;
       arm*) machine="arm" ;;
       sa1*) machine="arm" ;;
       s390*) machine="s390" ;;
       ppc*) machine="powerpc" ;;
-      mip*) machine="mips" ;;
+      mips*) machine="mips" ;;
       sh?) machine="sh" ;;
-      *)   echo "unknown machine $machine" 1>&1; exit 1 ;; 
+      # the default is to just use the output of 'uname -m'
   esac
 
   echo $machine

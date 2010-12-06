@@ -207,7 +207,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
                                         const string& p_n,
                                         const string& p_f,
                                         probe* base, probe_point* loc):
-  derived_probe (base, new probe_point(*loc) /* .components soon rewritten */),
+  derived_probe (base, loc, true /* .components soon rewritten */),
   sess (s), probe_name (p_n), probe_format (p_f),
   target_symbol_seen (false)
 {
@@ -491,7 +491,7 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static struct stap_marker_probe {";
   s.op->newline(1) << "const char * const name;";
   s.op->newline() << "const char * const format;";
-  s.op->newline() << "struct stap_probe probe;";
+  s.op->newline() << "struct stap_probe * const probe;";
   s.op->newline(-1) << "} stap_marker_probes [" << probes.size() << "] = {";
   s.op->indent(1);
   for (unsigned i=0; i < probes.size(); i++)
@@ -514,7 +514,7 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "c->marker_name = smp->name;";
   s.op->newline() << "c->marker_format = smp->format;";
   s.op->newline() << "c->mark_va_list = args;";
-  s.op->newline() << "(*smp->probe.ph) (c);";
+  s.op->newline() << "(*smp->probe->ph) (c);";
   s.op->newline() << "c->mark_va_list = NULL;";
   s.op->newline() << "c->data = NULL;";
 
@@ -534,7 +534,7 @@ mark_derived_probe_group::emit_module_init (systemtap_session &s)
   s.op->newline() << "/* init marker probes */";
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_marker_probe *smp = &stap_marker_probes[i];";
-  s.op->newline() << "probe_point = smp->probe.pp;";
+  s.op->newline() << "probe_point = smp->probe->pp;";
   s.op->newline() << "rc = marker_probe_register(smp->name, smp->format, enter_marker_probe, smp);";
   s.op->newline() << "if (rc) {";
   s.op->newline(1) << "for (j=i-1; j>=0; j--) {"; // partial rollback

@@ -20,11 +20,10 @@ probe kernel.trace("kfree_skb") { locations[$location] <<< 1 }
 # Every 5 seconds report our drop locations
 probe timer.sec(5)
 {
-	printf("\n")
-	foreach (l in locations-) {
-		printf("%d packets dropped at location %p\n",
-			   @count(locations[l]), l)
-	}
-	delete locations
+  printf("\n")
+  foreach (l in locations-) {
+    printf("%d packets dropped at %s\n",
+           @count(locations[l]), symname(l))
+  }
+  delete locations
 }
-

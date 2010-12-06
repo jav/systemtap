@@ -12,7 +12,7 @@ if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
 }
 
 ########## Create /tmp/stap-xul.stp ########## 
-set xulrelease "1.9.1.4"
+set xulrelease "1.9.2rc1"
 set xuldir "[pwd]/xul/"
 set testsuite "[pwd]"
 
@@ -56,9 +56,12 @@ puts $fp "
 function run_tests \{
 cd $testsuite/xul/bld/js/src
 pwd
-for i in call trace-test math-trace-tests ; do 
-$env(SYSTEMTAP_PATH)/stap -c \"./js $xuldir/src/js/src/\$i.js\" $testsuite/stap-xul.stp ./js
+for i in \$(find $xuldir/src/js/src/tests -mindepth 2 -name 'regress*' -prune \
+	   -o -name 'shell.js' -prune -o \\( -name '*js' -print \\)) ; do
+   $env(SYSTEMTAP_PATH)/stap -c \"./js -f $xuldir/src/js/src/tests/shell.js -f \$i\" \
+   $testsuite/stap-xul.stp ./js
 done | tee $testsuite/stap-xul-markers.log
+
 PROBES=\$(grep 'probes: ' $testsuite/stap-xul-markers.log | wc -l)
 TESTS=\$(grep '-FAIL' $testsuite/stap-xul-markers.log)
 echo PROBES=\$PROBES TESTS=\$TESTS
@@ -90,8 +93,7 @@ if \[ ! -d xul/src \] ; then
 bunzip2 xulrunner-$xulrelease.source.tar.bz2
 tar -x -f xulrunner-$xulrelease.source.tar
 mkdir xul
-xulrelease=$xulrelease
-mv mozilla-\${xulrelease%.\[0-9\]} xul/src
+mv mozilla-* xul/src
 fi
 
 if \[ ! -f xul/bld/js/src/js \] ; then
@@ -106,9 +108,19 @@ JAVA_HOME=/usr/lib/jvm/java-1.6.0-openjdk-1.6.0.0.x86_64 \
 CXXFLAGS='-g -I$env(SYSTEMTAP_INCLUDES)' \
 CFLAGS='-g -I$env(SYSTEMTAP_INCLUDES)' \
 PATH=$env(SYSTEMTAP_PATH)/:\$PATH \
-../src/configure --prefix=$xuldir --enable-dtrace --enable-application=xulrunner
-sed -i '/include.*rules.mk/a\
-PROGOBJS+=mozjs-dtrace.o' js/src/Makefile
+../src/configure --prefix=$xuldir --enable-dtrace \
+--enable-application=xulrunner \
+--disable-necko-wifi
+sed -i '/include.*rules.mk/a\\
+ifdef HAVE_DTRACE\\
+PROGOBJS += ../mozjs-dtrace.\$(OBJ_SUFFIX)\\
+endif\\
+' js/src/shell/Makefile
+sed -i '/include.*rules.mk/a\\
+ifdef HAVE_DTRACE\\
+PROGOBJS += ../mozjs-dtrace.\$(OBJ_SUFFIX)\\
+endif\\
+' js/src/jsapi-tests/Makefile
 J=\$(getconf _NPROCESSORS_CONF)
 make
 fi

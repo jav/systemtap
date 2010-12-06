@@ -5,19 +5,19 @@
 
 	<section id="kernelprofsect">
 		<title>Kernel Profiling</title>
-		
-		
+
+
 <remark>
 	WAR STORY: Kernel Profiling http://sourceware.org/systemtap/wiki/WSKernelProfile?highlight=((WarStories))
 </remark>
-		
+
 <remark>
 	http://sourceware.org/systemtap/examples/process/pf2.stp
-</remark>	
-				
-		
+</remark>
+
+
 <para>In <xref linkend="countcallssect"/>, you can revise the wildcards used in the probe to target <emphasis>all</emphasis> kernel functions. This can be useful if you are interested in indentifying what the kernel is performing over a specific time period.</para>
-		
+
 <para>However, doing so can cause considerable stress on the machine. In addition, this does not provide any indication of whether a specific function is being called too often during small time increments.</para>
 
 <para>This section describes how to profile the kernel properly. <xref linkend="kernelprof"/> does this by providing a list of the top ten kernel functions called within a specific time period, and how many times each function was called during that time.</para>
@@ -26,8 +26,7 @@
 <formalpara id="kernelprof">
 		<title>kernelprof.stp</title>
 <para>
-<programlisting>
-#! /usr/bin/env stap
+<programlisting>#! /usr/bin/env stap
 
 global profile, pcount
 probe timer.profile {
@@ -43,17 +42,15 @@ probe timer.ms(5000) {
   delete profile
   delete pcount
 }
-
 </programlisting>
 </para>
-</formalpara>		
+</formalpara>
 
-<para><xref linkend="kernelprof"/> records and outputs kernel functions called every 5 seconds. You can change this setting by editing <command>probe timer.ms(5000)</command> accordingly. <xref linkend="kernelprofoutput"/> contains an excerpt of the output over a 20-second period:</para> 
+<para><xref linkend="kernelprof"/> records and outputs kernel functions called every 5 seconds. You can change this setting by editing <command>probe timer.ms(5000)</command> accordingly. <xref linkend="kernelprofoutput"/> contains an excerpt of the output over a 20-second period:</para>
 
 <example id="kernelprofoutput">
 	<title><xref linkend="kernelprof"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
 --- 10002 samples recorded:
 sys_recvfrom                         1
 memmove                              1
@@ -101,8 +98,7 @@ ide_outb                             1
 ide_outsw                            1
 __copy_to_user_ll                   11
 __copy_from_user_ll                 14
-[...]
-</screen>
+[...]</screen>
 </example>
 
 <para><xref linkend="kernelprof"/> allows you to identify interesting kernel-specific performance facts about the system, such as kernel-intensive workloads and idle times (in this case, <command>mwait_idle</command>. Note that <xref linkend="kernelprof"/> does not count user-space functions, although it counts all kernel functions as part of the sample (even if the script cannot identify from which specific kernel function a call originated.</para>

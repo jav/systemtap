@@ -12,7 +12,7 @@
 <indexterm>
 <primary>SystemTap handlers</primary>
 <secondary>SystemTap handler constructs</secondary>
-</indexterm>	
+</indexterm>
 
 <!-- next 2 indexterms for syntax and format -->
 
@@ -33,8 +33,8 @@
 <secondary>SystemTap handler constructs</secondary>
 <tertiary>handlers</tertiary>
 </indexterm>
-	<para>SystemTap supports the use of several basic constructs in handlers. The syntax for most of these handler constructs are mostly based on C and <command>awk</command> syntax. This section describes several of the most useful SystemTap handler constructs, which should provide you with enough information to write simple yet useful SystemTap scripts.</para> 
-	
+	<para>SystemTap supports the use of several basic constructs in handlers. The syntax for most of these handler constructs are mostly based on C and <command>awk</command> syntax. This section describes several of the most useful SystemTap handler constructs, which should provide you with enough information to write simple yet useful SystemTap scripts.</para>
+
 <section id="variablesconstructs">
 	<title>Variables</title>
 <!-- next 3 indexterms for variables -->
@@ -54,7 +54,7 @@
 <primary>variables</primary>
 <secondary>SystemTap handler constructs</secondary>
 <tertiary>handlers</tertiary>
-</indexterm>	
+</indexterm>
 
 <indexterm>
 	<primary>format and syntax</primary>
@@ -87,8 +87,7 @@ name, assign a value from a function or expression to it, and use it in an expre
 
 <example id="timerjiffies">
 	<title>timer-jiffies.stp</title>
-<programlisting>
-global count_jiffies, count_ms
+<programlisting>global count_jiffies, count_ms
 probe timer.jiffies(100) { count_jiffies ++ }
 probe timer.ms(100) { count_ms ++ }
 probe timer.ms(12345)
@@ -97,31 +96,156 @@ probe timer.ms(12345)
   printf ("jiffies:ms ratio %d:%d => CONFIG_HZ=%d\n",
     count_jiffies, count_ms, hz)
   exit ()
-}
-</programlisting>
+}</programlisting>
 </example>
 
 <indexterm>
 <primary><command>CONFIG_HZ, computing for</command></primary>
 </indexterm>
-	
+
 <para><xref linkend="timerjiffies"/> computes the <command>CONFIG_HZ</command> setting of the kernel using timers that count jiffies and milliseconds, then computing accordingly. The <command>global</command> statement allows the script to use the variables <command>count_jiffies</command> and <command>count_ms</command> (set in their own respective probes) to be shared with <command>probe timer.ms(12345)</command>.</para>
 
 <note>
 	<title>Note</title>
 	<para>The <command>++</command> notation in <xref linkend="timerjiffies"/> (i.e. <command>count_jiffies ++</command> and <command>count_ms ++</command>) is used to increment the value of a variable by 1. In the following probe, <command>count_jiffies</command> is incremented by 1 every 100 jiffies:</para>
-<screen>
-probe timer.jiffies(100) { count_jiffies ++ }
-</screen>
-	<para>In this instance, SystemTap understands that <command>count_jiffies</command> is an integer. Because no initial value was assigned to <command>count_jiffies</command>, its initial value is zero by default.</para>   
-</note>	
+<screen>probe timer.jiffies(100) { count_jiffies ++ }</screen>
+	<para>In this instance, SystemTap understands that <command>count_jiffies</command> is an integer. Because no initial value was assigned to <command>count_jiffies</command>, its initial value is zero by default.</para>
+</note>
 <!--
 <note>
 	<title>Note</title>
 	<para>In some cases, such as in <xref linkend="timerjiffies"/>, a variable may be declared without any specific value as yet. You need to declare such values as integers using the notation <command>++</command>.</para>
-</note>	
+</note>
 	-->
-</section>	
+</section>
+
+<section id="targetvariables">
+	<title>Target Variables</title>
+
+<indexterm>
+<primary>handlers</primary>
+<secondary>target variables</secondary>
+</indexterm>
+
+<indexterm>
+<primary>target variables</primary>
+</indexterm>
+
+<para>
+The probe events that map to actual locations in the code (for example
+<command>kernel.function("<replaceable>function</replaceable>")</command>  and
+<command>kernel.statement("<replaceable>statement</replaceable>")</command>)
+allow the use of <emphasis>target variables</emphasis> to obtain the value of
+variables visible at that location in the code.
+You can use the -L option to list the target variable available at a
+probe point.
+If the debug information is installed for the running kernel,
+you can run the following command to find out what target variables
+are available for the <command>vfs_read</command> function:
+</para>
+
+<screen>stap -L 'kernel.function("vfs_read")'</screen>
+
+<para>
+This will yield something similar to the following:
+</para>
+
+<screen>kernel.function("vfs_read@fs/read_write.c:277") $file:struct file* $buf:char* $count:size_t $pos:loff_t*</screen>
+
+<para>
+Each target variable is proceeded by a <quote>$</quote> and 
+the type of the target variable follows the <quote>:</quote>.
+The kernel's <command>vfs_read</command> function has
+<command>$file</command> (pointer to structure describing the file),
+<command>$buf</command> (pointer to the userspace to store the read data),
+<command>$count</command> (number of bytes to read),
+and <command>$pos</command> (position to start reading from in the file)
+target variable at the entry to the function.
+</para>
+
+<para>
+SystemTap tracks the typing information of the target variable and can
+examine the fields of a structure with the <command>-></command> operator.
+The <command>-></command> operator can be chained to look at data structures
+contained within data structures and follow pointers to other data structures.
+The <command>-></command> operator will obtain the value in the field of the
+structure.
+The <command>-></command> operator is used regardless whether accessing a field
+in a substructure or accessing another structure through a pointer.
+</para>
+
+<para>
+For pointers to base types such as integers and strings
+there are a number of functions listed below to access kernel-space data.
+The first argument for each functions is the pointer to the data item.
+Similar functions are described in <xref linkend="utargetvariable"/> for
+accessing target variables in user-space code.
+</para>
+
+<variablelist>
+
+<varlistentry>
+<term>kernel_char(<replaceable>address</replaceable>)</term>
+<listitem>
+<para>
+Obtain the character at <replaceable>address</replaceable> from kernel memory.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>kernel_short(<replaceable>address</replaceable>)</term>
+<listitem>
+<para>
+Obtain the short at <replaceable>address</replaceable> from kernel memory.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>kernel_int(<replaceable>address</replaceable>)</term>
+<listitem>
+<para>
+Obtain the int at <replaceable>address</replaceable> from kernel memory.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>kernel_long(<replaceable>address</replaceable>)</term>
+<listitem>
+<para>
+Obtain the long at <replaceable>address</replaceable> from kernel memory
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>kernel_string(<replaceable>address</replaceable>)</term>
+<listitem>
+<para>
+Obtain the string at <replaceable>address</replaceable> from kernel memory.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>kernel_string_n(<replaceable>address</replaceable>, <replaceable>n</replaceable>)</term>
+<listitem>
+<para>
+Obtain the string at <replaceable>address</replaceable> from the kernel memory
+and limits the string to <replaceable>n</replaceable> bytes.
+</para>
+</listitem>
+</varlistentry>
+
+</variablelist>
+
+<!-- FIXME should mention the $$arg, $$parms, pretty printing -->
+
+
+</section>
+
 <section id="handlerconditionalstatements">
 	<title>Conditional Statements</title>
 <indexterm>
@@ -165,19 +289,17 @@ You can do this by using <emphasis>conditionals</emphasis> in handlers. SystemTa
 </indexterm>
 
 		<para>Format:</para>
-<programlisting>
-if (<replaceable>condition</replaceable>)
+<programlisting>if (<replaceable>condition</replaceable>)
   <replaceable>statement1</replaceable>
 else
-  <replaceable>statement2</replaceable>
-</programlisting>
+  <replaceable>statement2</replaceable></programlisting>
 
 <para>
 The <command><replaceable>statement1</replaceable></command> is executed if the
 <command><replaceable>condition</replaceable></command> expression is
 non-zero. The <command><replaceable>statement2</replaceable></command> is
 executed if the <command><replaceable>condition</replaceable></command>
-expression is zero. The <command>else</command> clause 
+expression is zero. The <command>else</command> clause
 (<command>else</command> <replaceable>statement2</replaceable>) is optional. Both
 <command><replaceable>statement1</replaceable></command> and
 <command><replaceable>statement2</replaceable></command> can be statement
@@ -186,28 +308,26 @@ blocks.
 
 <example id="simpleifelseexample">
 	<title>ifelse.stp</title>
-<programlisting>
-global countread, countnonread
+<programlisting>global countread, countnonread
 probe kernel.function("vfs_read"),kernel.function("vfs_write")
 {
-  if (probefunc()=="vfs_read") 
-    countread ++ 
-  else 
+  if (probefunc()=="vfs_read")
+    countread ++
+  else
     countnonread ++
 }
 probe timer.s(5) { exit() }
-probe end 
+probe end
 {
   printf("VFS reads total %d\n VFS writes total %d\n", countread, countnonread)
-}
-</programlisting>
+}</programlisting>
 </example>
 
 <para><xref linkend="simpleifelseexample"/> is a script that counts how many virtual file system reads (<command>vfs_read</command>) and writes (<command>vfs_write</command>) the system performs within a 5-second span. When run, the script increments the value of the variable <command>countread</command> by 1 if the name of the function it probed matches <command>vfs_read</command> (as noted by the condition <command>if (probefunc()=="vfs_read")</command>); otherwise, it increments <command>countnonread</command> (<command>else {countnonread ++}</command>).</para>
 
-	</listitem>	
-</varlistentry>	
-	
+	</listitem>
+</varlistentry>
+
 <varlistentry>
 	<term>While Loops</term>
 	<listitem>
@@ -231,10 +351,8 @@ probe end
 <tertiary>handlers</tertiary>
 </indexterm>
 		<para>Format:</para>
-<programlisting>
-while (<replaceable>condition</replaceable>)
-  <replaceable>statement</replaceable>
-</programlisting>
+<programlisting>while (<replaceable>condition</replaceable>)
+  <replaceable>statement</replaceable></programlisting>
 <para>
 So long as <command><replaceable>condition</replaceable></command> is non-zero
 the block of statements in
@@ -246,19 +364,17 @@ block and it must change a value so
 <!--
 <example id="simplewhileexample">
 	<title>while.stp</title>
-<programlisting>
-global foo
+<programlisting>global foo
 probe timer.s(1) {
 foo ++
 while (foo&lt;6) {printf("hello world\n")}
-printf("goodbye world\n")
-</programlisting>
+printf("goodbye world\n")</programlisting>
 </example>
 
 <para><xref linkend="simplewhileexample"/> is a script that prints <computeroutput>hello world</computeroutput> while less than 6 seconds has passed (<command>while (foo&lt;6)</command>). Once the <command>while</command> condition no longer applies, the script prints out <computeroutput>goodbye world</computeroutput>.</para>
 
-	--></listitem>	
-</varlistentry>	
+	--></listitem>
+</varlistentry>
 
 <varlistentry>
 	<term>For Loops</term>
@@ -281,37 +397,33 @@ printf("goodbye world\n")
 <primary>for loops</primary>
 <secondary>conditional statements</secondary>
 <tertiary>handlers</tertiary>
-</indexterm>		
+</indexterm>
 		<para>Format:</para>
-<programlisting>
-for (<replaceable>initialization</replaceable>; <replaceable>conditional</replaceable>; <replaceable>increment</replaceable>) <replaceable>statement</replaceable>
-</programlisting>
+<programlisting>for (<replaceable>initialization</replaceable>; <replaceable>conditional</replaceable>; <replaceable>increment</replaceable>) <replaceable>statement</replaceable></programlisting>
 <para>
 The <command>for</command> loop is simply shorthand for a while loop. The
 following is the equivalent <command>while</command> loop:
 </para>
-<programlisting>
-<replaceable>initialization</replaceable>
+<programlisting><replaceable>initialization</replaceable>
 while (<replaceable>conditional</replaceable>) {
    <replaceable>statement</replaceable>
    <replaceable>increment</replaceable>
-}
-</programlisting>
+}</programlisting>
 	</listitem>
 </varlistentry>
 
 <!--<para>Each conditional statement must be enclosed in <command>{ }</command>.</para>-->
-<!--	
+<!--
 <varlistentry>
 	<term></term>
 	<listitem>
 		<para></para>
-	</listitem>	
+	</listitem>
 </varlistentry>
--->	
-	
-</variablelist>	
-<!--	
+-->
+
+</variablelist>
+<!--
 <para>These constructs are better illustrated in the different examples available in <xref linkend="useful-systemtap-scripts"/>.</para>-->
 
 <remark>need simple, simple examples for FOR and WHILE</remark>
@@ -347,21 +459,21 @@ while (<replaceable>conditional</replaceable>) {
 	<term>>=</term>
 	<listitem>
 		<para>Greater than or equal to</para>
-	</listitem>	
-</varlistentry>	
+	</listitem>
+</varlistentry>
 
 <varlistentry>
 	<term>&lt;=</term>
 	<listitem>
 		<para>Less than or equal to</para>
-	</listitem>	
+	</listitem>
 </varlistentry>
 
 <varlistentry>
 	<term>!=</term>
 	<listitem>
 		<para>Is not equal to</para>
-	</listitem>	
+	</listitem>
 </varlistentry>
 
 </variablelist>
@@ -384,7 +496,7 @@ while (<replaceable>conditional</replaceable>) {
 <primary>command-line arguments</primary>
 <secondary>SystemTap handler constructs</secondary>
 <tertiary>handlers</tertiary>
-</indexterm>	
+</indexterm>
 	<para>You can also allow a SystemTap script to accept simple command-line arguments using a  <command>$</command> or <command>@</command> immediately
 followed by the number of the argument on the command line. Use <command>$</command> if you are expecting the user to enter an integer as a command-line argument, and <command>@</command> if you are expecting a string.
 </para>
@@ -392,11 +504,9 @@ followed by the number of the argument on the command line. Use <command>$</comm
 
 
 <example id="commandlineargs"><title>commandlineargs.stp</title>
-<programlisting>
-probe kernel.function(@1) { }
-probe kernel.function(@1).return { }
-</programlisting>	
-</example>	
+<programlisting>probe kernel.function(@1) { }
+probe kernel.function(@1).return { }</programlisting>
+</example>
 
 <para><xref linkend="commandlineargs"/> is similar to <xref linkend="wildcards"/>, except that it allows you to pass the kernel function to be probed as a command-line argument (as in <command>stap commandlineargs.stp <replaceable>kernel function</replaceable></command>). You can also specify the script to accept multiple command-line arguments, noting them as <command>@1</command>, <command>@2</command>, and so on, in the order they are entered by the user.</para>
  <!-- next 2 indexterms for variable notations -->
@@ -419,7 +529,7 @@ probe kernel.function(@1).return { }
 <tertiary>handlers</tertiary>
 </indexterm>
 	</section>
-	
+
 <!-- endsection	 -->
 </section>
 

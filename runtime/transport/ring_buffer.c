@@ -55,7 +55,7 @@ struct _stp_iterator {
 #endif
 
 struct _stp_relay_data_type {
-	enum _stp_transport_state transport_state;
+        atomic_t /* enum _stp_transport_state */ transport_state;
 	struct ring_buffer *rb;
 	struct _stp_iterator iter[NR_ITERS];
 	cpumask_var_t trace_reader_cpumask;
@@ -649,10 +649,12 @@ static int _stp_data_write_commit(void *entry)
 
 static void __stp_relay_wakeup_timer(unsigned long val)
 {
-	if (waitqueue_active(&_stp_poll_wait)
-	    && ! _stp_ring_buffer_empty())
+	if (waitqueue_active(&_stp_poll_wait) && ! _stp_ring_buffer_empty())
 		wake_up_interruptible(&_stp_poll_wait);
- 	mod_timer(&_stp_relay_data.timer, jiffies + STP_RELAY_TIMER_INTERVAL);
+	if (atomic_read(&_stp_relay_data.transport_state) == STP_TRANSPORT_RUNNING)
+        	mod_timer(&_stp_relay_data.timer, jiffies + STP_RELAY_TIMER_INTERVAL);
+        else
+		dbug_trans(0, "ring_buffer wakeup timer expiry\n");
 }
 
 static void __stp_relay_timer_start(void)
@@ -677,7 +679,7 @@ static int _stp_transport_data_fs_init(void)
 	int rc;
 	int cpu, cpu2;
 
-	_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+	atomic_set (&_stp_relay_data.transport_state, STP_TRANSPORT_STOPPED);
 	_stp_relay_data.rb = NULL;
 
 	// allocate buffer
@@ -694,7 +696,7 @@ static int _stp_transport_data_fs_init(void)
 			_stp_transport_data_fs_close();
 			return -EINVAL;
 		}
-		sprintf(cpu_file, "trace%d", cpu);
+		snprintf(cpu_file, sizeof(cpu_file), "trace%d", cpu);
 		__stp_entry[cpu] = debugfs_create_file(cpu_file, 0600,
 						       _stp_get_module_dir(),
 						       (void *)(long)cpu,
@@ -738,23 +740,23 @@ static int _stp_transport_data_fs_init(void)
 	}
 
 	dbug_trans(1, "returning 0...\n");
-	_stp_relay_data.transport_state = STP_TRANSPORT_INITIALIZED;
+	atomic_set (&_stp_relay_data.transport_state, STP_TRANSPORT_INITIALIZED);
 	return 0;
 }
 
 static void _stp_transport_data_fs_start(void)
 {
-	if (_stp_relay_data.transport_state == STP_TRANSPORT_INITIALIZED) {
-		__stp_relay_timer_start();
-		_stp_relay_data.transport_state = STP_TRANSPORT_RUNNING;
+	if (atomic_read(&_stp_relay_data.transport_state) == STP_TRANSPORT_INITIALIZED) {
+        	atomic_set(&_stp_relay_data.transport_state, STP_TRANSPORT_RUNNING);
+                __stp_relay_timer_start();
 	}
 }
 
 static void _stp_transport_data_fs_stop(void)
 {
-	if (_stp_relay_data.transport_state == STP_TRANSPORT_RUNNING) {
-		__stp_relay_timer_stop();
-		_stp_relay_data.transport_state = STP_TRANSPORT_STOPPED;
+	if (atomic_read(&_stp_relay_data.transport_state) == STP_TRANSPORT_RUNNING) {
+        	atomic_set(&_stp_relay_data.transport_state, STP_TRANSPORT_STOPPED);
+                __stp_relay_timer_stop();
 	}
 }
 
@@ -773,7 +775,7 @@ static void _stp_transport_data_fs_close(void)
 
 static enum _stp_transport_state _stp_transport_get_state(void)
 {
-	return _stp_relay_data.transport_state;
+	return atomic_read (&_stp_relay_data.transport_state);
 }
 
 static void _stp_transport_data_fs_overwrite(int overwrite)

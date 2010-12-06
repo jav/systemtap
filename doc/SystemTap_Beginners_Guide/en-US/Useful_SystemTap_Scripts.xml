@@ -23,18 +23,18 @@
 </indexterm>
 
 	<para>This chapter enumerates several SystemTap scripts you can use to monitor and investigate different subsystems. All of these scripts are available at <filename>/usr/share/systemtap/testsuite/systemtap.examples/</filename> once you install the <filename>systemtap-testsuite</filename> RPM.</para>
-<!--	
+<!--
 	<para><ulink url="http://sourceware.org/systemtap/examples/subsystem-index.html">http://sourceware.org/systemtap/examples/subsystem-index.html</ulink></para>
-		
+
 		-->
 	<remark>
 		short intro, reference to online source (http://sourceware.org/systemtap/examples/subsystem-index.html); "always updated"
 	</remark>
-	
+
 	<remark>short description of gnuplot (?) for better GUI of results</remark>
-	
+
 	<remark>case studies and more info on some scripts here - http://sourceware.org/systemtap/wiki/WarStories</remark>
-	
+
 <!-- 	<xi:include href="Useful_Scripts-Disk.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
 <section id="mainsect-network">
 	<title>Network</title>
@@ -42,22 +42,22 @@
 	<xi:include href="Useful_Scripts-nettop.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-sockettrace.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-tcp_connections.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-	<xi:include condition="fedora" href="Useful_Scripts-tcpdumplike.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-tcpdumplike.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-dropwatch.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</section>		
+</section>
 <section id="mainsect-disk">
 	<title>Disk</title>
 	<para>The following sections showcase scripts that monitor disk and I/O activity.</para>
-	
+
 	<xi:include href="Useful_Scripts-disktop.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 <!-- 	<xi:include href="Useful_Scripts-IO.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
 	<xi:include href="Useful_Scripts-iotime.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-	<xi:include href="Useful_Scripts-traceio.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />	
+	<xi:include href="Useful_Scripts-traceio.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-traceio2.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 <!-- 	<xi:include href="Useful_Scripts-Kernel.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
 	<xi:include href="Useful_Scripts-inodewatch.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-inodewatch2.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
-	<xi:include condition="fedora" href="Useful_Scripts-ioblktime.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+	<xi:include href="Useful_Scripts-ioblktime.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 </section>
 
 <section id="mainsect-profiling">
@@ -73,15 +73,15 @@
 <!-- 	removed; handler function no longer working as expected
 	<xi:include href="Useful_Scripts-kernelprofiling.xml" xmlns:xi="http://www.w3.org/2001/XInclude" /> -->
 
-	
+
 <xi:include href="Useful_Scripts-futexes.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 
 <!--	<xi:include href="Useful_Scripts-Network.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Signals.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Syscalls.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
 	<xi:include href="Useful_Scripts-Others.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />-->
-<!--	
-	<xi:include href="" xmlns:xi="http://www.w3.org/2001/XInclude" />	
+<!--
+	<xi:include href="" xmlns:xi="http://www.w3.org/2001/XInclude" />
 -->
 </chapter>
 

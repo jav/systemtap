@@ -10,7 +10,7 @@
 #include "session.h"
 #include "cache.h"
 #include "util.h"
-#include "sys/sdt.h"
+#include "stap-probe.h"
 #include <cerrno>
 #include <string>
 #include <fstream>
@@ -70,7 +70,7 @@ add_script_to_cache(systemtap_session& s)
   clean_cache(s);
 
   string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
-  STAP_PROBE2(stap, cache__add__module, module_src_path.c_str(), s.hash_path.c_str());
+  PROBE2(stap, cache__add__module, module_src_path.c_str(), s.hash_path.c_str());
   if (!copy_file(module_src_path, s.hash_path, verbose))
     {
       s.use_script_cache = false;
@@ -85,7 +85,7 @@ add_script_to_cache(systemtap_session& s)
     c_dest_path.resize(c_dest_path.size() - 3);
   c_dest_path += ".c";
 
-  STAP_PROBE2(stap, cache__add__source, s.translated_source.c_str(), c_dest_path.c_str());
+  PROBE2(stap, cache__add__source, s.translated_source.c_str(), c_dest_path.c_str());
   if (!copy_file(s.translated_source, c_dest_path, verbose))
     {
       // NB: this is not so severe as to prevent reuse of the .ko
@@ -114,7 +114,8 @@ get_stapconf_from_cache(systemtap_session& s)
     }
 
   // Copy the stapconf header file to the destination
-  if (!copy_file(s.stapconf_path, stapconf_dest_path))
+  if (!get_file_size(fd_stapconf) ||
+      !copy_file(s.stapconf_path, stapconf_dest_path))
     {
       close(fd_stapconf);
       return false;
@@ -163,8 +164,10 @@ get_script_from_cache(systemtap_session& s)
       return false;
     }
 
-  // Copy the cached C file to the destination
-  if (!copy_file(c_src_path, s.translated_source))
+  // Check that the files aren't empty, and then
+  // copy the cached C file to the destination
+  if (!get_file_size(fd_module) || !get_file_size(fd_c) ||
+      !copy_file(c_src_path, s.translated_source))
     {
       close(fd_module);
       close(fd_c);
@@ -213,7 +216,7 @@ get_script_from_cache(systemtap_session& s)
   if (s.perpass_verbose[3] && s.last_pass != 3)
     clog << "Pass 4: using cached " << s.hash_path << endl;
 
-  STAP_PROBE2(stap, cache__get, c_src_path.c_str(), s.hash_path.c_str());
+  PROBE2(stap, cache__get, c_src_path.c_str(), s.hash_path.c_str());
 
   return true;
 }
@@ -331,7 +334,7 @@ clean_cache(systemtap_session& s)
           if ( (r_cache_size / 1024 / 1024) < cache_mb_max)    //convert r_cache_size to MiB
             break;
 
-          STAP_PROBE1(stap, cache__clean, (i->path).c_str());
+          PROBE1(stap, cache__clean, (i->path).c_str());
           //remove this (*i) cache_entry, add to removed list
           i->unlink();
           r_cache_size -= i->size;

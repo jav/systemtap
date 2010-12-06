@@ -1,53 +1,564 @@
 #! /usr/bin/env stap
+#
+# Copyright (C) 2010 Red Hat, Inc.
+# Written by William Cohen <wcohen@redhat.com>
+#
+# This script records the time that a process has spent asleep and attempt
+# to provide a reason for that that sleep. The script needs to be run with the
+# '--all-modules' option to map the backtrace addresses to function names
+# and the function names back to reasons.
+#
+# stap --all-modules latencytap.stp
 
-# Record the time that a process has spent asleep, and in what function
+global priority, reason;
+global traced_pid, sleep_time, dequeue;
+global this_sleep;
+global debug = 0;
 
-global enqueued
-global sleep_time
-global process_names
-global sleep_agg
+function log_event:long (p:long) { return (!traced_pid || traced_pid == p) }
 
-function _get_sleep_time:long(rq_param:long, p_param:long) %{ /* pure */
-        struct rq *rq = (struct rq *)(unsigned long)THIS->rq_param;
-        struct task_struct *p = (struct task_struct *)(unsigned long)THIS->p_param;
-        struct sched_entity *se = &p->se;
-        u64 delta = cpu_clock(smp_processor_id()) - se->sleep_start;
-
-        if ((s64)delta < 0)
-                delta = 0;
-        THIS->__retvalue = delta;
-%}
-
-# Get the backtrace from an arbitrary task
-function task_backtrace:string (task:long) %{ /* pure */
-    _stp_stack_snprint_tsk(THIS->__retvalue, MAXSTRINGLEN,
-                           (struct task_struct *)(unsigned long)THIS->task, 0, MAXTRACE);
-%}
-
-probe kernel.function("enqueue_task_fair") {
-    if ($wakeup == 1) {
-        this_sleep = _get_sleep_time($rq, $p)
-        if (this_sleep > 0) {
-            sleep_time[$p->pid, task_backtrace($p)] += this_sleep
-            sleep_agg[$p->pid] <<< this_sleep
-            process_names[$p->pid] = kernel_string($p->comm)
-        }
-    }
+#func names from hex addresses
+function func_backtrace:string (ips:string)
+{
+  ret = "";
+  for (ip=tokenize(ips, " "); ip!=""; ip=tokenize("", " "))
+     ret = ret . symname(strtol(ip,16)) . " ";
+  return ret;
 }
 
-global pid_sleep
-probe timer.ms(1000) {
-    foreach ([pid, backtrace] in sleep_time) {
-        pid_sleep[pid] += sleep_time[pid, backtrace]
-        printf("%s %d:\n", process_names[pid], pid)
-        print_stack(backtrace)
-        printf("\n")
+# pick out a reason based on the backtrace function names
+function translate:string (bt:string)
+{
+  ip=tokenize(bt, " ");
+  func = symname(strtol(ip,16))
+  pri = 1; rea="";
+  while (ip!="") {
+    p = priority[func]
+    if (p >= pri) {
+      pri = priority[func];
+      rea = reason[func];
     }
-    foreach ([pid+] in pid_sleep) {
-        printf("%s %d %d\n", process_names[pid], @max(sleep_agg[pid]) / 1000000, @avg(sleep_agg[pid]) / 1000000) 
+    ip=tokenize("", " ")
+    func = symname(strtol(ip,16))
+  }
+  return rea;
+}
+
+probe kernel.trace("deactivate_task") !,
+      kernel.function("deactivate_task") {
+  s = task_state($p)
+  # check to see if task is in appropriate state:
+  # TASK_INTERRUPTIBLE      1
+  # TASK_UNINTERRUPTIBLE    2
+  if (log_event($p->pid) && (s & 3)) {
+    dequeue[$p] = gettimeofday_us();
+  }
+}
+
+probe kernel.trace("activate_task") !,
+      kernel.function("activate_task") {
+  if (!log_event($p->pid)) next
+
+  a = gettimeofday_us()
+  d = dequeue[$p]
+  delete dequeue[$p]
+  if (d) {
+    sleep = a - d
+    if (sleep > 0) {
+       this_sleep[$p] = sleep
+#      sleep_time[task_backtrace($p)] <<< sleep
     }
-    # decode backtraces; unfortunately they are empty at the moment.
-    delete pid_sleep
-    delete sleep_time
-    delete process_names
+  }
+}
+
+#FIXME: It would be nicer to get backtrace information in activate_task probe.
+# This would eliminate the overhead of probing every context switch
+# and this_sleep associate array. However, this needs a properly working
+# task_backtrace() to eliminate this probe.
+probe scheduler.cpu_on {
+   p = task_current()
+   t = this_sleep[p]
+   if (t){
+     delete this_sleep[p]
+     sleep_time[backtrace()] <<< t
+   }
+}
+
+global sort_latencies;
+
+function global_report_latencies() {
+  total = 0
+
+  foreach ([backtrace] in sleep_time) {
+    val = @sum(sleep_time[backtrace]);
+    sort_latencies[backtrace] = val;
+    total += val;
+  }
+
+  ansi_clear_screen();
+  printf("%-32s %12s %12s %12s %7s%%\n",
+    "Reason", "Count", "Average(us)", "Maximum(us)", "Percent");
+  foreach ([backtrace] in sort_latencies- limit 20) {
+    #print reason count average max percentage
+    cause = translate (backtrace);
+    # if can't find reason print out a backtrace
+    if (cause == "" && debug)
+      printf("%s\n", func_backtrace(backtrace));
+    printf("%-32s ", cause);
+    p = (@sum(sleep_time[backtrace])*100)/total;
+    printf("%12d %12d %12d %7d%%\n",
+    	   @count(sleep_time[backtrace]),
+           @avg(sleep_time[backtrace]),
+           @max(sleep_time[backtrace]),
+	   p);
+  }
+  delete sort_latencies;
+}
+
+probe timer.s(30) {
+  global_report_latencies()
+  delete sleep_time
+}
+
+probe begin {
+  traced_pid = target()
+}
+
+# Set up the translations and priorities for each function.
+# The vast majority of translations were mechanically generated from the
+# latencytop (http://www.latencytop.org/) translation file:
+# /usr/share/latencytop/latencytop.trans .
+probe begin {
+  priority["vfs_read"] = 1;
+  reason["vfs_read"] = "Reading from file";
+
+  priority["vfs_write"] = 1;
+  reason["vfs_write"] = "Writing to file";
+
+  priority["__mark_inode_dirty"] = 1;
+  reason["__mark_inode_dirty"] = "Marking inode dirty";
+
+  priority["vfs_readdir"] = 1;
+  reason["vfs_readdir"] = "Reading directory content";
+
+  priority["vfs_unlink"] = 1;
+  reason["vfs_unlink"] = "Unlinking file";
+
+  priority["blocking_notifier_call_chain"] = 1;
+  reason["blocking_notifier_call_chain"] = "Blocking notifier";
+
+  priority["lock_super"] = 1;
+  reason["lock_super"] = "Superblock lock contention";
+
+  priority["bdi_sync_supers"] = 1;
+  reason["bdi_sync_supers"] = "Sync superblock";
+
+  priority["vfs_create"] = 1;
+  reason["vfs_create"] = "Creating a file";
+
+  priority["__bread"] = 2;
+  reason["__bread"] = "Synchronous buffer read";
+
+  priority["do_generic_mapping_read"] = 2;
+  reason["do_generic_mapping_read"] = "Reading file data";
+
+  priority["sock_sendmsg"] = 2;
+  reason["sock_sendmsg"] = "Sending data over socket";
+
+  priority["do_sys_open"] = 2;
+  reason["do_sys_open"] = "Opening file";
+
+  priority["do_sys_poll"] = 2;
+  reason["do_sys_poll"] = "Waiting for event (poll)";
+
+  priority["core_sys_select"] = 2;
+  reason["core_sys_select"] = "Waiting for event (select)";
+
+  priority["proc_reg_read"] = 2;
+  reason["proc_reg_read"] = "Reading from /proc file";
+
+  priority["__pollwait"] = 2;
+  reason["__pollwait"] = "Waiting for event (poll)";
+
+  priority["sys_fcntl"] = 2;
+  reason["sys_fcntl"] = "FCNTL system call";
+
+  priority["scsi_error_handler"] = 2;
+  reason["scsi_error_handler"] = "SCSI error handler";
+
+  priority["proc_root_readdir"] = 2;
+  reason["proc_root_readdir"] = "Reading /proc directory";
+
+  priority["ksoftirqd"] = 2;
+  reason["ksoftirqd"] = "Waking ksoftirqd";
+
+  priority["run_ksoftirqd"] = 2;
+  reason["run_ksoftirqd"] = "Waking ksoftirqd";
+
+  priority["migration_thread"] = 2;
+  reason["migration_thread"] = "migration() kernel thread";
+
+  priority["do_unlinkat"] = 2;
+  reason["do_unlinkat"] = "Unlinking file";
+
+  priority["__wait_on_buffer"] = 2;
+  reason["__wait_on_buffer"] = "Waiting for buffer IO to complete";
+
+  priority["pdflush"] = 2;
+  reason["pdflush"] = "pdflush() kernel thread";
+
+  priority["kjournald"] = 2;
+  reason["kjournald"] = "kjournald() kernel thread";
+
+  priority["kjournald2"] = 2;
+  reason["kjournald2"] = "jdb2() kernel thread";
+
+  priority["bdi_writeback_task"] = 2;
+  reason["bdi_writeback_task"] = "Flush data to backing device";
+
+  priority["bdi_writeback_thread"] = 2;
+  reason["bdi_writeback_thread"] = "Flush data to backing dev";
+
+  priority["bdi_forker_task"] = 2;
+  reason["bdi_forker_task"] = "bdi-* kernel thread";
+
+  priority["dm_wait_for_completion"] = 2;
+  reason["dm_wait_for_completion"] = "Waiting for device mapper ops";
+
+  priority["blkdev_ioctl"] = 2;
+  reason["blkdev_ioctl"] = "block device IOCTL";
+
+  priority["kauditd_thread"] = 2;
+  reason["kauditd_thread"] = "kernel audit daemon";
+
+  priority["tty_ioctl"] = 2;
+  reason["tty_ioctl"] = "TTY IOCTL";
+
+  priority["do_sync_write"] = 2;
+  reason["do_sync_write"] = "synchronous write";
+
+  priority["kthreadd"] = 2;
+  reason["kthreadd"] = "kthreadd kernel thread";
+
+  priority["usb_port_resume"] = 2;
+  reason["usb_port_resume"] = "Waking up USB device";
+
+  priority["usb_autoresume_device"] = 2;
+  reason["usb_autoresume_device"] = "Waking up USB device";
+
+  priority["khugepaged"] = 2;
+  reason["khugepaged"] = "khugepaged() kernel thread";
+
+  priority["kswapd"] = 2;
+  reason["kswapd"] = "kswapd() kernel thread";
+
+  priority["md_thread"] = 2;
+  reason["md_thread"] = "Raid resync kernel thread";
+
+  priority["i915_wait_request"] = 2;
+  reason["i915_wait_request"] = "Waiting for GPU command to complete";
+
+  priority["request_module"] = 2;
+  reason["request_module"] = "Loading a kernel module";
+
+  priority["tty_wait_until_sent"] = 3;
+  reason["tty_wait_until_sent"] = "Waiting for TTY to finish sending";
+
+  priority["pipe_read"] = 3;
+  reason["pipe_read"] = "Reading from a pipe";
+
+  priority["pipe_write"] = 3;
+  reason["pipe_write"] = "Writing to a pipe";
+
+  priority["pipe_wait"] = 3;
+  reason["pipe_wait"] = "Waiting for pipe data";
+
+  priority["read_block_bitmap"] = 3;
+  reason["read_block_bitmap"] = "Reading EXT3 block bitmaps";
+
+  priority["scsi_execute_req"] = 3;
+  reason["scsi_execute_req"] = "Executing raw SCSI command";
+
+  priority["sys_wait4"] = 3;
+  reason["sys_wait4"] = "Waiting for a process to die";
+
+  priority["sr_media_change"] = 3;
+  reason["sr_media_change"] = "Checking for media change";
+
+  priority["sr_do_ioctl"] = 3;
+  reason["sr_do_ioctl"] = "SCSI cdrom ioctl";
+
+  priority["sd_ioctl"] = 3;
+  reason["sd_ioctl"] = "SCSI disk ioctl";
+
+  priority["sr_cd_check"] = 3;
+  reason["sr_cd_check"] = "Checking CDROM media present";
+
+  priority["ext3_read_inode"] = 3;
+  reason["ext3_read_inode"] = "Reading EXT3 inode";
+
+  priority["htree_dirblock_to_tree"] = 3;
+  reason["htree_dirblock_to_tree"] = "Reading EXT3 directory htree";
+
+  priority["ext3_readdir"] = 3;
+  reason["ext3_readdir"] = "Reading EXT3 directory";
+
+  priority["ext3_bread"] = 3;
+  reason["ext3_bread"] = "Synchronous EXT3 read";
+
+  priority["ext3_free_branches"] = 3;
+  reason["ext3_free_branches"] = "Unlinking file on EXT3";
+
+  priority["ext3_get_branch"] = 3;
+  reason["ext3_get_branch"] = "Reading EXT3 indirect blocks";
+
+  priority["ext3_find_entry"] = 3;
+  reason["ext3_find_entry"] = "EXT3: Looking for file";
+
+  priority["__ext3_get_inode_loc"] = 3;
+  reason["__ext3_get_inode_loc"] = "Reading EXT3 inode";
+
+  priority["ext3_delete_inode"] = 3;
+  reason["ext3_delete_inode"] = "EXT3 deleting inode";
+
+  priority["sync_page"] = 3;
+  reason["sync_page"] = "Writing a page to disk";
+
+  priority["tty_poll"] = 3;
+  reason["tty_poll"] = "Waiting for TTY data";
+
+  priority["tty_read"] = 3;
+  reason["tty_read"] = "Waiting for TTY input";
+
+  priority["tty_write"] = 3;
+  reason["tty_write"] = "Writing data to TTY";
+
+  priority["update_atime"] = 3;
+  reason["update_atime"] = "Updating inode atime";
+
+  priority["page_cache_sync_readahead"] = 3;
+  reason["page_cache_sync_readahead"] = "Pagecache sync readahead";
+
+  priority["do_fork"] = 3;
+  reason["do_fork"] = "Fork() system call";
+
+  priority["sys_mkdirat"] = 3;
+  reason["sys_mkdirat"] = "Creating directory";
+
+  priority["lookup_create"] = 3;
+  reason["lookup_create"] = "Creating file";
+
+  priority["inet_sendmsg"] = 3;
+  reason["inet_sendmsg"] = "Sending TCP/IP data";
+
+  priority["tcp_recvmsg"] = 3;
+  reason["tcp_recvmsg"] = "Receiving TCP/IP data";
+
+  priority["link_path_walk"] = 3;
+  reason["link_path_walk"] = "Following symlink";
+
+  priority["path_walk"] = 3;
+  reason["path_walk"] = "Walking directory tree";
+
+  priority["sys_getdents"] = 3;
+  reason["sys_getdents"] = "Reading directory content";
+
+  priority["unix_stream_recvmsg"] = 3;
+  reason["unix_stream_recvmsg"] = "Waiting for data on unix socket";
+
+  priority["ext3_mkdir"] = 3;
+  reason["ext3_mkdir"] = "EXT3: Creating a directory";
+
+  priority["journal_get_write_access"] = 3;
+  reason["journal_get_write_access"] = "EXT3: Waiting for journal access";
+
+  priority["synchronize_rcu"] = 3;
+  reason["synchronize_rcu"] = "Waiting for RCU";
+
+  priority["input_close_device"] = 3;
+  reason["input_close_device"] = "Closing input device";
+
+  priority["mousedev_close_device"] = 3;
+  reason["mousedev_close_device"] = "Closing mouse device";
+
+  priority["mousedev_release"] = 3;
+  reason["mousedev_release"] = "Closing mouse device";
+
+  priority["mousedev_open"] = 3;
+  reason["mousedev_open"] = "Opening mouse device";
+
+  priority["kmsg_read"] = 3;
+  reason["kmsg_read"] = "Reading from dmesg";
+
+  priority["sys_futex"] = 3;
+  reason["sys_futex"] = "Userspace lock contention";
+
+  priority["do_futex"] = 3;
+  reason["do_futex"] = "Userspace lock contention";
+
+  priority["vt_waitactive"] = 3;
+  reason["vt_waitactive"] = "vt_waitactive IOCTL";
+
+  priority["acquire_console_sem"] = 3;
+  reason["acquire_console_sem"] = "Waiting for console access";
+
+  priority["filp_close"] = 3;
+  reason["filp_close"] = "Closing a file";
+
+  priority["sync_inode"] = 3;
+  reason["sync_inode"] = "(f)syncing an inode to disk";
+
+  priority["ata_exec_internal_sg"] = 3;
+  reason["ata_exec_internal_sg"] = "Executing internal ATA command";
+
+  priority["writeback_inodes"] = 3;
+  reason["writeback_inodes"] = "Writing back inodes";
+
+  priority["ext3_orphan_add "] = 3;
+  reason["ext3_orphan_add "] = "EXT3 adding orphan";
+
+  priority["ext3_mark_inode_dirty "] = 3;
+  reason["ext3_mark_inode_dirty "] = "EXT3 marking inode dirty";
+
+  priority["ext3_unlink "] = 3;
+  reason["ext3_unlink "] = "EXT3 unlinking file";
+
+  priority["ext3_create"] = 3;
+  reason["ext3_create"] = "EXT3 Creating a file";
+
+  priority["log_do_checkpoint"] = 3;
+  reason["log_do_checkpoint"] = "EXT3 journal checkpoint";
+
+  priority["generic_delete_inode"] = 3;
+  reason["generic_delete_inode"] = "Deleting an inode";
+
+  priority["proc_delete_inode"] = 3;
+  reason["proc_delete_inode"] = "Removing /proc file";
+
+  priority["do_truncate"] = 3;
+  reason["do_truncate"] = "Truncating file";
+
+  priority["sys_execve"] = 3;
+  reason["sys_execve"] = "Executing a program";
+
+  priority["journal_commit_transaction"] = 3;
+  reason["journal_commit_transaction"] = "EXT3: committing transaction";
+
+  priority["__stop_machine_run"] = 3;
+  reason["__stop_machine_run"] = "Freezing the kernel (for module load)";
+
+  priority["sys_munmap"] = 3;
+  reason["sys_munmap"] = "unmapping memory";
+
+  priority["sys_mmap"] = 3;
+  reason["sys_mmap"] = "mmaping memory";
+
+  priority["sync_buffer"] = 3;
+  reason["sync_buffer"] = "Writing buffer to disk (synchronous)";
+
+  priority["inotify_inode_queue_event"] = 3;
+  reason["inotify_inode_queue_event"] = "Inotify event";
+
+  priority["proc_lookup"] = 3;
+  reason["proc_lookup"] = "Looking up /proc file";
+
+  priority["generic_make_request"] = 3;
+  reason["generic_make_request"] = "Creating block layer request";
+
+  priority["get_request_wait"] = 3;
+  reason["get_request_wait"] = "Creating block layer request";
+
+  priority["alloc_page_vma"] = 3;
+  reason["alloc_page_vma"] = "Allocating a VMA";
+
+  priority["blkdev_direct_IO"] = 3;
+  reason["blkdev_direct_IO"] = "Direct block device IO";
+
+  priority["sys_mprotect"] = 3;
+  reason["sys_mprotect"] = "mprotect() system call";
+
+  priority["shrink_icache_memory"] = 3;
+  reason["shrink_icache_memory"] = "reducing inode cache memory footprint";
+
+  priority["vfs_stat_fd"] = 3;
+  reason["vfs_stat_fd"] = "stat() operation";
+
+  priority["cdrom_open"] = 3;
+  reason["cdrom_open"] = "opening cdrom device";
+
+  priority["sys_epoll_wait"] = 3;
+  reason["sys_epoll_wait"] = "Waiting for event (epoll)";
+
+  priority["sync_sb_inodes"] = 3;
+  reason["sync_sb_inodes"] = "Syncing inodes";
+
+  priority["tcp_connect"] = 3;
+  reason["tcp_connect"] = "TCP/IP connect";
+
+  priority["ata_scsi_ioctl"] = 3;
+  reason["ata_scsi_ioctl"] = "ATA/SCSI disk ioctl";
+
+  priority["kvm_vcpu_ioctl"] = 3;
+  reason["kvm_vcpu_ioctl"] = "KVM ioctl";
+
+  priority["do_rmdir"] = 3;
+  reason["do_rmdir"] = "Removing directory";
+
+  priority["vfs_rmdir"] = 3;
+  reason["vfs_rmdir"] = "Removing directory";
+
+  priority["sys_flock"] = 3;
+  reason["sys_flock"] = "flock() on a file";
+
+  priority["usbdev_open"] = 3;
+  reason["usbdev_open"] = "opening USB device";
+
+  priority["lock_kernel"] = 3;
+  reason["lock_kernel"] = "Big Kernel Lock contention";
+
+  priority["blk_execute_rq"] = 3;
+  reason["blk_execute_rq"] = "Submitting block IO";
+
+  priority["scsi_cmd_ioctl"] = 3;
+  reason["scsi_cmd_ioctl"] = "SCSI ioctl command";
+
+  priority["acpi_ec_transaction"] = 3;
+  reason["acpi_ec_transaction"] = "ACPI hardware access";
+
+  priority["journal_get_undo_access"] = 3;
+  reason["journal_get_undo_access"] = "Waiting for EXT3 journal undo operation";
+
+  priority["i915_irq_wait"] = 3;
+  reason["i915_irq_wait"] = "Waiting for GPU interrupt";
+
+  priority["i915_gem_throttle_ioctl"] = 3;
+  reason["i915_gem_throttle_ioctl"] = "Throttling GPU while waiting for commands";
+
+  priority["do_page_fault"] = 5;
+  reason["do_page_fault"] = "Page fault";
+
+  priority["handle_mm_fault"] = 5;
+  reason["handle_mm_fault"] = "Page fault";
+
+  priority["filemap_fault"] = 5;
+  reason["filemap_fault"] = "Page fault";
+
+  priority["sync_filesystems"] = 5;
+  reason["sync_filesystems"] = "Syncing filesystem";
+
+  priority["sys_nanosleep"] = 5;
+  reason["sys_nanosleep"] = "Application requested delay";
+
+  priority["sys_pause"] = 5;
+  reason["sys_pause"] = "Application requested delay";
+
+  priority["evdev_read"] = 5;
+  reason["evdev_read"] = "Reading keyboard/mouse input";
+
+  priority["do_fsync"] = 5;
+  reason["do_fsync"] = "fsync() on a file";
+
+  priority["__log_wait_for_space"] = 5;
+  reason["__log_wait_for_space"] = "Waiting for EXT3 journal space";
+
 }

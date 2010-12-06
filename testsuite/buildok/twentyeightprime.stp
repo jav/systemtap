@@ -1,0 +1,3 @@
+#! stap -p4
+
+probe process(0).statement(0).absolute { log("absolute zero reached") }

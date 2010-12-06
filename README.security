@@ -15,7 +15,7 @@ following:
 
  * the root user;
 
- * a member of the 'stapdev' group; or
+ * a member of both 'stapdev' and 'stapusr' groups; or
 
  * a member of the 'stapusr' group.  Members of the stapusr group can
    only use modules located in the /lib/modules/VERSION/systemtap
@@ -23,8 +23,8 @@ following:
    directory must be owned by root and not be world writable.
 
 So, there are two classes of users: systemtap developers (the root user
-and members of the stapdev group) and systemtap users (members of the
-stapusr group).  Systemtap developers can compile and run any
+and members of the stapdev/stapusr groups) and systemtap users (members of
+only the stapusr group).  Systemtap developers can compile and run any
 systemtap script.  Systemtap users can only run "approved"
 pre-compiled modules located in /lib/modules/VERSION/systemtap.
 

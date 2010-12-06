@@ -1705,9 +1705,12 @@ parser::parse_literal ()
       // PR11208: check if the next token is also a string literal; auto-concatenate it
       // This is complicated to the extent that we need to skip intermediate whitespace.
       // XXX: but not comments
-      while (peek()->type == tok_string && !input.ate_comment)
-        ls->value.append(next()->content); // consume and append the token
-
+      const token *n = peek();
+      while (n != NULL && n->type == tok_string && !input.ate_comment)
+        {
+          ls->value.append(next()->content); // consume and append the token
+          n = peek();
+        }
       l = ls;
     }
   else
@@ -2861,12 +2864,6 @@ target_symbol* parser::parse_target_symbol (const token* t)
       cop->operand = parse_expression ();
       expect_op(",");
       expect_unknown(tok_string, cop->type_name);
-      // types never start with "struct<space>" or "union<space>",
-      // so gobble it up.
-      if (startswith(cop->type_name, "struct "))
-        cop->type_name = cop->type_name.substr(7);
-      if (startswith(cop->type_name, "union "))
-        cop->type_name = cop->type_name.substr(6);
       if (peek_op (","))
         {
           next();

@@ -1,4 +1,7 @@
-/* Simple test program for loc2c code.  */
+/* Simple test program for loc2c code.
+
+   This takes the standard libdwfl switches to select what address space
+   you are talking about, same as for e.g. eu-addr2line (see --help).  */
 
 #include <config.h>
 #include <assert.h>
@@ -348,7 +351,6 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 					1, cubias, &attr_mem);
   else
     {
-
       if (dwarf_attr_integrate (vardie, DW_AT_location, &attr_mem) == NULL)
 	error (2, 0, _("cannot get location of variable: %s"),
 	       dwarf_errmsg (-1));
@@ -468,9 +470,32 @@ main (int argc, char **argv)
   /* Set locale.  */
   (void) setlocale (LC_ALL, "");
 
+  const struct argp_child argp_children[] =
+    {
+      { .argp = dwfl_standard_argp () },
+      { .argp = NULL }
+    };
+  const struct argp argp =
+    {
+      .children = argp_children,
+      .args_doc = "ADDRESS\n\
+ADDRESS VARIABLE [FIELD...]\n\
+ADDRESS VARIABLE [FIELD...] =",
+      .doc = "Process DWARF locations visible with PC at ADDRESS.\v\
+ADDRESS must be in %i format (i.e. \"0x...\").\n\
+In the first form, display the scope entries containing ADDRESS,\
+ and the variables/parameters visible there, with their type names. \
+ Hex numbers within \"[...]\" are DIE offsets.\n\
+In the second form, emit a C code fragment to access a variable. \
+ Each FIELD argument is the name of a member of an aggregate type\
+ (or pointer to one);\
+ \"+INDEX\" to index into an array type (or offset a pointer type);\
+ or \"\" (an empty argument) to dereference a pointer type.\n\
+In the third form, the access is a store rather than a fetch."
+    };
   Dwfl *dwfl = NULL;
   int argi;
-  (void) argp_parse (dwfl_standard_argp (), argc, argv, 0, &argi, &dwfl);
+  (void) argp_parse (&argp, argc, argv, 0, &argi, &dwfl);
   assert (dwfl != NULL);
 
   if (argi == argc)

@@ -235,7 +235,59 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 	return NULL;
 }
 
-/* Validate module/kernel based on build-id if there 
+static int _stp_build_id_check (struct _stp_module *m, unsigned long notes_addr, int user_module)
+{
+  int j;
+  for (j=0; j<m->build_id_len; j++) {
+    /* Use set_fs / get_user to access
+       conceivably invalid addresses.  If
+       loc2c-runtime.h were more easily usable,
+       a deref() loop could do it too. */
+    mm_segment_t oldfs = get_fs();
+    int rc1, rc2;
+    unsigned char theory, practice;
+
+#ifdef STAPCONF_PROBE_KERNEL
+    if (!user_module)
+      {
+        rc1=probe_kernel_read(&theory, (void*)&m->build_id_bits[j], 1);
+        rc2=probe_kernel_read(&practice, (void*)(notes_addr+j), 1);
+      }
+    else
+#endif
+      {
+        set_fs(KERNEL_DS);
+        rc1 = get_user(theory,((unsigned char*) &m->build_id_bits[j]));
+        rc2 = get_user(practice,((unsigned char*) (void*) (notes_addr+j)));
+        set_fs(oldfs);
+      }
+
+    if (rc1 || rc2 || (theory != practice)) {
+      const char *basename;
+      basename = strrchr(m->path, '/');
+      if (basename)
+	basename++;
+      else
+	basename = m->path;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
+      _stp_error ("Build-id mismatch: \"%s\" vs. \"%s\" byte %d (0x%02x vs 0x%02x) rc %d %d\n",
+		  m->name, basename, j, theory, practice, rc1, rc2);
+      return 1;
+#else
+      /* This branch is a surrogate for kernels
+       * affected by Fedora bug #465873. */
+      _stp_warn (KERN_WARNING
+		 "Build-id mismatch: \"%s\" vs. \"%s\" byte %d (0x%02x vs 0x%02x) rc %d %d\n",
+		 m->name, basename, j, theory, practice, rc1, rc2);
+#endif
+      break;
+    } /* end mismatch */
+  } /* end per-byte check loop */
+  return 0;
+}
+
+/* Validate module/kernel based on build-id (if present)
 *  The completed case is the following combination:
 *	   Debuginfo 		 Module			         Kernel	
 * 			   X				X
@@ -267,58 +319,52 @@ static int _stp_module_check(void)
 			  base_addr = m->notes_sect;
 		    }
 
-		    /* build-id note payload start address */
-                    /* XXX: But see https://bugzilla.redhat.com/show_bug.cgi?id=465872;
-                       dwfl_module_build_id was not intended to return the end address. */
-		    notes_addr -= m->build_id_len;
-
-		    if (notes_addr <= base_addr)  /* shouldn't happen */
-			 continue;
-                    for (j=0; j<m->build_id_len; j++) {
-                            /* Use set_fs / get_user to access
-                             conceivably invalid addresses.  If
-                             loc2c-runtime.h were more easily usable,
-                             a deref() loop could do it too. */
-                            mm_segment_t oldfs = get_fs();
-                            int rc1, rc2;
-                            unsigned char theory, practice;
-
-#ifdef STAPCONF_PROBE_KERNEL
-			    rc1=probe_kernel_read(&theory, (void*)&m->build_id_bits[j], 1);
-			    rc2=probe_kernel_read(&practice, (void*)(notes_addr+j), 1);
-#else
-                            set_fs(KERNEL_DS);
-                            rc1 = get_user(theory,((unsigned char*) &m->build_id_bits[j]));
-                            rc2 = get_user(practice,((unsigned char*) (void*) (notes_addr+j)));
-                            set_fs(oldfs);
-#endif
-
-                            if (rc1 || rc2 || (theory != practice)) {
-                                    const char *basename;
-                                    basename = strrchr(m->path, '/');
-                                    if (basename)
-                                            basename++;
-                                    else
-                                            basename = m->path;
-                                    
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
-                                    _stp_error ("Build-id mismatch: \"%s\" vs. \"%s\" byte %d (0x%02x vs 0x%02x) rc %d %d\n",
-                                                m->name, basename, j, theory, practice, rc1, rc2);
-                                    return 1;
-#else
-                                    /* This branch is a surrogate for kernels
-                                     * affected by Fedora bug #465873. */
-                                    _stp_warn (KERN_WARNING
-                                               "Build-id mismatch: \"%s\" vs. \"%s\" byte %d (0x%02x vs 0x%02x) rc %d %d\n",
-                                               m->name, basename, j, theory, practice, rc1, rc2);
-#endif
-                                    break;
-                            } /* end mismatch */
-		    } /* end per-byte check loop */
+		    if (notes_addr <= base_addr) { /* shouldn't happen */
+                            _stp_warn ("build-id address %lx < base %lx\n", 
+                                       notes_addr, base_addr);
+                            continue;
+                    }
+		    _stp_build_id_check (m, notes_addr, 0);
 		} /* end checking */
 	} /* end loop */
 	return 0;
 }
+
+
+/* Validate user module based on build-id (if present) */
+static int _stp_usermodule_check(struct task_struct *tsk, const char *path_name, unsigned long addr)
+{
+  struct _stp_module *m = NULL;
+  unsigned long notes_addr;
+  unsigned i, j;
+  unsigned char practice_id_bits[MAXSTRINGLEN];
+  unsigned long vm_end = 0;
+
+  for (i = 0; i < _stp_num_modules; i++)
+    {
+      m = _stp_modules[i];
+      if (strcmp(path_name, _stp_modules[i]->path) != 0)
+	continue;
+      if (m->build_id_len > 0) {
+	int ret, build_id_len;
+
+	notes_addr = addr + m->build_id_offset /* + m->module_base */;
+
+        dbug_sym(1, "build-id validation [%s] address=%#lx build_id_offset=%#lx\n",
+            m->name, addr, m->build_id_offset);
+
+	if (notes_addr <= addr) {
+	  _stp_warn ("build-id address %lx < base %lx\n",
+		     notes_addr, addr);
+	  continue;
+	}
+	_stp_build_id_check (m, notes_addr, 1);
+      }
+    }
+
+  return 0;
+}
+
 
 /** Prints an address based on the _STP_SYM flags.
  * @param address The address to lookup.
@@ -345,6 +391,12 @@ static int _stp_snprint_addr(char *str, size_t len, unsigned long address,
 
   if (flags & (_STP_SYM_SYMBOL | _STP_SYM_MODULE))
     name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
+
+  if (modname && (flags & _STP_SYM_MODULE_BASENAME)) {
+     char *slash = strrchr (modname, '/');
+     if (slash)
+        modname = slash+1;
+  }
 
   if (name && (flags & _STP_SYM_SYMBOL)) {
     if ((flags & _STP_SYM_MODULE) && modname && *modname) {

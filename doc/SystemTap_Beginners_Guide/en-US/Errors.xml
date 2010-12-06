@@ -6,9 +6,9 @@
 	<title>Understanding SystemTap Errors</title>
 
 	<remark>By type - http://sourceware.org/systemtap/tutorial/node23.html</remark>
-	
+
 	<para>This chapter explains the most common errors you may encounter while using SystemTap.</para>
-	
+
 <section id="parsetype">
 	<title>Parse and Semantic Errors</title>
 <indexterm>
@@ -24,13 +24,13 @@
 <indexterm>
 <primary>parse/semantics error</primary>
 <secondary>understanding SystemTap errors</secondary>
-</indexterm>	
+</indexterm>
 <para>These types of errors occur while SystemTap attempts to parse and
       translate the script into C, prior to being converted into a kernel
       module. For example type errors result from operations that assign invalid
       values to variables or arrays.
 </para>
-	
+
 <formalpara><title>parse error: expected <replaceable>foo</replaceable>, saw <replaceable>bar</replaceable></title>
 <!-- next 3 indexterms for invalid values to variables/arrays -->
 <indexterm>
@@ -55,7 +55,7 @@
 <primary>invalid values to variables/arrays</primary>
 <secondary>parse/semantics error</secondary>
 <tertiary>understanding SystemTap errors</tertiary>
-</indexterm>	
+</indexterm>
 
 
 
@@ -106,9 +106,7 @@
 </para>
 
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/perror.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="extras/perror.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 
 <para>
@@ -117,11 +115,9 @@
       column 1 of line 2:
 </para>
 <para>
-<programlisting>
-parse error: expected one of '. , ( ? ! { = +='
+<programlisting>parse error: expected one of '. , ( ? ! { = +='
 	saw: keyword at perror.stp:2:1
-1 parse error(s).
-</programlisting>
+1 parse error(s).</programlisting>
 </para>
 
 <formalpara><title>parse error: embedded code in unprivileged script</title>
@@ -247,18 +243,16 @@ parse error: expected one of '. , ( ? ! { = +='
 	(i.e. <command>%s</command> or <command>%d</command>). This error will
 	present itself in <xref linkend="errorvariable"/>, because the function
 	<command>execname()</command> returns a string the format specifier
-	should be a <command>%s</command>, not <command>%d</command>. 
+	should be a <command>%s</command>, not <command>%d</command>.
 </para>
 </formalpara>
 
 <example id="errorvariable">
 	<title>error-variable.stp</title>
-<programlisting>
-probe syscall.open
+<programlisting>probe syscall.open
 {
   printf ("%d(%d) open\n", execname(), pid())
-}
-</programlisting>
+}</programlisting>
 </example>
 
 <formalpara>
@@ -287,7 +281,7 @@ probe syscall.open
 <primary>unresolved type for identifier</primary>
 <secondary>parse/semantics error</secondary>
 <tertiary>understanding SystemTap errors</tertiary>
-</indexterm>	
+</indexterm>
 <para>The identifier (e.g. a variable) was used, but no type (integer or
 	string) could be determined. This occurs, for instance, if you use a
 	variable in a <command>printf</command> statement while
@@ -320,8 +314,8 @@ probe syscall.open
 <primary>expected symbol/array index expression</primary>
 <secondary>parse/semantics error</secondary>
 <tertiary>understanding SystemTap errors</tertiary>
-</indexterm>	
-	
+</indexterm>
+
 <para>
 	SystemTap could not assign a value to a variable or to a location in an
 	array. The destination for the assignment is not a valid destination.
@@ -329,9 +323,7 @@ probe syscall.open
 </para>
 </formalpara>
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/werror.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="extras/werror.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 
 <formalpara>
@@ -360,7 +352,7 @@ probe syscall.open
 <primary>unresolved function call</primary>
 <secondary>parse/semantics error</secondary>
 <tertiary>understanding SystemTap errors</tertiary>
-</indexterm>	
+</indexterm>
 
 <indexterm>
 <primary>function call (unresolved)</primary>
@@ -375,7 +367,7 @@ probe syscall.open
 
 <formalpara>
 	<title>semantic error: array locals not supported, missing global declaration?</title>
-	
+
 <!-- next 2 indexterms for non-global arrays -->
 <indexterm>
 <primary>array locals not supported</primary>
@@ -473,11 +465,11 @@ probe syscall.open
 	<computeroutput><replaceable>foo</replaceable></computeroutput> refers
 	to. This usually means that SystemTap could not find a match for
 	<computeroutput><replaceable>foo</replaceable></computeroutput> in the
-	tapset library. The <replaceable>N</replaceable> refers to the 
-	line and column of 
+	tapset library. The <replaceable>N</replaceable> refers to the
+	line and column of
 	the error.</para>
-</formalpara>	
-	
+</formalpara>
+
 <remark>how to explain N in previous? "The divergence from the “tree” of probe point namespace is at position N (starting with zero at left)." (from tutorial) </remark>
 
 <formalpara>
@@ -560,7 +552,7 @@ probe syscall.open
 
 <formalpara>
 	<title>semantic error: libdwﬂ failure </title>
-	
+
 <!-- next 2 indexterms for libdwfl failure -->
 
 <indexterm>
@@ -585,7 +577,7 @@ probe syscall.open
 <primary>libdwfl failure</primary>
 <secondary>parse/semantics error</secondary>
 <tertiary>understanding SystemTap errors</tertiary>
-</indexterm>	
+</indexterm>
 	<para>There was a problem processing the debugging information. In most
 	cases, this error results from the installation of a
 	<filename>kernel-debuginfo</filename> RPM whose version does not match
@@ -603,7 +595,7 @@ probe syscall.open
 </formalpara>
 -->
 
-</section>	
+</section>
 
 <section id="runtimeerror">
 	<title>Run Time Errors and Warnings</title>
@@ -621,7 +613,7 @@ probe syscall.open
 <primary>runtime errors/warnings</primary>
 <secondary>understainding SystemTap errors</secondary>
 </indexterm>
-	
+
 
 <para>
 		Runtime errors and warnings occur when the SystemTap
@@ -656,7 +648,7 @@ probe syscall.open
 <tertiary>understainding SystemTap errors</tertiary>
 </indexterm>
 <para>
-	Errors and/or skipped probes occurred during this run. Both 
+	Errors and/or skipped probes occurred during this run. Both
 	<replaceable>N</replaceable> and <replaceable>M</replaceable> are
 	the counts of the number of probes that were not executed due to
 	conditions such as too much time required to execute event handlers over
@@ -764,11 +756,11 @@ probe syscall.open
 <primary>overflow of aggregation</primary>
 <secondary>runtime errors/warnings</secondary>
 <tertiary>understainding SystemTap errors</tertiary>
-</indexterm>	
-	
+</indexterm>
+
 <para>
 An array containing aggregate values contains too many distinct key pairs at this time.
-</para>	
+</para>
 <!--<para>
     An array containing aggregate values contains too many distinct key tuples at this time.
 </para>-->
@@ -837,7 +829,7 @@ An array containing aggregate values contains too many distinct key pairs at thi
 <primary>MAXACTION exceeded</primary>
 <secondary>runtime errors/warnings</secondary>
 <tertiary>understainding SystemTap errors</tertiary>
-</indexterm>	
+</indexterm>
 
 <indexterm>
 	<primary>exceeded MAXACTION</primary>
@@ -911,7 +903,7 @@ An array containing aggregate values contains too many distinct key pairs at thi
 <primary>pointer dereference fault</primary>
 <secondary>runtime errors/warnings</secondary>
 <tertiary>understainding SystemTap errors</tertiary>
-</indexterm>	
+</indexterm>
 <para>
 	There was a fault encountered during a pointer
 	dereference operation such as a target variable evaluation.

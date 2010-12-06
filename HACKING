@@ -124,7 +124,7 @@ the <systemtap@sources.redhat.com> mailing list.
 
   Tapset functions to be deprecated should be kept for at least one
   major release.  For example, if we're in development between versions
-  1.2 and 1.3, wrap to-be-deprecated tapset functions in 
+  1.2 and 1.3, wrap to-be-deprecated tapset functions or probes in 
        %( systemtap_v <= "1.3" %?    function foo() {}   %)
   so as to preserve the tapset function during the life of the 1.3 release.
 

@@ -517,10 +517,10 @@ extern void __store_deref_bad(void);
     else                                                                      \
       switch (size)                                                           \
         {                                                                     \
-        case 1: __get_user_asm(_b,addr,_bad,"b","b","=q",1); _v = _b; break;  \
-        case 2: __get_user_asm(_w,addr,_bad,"w","w","=r",1); _v = _w; break;  \
-        case 4: __get_user_asm(_l,addr,_bad,"l","","=r",1); _v = _l; break;   \
-        case 8: __get_user_asm(_q,addr,_bad,"q","","=r",1); _v = _q; break;   \
+        case 1: __get_user_asm(_b,(unsigned long)addr,_bad,"b","b","=q",1); _v = _b; break;  \
+        case 2: __get_user_asm(_w,(unsigned long)addr,_bad,"w","w","=r",1); _v = _w; break;  \
+        case 4: __get_user_asm(_l,(unsigned long)addr,_bad,"l","","=r",1); _v = _l; break;   \
+        case 8: __get_user_asm(_q,(unsigned long)addr,_bad,"q","","=r",1); _v = _q; break;   \
         default: _v = __get_user_bad();                                       \
         }                                                                     \
     if (_bad)								      \

@@ -124,9 +124,9 @@ class derived_probe_group;
 
 struct derived_probe: public probe
 {
-  derived_probe (probe* b);
-  derived_probe (probe* b, probe_point* l);
+  derived_probe (probe* b, probe_point* l, bool rewrite_loc=false);
   probe* base; // the original parsed probe
+  probe_point* base_pp; // the probe_point that led to this derivation
   virtual const probe* basest () const { return base->basest(); }
   virtual const probe* almost_basest () const { return base->almost_basest() ?: this; }
   virtual ~derived_probe () {}
@@ -138,6 +138,8 @@ struct derived_probe: public probe
   virtual void getargs (std::list<std::string> &arg_set) const {}
   void printsig_nested (std::ostream &o) const;
   virtual void collect_derivation_chain (std::vector<probe*> &probes_list);
+  virtual void collect_derivation_pp_chain (std::vector<probe_point*> &pp_list);
+  std::string derived_locations ();
 
   virtual void print_dupe_stamp(std::ostream&) {}
   // To aid duplication elimination, print a stamp which uniquely identifies
@@ -173,6 +175,9 @@ public:
 
   // Location of semaphores to activate sdt probes
   Dwarf_Addr sdt_semaphore_addr;
+
+  // index into session.probes[], set and used during translation
+  unsigned session_index;
 };
 
 // ------------------------------------------------------------------------

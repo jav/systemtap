@@ -2,7 +2,7 @@
 <!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
 ]>
 
-	
+
 <section id="using-setup">
   <title>Installation and Setup</title>
   <remark>
@@ -10,8 +10,8 @@
   </remark>
 
   <remark>
-    notes in ~/Desktop/SystemTap/aug21chatlog and ~/Desktop/SystemTap/noted_wcohenmeeting 
-  </remark>	
+    notes in ~/Desktop/SystemTap/aug21chatlog and ~/Desktop/SystemTap/noted_wcohenmeeting
+  </remark>
 <indexterm>
 <primary>Installation</primary>
 <secondary>Setup and Installation</secondary>
@@ -19,7 +19,7 @@
 
 <indexterm>
 <primary>Setup and Installation</primary>
-</indexterm>		
+</indexterm>
   <para> To deploy SystemTap, you need to install the SystemTap packages along
     with the corresponding set of <filename>-devel</filename>,
     <filename>-debuginfo</filename> and <filename>-debuginfo-common</filename>
@@ -28,10 +28,10 @@
     install the <filename>-devel</filename> and <filename>-debuginfo</filename>
     packages for <emphasis>each</emphasis> of those kernel versions.
   </para>
-		
+
   <para> These procedures will be discussed in detail in the following sections.
   </para>
-		
+
   <important>
     <title>Important</title> <para>Many users confuse
     <filename>-debuginfo</filename> with <filename>-debug</filename>. Remember
@@ -69,7 +69,7 @@
       <listitem><para><filename>systemtap</filename></para></listitem>
       <listitem><para><filename>systemtap-runtime</filename></para></listitem>
     </itemizedlist>
-	
+
     <para>Assuming that <command>yum</command> is installed in the system, these two rpms can be installed with <command>yum install systemtap systemtap-runtime</command>. Note that before you can use SystemTap, you will still need to install the required kernel information RPMs.
     </para>
 
@@ -99,11 +99,11 @@
 <indexterm>
 	<primary>kernel information packages</primary>
 </indexterm>
-    <para> 
-	    SystemTap needs information about the kernel in order to place instrumentation in it (i.e. probe it). This 
-	    information also allows SystemTap to generate the code for the instrumentation. This information is contained 
-	    in the matching <filename>-devel</filename>, <filename>-debuginfo</filename>, and <filename>-debuginfo-common</filename> 
-	    packages for your kernel. The necessary <filename>-devel</filename> and <filename>-debuginfo</filename> packages for the ordinary 
+    <para>
+	    SystemTap needs information about the kernel in order to place instrumentation in it (i.e. probe it). This
+	    information also allows SystemTap to generate the code for the instrumentation. This information is contained
+	    in the matching <filename>-devel</filename>, <filename>-debuginfo</filename>, and <filename>-debuginfo-common</filename>
+	    packages for your kernel. The necessary <filename>-devel</filename> and <filename>-debuginfo</filename> packages for the ordinary
 	    "vanilla" kernel are as follows:
     </para>
 
@@ -114,11 +114,11 @@
     </itemizedlist>
 
 	<para>
-	    Likewise, the necessary packages for the PAE kernel would be 
+	    Likewise, the necessary packages for the PAE kernel would be
 	    <filename>kernel-PAE-debuginfo</filename>, <filename>kernel-PAE-debuginfo-common</filename>,
 	    and <filename>kernel-PAE-devel</filename>.
 	</para>
-		    
+
 <indexterm>
 <primary>Installation</primary>
 <secondary>kernel version, determining the</secondary>
@@ -133,15 +133,13 @@
 </indexterm>
 <indexterm>
 	<primary>uname -r</primary>
-</indexterm>    
+</indexterm>
     <para> To determine what kernel your system is currently using, use:</para>
-		
-<screen>
-uname -r
-</screen>
+
+<screen>uname -r</screen>
 
     <para>
-	    For example, if you wish to use SystemTap on kernel version <filename>2.6.18-53.el5</filename> on an i686 machine, then you would 
+	    For example, if you wish to use SystemTap on kernel version <filename>2.6.18-53.el5</filename> on an i686 machine, then you would
 	    need to download and install the following RPMs:
     </para>
 
@@ -153,56 +151,31 @@ uname -r
 
    <important>
       <title>Important</title>
-	
+
       <para>
-	The version, variant, and architecture of the <filename>-devel</filename>, <filename>-debuginfo</filename> and 
+	The version, variant, and architecture of the <filename>-devel</filename>, <filename>-debuginfo</filename> and
 	<filename>-debuginfo-common</filename> packages must match the kernel you wish to probe with SystemTap <emphasis>exactly</emphasis>.
       </para>
     </important>
-    
-    
+
+
     <para>
-	    The easiest way to install the required kernel information packages is through <command>yum install</command> 
-	    and <command>debuginfo-install</command>. <command>debuginfo-install</command> is included with later versions of the
-	    <filename>yum-utils</filename> package (for example, version 1.1.10), and also requires an appropriate <command>yum</command>
-	    repository from which to download and install <command>-debuginfo</command>/<filename>-debuginfo-common</filename> packages.
-    </para>
-    
-	<para condition="fedora">
-	    Most of the required kernel packages can be found at 
-	    <ulink url="http://download.fedoraproject.org/pub/fedora/linux/releases/"/>. Configure 
-	    <command>yum</command> accordingly by adding a new "debug" <command>yum</command> repository file 
-	    under <filename>/etc/yum.repos.d</filename> containing the following lines:
-	</para>
-
-<programlisting condition="fedora">
-[fedora-debuginfo]
-name=Fedora $releasever - $basearch - Debug
-failovermethod=priority
-baseurl=http://download.fedoraproject.org/pub/fedora/linux/releases/$releasever/Everything/$basearch/debug/
-enabled=1
-</programlisting>	
-	
-	
-	<para condition="RedHat">
-		Most required kernel packages can be found at 
-		<ulink url="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/"/>; navigate there until you find the 
-		appropriate <filename>Debuginfo</filename> directory for your system. Configure 
-		<command>yum</command> accordingly by adding a new "debug" <command>yum</command> repository file under 
-		<filename>/etc/yum.repos.d</filename> containing the following lines:
-	</para>
-<programlisting condition="RedHat">
-[rhel-debuginfo]
-name=Red Hat Enterprise Linux $releasever - $basearch - Debug
-baseurl=ftp://ftp.redhat.com/pub/redhat/linux/enterprise/$releasever/en/os/$basearch/Debuginfo/
-enabled=1
-</programlisting>
-
-<para>
-	After configuring <command>yum</command> with the appropriate repository, you can now install 
-	the required <filename>-devel</filename>, <filename>-debuginfo</filename>, and <filename>-debuginfo-common</filename> 
-	packages for your kernel. To install the corresponding packages for a specific kernel, run the following commands:
-</para>
+	    The easiest way to install the required kernel information
+	    packages is through <command>yum install</command> and
+	    <command>debuginfo-install</command> commands.
+	    <command>debuginfo-install</command> is included with
+	    later versions of the <filename>yum-utils</filename>
+	    package (for example, version 1.1.10), and also requires
+	    an appropriate <command>yum</command> repository from
+	    which to download and install
+	    <command>-debuginfo</command>/<filename>-debuginfo-common</filename>
+	    packages.  You can install the required
+	    <filename>-devel</filename>,
+	    <filename>-debuginfo</filename>, and
+	    <filename>-debuginfo-common</filename> packages for your
+	    kernel. To install the corresponding packages for a
+	    specific kernel, run the following commands:
+   </para>
 
 <itemizedlist>
 <listitem><para><command>yum install <replaceable>kernelname</replaceable>-devel-<replaceable>version</replaceable></command></para></listitem>
@@ -210,8 +183,8 @@ enabled=1
 </itemizedlist>
 
 <para>
-	Replace <command><replaceable>kernelname</replaceable></command> with the appropriate kernel variant name 
-	(for example, <filename>kernel-PAE</filename>), and <command><replaceable>version</replaceable></command> 
+	Replace <command><replaceable>kernelname</replaceable></command> with the appropriate kernel variant name
+	(for example, <filename>kernel-PAE</filename>), and <command><replaceable>version</replaceable></command>
 	with the target kernel's version. For example, to install the required kernel information packages for
 	the <command>kernel-PAE-2.6.18-53.1.13.el5</command> kernel, run:
 </para>
@@ -223,7 +196,7 @@ enabled=1
 
 <para>
 	If you do not have <command>yum</command> and <command>yum-utils</command> installed (and you are unable to install them), you will have to manually download and install the required kernel information packages. To generate the URL from which to download the required packages, use the following script:
-</para>	
+</para>
 <indexterm condition="fedora">
 <primary>Installation</primary>
 <secondary>fedoradebugurl.sh</secondary>
@@ -247,9 +220,7 @@ enabled=1
 <formalpara condition="RedHat">
 <title>rheldebugurl.sh</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/rheldebugurl.sh" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="extras/rheldebugurl.sh" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
 
@@ -257,18 +228,16 @@ enabled=1
 <formalpara condition="fedora">
 <title>fedoradebugurl.sh</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="extras/fedoradebugurl.sh" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="extras/fedoradebugurl.sh" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
     <para>
 Once you have manually downloaded the required packages to the machine, install the RPMs by running <command>rpm --force -ivh <replaceable>package_names</replaceable></command>.
     </para>
-	
+
   </section>
 
-	
+
   <section id="testing">
     <title>Initial Testing</title>
 <indexterm>
@@ -282,7 +251,7 @@ Once you have manually downloaded the required packages to the machine, install 
 
 <indexterm>
 <primary>testing, initial</primary>
-</indexterm>	
+</indexterm>
     <para>If you are currently using the kernel you wish to probe with
       SystemTap, you can immediately test whether the deployment was
       successful. If not, you will need to reboot and load the appropriate
@@ -290,7 +259,7 @@ Once you have manually downloaded the required packages to the machine, install 
     </para>
 
     <para>
-	    To start the test, run the command <command>stap -v -e 'probe vfs.read {printf("read performed\n"); exit()}'</command>.  This command simply instructs SystemTap 
+	    To start the test, run the command <command>stap -v -e 'probe vfs.read {printf("read performed\n"); exit()}'</command>.  This command simply instructs SystemTap
 	    to print <computeroutput>read performed</computeroutput> then exit
 	    properly once a virtual file system read is detected. If the SystemTap
 	    deployment was successful, you should get output similar to the
@@ -303,15 +272,13 @@ Once you have manually downloaded the required packages to the machine, install 
       following:
     </para>-->
 
-<screen>
-Pass 1: parsed user script and 45 library script(s) in 340usr/0sys/358real ms.
+<screen>Pass 1: parsed user script and 45 library script(s) in 340usr/0sys/358real ms.
 Pass 2: analyzed script: 1 probe(s), 1 function(s), 0 embed(s), 0 global(s) in 290usr/260sys/568real ms.
 Pass 3: translated to C into "/tmp/stapiArgLX/stap_e5886fa50499994e6a87aacdc43cd392_399.c" in 490usr/430sys/938real ms.
 Pass 4: compiled C into "stap_e5886fa50499994e6a87aacdc43cd392_399.ko" in 3310usr/430sys/3714real ms.
 Pass 5: starting run.
 read performed
-Pass 5: run completed in 10usr/40sys/73real ms.
-</screen>
+Pass 5: run completed in 10usr/40sys/73real ms.</screen>
 
     <para> The last three lines of the output (i.e. beginning with
     <computeroutput>Pass 5</computeroutput>) indicate that SystemTap was able to

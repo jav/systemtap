@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * 32-bit x86 dwarf unwinder header file
- * Copyright (C) 2008 Red Hat Inc.
+ * Copyright (C) 2008, 2010 Red Hat Inc.
  * Copyright (C) 2002-2006 Novell, Inc.
  * 
  * This file is part of systemtap, and is free software.  You can
@@ -79,6 +79,7 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
                                             /*const*/ struct pt_regs *regs,
 					    int sanitize)
 {
+	memset(info, 0, sizeof(*info));
 	if (sanitize) /* We are only prepared to use full reg sets. */
 		_stp_error("Impossible to sanitize i386 pr_regs");
 
@@ -96,7 +97,6 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
 #endif
 		
 	}
-	info->call_frame = 0;
 }
 
 static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
@@ -120,29 +120,6 @@ static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
 	info->regs.xes = __USER_DS;
 #endif
 	
-}
-
-
-static inline int arch_unw_user_mode(const struct unwind_frame_info *info)
-{
-#if 0 /* This can only work when selector register and EFLAGS saves/restores
-         are properly annotated (and tracked in UNW_REGISTER_INFO). */
-	return user_mode_vm(&info->regs);
-#else
-#ifdef STAPCONF_X86_UNIREGS		
-	return info->regs.ip < PAGE_OFFSET
-	       || (info->regs.ip >= __fix_to_virt(FIX_VDSO)
-	            && info->regs.ip < __fix_to_virt(FIX_VDSO) + PAGE_SIZE)
-	       || info->regs.sp < PAGE_OFFSET;
-#else
-	return info->regs.eip < PAGE_OFFSET
-#ifdef FIX_VDSO /* newer kernel? */
-	       || (info->regs.eip >= __fix_to_virt(FIX_VDSO)
-	            && info->regs.eip < __fix_to_virt(FIX_VDSO) + PAGE_SIZE)
-#endif
-	       || info->regs.esp < PAGE_OFFSET;
-#endif	
-#endif
 }
 
 #endif /* _STP_I386_UNWIND_H */

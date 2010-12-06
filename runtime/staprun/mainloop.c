@@ -7,12 +7,13 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2005-2009 Red Hat Inc.
+ * Copyright (C) 2005-2010 Red Hat Inc.
  */
 
 #include "staprun.h"
 #include <sys/utsname.h>
 #include <sys/ptrace.h>
+#include <search.h>
 #include <wordexp.h>
 
 
@@ -430,24 +431,24 @@ void cleanup_and_exit(int detach, int rc)
 
   staprun = getenv ("SYSTEMTAP_STAPRUN") ?: BINDIR "/staprun";
   dbug(2, "removing %s\n", modname);
-  
+
   // So that waitpid() below will work correctly, we need to clear
   // out our SIGCHLD handler.
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
   sa.sa_handler = SIG_DFL;
   sigaction(SIGCHLD, &sa, NULL);
-  
+
   pid = fork();
   if (pid < 0) {
           _perr("fork");
           _exit(-1);
   }
-  
+
   if (pid == 0) {			/* child process */
           /* Run the command. */
           char *cmd;
-          int rc = asprintf(&cmd, "%s %s %s -d '%s'", staprun, 
+          int rc = asprintf(&cmd, "%s %s %s -d '%s'", staprun,
                             (verbose >= 1) ? "-v" : "",
                             (verbose >= 2) ? "-v" : "",
                             modname);
@@ -461,13 +462,13 @@ void cleanup_and_exit(int detach, int rc)
                   _exit(-1);
           }
   }
-  
+
   /* parent process */
   if (waitpid(pid, &rstatus, 0) < 0) {
           _perr("waitpid");
           _exit(-1);
   }
-  
+
   if (WIFEXITED(rstatus)) {
           _exit(rc ?: WEXITSTATUS(rstatus));
   }
@@ -482,10 +483,17 @@ void cleanup_and_exit(int detach, int rc)
 int stp_main_loop(void)
 {
   ssize_t nb;
-  void *data;
-  uint32_t type;
   FILE *ofp = stdout;
-  char recvbuf[8196];
+  struct
+  {
+    uint32_t type;
+    union
+    {
+      char data[8192];
+      struct _stp_msg_start start;
+      struct _stp_msg_cmd cmd;
+    } payload;
+  } recvbuf;
   int error_detected = 0;
   int flags;
 
@@ -498,8 +506,8 @@ int stp_main_loop(void)
   flags = fcntl(control_channel, F_GETFL);
 
   /* handle messages from control channel */
-  while (1) { 
-    if (pending_interrupts) { 
+  while (1) {
+    if (pending_interrupts) {
          int btype = STP_EXIT;
          int rc = write(control_channel, &btype, sizeof(btype));
          dbug(2, "signal-triggered %d exit rc %d\n", pending_interrupts, rc);
@@ -515,13 +523,13 @@ int stp_main_loop(void)
 
     flags |= O_NONBLOCK;
     fcntl(control_channel, F_SETFL, flags);
-    nb = read(control_channel, recvbuf, sizeof(recvbuf));
+    nb = read(control_channel, &recvbuf, sizeof(recvbuf));
     flags &= ~O_NONBLOCK;
     fcntl(control_channel, F_SETFL, flags);
 
-    dbug(3, "nb=%d\n", (int)nb);
-    if (nb <= 0) {
-      if (errno != EINTR && errno != EAGAIN) {
+    dbug(3, "nb=%ld\n", (long)nb);
+    if (nb < (ssize_t) sizeof(recvbuf.type)) {
+      if (nb >= 0 || (errno != EINTR && errno != EAGAIN)) {
         _perr("Unexpected EOF in read (nb=%ld)", (long)nb);
         cleanup_and_exit(0, 1);
       }
@@ -530,24 +538,75 @@ int stp_main_loop(void)
       continue;
     }
 
-    type = *(uint32_t *) recvbuf;
-    data = (void *)(recvbuf + sizeof(uint32_t));
-    nb -= sizeof(uint32_t);
-    STAP_PROBE3(staprun, recv__ctlmsg, type, data, nb);
+    nb -= sizeof(recvbuf.type);
+    PROBE3(staprun, recv__ctlmsg, recvbuf.type, recvbuf.payload.data, nb);
 
-    switch (type) {
+    switch (recvbuf.type) {
 #if STP_TRANSPORT_VERSION == 1
     case STP_REALTIME_DATA:
-      if (write_realtime_data(data, nb)) {
+      if (write_realtime_data(recvbuf.payload.data, nb)) {
         _perr("write error (nb=%ld)", (long)nb);
         cleanup_and_exit(0, 1);
       }
       break;
 #endif
     case STP_OOB_DATA:
-      eprintf("%s", (char *)data);
-      if (strncmp(data, "ERROR:", 5) == 0){
-        error_detected = 1;
+      if (strncmp(recvbuf.payload.data, "WARNING:", 7) == 0) {
+              if (suppress_warnings) break;
+              if (verbose) { /* don't eliminate duplicates */
+                      eprintf("%.*s", (int) nb, recvbuf.payload.data);
+                      break;
+              } else { /* eliminate duplicates */
+                      static void *seen = 0;
+                      static unsigned seen_count = 0;
+                      char *dupstr = strndup (recvbuf.payload.data, (int) nb);
+                      char *retval;
+
+                      if (! dupstr) {
+                              /* OOM, should not happen. */
+                              eprintf("%.*s", (int) nb, recvbuf.payload.data);
+                              break;
+                      }
+
+                      retval = tfind (dupstr, & seen, (int (*)(const void*, const void*))strcmp);
+                      if (! retval) { /* new message */
+                              eprintf("%s", dupstr);
+
+                              /* We set a maximum for stored warning messages,
+                                 to prevent a misbehaving script/environment
+                                 from emitting countless _stp_warn()s, and
+                                 overflow staprun's memory. */
+#define MAX_STORED_WARNINGS 1024
+                              if (seen_count++ == MAX_STORED_WARNINGS) {
+                                      eprintf("WARNING deduplication table full\n");
+                                      free (dupstr);
+                              }
+                              else if (seen_count > MAX_STORED_WARNINGS) {
+                                      /* Be quiet in the future, but stop counting to
+                                         preclude overflow. */
+                                      free (dupstr);
+                                      seen_count = MAX_STORED_WARNINGS+1;
+                              }
+                              else if (seen_count < MAX_STORED_WARNINGS) {
+                                      /* NB: don't free dupstr; it's going into the tree. */
+                                      retval = tsearch (dupstr, & seen,
+                                                        (int (*)(const void*, const void*))strcmp);
+                                      if (retval == 0) {
+                                              /* OOM, should not happen */
+                                              /* Next time we should get the 'full' message. */
+                                              free (dupstr);
+                                              seen_count = MAX_STORED_WARNINGS;
+                                      }
+                              }
+                      } else { /* old message */
+                              free (dupstr);
+                      }
+              } /* duplicate elimination */
+      } else if (strncmp(recvbuf.payload.data, "ERROR:", 5) == 0) {
+              eprintf("%.*s", (int) nb, recvbuf.payload.data);
+              error_detected = 1;
+      } else { /* neither warning nor error */
+              eprintf("%.*s", (int) nb, recvbuf.payload.data);
       }
       break;
     case STP_EXIT:
@@ -567,7 +626,7 @@ int stp_main_loop(void)
       }
     case STP_START:
       {
-        struct _stp_msg_start *t = (struct _stp_msg_start *)data;
+        struct _stp_msg_start *t = &recvbuf.payload.start;
         dbug(2, "probe_start() returned %d\n", t->res);
         if (t->res < 0) {
           if (target_cmd)
@@ -595,7 +654,7 @@ int stp_main_loop(void)
       }
     case STP_SYSTEM:
       {
-        struct _stp_msg_cmd *c = (struct _stp_msg_cmd *)data;
+        struct _stp_msg_cmd *c = &recvbuf.payload.cmd;
         dbug(2, "STP_SYSTEM: %s\n", c->cmd);
         system_cmd(c->cmd);
         break;
@@ -617,7 +676,7 @@ int stp_main_loop(void)
         break;
       }
     default:
-      err("WARNING: ignored message of type %d\n", (type));
+      err("WARNING: ignored message of type %d\n", recvbuf.type);
     }
   }
   fclose(ofp);

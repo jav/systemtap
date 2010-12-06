@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 #include <ssl.h>
 #include <nspr.h>
@@ -50,6 +51,9 @@ Usage(const char *progName)
 }
 #endif
 
+#if STAP /* temporary until stap-client-connect program goes away*/
+#define exitErr(errorStr, rc) return (rc)
+#else
 static void
 exitErr(const char* errorStr, int rc)
 {
@@ -61,6 +65,7 @@ exitErr(const char* errorStr, int rc)
   PR_Cleanup();
   exit(rc);
 }
+#endif
 
 /* Add the server's certificate to our database of trusted servers.  */
 static SECStatus
@@ -242,9 +247,13 @@ handle_connection(
     }
 
   /* Send the file size first, so the server knows when it has the entire file. */
-  numBytes = PR_Write(sslSocket, & info.size, sizeof (info.size));
+  numBytes = htonl ((PRInt32)info.size);
+  numBytes = PR_Write(sslSocket, & numBytes, sizeof (numBytes));
   if (numBytes < 0)
-    return SECFailure;
+    {
+      PR_Close(local_file_fd);
+      return SECFailure;
+    }
 
   /* Transmit the local file across the socket.  */
   numBytes = PR_TransmitFile(sslSocket, local_file_fd, 
@@ -252,7 +261,10 @@ handle_connection(
 			     PR_TRANSMITFILE_KEEP_OPEN,
 			     PR_INTERVAL_NO_TIMEOUT);
   if (numBytes < 0)
-    return SECFailure;
+    {
+      PR_Close(local_file_fd);
+      return SECFailure;
+    }
 
 #if DEBUG
   /* Transmitted bytes successfully. */
@@ -328,11 +340,6 @@ do_connect(
 {
   PRFileDesc *sslSocket;
   PRStatus    prStatus;
-#if 0
-  PRHostEnt   hostEntry;
-  char        buffer[PR_NETDB_BUF_SIZE];
-  PRIntn      hostenum;
-#endif
   SECStatus   secStatus;
 
   secStatus = SECSuccess;
@@ -352,22 +359,6 @@ do_connect(
   if (secStatus != SECSuccess)
     goto done;
 
-#if 0 /* Already done */
-  /* Prepare and setup network connection. */
-  prStatus = PR_GetHostByName(hostName, buffer, sizeof(buffer), &hostEntry);
-  if (prStatus != PR_SUCCESS)
-    {
-      secStatus = SECFailure;
-      goto done;
-    }
-
-  hostenum = PR_EnumerateHostEnt(0, &hostEntry, port, addr);
-  if (hostenum == -1)
-    {
-      secStatus = SECFailure;
-      goto done;
-    }
-#endif
   prStatus = PR_Connect(sslSocket, addr, PR_INTERVAL_NO_TIMEOUT);
   if (prStatus != PR_SUCCESS)
     {
@@ -386,9 +377,11 @@ do_connect(
   if (secStatus != SECSuccess)
     goto done;
 
-  secStatus = handle_connection(sslSocket, infileName, outfileName);
-  if (secStatus != SECSuccess)
-    goto done;
+  /* If we don't have both the input and output file names, then we're
+     contacting this server only in order to establish trust. No need to
+     handle the connection in this case.  */
+  if (infileName && outfileName)
+    secStatus = handle_connection(sslSocket, infileName, outfileName);
 
  done:
   prStatus = PR_Close(sslSocket);
@@ -396,8 +389,10 @@ do_connect(
 }
 
 int
-client_main (const char *hostName, unsigned short port,
-	     const char* infileName, const char* outfileName)
+client_main (const char *hostName, PRUint32 ip __attribute__ ((unused)),
+	     PRUint16 port,
+	     const char* infileName, const char* outfileName,
+	     const char* trustNewServer)
 {
   SECStatus   secStatus;
   PRStatus    prStatus;
@@ -409,14 +404,26 @@ client_main (const char *hostName, unsigned short port,
   int         attempt;
   int errCode = GENERAL_ERROR;
 
-  /* Setup network connection. */
-  prStatus = PR_GetHostByName(hostName, buffer, sizeof (buffer), &hostEntry);
-  if (prStatus != PR_SUCCESS)
-    exitErr("Unable to resolve server host name", GENERAL_ERROR);
+  trustNewServer_p = trustNewServer;
 
-  rv = PR_EnumerateHostEnt(0, &hostEntry, port, &addr);
-  if (rv < 0)
-    exitErr("Unable to resolve server host address", GENERAL_ERROR);
+  /* Setup network connection. If we have an ip address, then
+     simply use it, otherwise we need to resolve the host name.  */
+  if (ip)
+    {
+      addr.inet.family = PR_AF_INET;
+      addr.inet.port = htons (port);
+      addr.inet.ip = htonl (ip);
+    }
+  else
+    {
+      prStatus = PR_GetHostByName(hostName, buffer, sizeof (buffer), &hostEntry);
+      if (prStatus != PR_SUCCESS)
+	exitErr ("Unable to resolve server host name", GENERAL_ERROR);
+
+      rv = PR_EnumerateHostEnt(0, &hostEntry, port, &addr);
+      if (rv < 0)
+	exitErr ("Unable to resolve server host address", GENERAL_ERROR);
+    }
 
   /* Some errors (see below) represent a situation in which trying again
      should succeed. However, don't try forever.  */
@@ -424,7 +431,7 @@ client_main (const char *hostName, unsigned short port,
     {
       secStatus = do_connect (&addr, hostName, port, infileName, outfileName);
       if (secStatus == SECSuccess)
-	return 0;
+	return secStatus;
 
       errorNumber = PR_GetError ();
       switch (errorNumber)
@@ -453,7 +460,7 @@ client_main (const char *hostName, unsigned short port,
  failed:
   /* Unrecoverable error */
   exitErr("Unable to connect to server", errCode);
-  return 1;
+  return errCode;
 }
 
 #if 0 /* No client authorization */
@@ -526,7 +533,7 @@ main(int argc, char **argv)
   /* All cipher suites except RSA_NULL_MD5 are enabled by Domestic Policy. */
   NSS_SetDomesticPolicy();
 
-  client_main (hostName, port, infileName, outfileName);
+  client_main (hostName, 0, port, infileName, outfileName, trustNewServer_p);
 
   NSS_Shutdown();
   PR_Cleanup();

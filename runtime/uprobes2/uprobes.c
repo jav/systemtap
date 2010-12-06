@@ -279,7 +279,12 @@ static void insert_bkpt(struct uprobe_probept *ppt, struct task_struct *tsk)
 	}
 	memcpy(&ppt->opcode, ppt->insn, BP_INSN_SIZE);
 	if (ppt->opcode == BREAKPOINT_INSTRUCTION) {
-		bkpt_insertion_failed(ppt, "bkpt already exists at that addr");
+		/*
+		 * To avoid filling up the log file with complaints
+		 * about breakpoints already existing, don't log this
+		 * error.
+		 */
+		//bkpt_insertion_failed(ppt, "bkpt already exists at that addr");
 		result = -EEXIST;
 		goto out;
 	}
@@ -969,29 +974,17 @@ static int defer_registration(struct uprobe *u, int regflag,
 }
 
 /*
- * Given a numeric thread ID, return a ref-counted struct pid for the
- * task-group-leader thread.
+ * Given a numeric thread-group ID, return a ref-counted struct pid for the
+ * task-group-leader thread.  This ID is always in the global namespace,
+ * as appears in the task_struct.tgid field.
  */
 static struct pid *uprobe_get_tg_leader(pid_t p)
 {
-	struct pid *pid = NULL;
-
+	struct pid *pid;
 	rcu_read_lock();
-	/*
-	 * We need this check because unmap_u[ret]probe() can be called
-	 * from a report_death callback, where current->proxy is NULL.
-	 */
-	if (current->nsproxy)
-		pid = find_vpid(p);
-	if (pid) {
-		struct task_struct *t = pid_task(pid, PIDTYPE_PID);
-		if (t)
-			pid = task_tgid(t);
-		else
-			pid = NULL;
-	}
+	pid = get_pid(find_pid_ns(p, &init_pid_ns));
 	rcu_read_unlock();
-	return get_pid(pid);	/* null pid OK here */
+	return pid;
 }
 
 /* See Documentation/uprobes.txt. */
@@ -2428,7 +2421,7 @@ static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
 
 	if (!try_module_get(THIS_MODULE))
 		return -ENOSYS;
-	child_pid = get_pid(find_vpid(child_tsk->pid));
+	child_pid = get_pid(task_pid(child_tsk));
 	if (!child_pid) {
 		module_put(THIS_MODULE);
 		return -ESRCH;
@@ -2496,8 +2489,9 @@ static u32 uprobe_report_clone(enum utrace_resume_action action,
 	lock_uproc_table();
 	down_write(&uproc->rwsem);
 
-	if (clone_flags & CLONE_THREAD) {
-		/* New thread in the same process. */
+	if (clone_flags & (CLONE_THREAD|CLONE_VM)) {
+		/* New thread in the same process (CLONE_THREAD) or
+		 * processes sharing the same memory space (CLONE_VM). */
 		ctask = uprobe_find_utask(child);
 		if (unlikely(ctask)) {
 			/*
@@ -2597,26 +2591,47 @@ static u32 uprobe_report_exec(
 {
 	struct uprobe_process *uproc;
 	struct uprobe_task *utask;
-	int uproc_freed;
+	u32 ret = UTRACE_RESUME;
 
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = utask->uproc;
 	uprobe_get_process(uproc);
 
-	down_write(&uproc->rwsem);
-	uprobe_cleanup_process(uproc);
 	/*
-	 * TODO: Is this necessary?
-	 * If [un]register_uprobe() is in progress, cancel the quiesce.
-	 * Otherwise, utrace_report_exec() might call uprobe_report_exec()
-	 * while the [un]register_uprobe thread is freeing the uproc.
+	 * Only cleanup if we're the last thread.  If we aren't,
+	 * uprobe_report_exit() will handle cleanup.
+	 *
+	 * One instance of this can happen if vfork() was called,
+	 * creating 2 tasks that share the same memory space
+	 * (CLONE_VFORK|CLONE_VM).  In this case we don't want to
+	 * remove the probepoints from the child, since that would
+	 * also remove them from the parent.  Instead, just detach
+	 * as if this were a simple thread exit.
 	 */
-	clear_utrace_quiesce(utask, false);
+	down_write(&uproc->rwsem);
+	if (uproc->nthreads == 1) {
+		uprobe_cleanup_process(uproc);
+
+		/*
+		 * TODO: Is this necessary?
+		 * If [un]register_uprobe() is in progress, cancel the
+		 * quiesce.  Otherwise, utrace_report_exec() might
+		 * call uprobe_report_exec() while the
+		 * [un]register_uprobe thread is freeing the uproc.
+		 */
+		clear_utrace_quiesce(utask, false);
+	} else {
+		uprobe_free_task(utask, 1);
+		uproc->nthreads--;
+		ret = UTRACE_DETACH;
+	}
 	up_write(&uproc->rwsem);
 
 	/* If any [un]register_uprobe is pending, it'll clean up. */
-	uproc_freed = uprobe_put_process(uproc, true);
-	return (uproc_freed ? UTRACE_DETACH : UTRACE_RESUME);
+	if (uprobe_put_process(uproc, true))
+		ret = UTRACE_DETACH;
+
+	return ret;
 }
 
 static const struct utrace_engine_ops uprobe_utrace_ops =

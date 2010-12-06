@@ -220,10 +220,12 @@ function is_myproc:long ()
  *
  * Description: XXX needs a description
  */
+%( systemtap_v <= "1.4" %?
 function cpuid:long ()
 %{ /* pure */
 	THIS->__retvalue = smp_processor_id();
 %}
+%)
 
 /**
  * sfunction cpu - Returns the current cpu number.

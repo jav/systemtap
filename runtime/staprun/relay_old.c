@@ -163,6 +163,8 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 		/* special case: for testing we sometimes want to
 		 * write to /dev/null */
 		if (strcmp(outfile_name, "/dev/null") == 0) {
+			/* This strcpy() is OK, since we know tmp is
+			 * PATH_MAX bytes long. */
 			strcpy(tmp, "/dev/null");
 		} else {
 			int len;

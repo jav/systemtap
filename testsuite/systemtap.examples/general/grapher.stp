@@ -35,7 +35,7 @@ probe kernel.function("kbd_event") {
 }
 
 probe kernel.function("pty_write") {
-    count = %(kernel_v>="2.6.31" %? $c %: $count %)
+    count = @defined($c) ? $c : $count
     if (count > 0) {
         printf("pty %d ", gettimeofday_ms())
         str = $buf

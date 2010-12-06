@@ -16,6 +16,10 @@
 # request. If a kernel module is generated, this script will load the module
 # and execute it using 'staprun', if requested.
 
+# Deprecation warning.
+echo "WARNING: stap-client is deprecated and will be removed in release 1.5" >&2
+echo "Please use 'stap --use-server'. See stap(1) for more information" >&2
+
 # Catch ctrl-c and other termination signals
 trap 'terminate' SIGTERM
 trap 'interrupt' SIGINT
@@ -36,20 +40,17 @@ function initialization {
     wd=`pwd`
     umask 0
 
-    # Default location for server certificates if we're not root
-    # Must be owned by us.
-    local uid
-    if test $EUID != 0; then
-	if test -e $stap_user_ssl_db/client; then
-	    if check_db $stap_user_ssl_db/client $EUID $USER; then
-		local_ssl_dbs=$stap_user_ssl_db/client
-	    fi
+    # Private location for server certificates. Must be owned by us.
+    if test -e $stap_user_ssl_db/client; then
+	if check_db $stap_user_ssl_db/client $EUID $USER; then
+	    local_ssl_dbs=$stap_user_ssl_db/client
 	fi
     fi
+
     # Additional location for all users. Must be owned by root.
-    if test -e $stap_root_ssl_db/client; then
-	if check_db $stap_root_ssl_db/client 0 root; then
-	    public_ssl_dbs=$stap_root_ssl_db/client
+    if test -e $ssl_global_ssl_db/client; then
+	if check_db $ssl_global_ssl_db/client 0 root; then
+	    public_ssl_dbs=$ssl_global_ssl_db/client
 	fi
     fi
 
@@ -796,7 +797,7 @@ function attempt_connection {
 	    fi
 	    prompt=
 	fi
-	if test "$ssl_db" = "$stap_root_ssl_db/client"; then
+	if test "$ssl_db" = "$ssl_global_ssl_db/client"; then
 	    prompt="${prompt}Adding this server's certificate to this database will make this server trusted by all users on the local host.
 "
 	fi

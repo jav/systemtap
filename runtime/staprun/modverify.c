@@ -2,7 +2,7 @@
   This program verifies the given file using the given signature, the named
   certificate and public key in the given certificate database.
 
-  Copyright (C) 2009 Red Hat Inc.
+  Copyright (C) 2009-2010 Red Hat Inc.
 
   This file is part of systemtap, and is free software.  You can
   redistribute it and/or modify it under the terms of the GNU General Public
@@ -35,11 +35,11 @@
 #include <sys/types.h>
 #include <errno.h>
 
-#include "nsscommon.h"
+#include "../../nsscommon.h"
 #include "modverify.h"
 
 /* Function: int check_cert_db_permissions (const char *cert_db_path);
- * 
+ *
  * Check that the given certificate directory and its contents have
  * the correct permissions.
  *
@@ -114,7 +114,7 @@ check_db_file_permissions (const char *cert_db_file) {
 }
 
 /* Function: int check_cert_db_permissions (const char *cert_db_path);
- * 
+ *
  * Check that the given certificate directory and its contents have
  * the correct permissions.
  *
@@ -188,6 +188,8 @@ check_cert_db_permissions (const char *cert_db_path) {
       return 0;
     }
 
+  /* These uses of sprintf() are OK, since we just allocated the
+   * string to be the correct length. */
   sprintf (fileName, "%s/cert8.db", cert_db_path);
   rc &= check_db_file_permissions (fileName);
   sprintf (fileName, "%s/key3.db", cert_db_path);
@@ -270,18 +272,16 @@ int verify_module (const char *signatureName, const char* module_name,
   SECItem signature;
   int rc = 0;
 
-  /* Verify the permissions of the certificate database and its files.  */
-  if (! check_cert_db_permissions (dbdir))
-    {
-      if (verbose>1) fprintf (stderr, "Certificate db %s permissions too loose\n", dbdir);
-      return MODULE_UNTRUSTED;
-    }
+  /* Call the NSPR initialization routines. */
+  /* XXX: We shouldn't be using NSPR for a lot of this. */
+  PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
   /* Get the size of the signature file.  */
   prStatus = PR_GetFileInfo (signatureName, &info);
   if (prStatus != PR_SUCCESS || info.type != PR_FILE_FILE || info.size < 0)
     {
       if (verbose>1) fprintf (stderr, "Signature file %s not found\n", signatureName);
+      PR_Cleanup ();
       return MODULE_UNTRUSTED; /* Not signed */
     }
 
@@ -291,6 +291,7 @@ int verify_module (const char *signatureName, const char* module_name,
     {
       fprintf (stderr, "Could not open the signature file %s\n.", signatureName);
       nssError ();
+      PR_Cleanup ();
       return MODULE_CHECK_ERROR;
     }
 
@@ -300,6 +301,7 @@ int verify_module (const char *signatureName, const char* module_name,
     {
       fprintf (stderr, "Unable to allocate memory for the signature in %s.\n", signatureName);
       nssError ();
+      PR_Cleanup ();
       return MODULE_CHECK_ERROR;
     }
 
@@ -308,17 +310,20 @@ int verify_module (const char *signatureName, const char* module_name,
   if (numBytes == 0) /* EOF */
     {
       fprintf (stderr, "EOF reading signature file %s.\n", signatureName);
+      PR_Cleanup ();
       return MODULE_CHECK_ERROR;
     }
   if (numBytes < 0)
     {
       fprintf (stderr, "Error reading signature file %s.\n", signatureName);
       nssError ();
+      PR_Cleanup ();
       return MODULE_CHECK_ERROR;
     }
   if (numBytes != info.size)
     {
       fprintf (stderr, "Incomplete data while reading signature file %s.\n", signatureName);
+      PR_Cleanup ();
       return MODULE_CHECK_ERROR;
     }
   signature.len = info.size;
@@ -326,8 +331,13 @@ int verify_module (const char *signatureName, const char* module_name,
   /* Done with the signature file.  */
   PR_Close (local_file_fd);
 
-  /* Call the NSPR initialization routines. */
-  PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+  /* Verify the permissions of the certificate database and its files.  */
+  if (! check_cert_db_permissions (dbdir))
+    {
+      if (verbose>1) fprintf (stderr, "Certificate db %s permissions too loose\n", dbdir);
+      PR_Cleanup ();
+      return MODULE_UNTRUSTED;
+    }
 
   /* Initialize NSS. */
   secStatus = NSS_Init (dbdir);

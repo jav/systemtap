@@ -17,13 +17,13 @@
 <indexterm>
 <primary>tracking cumulative I/O</primary>
 <secondary>examples of SystemTap scripts</secondary>
-</indexterm>		
-		
+</indexterm>
+
 <indexterm>
 <primary>cumulative I/O, tracking</primary>
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
-		
+
 <indexterm>
 <primary>monitoring cumulative I/O</primary>
 <secondary>examples of SystemTap scripts</secondary>
@@ -37,13 +37,11 @@
 		<para>
 			This section describes how to track the cumulative amount of I/O to the system.
 		</para>
-		
+
 <formalpara id="traceio">
 	<title>traceio.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/io/traceio.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/io/traceio.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
 <!--
@@ -51,8 +49,8 @@
 
 <para>
 	<xref linkend="traceio"/> prints the top ten executables generating I/O traffic over time. In
-	addition, it also tracks the cumulative amount of I/O reads and writes done by those ten 
-	executables. This information is tracked and printed out in 1-second intervals, and in 
+	addition, it also tracks the cumulative amount of I/O reads and writes done by those ten
+	executables. This information is tracked and printed out in 1-second intervals, and in
 	descending order.
 </para>
 <!-- next 3 indexterms for $return -->
@@ -82,8 +80,7 @@
 
 <example id="traceiooutput">
 	<title><xref linkend="traceio"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
            Xorg r:   583401 KiB w:        0 KiB
        floaters r:       96 KiB w:     7130 KiB
 multiload-apple r:      538 KiB w:      537 KiB
@@ -104,10 +101,9 @@ pam_timestamp_c r:      138 KiB w:        0 KiB
           snmpd r:       46 KiB w:        0 KiB
           pcscd r:       28 KiB w:        0 KiB
      irqbalance r:       27 KiB w:        4 KiB
-          cupsd r:        4 KiB w:       18 KiB
-</screen>
-</example>		
-<!--	
+          cupsd r:        4 KiB w:       18 KiB</screen>
+</example>
+<!--
 global reads, writes, total_io
 
 probe kernel.function("vfs_read").return {

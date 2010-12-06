@@ -51,12 +51,12 @@ def run_module():
             os.dup2(fd, sys.stderr.fileno())
 
             # Run the commands.
+            pid_list = list()
             for cmd in config_opts['load_cmds']:
                 pid = os.spawnvp(os.P_NOWAIT, cmd[0], cmd)
-                num_waits += 1
-            while num_waits > 0:
-                (pid, status) = os.waitpid(-1, 0)
-                num_waits -= 1
+                pid_list.append(pid)
+            for pid in pid_list:
+                (childpid, status) = os.waitpid(pid, 0)
 
             # Restore old value of stdout/stderr.
             os.close(fd)
@@ -71,7 +71,10 @@ def run_module():
             return -1
 
     # Now we have to wait until everything is flushed to the logfile
+    print >>sys.stderr, "Looking for output..."
+    rc = 0
     f = open(config_opts['probes_result'], 'w')
+    attempts = 0
     while 1:
         # Find the ending size of /var/log/messages
         end_pos = os.path.getsize(logfile)
@@ -107,7 +110,13 @@ def run_module():
         if not data:
             # ignore EOF
             time.sleep(2)
-            continue
+            attempts += 1
+            if attempts < 30:
+                continue
+            else:
+                print >>sys.stderr, "Error: Couldn't find data"
+                rc = -1
+                break
 
         # Write results data
         f.write(data)
@@ -121,7 +130,7 @@ def run_module():
 
     l.close()
     f.close()
-    return 0
+    return rc
 
 def main():
     rc = run_module()

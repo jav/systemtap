@@ -1,0 +1,41 @@
+#! stap -p2
+#
+# PR11880, allow probing by mangled name, especially useful for advanced users
+# to distinguish overloaded function names in C++.
+#
+# For example, stap itself has:
+#   std::vector<Dwarf_Die> dwflpp::getscopes(Dwarf_Die* die)
+#   std::vector<Dwarf_Die> dwflpp::getscopes(Dwarf_Addr pc)
+#
+# We can probe both as process("stap").function("dwflpp::getscopes"), but we
+# didn't have a way to select just one, except by matching line numbers.  If
+# you want both but with different handlers, then @defined would work, but
+# that's still all-or-nothing.
+#
+# Now we can use the mangled name instead, and probe them individually as we
+# please.  The test here checks that the right $vars are available in the
+# separate probes.
+
+probe process("stap").function("_ZN6dwflpp9getscopesE[my]")
+{
+    if (@defined($pc) && !@defined($die))
+        println("pc=", $pc$)
+    else
+        println($assert_nosuchvar)
+}
+
+probe process("stap").function("_ZN6dwflpp9getscopesEP9Dwarf_Die")
+{
+    if (@defined($die) && !@defined($pc))
+        println("die=", $die$)
+    else
+        println($assert_nosuchvar)
+}
+
+probe process("stap").function("_ZN6dwflpp9getscopesE*")
+{
+    if (@defined($pc) ^ @defined($die))
+        println("XOR ok")
+    else
+        println($assert_nosuchvar)
+}

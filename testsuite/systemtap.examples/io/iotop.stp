@@ -2,12 +2,12 @@
 
 global reads, writes, total_io
 
-probe vfs.read {
-    reads[execname()] += $count
+probe vfs.read.return {
+    reads[execname()] += bytes_read
 }
 
-probe vfs.write {
-    writes[execname()] += $count
+probe vfs.write.return {
+    writes[execname()] += bytes_written
 }
 
 # print top 10 IO processes every 5 seconds

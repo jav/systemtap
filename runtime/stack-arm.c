@@ -32,7 +32,8 @@ static int __init find_str_pc_offset(void)
 
 
 static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
-                               struct task_struct *tsk,
+			       struct task_struct *tsk,
+			       struct unwind_context *uwcontext,
 			       struct uretprobe_instance *ri, int uregs_valid)
 {
 #ifdef STP_USE_FRAME_POINTER
@@ -56,7 +57,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 				pc -= 1;
 		}
 
-		_stp_print_addr((unsigned long)pc, verbose, task);
+		_stp_print_addr((unsigned long)pc, verbose, tsk);
 
 		/* Sanity check the next_fp. */
 		if (next_fp && next_fp <= fp)

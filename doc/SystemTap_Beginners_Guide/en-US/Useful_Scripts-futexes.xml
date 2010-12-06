@@ -5,7 +5,7 @@
 
 	<section id="futexcontentionsect">
 		<title>Identifying Contended User-Space Locks</title>
-		
+
 <indexterm>
 <primary>script examples</primary>
 <secondary>identifying contended user-space locks (i.e. futex contentions)</secondary>
@@ -20,7 +20,7 @@
 <primary>identifying contended user-space locks (i.e. futex contentions)</primary>
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
-		
+
 <indexterm>
 	<primary>contended user-space locks (futex contentions), identifying</primary>
 	<secondary>examples of SystemTap scripts</secondary>
@@ -31,14 +31,13 @@
 <remark>
 	WAR STORY: Futex contention http://sourceware.org/systemtap/wiki/WSFutexContention?highlight=((WarStories))
 </remark>
-		
-<remark>
-no script in examples
-</remark>	
-				
-		
-	<para>This section describes how to identify contended user-space locks throughout the system within a specific time period. The ability to identify contended user-space locks can help you investigate hangs that you suspect may be caused by <command>futex</command> contentions.</para>
-<indexterm>
+
+	<para>This section describes how to identify contended
+user-space locks throughout the system within a specific time
+period. The ability to identify contended user-space locks can help
+you investigate poor program performance that you suspect may be
+caused by <command>futex</command> contentions.</para>
+ <indexterm>
 	<primary>futex contentions, identifying</primary>
 	<secondary>examples of SystemTap scripts</secondary>
 </indexterm>
@@ -46,24 +45,29 @@ no script in examples
 <indexterm>
 	<primary>futex contention, definition</primary>
 	<secondary>examples of SystemTap scripts</secondary>
-</indexterm>	
-	
+</indexterm>
+
 <indexterm>
 <primary>script examples</primary>
-<secondary>process deadlocks (arising from futex contentions)</secondary>
+<secondary>futex (lock) contentions</secondary>
 </indexterm>
 
 <indexterm>
 <primary>examples of SystemTap scripts</primary>
-<secondary>process deadlocks (arising from futex contentions)</secondary>
+<secondary>futex (lock) contentions</secondary>
 </indexterm>
 
 <indexterm>
-<primary>process deadlocks (arising from futex contentions)</primary>
+<primary>futex (lock) contentions</primary>
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
-		
-	<para>Simply put, a <command>futex</command> contention occurs when multiple processes are trying to access the same region of memory. In some cases, this can result in a deadlock between the processes in contention, thereby appearing as an application hang.</para> 
+
+	<para>Simply put, <command>futex</command> contention occurs
+	when multiple processes are trying to access the same lock
+	variable at the same time. This can result in a poor
+	performance because the lock serializes execution; one process obtains
+	the lock while the other processes must wait for the lock
+	variable to become available again.</para>
 <!-- next 2 indexterms for futex system call -->
 
 <indexterm>
@@ -80,40 +84,36 @@ no script in examples
 <primary>futex system call</primary>
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
-	
-	<para>To do this, <xref linkend="futexcontention"/> probes the <command>futex</command> system call.</para>
-	
+
+	<para>The <xref linkend="futexcontention"/> script probes the <command>futex</command> system call to show lock contention.</para>
+
 <formalpara id="futexcontention">
 		<title>futexes.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/process/futexes.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/process/futexes.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
-</formalpara>		
+</formalpara>
 
 <para><xref linkend="futexcontention"/> needs to be manually stopped; upon exit, it prints the following information:</para>
 
 <itemizedlist>
 	<listitem><para>Name and ID of the process responsible for a contention</para></listitem>
-	<listitem><para>The region of memory it contested</para></listitem>
-	<listitem><para>How many times the region of memory was contended</para></listitem>
+	<listitem><para>The location of the contested lock variable</para></listitem>
+	<listitem><para>How many times the lock variable was contended</para></listitem>
 	<listitem><para>Average time of contention throughout the probe</para></listitem>
 </itemizedlist>
 
 <para><xref linkend="futexcontentionoutput"/> contains an excerpt from the output of <xref linkend="futexcontention"/> upon exiting the script (after approximately 20 seconds).</para>
-	
+
 
 <example id="futexcontentionoutput">
 	<title><xref linkend="futexcontention"/> Sample Output</title>
-<screen>
-[...]	
+<screen>[...]
 automount[2825] lock 0x00bc7784 contended 18 times, 999931 avg us
 synergyc[3686] lock 0x0861e96c contended 192 times, 101991 avg us
 synergyc[3758] lock 0x08d98744 contended 192 times, 101990 avg us
 synergyc[3938] lock 0x0982a8b4 contended 192 times, 101997 avg us
-[...]
-</screen>
+[...]</screen>
 </example>
 
 <!-- global thread_thislock # short

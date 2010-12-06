@@ -21,6 +21,7 @@ if [ ! -d tcl/src ] ; then
     mv tcl$tclrelease tcl/src
     sed -i '/runAllTests/i\
 singleProcess true' tcl/src/tests/all.tcl
+    mv tcl/src/tests/obj.test tcl/src/tests/obj.test.1
 fi
 
 cd tcl/src/unix

@@ -17,13 +17,13 @@
 <indexterm>
 <primary>monitoring device I/O</primary>
 <secondary>examples of SystemTap scripts</secondary>
-</indexterm>		
+</indexterm>
 
 <indexterm>
 <primary>I/O monitoring (by device)</primary>
 <secondary>examples of SystemTap scripts</secondary>
 </indexterm>
-		
+
 <indexterm>
 <primary>device I/O, monitoring</primary>
 <secondary>examples of SystemTap scripts</secondary>
@@ -36,42 +36,38 @@
 <remark>
 			example from http://sourceware.org/systemtap/examples/io/traceio2.stp, but error
 		</remark>
-		
+
 		<remark>
 			WAR STORY: http://sourceware.org/systemtap/wiki/WSDeviceMonitor?highlight=((WarStories)), but script errored
-		</remark>	
-		
+		</remark>
+
 		<remark>
 			was able to correct script through http://sourceware.org/systemtap/wiki/WSFileMonitor?highlight=((WarStories))
-		</remark>	
-		
+		</remark>
+
 		<para>
 			This section describes how to monitor I/O activity on a specific device.
 		</para>
-		
+
 <formalpara id="traceio2">
 	<title>traceio2.stp</title>
 <para>
-<programlisting>
-<xi:include parse="text" href="../testsuite/systemtap.examples/io/traceio2.stp" xmlns:xi="http://www.w3.org/2001/XInclude" />
-</programlisting>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/io/traceio2.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </para>
 </formalpara>
 
-<!-- <remark>in new SystemTap, returned a warning, but ran ok.</remark> 
+<!-- <remark>in new SystemTap, returned a warning, but ran ok.</remark>
 
 <para condition="fedora">For some kernel versions (e.g. <filename>2.6.21-1.3194.fc7</filename>), you may need to revise <xref linkend="traceio2"/> accordingly. SystemTap will output the following error if you need to do so:</para>
 
 <screen condition="fedora">
-semantic error: field 'f_dentry' not found
-</screen>
+semantic error: field 'f_dentry' not found</screen>
 
 <para condition="fedora">If this is the case, revise <xref linkend="traceio2"/> by deleting the following lines in the script:</para>
 
 <programlisting condition="fedora">
 	dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
-        inode_nr = $file->f_dentry->d_inode->i_ino
-</programlisting>
+        inode_nr = $file->f_dentry->d_inode->i_ino</programlisting>
 
 <para condition="fedora">Replace those lines with:</para>
 
@@ -122,7 +118,7 @@ semantic error: field 'f_dentry' not found
 <indexterm>
 <primary>usrdev2kerndev()</primary>
 <secondary>examples of SystemTap scripts</secondary>
-</indexterm>	
+</indexterm>
 <para>The <command>usrdev2kerndev()</command> function converts the whole device number into the format understood by the kernel. The output produced by <command>usrdev2kerndev()</command> is used in conjunction with the <command>MKDEV()</command>, <command>MINOR()</command>, and <command>MAJOR()</command> functions to determine the major and minor numbers of a specific device.</para>
 
 <para>The output of <xref linkend="traceio2"/> includes the name and ID of any process performing a read/write, the function it is performing (i.e. <command>vfs_read</command> or <command>vfs_write</command>), and the kernel device number.</para>
@@ -133,15 +129,13 @@ semantic error: field 'f_dentry' not found
 
 <example id="traceio2output">
 	<title><xref linkend="traceio2"/> Sample Output</title>
-<screen>
-[...]
+<screen>[...]
 synergyc(3722) vfs_read 0x800005
 synergyc(3722) vfs_read 0x800005
 cupsd(2889) vfs_write 0x800005
 cupsd(2889) vfs_write 0x800005
 cupsd(2889) vfs_write 0x800005
-[...]
-</screen>
+[...]</screen>
 </example>
 <!--
 probe kernel.function ("vfs_write"),

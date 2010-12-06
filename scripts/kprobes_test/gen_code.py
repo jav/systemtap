@@ -68,7 +68,7 @@ def gen_module():
     # Try to build the module - add "V=1" at the end for more verbosity
     os.system('rm -f ./kprobe_module.ko')
     (sysname, nodename, release, version, machine) = os.uname()
-    cmd = ("make -C \"/lib/modules/%s/build\" M=\"%s\" modules >build.log 2>&1"
+    cmd = ("make -C \"/lib/modules/%s/build\" M=\"%s\" modules CONFIG_MODULE_SIG=n >build.log 2>&1"
            % (release, os.getcwd()))
     rc = run_make_cmd(cmd)
     if os.WEXITSTATUS(rc) != 0:

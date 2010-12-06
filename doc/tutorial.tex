@@ -1,4 +1,4 @@
-% Copyright (C) 2005-2007 Red Hat Inc.
+% Copyright (C) 2005-2010 Red Hat Inc.
 % This file is part of systemtap, and is free software.  You can
 % redistribute it and/or modify it under the terms of the GNU General
 % Public License (GPL); either version 2, or (at your option) any
@@ -52,6 +52,11 @@ and reuse simple scripts to deeply examine the activities of a live
 Linux system.  Data may be extracted, filtered, and summarized quickly
 and safely, to enable diagnoses of complex performance or functional
 problems.
+
+{\bf NOTE:} This tutorial does not describe every feature available in
+systemtap.  Please see the individual {\verb+stap+} manual pages for
+the most up-to-date information.  These may be available installed on
+your system, or at \verb+http://sources.redhat.com/systemtap/man/+.
 
 \nomenclature{script}{A simple programming language understood by systemtap.}
 
@@ -152,11 +157,12 @@ language, you need to say where to probe and what to print there.
 
 Systemtap supports a number of built-in events.  The library of
 scripts that comes with systemtap, each called a ``tapset'', may
-define additional ones defined in terms of the built-in family.  See
-the \verb+stapprobes+ man page for details.  \nomenclature{tapset}{A
-reusable script forming part of the automatically searched tapset
-library.}  All these events are named using a unified syntax with
-dot-separated parameterized identifiers:
+define additional ones defined in terms of the built-in family.  {\bf See
+the \verb+stapprobes+ man page for details on these and many other
+probe point families.}  \nomenclature{tapset}{A reusable script forming
+  part of the automatically searched tapset library.}  All these
+events are named using a unified syntax with dot-separated
+parameterized identifiers:
 
 \begin{tabular}{rl}
 \verb+begin+ & The startup of the systemtap session. \\
@@ -168,6 +174,10 @@ call. \\
 \verb+module("ext3").statement(0xdeadbeef)+ & The addressed instruction
 in the \verb+ext3+ filesystem driver. \\
 \verb+timer.ms(200)+ & A timer that fires every 200 milliseconds. \\
+\verb+timer.profile+ & A timer that fires periodically on every CPU. \\
+\verb+perf.hw.cache_misses+ & A particular number of CPU cache misses have occurred.  \\
+\verb+procfs("status").read+ & A process trying to read a synthetic file. \\
+\verb+process("a.out").statement("*@main.c:200")+ & Line 200 of the \verb+a.out+ program.
 \end{tabular}
 
 Let's say that you would like to trace all function entries and exits
@@ -217,9 +227,9 @@ the line.
 
 Systemtap provides a variety of such contextual data, ready for
 formatting.  They usually appear as function calls within the handler,
-like you already saw in Figure~\ref{fig:strace-open}.  See the
+like you already saw in Figure~\ref{fig:strace-open}.  {\bf See the
 \verb+stapfuncs+ man page for those functions and more defined in the
-tapset library, but here's a sampling:
+tapset library}, but here's a sampling:
 
 \begin{tabular}{rl}
 \verb+tid()+ & The id of the current thread. \\
@@ -232,6 +242,10 @@ tapset library, but here's a sampling:
 \verb+pp()+ & A string describing the probe point being currently handled. \\
 \verb+probefunc()+ & If known, the name of the function in which
                      this probe was placed. \\
+\verb+$$vars+ & If available, a pretty-printed listing of all local
+                variables in scope. \\
+\verb+print_backtrace()+ & If possible, print a kernel backtrace. \\
+\verb+print_ubacktrace()+ & If possible, print a user-space backtrace. \\
 \end{tabular}
 
 The values returned may be strings or numbers.  The \verb+print()+
@@ -239,7 +253,8 @@ built-in function accepts either as its sole argument.  Or, you can
 use the C-style \verb+printf()+ built-in, whose formatting argument
 may include \verb+%s+ for a string, \verb+%d+ for a number.
 \verb+printf+ and other functions take comma-separated arguments.
-Don't forget a \verb+"\n"+ at the end.
+Don't forget a \verb+"\n"+ at the end.  There exist more printing /
+formatting functions too.
 
 A particularly handy function in the tapset library is
 \verb+thread_indent+.  Given an indentation delta parameter, it stores
@@ -294,13 +309,13 @@ probe kernel.function("*@net/socket.c").return {
 \subsection{Exercises}
 
 \begin{enumerate}
-\item Use the \verb+-p2+ option to systemtap to list all the kernel
-functions named with the word ``nit'' in them.  The probe handlers
-might as well be empty.
+\item Use the \verb+-L+ option to systemtap to list all the kernel
+  functions named with the word ``nit'' in them.
 
-\item Trace some system calls (use \verb+syscall.NAME+ and \verb+.return+
-probe points), with the same \verb+thread_indent+ probe handler as in
-Figure~\ref{fig:socket-trace}.  Interpret the results.
+\item Trace some system calls (use \verb+syscall.NAME+ and
+  \verb+.return+ probe points), with the same \verb+thread_indent+
+  probe handler as in Figure~\ref{fig:socket-trace}.  Print parameters
+  using \verb+$$parms+ and \verb+$$return+.  Interpret the results.
 
 \end{enumerate}
 
@@ -418,11 +433,20 @@ parameter or local variable within a probed function.}  In a symbolic
 debugger, when you're stopped at a breakpoint, you can print values
 from the program's context.  In systemtap scripts, for those probe
 points that match with specific executable point (rather than an
-asynchronous event like a timer), you can do the same.  To know which
-variables are likely to be available, you will need to be familiar
-with the kernel source you are probing.  In addition, you will need to
-check that the compiler has not optimized those values into
-unreachable nonexistence.
+asynchronous event like a timer), you can do the same.
+
+In addition, you can take their address (the \verb+&+ operator),
+pretty-print structures (the \verb+$+ and \verb+$$+ suffix),
+pretty-print multiple variables in scope (the \verb+$$vars+ and
+related variables), or cast pointers to their types (the \verb+@cast+
+operator), or test their existence / resolvability (the
+\verb+@defined+ operator).  Read about these in the manual pages.
+
+To know which variables are likely to be available, you will need to
+be familiar with the kernel source you are probing.  In addition, you
+will need to check that the compiler has not optimized those values
+into unreachable nonexistence.  You can use
+\verb+stap -L PROBEPOINT+ to enumerate the variables available there.
 
 Let's say that you are trying to trace filesystem reads/writes to a
 particular device/inode.  From your knowledge of the kernel, you know
@@ -592,7 +616,7 @@ modification} of an array while it is being iterated using a
 \verb+foreach+.
 
 \begin{tabular}{rp{0.4\textwidth}}
-\verb|foreach ([a,b] in foo) { fuss_with(foo[a,b]) }| & simple loop in arbitrary sequence \\
+\verb|foreach (x = [a,b] in foo) { fuss_with(x) }| & simple loop in arbitrary sequence \\
 \verb|foreach ([a,b] in foo+ limit 5) { }| & loop in increasing sequence of value, stop after 5 \\
 \verb|foreach ([a-,b] in foo) { }| & loop in decreasing sequence of first key \\
 \end{tabular}
@@ -1043,10 +1067,14 @@ There are \verb+man+ pages:
 
 \begin{tabular}{rl}
 \verb+stap+ & systemtap program usage, language summary \\
+\verb+stappaths+ & your systemtap installation paths \\
 \verb+stapfuncs+ & functions provided by tapsets \\
 \verb+stapprobes+ & probes / probe aliases provided by tapsets \\
 \verb+stapex+ & some example scripts \\
 \end{tabular}
+
+There is much more documentation and sample scripts included.  You
+may find them under \verb+/usr/share/doc/systemtap*/+.
 
 Then, there is the source code itself.  Since systemtap is {\em free
 software}, you should have available the entire source code.  The
@@ -1062,8 +1090,8 @@ as study, modification, and sharing.}
 Finally, there is the project web site
 (\verb+http://sources.redhat.com/systemtap/+) with several articles,
 an archived public mailing list for users and developers
-(\verb+systemtap@sources.redhat.com+), and a live GIT source
-repository.  Come join us!
+(\verb+systemtap@sources.redhat.com+), IRC channels,
+and a live GIT source repository.  Come join us!
 
 
 \appendix
@@ -1174,6 +1202,9 @@ build/installation includes a matching version of debugging data.
 \end{description}
 
 \subsection{Runtime errors}
+
+Usually, run-time errors cause a script to terminate.  Some of these
+may be caught with the \verb+try { ... } catch { ... }+ construct.
 
 \begin{description}
 

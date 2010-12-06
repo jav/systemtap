@@ -1,6 +1,7 @@
 // translation pass
 // Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005-2008 Intel Corporation.
+// Copyright (C) 2010 Novell Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -929,6 +930,11 @@ c_unparser::emit_common_header ()
   o->newline() << "int actionremaining;";
   o->newline() << "int nesting;";
   o->newline() << "string_t error_buffer;";
+  o->newline() << "#ifdef STAP_NEED_CONTEXT_TOKENIZE";
+  o->newline() << "string_t tok_str;";
+  o->newline() << "char *tok_start;";
+  o->newline() << "char *tok_end;";
+  o->newline() << "#endif";
   o->newline() << "const char *last_error;";
   // NB: last_error is used as a health flag within a probe.
   // While it's 0, execution continues
@@ -947,15 +953,15 @@ c_unparser::emit_common_header ()
   o->newline() << "const char * marker_name;";
   o->newline() << "const char * marker_format;";
   o->newline() << "void *data;";
-  o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "Stat *statp;";
-  o->newline() << "#endif";
   o->newline() << "#ifdef STP_OVERLOAD";
   o->newline() << "cycles_t cycles_base;";
   o->newline() << "cycles_t cycles_sum;";
   o->newline() << "#endif";
   o->newline() << "struct uretprobe_instance *ri;";
 
+  o->newline() << "#if defined(STP_NEED_UNWIND_DATA)";
+  o->newline() << "struct unwind_context uwcontext;";
+  o->newline() << "#endif";
 
   // PR10516: probe locals
   o->newline() << "union {";
@@ -975,14 +981,12 @@ c_unparser::emit_common_header ()
 
       // NB: see c_unparser::emit_probe() for original copy of duplicate-hashing logic.
       ostringstream oss;
-      oss << "c->statp = & time_" << dp->basest()->name << ";" << endl;  // -t anti-dupe
       oss << "# needs_global_locks: " << dp->needs_global_locks () << endl;
       dp->print_dupe_stamp (oss);
       dp->body->print(oss);
       // NB: dependent probe conditions *could* be listed here, but don't need to be.
       // That's because they're only dependent on the probe body, which is already
       // "hashed" in above.
-
 
       if (tmp_probe_contents.count(oss.str()) == 0) // unique
         {
@@ -1083,6 +1087,10 @@ c_unparser::emit_common_header ()
 
   if (!session->stat_decls.empty())
     o->newline() << "#include \"stat.c\"\n";
+
+  o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
+  o->newline() << "#include \"time.c\"";  // Don't we all need more?
+  o->newline() << "#endif";
 
   o->newline();
 }
@@ -1259,7 +1267,7 @@ c_unparser::emit_module_init ()
       // Allocation can in general continue.
 
       o->newline() << "if (rc) {";
-      o->newline(1) << "_stp_error (\"global variable " << v->name << " allocation failed\");";
+      o->newline(1) << "_stp_error (\"global variable '" << v->name << "' allocation failed\");";
       o->newline() << "goto out;";
       o->newline(-1) << "}";
 
@@ -1268,19 +1276,11 @@ c_unparser::emit_module_init ()
 
   // initialize each Stat used for timing information
   o->newline() << "#ifdef STP_TIMING";
-  set<string> basest_names;
-  for (unsigned i=0; i<session->probes.size(); i++)
-    {
-      string nm = session->probes[i]->basest()->name;
-      if (basest_names.find(nm) == basest_names.end())
-        {
-          o->newline() << "time_" << nm << " = _stp_stat_init (HIST_NONE);";
-          // NB: we don't check for null return here, but instead at
-          // passage to probe handlers and at final printing.
-          basest_names.insert (nm);
-        }
-    }
-  o->newline() << "#endif";
+  o->newline() << "for (i = 0; i < ARRAY_SIZE(stap_probes); ++i)";
+  o->newline(1) << "stap_probes[i].timing = _stp_stat_init (HIST_NONE);";
+  // NB: we don't check for null return here, but instead at
+  // passage to probe handlers and at final printing.
+  o->newline(-1) << "#endif";
 
   // Print a message to the kernel log about this module.  This is
   // intended to help debug problems with systemtap modules.
@@ -1334,6 +1334,7 @@ c_unparser::emit_module_init ()
     }
 
   // For any partially registered/unregistered kernel facilities.
+  o->newline() << "atomic_set (&session_state, STAP_SESSION_STOPPED);";
   o->newline() << "#ifdef STAPCONF_SYNCHRONIZE_SCHED";
   o->newline() << "synchronize_sched();";
   o->newline() << "#endif";
@@ -1416,6 +1417,7 @@ c_unparser::emit_module_exit ()
   o->newline(-2) << "} while (holdon);";
 
   // cargo cult epilogue
+  o->newline() << "atomic_set (&session_state, STAP_SESSION_STOPPED);";
   o->newline() << "#ifdef STAPCONF_SYNCHRONIZE_SCHED";
   o->newline() << "synchronize_sched();";
   o->newline() << "#endif";
@@ -1441,45 +1443,33 @@ c_unparser::emit_module_exit ()
   o->newline(-1) << "}";
   o->newline(-1) << "}";
 
-  // print probe timing statistics
-  {
-    o->newline() << "#ifdef STP_TIMING";
-    o->newline() << "{";
-    o->indent(1);
-    set<string> basest_names;
-    for (unsigned i=0; i<session->probes.size(); i++)
-      {
-        const probe* p = session->probes[i]->basest();
-        const string &nm = p->name;
-        if (basest_names.find(nm) == basest_names.end())
-          {
-            basest_names.insert (nm);
-            // NB: check for null stat object
-            o->newline() << "if (likely (time_" << nm << ")) {";
-            o->newline(1) << "const char *probe_point = "
-                         << lex_cast_qstring (* p->locations[0])
-                         << (p->locations.size() > 1 ? "\"+\"" : "")
-                         << (p->locations.size() > 1 ? lex_cast_qstring(p->locations.size()-1) : "")
-                         << ";";
-            o->newline() << "const char *decl_location = "
-                         << lex_cast_qstring (p->tok->location)
-                         << ";";
-            o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
-                         << nm
-                         << ", 0);";
-            o->newline() << "if (stats->count) {";
-            o->newline(1) << "int64_t avg = _stp_div64 (NULL, stats->sum, stats->count);";
-            o->newline() << "_stp_printf (\"probe %s (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax\\n\",";
-            o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
-            o->newline(-1) << "}";
-            o->newline() << "_stp_stat_del (time_" << nm << ");";
-            o->newline(-1) << "}";
-          }
-      }
-    o->newline() << "_stp_print_flush();";
-    o->newline(-1) << "}";
-    o->newline() << "#endif";
-  }
+  // print per probe point timing/alibi statistics
+  o->newline() << "#if defined(STP_TIMING) || defined(STP_ALIBI)";
+  o->newline() << "_stp_printf(\"----- probe hit report: \\n\");";
+  o->newline() << "for (i = 0; i < ARRAY_SIZE(stap_probes); ++i) {";
+  o->newline(1) << "struct stap_probe *const p = &stap_probes[i];";
+  o->newline() << "#ifdef STP_ALIBI";
+  o->newline() << "int alibi = atomic_read(&(p->alibi));";
+  o->newline() << "if (alibi)";
+  o->newline(1) << "_stp_printf (\"%s, (%s), hits: %d,%s\\n\",";
+  o->newline(2) << "p->pp, p->location, alibi, p->derivation);";
+  o->newline(-3) << "#endif"; // STP_ALIBI
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "if (likely (p->timing)) {"; // NB: check for null stat object
+  o->newline(1) << "struct stat_data *stats = _stp_stat_get (p->timing, 0);";
+  o->newline() << "if (stats->count) {";
+  o->newline(1) << "int64_t avg = _stp_div64 (NULL, stats->sum, stats->count);";
+  o->newline() << "_stp_printf (\"%s, (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax,%s\\n\",";
+  o->newline(2) << "p->pp, p->location, (long long) stats->count,";
+  o->newline() << "(long long) stats->min, (long long) avg, (long long) stats->max,";
+  o->newline() << "p->derivation);";
+  o->newline(-3) << "}";
+  o->newline() << "_stp_stat_del (p->timing);";
+  o->newline(-1) << "}";
+  o->newline() << "#endif"; // STP_TIMING
+  o->newline(-1) << "}";
+  o->newline() << "_stp_print_flush();";
+  o->newline() << "#endif";
 
   // teardown gettimeofday (if needed)
   o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
@@ -1632,12 +1622,6 @@ c_unparser::emit_probe (derived_probe* v)
   //
   ostringstream oss;
 
-  // NB: statp is just for avoiding designation as duplicate.  It need not be C.
-  // NB: This code *could* be enclosed in an "if (session->timing)".  That would
-  // recognize more duplicate probe handlers, but then the generated code could
-  // be very different with or without -t.
-  oss << "c->statp = & time_" << v->basest()->name << ";" << endl;
-
   v->print_dupe_stamp (oss);
   v->body->print(oss);
 
@@ -1685,10 +1669,6 @@ c_unparser::emit_probe (derived_probe* v)
       this->probe_or_function_needs_deref_fault_handler = false;
 
       o->newline();
-      o->newline() << "#ifdef STP_TIMING";
-      o->newline() << "static __cacheline_aligned Stat " << "time_" << v->basest()->name << ";";
-      o->newline() << "#endif";
-      o->newline();
       o->newline() << "static void " << v->name << " (struct context * __restrict__ c) ";
       o->line () << "{";
       o->indent (1);
@@ -1712,10 +1692,6 @@ c_unparser::emit_probe (derived_probe* v)
 
       // Emit runtime safety net for unprivileged mode.
       v->emit_unprivileged_assertion (o);
-
-      o->newline() << "#ifdef STP_TIMING";
-      o->newline() << "c->statp = & time_" << v->basest()->name << ";";
-      o->newline() << "#endif";
 
       // emit probe local initialization block
       v->emit_probe_local_init(o);
@@ -4912,9 +4888,9 @@ dump_unwindsyms (Dwfl_Module *m,
     // Enable workaround for elfutils dwfl bug.
     // see https://bugzilla.redhat.com/show_bug.cgi?id=465872
     // and http://sourceware.org/ml/systemtap/2008-q4/msg00579.html
-#if _ELFUTILS_PREREQ(0,138)
-    // Let's standardize to the buggy "end of build-id bits" behavior.
-    build_id_vaddr += build_id_len;
+#if !_ELFUTILS_PREREQ(0,138)
+    // Let's standardize to the new "start of build-id bits" behavior.
+    build_id_vaddr -= build_id_len;
 #endif
 
     // And check for another workaround needed.
@@ -4928,11 +4904,39 @@ dump_unwindsyms (Dwfl_Module *m,
         build_id_vaddr += main_bias;
       }
 #endif
+
+     if (modname != "kernel")
+      {
+        Dwarf_Addr reloc_vaddr = build_id_vaddr;
+        const char *secname;
+        int i;
+
+        i = dwfl_module_relocate_address (m, &reloc_vaddr);
+        dwfl_assert ("dwfl_module_relocate_address", i >= 0);
+
+        secname = dwfl_module_relocation_info (m, i, NULL);
+
+        // assert same section name as in runtime/transport/symbols.c
+        // NB: this is applicable only to module("...") probes.
+        // process("...") ones may have relocation bases like '.dynamic',
+        // and so we'll have to store not just a generic offset but
+        // the relocation section/symbol name too: just like we do
+        // for probe PC addresses themselves.  We want to set build_id_vaddr for
+        // user modules even though they will not have a secname.
+
+	if (modname[0] != '/')
+	  if (!secname || strcmp(secname, ".note.gnu.build-id"))
+	    throw semantic_error ("unexpected build-id reloc section " +
+				  string(secname ?: "null"));
+
+        build_id_vaddr = reloc_vaddr;
+      }
+
     if (c->session.verbose > 1)
       {
         clog << "Found build-id in " << name
              << ", length " << build_id_len;
-        clog << ", end at 0x" << hex << build_id_vaddr
+        clog << ", start at 0x" << hex << build_id_vaddr
              << dec << endl;
       }
   }
@@ -5372,7 +5376,7 @@ dump_unwindsyms (Dwfl_Module *m,
    * See also:
    *    http://sources.redhat.com/ml/systemtap/2009-q4/msg00574.html
    */
-  if (build_id_len > 0 && (build_id_vaddr > base + extra_offset)) {
+  if (build_id_len > 0) {
     c->output << ".build_id_bits = \"" ;
     for (int j=0; j<build_id_len;j++)
       c->output << "\\x" << hex
@@ -5389,9 +5393,10 @@ dump_unwindsyms (Dwfl_Module *m,
     if (modname == "kernel")
       c->output << ".build_id_offset = 0x" << hex << build_id_vaddr - (base + extra_offset)
                 << dec << ",\n";
+    // ET_DYN: task finder gives the load address. ET_EXEC: this is absolute address
     else
       c->output << ".build_id_offset = 0x" << hex
-                << build_id_vaddr - base
+                << build_id_vaddr /* - base */
                 << dec << ",\n";
   } else
     c->output << ".build_id_len = 0,\n";
@@ -5402,6 +5407,10 @@ dump_unwindsyms (Dwfl_Module *m,
   c->output << "};\n\n";
 
   c->undone_unwindsym_modules.erase (modname);
+
+  // release various malloc'd tables
+  // if (eh_frame_hdr) free (eh_frame_hdr); -- nope, this one comes from the elf image in memory
+  if (debug_frame_hdr) free (debug_frame_hdr);
 
   return DWARF_CB_OK;
 }
@@ -5535,6 +5544,18 @@ add_unwindsym_vdso (systemtap_session &s)
     }
 }
 
+static void
+prepare_symbol_data (systemtap_session& s)
+{
+  // step 0: run ldd on any user modules if requested
+  if (s.unwindsym_ldd)
+    add_unwindsym_ldd (s);
+  // step 0.5: add vdso(s) when vma tracker was requested
+  if (vma_tracker_enabled (s))
+    add_unwindsym_vdso (s);
+  // NB: do this before the ctx.unwindsym_modules copy is taken
+}
+
 void
 emit_symbol_data (systemtap_session& s)
 {
@@ -5543,14 +5564,6 @@ emit_symbol_data (systemtap_session& s)
   s.op->newline() << "#include " << lex_cast_qstring (symfile);
 
   ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
-
-  // step 0: run ldd on any user modules if requested
-  if (s.unwindsym_ldd)
-    add_unwindsym_ldd (s);
-  // step 0.5: add vdso(s) when vma tracker was requested
-  if (vma_tracker_enabled (s))
-    add_unwindsym_vdso (s);
-  // NB: do this before the ctx.unwindsym_modules copy is taken
 
   unwindsym_dump_context ctx = { s, kallsyms_out, 0, ~0, s.unwindsym_modules };
 
@@ -5693,6 +5706,12 @@ struct recursion_info: public traversing_visitor
 };
 
 
+int
+prepare_translate_pass (systemtap_session& s)
+{
+  prepare_symbol_data (s);
+  return 0;
+}
 
 
 int
@@ -5813,7 +5832,7 @@ translate_pass (systemtap_session& s)
 	  s.op->newline() << "#define STP_BULKMODE";
 
       if (s.timing)
-	s.op->newline() << "#define STP_TIMING";
+      s.op->newline() << "#define STP_TIMING";
 
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#include \"stack.c\"";
@@ -5832,14 +5851,15 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
       s.op->newline() << "#include \"access_process_vm.h\" ";
 
-      s.up->emit_common_header (); // context etc.
-
-      s.op->newline() << "#include \"probe_lock.h\" ";
-
+      // Emit embeds ahead of time, in case they affect context layout
       for (unsigned i=0; i<s.embeds.size(); i++)
         {
           s.op->newline() << s.embeds[i]->code << "\n";
         }
+
+      s.up->emit_common_header (); // context etc.
+
+      s.op->newline() << "#include \"probe_lock.h\" ";
 
       if (s.globals.size()>0) {
         s.op->newline() << "static struct {";
@@ -5896,8 +5916,8 @@ translate_pass (systemtap_session& s)
       // Let's find some stats for the embedded pp strings.  Maybe they
       // are small and uniform enough to justify putting char[MAX]'s into
       // the array instead of relocated char*'s.
-      size_t pp_max = 0, pn_max = 0;
-      size_t pp_tot = 0, pn_tot = 0;
+      size_t pp_max = 0, pn_max = 0, location_max = 0, derivation_max = 0;
+      size_t pp_tot = 0, pn_tot = 0, location_tot = 0, derivation_tot = 0;
       for (unsigned i=0; i<s.probes.size(); i++)
         {
           derived_probe* p = s.probes[i];
@@ -5907,6 +5927,8 @@ translate_pass (systemtap_session& s)
         var##_tot += var##_size; } while (0)
           DOIT(pp, lex_cast_qstring(*p->sole_location()).size());
           DOIT(pn, lex_cast_qstring(*p->script_location()).size());
+          DOIT(location, lex_cast_qstring(p->tok->location).size());
+          DOIT(derivation, lex_cast_qstring(p->derived_locations()).size());
 #undef DOIT
         }
 
@@ -5928,15 +5950,51 @@ translate_pass (systemtap_session& s)
             clog << "stap_probe *" << #var << endl;                             \
         }
 
-      s.op->newline() << "struct stap_probe {";
+      s.op->newline() << "static struct stap_probe {";
       s.op->newline(1) << "void (* const ph) (struct context*);";
+      s.op->newline() << "#ifdef STP_ALIBI";
+      s.op->newline() << "atomic_t alibi;";
+      s.op->newline() << "#define STAP_PROBE_INIT_ALIBI() "
+                      << ".alibi=ATOMIC_INIT(0),";
+      s.op->newline() << "#else";
+      s.op->newline() << "#define STAP_PROBE_INIT_ALIBI()";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#ifdef STP_TIMING";
+      s.op->newline() << "Stat timing;";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#if defined(STP_TIMING) || defined(STP_ALIBI)";
+      CALCIT(location);
+      CALCIT(derivation);
+      s.op->newline() << "#define STAP_PROBE_INIT_TIMING(L, D) "
+                      << ".location=(L), .derivation=(D),";
+      s.op->newline() << "#else";
+      s.op->newline() << "#define STAP_PROBE_INIT_TIMING(L, D)";
+      s.op->newline() << "#endif";
       CALCIT(pp);
       s.op->newline() << "#ifdef STP_NEED_PROBE_NAME";
       CALCIT(pn);
-      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PN) { .ph=(PH), .pp=(PP), .pn=(PN) }";
+      s.op->newline() << "#define STAP_PROBE_INIT_NAME(PN) .pn=(PN),";
       s.op->newline() << "#else";
-      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PN) { .ph=(PH), .pp=(PP) }";
+      s.op->newline() << "#define STAP_PROBE_INIT_NAME(PN)";
       s.op->newline() << "#endif";
+      s.op->newline() << "#define STAP_PROBE_INIT(PH, PP, PN, L, D) "
+                      << "{ .ph=(PH), .pp=(PP), "
+                      << "STAP_PROBE_INIT_NAME(PN) "
+                      << "STAP_PROBE_INIT_ALIBI() "
+                      << "STAP_PROBE_INIT_TIMING(L, D) "
+                      << "}";
+      s.op->newline(-1) << "} stap_probes[] = {";
+      s.op->indent(1);
+      for (unsigned i=0; i<s.probes.size(); ++i)
+        {
+          derived_probe* p = s.probes[i];
+          p->session_index = i;
+          s.op->newline() << "STAP_PROBE_INIT(&" << p->name << ", "
+                          << lex_cast_qstring (*p->sole_location()) << ", "
+                          << lex_cast_qstring (*p->script_location()) << ", "
+                          << lex_cast_qstring (p->tok->location) << ", "
+                          << lex_cast_qstring (p->derived_locations()) << "),";
+        }
       s.op->newline(-1) << "};";
 #undef CALCIT
 

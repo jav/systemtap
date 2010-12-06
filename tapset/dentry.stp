@@ -1,5 +1,5 @@
 // dentry tapset
-// Copyright (c) 2009 Red Hat Inc.
+// Copyright (c) 2009-2010 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -25,7 +25,11 @@ function __dentry_prepend:string(dentry:long,name:string)
         if (dname == "/" && c == "/")
                 return name;
 
-        return sprintf("%s/%s", dname, name);
+        if (name == "") {
+                return dname;
+        } else {
+                return sprintf("%s/%s", dname, name);
+        }
 }
 
 
@@ -42,6 +46,20 @@ function d_name:string(dentry:long)
         return kernel_string_n(@cast(dentry, "dentry")->d_name->name, len);
 }
 
+
+/**
+ *   sfunction inode_name - get the inode name
+ * 
+ *   Returns the first path basename associated with the given inode.
+ *   @inode: Pointer to inode.
+ */
+function inode_name:string(inode:long)
+{
+        i_dentry = & @cast(inode, "struct inode")->i_dentry;
+        d_alias = @cast(i_dentry, "struct list_head")->next;
+        dentry = d_alias - (& @cast(0, "struct dentry")->d_alias);
+        return reverse_path_walk(dentry);
+}
 
 
 /**
@@ -63,21 +81,18 @@ function reverse_path_walk:string(dentry:long)
 
 
 /**
- *   sfunction d_path - get the full nameidata path
+ *   sfunction task_dentry_path - get the full dentry path
  *
  *   Returns the full dirent name (full path to the root), like
  *   the kernel d_path function.
- *   @nd: Pointer to nameidata.
+ *   @task: task_struct pointer.
+ *   @dentry: direntry pointer.
+ *   @vfsmnt: vfsmnt pointer.
  */
-function d_path:string(nd:long)
+function task_dentry_path:string(task:long,dentry:long,vfsmnt:long)
 {
-        root = & @cast(task_current(), "task_struct")->fs->root
-	dentry = (@defined(@cast(nd,"nameidata")->path->dentry)
-	    ? @cast(nd,"nameidata")->path->dentry
-	    : @cast(nd,"nameidata")->dentry)
-	vfsmnt = (@defined(@cast(nd,"nameidata")->path->mnt)
-	    ? @cast(nd,"nameidata")->path->mnt
-	    : @cast(nd,"nameidata")->mnt)
+        root = & @cast(task, "task_struct")->fs->root
+
         while (1) {
                 if (dentry == @cast(root, "path")->dentry &&
                     vfsmnt == @cast(root, "path")->mnt)
@@ -99,3 +114,25 @@ function d_path:string(nd:long)
 
         return sprintf("/%s", name);
 }
+
+
+
+/**
+ *   sfunction d_path - get the full nameidata path
+ *
+ *   Returns the full dirent name (full path to the root), like
+ *   the kernel d_path function.
+ *   @nd: Pointer to nameidata.
+ */
+function d_path:string(nd:long)
+{
+	dentry = (@defined(@cast(nd,"nameidata")->path->dentry)
+	    ? @cast(nd,"nameidata")->path->dentry
+	    : @cast(nd,"nameidata")->dentry)
+	vfsmnt = (@defined(@cast(nd,"nameidata")->path->mnt)
+	    ? @cast(nd,"nameidata")->path->mnt
+	    : @cast(nd,"nameidata")->mnt)
+
+	return sprintf("%s/", task_dentry_path(task_current(), dentry, vfsmnt))
+}
+

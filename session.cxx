@@ -20,8 +20,6 @@
 #include "util.h"
 #include "git_version.h"
 
-#include "sys/sdt.h"
-
 #include <cerrno>
 #include <cstdlib>
 
@@ -32,6 +30,12 @@ extern "C" {
 #include <sys/utsname.h>
 #include <elfutils/libdwfl.h>
 }
+
+#if HAVE_NSS
+extern "C" {
+#include <nspr.h>
+}
+#endif
 
 #include <string>
 
@@ -78,6 +82,9 @@ systemtap_session::systemtap_session ():
   // PR4186: Copy logic from coreutils uname (uname -i) to squash
   // i?86->i386.  Actually, copy logic from linux top-level Makefile
   // to squash uname -m -> $(SUBARCH).
+  //
+  // This logic needs to match the logic in the stap_get_arch shell
+  // function in stap-env.
 
   machine = buf.machine;
   if (machine == "i486") machine = "i386";
@@ -129,6 +136,7 @@ systemtap_session::systemtap_session ():
   poison_cache = false;
   tapset_compile_coverage = false;
   need_uprobes = false;
+  uprobes_path = "";
   consult_symtab = false;
   ignore_vmlinux = false;
   ignore_dwarf = false;
@@ -139,6 +147,7 @@ systemtap_session::systemtap_session ():
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
   client_options = false;
+  NSPR_Initialized = false;
 
   /*  adding in the XDG_DATA_DIRS variable path,
    *  this searches in conjunction with SYSTEMTAP_TAPSET
@@ -212,6 +221,25 @@ systemtap_session::systemtap_session ():
   }
 }
 
+systemtap_session::~systemtap_session ()
+{
+#if HAVE_NSS
+  if (NSPR_Initialized)
+    PR_Cleanup ();
+#endif // HAVE_NSS
+}
+
+void
+systemtap_session::NSPR_init ()
+{
+#if HAVE_NSS
+  if (! NSPR_Initialized)
+    {
+      PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
+      NSPR_Initialized = true;
+    }
+#endif // HAVE_NSS
+}
 
 void
 systemtap_session::version ()
@@ -343,15 +371,14 @@ systemtap_session::usage (int exitcode)
     << "              instead of " << compatible << endl
     << "   --skip-badvars" << endl
     << "              substitute zero for bad context $variables" << endl
-#if HAVE_NSS
     << "   --use-server[=SERVER-SPEC]" << endl
-    << "              compile using a systemtap compile-server" << endl
-#endif
-#if HAVE_NSS || HAVE_AVAHI
+    << "              specify systemtap compile-servers" << endl
     << "   --list-servers[=PROPERTIES]" << endl
     << "              report on the status of the specified compile-servers" << endl
+#if HAVE_NSS
+    << "   --trust-servers[=TRUST-SPEC]" << endl
+    << "              add/revoke trust of specified compile-servers" << endl
 #endif
-    << endl
     ;
 
   time_t now;
@@ -373,7 +400,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
       char * num_endptr;
 
       // NB: when adding new options, consider very carefully whether they
-      // should be restricted from stap-clients (after --client-options)!
+      // should be restricted from stap clients (after --client-options)!
 #define LONG_OPT_KELF 1
 #define LONG_OPT_KMAP 2
 #define LONG_OPT_IGNORE_VMLINUX 3
@@ -391,7 +418,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_LDD 15
 #define LONG_OPT_USE_SERVER 16
 #define LONG_OPT_LIST_SERVERS 17
-#define LONG_OPT_ALL_MODULES 18
+#define LONG_OPT_TRUST_SERVERS 18
+#define LONG_OPT_ALL_MODULES 19
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -417,13 +445,14 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "ldd", 0, &long_opt, LONG_OPT_LDD },
         { "use-server", 2, &long_opt, LONG_OPT_USE_SERVER },
         { "list-servers", 2, &long_opt, LONG_OPT_LIST_SERVERS },
+        { "trust-servers", 2, &long_opt, LONG_OPT_TRUST_SERVERS },
         { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
 			     long_options, NULL);
       // NB: when adding new options, consider very carefully whether they
-      // should be restricted from stap-clients (after --client-options)!
+      // should be restricted from stap clients (after --client-options)!
 
       if (grc < 0)
         break;
@@ -623,6 +652,13 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	case 'c':
 	  push_server_opt = true;
 	  cmd = string (optarg);
+          if (cmd == "")
+            {
+              // This would mess with later code deciding to pass -c
+              // through to staprun
+              cerr << "Empty CMD string invalid." << endl;
+              return 1;
+            }
 	  break;
 
 	case 'x':
@@ -766,10 +802,18 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    case LONG_OPT_LIST_SERVERS:
 	      if (client_options)
 		client_options_disallowed += client_options_disallowed.empty () ? "--list-servers" : ", --list-servers";
-	      if (optarg )
+	      if (optarg)
 		server_status_strings.push_back (optarg);
 	      else
 		server_status_strings.push_back ("");
+	      break;
+	    case LONG_OPT_TRUST_SERVERS:
+	      if (client_options)
+		client_options_disallowed += client_options_disallowed.empty () ? "--trust-servers" : ", --trust-servers";
+	      if (optarg)
+		server_trust_spec = optarg;
+	      else
+		server_trust_spec = "ssl";
 	      break;
 	    case LONG_OPT_HELP:
 	      usage (0);
@@ -842,7 +886,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         }
 
       // Pass selected options on to the server, if any.
-      if (push_server_opt && ! specified_servers.empty ())
+      if (push_server_opt)
 	{
 	  if (grc == 0)
 	    server_args.push_back (string ("--") +
@@ -863,18 +907,13 @@ systemtap_session::check_options (int argc, char * const argv [])
 #if ! HAVE_NSS
   if (client_options)
     cerr << "WARNING: --client-options is not supported by this version of systemtap" << endl;
-  if (! specified_servers.empty ())
-    {
-      cerr << "WARNING: --use-server is not supported by this version of systemtap" << endl;
-      specified_servers.clear ();
-    }
 #endif
 
-#if ! HAVE_NSS && ! HAVE_AVAHI
-  if (! server_status_strings.empty ())
+#if ! HAVE_NSS
+  if (! server_trust_spec.empty ())
     {
-      cerr << "WARNING: --list-servers is not supported by this version of systemtap" << endl;
-      server_status_strings.clear ();
+      cerr << "WARNING: --trust-servers is not supported by this version of systemtap" << endl;
+      server_trust_spec.clear ();
     }
 #endif
 
@@ -939,8 +978,8 @@ systemtap_session::check_options (int argc, char * const argv [])
   // NB: this is also triggered if stap is invoked with no arguments at all
   if (! have_script)
     {
-      // We don't need a script if --list-servers was specified
-      if (server_status_strings.empty ())
+      // We don't need a script if --list-servers or --trust-servers was specified
+      if (server_status_strings.empty () && server_trust_spec.empty ())
 	{
 	  cerr << "A script must be specified." << endl;
 	  usage(1);
@@ -957,284 +996,6 @@ systemtap_session::check_options (int argc, char * const argv [])
         }
     }
 }
-
-int
-systemtap_session::parse_kernel_config ()
-{
-  // PR10702: pull config options
-  string kernel_config_file = kernel_build_tree + "/.config";
-  struct stat st;
-  int rc = stat(kernel_config_file.c_str(), &st);
-  if (rc != 0)
-    {
-	clog << "Checking \"" << kernel_config_file << "\" failed: " << strerror(errno) << endl
-	     << "Ensure kernel development headers & makefiles are installed." << endl;
-	return rc;
-    }
-
-  ifstream kcf (kernel_config_file.c_str());
-  string line;
-  while (getline (kcf, line))
-    {
-      if (!startswith(line, "CONFIG_")) continue;
-      size_t off = line.find('=');
-      if (off == string::npos) continue;
-      string key = line.substr(0, off);
-      string value = line.substr(off+1, string::npos);
-      kernel_config[key] = value;
-    }
-  if (verbose > 2)
-    clog << "Parsed kernel \"" << kernel_config_file << "\", number of tuples: " << kernel_config.size() << endl;
-  
-  kcf.close();
-  return 0;
-}
-
-int
-systemtap_session::parse_kernel_exports ()
-{
-  string kernel_exports_file = kernel_build_tree + "/Module.symvers";
-  struct stat st;
-  int rc = stat(kernel_exports_file.c_str(), &st);
-  if (rc != 0)
-    {
-	clog << "Checking \"" << kernel_exports_file << "\" failed: " << strerror(errno) << endl
-	     << "Ensure kernel development headers & makefiles are installed." << endl;
-	return rc;
-    }
-
-  ifstream kef (kernel_exports_file.c_str());
-  string line;
-  while (getline (kef, line))
-    {
-      vector<string> tokens;
-      tokenize (line, tokens, "\t");
-      if (tokens.size() == 4 &&
-          tokens[2] == "vmlinux" &&
-          tokens[3].substr(0,13) == string("EXPORT_SYMBOL"))
-        kernel_exports.insert (tokens[1]);
-    }
-  if (verbose > 2)
-    clog << "Parsed kernel \"" << kernel_exports_file << "\", number of vmlinux exports: " << kernel_exports.size() << endl;
-  
-  kef.close();
-  return 0;
-}
-
-static void
-uniq_list(list<string>& l)
-{
-	list<string> r;
-	set<string> s;
-
-	for (list<string>::iterator i = l.begin(); i != l.end(); ++i) {
-		s.insert(*i);
-	}
-
-	for (list<string>::iterator i = l.begin(); i != l.end(); ++i) {
-		if (s.find(*i) != s.end()) {
-			s.erase(*i);
-			r.push_back(*i);
-		}
-	}
-
-	l.clear();
-	l.assign(r.begin(), r.end());
-}
-
-void
-systemtap_session::printscript(ostream& o)
-{
-  if (listing_mode)
-    {
-      // We go through some heroic measures to produce clean output.
-      // Record the alias and probe pointer as <name, set<derived_probe *> >
-      map<string,set<derived_probe *> > probe_list;
-
-      // Pre-process the probe alias
-      for (unsigned i=0; i<probes.size(); i++)
-        {
-          if (pending_interrupts) return;
-
-          derived_probe* p = probes[i];
-          // NB: p->basest() is not so interesting;
-          // p->almost_basest() doesn't quite work, so ...
-          vector<probe*> chain;
-          p->collect_derivation_chain (chain);
-          probe* second = (chain.size()>1) ? chain[chain.size()-2] : chain[0];
-
-          #if 0  // dump everything about the derivation chain
-          p->printsig(cerr); cerr << endl;
-          cerr << "chain[" << chain.size() << "]:" << endl;
-          for (unsigned j=0; j<chain.size(); j++)
-            {
-              cerr << "  [" << j << "]: " << endl;
-              cerr << "\tlocations[" << chain[j]->locations.size() << "]:" << endl;
-              for (unsigned k=0; k<chain[j]->locations.size(); k++)
-                {
-                  cerr << "\t  [" << k << "]: ";
-                  chain[j]->locations[k]->print(cerr);
-                  cerr << endl;
-                }
-              const probe_alias *a = chain[j]->get_alias();
-              if (a)
-                {
-                  cerr << "\taliases[" << a->alias_names.size() << "]:" << endl;
-                  for (unsigned k=0; k<a->alias_names.size(); k++)
-                    {
-                      cerr << "\t  [" << k << "]: ";
-                      a->alias_names[k]->print(cerr);
-                      cerr << endl;
-                    }
-                }
-            }
-          #endif
-
-          stringstream tmps;
-          const probe_alias *a = second->get_alias();
-          if (a)
-            {
-              assert (a->alias_names.size() >= 1);
-              a->alias_names[0]->print(tmps); // XXX: [0] is arbitrary; perhaps print all
-            }
-          else
-            {
-              assert (second->locations.size() >= 1);
-              second->locations[0]->print(tmps); // XXX: [0] is less arbitrary here, but still ...
-            }
-          string pp = tmps.str();
-
-          // Now duplicate-eliminate.  An alias may have expanded to
-          // several actual derived probe points, but we only want to
-          // print the alias head name once.
-          probe_list[pp].insert(p);
-        }
-
-      // print probe name and variables if there
-      for (map<string, set<derived_probe *> >::iterator it=probe_list.begin(); it!=probe_list.end(); ++it)
-        {
-          o << it->first; // probe name or alias
-
-          // Print the locals and arguments for -L mode only
-          if (listing_mode_vars)
-            {
-              map<string,unsigned> var_count; // format <"name:type",count>
-              map<string,unsigned> arg_count;
-              list<string> var_list;
-              list<string> arg_list;
-              // traverse set<derived_probe *> to collect all locals and arguments
-              for (set<derived_probe *>::iterator ix=it->second.begin(); ix!=it->second.end(); ++ix)
-                {
-                  derived_probe* p = *ix;
-                  // collect available locals of the probe
-                  for (unsigned j=0; j<p->locals.size(); j++)
-                    {
-                      stringstream tmps;
-                      vardecl* v = p->locals[j];
-                      v->printsig (tmps);
-                      var_count[tmps.str()]++;
-		      var_list.push_back(tmps.str());
-                    }
-                  // collect arguments of the probe if there
-                  list<string> arg_set;
-                  p->getargs(arg_set);
-                  for (list<string>::iterator ia=arg_set.begin(); ia!=arg_set.end(); ++ia) {
-                    arg_count[*ia]++;
-                    arg_list.push_back(*ia);
-		  }
-                }
-
-	      uniq_list(arg_list);
-	      uniq_list(var_list);
-
-              // print the set-intersection only
-              for (list<string>::iterator ir=var_list.begin(); ir!=var_list.end(); ++ir)
-                if (var_count.find(*ir)->second == it->second.size()) // print locals
-                  o << " " << *ir;
-              for (list<string>::iterator ir=arg_list.begin(); ir!=arg_list.end(); ++ir)
-                if (arg_count.find(*ir)->second == it->second.size()) // print arguments
-                  o << " " << *ir;
-            }
-          o << endl;
-        }
-    }
-  else
-    {
-      if (embeds.size() > 0)
-        o << "# global embedded code" << endl;
-      for (unsigned i=0; i<embeds.size(); i++)
-        {
-          if (pending_interrupts) return;
-          embeddedcode* ec = embeds[i];
-          ec->print (o);
-          o << endl;
-        }
-
-      if (globals.size() > 0)
-        o << "# globals" << endl;
-      for (unsigned i=0; i<globals.size(); i++)
-        {
-          if (pending_interrupts) return;
-          vardecl* v = globals[i];
-          v->printsig (o);
-          if (verbose && v->init)
-            {
-              o << " = ";
-              v->init->print(o);
-            }
-          o << endl;
-        }
-
-      if (functions.size() > 0)
-        o << "# functions" << endl;
-      for (map<string,functiondecl*>::iterator it = functions.begin(); it != functions.end(); it++)
-        {
-          if (pending_interrupts) return;
-          functiondecl* f = it->second;
-          f->printsig (o);
-          o << endl;
-          if (f->locals.size() > 0)
-            o << "  # locals" << endl;
-          for (unsigned j=0; j<f->locals.size(); j++)
-            {
-              vardecl* v = f->locals[j];
-              o << "  ";
-              v->printsig (o);
-              o << endl;
-            }
-          if (verbose)
-            {
-              f->body->print (o);
-              o << endl;
-            }
-        }
-
-      if (probes.size() > 0)
-        o << "# probes" << endl;
-      for (unsigned i=0; i<probes.size(); i++)
-        {
-          if (pending_interrupts) return;
-          derived_probe* p = probes[i];
-          p->printsig (o);
-          o << endl;
-          if (p->locals.size() > 0)
-            o << "  # locals" << endl;
-          for (unsigned j=0; j<p->locals.size(); j++)
-            {
-              vardecl* v = p->locals[j];
-              o << "  ";
-              v->printsig (o);
-              o << endl;
-            }
-          if (verbose)
-            {
-              p->body->print (o);
-              o << endl;
-            }
-        }
-    }
-}
-
 
 void systemtap_session::insert_loaded_modules()
 {
@@ -1273,11 +1034,32 @@ systemtap_session::setup_kernel_release (const char* kstr)
 	  while (version_file.get(c) && c != '\n')
 	    kernel_release.push_back(c);
 	}
+
+      // PR10745
+      // Maybe it's a full kernel source tree, for purposes of PR10745.
+      // In case CONFIG_DEBUG_INFO was set, we'd find it anyway with the
+      // normal search in tapsets.cxx.  Without CONFIG_DEBUG_INFO, we'd
+      // need heuristics such as this one:
+
+      string some_random_source_only_file = kernel_build_tree + "/COPYING";
+      ifstream epic (some_random_source_only_file.c_str());
+      if (! epic.fail())
+        {
+          kernel_source_tree = kernel_build_tree;
+          if (verbose > 2)
+            clog << "Located kernel source tree (COPYING) at '"
+                 << kernel_source_tree << "'" << endl;
+        }
     }
   else
     {
       kernel_release = string (kstr);
       kernel_build_tree = "/lib/modules/" + kernel_release + "/build";
+
+      // PR10745
+      // Let's not look for the kernel_source_tree; it's definitely
+      // not THERE.  tapsets.cxx might try to find it later if tracepoints
+      // need it.
     }
 }
 
@@ -1457,53 +1239,6 @@ systemtap_session::print_warning (const string& message_str, const token* tok)
       clog << endl;
       if (tok) { print_error_source (clog, align_warning, tok); }
     }
-}
-
-string &
-systemtap_session::get_host_name ()
-{
-  if (host_name.empty ())
-    get_host_and_domain_name ();
-  return host_name;
-}
-
-string &
-systemtap_session::get_domain_name ()
-{
-  if (domain_name.empty ())
-    get_host_and_domain_name ();
-  return domain_name;
-}
-
-void
-systemtap_session::get_host_and_domain_name ()
-{
-  // We can't rely on the existence of MAXHOSTNAMELEN, so loop until we get
-  // a buffer big enough.
-  size_t bufSize = 0;
-  char *buf;
-  for (;;)
-    {
-      bufSize += 100;
-      buf = new char[bufSize];
-      int rc = gethostname (buf, bufSize);
-      if (rc == 0)
-	break;
-      assert (errno == ENAMETOOLONG);
-      delete[] buf;
-    }
-  host_name = buf;
-  delete[] buf;
-
-  // Break the returned name up into host and domain.
-  string::size_type dot_index = host_name.find ('.');
-  if (dot_index != string::npos)
-    {
-      domain_name = host_name.substr (dot_index + 1);
-      host_name = host_name.substr (0, dot_index);
-    }
-  else
-    domain_name = "unknown";
 }
 
 // --------------------------------------------------------------------------

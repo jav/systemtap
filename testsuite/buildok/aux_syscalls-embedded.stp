@@ -81,6 +81,7 @@ probe begin {
 
 	print (__short(0))
 	print (__int32(0))
+	print (__ulong(0))
 
 	print (_dfd_str(0))
 	print (_adjtimex_return_str(0))

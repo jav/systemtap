@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * x86_64 dwarf unwinder header file
- * Copyright (C) 2008 Red Hat Inc.
+ * Copyright (C) 2008, 2010 Red Hat Inc.
  * Copyright (C) 2002-2006 Novell, Inc.
  * 
  * This file is part of systemtap, and is free software.  You can
@@ -20,7 +20,6 @@
 
 #include <linux/sched.h>
 #include <asm/ptrace.h>
-#include <asm/vsyscall.h>
 
 /* these are simple for x86_64 */
 #define _stp_get_unaligned(ptr) (*(ptr))
@@ -107,8 +106,8 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
                                             /*const*/ struct pt_regs *regs,
 					    int sanitize)
 {
+	memset(info, 0, sizeof(*info));
 	if (sanitize) {
-		memset(&info->regs, 0, sizeof(info->regs));
 		info->regs.r11 = regs->r11;
 		info->regs.r10 = regs->r10;
 		info->regs.r9 = regs->r9;
@@ -139,7 +138,6 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
 	} else {
 		info->regs = *regs;
 	}
-	info->call_frame = 0;
 }
 
 static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
@@ -158,28 +156,6 @@ static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
 	info->regs.rip = (unsigned long)thread_return;
 	__get_user(info->regs.rbp, (unsigned long *)info->task->thread.rsp);
 	info->regs.rsp = info->task->thread.rsp;
-#endif
-}
-
-static inline int arch_unw_user_mode(const struct unwind_frame_info *info)
-{
-#if 0 /* This can only work when selector register saves/restores
-         are properly annotated (and tracked in UNW_REGISTER_INFO). */
-	return user_mode(&info->regs);
-#else
-#ifdef STAPCONF_X86_UNIREGS	
-	return (long)info->regs.ip >= 0
-#ifdef VSYSCALL_START
-	       || (info->regs.ip >= VSYSCALL_START && info->regs.ip < VSYSCALL_END)
-#endif
-	       || (long)info->regs.sp >= 0;
-#else
-	return (long)info->regs.rip >= 0
-#ifdef VSYSCALL_START
-	       || (info->regs.rip >= VSYSCALL_START && info->regs.rip < VSYSCALL_END)
-#endif
-	       || (long)info->regs.rsp >= 0;
-#endif
 #endif
 }
 

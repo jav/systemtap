@@ -132,7 +132,6 @@ static struct
 #include "copy.c"
 #include "regs.c"
 #include "regs-ia64.c"
-#include "time.c"
 
 #include "task_finder.c"
 
@@ -142,10 +141,14 @@ static struct
 #endif
 #include "addr-map.c"
 
-
+#ifdef module_param_cb			/* kernels >= 2.6.36 */
+#define _STP_KERNEL_PARAM_ARG const struct kernel_param
+#else
+#define _STP_KERNEL_PARAM_ARG struct kernel_param
+#endif
 
 /* Support functions for int64_t module parameters. */
-static int param_set_int64_t(const char *val, struct kernel_param *kp)
+static int param_set_int64_t(const char *val, _STP_KERNEL_PARAM_ARG *kp)
 {
   char *endp;
   long long ll;
@@ -166,13 +169,20 @@ static int param_set_int64_t(const char *val, struct kernel_param *kp)
   return 0;
 }
 
-static int param_get_int64_t(char *buffer, struct kernel_param *kp)
+static int param_get_int64_t(char *buffer, _STP_KERNEL_PARAM_ARG *kp)
 {
   return sprintf(buffer, "%lli", (long long)*((int64_t *)kp->arg));
 }
 
 #define param_check_int64_t(name, p) __param_check(name, p, int64_t)
 
+#ifdef module_param_cb			/* kernels >= 2.6.36 */
+static struct kernel_param_ops param_ops_int64_t = {
+	.set = param_set_int64_t,
+	.get = param_get_int64_t,
+};
+#endif
+#undef _STP_KERNEL_PARAM_ARG
 
 /************* Module Stuff ********************/
 
@@ -198,6 +208,14 @@ void cleanup_module(void)
 	local_irq_restore(flags);\
 	ret; })
 
+
+#if defined(__ia64__) && defined(__GNUC__) && (__GNUC__ < 4)
+/* Due to http://gcc.gnu.org/PR21838, old gcc on ia64 generates calls
+   to __ia64_save_stack_nonlocal(), since our generated code uses
+   __label__ constructs since PR11004.  This dummy declaration works
+   around the undefined reference.  */
+void __ia64_save_stack_nonlocal (void) { }
+#endif
 
 MODULE_LICENSE("GPL");
 

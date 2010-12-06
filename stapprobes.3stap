@@ -291,7 +291,20 @@ kernel.statement(PATTERN)
 kernel.statement(ADDRESS).absolute
 .br
 module(MPATTERN).statement(PATTERN)
+.br
+process("PATH").function("NAME")
+.br
+process("PATH").statement("*@FILE.c:123")
+.br
+process("PATH").function("*").return
+.br
+process("PATH").function("myfun").label("foo")
+.br
+process(PID).statement(ADDRESS).absolute
 .ESAMPLE
+
+(See the USER-SPACE section below for more information on the process
+probes.)
 
 In the above list, MPATTERN stands for a string literal that aims to
 identify the loaded kernel module of interest and LPATTERN stands for
@@ -333,12 +346,19 @@ the ".absolute" suffix.  Such an address is considered already relocated,
 as if it came from 
 .BR /proc/kallsyms ,
 so it cannot be checked against statement/instruction boundaries.
+
+.SS CONTEXT VARIABLES
+
 .PP
-Some of the source-level context variables, such as function parameters,
+Many of the source-level context variables, such as function parameters,
 locals, globals visible in the compilation unit, may be visible to
 probe handlers.  They may refer to these variables by prefixing their
 name with "$" within the scripts.  In addition, a special syntax
-allows limited traversal of structures, pointers, and arrays.
+allows limited traversal of structures, pointers, and arrays.  More
+syntax allows pretty-printing of individual variables or their groups.
+See also 
+.BR @cast .
+
 .TP
 $var
 refers to an in-scope variable "var".  If it's an integer-like type,
@@ -364,20 +384,19 @@ with a return value.
 $var[N]
 indexes into an array.  The index given with a literal number or even
 an arbitrary numeric expression.
-.TP
-$var$
-expands to a string with all of $var's members, equivalent to
-sprintf("{.a=%i, .b=%u, .c={...}, .d=[...]}", $var\->a, $var\->b)
-.TP
-$var$$
-expands to a string with all of $var's members and submembers, equivalent to
-sprintf("{.a=%i, .b=%u, .c={.x=%p, .y=%c}, .d=[%i, ...]}", $var\->a, $var\->b,
-$var\->c\->x, $var\->c\->y, $var\->d[0])
+.PP
+A number of operators exist for such basic context variable expressions:
 .TP
 $$vars
 expands to a character string that is equivalent to
-sprintf("parm1=%x ... parmN=%x var1=%x ... varN=%x", parm1, ..., parmN,
-var1, ..., varN)
+.SAMPLE
+sprintf("parm1=%x ... parmN=%x var1=%x ... varN=%x",
+        parm1, ..., parmN, var1, ..., varN)
+.ESAMPLE
+for each variable in scope at the probe point.  Some values may be
+printed as
+.IR =?
+if their run-time location cannot be found.
 .TP
 $$locals
 expands to a subset of $$vars for only local variables.
@@ -389,6 +408,32 @@ $$return
 is available in return probes only.  It expands to a string that
 is equivalent to sprintf("return=%x", $return)
 if the probed function has a return value, or else an empty string.
+.TP
+& $EXPR
+expands to the address of the given context variable expression, if it
+is addressable.
+.TP
+@defined($EXPR)
+expands to 1 or 0 iff the given context variable expression is resolvable,
+for use in conditionals such as   
+.SAMPLE
+@defined($foo->bar) ? $foo->bar : 0
+.ESAMPLE
+.TP
+$EXPR$
+expands to a string with all of $EXPR's members, equivalent to
+.SAMPLE
+sprintf("{.a=%i, .b=%u, .c={...}, .d=[...]}",
+         $EXPR\->a, $EXPR\->b)
+.ESAMPLE
+.TP
+$EXPR$$
+expands to a string with all of $var's members and submembers, equivalent to
+.SAMPLE
+sprintf("{.a=%i, .b=%u, .c={.x=%p, .y=%c}, .d=[%i, ...]}",
+        $EXPR\->a, $EXPR\->b, $EXPR\->c\->x, $EXPR\->c\->y, $EXPR\->d[0])
+.ESAMPLE
+
 .PP
 For ".return" probes, context variables other than the "$return"
 value itself are only available for the function call parameters.
@@ -465,44 +510,44 @@ Second, non-symbolic user-kernel interface events handled by
 utrace may be probed:
 .SAMPLE
 process(PID).begin
-process("PATH").begin
+process("FULLPATH").begin
 process.begin
 process(PID).thread.begin
-process("PATH").thread.begin
+process("FULLPATH").thread.begin
 process.thread.begin
 process(PID).end
-process("PATH").end
+process("FULLPATH").end
 process.end
 process(PID).thread.end
-process("PATH").thread.end
+process("FULLPATH").thread.end
 process.thread.end
 process(PID).syscall
-process("PATH").syscall
+process("FULLPATH").syscall
 process.syscall
 process(PID).syscall.return
-process("PATH").syscall.return
+process("FULLPATH").syscall.return
 process.syscall.return
 process(PID).insn
-process("PATH").insn
+process("FULLPATH").insn
 process(PID).insn.block
-process("PATH").insn.block
+process("FULLPATH").insn.block
 .ESAMPLE
 .PP
 A
 .B .begin
-probe gets called when new process described by PID or PATH gets created.
+probe gets called when new process described by PID or FULLPATH gets created.
 A
 .B .thread.begin
-probe gets called when a new thread described by PID or PATH gets created.
+probe gets called when a new thread described by PID or FULLPATH gets created.
 A
 .B .end
-probe gets called when process described by PID or PATH dies.
+probe gets called when process described by PID or FULLPATH dies.
 A
 .B .thread.end
-probe gets called when a thread described by PID or PATH dies.
+probe gets called when a thread described by PID or FULLPATH dies.
 A
 .B .syscall
-probe gets called when a thread described by PID or PATH makes a
+probe gets called when a thread described by PID or FULLPATH makes a
 system call.  The system call number is available in the
 .BR $syscall
 context variable, and the first 6 arguments of the system call
@@ -511,7 +556,7 @@ are available in the
 (ex. $arg1, $arg2, ...) context variable.
 A
 .B .syscall.return
-probe gets called when a thread described by PID or PATH returns from a
+probe gets called when a thread described by PID or FULLPATH returns from a
 system call.  The system call number is available in the
 .BR $syscall
 context variable, and the return value of the system call is available
@@ -520,10 +565,16 @@ in the
 context variable.
 A
 .B .insn
-probe gets called for every single-stepped instruction of the process described by PID or PATH.
+probe gets called for every single-stepped instruction of the process described by PID or FULLPATH.
 A
 .B .insn.block
-probe gets called for every block-stepped instruction of the process described by PID or PATH.
+probe gets called for every block-stepped instruction of the process described by PID or FULLPATH.
+.PP
+If a process probe is specified without a PID or FULLPATH, all user
+threads will be probed.  However, if systemtap was invoked with the
+.IR -c " or " -x
+options, then process probes are restricted to the process
+hierarchy associated with the target process.
 
 .PP
 Third, symbolic static instrumentation compiled into programs and
@@ -565,32 +616,49 @@ Note that for all process probes,
 names refer to executables that are searched the same way shells do: relative
 to the working directory if they contain a "/" character, otherwise in 
 .BR $PATH .
-If a process probe is specified without a PID or PATH, all user
-threads are probed.  PATH may sometimes name a shared library
-in which case all processes that map that shared library may be
-probed.  However, if systemtap was invoked with the
-.IR -c " or " -x
+PATH may also refer to shared libraries, in which case all proceses that
+map it at runtime would be selected for probing.
+If the PATH string contains wildcards as in the MPATTERN case, then
+standard globbing is performed to find all matching paths.  In this
+case, the 
+.BR $PATH
+environment variable is not used.
+
+.PP
+If systemtap was invoked with the
+.IR \-c " or " \-x
 options, then process probes are restricted to the process
 hierarchy associated with the target process.
 
 .SS PROCFS
 
 These probe points allow procfs "files" in
-/proc/systemtap/MODNAME to be created, read and written
+/proc/systemtap/MODNAME to be created, read and written using a  
+permission that may be modified using the proper umask value. Default permissions are 0400 for read
+probes, and 0200 for write probes. If both a read and write probe are being 
+used on the same file, a default permission of 0600 will be used.
+Using procfs.umask(0040).read would
+result in a 0404 permission set for the file.
 .RI ( MODNAME
 is the name of the systemtap module). The
 .I proc
 filesystem is a pseudo-filesystem which is used an an interface to
-kernel data structures.  There are several probe point variants supported
+kernel data structures. There are several probe point variants supported
 by the translator:
 
 .SAMPLE
 procfs("PATH").read
+procfs("PATH").umask(UMASK).read
 procfs("PATH").read.maxsize(MAXSIZE)
+procfs("PATH").umask(UMASK).maxsize(MAXSIZE)
 procfs("PATH").write
+procfs("PATH").umask(UMASK).write
 procfs.read
+procfs.umask(UMASK).read
 procfs.read.maxsize(MAXSIZE)
+procfs.umask(UMASK).read.maxsize(MAXSIZE)
 procfs.write
+procfs.umask(UMASK).write
 .ESAMPLE
 
 .I PATH

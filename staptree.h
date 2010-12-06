@@ -680,11 +680,11 @@ struct probe_point
   bool optional;
   bool sufficient;
   expression* condition;
-  void print (std::ostream& o) const;
+  void print (std::ostream& o, bool print_extras=true) const;
   probe_point ();
   probe_point(const probe_point& pp);
   probe_point(std::vector<component*> const & comps);
-  std::string str();
+  std::string str(bool print_extras=true) const;
 };
 
 std::ostream& operator << (std::ostream& o, const probe_point& k);
@@ -697,10 +697,13 @@ struct probe
   const token* tok;
   std::vector<vardecl*> locals;
   std::vector<vardecl*> unused_locals;
+  static unsigned last_probeidx;
   probe ();
+  probe (const probe& p, probe_point *l);
   void print (std::ostream& o) const;
   virtual void printsig (std::ostream &o) const;
   virtual void collect_derivation_chain (std::vector<probe*> &probes_list);
+  virtual void collect_derivation_pp_chain (std::vector<probe_point*> &pp_list) {}
   virtual const probe_alias *get_alias () const { return 0; }
   virtual probe* create_alias(probe_point* l, probe_point* a);
   virtual const probe* basest () const { return this; }

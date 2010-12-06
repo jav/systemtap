@@ -57,19 +57,8 @@ expression* add_condition (expression* a, expression* b)
 
 
 
-derived_probe::derived_probe (probe *p):
-  base (p), sdt_semaphore_addr(0)
-{
-  assert (p);
-  this->locations = p->locations;
-  this->tok = p->tok;
-  this->privileged = p->privileged;
-  this->body = deep_copy_visitor::deep_copy(p->body);
-}
-
-
-derived_probe::derived_probe (probe *p, probe_point *l):
-  base (p), sdt_semaphore_addr(0)
+derived_probe::derived_probe (probe *p, probe_point *l, bool rewrite_loc):
+  base (p), base_pp(l), sdt_semaphore_addr(0), session_index((unsigned)-1)
 {
   assert (p);
   this->tok = p->tok;
@@ -77,6 +66,9 @@ derived_probe::derived_probe (probe *p, probe_point *l):
   this->body = deep_copy_visitor::deep_copy(p->body);
 
   assert (l);
+  // make a copy for subclasses which want to rewrite the location
+  if (rewrite_loc)
+    l = new probe_point(*l);
   this->locations.push_back (l);
 }
 
@@ -120,6 +112,26 @@ derived_probe::collect_derivation_chain (std::vector<probe*> &probes_list)
 {
   probes_list.push_back(this);
   base->collect_derivation_chain(probes_list);
+}
+
+
+void
+derived_probe::collect_derivation_pp_chain (std::vector<probe_point*> &pp_list)
+{
+  pp_list.push_back(base_pp);
+  base->collect_derivation_pp_chain(pp_list);
+}
+
+
+string
+derived_probe::derived_locations ()
+{
+  ostringstream o;
+  vector<probe_point*> reference_point;
+  collect_derivation_pp_chain(reference_point);
+  for(unsigned i=0; i<reference_point.size(); ++i)
+    o << " from: " << reference_point[i]->str(false); // no ?,!,etc
+  return o.str();
 }
 
 
@@ -298,6 +310,13 @@ match_key::operator<(match_key const & other) const
 	      && have_parameter == other.have_parameter
 	      && parameter_type < other.parameter_type));
 }
+
+
+// NB: these are only used in the probe point name components, where
+// only "*" is permitted.
+//
+// Within module("bar"), function("foo"), process("baz") strings, real
+// wildcards are permitted too. See also util.h:contains_glob_chars
 
 static bool
 isglob(string const & str)
@@ -1404,7 +1423,10 @@ void add_global_var_display (systemtap_session& s)
       if (l->index_types.size() == 0) // Scalar
 	{
 	  if (l->type == pe_stats)
-	    pf->raw_components += " @count=%#x @min=%#x @max=%#x @sum=%#x @avg=%#x\\n";
+	    if (strverscmp(s.compatible.c_str(), "1.4") >= 0)
+	      pf->raw_components += " @count=%#d @min=%#d @max=%#d @sum=%#d @avg=%#d\\n";
+	    	    else
+	      pf->raw_components += " @count=%#x @min=%#x @max=%#x @sum=%#x @avg=%#x\\n";
 	  else if (l->type == pe_string)
 	    pf->raw_components += "=\"%#s\"\\n";
 	  else
@@ -1507,7 +1529,10 @@ void add_global_var_display (systemtap_session& s)
 	    }
 	  pf->raw_components += "]";
 	  if (l->type == pe_stats)
-	    pf->raw_components += " @count=%#x @min=%#x @max=%#x @sum=%#x @avg=%#x\\n";
+	    if (strverscmp(s.compatible.c_str(), "1.4") >= 0)
+	      pf->raw_components += " @count=%#d @min=%#d @max=%#d @sum=%#d @avg=%#d\\n";
+	    else
+	      pf->raw_components += " @count=%#x @min=%#x @max=%#x @sum=%#x @avg=%#x\\n";
 	  else if (l->type == pe_string)
 	    pf->raw_components += "=\"%#s\"\\n";
 	  else

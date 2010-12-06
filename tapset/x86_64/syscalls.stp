@@ -46,7 +46,11 @@ probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
 	name = "sigaltstack"
 	uss_uaddr = $uss
 	uoss_uaddr = $uoss
+# 'regs_uaddr' should have been 'regs'.  Deprecate the old name.
+%(systemtap_v <= "1.4" %?
 	regs_uaddr = $regs
+%)
+	regs = $regs
 	argstr = sprintf("%p, %p", $uss, $uoss)
 }
 probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return
@@ -98,12 +102,31 @@ probe syscall.mmap.return = kernel.function("sys_mmap").return ?,
 	retstr = returnstr(2)
 }
 #
+# sys32_mmap(struct mmap_arg_struct32 __user *arg)
 # sys32_mmap(struct mmap_arg_struct __user *arg)
 #
 probe syscall.mmap32 = kernel.function("sys32_mmap")
 {
 	name = "mmap"
-	argstr = get_mmap_args($arg)
+	if (@defined(@cast($arg, "mmap_arg_struct32")->addr)) {
+		start = user_long(&@cast($arg, "mmap_arg_struct32")->addr)
+		len = user_long(&@cast($arg, "mmap_arg_struct32")->len)
+		prot = user_long(&@cast($arg, "mmap_arg_struct32")->prot)
+		flags = user_long(&@cast($arg, "mmap_arg_struct32")->flags)
+		fd = user_long(&@cast($arg, "mmap_arg_struct32")->fd)
+		offset = user_long(&@cast($arg, "mmap_arg_struct32")->offset)
+	}
+	else {
+		start = user_long(&@cast($arg, "mmap_arg_struct")->addr)
+		len = user_long(&@cast($arg, "mmap_arg_struct")->len)
+		prot = user_long(&@cast($arg, "mmap_arg_struct")->prot)
+		flags = user_long(&@cast($arg, "mmap_arg_struct")->flags)
+		fd = user_long(&@cast($arg, "mmap_arg_struct")->fd)
+		offset = user_long(&@cast($arg, "mmap_arg_struct")->offset)
+	}
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", start, len,
+			 _mprotect_prot_str(prot), _mmap_flags(flags),
+			 fd, offset)
 }
 
 probe syscall.mmap32.return = kernel.function("sys32_mmap").return
@@ -119,6 +142,14 @@ probe syscall.mmap32.return = kernel.function("sys32_mmap").return
 probe syscall.mmap2 = kernel.function("sys32_mmap2") ?
 {
 	name = "mmap2"
+        start = $addr
+        length = $len
+        prot = $prot
+        flags = $flags
+	# Although the kernel gets an unsigned long fd, on the
+	# user-side it is a signed int.  Fix this.
+        fd = __int32($fd)
+        pgoffset = $pgoff
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
 		_mprotect_prot_str($prot), _mmap_flags($flags),
 		__int32($fd), $pgoff)
@@ -152,6 +183,7 @@ probe syscall.pipe32 = kernel.function("sys32_pipe")?
 {
 	name = "pipe"
 	flags = 0;
+	flag_str = ""
 	if (@defined($fd)) {
 		fildes_uaddr = $fd
 		if (fildes_uaddr == 0) {
@@ -169,7 +201,6 @@ probe syscall.pipe32 = kernel.function("sys32_pipe")?
 		pipe1 = 0;
 		argstr = "[0, 0]";
 	}
-	argstr = sprintf("[%d, %d]", pipe0, pipe1)
 }
 probe syscall.pipe32.return = kernel.function("sys32_pipe").return?
 {

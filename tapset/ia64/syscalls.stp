@@ -55,8 +55,13 @@ probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?
 probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
 {
 	name = "sigaltstack";
+%(systemtap_v <= "1.4" %?
 	ss_uaddr = $uss
 	oss_uaddr = $uoss
+%)
+	uss_uaddr = $uss
+	uoss_uaddr = $uoss
+	regs = &$regs
 	argstr = sprintf("%p, %p", $uss, $uoss)
 }
 probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return

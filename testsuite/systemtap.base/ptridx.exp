@@ -1,0 +1,44 @@
+set test "ptridx"
+
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags additional_flags=-O2"
+
+set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
+if { $res != "" } {
+  verbose "target_compile failed: $res" 2
+  fail "$test.c compile"
+  untested "$test"
+  return
+} else {
+  pass "$test.c compile"
+}
+
+if {[catch {exec stap -L {process("./ptridx.exe").function("*").label("*")}}]} {
+  fail "$test (list labels)"
+  untested "$test"
+} else {
+  pass "$test (list labels)"
+  if {[installtest_p] && [uprobes_p]} {
+    set ok 0
+    spawn stap $srcdir/$subdir/$test.stp -c ./$test.exe -w
+    expect {
+      -re {failed to retrieve location attribute} {
+        # the variables may have no location
+        setup_xfail *-*-*
+        }
+      -re {^[ap] (0x\[0-9a-f]+ => )?17, 23\r\n} { incr ok; exp_continue }
+      timeout { fail "$test (timeout)" }
+      eof { }
+    }
+    wait
+
+    if {$ok == 2} {
+      pass "$test"
+    } else {
+      fail "$test ($ok)"
+    }
+  } else {
+    untested "$test"
+  }
+}
+catch {exec rm -f $test.exe}

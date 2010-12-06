@@ -1,17 +1,22 @@
 #include <cstring>
+#include <cerrno>
 #include <string>
 #include <vector>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <cctype>
+extern "C" {
+#include <stdint.h>
+}
 
 const char *get_home_directory(void);
 size_t get_file_size(const std::string &path);
+size_t get_file_size(int fd);
 bool file_exists (const std::string &path);
 bool copy_file(const std::string& src, const std::string& dest,
                bool verbose=false);
-int create_dir(const char *dir);
+int create_dir(const char *dir, int mode = 0777);
 int remove_file_or_dir(const char *dir);
 bool in_group_id (gid_t target_gid);
 std::string getmemusage ();
@@ -24,6 +29,8 @@ std::string git_revision(const std::string& path);
 int stap_system(int verbose, const std::string& command);
 int kill_stap_spawn(int sig);
 void assert_regexp_match (const std::string& name, const std::string& value, const std::string& re);
+int regexp_match (const std::string& value, const std::string& re, std::vector<std::string>& matches);
+bool contains_glob_chars (const std::string &str);
 
 // stringification generics
 
@@ -44,6 +51,25 @@ inline OUT lex_cast(std::string const & in)
   std::istringstream ss(in);
   OUT out;
   if (!(ss >> out && ss.eof()))
+    throw std::runtime_error("bad lexical cast");
+  return out;
+}
+
+
+// We want [u]int8_t to be treated numerically, not just extracting a char.
+template <>
+inline int8_t lex_cast(std::string const & in)
+{
+  int16_t out = lex_cast<int16_t>(in);
+  if (out < -128 || out > 127)
+    throw std::runtime_error("bad lexical cast");
+  return out;
+}
+template <>
+inline uint8_t lex_cast(std::string const & in)
+{
+  uint16_t out = lex_cast<uint16_t>(in);
+  if (out > 0xff && out < 0xff80) // don't error if it looks sign-extended
     throw std::runtime_error("bad lexical cast");
   return out;
 }

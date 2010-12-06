@@ -6,6 +6,9 @@
 /* make -P prologue-searching default */
 #undef ENABLE_PROLOGUES
 
+/* Define to 1 to enable process.mark probes in stap, staprun, stapio. */
+#undef ENABLE_SDT_PROBES
+
 /* Define to 1 if you have the avahi libraries. */
 #undef HAVE_AVAHI
 
