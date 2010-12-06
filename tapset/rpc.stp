@@ -372,7 +372,7 @@ probe sunrpc.clnt.shutdown_client.return =
       	module("sunrpc").function("rpc_shutdown_client").return
 {
 	name = "sunrpc.clnt.shutdown_client.return"
-	retstr = returnstr(1)
+	retstr = (@defined($return) ? return_str(1, $return) : "N/A")
 }
 
 /*
