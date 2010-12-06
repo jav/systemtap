@@ -342,8 +342,9 @@ static const char * const errlist[] = {
 #undef N
 static const int Maxerrno = sizeof(errlist)/sizeof(char *);
 %}
-/*
- * sfunction: errno_str - Symbolic string associated with error code.
+
+/**
+ * sfunction errno_str - Symbolic string associated with error code.
  *
  * General Syntax: errno_str:string(err:long)
  *
@@ -404,7 +405,7 @@ function returnval:long () %{ /* pure */
 	THIS->__retvalue = _stp_returnval(CONTEXT->regs);
 %}
 
-/* 
+/**
  * sfunction returnstr - Sets the return type
  *
  * General Syntax: returnstr:string(returnp:long)
