@@ -22,7 +22,7 @@ probe syscall.mmap = kernel.function("sys_mmap") ?
 probe syscall.mmap.return = kernel.function("sys_mmap").return ?
 {
         name = "mmap"
-        retstr = returnstr(2)
+        retstr = return_str(2, $return)
 }
 
 # mmap2
@@ -43,7 +43,7 @@ probe syscall.mmap2 = kernel.function("sys_mmap2") ?
 probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?
 {
         name = "mmap2"
-        retstr = returnstr(2)
+        retstr = return_str(2, $return)
 }
 
 # sigaltstack _______________________________________________
@@ -67,7 +67,7 @@ probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
 probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return
 {
 	name = "sigaltstack";
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sysctl _____________________________________________________
@@ -82,5 +82,5 @@ probe syscall.sysctl32 = kernel.function("sys32_sysctl") ?
 probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ?
 {
 	name = "sysctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }

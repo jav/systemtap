@@ -167,7 +167,7 @@ probe signal.send.return = __signal.send.send_sigqueue.return,
 			   __signal.send.specific_send_sig_info.return ?
 %)
 {
-    retstr = returnstr(1)
+    retstr = return_str(1, $return)
 }
 
 // - return 0 if the signal is either sucessfully added into the
@@ -282,7 +282,7 @@ probe signal.checkperm = kernel.function("check_kill_permission")
 probe signal.checkperm.return = kernel.function("check_kill_permission").return
 {
     name = "checkperm"
-    retstr = returnstr(1)
+    retstr = return_str(1, $return)
 }
 
 
@@ -339,7 +339,7 @@ probe signal.check_ignored = kernel.function("sig_ignored")
 probe __signal.check_ignored.sig_ignored.return =
 	kernel.function("sig_ignored").return
 {
-    retstr = returnstr(1)
+    retstr = return_str(1, $return)
 }
 probe __signal.check_ignored.prepare_signal.return =
 	kernel.function("prepare_signal").return
@@ -412,7 +412,7 @@ probe signal.force_segv.return =
 		kernel.function("force_sigsegv_info").return ?
 {
     name = "force_segv"
-    retstr = returnstr(1)
+    retstr = return_str(1, $return)
 }
 
 
@@ -545,7 +545,7 @@ probe signal.send_sig_queue.return =
         kernel.function("send_group_sigqueue").return ?
 {
     name = "send_sig_queue"
-    retstr = returnstr(1)
+    retstr = return_str(1, $return)
 }
 
 
@@ -575,7 +575,7 @@ probe signal.pending = kernel.function("do_sigpending")
 probe signal.pending.return = kernel.function("do_sigpending").return
 {
     name = "pending"
-    retstr = returnstr(1)
+    retstr = return_str(1, $return)
 }
 
 
@@ -631,7 +631,7 @@ probe signal.handle.return = kernel.function("handle_rt_signal64").return ?,
 			     kernel.function("handle_signal").return ?
 {
     name = "handle"
-    retstr = returnstr(1)
+    retstr = return_str(1, $return)
 }
 
 
@@ -669,7 +669,7 @@ probe signal.do_action = kernel.function("do_sigaction")
 probe signal.do_action.return = kernel.function("do_sigaction").return
 {
     name = "do_action"
-    retstr = returnstr(1)
+    retstr = return_str(1, $return)
 }
 
 function __get_action_mask:long(act:long) %{ /* pure */
@@ -727,7 +727,7 @@ function get_sigset:long(sigset:long) %{ /* pure */
 probe signal.procmask.return = kernel.function("sigprocmask").return
 {
     name = "procmask"
-    retstr = returnstr(1)
+    retstr = return_str(1, $return)
 }
 
 

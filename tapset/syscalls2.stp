@@ -38,7 +38,7 @@ probe syscall.nanosleep = kernel.function("sys_nanosleep").call
 probe syscall.nanosleep.return = kernel.function("sys_nanosleep").return
 {
 	name = "nanosleep"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 probe syscall.compat_nanosleep = kernel.function("compat_sys_nanosleep").call ?
 {
@@ -50,7 +50,7 @@ probe syscall.compat_nanosleep = kernel.function("compat_sys_nanosleep").call ?
 probe syscall.compat_nanosleep.return = kernel.function("compat_sys_nanosleep").return ?
 {
 	name = "nanosleep"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # nfsservctl _________________________________________________
@@ -79,7 +79,7 @@ probe syscall.nfsservctl.return = kernel.function("sys_nfsservctl").return ?,
                                   kernel.function("compat_sys_nfsservctl").return ?
 {
 	name = "nfsservctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 %)
 
@@ -95,7 +95,7 @@ probe syscall.nice = kernel.function("sys_nice").call ?
 probe syscall.nice.return = kernel.function("sys_nice").return ?
 {
 	name = "nice"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # ni_syscall _________________________________________________
@@ -110,7 +110,7 @@ probe syscall.ni_syscall = kernel.function("sys_ni_syscall").call
 probe syscall.ni_syscall.return = kernel.function("sys_ni_syscall").return
 {
 	name = "ni_syscall"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # open _______________________________________________________
@@ -137,7 +137,7 @@ probe syscall.open.return = kernel.function("compat_sys_open").return ?,
                             kernel.function("sys_open").return ?
 {
 	name = "open"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # openat _______________________________________________________
@@ -164,7 +164,7 @@ probe syscall.openat.return = kernel.function("compat_sys_openat").return ?,
                               kernel.function("sys_openat").return ?
 {
 	name = "openat"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # pause ______________________________________________________
@@ -183,7 +183,7 @@ probe syscall.pause.return = kernel.function("sys_pause").return ?,
                              kernel.function("compat_sys_pause").return ?
 {
 	name = "pause"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # pciconfig_iobase ___________________________________________
@@ -205,7 +205,7 @@ probe syscall.pause.return = kernel.function("sys_pause").return ?,
 #probe syscall.pciconfig_iobase.return = kernel.function("sys_pciconfig_iobase").return
 #{
 #	name = "pciconfig_iobase"
-#	retstr = returnstr(1)
+#	retstr = return_str(1, $return)
 #}
 # pciconfig_read _____________________________________________
 #
@@ -232,7 +232,7 @@ probe syscall.pause.return = kernel.function("sys_pause").return ?,
 #probe syscall.pciconfig_read.return = kernel.function("sys_pciconfig_read").return
 #{
 #	name = "pciconfig_read"
-#	retstr = returnstr(1)
+#	retstr = return_str(1, $return)
 #}
 # pciconfig_write ____________________________________________
 #
@@ -258,7 +258,7 @@ probe syscall.pause.return = kernel.function("sys_pause").return ?,
 #probe syscall.pciconfig_write.return = kernel.function("sys_pciconfig_write").return
 #{
 #	name = "pciconfig_write"
-#	retstr = returnstr(1)
+#	retstr = return_str(1, $return)
 #}
 # personality ________________________________________________
 #
@@ -274,7 +274,7 @@ probe syscall.personality = kernel.function("sys_personality").call
 probe syscall.personality.return = kernel.function("sys_personality").return
 {
 	name = "personality"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # ia64 returns the results from the pipe call through (user) registers.
@@ -371,9 +371,9 @@ probe syscall.pipe.return = kernel.function("sys_pipe2").return !,
 %)
 	}
 %( arch == "ia64" %?
-	retstr = (pipe0 < 0) ? returnstr(1) : "0";
+	retstr = (pipe0 < 0) ? return_str(1, $return) : "0";
 %:
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 %)
 }
 
@@ -392,7 +392,7 @@ probe syscall.pivot_root = kernel.function("sys_pivot_root").call
 probe syscall.pivot_root.return = kernel.function("sys_pivot_root").return
 {
 	name = "pivot_root"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # poll _______________________________________________________
@@ -411,7 +411,7 @@ probe syscall.poll = kernel.function("sys_poll").call
 probe syscall.poll.return = kernel.function("sys_poll").return
 {
 	name = "poll"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # ppoll _______________________________________________________
@@ -433,7 +433,7 @@ probe syscall.ppoll = kernel.function("sys_ppoll").call ?
 probe syscall.ppoll.return = kernel.function("sys_ppoll").return ?
 {
 	name = "ppoll"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # long compat_sys_ppoll(struct pollfd __user *ufds,
 #	unsigned int nfds, struct compat_timespec __user *tsp,
@@ -452,7 +452,7 @@ probe syscall.compat_ppoll = kernel.function("compat_sys_ppoll").call ?
 probe syscall.compat_ppoll.return = kernel.function("compat_sys_ppoll").return ?
 {
 	name = "ppoll"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # prctl ______________________________________________________
@@ -478,7 +478,7 @@ probe syscall.prctl = kernel.function("sys_prctl").call
 probe syscall.prctl.return = kernel.function("sys_prctl").return
 {
 	name = "prctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # pread64 ____________________________________________________
 #
@@ -499,7 +499,7 @@ probe syscall.pread = kernel.function("sys_pread64").call
 probe syscall.pread.return = kernel.function("sys_pread64").return
 {
 	name = "pread"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # pselect6 _____________________________________________________
@@ -516,7 +516,7 @@ probe syscall.pselect6 = kernel.function("sys_pselect6").call ?
 probe syscall.pselect6.return = kernel.function("sys_pselect6").return ?
 {
 	name = "pselect6"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 probe syscall.compat_pselect6 = kernel.function("compat_sys_pselect6").call ?
 {
@@ -527,7 +527,7 @@ probe syscall.compat_pselect6 = kernel.function("compat_sys_pselect6").call ?
 probe syscall.compat_pselect6.return = kernel.function("compat_sys_pselect6").return ?
 {
 	name = "pselect6"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # pselect7 _____________________________________________________
@@ -545,7 +545,7 @@ probe syscall.pselect7 = kernel.function("sys_pselect7").call ?
 probe syscall.pselect7.return = kernel.function("sys_pselect7").return ?
 {
 	name = "pselect7"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # Through a typo, 'compat_pselect7' was misnamed as
@@ -565,7 +565,7 @@ probe
 probe syscall.compat_pselect7.return = kernel.function("compat_sys_pselect7").return ?
 {
 	name = "pselect7"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # ptrace _____________________________________________________
@@ -587,7 +587,7 @@ probe syscall.ptrace = kernel.function("sys_ptrace").call ?
 probe syscall.ptrace.return = kernel.function("sys_ptrace").return ?
 {
 	name = "ptrace"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # pwrite64 ___________________________________________________
@@ -611,7 +611,7 @@ probe syscall.pwrite = kernel.function("sys_pwrite64").call
 probe syscall.pwrite.return = kernel.function("sys_pwrite64").return
 {
 	name = "pwrite"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # long sys32_pwrite64(unsigned int fd, const char __user *ubuf,
 #				size_t count, u32 poshi, u32 poslo)
@@ -636,7 +636,7 @@ probe syscall.pwrite32 = kernel.function("sys32_pwrite64").call ?
 probe syscall.pwrite32.return = kernel.function("sys32_pwrite64").return ?
 {
 	name = "pwrite"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # quotactl ___________________________________________________
@@ -660,7 +660,7 @@ probe syscall.quotactl = kernel.function("sys_quotactl").call ?
 probe syscall.quotactl.return = kernel.function("sys_quotactl").return ?
 {
 	name = "quotactl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 
@@ -677,7 +677,7 @@ probe syscall.read = kernel.function("sys_read").call
 probe syscall.read.return = kernel.function("sys_read").return
 {
 	name = "read"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # readahead __________________________________________________
@@ -698,7 +698,7 @@ probe syscall.readahead = kernel.function("sys_readahead").call
 probe syscall.readahead.return = kernel.function("sys_readahead").return
 {
 	name = "readahead"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # readdir ___________________________________________________
@@ -716,7 +716,7 @@ probe syscall.readdir.return = kernel.function("compat_sys_old_readdir").return 
                                kernel.function("old32_readdir").return ?
 {
 	name = "readdir"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # readlink ___________________________________________________
@@ -737,7 +737,7 @@ probe syscall.readlink = kernel.function("sys_readlink").call
 probe syscall.readlink.return = kernel.function("sys_readlink").return
 {
 	name = "readlink"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # readlinkat ___________________________________________________
@@ -761,7 +761,7 @@ probe syscall.readlinkat = kernel.function("sys_readlinkat").call ?
 probe syscall.readlinkat.return = kernel.function("sys_readlinkat").return ?
 {
 	name = "readlinkat"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # readv ______________________________________________________
@@ -786,7 +786,7 @@ probe syscall.readv.return = kernel.function("compat_sys_readv").return ?,
                              kernel.function("sys_readv").return
 {
 	name = "readv"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # reboot _____________________________________________________
@@ -812,7 +812,7 @@ probe syscall.reboot = kernel.function("sys_reboot").call
 probe syscall.reboot.return = kernel.function("sys_reboot").return
 {
 	name = "reboot"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # recv _______________________________________________________
@@ -832,7 +832,7 @@ probe syscall.recv = kernel.function("sys_recv").call ?
 probe syscall.recv.return = kernel.function("sys_recv").return ?
 {
 	name = "recv"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # recvfrom ___________________________________________________
@@ -860,7 +860,7 @@ probe syscall.recvfrom = kernel.function("sys_recvfrom").call ?
 probe syscall.recvfrom.return = kernel.function("sys_recvfrom").return ?
 {
 	name = "recvfrom"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # recvmmsg ___________________________________________________
@@ -885,7 +885,7 @@ probe syscall.recvmmsg = kernel.function("sys_recvmmsg").call ?
 probe syscall.recvmmsg.return = kernel.function("sys_recvmmsg").return ?
 {
 	name = "recvmmsg"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # compat_recvmmsg ___________________________________________________
@@ -910,7 +910,7 @@ probe syscall.compat_recvmmsg = kernel.function("compat_sys_recvmmsg").call ?
 probe syscall.compat_recvmmsg.return = kernel.function("compat_sys_recvmmsg").return ?
 {
 	name = "compat_recvmmsg"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # recvmsg ____________________________________________________
@@ -931,7 +931,7 @@ probe syscall.recvmsg = kernel.function("sys_recvmsg").call ?
 probe syscall.recvmsg.return = kernel.function("sys_recvmsg").return ?
 {
 	name = "recvmsg"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_sys_recvmsg ________________________________________
 #
@@ -951,7 +951,7 @@ probe syscall.compat_sys_recvmsg = kernel.function("compat_sys_recvmsg").call ?
 probe syscall.compat_sys_recvmsg.return = kernel.function("compat_sys_recvmsg").return ?
 {
 	name = "compat_sys_recvmsg"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # remap_file_pages ___________________________________________
@@ -976,7 +976,7 @@ probe syscall.remap_file_pages = kernel.function("sys_remap_file_pages").call ?
 probe syscall.remap_file_pages.return = kernel.function("sys_remap_file_pages").return ?
 {
 	name = "remap_file_pages"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # removexattr ________________________________________________
@@ -998,7 +998,7 @@ probe syscall.removexattr = kernel.function("sys_removexattr").call
 probe syscall.removexattr.return = kernel.function("sys_removexattr").return
 {
 	name = "removexattr"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # rename _____________________________________________________
 #
@@ -1017,7 +1017,7 @@ probe syscall.rename = kernel.function("sys_rename").call
 probe syscall.rename.return = kernel.function("sys_rename").return
 {
 	name = "rename"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # renameat ___________________________________________________
@@ -1042,7 +1042,7 @@ probe syscall.renameat = kernel.function("sys_renameat").call ?
 probe syscall.renameat.return = kernel.function("sys_renameat").return ?
 {
 	name = "renameat"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # request_key ________________________________________________
@@ -1065,7 +1065,7 @@ probe syscall.request_key = kernel.function("sys_request_key").call ?
 probe syscall.request_key.return = kernel.function("sys_request_key").return ?
 {
 	name = "request_key"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # restart_syscall ____________________________________________
@@ -1081,7 +1081,7 @@ probe syscall.restart_syscall = kernel.function("sys_restart_syscall").call
 probe syscall.restart_syscall.return = kernel.function("sys_restart_syscall").return
 {
 	name = "restart_syscall"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # rmdir ______________________________________________________
 #
@@ -1097,7 +1097,7 @@ probe syscall.rmdir = kernel.function("sys_rmdir").call
 probe syscall.rmdir.return = kernel.function("sys_rmdir").return
 {
 	name = "rmdir"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # rt_sigaction _______________________________________________
@@ -1120,7 +1120,7 @@ probe syscall.rt_sigaction = kernel.function("sys_rt_sigaction").call ?
 probe syscall.rt_sigaction.return = kernel.function("sys_rt_sigaction").return ?
 {
 	name = "rt_sigaction"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 #
@@ -1149,7 +1149,7 @@ probe syscall.rt_sigaction32.return = kernel.function("sys32_rt_sigaction").retu
                                       kernel.function("compat_sys_rt_sigaction").return ?
 {
 	name = "rt_sigaction"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # rt_sigpending ______________________________________________
@@ -1166,7 +1166,7 @@ probe syscall.rt_sigpending = kernel.function("sys_rt_sigpending").call ?
 probe syscall.rt_sigpending.return = kernel.function("sys_rt_sigpending").return ?
 {
 	name = "rt_sigpending"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # rt_sigprocmask _____________________________________________
@@ -1191,7 +1191,7 @@ probe syscall.rt_sigprocmask.return = kernel.function("sys32_rt_sigprocmask").re
                                       kernel.function("sys_rt_sigprocmask").return ?
 {
 	name = "rt_sigprocmask"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # rt_sigqueueinfo ____________________________________________
@@ -1209,7 +1209,7 @@ probe syscall.rt_sigqueueinfo = kernel.function("sys_rt_sigqueueinfo").call
 probe syscall.rt_sigqueueinfo.return = kernel.function("sys_rt_sigqueueinfo").return
 {
 	name = "rt_sigqueueinfo"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # rt_sigreturn _______________________________________________
@@ -1225,7 +1225,7 @@ probe syscall.rt_sigreturn.return = kernel.function("sys_rt_sigreturn").return ?
                                     kernel.function("sys32_rt_sigreturn").return ?
 {
 	name = "rt_sigreturn"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # rt_sigsuspend ______________________________________________
@@ -1244,7 +1244,7 @@ probe syscall.rt_sigsuspend.return = kernel.function("compat_sys_rt_sigsuspend")
                                      kernel.function("sys_rt_sigsuspend").return ?
 {
 	name = "rt_sigsuspend"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # rt_sigtimedwait ____________________________________________
@@ -1271,7 +1271,7 @@ probe syscall.rt_sigtimedwait.return = kernel.function("compat_sys_rt_sigtimedwa
                                        kernel.function("sys_rt_sigtimedwait").return
 {
 	name = "rt_sigtimedwait"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sched_getaffinity __________________________________________
@@ -1292,7 +1292,7 @@ probe syscall.sched_getaffinity = kernel.function("sys_sched_getaffinity").call
 probe syscall.sched_getaffinity.return = kernel.function("sys_sched_getaffinity").return
 {
 	name = "sched_getaffinity"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sched_getparam _____________________________________________
 #
@@ -1310,7 +1310,7 @@ probe syscall.sched_getparam = kernel.function("sys_sched_getparam").call
 probe syscall.sched_getparam.return = kernel.function("sys_sched_getparam").return
 {
 	name = "sched_getparam"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sched_get_priority_max _____________________________________
 #
@@ -1326,7 +1326,7 @@ probe syscall.sched_get_priority_max = kernel.function("sys_sched_get_priority_m
 probe syscall.sched_get_priority_max.return = kernel.function("sys_sched_get_priority_max").return
 {
 	name = "sched_get_priority_max"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sched_get_priority_min _____________________________________
 #
@@ -1342,7 +1342,7 @@ probe syscall.sched_get_priority_min = kernel.function("sys_sched_get_priority_m
 probe syscall.sched_get_priority_min.return = kernel.function("sys_sched_get_priority_min").return
 {
 	name = "sched_get_priority_min"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sched_getscheduler _________________________________________
 #
@@ -1357,7 +1357,7 @@ probe syscall.sched_getscheduler = kernel.function("sys_sched_getscheduler").cal
 probe syscall.sched_getscheduler.return = kernel.function("sys_sched_getscheduler").return
 {
 	name = "sched_getscheduler"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sched_rr_get_interval ______________________________________
 #
@@ -1373,7 +1373,7 @@ probe syscall.sched_rr_get_interval = kernel.function("sys_sched_rr_get_interval
 probe syscall.sched_rr_get_interval.return = kernel.function("sys_sched_rr_get_interval").return
 {
 	name = "sched_rr_get_interval"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sched_setaffinity __________________________________________
@@ -1392,7 +1392,7 @@ probe syscall.sched_setaffinity = kernel.function("sys_sched_setaffinity").call
 probe syscall.sched_setaffinity.return = kernel.function("sys_sched_setaffinity").return
 {
 	name = "sched_setaffinity"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sched_setparam _____________________________________________
@@ -1409,7 +1409,7 @@ probe syscall.sched_setparam = kernel.function("sys_sched_setparam").call ?
 probe syscall.sched_setparam.return = kernel.function("sys_sched_setparam").return ?
 {
 	name = "sched_setparam"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sched_setscheduler _________________________________________
@@ -1428,7 +1428,7 @@ probe syscall.sched_setscheduler = kernel.function("sys_sched_setscheduler").cal
 probe syscall.sched_setscheduler.return = kernel.function("sys_sched_setscheduler").return ?
 {
 	name = "sched_setscheduler"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sched_yield ________________________________________________
@@ -1442,7 +1442,7 @@ probe syscall.sched_yield = kernel.function("sys_sched_yield").call
 probe syscall.sched_yield.return = kernel.function("sys_sched_yield").return
 {
 	name = "sched_yield"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # select _____________________________________________________
@@ -1466,7 +1466,7 @@ probe syscall.select = kernel.function("sys_select").call
 probe syscall.select.return = kernel.function("sys_select").return
 {
 	name = "select"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # long compat_sys_select(int n,
 #		compat_ulong_t __user *inp,
@@ -1488,7 +1488,7 @@ probe syscall.compat_select = kernel.function("compat_sys_select").call ?
 probe syscall.compat_select.return = kernel.function("compat_sys_select").return ?
 {
 	name = "select"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # semctl _____________________________________________________
@@ -1512,7 +1512,7 @@ probe syscall.semctl = kernel.function("sys_semctl").call ?
 probe syscall.semctl.return = kernel.function("sys_semctl").return ?
 {
 	name = "semctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_sys_semctl ________________________________________
 #
@@ -1529,7 +1529,7 @@ probe syscall.compat_sys_semctl = kernel.function("compat_sys_semctl").call ?
 probe syscall.compat_sys_semctl.return = kernel.function("compat_sys_semctl").return ?
 {
 	name = "compat_sys_semctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # semget _____________________________________________________
@@ -1546,7 +1546,7 @@ probe syscall.semget = kernel.function("sys_semget").call ?
 probe syscall.semget.return = kernel.function("sys_semget").return ?
 {
 	name = "semget"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # semop ______________________________________________________
@@ -1566,7 +1566,7 @@ probe syscall.semop = kernel.function("sys_semtimedop").call ?
 probe syscall.semop.return = kernel.function("sys_semtimedop").return ?
 {
 	name = "semop"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # semtimedop _________________________________________________
@@ -1589,7 +1589,7 @@ probe syscall.semtimedop = kernel.function("sys_semtimedop").call ?
 probe syscall.semtimedop.return = kernel.function("sys_semtimedop").return ?
 {
 	name = "semtimedop"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_sys_semtimedop ________________________________________
 #
@@ -1609,7 +1609,7 @@ probe syscall.compat_sys_semtimedop = kernel.function("compat_sys_semtimedop").c
 probe syscall.compat_sys_semtimedop.return = kernel.function("compat_sys_semtimedop").return ?
 {
 	name = "compat_sys_semtimedop"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # send _______________________________________________________
@@ -1632,7 +1632,7 @@ probe syscall.send = kernel.function("sys_send").call ?
 probe syscall.send.return = kernel.function("sys_send").return ?
 {
 	name = "send"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sendfile ___________________________________________________
@@ -1657,7 +1657,7 @@ probe syscall.sendfile.return = kernel.function("sys_sendfile").return ?,
                                 kernel.function("sys_sendfile64").return ?
 {
 	name = "sendfile"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sendmsg ____________________________________________________
@@ -1676,7 +1676,7 @@ probe syscall.sendmsg = kernel.function("sys_sendmsg").call ?
 probe syscall.sendmsg.return = kernel.function("sys_sendmsg").return ?
 {
 	name = "sendmsg"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_sys_sendmsg ________________________________________
 #
@@ -1694,7 +1694,7 @@ probe syscall.compat_sys_sendmsg = kernel.function("compat_sys_sendmsg").call ?
 probe syscall.compat_sys_sendmsg.return = kernel.function("compat_sys_sendmsg").return ?
 {
 	name = "compat_sys_sendmsg"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sendto _____________________________________________________
@@ -1722,7 +1722,7 @@ probe syscall.sendto = kernel.function("sys_sendto").call ?
 probe syscall.sendto.return = kernel.function("sys_sendto").return ?
 {
 	name = "sendto"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setdomainname ______________________________________________
@@ -1741,7 +1741,7 @@ probe syscall.setdomainname = kernel.function("sys_setdomainname").call
 probe syscall.setdomainname.return = kernel.function("sys_setdomainname").return
 {
 	name = "setdomainname"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setfsgid ___________________________________________________
@@ -1759,7 +1759,7 @@ probe syscall.setfsgid.return = kernel.function("sys_setfsgid16").return ?,
                                 kernel.function("sys_setfsgid").return ?
 {
 	name = "setfsgid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setfsuid ___________________________________________________
@@ -1777,7 +1777,7 @@ probe syscall.setfsuid.return = kernel.function("sys_setfsuid16").return ?,
                                 kernel.function("sys_setfsuid").return ?
 {
 	name = "setfsuid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setgid _____________________________________________________
@@ -1796,7 +1796,7 @@ probe syscall.setgid.return = kernel.function("sys_setgid16").return ?,
                               kernel.function("sys_setgid").return ?
 {
 	name = "setgid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setgroups __________________________________________________
@@ -1819,7 +1819,7 @@ probe syscall.setgroups.return = kernel.function("sys_setgroups16").return ?,
                                  kernel.function("sys_setgroups").return ?
 {
 	name = "setgroups"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sethostname ________________________________________________
@@ -1839,7 +1839,7 @@ probe syscall.sethostname = kernel.function("sys_sethostname").call
 probe syscall.sethostname.return = kernel.function("sys_sethostname").return
 {
 	name = "sethostname"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # setitimer __________________________________________________
 #
@@ -1859,7 +1859,7 @@ probe syscall.setitimer = kernel.function("sys_setitimer").call
 probe syscall.setitimer.return = kernel.function("sys_setitimer").return
 {
 	name = "setitimer"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 #
 # long compat_sys_setitimer(int which,
@@ -1878,7 +1878,7 @@ probe syscall.compat_setitimer = kernel.function("compat_sys_setitimer").call ?
 probe syscall.compat_setitimer.return = kernel.function("compat_sys_setitimer").return ?
 {
 	name = "setitimer"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # set_mempolicy ______________________________________________
@@ -1899,7 +1899,7 @@ probe syscall.set_mempolicy.return = kernel.function("compat_sys_set_mempolicy")
                                      kernel.function("sys_set_mempolicy").return ?
 {
 	name = "set_mempolicy"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setpgid ____________________________________________________
@@ -1918,7 +1918,7 @@ probe syscall.setpgid = kernel.function("sys_setpgid").call
 probe syscall.setpgid.return = kernel.function("sys_setpgid").return
 {
 	name = "setpgid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # setpriority ________________________________________________
 #
@@ -1939,7 +1939,7 @@ probe syscall.setpriority = kernel.function("sys_setpriority").call
 probe syscall.setpriority.return = kernel.function("sys_setpriority").return
 {
 	name = "setpriority"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setregid ___________________________________________________
@@ -1955,7 +1955,7 @@ probe syscall.setregid = kernel.function("sys_setregid").call
 probe syscall.setregid.return = kernel.function("sys_setregid").return
 {
 	name = "setregid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # setregid16 _________________________________________________
 # long sys_setregid16(old_gid_t rgid, old_gid_t egid)
@@ -1970,7 +1970,7 @@ probe syscall.setregid16 = kernel.function("sys_setregid16").call ?
 probe syscall.setregid16.return = kernel.function("sys_setregid16").return ?
 {
 	name = "setregid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # setresgid __________________________________________________
 # long sys_setresgid(gid_t rgid, gid_t egid, gid_t sgid)
@@ -1986,7 +1986,7 @@ probe syscall.setresgid = kernel.function("sys_setresgid").call
 probe syscall.setresgid.return = kernel.function("sys_setresgid").return
 {
 	name = "setresgid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # setresgid16 ________________________________________________
 #
@@ -2005,7 +2005,7 @@ probe syscall.setresgid16 = kernel.function("sys_setresgid16").call ?
 probe syscall.setresgid16.return = kernel.function("sys_setresgid16").return ?
 {
 	name = "setresgid16"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setresuid __________________________________________________
@@ -2023,7 +2023,7 @@ probe syscall.setresuid = kernel.function("sys_setresuid").call
 probe syscall.setresuid.return = kernel.function("sys_setresuid").return
 {
 	name = "setresuid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setresuid16 ________________________________________________
@@ -2041,7 +2041,7 @@ probe syscall.setresuid16 = kernel.function("sys_setresuid16").call ?
 probe syscall.setresuid16.return = kernel.function("sys_setresuid16").return ?
 {
 	name = "setresuid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setreuid ___________________________________________________
@@ -2057,7 +2057,7 @@ probe syscall.setreuid = kernel.function("sys_setreuid").call
 probe syscall.setreuid.return = kernel.function("sys_setreuid").return
 {
 	name = "setreuid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # setreuid16 _________________________________________________
 # long sys_setreuid16(old_uid_t ruid, old_uid_t euid)
@@ -2072,7 +2072,7 @@ probe syscall.setreuid16 = kernel.function("sys_setreuid16").call ?
 probe syscall.setreuid16.return = kernel.function("sys_setreuid16").return ?
 {
 	name = "setreuid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # setrlimit __________________________________________________
 #
@@ -2091,7 +2091,7 @@ probe syscall.setrlimit = kernel.function("sys_setrlimit").call
 probe syscall.setrlimit.return = kernel.function("sys_setrlimit").return
 {
 	name = "setrlimit"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # setsid _____________________________________________________
 #
@@ -2105,7 +2105,7 @@ probe syscall.setsid = kernel.function("sys_setsid").call
 probe syscall.setsid.return = kernel.function("sys_setsid").return
 {
 	name = "setsid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setsockopt _________________________________________________
@@ -2134,7 +2134,7 @@ probe syscall.setsockopt.return = kernel.function("compat_sys_setsockopt").retur
                                   kernel.function("sys_setsockopt").return ?
 {
 	name = "setsockopt"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # set_tid_address ____________________________________________
@@ -2151,7 +2151,7 @@ probe syscall.set_tid_address = kernel.function("sys_set_tid_address").call
 probe syscall.set_tid_address.return = kernel.function("sys_set_tid_address").return
 {
 	name = "set_tid_address"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # settimeofday _______________________________________________
 #
@@ -2168,7 +2168,7 @@ probe syscall.settimeofday = kernel.function("sys_settimeofday").call
 probe syscall.settimeofday.return = kernel.function("sys_settimeofday").return
 {
 	name = "settimeofday"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 #
 # long sys32_settimeofday(struct compat_timeval __user *tv, struct timezone __user *tz)
@@ -2186,7 +2186,7 @@ probe syscall.settimeofday32.return = kernel.function("sys32_settimeofday").retu
                                       kernel.function("compat_sys_settimeofday").return ?
 {
 	name = "settimeofday"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setuid _____________________________________________________
@@ -2205,7 +2205,7 @@ probe syscall.setuid.return = kernel.function("sys_setuid16").return ?,
                               kernel.function("sys_setuid").return
 {
 	name = "setuid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # setxattr ___________________________________________________
@@ -2233,7 +2233,7 @@ probe syscall.setxattr = kernel.function("sys_setxattr").call
 probe syscall.setxattr.return = kernel.function("sys_setxattr").return
 {
 	name = "setxattr"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sgetmask ___________________________________________________
 #
@@ -2247,7 +2247,7 @@ probe syscall.sgetmask = kernel.function("sys_sgetmask").call ?
 probe syscall.sgetmask.return = kernel.function("sys_sgetmask").return ?
 {
 	name = "sgetmask"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # shmat ______________________________________________________
@@ -2265,7 +2265,7 @@ probe syscall.shmat = kernel.function("sys_shmat").call ?
 probe syscall.shmat.return = kernel.function("sys_shmat").return ?
 {
 	name = "shmat"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_sys_shmat ________________________________________
 #
@@ -2284,7 +2284,7 @@ probe syscall.compat_sys_shmat = kernel.function("compat_sys_shmat").call ?
 probe syscall.compat_sys_shmat.return =	kernel.function("compat_sys_shmat").return ?
 {
 	name = "compat_sys_shmat"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # shmctl _____________________________________________________
@@ -2304,7 +2304,7 @@ probe syscall.shmctl = kernel.function("sys_shmctl").call ?
 probe syscall.shmctl.return = kernel.function("sys_shmctl").return ?
 {
 	name = "shmctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_sys_shmctl ________________________________________
 #
@@ -2321,7 +2321,7 @@ probe syscall.compat_sys_shmctl = kernel.function("compat_sys_shmctl").call ?
 probe syscall.compat_sys_shmctl.return = kernel.function("compat_sys_shmctl").return ?
 {
 	name = "compat_sys_shmctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # shmdt ______________________________________________________
@@ -2337,7 +2337,7 @@ probe syscall.shmdt = kernel.function("sys_shmdt").call ?
 probe syscall.shmdt.return = kernel.function("sys_shmdt").return ?
 {
 	name = "shmdt"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # shmget _____________________________________________________
@@ -2357,7 +2357,7 @@ probe syscall.shmget = kernel.function("sys_shmget").call ?
 probe syscall.shmget.return = kernel.function("sys_shmget").return ?
 {
 	name = "shmget"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # shutdown ___________________________________________________
@@ -2375,7 +2375,7 @@ probe syscall.shutdown = kernel.function("sys_shutdown").call ?
 probe syscall.shutdown.return = kernel.function("sys_shutdown").return ?
 {
 	name = "shutdown"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sigaction __________________________________________________
@@ -2393,7 +2393,7 @@ probe syscall.sigaction = kernel.function("sys_sigaction").call ?
 probe syscall.sigaction.return = kernel.function("sys_sigaction").return ?
 {
 	name = "sigaction"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 probe syscall.sigaction32 = kernel.function("sys32_sigaction").call ?,
 			    kernel.function("compat_sys_sigaction").call ?
@@ -2408,7 +2408,7 @@ probe syscall.sigaction32.return = kernel.function("sys32_sigaction").return ?,
 				   kernel.function("compat_sys_sigaction").return ?
 {
 	name = "sigaction"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # signal _____________________________________________________
@@ -2424,7 +2424,7 @@ probe syscall.signal = kernel.function("sys_signal").call ?
 probe syscall.signal.return = kernel.function("sys_signal").return ?
 {
 	name = "signal"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # signalfd _____________________________________________________
@@ -2455,7 +2455,7 @@ probe syscall.signalfd.return = kernel.function("sys_signalfd4").return !,
 {
 	flags = @defined($flags) ? $flags : 0;
 	name = (flags == 0) ? "signalfd" : "signalfd4"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 probe syscall.compat_signalfd = kernel.function("compat_sys_signalfd4").call !,
                                 kernel.function("compat_sys_signalfd").call ?
@@ -2476,7 +2476,7 @@ probe syscall.compat_signalfd.return =
 {
 	flags = @defined($flags) ? $flags : 0;
 	name = (flags == 0) ? "compat_signalfd" : "compat_signalfd4"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sigpending _________________________________________________
@@ -2490,7 +2490,7 @@ probe syscall.sigpending = kernel.function("sys_sigpending").call ?
 probe syscall.sigpending.return = kernel.function("sys_sigpending").return ?
 {
 	name = "sigpending"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sigprocmask ________________________________________________
@@ -2508,7 +2508,7 @@ probe syscall.sigprocmask = kernel.function("sys_sigprocmask").call ?
 probe syscall.sigprocmask.return = kernel.function("sys_sigprocmask").return ?
 {
 	name = "sigprocmask"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sigreturn __________________________________________________
@@ -2524,7 +2524,7 @@ probe syscall.sigreturn.return = kernel.function("sys_sigreturn").return ?,
                                  kernel.function("sys32_sigreturn").return ?
 {
 	name = "sigreturn"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sigsuspend _________________________________________________
@@ -2539,7 +2539,7 @@ probe syscall.sigsuspend.return = kernel.function("sys_sigsuspend").return ?,
                                   kernel.function("sys32_sigsuspend").return ?
 {
 	name = "sigsuspend"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # socket _____________________________________________________
@@ -2558,7 +2558,7 @@ probe syscall.socket = kernel.function("sys_socket").call ?
 probe syscall.socket.return = kernel.function("sys_socket").return ?
 {
 	name = "socket"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # commented out because this seems redundant
@@ -2576,7 +2576,7 @@ probe syscall.socket.return = kernel.function("sys_socket").return ?
 #probe syscall.socketcall.return = kernel.function("sys_socketcall").return ?
 #{
 #	name = "socketcall"
-#	retstr = returnstr(1)
+#	retstr = return_str(1, $return)
 #}
 
 # socketpair _________________________________________________
@@ -2600,7 +2600,7 @@ probe syscall.socketpair = kernel.function("sys_socketpair").call ?
 probe syscall.socketpair.return = kernel.function("sys_socketpair").return ?
 {
 	name = "socketpair"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # splice ___________________________________________________
@@ -2618,7 +2618,7 @@ probe syscall.splice = kernel.function("sys_splice").call ?
 probe syscall.splice.return = kernel.function("sys_splice").return ?
 {
 	name = "splice"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # ssetmask ___________________________________________________
@@ -2634,7 +2634,7 @@ probe syscall.ssetmask = kernel.function("sys_ssetmask").call ?
 probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return ?
 {
 	name = "ssetmask"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # stat _______________________________________________________
@@ -2664,7 +2664,7 @@ probe syscall.stat.return = kernel.function("sys_stat").return ?,
                             kernel.function("compat_sys_newstat").return ?
 {
 	name = "stat"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # statfs _____________________________________________________
@@ -2686,7 +2686,7 @@ probe syscall.statfs.return = kernel.function("compat_sys_statfs").return ?,
                               kernel.function("sys_statfs").return ?
 {
 	name = "statfs"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # statfs64 ___________________________________________________
@@ -2711,7 +2711,7 @@ probe syscall.statfs64.return = kernel.function("compat_sys_statfs64").return ?,
                                 kernel.function("sys_statfs64").return ?
 {
 	name = "statfs"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # stime ______________________________________________________
@@ -2731,7 +2731,7 @@ probe syscall.stime.return = kernel.function("compat_sys_stime").return ?,
                              kernel.function("sys_stime").return ?
 {
 	name = "stime"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # swapoff ____________________________________________________
@@ -2748,7 +2748,7 @@ probe syscall.swapoff = kernel.function("sys_swapoff").call ?
 probe syscall.swapoff.return = kernel.function("sys_swapoff").return ?
 {
 	name = "swapoff"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # swapon _____________________________________________________
 #
@@ -2766,7 +2766,7 @@ probe syscall.swapon = kernel.function("sys_swapon").call ?
 probe syscall.swapon.return = kernel.function("sys_swapon").return ?
 {
 	name = "swapon"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # symlink ____________________________________________________
@@ -2783,7 +2783,7 @@ probe syscall.symlink = kernel.function("sys_symlink").call
 probe syscall.symlink.return = kernel.function("sys_symlink").return
 {
 	name = "symlink"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # symlinkat __________________________________________________
@@ -2805,7 +2805,7 @@ probe syscall.symlinkat = kernel.function("sys_symlinkat").call ?
 probe syscall.symlinkat.return = kernel.function("sys_symlinkat").return ?
 {
 	name = "symlinkat"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sync _______________________________________________________
@@ -2820,7 +2820,7 @@ probe syscall.sync = kernel.function("sys_sync").call
 probe syscall.sync.return = kernel.function("sys_sync").return
 {
 	name = "sync"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sysctl _____________________________________________________
@@ -2837,7 +2837,7 @@ probe syscall.sysctl.return = kernel.function("compat_sys_sysctl").return ?,
                               kernel.function("sys_sysctl").return ?
 {
 	name = "sysctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sysfs ______________________________________________________
@@ -2865,7 +2865,7 @@ probe syscall.sysfs = kernel.function("sys_sysfs").call
 probe syscall.sysfs.return = kernel.function("sys_sysfs").return
 {
 	name = "sysfs"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sysinfo ____________________________________________________
 #
@@ -2882,7 +2882,7 @@ probe syscall.sysinfo.return = kernel.function("compat_sys_sysinfo").return ?,
                                kernel.function("sys_sysinfo").return
 {
 	name = "sysinfo"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # syslog _____________________________________________________
@@ -2900,7 +2900,7 @@ probe syscall.syslog = kernel.function("sys_syslog").call
 probe syscall.syslog.return = kernel.function("sys_syslog").return
 {
 	name = "syslog"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # tee _____________________________________________________
@@ -2915,7 +2915,7 @@ probe syscall.tee = kernel.function("sys_tee").call ?
 probe syscall.tee.return = kernel.function("sys_tee").return ?
 {
 	name = "tee"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # tgkill _____________________________________________________
@@ -2936,7 +2936,7 @@ probe syscall.tgkill = kernel.function("sys_tgkill").call
 probe syscall.tgkill.return = kernel.function("sys_tgkill").return
 {
 	name = "tgkill"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # time _______________________________________________________
 #
@@ -2960,7 +2960,7 @@ probe syscall.time.return = kernel.function("sys32_time").return ?,
                             kernel.function("sys_time").return ?
 {
 	name = "time"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # timer_create _______________________________________________
@@ -2981,7 +2981,7 @@ probe syscall.timer_create = kernel.function("sys_timer_create").call
 probe syscall.timer_create.return = kernel.function("sys_timer_create").return
 {
 	name = "timer_create"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # timer_delete _______________________________________________
@@ -2997,7 +2997,7 @@ probe syscall.timer_delete = kernel.function("sys_timer_delete").call
 probe syscall.timer_delete.return = kernel.function("sys_timer_delete").return
 {
 	name = "timer_delete"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # timer_getoverrun ___________________________________________
@@ -3013,7 +3013,7 @@ probe syscall.timer_getoverrun = kernel.function("sys_timer_getoverrun").call
 probe syscall.timer_getoverrun.return = kernel.function("sys_timer_getoverrun").return
 {
 	name = "timer_getoverrun"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # timer_gettime ______________________________________________
@@ -3031,7 +3031,7 @@ probe syscall.timer_gettime = kernel.function("sys_timer_gettime").call
 probe syscall.timer_gettime.return = kernel.function("sys_timer_gettime").return
 {
 	name = "timer_gettime"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # timer_settime ______________________________________________
@@ -3055,7 +3055,7 @@ probe syscall.timer_settime = kernel.function("sys_timer_settime").call
 probe syscall.timer_settime.return = kernel.function("sys_timer_settime").return
 {
 	name = "timer_settime"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # timerfd ______________________________________________
@@ -3075,7 +3075,7 @@ probe syscall.timerfd.return = kernel.function("sys_timerfd").return ?,
                                kernel.function("compat_sys_timerfd").return ?
 {
 	name = "timerfd"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # times ______________________________________________________
@@ -3092,7 +3092,7 @@ probe syscall.times.return = kernel.function("compat_sys_times").return ?,
                              kernel.function("sys_times").return ?
 {
 	name = "times"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # tkill ______________________________________________________
@@ -3111,7 +3111,7 @@ probe syscall.tkill = kernel.function("sys_tkill").call
 probe syscall.tkill.return = kernel.function("sys_tkill").return
 {
 	name = "tkill"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # truncate ___________________________________________________
@@ -3132,7 +3132,7 @@ probe syscall.truncate.return = kernel.function("sys_truncate").return ?,
                                 kernel.function("sys_truncate64").return ?
 {
 	name = "truncate"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # tux ________________________________________________________
@@ -3148,7 +3148,7 @@ probe syscall.tux = kernel.function("sys_tux").call ?
 probe syscall.tux.return = kernel.function("sys_tux").return ?
 {
 	name = "tux"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # umask ______________________________________________________
@@ -3163,7 +3163,7 @@ probe syscall.umask = kernel.function("sys_umask").call
 probe syscall.umask.return = kernel.function("sys_umask").return
 {
 	name = "umask"
-	retstr = returnstr(3)
+	retstr = return_str(3, $return)
 }
 
 # umount _____________________________________________________
@@ -3180,7 +3180,7 @@ probe syscall.umount = kernel.function("sys_umount").call
 probe syscall.umount.return = kernel.function("sys_umount").return
 {
 	name = "umount"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # uname ______________________________________________________
 #
@@ -3207,7 +3207,7 @@ probe syscall.uname.return = kernel.function("sys_uname").return ?,
                              kernel.function("sys_newuname").return ?
 {
 	name = "uname"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # unlink _____________________________________________________
@@ -3223,7 +3223,7 @@ probe syscall.unlink = kernel.function("sys_unlink").call
 probe syscall.unlink.return = kernel.function("sys_unlink").return
 {
 	name = "unlink"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # unlinkat ___________________________________________________
@@ -3244,7 +3244,7 @@ probe syscall.unlinkat = kernel.function("sys_unlinkat").call ?
 probe syscall.unlinkat.return = kernel.function("sys_unlinkat").return ?
 {
 	name = "unlinkat"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # unshare ____________________________________________________
@@ -3259,7 +3259,7 @@ probe syscall.unshare = kernel.function("sys_unshare").call ?
 probe syscall.unshare.return = kernel.function("sys_unshare").return ?
 {
 	name = "unshare"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # uselib _____________________________________________________
@@ -3277,7 +3277,7 @@ probe syscall.uselib = kernel.function("sys_uselib").call
 probe syscall.uselib.return = kernel.function("sys_uselib").return
 {
 	name = "uselib"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # ustat ______________________________________________________
 # long sys_ustat(unsigned dev, struct ustat __user * ubuf)
@@ -3310,7 +3310,7 @@ probe syscall.ustat.return = kernel.function("sys_ustat").return ?,
                              kernel.function("compat_sys_ustat").return ?
 {
 	name = "ustat"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # utime ______________________________________________________
@@ -3330,7 +3330,7 @@ probe syscall.utime = kernel.function("sys_utime").call ?
 probe syscall.utime.return = kernel.function("sys_utime").return ?
 {
 	name = "utime"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # long compat_sys_utime(char __user *filename, struct compat_utimbuf __user *t)
@@ -3348,7 +3348,7 @@ probe syscall.compat_utime = kernel.function("compat_sys_utime").call ?
 probe syscall.compat_utime.return = kernel.function("compat_sys_utime").return ?
 {
 	name = "utime"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # utimes _____________________________________________________
@@ -3367,7 +3367,7 @@ probe syscall.utimes = kernel.function("sys_utimes").call
 probe syscall.utimes.return = kernel.function("sys_utimes").return
 {
 	name = "utimes"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_sys_utimes ________________________________________
 #
@@ -3383,7 +3383,7 @@ probe syscall.compat_sys_utimes = kernel.function("compat_sys_utimes").call ?
 probe syscall.compat_sys_utimes.return = kernel.function("compat_sys_utimes").return ?
 {
 	name = "utimes"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # utimensat ____________________________________________________
@@ -3405,12 +3405,12 @@ probe syscall.compat_utimensat = kernel.function("compat_sys_utimensat").call ?
 probe syscall.utimensat.return = kernel.function("sys_utimensat").return ?
 {
 	name = "utimensat"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 probe syscall.compat_utimensat.return =  kernel.function("compat_sys_utimensat").return ?
 {
 	name = "utimensat"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # vhangup ____________________________________________________
@@ -3426,7 +3426,7 @@ probe syscall.vhangup = kernel.function("sys_vhangup").call
 probe syscall.vhangup.return = kernel.function("sys_vhangup").return
 {
 	name = "vhangup"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # vmsplice ___________________________________________________
@@ -3449,12 +3449,12 @@ probe syscall.compat_vmsplice = kernel.function("compat_sys_vmsplice").call ?
 probe syscall.vmsplice.return = kernel.function("sys_vmsplice").return ?
 {
 	name = "vmsplice"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 probe syscall.compat_vmsplice.return = kernel.function("compat_sys_vmsplice").return ?
 {
 	name = "vmsplice"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # wait4 ______________________________________________________
@@ -3479,7 +3479,7 @@ probe syscall.wait4 = kernel.function("sys_wait4").call
 probe syscall.wait4.return = kernel.function("sys_wait4").return
 {
 	name = "wait4"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # waitid _____________________________________________________
 #
@@ -3506,7 +3506,7 @@ probe syscall.waitid = kernel.function("sys_waitid").call
 probe syscall.waitid.return = kernel.function("sys_waitid").return
 {
 	name = "waitid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 /* FIXME:
 # waitpid ____________________________________________________
@@ -3530,7 +3530,7 @@ probe syscall.waitpid = kernel.function("sys_wait4").call
 probe syscall.waitpid.return = kernel.function("sys_wait4").return
 {
 	name = "waitpid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 */
 
@@ -3551,7 +3551,7 @@ probe syscall.write = kernel.function("sys_write").call
 probe syscall.write.return = kernel.function("sys_write").return
 {
 	name = "write"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # writev _____________________________________________________
@@ -3576,5 +3576,5 @@ probe syscall.writev.return = kernel.function("compat_sys_writev").return ?,
                               kernel.function("sys_writev").return
 {
 	name = "writev"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
