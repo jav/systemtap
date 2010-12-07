@@ -12,7 +12,7 @@ probe syscall.sys64_time = kernel.function("sys64_time") ?
 probe syscall.sys64_time.return = kernel.function("sys64_time").return ?
 {
 	name = "sys64_time"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # ppc64_personality ________________________________________
@@ -28,7 +28,7 @@ probe syscall.ppc64_personality = kernel.function("ppc64_personality")
 probe syscall.ppc64_personality.return = kernel.function("ppc64_personality").return
 {
 	name = "ppc64_personality"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # ppc_rtas ________________________________________
@@ -44,7 +44,7 @@ probe syscall.ppc_rtas = kernel.function("ppc_rtas") ?
 probe syscall.ppc_rtas.return = kernel.function("ppc_rtas").return ?
 {
 	name = "ppc_rtas"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # ppc64_sys32_stime ________________________________________
@@ -60,7 +60,7 @@ probe syscall.ppc64_sys32_stime = kernel.function("ppc64_sys32_stime") ?
 probe syscall.ppc64_sys32_stime.return = kernel.function("ppc64_sys32_stime").return ?
 {
 	name = "ppc64_sys32_stime"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sys32_ptrace ________________________________________
@@ -80,7 +80,7 @@ probe syscall.sys32_ptrace = kernel.function("sys32_ptrace") ?
 probe syscall.sys32_ptrace.return = kernel.function("sys32_ptrace").return ?
 {
 	name = "sys32_ptrace"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sys32_sysinfo ________________________________________
@@ -96,7 +96,7 @@ probe syscall.sys32_sysinfo = kernel.function("sys32_sysinfo") ?
 probe syscall.sys32_sysinfo.return = kernel.function("sys32_sysinfo").return ?
 {
 	name = "sys32_sysinfo"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # ipc ________________________________________
@@ -113,7 +113,7 @@ probe syscall.ipc = kernel.function("sys32_ipc") ?
 probe syscall.ipc.return = kernel.function("sys32_ipc").return ?
 {
 	name = "sys_ipc"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sys32_sigreturn ________________________________________
@@ -136,7 +136,7 @@ probe syscall.sys32_sigreturn = kernel.function("sys32_sigreturn") ?
 probe syscall.sys32_sigreturn.return = kernel.function("sys32_sigreturn").return ?
 {
 	name = "sys32_sigreturn"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sys32_adjtimex ________________________________________
 #
@@ -150,7 +150,7 @@ probe syscall.sys32_adjtimex = kernel.function("sys32_adjtimex") ?
 probe syscall.sys32_adjtimex.return = kernel.function("sys32_adjtimex").return ?
 {
 	name = "sys32_adjtimex"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sys32_getdents ________________________________________
@@ -170,7 +170,7 @@ probe syscall.sys32_getdents = kernel.function("sys32_getdents") ?
 probe syscall.sys32_getdents.return = kernel.function("sys32_getdents").return ?
 {
 	name = "sys32_getdents"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # compat_sys_sysctl ________________________________________
@@ -198,7 +198,7 @@ probe
 	kernel.function("compat_sys_sysctl").return ?
 {
 	name = "sysctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sys32_sched_setparam ________________________________________
@@ -216,7 +216,7 @@ probe syscall.sys32_sched_setparam = kernel.function("sys32_sched_setparam") ?
 probe syscall.sys32_sched_setparam.return = kernel.function("sys32_sched_setparam").return ?
 {
 	name = "sys32_sched_setparam"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sys32_sched_rr_get_interval ________________________________________
@@ -234,7 +234,7 @@ probe syscall.sys32_sched_rr_get_interval = kernel.function("sys32_sched_rr_get_
 probe syscall.sys32_sched_rr_get_interval.return = kernel.function("sys32_sched_rr_get_interval").return ?
 {
 	name = "sys32_sched_rr_get_interval"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sys32_rt_sigpending ________________________________________
@@ -252,7 +252,7 @@ probe syscall.sys32_rt_sigpending = kernel.function("sys32_rt_sigpending") ?
 probe syscall.sys32_rt_sigpending.return = kernel.function("sys32_rt_sigpending").return ?
 {
 	name = "sys32_rt_sigpending"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sys32_rt_sigtimedwait ________________________________________
 #
@@ -274,7 +274,7 @@ probe syscall.sys32_rt_sigtimedwait = kernel.function("sys32_rt_sigtimedwait") ?
 probe syscall.sys32_rt_sigtimedwait.return = kernel.function("sys32_rt_sigtimedwait").return ?
 {
 	name = "sys32_rt_sigtimedwait"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sys32_rt_sigqueueinfo ________________________________________
 #
@@ -292,7 +292,7 @@ probe syscall.sys32_rt_sigqueueinfo = kernel.function("sys32_rt_sigqueueinfo") ?
 probe syscall.sys32_rt_sigqueueinfo.return = kernel.function("sys32_rt_sigqueueinfo").return ?
 {
 	name = "sys32_rt_sigqueueinfo"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sigaltstack ________________________________________________
@@ -314,7 +314,7 @@ probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
 probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return
 {
 	name = "sigaltstack"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sys32_sigaltstack ________________________________________
@@ -334,7 +334,7 @@ probe syscall.sys32_sigaltstack = kernel.function("compat_sys_sigaltstack") !,
 probe syscall.sys32_sigaltstack.return = kernel.function("sys32_sigaltstack").return ?
 {
 	name = "sys32_sigaltstack"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sys32_sendfile64 ________________________________________
 #
@@ -354,7 +354,7 @@ probe syscall.sys32_sendfile64 = kernel.function("sys32_sendfile64") ?
 probe syscall.sys32_sendfile64.return = kernel.function("sys32_sendfile64").return ?
 {
 	name = "sys32_sendfile64"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # ppc32_timer_create ________________________________________
 #
@@ -374,7 +374,7 @@ probe syscall.ppc32_timer_create = kernel.function("ppc32_timer_create") ?
 probe syscall.ppc32_timer_create.return = kernel.function("ppc32_timer_create").return ?
 {
 	name = "ppc32_timer_create"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_timer_settime ________________________________________
 #
@@ -395,7 +395,7 @@ probe syscall.compat_timer_settime = kernel.function("compat_timer_settime") ?
 probe syscall.compat_timer_settime.return = kernel.function("compat_timer_settime").return ?
 {
 	name = "compat_timer_settime"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_timer_gettime ________________________________________
 #
@@ -412,7 +412,7 @@ probe syscall.compat_timer_gettime = kernel.function("compat_timer_gettime") ?
 probe syscall.compat_timer_gettime.return = kernel.function("compat_timer_gettime").return ?
 {
 	name = "compat_timer_gettime"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_clock_settime ________________________________________
 #
@@ -429,7 +429,7 @@ probe syscall.compat_clock_settime = kernel.function("compat_clock_settime") ?
 probe syscall.compat_clock_settime.return = kernel.function("compat_clock_settime").return ?
 {
 	name = "compat_clock_settime"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sys32_swapcontext ________________________________________
 #
@@ -454,7 +454,7 @@ probe syscall.sys32_swapcontext = kernel.function("sys32_swapcontext") ?
 probe syscall.sys32_swapcontext.return = kernel.function("sys32_swapcontext").return ?
 {
 	name = "sys32_swapcontext"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # sys32_utimes ________________________________________
 #
@@ -472,7 +472,7 @@ probe syscall.sys32_utimes = kernel.function("sys32_utimes") ?
 probe syscall.sys32_utimes.return = kernel.function("sys32_utimes").return ?
 {
 	name = "sys32_utimes"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_mbind ________________________________________
 #
@@ -495,7 +495,7 @@ probe syscall.compat_mbind = kernel.function("compat_mbind") ?
 probe syscall.compat_mbind.return = kernel.function("compat_mbind").return ?
 {
 	name = "compat_mbind"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_get_mempolicy ________________________________________
 #
@@ -518,7 +518,7 @@ probe syscall.compat_get_mempolicy = kernel.function("compat_get_mempolicy") ?
 probe syscall.compat_get_mempolicy.return = kernel.function("compat_get_mempolicy").return ?
 {
 	name = "compat_get_mempolicy"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # compat_set_mempolicy ________________________________________
 #
@@ -536,7 +536,7 @@ probe syscall.compat_set_mempolicy = kernel.function("compat_set_mempolicy") ?
 probe syscall.compat_set_mempolicy.return = kernel.function("compat_set_mempolicy").return ?
 {
 	name = "compat_set_mempolicy"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # mmap
@@ -563,7 +563,7 @@ probe syscall.mmap = kernel.function("sys_mmap") ?
 probe syscall.mmap.return = kernel.function("sys_mmap").return ?
 {
         name = "mmap"
-        retstr = returnstr(2)
+        retstr = return_str(2, $return)
 }
 
 # mmap2
@@ -594,7 +594,7 @@ probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?,
                              kernel.function("compat_sys_mmap2").return ?
 {
 	name = "mmap2"
-	retstr = returnstr(2)
+	retstr = return_str(2, $return)
 }
 
 # ppc64_sys_stime ________________________________________
@@ -611,7 +611,7 @@ probe syscall.ppc64_sys_stime = kernel.function("ppc64_sys_stime") ?
 probe syscall.ppc64_sys_stime.return = kernel.function("ppc64_sys_stime").return ?
 {
 	name = "ppc64_sys_stime"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # ppc64_newuname ________________________________________
 #
@@ -626,7 +626,7 @@ probe syscall.ppc64_newuname = kernel.function("ppc64_newuname") ?
 probe syscall.ppc64_newuname.return = kernel.function("ppc64_newuname").return ?
 {
 	name = "ppc64_newuname"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 #
