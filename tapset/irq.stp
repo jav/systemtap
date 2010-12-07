@@ -13,9 +13,9 @@
 // Probes for workqueues.
 
 /**
- * probe workqueue.create : probes creation of a new workqueue
- * @wq_thread : task_struct of the workqueue thread.
- * @cpu	  : cpu for which the worker thread is created.
+ * probe workqueue.create - Creating a new workqueue
+ * @wq_thread: task_struct of the workqueue thread
+ * @cpu: cpu for which the worker thread is created
  */
 probe workqueue.create = kernel.trace("workqueue_creation") ?
 {
@@ -24,10 +24,10 @@ probe workqueue.create = kernel.trace("workqueue_creation") ?
 }
 
 /**
- * probe workqueue.insert : probes queuing of work on a workqueue
- * @wq_thread : task_struct of the workqueue thread.
- * @work : work_struct* being queued.
- * @work_func :	pointer to handler func.
+ * probe workqueue.insert - Queuing work on a workqueue
+ * @wq_thread: task_struct of the workqueue thread
+ * @work: work_struct* being queued
+ * @work_func: pointer to handler function
  */
 probe workqueue.insert = kernel.trace("workqueue_insertion") ?
 {
@@ -37,10 +37,10 @@ probe workqueue.insert = kernel.trace("workqueue_insertion") ?
 }
 
 /**
- * probe workqueue.execute : probes execution of deferred work.
- * @wq_thread :	task_struct of the workqueue thread.
- * @work : work_struct* being executed.
- * @work_func :	pointer to handler func.
+ * probe workqueue.execute - Executing deferred work
+ * @wq_thread:	task_struct of the workqueue thread
+ * @work: work_struct* being executed
+ * @work_func:	pointer to handler function
  */
 probe workqueue.execute = kernel.trace("workqueue_execution") ?
 {
@@ -50,8 +50,8 @@ probe workqueue.execute = kernel.trace("workqueue_execution") ?
 }
 
 /**
- * probe workqueue.destroy : probes destruction of each worker thread of each cpu for a workqueue.
- * @wq_thread : task_struct of the workqueue thread.
+ * probe workqueue.destroy - Destroying workqueue
+ * @wq_thread: task_struct of the workqueue thread
  */
 probe workqueue.destroy = kernel.trace("workqueue_destruction") ?
 {
@@ -61,28 +61,19 @@ probe workqueue.destroy = kernel.trace("workqueue_destruction") ?
 // Probes for IRQ handlers.
 
 /**
- * probe irq_handler.entry : Fires prior to execution of interrupt handler.
- * @irq	: irq number.
- * @action : struct irqaction* for this interrupt num.
- * @handler : interrupt handler function.
- * @flags : Flags for IRQ handler
- *			IRQF_DISABLED [0x00000020]	: keep irqs disabled when calling action handler.
- *			IRQF_SAMPLE_RANDOM [0x00000040]	: irq is used to feed the random generator
- *			IRQF_SHARED [0x00000080]	: allow sharing the irq among several devices
- *			IRQF_PROBE_SHARED [0x00000100]	: set by callers when they expect sharing mismatches to occur
- *			IRQF_TIMER [0x00000200]		: Flag to mark this interrupt as timer interrupt
- *			IRQF_PERCPU [0x00000400]	: Interrupt is per cpu.
- *			IRQF_NOBALANCING [0x00000800]	: Flag to exclude this interrupt from irq balancing
- *			IRQF_IRQPOLL [0x00001000]	: Interrupt is used for polling.
- *			IRQF_ONESHOT [0x00002000]	: Interrupt is not reenabled after the hardirq handler finished.
- * @flags_str : symbolic string representation of IRQ flags.
- * @dev_name : name of device.
- * @dev_id : Cookie to identify device.
- * @next_irqaction : pointer to next irqaction for shared interrupts.
- * @dir	: pointer to the proc/irq/NN/name entry
- * @thread_fn : interupt handler function for threaded interrupts.
- * @thread : thread pointer for threaded interrupts.
- * @thread_flags : Flags related to thread.
+ * probe irq_handler.entry - Execution of interrupt handler starting
+ * @irq: irq number
+ * @action: struct irqaction* for this interrupt num
+ * @handler: interrupt handler function
+ * @flags: Flags for IRQ handler
+ * @flags_str: symbolic string representation of IRQ flags
+ * @dev_name: name of device
+ * @dev_id: Cookie to identify device
+ * @next_irqaction: pointer to next irqaction for shared interrupts
+ * @dir: pointer to the proc/irq/NN/name entry
+ * @thread_fn: interrupt handler function for threaded interrupts
+ * @thread: thread pointer for threaded interrupts
+ * @thread_flags: Flags related to thread
  */
 probe irq_handler.entry = kernel.trace("irq_handler_entry") ?
 {
@@ -101,29 +92,20 @@ probe irq_handler.entry = kernel.trace("irq_handler_entry") ?
 }
 
 /**
- * probe irq_handler.exit : Fires just after execution of interrupt handler.
- * @irq : interrupt number
- * @action : struct irqaction*
- * @ret	: return value of the handler
- * @handler : interrupt handler function that was executed.
- * @flags : flags for IRQ handler
- *			IRQF_DISABLED	[0x00000020]	: keep irqs disabled when calling action handler.
- *			IRQF_SAMPLE_RANDOM [0x00000040]	: irq is used to feed the random generator
- *			IRQF_SHARED [0x00000080]	: allow sharing the irq among several devices
- *			IRQF_PROBE_SHARED [0x00000100]	: set by callers when they expect sharing mismatches to occur
- *			IRQF_TIMER [0x00000200]		: Flag to mark this interrupt as timer interrupt
- *			IRQF_PERCPU [0x00000400]	: Interrupt is per cpu.
- *			IRQF_NOBALANCING [0x00000800]	: Flag to exclude this interrupt from irq balancing
- *			IRQF_IRQPOLL [0x00001000]	: Interrupt is used for polling.
- *			IRQF_ONESHOT [0x00002000]	: Interrupt is not reenabled after the hardirq handler finished.
- * @flags_str : symbolic string representation of IRQ flags.
- * @dev_name : name of device.
- * @dev_id : Cookie to identify device.
- * @next_irqaction : pointer to next irqaction for shared interrupts.
- * @dir	: pointer to the proc/irq/NN/name entry
- * @thread_fn : interupt handler function for threaded interrupts.
- * @thread : thread pointer for threaded interrupts.
- * @thread_flags : Flags related to thread.
+ * probe irq_handler.exit - Execution of interrupt handler completed
+ * @irq: interrupt number
+ * @action: struct irqaction*
+ * @ret: return value of the handler
+ * @handler: interrupt handler function that was executed
+ * @flags: flags for IRQ handler
+ * @flags_str: symbolic string representation of IRQ flags
+ * @dev_name: name of device
+ * @dev_id: Cookie to identify device
+ * @next_irqaction: pointer to next irqaction for shared interrupts
+ * @dir: pointer to the proc/irq/NN/name entry
+ * @thread_fn: interrupt handler function for threaded interrupts
+ * @thread: thread pointer for threaded interrupts
+ * @thread_flags: Flags related to thread
  */
 probe irq_handler.exit = kernel.trace("irq_handler_exit") ?
 {
@@ -144,11 +126,10 @@ probe irq_handler.exit = kernel.trace("irq_handler_exit") ?
 
 // Softirq based probes.
 /**
- * probe softirq.entry 	: triggered just before executing handler
- *			  for a pending softirq.
- * @h : struct softirq_action* for current pending softirq.
- * @vec	: softirq_action vector.
- * @action : pointer to softirq handler just about to execute.
+ * probe softirq.entry - Execution of handler for a pending softirq starting
+ * @h: struct softirq_action* for current pending softirq
+ * @vec: softirq_action vector
+ * @action: pointer to softirq handler just about to execute
  */
 probe softirq.entry = kernel.trace("softirq_entry") ?
 {
@@ -158,11 +139,10 @@ probe softirq.entry = kernel.trace("softirq_entry") ?
 }
 
 /**
- * probe softirq.exit 	: triggered just after executing handler for a pending
- *			  softirq.
- * @h : struct softirq_action* for just executed softirq.
- * @vec	: softirq_action vector.
- * @action : pointer to softirq handler that just finished execution.
+ * probe softirq.exit - Execution of handler for a pending softirq completed
+ * @h: struct softirq_action* for just executed softirq
+ * @vec: softirq_action vector
+ * @action: pointer to softirq handler that just finished execution
  */
 probe softirq.exit = kernel.trace("softirq_exit") ?
 {
