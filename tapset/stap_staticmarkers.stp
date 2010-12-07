@@ -8,115 +8,164 @@
 // later version.
 
 /**
- * probes stap.pass0, stap.pass0.end
+ * probe stap.pass0 - Starting stap pass0 (parsing command line arguments)
+ *
  * @session: the systemtap_session variable s
  * 
  * pass0 fires after command line arguments have been parsed.
- * pass0.end fires just before the gettimeofday() call for pass1.
  */
 probe stap.pass0 = process("stap").mark("pass0__start") { 
 	session = $arg1
 }
+
+/**
+ * probe stap.pass0.end - Finished stap pass0 (parsing command line arguments)
+ * @session: the systemtap_session variable s
+ * 
+ * pass0.end fires just before the gettimeofday() call for pass1.
+ */
 probe stap.pass0.end = process("stap").mark("pass0__end") { 
 	session = $arg1
 }
 
 /**
- * probes stap.pass1a, stap.pass1b, stap.pass1.end
+ * probe stap.pass1a - Starting stap pass1 (parsing user script)
  * @session: the systemtap_session variable s
  *
  * pass1a fires just after the call to gettimeofday(), before the
  *   user script is parsed.
- * pass1b fires just before the library scripts are parsed.
- * pass1.end fires just before the jump to cleanup if s.last_pass = 1.
  */
 probe stap.pass1a = process("stap").mark("pass1a__start") { 
 	session = $arg1
 }
+
+/**
+ * probe stap.pass1b - Starting stap pass1 (parsing library scripts)
+ * @session: the systemtap_session variable s
+ *
+ * pass1b fires just before the library scripts are parsed.
+ */
 probe stap.pass1b = process("stap").mark("pass1b__start") { 
 	session = $arg1
 }
+
+/**
+ * probe stap.pass1.end - Finished stap pass1 (parsing scripts)
+ * @session: the systemtap_session variable s
+ *
+ * pass1.end fires just before the jump to cleanup if s.last_pass = 1.
+ */
 probe stap.pass1.end = process("stap").mark("pass1__end") { 
 	session = $arg1
 }
 
 /**
- * probes stap.pass2, stap.pass2.end
+ * probe stap.pass2 - Starting stap pass2 (elaboration)
  * @session: the systemtap_session variable s
  *
  * pass2 fires just after the call to gettimeofday(), just before the 
  *   call to semantic_pass.
- * pass2.end fires just before the jump to cleanup if s.last_pass = 2
  */
 probe stap.pass2 = process("stap").mark("pass2__start") { 
 	session = $arg1
 }
+
+/**
+ * probe stap.pass2.end - Finished stap pass2 (elaboration)
+ * @session: the systemtap_session variable s
+ *
+ * pass2.end fires just before the jump to cleanup if s.last_pass = 2
+ */
 probe stap.pass2.end = process("stap").mark("pass2__end") { 
 	session = $arg1
 }
 
 /**
- * probes stap.pass3, stap.pass3.end
+ * probe stap.pass3 - Starting stap pass3 (translation to C)
  * @session: the systemtap_session variable s
  *
  * pass3 fires just after the call to gettimeofday(), just before the
  *   call to translate_pass.
- * pass3.end fires just before the jump to cleanup if s.last_pass = 3
  */
 probe stap.pass3 = process("stap").mark("pass3__start") { 
 	session = $arg1
 }
+
+/**
+ * probe stap.pass3.end - Finished stap pass3 (translation to C)
+ * @session: the systemtap_session variable s
+ *
+ * pass3.end fires just before the jump to cleanup if s.last_pass = 3
+ */
 probe stap.pass3.end = process("stap").mark("pass3__end") { 
 	session = $arg1
 }
 
 /**
- * probes stap.pass4, stap.pass4.end
+ * probe stap.pass4 - Starting stap pass4 (compile C code into kernel module)
  * @session: the systemtap_session variable s
  *
  * pass4 fires just after the call to gettimeofday(), just before the
  *   call to compile_pass.
- * pass4.end fires just before the jump to cleanup if s.last_pass = 4
  */
 probe stap.pass4 = process("stap").mark("pass4__start") { 
 	session = $arg1
 }
+
+/**
+ * probe stap.pass4.end - Finished stap pass4 (compile C code into kernel module)
+ * @session: the systemtap_session variable s
+ *
+ * pass4.end fires just before the jump to cleanup if s.last_pass = 4
+ */
 probe stap.pass4.end = process("stap").mark("pass4__end") { 
 	session = $arg1
 }
 
 /**
- * probes stap.pass5, stap.pass5.end
+ * probe stap.pass5 - Starting stap pass5 (running the instrumentation)
  * @session: the systemtap_session variable s
  *
  * pass5 fires just after the call to gettimeofday(), just before the
  *   call to run_pass.
- * pass5.end fires just before the cleanup label
  */
 probe stap.pass5 = process("stap").mark("pass5__start") { 
 	session = $arg1
 }
+
+/**
+ * probe stap.pass5.end - Finished stap pass5 (running the instrumentation)
+ * @session: the systemtap_session variable s
+ *
+ * pass5.end fires just before the cleanup label
+ */
 probe stap.pass5.end = process("stap").mark("pass5__end") { 
 	session = $arg1
 }
 
 /**
- * probes stap.pass6, stap.pass6.end
+ * probe stap.pass6 - Starting stap pass6 (cleanup)
  * @session: the systemtap_session variable s
  *
  * pass6 fires just after the cleanup label, essentially the same spot
  *   as pass5.end
- * pass6.end fires just before main's return.
  */
 probe stap.pass6 = process("stap").mark("pass6__start") { 
 	session = $arg1
 }
+
+/**
+ * probe stap.pass6.end - Finished stap pass6 (cleanup)
+ * @session: the systemtap_session variable s
+ *
+ * pass6.end fires just before main's return.
+ */
 probe stap.pass6.end = process("stap").mark("pass6__end") { 
 	session = $arg1
 }
 
 /**
- * probe stap.cache_clean
+ * probe stap.cache_clean - Removing file from stap cache
  * @path: the path to the .ko/.c file being removed
  *
  * Fires just before the call to unlink the module/source file. 
@@ -126,7 +175,7 @@ probe stap.cache_clean = process("stap").mark("cache__clean") {
 }
 
 /**
- * probe stap.cache_add_mod
+ * probe stap.cache_add_mod - Adding kernel instrumentation module to cache
  * @source_path: the path the .ko file is coming from (incl filename)
  * @dest_path: the path the .ko file is going to (incl filename)
  * 
@@ -139,7 +188,7 @@ probe stap.cache_add_mod = process("stap").mark("cache__add__module") {
 }
 
 /**
- * probe stap.cache_add_src
+ * probe stap.cache_add_src - Adding C code translation to cache
  * @source_path: the path the .c file is coming from (incl filename)
  * @dest_path: the path the .c file is going to (incl filename)
  *
@@ -152,7 +201,7 @@ probe stap.cache_add_src = process("stap").mark("cache__add__source") {
 }
 
 /**
- * probe stap.cache_add_nss
+ * probe stap.cache_add_nss - Add NSS (Network Security Services) information to cache
  * @source_path: the path the .sgn file is coming from (incl filename)
  * @dest_path: the path the .sgn file is coming from (incl filename)
  *
@@ -166,7 +215,7 @@ probe stap.cache_add_nss = process("stap").mark("cache__add__nss") ? {
 }
 
 /**
- * probe stap.cache_get
+ * probe stap.cache_get - Found item in stap cache
  * @source_path: the path of the .c source file
  * @module_path: the path of the .ko kernel module file
  *
@@ -179,7 +228,7 @@ probe stap.cache_get = process("stap").mark("cache__get") {
 }
 
 /**
- * probe stap.system
+ * probe stap.system - Starting a command from stap
  * @command: the command string to be run by posix_spawn (as sh -c <str>)
  *
  * Fires at the entry of the stap_system command.
@@ -189,7 +238,7 @@ probe stap.system = process("stap").mark("stap_system__start") {
 }
 
 /**
- * probe stap.system.spawn
+ * probe stap.system.spawn - stap spawned new process
  * @ret: the return value from posix_spawn
  * @pid: the pid of the spawned process
  *
@@ -202,7 +251,7 @@ probe stap.system.spawn = process("stap").mark("stap_system__spawn") {
 }
 
 /**
- * probe stap.system.return
+ * probe stap.system.return - Finished a command from stap
  * @ret: a return code associated with running waitpid on the spawned process; 
  *         a non-zero value indicates error
  *
@@ -213,7 +262,7 @@ probe stap.system.return = process("stap").mark("stap_system__complete") {
 }
 
 /**
- * probe staprun.insert_module
+ * probe staprun.insert_module - Inserting SystemTap instrumentation module
  * @path: the full path to the .ko kernel module about to be inserted
  *
  * Fires just before the call to insert the module.
@@ -223,7 +272,7 @@ probe staprun.insert_module = process("staprun").mark("insert__module") {
 }
 
 /**
- * probe staprun.remove_module
+ * probe staprun.remove_module - Removing SystemTap instrumentation module
  * @name: the stap module name to be removed (without the .ko extension)
  *
  * Fires just before the call to remove the module.
@@ -233,7 +282,7 @@ probe staprun.remove_module = process("staprun").mark("remove__module") {
 }
 
 /**
- * probe staprun.send_control_message
+ * probe staprun.send_control_message - Sending a control message
  * @type: type of message being send; defined in runtime/transport/transport_msgs.h
  * @data: a ptr to a binary blob of data sent as the control message
  * @len: the length (in bytes) of the data blob
@@ -247,7 +296,7 @@ probe staprun.send_control_message = process("staprun").mark("send__ctlmsg") {
 }
 
 /**
- * probe stapio.receive_control_message
+ * probe stapio.receive_control_message - Recieved a control message
  * @type: type of message being send; defined in runtime/transport/transport_msgs.h
  * @data: a ptr to a binary blob of data sent as the control message
  * @len: the length (in bytes) of the data blob
