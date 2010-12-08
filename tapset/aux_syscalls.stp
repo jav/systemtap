@@ -1444,7 +1444,7 @@ function _adjtimex_return_str(ret) {
 	if (val != "")
 		return sprintf("%d (TIME_%s)", ret, val)
 	else
-		return returnstr(1)
+		return return_str(1, ret)
 }
 
 %{

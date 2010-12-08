@@ -16,6 +16,7 @@
  *
  * Description: Writes the given string to a given kernel
  * memory address. Reports an error on string copy fault.
+ * Requires the use of guru mode (-g).
  */
 function set_kernel_string (addr:long, val:string) %{ /* guru */
   store_deref_string (THIS->val, THIS->addr, MAXSTRINGLEN);
@@ -28,8 +29,7 @@ deref_fault: /* branched to from store_deref_string() */
 %}
 
 /**
- * sfunction set_kernel_string_n - Writes a string of given
- * length to kernel memory.
+ * sfunction set_kernel_string_n - Writes a string of given length to kernel memory.
  * 
  * General Syntax: set_kernel_string_n(addr:long, n:long, val:string)
  *
@@ -39,6 +39,7 @@ deref_fault: /* branched to from store_deref_string() */
  *
  * Description: Writes the given string up to a maximum given length to a
  * given kernel memory address. Reports an error on string copy fault.
+ * Requires the use of guru mode (-g).
  */
 function set_kernel_string_n (addr:long, n:long, val:string) %{ /* guru */
   int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
@@ -61,6 +62,7 @@ deref_fault: /* branched to from store_deref_string() */
  *
  * Description: Writes the long value to a given kernel memory address.
  * Reports an error when writing to the given address fails.
+ * Requires the use of guru mode (-g).
  */
 function set_kernel_long (addr:long, val:long) %{ /* guru */
   kwrite((long *) (intptr_t) THIS->addr, THIS->val);
@@ -82,6 +84,7 @@ deref_fault: /* branched to from kwrite() */
  *
  * Description: Writes the int value to a given kernel memory address.
  * Reports an error when writing to the given address fails.
+ * Requires the use of guru mode (-g).
  */
 function set_kernel_int (addr:long, val:long) %{ /* guru */
   kwrite((int *) (intptr_t) THIS->addr, THIS->val);
@@ -103,6 +106,7 @@ deref_fault: /* branched to from kwrite() */
  *
  * Description: Writes the short value to a given kernel memory address.
  * Reports an error when writing to the given address fails.
+ * Requires the use of guru mode (-g).
  */
 function set_kernel_short (addr:long, val:long) %{ /* guru */
   kwrite((short *) (intptr_t) THIS->addr, THIS->val);
@@ -124,6 +128,7 @@ deref_fault: /* branched to from kwrite() */
  *
  * Description: Writes the char value to a given kernel memory address.
  * Reports an error when writing to the given address fails.
+ * Requires the use of guru mode (-g).
  */
 function set_kernel_char (addr:long, val:long) %{ /* guru */
   kwrite((char *) (intptr_t) THIS->addr, THIS->val);
@@ -145,6 +150,7 @@ deref_fault: /* branched to from kwrite() */
  *
  * Description: Writes the pointer value to a given kernel memory address.
  * Reports an error when writing to the given address fails.
+ * Requires the use of guru mode (-g).
  */
 function set_kernel_pointer (addr:long, val:long) %{ /* guru */
   kwrite((void **) (uintptr_t) THIS->addr, (uintptr_t)THIS->val);

@@ -50,11 +50,11 @@ global FragFails
 // global OutBcastPkts
 
 /**
- * sfunction ipmib_remote_addr - Get the remote ip address.
+ * sfunction ipmib_remote_addr - Get the remote ip address
+ * @skb: pointer to a struct sk_buff
+ * @SourceIsLocal: flag to indicate whether local operation
  *
- * Returns the remote ip address from an sk_buff.
- * @skb: Pointer to a struct sk_buff.
- *
+ * Returns the remote ip address from @skb.
  */
 function ipmib_remote_addr:long (skb:long, SourceIsLocal:long)
 {
@@ -65,11 +65,11 @@ function ipmib_remote_addr:long (skb:long, SourceIsLocal:long)
 }
 
 /**
- * sfunction ipmib_local_addr - Get the local ip address.
+ * sfunction ipmib_local_addr - Get the local ip address
+ * @skb: pointer to a struct sk_buff
+ * @SourceIsLocal: flag to indicate whether local operation
  *
- * Returns the local ip address from an sk_buff.
- * @skb: Pointer to a struct sk_buff.
- *
+ * Returns the local ip address @skb.
  */
 function ipmib_local_addr:long (skb:long, SourceIsLocal:long)
 {
@@ -80,11 +80,11 @@ function ipmib_local_addr:long (skb:long, SourceIsLocal:long)
 }
 
 /**
- * sfunction ipmib_tcp_remote_port - Get the remote tcp port.
+ * sfunction ipmib_tcp_remote_port - Get the remote tcp port
+ * @skb: pointer to a struct sk_buff
+ * @SourceIsLocal: flag to indicate whether local operation
  *
- * Returns the remote tcp port from an sk_buff.
- * @skb: Pointer to a struct sk_buff.
- *
+ * Returns the remote tcp port from @skb.
  */
 function ipmib_tcp_remote_port:long (skb:long, SourceIsLocal:long)
 {
@@ -95,11 +95,11 @@ function ipmib_tcp_remote_port:long (skb:long, SourceIsLocal:long)
 }
 
 /**
- * sfunction ipmib_tcp_local_port - Get the local tcp port.
+ * sfunction ipmib_tcp_local_port - Get the local tcp port
+ * @skb: pointer to a struct sk_buff
+ * @SourceIsLocal: flag to indicate whether local operation
  *
- * Returns the local tcp port from an sk_buff.
- * @skb: Pointer to a struct sk_buff.
- *
+ * Returns the local tcp port from @skb.
  */
 function ipmib_tcp_local_port:long (skb:long, SourceIsLocal:long)
 {
@@ -111,10 +111,9 @@ function ipmib_tcp_local_port:long (skb:long, SourceIsLocal:long)
 
 /**
  * sfunction ipmib_get_proto - Get the protocol value
+ * @skb: pointer to a struct sk_buff
  *
- * Returns the protocol value from ip header.
- * @skb: Pointer to a struct sk_buff.
- *
+ * Returns the protocol value from @skb.
  */
 function ipmib_get_proto:long (skb:long)
 {
@@ -195,13 +194,14 @@ function _rtn_broadcast:long ()
 %}
 
 /**
- * probe ipmib.InReceives - Count an arriving packet.
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe ipmib.InReceives - Count an arriving packet
+ * @skb: pointer to the struct sk_buff being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: InReceives
- * MIB: IPSTATS_MIB_INRECEIVES
- *
+ * The packet pointed to by @skb is filtered by the function
+ * ipmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @InReceives (equivalent to SNMP's MIB
+ * IPSTATS_MIB_INRECEIVES)
  */
 probe ipmib.InReceives=kernel.function("ip_rcv")
 {
@@ -213,13 +213,14 @@ probe ipmib.InReceives=kernel.function("ip_rcv")
 }
 
 /**
- * probe ipmib.InNoRoutes - Count an arriving packet with no matching socket.
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe ipmib.InNoRoutes - Count an arriving packet with no matching socket
+ * @skb: pointer to the struct sk_buff being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: InNoRoutes
- * MIB: IPSTATS_MIB_INNOROUTES
- *
+ * The packet pointed to by @skb is filtered by the function
+ * ipmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @InNoRoutes (equivalent to SNMP's MIB
+ * IPSTATS_MIB_INNOROUTES)
  */
 probe ipmib.InNoRoutes=kernel.function("ip_route_input_common").return!,
                        kernel.function("ip_route_input").return
@@ -233,13 +234,14 @@ probe ipmib.InNoRoutes=kernel.function("ip_route_input_common").return!,
 }
 
 /**
- * probe ipmib.InAddrErrors - Count arriving packets with an incorrect address.
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe ipmib.InAddrErrors - Count arriving packets with an incorrect address
+ * @skb: pointer to the struct sk_buff being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: InAddrErrors
- * MIB: IPSTATS_MIB_INADDRERRORS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * ipmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @InAddrErrors (equivalent to SNMP's MIB
+ * IPSTATS_MIB_INADDRERRORS)
  */
 probe ipmib.InAddrErrors=kernel.function("ip_route_input_common").return!,
                          kernel.function("ip_route_input").return
@@ -253,15 +255,15 @@ probe ipmib.InAddrErrors=kernel.function("ip_route_input_common").return!,
 }
 
 /**
- * probe ipmib.InUnknownProtos - Count arriving packets with an unbound proto. 
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe ipmib.InUnknownProtos - Count arriving packets with an unbound proto
+ * @skb: pointer to the struct sk_buff being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: InUnknownProtos
- * MIB: IPSTATS_MIB_INUNKNOWNPROTOS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * ipmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @InUnknownProtos (equivalent to SNMP's MIB
+ * IPSTATS_MIB_INUNKNOWNPROTOS)
  */
-
 /* icmp_send() is called by ip_local_deliver_finish() */
 probe ipmib.InUnknownProtos=kernel.function("icmp_send")
 {
@@ -275,13 +277,14 @@ probe ipmib.InUnknownProtos=kernel.function("icmp_send")
 }
 
 /**
- * probe ipmib.InDiscards - Count discarded inbound packets.
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe ipmib.InDiscards - Count discarded inbound packets
+ * @skb: pointer to the struct sk_buff being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: InDiscards
- * MIB: STATS_MIB_INDISCARDS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * ipmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @InDiscards (equivalent to SNMP's MIB
+ * STATS_MIB_INDISCARDS)
  */
 
 /*
@@ -299,13 +302,14 @@ probe ipmib.InDiscards=kernel.function("ip_rcv").return
 }
 
 /**
- * probe ipmib.ForwDatagrams
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe ipmib.ForwDatagrams - Count forwarded packet
+ * @skb: pointer to the struct sk_buff being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: ForwDatagrams
- * MIB: IPSTATS_MIB_OUTFORWDATAGRAMS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * ipmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @ForwDatagrams (equivalent to SNMP's MIB
+ * IPSTATS_MIB_OUTFORWDATAGRAMS)
  */
 %( kernel_v >= "2.6.24" %?
 probe ipmib.ForwDatagrams=kernel.function("ip_forward_finish")
@@ -319,13 +323,14 @@ probe ipmib.ForwDatagrams=kernel.function("ip_forward_finish")
 %)
 
 /**
- * probe ipmib.OutRequests - Count a request to send a packet.
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe ipmib.OutRequests - Count a request to send a packet
+ * @skb: pointer to the struct sk_buff being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: OutRequests
- * MIB: IPSTATS_MIB_OUTREQUESTS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * ipmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @OutRequests (equivalent to SNMP's MIB
+ * IPSTATS_MIB_OUTREQUESTS)
  */
 probe ipmib.OutRequests=kernel.function("ip_output"),
 			kernel.function("ip_mc_output")
@@ -338,13 +343,14 @@ probe ipmib.OutRequests=kernel.function("ip_output"),
 }
 
 /**
- * probe ipmib.ReasmTimeout
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe ipmib.ReasmTimeout - Count Reassembly Timeouts
+ * @skb: pointer to the struct sk_buff being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: ReasmTimeout
- * MIB: IPSTATS_MIB_REASMTIMEOUT
- *
+ * The packet pointed to by @skb is filtered by the function
+ * ipmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @ReasmTimeout (equivalent to SNMP's MIB
+ * IPSTATS_MIB_REASMTIMEOUT)
  */
 probe ipmib.ReasmTimeout=kernel.function("icmp_send")
 {
@@ -358,13 +364,14 @@ probe ipmib.ReasmTimeout=kernel.function("icmp_send")
 }
 
 /**
- * probe ipmib.ReasmReqds
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe ipmib.ReasmReqds - Count number of packet fragments reassembly requests
+ * @skb: pointer to the struct sk_buff being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: ReasmReqds
- * MIB: IPSTATS_MIB_REASMREQDS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * ipmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @ReasmReqds (equivalent to SNMP's MIB
+ * IPSTATS_MIB_REASMREQDS)
  */
 probe ipmib.ReasmReqds=kernel.function("ip_defrag")
 {
@@ -376,13 +383,14 @@ probe ipmib.ReasmReqds=kernel.function("ip_defrag")
 }
 
 /**
- * probe ipmib.FragOKs
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe ipmib.FragOKs - Count datagram fragmented successfully
+ * @skb: pointer to the struct sk_buff being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: FragOKs
- * MIB: IPSTATS_MIB_FRAGOKS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * ipmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @FragOKs (equivalent to SNMP's MIB
+ * IPSTATS_MIB_FRAGOKS)
  */
 probe ipmib.FragOKs=kernel.function("ip_fragment").return
 {
@@ -395,13 +403,14 @@ probe ipmib.FragOKs=kernel.function("ip_fragment").return
 }
 
 /**
- * probe ipmib.FragFails
- * @skb: Pointer to the struct sk_buff being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe ipmib.FragFails - Count datagram fragmented unsuccessfully
+ * @skb: pointer to the struct sk_buff being acted on
+ * @op: Value to be added to the counter (default value of 1)
  *
- * Counter Name: FragFails
- * MIB: IPSTATS_MIB_FRAGFAILS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * ipmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @FragFails (equivalent to SNMP's MIB
+ * IPSTATS_MIB_FRAGFAILS)
  */
 probe ipmib.FragFails=kernel.function("ip_fragment").return
 {

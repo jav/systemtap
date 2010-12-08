@@ -342,8 +342,9 @@ static const char * const errlist[] = {
 #undef N
 static const int Maxerrno = sizeof(errlist)/sizeof(char *);
 %}
-/*
- * sfunction: errno_str - Symbolic string associated with error code.
+
+/**
+ * sfunction errno_str - Symbolic string associated with error code.
  *
  * General Syntax: errno_str:string(err:long)
  *
@@ -404,25 +405,29 @@ function returnval:long () %{ /* pure */
 	THIS->__retvalue = _stp_returnval(CONTEXT->regs);
 %}
 
-/* 
- * sfunction returnstr - Sets the return type
+/**
+ * sfunction returnstr - Formats the return value as a string
  *
- * General Syntax: returnstr:string(returnp:long)
+ * General Syntax: returnstr:string(format:long)
  *
- * @returnp: Variable to determine return type base value
+ * @format: Variable to determine return type base value
  * 
- * Description: This function is used by the syscall tapset, and 
- * returns a string. Set returnp equal to 1 for a decimal, or
- * 2 for hex.
+ * Description: This function is used by the nd_syscall tapset, and 
+ * returns a string. Set format equal to 1 for a decimal, 
+ * 2 for hex, 3 for octal.
+ *
+ * Note that this function should only be used in dwarfless probes
+ * (i.e. 'kprobe.function("foo")').  Other probes should use
+ * return_str().
  */
-function returnstr:string (returnp:long) %{ /* pure */
+function returnstr:string (format:long) %{ /* pure */
 	if (CONTEXT->regs) {
 		long ret = _stp_returnval(CONTEXT->regs);
 		if (ret < 0 && ret > -Maxerrno && errlist[-ret])
 			snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld (%s)", ret, errlist[-ret]);
-		else if (THIS->returnp == 2)
+		else if (THIS->format == 2)
 			snprintf (THIS->__retvalue, MAXSTRINGLEN, "0x%lx", ret);
-		else if (THIS->returnp == 3)
+		else if (THIS->format == 3)
 			snprintf (THIS->__retvalue, MAXSTRINGLEN, "%#lo", ret);
 		else 	
 			snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld", ret);
@@ -432,6 +437,20 @@ no_ret:
 	}
 %}
 
+/** 
+ * sfunction return_str - Formats the return value as a string
+ *
+ * General Syntax: return_str:string(format:long, ret:long)
+ *
+ * @format: Variable to determine return type base value
+ * @ret: Return value (typically $return)
+ * 
+ * Description: This function is used by the syscall tapset, and 
+ * returns a string. Set format equal to 1 for a decimal, 
+ * 2 for hex, 3 for octal.
+ *
+ * Note that this function is preferred over returnstr().
+ */
 function return_str:string(format:long, ret:long)
 {
 	if (ret < 0 && errno_p(ret))

@@ -96,7 +96,8 @@ function backtrace:string () %{ /* pure */
  */
 function task_backtrace:string (task:long) %{ /* pure */
 	 _stp_stack_snprint_tsk(THIS->__retvalue, MAXSTRINGLEN,
-		(struct task_struct *)(unsigned long)THIS->task, 0, MAXTRACE);
+				(struct task_struct *)(unsigned long)THIS->task,
+				_STP_SYM_NONE, MAXTRACE);
 %}
 
 /**

@@ -15,7 +15,7 @@ probe syscall.arch_prctl = kernel.function("sys_arch_prctl")
 probe syscall.arch_prctl.return = kernel.function("sys_arch_prctl").return
 {
 	name = "arch_prctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # iopl _______________________________________________________
@@ -32,7 +32,7 @@ probe syscall.iopl = kernel.function("sys_iopl")
 probe syscall.iopl.return = kernel.function("sys_iopl").return
 {
 	name = "iopl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sigaltstack ________________________________________________
@@ -56,7 +56,7 @@ probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
 probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return
 {
 	name = "sigaltstack"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sysctl _____________________________________________________
@@ -71,7 +71,7 @@ probe syscall.sysctl32 = kernel.function("sys32_sysctl") ?
 probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ?
 {
 	name = "sysctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # mmap
@@ -99,7 +99,7 @@ probe syscall.mmap.return = kernel.function("sys_mmap").return ?,
       kernel.function("sys_mmap_pgoff").return ?
 {
 	name = "mmap"
-	retstr = returnstr(2)
+	retstr = return_str(2, $return)
 }
 #
 # sys32_mmap(struct mmap_arg_struct32 __user *arg)
@@ -132,7 +132,7 @@ probe syscall.mmap32 = kernel.function("sys32_mmap")
 probe syscall.mmap32.return = kernel.function("sys32_mmap").return
 {
         name = "mmap"
-        retstr = returnstr(2)
+        retstr = return_str(2, $return)
 }
 
 # sys32_mmap2(unsigned long addr, unsigned long len,
@@ -158,7 +158,7 @@ probe syscall.mmap2 = kernel.function("sys32_mmap2") ?
 probe syscall.mmap2.return = kernel.function("sys32_mmap2").return ?
 {
 	name = "mmap2"
-	retstr = returnstr(2)
+	retstr = return_str(2, $return)
 }
 
 # vm86_warning _____________________________________________________
@@ -173,7 +173,7 @@ probe syscall.vm86_warning = kernel.function("sys32_vm86_warning")
 probe syscall.vm86_warning.return = kernel.function("sys32_vm86_warning").return
 {
 	name = "wm86_warning"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # pipe _______________________________________________________
 #
@@ -220,5 +220,5 @@ probe syscall.pipe32.return = kernel.function("sys32_pipe").return?
 		pipe0 = 0;
 		pipe1 = 0;
 	}
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }

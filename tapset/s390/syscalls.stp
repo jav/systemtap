@@ -19,7 +19,7 @@ probe syscall.getresgid16 = kernel.function("sys32_getresgid16") ?
 probe syscall.getresgid16.return = kernel.function("sys32_getresgid16").return ?
 {
 	name = "getresgid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 # getresuid __________________________________________________
 # long sys32_getresuid16(u16 __user *ruid, u16 __user *euid, u16 __user *suid)
@@ -35,7 +35,7 @@ probe syscall.getresuid16 = kernel.function("sys32_getresuid16") ?
 probe syscall.getresuid16.return = kernel.function("sys32_getresuid16").return ?
 {
 	name = "getresuid"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # ipc _________________________________________________
@@ -49,7 +49,7 @@ probe syscall.ipc = kernel.function("sys32_ipc") ?
 probe syscall.ipc.return = kernel.function("sys_ipc").return ?
 {
 	name = "ipc"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # mmap _________________________________________________
@@ -90,7 +90,7 @@ probe syscall.mmap.return = kernel.function("old_mmap").return ?,
                             kernel.function("SyS_s390_old_mmap").return ?
 {
         name = "mmap"
-        retstr = returnstr(2)
+        retstr = return_str(2, $return)
 }
 
 
@@ -130,7 +130,7 @@ probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?,
                              kernel.function("sys32_mmap2").return ?
 {
         name = "mmap2"
-        retstr = returnstr(2)
+        retstr = return_str(2, $return)
 }
 
 # sigaltstack ________________________________________________
@@ -149,7 +149,7 @@ probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
 probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return
 {
 	name = "sigaltstack"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sys32_sigaltstack ________________________________________________
@@ -165,7 +165,7 @@ probe syscall.sys32_sigaltstack = kernel.function("sys32_sigaltstack") ?
 probe syscall.sys32_sigaltstack.return = kernel.function("sys32_sigaltstack").return ?
 {
 	name = "sys32_sigaltstack"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 # sysctl _____________________________________________________
@@ -180,7 +180,7 @@ probe syscall.sysctl32 = kernel.function("sys32_sysctl") ?
 probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ?
 {
 	name = "sysctl"
-	retstr = returnstr(1)
+	retstr = return_str(1, $return)
 }
 
 %)

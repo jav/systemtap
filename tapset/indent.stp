@@ -13,8 +13,7 @@ function _generic_indent (idx, desc, delta)
 }
 
 /**
- * sfunction thread_indent - returns an amount of space with
- * the current task information
+ * sfunction thread_indent - returns an amount of space with the current task information
  * 
  * General Syntax: thread_indent:string (delta:long)
  *
@@ -34,7 +33,15 @@ function thread_indent (delta)
 
 /**
  * sfunction indent - returns an amount of space to indent
+ *
+ * General Syntax: indent:string (delta:long)
+ *
  * @delta: the amount of space added/removed for each call
+ *
+ * Description: This function returns a string with appropriate
+ * indentation. Call it with a small positive or matching negative
+ * delta. Unlike the thread_indent function, the indent does not
+ * track individual indent values on a per thread basis.
  */
 function indent(delta){
   return _generic_indent(-1, "",  delta)
@@ -74,25 +81,3 @@ function indent(delta){
  *  0 swapper(0): -> usb_hcd_irq
  *  7 swapper(0): <- usb_hcd_irq
  */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -118,6 +118,7 @@
     </para>
 !Itapset/context.stp
 !Itapset/context-symbols.stp
+!Itapset/ucontext.stp
 !Itapset/ucontext-symbols.stp
 !Itapset/context-unwind.stp
 !Itapset/ucontext-unwind.stp
@@ -170,6 +171,15 @@
 !Itapset/task_time.stp
   </chapter>
 
+  <chapter id="sched.stp">
+    <title>Scheduler Tapset</title>
+    <para>
+      This family of probe points is used to probe the task scheduler activities.
+      It contains the following probe points:
+    </para>
+!Itapset/scheduler.stp
+  </chapter>
+
   <chapter id="iosched.stp">
     <title>IO Scheduler and block IO Tapset</title>
     <para>
@@ -198,6 +208,16 @@
 !Itapset/tty.stp
   </chapter>
 
+  <chapter id="irq.stp">
+    <title>Interrupt Request (IRQ) Tapset</title>
+    <para>
+      This family of probe points is used to probe interrupt request
+      (IRQ) activities.
+      It contains the following probe points:
+    </para>
+!Itapset/irq.stp
+  </chapter>
+
   <chapter id="networking.stp">
     <title>Networking Tapset</title>
     <para>
@@ -218,6 +238,17 @@
    </para>
 !Itapset/socket.stp
   </chapter>
+  <chapter id="snmp.stp">
+    <title>SNMP Information Tapset</title>
+    <para>
+      This family of probe points is used to probe socket activities to
+      provide SNMP type information. It contains the following functions
+      and probe points:
+   </para>
+!Itapset/ipmib.stp
+!Itapset/tcpmib.stp
+!Itapset/linuxmib.stp
+  </chapter>
   <chapter id="kprocess.stp">
     <title>Kernel Process Tapset</title>
     <para>
@@ -233,6 +264,14 @@
       It contains the following probe points:
     </para>
 !Itapset/signal.stp
+  </chapter>
+  <chapter id="errno.stp">
+    <title>Errno Tapset</title>
+    <para>
+      This set of funciont is used to handle errno number values.
+      It contains the following function:
+    </para>
+!Itapset/errno.stp
   </chapter>
   <chapter id="dentry.stp">
     <title>Directory-entry (dentry) Tapset</title>
@@ -266,7 +305,21 @@
     </para>
 !Itapset/conversions.stp
 !Itapset/uconversions.stp
+   </chapter>
+
+  <chapter id="conversions-guru.stp">
+    <title>String and data writing functions Tapset</title>
+    <para>
+      The SystemTap guru mode can be used to test error handling
+      in kernel code by simulating faults. The functions in the
+      this tapset provide
+      standard methods of writing to primitive types in the kernel's
+      memory. All the functions in this tapset require the use of
+      guru mode (<command>-g</command>).
+    </para>
+!Itapset/conversions-guru.stp
     </chapter>
+
   <chapter id="string.stp">
     <title>A collection of standard string functions</title>
     <para>
@@ -285,5 +338,19 @@
       and attributes of log messages.
     </para>
 !Itapset/ansi.stp
+!Itapset/indent.stp
     </chapter>
+
+  <chapter id="stap_staticmarkers.stp">
+    <title>SystemTap Translator Tapset</title>
+    <para>
+      This family of user-space probe points is used to probe the operation of
+      the SystemTap translator (<command>stap</command>) and run command
+      (<command>staprun</command>).
+      The tapset includes probes to watch the various phases of SystemTap
+      and SystemTap's management of instrumentation cache.
+      It contains the following probe points:
+    </para>
+!Itapset/stap_staticmarkers.stp
+  </chapter>
 </book>

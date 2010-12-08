@@ -43,7 +43,7 @@ stamp-htmldocs: tapsets.xml
 
 # bump up the allocated space so "xmlto pdf" works
 tapsets.pdf: tapsets.xml
-	env pool_size=2000000 hash_extra=2000000 xmlto $(XMLTOPDFPARAMS) pdf tapsets.xml >/dev/null 2>&1
+	env pool_size=3000000 hash_extra=3000000 xmlto $(XMLTOPDFPARAMS) pdf tapsets.xml >/dev/null 2>&1
 
 stamp-mandocs: tapsets.xml
 	xmlto $(XMLTOMANPARAMS) man -o man3 tapsets.xml >/dev/null 2>&1

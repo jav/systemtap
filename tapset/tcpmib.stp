@@ -31,11 +31,10 @@ global PassiveOpens
 global RetransSegs
 
 /**
- * sfunction tcpmib_get_state - Get a socket's state.
+ * sfunction tcpmib_get_state - Get a socket's state
+ * @sk: pointer to a struct sock
  *
  * Returns the sk_state from a struct sock.
- * @sk: Pointer to a struct sock.
- *
  */
 function tcpmib_get_state:long (sk:long)
 {
@@ -43,11 +42,10 @@ function tcpmib_get_state:long (sk:long)
 }
 
 /**
- * sfunction tcpmib_local_addr - Get the source address.
+ * sfunction tcpmib_local_addr - Get the source address
+ * @sk: pointer to a struct inet_sock
  *
  * Returns the saddr from a struct inet_sock in host order.
- * @sk: Pointer to a struct inet_sock.
- *
  */
 function tcpmib_local_addr:long(sk:long)
 {
@@ -55,11 +53,10 @@ function tcpmib_local_addr:long(sk:long)
 }
 
 /**
- * sfunction tcpmib_remote_addr - Get the remote address.
+ * sfunction tcpmib_remote_addr - Get the remote address
+ * @sk: pointer to a struct inet_sock
  *
  * Returns the daddr from a struct inet_sock in host order.
- * @sk: Pointer to a struct inet_sock.
- *
  */
 function tcpmib_remote_addr:long(sk:long)
 {
@@ -67,11 +64,10 @@ function tcpmib_remote_addr:long(sk:long)
 }
 
 /**
- * sfunction tcpmib_local_port - Get the local port.
+ * sfunction tcpmib_local_port - Get the local port
+ * @sk: pointer to a struct inet_sock
  *
  * Returns the sport from a struct inet_sock in host order.
- * @sk: Pointer to a struct inet_sock.
- *
  */
 function tcpmib_local_port:long(sk:long)
 {
@@ -79,11 +75,10 @@ function tcpmib_local_port:long(sk:long)
 }
 
 /**
- * sfunction tcpmib_remote_port - Get the remote port.
+ * sfunction tcpmib_remote_port - Get the remote port
+ * @sk: pointer to a struct inet_sock
  *
  * Returns the dport from a struct inet_sock in host order.
- * @sk: Pointer to a struct inet_sock.
- *
  */
 function tcpmib_remote_port:long(sk:long)
 {
@@ -91,13 +86,14 @@ function tcpmib_remote_port:long(sk:long)
 }
 
 /**
- * probe tcpmib.ActiveOpens - Count an active opening of a socket.
- * @sk:	Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe tcpmib.ActiveOpens - Count an active opening of a socket
+ * @sk:	pointer to the struct sock being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: ActiveOpens
- * MIB: TCP_MIB_ACTIVEOPENS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * tcpmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @ActiveOpens (equivalent to SNMP's MIB
+ * TCP_MIB_ACTIVEOPENS)
  */
 probe
 tcpmib.ActiveOpens = kernel.function("tcp_connect").return
@@ -111,13 +107,14 @@ tcpmib.ActiveOpens = kernel.function("tcp_connect").return
 }
 
 /**
- * probe tcpmib.AttemptFails - Count a failed attempt to open a socket.
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe tcpmib.AttemptFails - Count a failed attempt to open a socket
+ * @sk: pointer to the struct sock being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: AttemptFails
- * MIB: TCP_MIB_ATTEMPTFAILS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * tcpmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @AttemptFails (equivalent to SNMP's MIB
+ * TCP_MIB_ATTEMPTFAILS)
  */
 probe
 tcpmib.AttemptFails = kernel.function("tcp_done").call ?
@@ -135,13 +132,14 @@ tcpmib.AttemptFails = kernel.function("tcp_done").call ?
 }
 
 /**
- * probe tcpmib.CurrEstab - Update the count of open sockets.
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe tcpmib.CurrEstab - Update the count of open sockets
+ * @sk: pointer to the struct sock being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: CurrEstab
- * MIB: TCP_MIB_CURRESTAB
- *
+ * The packet pointed to by @skb is filtered by the function
+ * tcpmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @CurrEstab (equivalent to SNMP's MIB
+ * TCP_MIB_CURRESTAB)
  */
 probe
 tcpmib.CurrEstab = kernel.function("tcp_set_state").call ?
@@ -165,13 +163,14 @@ tcpmib.CurrEstab = kernel.function("tcp_set_state").call ?
 }
 
 /**
- * probe tcpmib.EstabResets - Count the reset of a socket.
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe tcpmib.EstabResets - Count the reset of a socket
+ * @sk: pointer to the struct sock being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: EstabResets
- * MIB: TCP_MIB_ESTABRESETS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * tcpmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @EstabResets (equivalent to SNMP's MIB
+ * TCP_MIB_ESTABRESETS)
  */
 probe
 tcpmib.EstabResets = kernel.function("tcp_set_state").call ?
@@ -192,13 +191,15 @@ tcpmib.EstabResets = kernel.function("tcp_set_state").call ?
 }
 
 /**
- * probe tcpmib.InSegs - Count an incomming tcp segment.
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe tcpmib.InSegs - Count an incomming tcp segment
+ * @sk: pointer to the struct sock being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: InSegs
- * MIB: TCP_MIB_INSEGS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * tcpmib_filter_key() (or ipmib_filter_key() for tcp v4).
+ * If the packet passes the filter is is
+ * counted in the global @InSegs (equivalent to SNMP's MIB
+ * TCP_MIB_INSEGS)
  */
 probe
 tcpmib.InSegs =
@@ -219,13 +220,14 @@ tcpmib.InSegs =
 }
 
 /**
- * probe tcpmib.OutRsts - Count the sending of a reset packet.
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe tcpmib.OutRsts - Count the sending of a reset packet
+ * @sk: pointer to the struct sock being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: OutRsts
- * MIB: TCP_MIB_OUTRSTS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * tcpmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @OutRsts (equivalent to SNMP's MIB
+ * TCP_MIB_OUTRSTS)
  */
 probe
 tcpmib.OutRsts = __tcpmib.OutRsts.*
@@ -318,13 +320,14 @@ __tcpmib.OutRsts.tcp_send_active_reset =
 }
 
 /**
- * probe tcpmib.OutSegs - Count the sending of a TCP segment.
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe tcpmib.OutSegs - Count the sending of a TCP segment
+ * @sk: pointer to the struct sock being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: OutSegs
- * MIB: TCP_MIB_OUTSEGS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * tcpmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @OutSegs (equivalent to SNMP's MIB
+ * TCP_MIB_OUTSEGS)
  */
 probe
 tcpmib.OutSegs=kernel.function("ip_queue_xmit").return
@@ -341,13 +344,14 @@ tcpmib.OutSegs=kernel.function("ip_queue_xmit").return
 }
 
 /**
- * probe tcpmib.PassiveOpens - Count the passive creation of a socket.
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe tcpmib.PassiveOpens - Count the passive creation of a socket
+ * @sk: pointer to the struct sock being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: PassiveOpens
- * MIB: TCP_MIB_PASSIVEOPENS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * tcpmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @PassiveOpens (equivalent to SNMP's MIB
+ * TCP_MIB_PASSIVEOPENS)
  */
 probe
 tcpmib.PassiveOpens=kernel.function("tcp_v4_syn_recv_sock").return
@@ -360,13 +364,14 @@ tcpmib.PassiveOpens=kernel.function("tcp_v4_syn_recv_sock").return
 }
 
 /**
- * probe tcpmib.RetransSegs - Count the retransmission of a TCP segment.
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe tcpmib.RetransSegs - Count the retransmission of a TCP segment
+ * @sk: pointer to the struct sock being acted on
+ * @op: value to be added to the counter (default value of 1)
  *
- * Counter Name: RetransSegs
- * MIB: TCP_MIB_RETRANSSEGS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * tcpmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @RetransSegs (equivalent to SNMP's MIB
+ * TCP_MIB_RETRANSSEGS)
  */
 probe
 tcpmib.RetransSegs=kernel.function("tcp_retransmit_skb").return

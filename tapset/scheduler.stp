@@ -21,18 +21,15 @@ function __is_idle:long()
 %}
 
 
-/** probe scheduler.cpu_off
+/** probe scheduler.cpu_off - Process is about to stop running on a cpu
  *
- *  Fires when a process is about to stop running on a cpu.
+ * @name: name of the probe point
+ * @task_prev: the process leaving the cpu (same as current)
+ * @task_next: the process replacing current
+ * @idle: boolean indicating whether current is the idle process
  *
- * Context:
- *  The process leaving the cpu.
+ * Context: The process leaving the cpu.
  *
- * Arguments:
- *  name - name of the probe point
- *  task_prev - the process leaving the cpu (same as current)
- *  task_next - the process replacing current
- *  idle - boolean indicating whether current is the idle process
  */
 probe scheduler.cpu_off =
 	kernel.trace("sched_switch") !,
@@ -45,17 +42,13 @@ probe scheduler.cpu_off =
 }
 
 
-/** probe scheduler.cpu_on
+/** probe scheduler.cpu_on - Process is beginning execution on a cpu
  *
- *  Fires when a process is beginning execution on a cpu.
+ * @name: name of the probe point
+ * @task_prev: the process that was previously running on this cpu
+ * @idle:- boolean indicating whether current is the idle process
  *
- * Context:
- *  The resuming process.
- *
- * Arguments:
- *  name - name of the probe point
- *  task_prev - the process that was previously running on this cpu.
- *  idle - boolean indicating whether current is the idle process
+ * Context: The resuming process.
  */
 probe scheduler.cpu_on = kernel.function("finish_task_switch") ?
 {
@@ -65,17 +58,12 @@ probe scheduler.cpu_on = kernel.function("finish_task_switch") ?
 }
 
 
-/* probe scheduler.tick
+/* probe scheduler.tick - Schedulers internal tick, a processes timeslice accounting is updated
  *
- *  Fires on the schedulers internal tick, when a processes timeslice
- *  accounting is updated.
+ *  @name: name of the probe point
+ *  @idle: boolean indicating whether current is the idle process
  *
- * Context:
- *  The process whose accounting will be updated.
- *
- * Arguments:
- *  name - name of the probe point
- *  idle - boolean indicating whether current is the idle process
+ * Context: The process whose accounting will be updated.
  */
 probe scheduler.tick = kernel.function("scheduler_tick")
 {
@@ -83,16 +71,11 @@ probe scheduler.tick = kernel.function("scheduler_tick")
     idle = __is_idle()
 }
 
-/* probe scheduler.balance
+/* probe scheduler.balance - A cpu attemptint to find more work.
+ * 
+ * @name: name of the probe point
  *
- *  Fires when a cpu attempts to find more work.
- *  Only applicable to SMP systems
- *
- * Context:
- *  The cpu looking for more work.
- *
- * Arguments:
- *  name - name of the probe point
+ * Context: The cpu looking for more work.
  */
 probe scheduler.balance = kernel.function("idle_balance") ?
 {
@@ -101,21 +84,23 @@ probe scheduler.balance = kernel.function("idle_balance") ?
 
 
 /** 
- * probe scheduler.ctxswitch - Fires when there is a context switch. Currently
- *			       systemTap can't access arguments of inline 
- *			       functions. So we choose to probe __switch_to instead 
- *			       of context_switch()       
- * @name: Name of the probe point
- * @prev_pid: The pid of the process to be switched out
- * @next_pid: The pid of the process to be switched in
- * @prev_tid: The tid of the process to be switched out
- * @next_tid: The tid of the process to be switched in	 
+ * probe scheduler.ctxswitch - A context switch is occuring.
+ *
+ * @name: name of the probe point
+ * @prev_pid: The PID of the process to be switched out
+ * @next_pid: The PID of the process to be switched in
+ * @prev_tid: The TID of the process to be switched out
+ * @next_tid: The TID of the process to be switched in	 
  * @prev_task_name: The name of the process to be switched out
  * @next_task_name: The name of the process to be switched in
  * @prev_priority: The priority of the process to be switched out
  * @next_priority: The priority of the process to be switched in
  * @prevtsk_state: the state of the process to be switched out
  * @nexttsk_state: the state of the process to be switched in
+ *
+ * Currently, SystemTap can't access arguments of inline 
+ * functions. So we choose to probe __switch_to instead 
+ * of context_switch()       
  */
 
 probe __scheduler.ctxswitch.tp = kernel.trace("sched_switch") 
@@ -193,9 +178,9 @@ probe scheduler.ctxswitch =
 
 
 /**
- * probe scheduler.kthread_stop - Fires when a thread created by kthread_create is stopped.
- * @thread_pid: pid of the thread being stopped.
- * @thread_priority: priority of the thread.
+ * probe scheduler.kthread_stop - A thread created by kthread_create is being stopped
+ * @thread_pid: PID of the thread being stopped
+ * @thread_priority: priority of the thread
  */
 probe __scheduler.kthread_stop.kp = kernel.function("kthread_stop")
 {
@@ -216,9 +201,9 @@ probe scheduler.kthread_stop =
 
 
 /**
- * probe scheduler.kthread_stop.return - Fires once the kthread is stopped and gets the return value
- * @name: Name of the probe point
- * @return_value: return value after stopping the thread.
+ * probe scheduler.kthread_stop.return - A kthread is stopped and gets the return value
+ * @name: name of the probe point
+ * @return_value: return value after stopping the thread
  */
 
 probe __scheduler.kthread_stop.return.kp =
@@ -240,10 +225,9 @@ probe scheduler.kthread_stop.return =
 }
 
 /**
- * probe scheduler.wait_task - Fires when waiting on a task to unschedule. 
- *                             It waits till the task becomes inactive.
- * @name: Name of the probe point
- * @task_pid: pid of the task the scheduler is waiting on.
+ * probe scheduler.wait_task - Waiting on a task to unschedule (become inactive)
+ * @name: name of the probe point
+ * @task_pid: PID of the task the scheduler is waiting on
  * @task_priority: priority of the task
  */
 
@@ -257,9 +241,9 @@ probe scheduler.wait_task =
 }
 
 /**
- * probe scheduler.wakeup - Fires when a task is woken up 
- * @name: Name of the probe point
- * @task_pid: pid of the task being woken up
+ * probe scheduler.wakeup - Task is woken up 
+ * @name: name of the probe point
+ * @task_pid: PID of the task being woken up
  * @task_priority: priority of the task being woken up
  * @task_cpu: cpu of the task being woken up
  * @task_state: state of the task being woken up
@@ -280,11 +264,11 @@ probe scheduler.wakeup =
 }
 
 /**
- * probe scheduler.wakeup_new - Fires when a newly created task is woken up for the first time
- * @name: Name of the probe point
- * @task_pid: pid of the new task woken up
+ * probe scheduler.wakeup_new - Newly created task is woken up for the first time
+ * @name: name of the probe point
+ * @task_pid: PID of the new task woken up
  * @task_priority: priority of the new task
- * @task_tid: tid of the new task woken up
+ * @task_tid: TID of the new task woken up
  * @task_state: state of the task woken up
  * @task_cpu: cpu of the task woken up
  */
@@ -302,11 +286,11 @@ probe scheduler.wakeup_new =
 }
 
 /**
- * probe scheduler.migrate - Traces the migration of the tasks across cpus by the scheduler.
- * @name: Name of the probe point
- * @task: the process that is being migrated.
- * @pid: pid of the task being migrated.
- * @priority: priority of the task being migrated.
+ * probe scheduler.migrate - Task migrating across cpus
+ * @name: name of the probe point
+ * @task: the process that is being migrated
+ * @pid: PID of the task being migrated
+ * @priority: priority of the task being migrated
  * @cpu_from: the original cpu
  * @cpu_to: the destination cpu
  */
@@ -356,8 +340,8 @@ function container_of_task_rcu:long(rcu_ptr:long)
 }
 
 /**
- * probe scheduler.process_free - Traces the process of freeing up of a process
- * @name: Name of the probe point
+ * probe scheduler.process_free - Scheduler freeing a data structure for a process
+ * @name: name of the probe point
  * @pid: PID of the process getting freed
  * @priority: priority of the process getting freed
  */
@@ -390,9 +374,9 @@ probe scheduler.process_free =
 }
 
 /**
- * probe scheduler.process_exit - Fires when a process exits
- * @name: Name of the probe point
- * @pid: pid of the process exiting
+ * probe scheduler.process_exit - Process exiting
+ * @name: name of the probe point
+ * @pid: PID of the process exiting
  * @priority: priority of the process exiting
  */
 probe __scheduler.process_exit.kp = kernel.function("do_exit")
@@ -423,8 +407,8 @@ probe scheduler.process_exit =
 }
 
 /**
- * probe scheduler.process_wait - Fires when scheduler waits on a process
- * @name: Name of the probe point
+ * probe scheduler.process_wait - Scheduler starting to wait on a process
+ * @name: name of the probe point
  * @pid: PID of the process scheduler is waiting on
  */
 probe __scheduler.process_wait.kp = kernel.function("do_wait")
@@ -448,8 +432,8 @@ probe scheduler.process_wait =
 }
 
 /**
- * probe scheduler.process_fork - Probes the tracepoint for forking a process
- * @name: Name of the probe point
+ * probe scheduler.process_fork - Process forked
+ * @name: name of the probe point
  * @parent_pid: PID of the parent process
  * @child_pid: PID of the child process
  */
@@ -473,8 +457,8 @@ probe scheduler.process_fork =
 }
 
 /**
- * probe scheduler.signal_send - Probes the tracepoint for sending a signal
- * @name: Name of the probe point
+ * probe scheduler.signal_send - Sending a signal
+ * @name: name of the probe point
  * @pid: pid of the process sending signal
  * @signal_number: signal number
  */
