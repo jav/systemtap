@@ -13,10 +13,8 @@
 // </tapsetdescription>
 
 /**
- * sfunction print_regs - Print a register dump.
+ * sfunction print_regs - Print a register dump
  * 
- * General Syntax: print_regs()
- *
  * Description: This function prints a register dump.
  */
 function print_regs ()
@@ -27,9 +25,7 @@ function print_regs ()
 %}
 
 /**
- * sfunction execname - Returns the execname of a target process (or group of processes).
- * 
- * General Syntax: execname:string()
+ * sfunction execname - Returns the execname of a target process (or group of processes)
  * 
  * Description: Returns the execname of a target process (or group of processes).
  */
@@ -39,9 +35,7 @@ function execname:string ()
 %}
 
 /**
- * sfunction pid - Returns the ID of a target process.
- * 
- * General Syntax: pid:long()
+ * sfunction pid - Returns the ID of a target process
  * 
  * Description: This function returns the ID of a targer process.
  */
@@ -51,10 +45,8 @@ function pid:long ()
 %}
 
 /**
- * sfunction tid - Returns the thread ID of a target process.
+ * sfunction tid - Returns the thread ID of a target process
  * 
- * General Syntax: tid:long()
- *
  * Description: This function returns the thread ID of the target process.
  */
 function tid:long ()
@@ -63,9 +55,7 @@ function tid:long ()
 %}
 
 /**
- * sfunction ppid - Returns the process ID of a target process's parent process.
- *
- * General Syntax: ppid:long()
+ * sfunction ppid - Returns the process ID of a target process's parent process
  *
  * Description: This function return the process ID of the target proccess's parent process.
  */
@@ -79,9 +69,7 @@ function ppid:long()
 %}
 
 /**
- * sfunction pgrp - Returns the process group ID of the current process.
- *
- * General Syntax: pgrp:long()
+ * sfunction pgrp - Returns the process group ID of the current process
  *
  * Description: This function returns the process group ID of the
  * current process.
@@ -98,9 +86,7 @@ function pgrp:long ()
 %}
 
 /**
- * sfunction sid - Returns the session ID of the current process.
- *
- * General Syntax: sid:long()
+ * sfunction sid - Returns the session ID of the current process
  *
  * Description: The session ID of a process is the process group ID
  * of the session leader. Session ID is stored in the signal_struct
@@ -118,9 +104,7 @@ function sid:long ()
 %}
 
 /**
- * sfunction pexecname - Returns the execname of a target process's parent process.
- * 
- * General Syntax: pexecname:string()
+ * sfunction pexecname - Returns the execname of a target process's parent process
  * 
  * Description: This function returns the execname of a target
  * process's parent procces.
@@ -135,9 +119,7 @@ function pexecname:string ()
 %}
 
 /**
- * sfunction gid - Returns the group ID of a target process.
- * 
- * General Syntax: gid:long()
+ * sfunction gid - Returns the group ID of a target process
  * 
  * Description: This function returns the group ID of a target process.
  */
@@ -151,10 +133,8 @@ function gid:long ()
 %}
 
 /**
- * sfunction egid - Returns the effective gid of a target process.
+ * sfunction egid - Returns the effective gid of a target process
  * 
- * General Syntax: egid:long()
- *
  * Description: This function returns the effective gid of a target process
  */
 function egid:long ()
@@ -167,9 +147,7 @@ function egid:long ()
 %}
 
 /**
- * sfunction uid - Returns the user ID of a target process.
- * 
- * General Syntax: uid:long()
+ * sfunction uid - Returns the user ID of a target process
  * 
  * Description: This function returns the user ID of the target process.
  */
@@ -183,9 +161,7 @@ function uid:long ()
 %}
 
 /**
- * sfunction euid - Return the effective uid of a target process.
- *
- * General Syntax: euid:long()
+ * sfunction euid - Return the effective uid of a target process
  *
  * Description: Returns the effective user ID of the target process.
  */
@@ -200,10 +176,8 @@ function euid:long ()
 
 
 /**
- * sfunction is_myproc - Determines if the current probe point has occurred in the user's own process.
+ * sfunction is_myproc - Determines if the current probe point has occurred in the user's own process
  *
- * General Syntax: is_myproc:long()
- * 
  * Description: This function returns 1 if the current probe
  * point has occurred in the user's own process.
  */
@@ -214,11 +188,9 @@ function is_myproc:long ()
 
 
 /*
- * sfunction cpuid - Needs info
+ * sfunction cpuid - Returns the current cpu number
  * 
- * General Syntax: cpuid:long()
- *
- * Description: XXX needs a description
+ * Description: This function returns the current cpu number.
  */
 %( systemtap_v <= "1.4" %?
 function cpuid:long ()
@@ -228,9 +200,7 @@ function cpuid:long ()
 %)
 
 /**
- * sfunction cpu - Returns the current cpu number.
- * 
- * General Syntax: cpu:long()
+ * sfunction cpu - Returns the current cpu number
  *
  * Description: This function returns the current cpu number.
  */
@@ -240,9 +210,7 @@ function cpu:long ()
 %}
 
 /**
- * sfunction pp - Returns the active probe point.
- *
- * General Syntax: pp:string()
+ * sfunction pp - Returns the active probe point
  *
  * Description: This function returns the fully-resolved probe point
  * associated with a currently running probe handler, including alias
@@ -254,9 +222,7 @@ function pp:string ()
 %}
 
 /**
- * sfunction registers_valid - Determines validity of register() and u_register() in current context.
- *
- * General Syntax: registers_valid:long()
+ * sfunction registers_valid - Determines validity of register() and u_register() in current context
  *
  * Description: This function returns 1 if register() and u_register()
  * can be used in the current context, or 0 otherwise.
@@ -269,9 +235,7 @@ function registers_valid:long ()
 %}
 
 /**
- * sfunction user_mode - Determines if probe point occurs in user-mode.
- *
- * General Syntax: user_mode:long()
+ * sfunction user_mode - Determines if probe point occurs in user-mode
  *
  * Return 1 if the probe point occurred in user-mode.
  */
@@ -285,10 +249,8 @@ function user_mode:long ()
 %}
 
 /**
- * sfunction is_return - Whether the current probe context is a return probe.
+ * sfunction is_return - Whether the current probe context is a return probe
  * 
- * General Syntax: is_return:long()
- *
  * Description: Returns 1 if the current probe context is a return probe,
  * returns 0 otherwise.
  */
@@ -301,9 +263,7 @@ function is_return:long ()
 %}
 
 /**
- * sfunction target - Return the process ID of the target process.
- * 
- * General Syntax: target:long()
+ * sfunction target - Return the process ID of the target process
  * 
  * Description: This function returns the process ID of the target
  * process.  This is useful in conjunction with the -x PID or
@@ -321,10 +281,8 @@ function target:long ()
 %}
 
 /**
- * sfunction module_name - The module name of the current script.
+ * sfunction module_name - The module name of the current script
  * 
- * General Syntax: module_name:string()
- *
  * Description: This function returns the name of the stap module.
  * Either generated randomly (stap_[0-9a-f]+_[0-9a-f]+)
  * or set by stap -m <module_name>.
@@ -335,9 +293,7 @@ function module_name:string ()
 %}
 
 /**
- * sfunction stp_pid - The process id of the stapio process.
- *
- * General Syntax: stp_pid:long()
+ * sfunction stp_pid - The process id of the stapio process
  *
  * Description: This function returns the process id of the 
  * stapio process that launched this script. There could be
@@ -350,9 +306,7 @@ function stp_pid:long ()
 %}
 
 /**
- * sfunction stack_size - Return the size of the kernel stack.
- * 
- * General Syntax: stack_size:long()
+ * sfunction stack_size - Return the size of the kernel stack
  * 
  * Description: This function returns the size of the kernel stack.
  */
@@ -362,9 +316,7 @@ function stack_size:long ()
 %}
 
 /**
- * sfunction stack_used - Returns the amount of kernel stack used.
- *
- * General Syntax: stack_used:long()
+ * sfunction stack_used - Returns the amount of kernel stack used
  *
  * Description: This function determines how many bytes are
  * currently used in the kernel stack.
@@ -376,9 +328,7 @@ function stack_used:long ()
 %}
 
 /**
- * sfunction stack_unused - Returns the amount of kernel stack currently available.
- *
- * General Syntax: stack_unused:long()
+ * sfunction stack_unused - Returns the amount of kernel stack currently available
  *
  * Description: This function determines how many bytes are
  * currently available in the kernel stack.
@@ -390,9 +340,7 @@ function stack_unused:long ()
 %}
 
 /**
- * sfunction uaddr - User space address of current running task. EXPERIMENTAL.
- *
- * General Syntax: uaddr:long()
+ * sfunction uaddr - User space address of current running task (EXPERIMENTAL)
  *
  * Description: Returns the address in userspace that the current
  * task was at when the probe occurred. When the current running task
@@ -417,9 +365,6 @@ function uaddr:long ()
 
 /**
  * sfunction cmdline_args - Fetch command line arguments from current process
- *
- * General Syntax: cmdline_args:string(n:long, m:long, delim:string)
- *
  * @n: First argument to get (zero is the command itself)
  * @m: Last argument to get (or minus one for all arguments after n)
  * @delim: String to use to delimit arguments when more than one.
@@ -466,10 +411,7 @@ function cmdline_args:string(n:long, m:long, delim:string)
 }
 
 /**
- * sfunction cmdline_arg - Fetch a command line argument.
- *
- * General Syntax: cmdline_arg:string(n:long)
- *
+ * sfunction cmdline_arg - Fetch a command line argument
  * @n: Argument to get (zero is the command itself)
  *
  * Description: Returns argument the requested argument from the
@@ -485,8 +427,6 @@ function cmdline_arg:string(n:long)
 /**
  * sfunction cmdline_str - Fetch all command line arguments from current process
  *
- * General Syntax: cmdline_str:string()
- *
  * Description: Returns all arguments from the current process
  * delimited by spaces. Returns the empty string when the arguments
  * cannot be retrieved.
@@ -498,9 +438,6 @@ function cmdline_str:string()
 
 /**
  * sfunction env_var - Fetch environment variable from current process
- *
- * General Syntax: evn_var:string(name:string)
- *
  * @name: Name of the environment variable to fetch
  *
  * Description: Returns the contents of the specified environment value
