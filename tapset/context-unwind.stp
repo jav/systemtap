@@ -22,8 +22,6 @@
 
 /**
  *  sfunction print_backtrace - Print stack back trace
- *
- *  General Syntax: print_backtrace()
  * 
  *  Description: This function isEquivalent to print_stack(backtrace()), 
  *  except that deeper stack nesting may be supported.
@@ -40,7 +38,7 @@ function print_backtrace () %{
 %}
 
 /**
- * sfunction sprint_backtrace - Return stack back trace as string. EXPERIMENTAL!
+ * sfunction sprint_backtrace - Return stack back trace as string (EXPERIMENTAL)
  *
  * Returns a simple (kernel) backtrace. One line per address.
  * Includes the symbol name (or hex address if symbol
@@ -66,8 +64,6 @@ function sprint_backtrace:string () %{ /* pure */
 
 /**
  * sfunction backtrace - Hex backtrace of current stack
- *
- * General Syntax: backtrace:string()
  * 
  * Description: This function returns a string of hex addresses 
  * that are a backtrace of the stack. Output may be truncated as 
@@ -85,9 +81,6 @@ function backtrace:string () %{ /* pure */
 
 /**
  *  sfunction task_backtrace - Hex backtrace of an arbitrary task
- *
- *  General Syntax: task_backtrace:string(task:long)
- *
  *  @task: pointer to task_struct
  *
  *  Description: This function returns a string of hex addresses
@@ -103,8 +96,6 @@ function task_backtrace:string (task:long) %{ /* pure */
 /**
  *  sfunction caller - Return name and address of calling function
  *
- *  General Syntax: caller:string()
- *
  *  Description: This function returns the address and name of the 
  *  calling function. This is equivalent to calling:
  *  sprintf("%s 0x%x", symname(caller_addr(), caller_addr()))
@@ -115,9 +106,7 @@ function caller:string() {
 }
 
 /**
- *  sfunction caller_addr -  Return caller address
- *
- *  General Syntax: caller_addr:long()
+ *  sfunction caller_addr - Return caller address
  *
  *  Description: This function returns the address of the calling function. 
  *  Works only for return probes at this time.
