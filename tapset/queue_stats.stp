@@ -27,34 +27,28 @@ function _qs_update (qname) {
   qs_rlentime[qname] += qs_rcount[qname] * delta
   qs_utime[qname] = now  
 }
-/*
+
+/**
  * sfunction qs_wait - Function to record enqueue requests
- *
- * General Syntax: qs_wait(qname:string)
- * 
- * @qname: The name of the queue requesting enqueue
+ * @qname: the name of the queue requesting enqueue
  *
  * Description: This function records that a new request
  * was enqueued for the given queue name.
  */
-function qs_wait (qname) { # enqueueing request
+function qs_wait (qname:string) { # enqueueing request
    _qs_update (qname)
    qs_wcount[qname] ++
 }
 
-/*
- * sfunction qs_run - Function to record being moved from 
- * wait queue to being serviced 
- *
- * General Syntax: qs_run(qname:string)
- * 
- * @qname: The name of the service being moved and started 
+/**
+ * sfunction qs_run - Function to record being moved from wait queue to being serviced 
+ * @qname: the name of the service being moved and started 
  *
  * Description: This function records that the previous enqueued
  * request was removed from the given wait queue and is now 
  * being serviced. 
  */
-function qs_run (qname) { # starting to service request
+function qs_run (qname:string) { # starting to service request
   _qs_update (qname)
   if (qs_wcount[qname] > 0) {
     qs_wcount[qname] --
@@ -62,18 +56,15 @@ function qs_run (qname) { # starting to service request
   }
 }
 
-/*
+/**
  * sfunction qs_run - Function to record finishing request 
- *
- * General Syntax: qs_done(qname:string)
- * 
- * @qname: The name of the service that finished 
+ * @qname: the name of the service that finished 
  *
  * Description: This function records that a request 
  * originally from the given queue has completed being 
  * serviced.
-*/
-function qs_done (qname) { # done servicing request
+ */
+function qs_done (qname:string) { # done servicing request
   _qs_update (qname)
   if (qs_rcount[qname] > 0) {
     qs_rcount[qname] --
@@ -83,18 +74,15 @@ function qs_done (qname) { # done servicing request
 
 # ------------------------------------------------------------------------
 
-/*
+/**
  * sfunction qsq_start - Function to reset the stats for a queue
- *
- * General Syntax: qs_start(qname:string)
- * 
- * @qname: The name of the service that finished 
+ * @qname: the name of the service that finished 
  *
  * Description: This function resets the statistics counters for the given
  * queue, and restarts tracking from the moment the function was called.
  * This function is also used to create intialize a queue.
-*/
-function qsq_start (qname) {  # reset statistics for new baseline
+ */
+function qsq_start (qname:string) {  # reset statistics for new baseline
   qs_rcount[qname] = 0
   delete qs_rtime[qname]
   delete qs_rlentime[qname]
@@ -111,19 +99,15 @@ function qsq_start (qname) {  # reset statistics for new baseline
 # interval from the last qsq_start().  Most deal with fractions, and so
 # also take a scale parameter (use 100 for percent).
 
-/*
- * sfunction qsq_utilization - Fraction of time that any request
- * was being serviced 
- *
- * General Syntax: qsq_utilization:long(qname:string, scale:long)
- * 
- * @qname: Queue name
- * @scope: Scale variable to take account for interval fraction
+/**
+ * sfunction qsq_utilization - Fraction of time that any request was being serviced 
+ * @qname: queue name
+ * @scale: scale variable to take account for interval fraction
  *
  * Description: This function returns the average time in microseconds
  * that at least one request was being serviced. 
-*/
-function qsq_utilization (qname, scale) {
+ */
+function qsq_utilization:long (qname:string, scale:long) {
   _qs_update (qname)
   elapsed = qs_time() - qs_stime[qname]
   return (scale * qs_rtime[qname]) / elapsed
@@ -131,85 +115,70 @@ function qsq_utilization (qname, scale) {
 
 # fraction of time that any request was blocked in the wait queue
 
-/*
+/**
  * sfunction qsq_blocked - Returns the time reqest was on the wait queue 
- *
- * General Syntax: qsq_blocked:long(qname:string, scale:long)
- * 
- * @qname: Queue name
- * @scope: Scale variable to take account for interval fraction
+ * @qname: queue name
+ * @scale: scale variable to take account for interval fraction
  *
  * Description: This function returns the fraction of elapsed time during
  * which one or more requests were on the wait queue.
-*/
-function qsq_blocked (qname, scale) {
+ */
+function qsq_blocked:long (qname:string, scale:long) {
   _qs_update (qname)
   elapsed = qs_time() - qs_stime[qname]
   return (scale * qs_wtime[qname]) / elapsed
 }
 
 # length of wait queue 
-/*
+/**
  * sfunction qsq_wait_queue_length - length of wait queue 
- *
- * General Syntax: qsq_wait_queue_length:long(qname:string, scale:long)
- * 
- * @qname: Queue name
- * @scope: Scale variable to take account for interval fraction
+ * @qname: queue name
+ * @scale: scale variable to take account for interval fraction
  *
  * Description: This function returns the average length of the wait queue 
-*/
-function qsq_wait_queue_length (qname, scale) {
+ */
+function qsq_wait_queue_length:long (qname:string, scale:long) {
   _qs_update (qname)
   elapsed = qs_time() - qs_stime[qname]
   return (scale * qs_wlentime[qname]) / elapsed
 }
 
-/*
+/**
  * sfunction qsq_service_time - Amount of time per request service 
- *
- * General Syntax: qsq_blocked:long(qname:string, scale:long)
- * 
- * @qname: Queue name
- * @scope: Scale variable to take account for interval fraction
+ * @qname: queue name
+ * @scale: scale variable to take account for interval fraction
  *
  * Description: This function returns the average time in microseconds
  * required to service a request once it is removed from the wait queue.
-*/
-function qsq_service_time (qname, scale) {
+ */
+function qsq_service_time:long (qname:string, scale:long) {
   _qs_update (qname)
   return (scale * qs_rlentime[qname]) / qs_dcount[qname]
 }
 
-/*
- * sfunction qsq_wait_time - amount of time in queue + service per request
- *
- * General Syntax: qsq_wait_time:long(qname:string, scale:long)
- * 
- * @qname: Queue name
- * @scope: Scale variable to take account for interval fraction
+/**
+ * sfunction qsq_wait_time - Amount of time in queue + service per request
+ * @qname: queue name
+ * @scale: scale variable to take account for interval fraction
  *
  * Description: This function returns the average time in microseconds
  * that it took for a request to be serviced (qs_wait() to qa_done()).
-*/
-function qsq_wait_time (qname, scale) {
+ */
+function qsq_wait_time:long (qname:string, scale:long) {
   _qs_update (qname)
   return (scale * (qs_rlentime[qname] + qs_wlentime[qname]))
     / qs_dcount[qname]
 }
 
-/*
+/**
  * sfunction qsq_throughput - Number of requests served per unit time 
- *
- * General Syntax: qsq_throughput:long(qname:string, scale:long)
- * 
- * @qname: Queue name
- * @scope: Scale variable to take account for interval fraction
+ * @qname: queue name
+ * @scale: scale variable to take account for interval fraction
  *
  * Description: This function returns the average number or requests
  * served per microsecond. 
-*/
-function qsq_throughput (qname, scale) {
+ */
+function qsq_throughput:long (qname:string, scale:long) {
   _qs_update (qname)
   elapsed = qs_time() - qs_stime[qname]
   return (scale * qs_dcount[qname]) / elapsed
@@ -218,22 +187,21 @@ function qsq_throughput (qname, scale) {
 
 # ------------------------------------------------------------------------
 
-/*
+/**
  * sfunction qsq_blocked - Returns a line of statistics for the given queue
- *
- * General Syntax: qsq_print(qname:string)
- * 
- * @qname: Queue name
+ * @qname: queue name
  *
  * Description: This function prints a line containing the following
  * statistics for the given queue:
- * Queue name, Average rate of requests per second
- * Average wait queue lengh, Average time on the wait queue
- * Average time to srvice a request, Percentage of time the
- * wait queue was used, Percentage of time request was being
- * serviced.
-*/
-function qsq_print (qname) {
+ * the queue name, 
+ * the average rate of requests per second,
+ * the average wait queue length,
+ * the average time on the wait queue,
+ * the average time to service a request,
+ * the percentage of time the wait queue was used, 
+ * and the percentage of time request was being serviced.
+ */
+function qsq_print (qname:string) {
   qt = qsq_throughput (qname, 1000000000) # 1000 * (number of requests served per second)
   qwl = qsq_wait_queue_length (qname, 1000)
   printf("%s: %d.%03d ops/s, %d.%03d qlen, %d await, %d svctm, %d%% wait, %d%% util\n",
@@ -290,4 +258,3 @@ function qsq_print (qname) {
  * block-read: 8 ops/s, 0.744 qlen, 192957 await, 99995 svctm, 58% wait, 62% util
  * block-write: 9 ops/s, 0.861 qlen, 193857 await, 101573 svctm, 56% wait, 64% util
  */
-
