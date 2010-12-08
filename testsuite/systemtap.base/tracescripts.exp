@@ -1,0 +1,11 @@
+set stap_path $env(SYSTEMTAP_PATH)/stap
+
+exec echo "#!$stap_path" > tracescripts.sh
+
+if {[catch {exec stap -L {process("tracescripts.sh").function("main")}} res]} {
+        fail "tracescripts $res"
+} else {
+        pass "tracescripts"
+}
+
+catch {exec rm -f tracescripts.sh}

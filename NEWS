@@ -45,6 +45,9 @@
   now makes it available to be loaded by staprun. The old (deprecated)
   stap-client does not do this.
 
+- process probes with scripts as the target are recognized by stap and the
+  interpreter would be selected for probing.
+
 - Starting in release 1.5, these old variables/functions will be deprecated
   and will only be available when the '--compatible=1.4' flag is used:
 
