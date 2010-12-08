@@ -7,12 +7,9 @@
 // later version.
 
 /**
- * sfunction set_kernel_string - Writes a string to kernel memory.
- * 
- * General Syntax: set_kernel_string(addr:long, val:string)
- *
- * @addr: The kernel address to write the string to.
- * @val: The string which is to be written.
+ * sfunction set_kernel_string - Writes a string to kernel memory
+ * @addr: The kernel address to write the string to
+ * @val: The string which is to be written
  *
  * Description: Writes the given string to a given kernel
  * memory address. Reports an error on string copy fault.
@@ -29,13 +26,10 @@ deref_fault: /* branched to from store_deref_string() */
 %}
 
 /**
- * sfunction set_kernel_string_n - Writes a string of given length to kernel memory.
- * 
- * General Syntax: set_kernel_string_n(addr:long, n:long, val:string)
- *
- * @addr: The kernel address to write the string to.
- * @n: The maximum length of the string.
- * @val: The string which is to be written.
+ * sfunction set_kernel_string_n - Writes a string of given length to kernel memory
+ * @addr: The kernel address to write the string to
+ * @n: The maximum length of the string
+ * @val: The string which is to be written
  *
  * Description: Writes the given string up to a maximum given length to a
  * given kernel memory address. Reports an error on string copy fault.
@@ -53,12 +47,9 @@ deref_fault: /* branched to from store_deref_string() */
 %}
 
 /**
- * sfunction set_kernel_long - Writes a long value to kernel memory.
- *
- * General Syntax: set_kernel_long(addr:long, val:long)
- * 
- * @addr: The kernel address to write the long to.
- * @val: The long which is to be written.
+ * sfunction set_kernel_long - Writes a long value to kernel memory
+ * @addr: The kernel address to write the long to
+ * @val: The long which is to be written
  *
  * Description: Writes the long value to a given kernel memory address.
  * Reports an error when writing to the given address fails.
@@ -75,12 +66,9 @@ deref_fault: /* branched to from kwrite() */
 %}
 
 /**
- * sfunction set_kernel_int - Writes an int value to kernel memory.
- *
- * General Syntax: set_kernel_int(addr:long, val:long)
- * 
- * @addr: The kernel address to write the int to.
- * @val: The int which is to be written.
+ * sfunction set_kernel_int - Writes an int value to kernel memory
+ * @addr: The kernel address to write the int to
+ * @val: The int which is to be written
  *
  * Description: Writes the int value to a given kernel memory address.
  * Reports an error when writing to the given address fails.
@@ -97,12 +85,9 @@ deref_fault: /* branched to from kwrite() */
 %}
 
 /**
- * sfunction set_kernel_short - Writes a short value to kernel memory.
- * 
- * General Syntax: set_kernel_short(addr:long, val:long)
- *
- * @addr: The kernel address to write the short to.
- * @val: The short which is to be written.
+ * sfunction set_kernel_short - Writes a short value to kernel memory
+ * @addr: The kernel address to write the short to
+ * @val: The short which is to be written
  *
  * Description: Writes the short value to a given kernel memory address.
  * Reports an error when writing to the given address fails.
@@ -119,12 +104,9 @@ deref_fault: /* branched to from kwrite() */
 %}
 
 /**
- * sfunction set_kernel_char - Writes a char value to kernel memory.
- * 
- * General Syntax: set_kernel_char(addr:long, val:long)
- *
- * @addr: The kernel address to write the char to.
- * @val: The char which is to be written.
+ * sfunction set_kernel_char - Writes a char value to kernel memory
+ * @addr: The kernel address to write the char to
+ * @val: The char which is to be written
  *
  * Description: Writes the char value to a given kernel memory address.
  * Reports an error when writing to the given address fails.
@@ -142,11 +124,8 @@ deref_fault: /* branched to from kwrite() */
 
 /**
  * sfunction set_kernel_pointer - Writes a pointer value to kernel memory.
- * 
- * General Syntax: set_kernel_pointer(addr:long, val:long)
- *
- * @addr: The kernel address to write the pointer to.
- * @val: The pointer which is to be written.
+ * @addr: The kernel address to write the pointer to
+ * @val: The pointer which is to be written
  *
  * Description: Writes the pointer value to a given kernel memory address.
  * Reports an error when writing to the given address fails.
