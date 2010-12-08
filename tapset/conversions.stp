@@ -8,11 +8,8 @@
 // later version.
 
 /**
- * sfunction kernel_string - Retrieves string from kernel memory.
- *
- * General Syntax: kernel_string:string(addr:long)
- *
- * @addr: The kernel address to retrieve the string from.
+ * sfunction kernel_string - Retrieves string from kernel memory
+ * @addr: The kernel address to retrieve the string from
  *
  * Description: This function returns the null terminated C string
  * from a given kernel memory address. Reports an error on string
@@ -30,12 +27,9 @@ deref_fault: /* branched to from deref_string() */
 %}
 
 /**
- * sfunction kernel_string2 - Retrieves string from kernel memory with alternative error string.
- *
- * General Syntax: kernel_string2:string(addr:long, err_msg:string)
- *
- * @addr: The kernel address to retrieve the string from.
- * @err_msg: The error message to return when data isn't available.
+ * sfunction kernel_string2 - Retrieves string from kernel memory with alternative error string
+ * @addr: The kernel address to retrieve the string from
+ * @err_msg: The error message to return when data isn't available
  *
  * Description: This function returns the null terminated C string
  * from a given kernel memory address. Reports the given error message
@@ -46,12 +40,9 @@ function kernel_string2:string (addr:long, err_msg:string) {
 }
 
 /**
- * sfunction kernel_string_n - Retrieves string of given length from kernel memory.
- * 
- * General Syntax: kernel_string_n:string(addr:long, n:long)
- *
- * @addr: The kernel address to retrieve the string from.
- * @n: The maximum length of the string (if not null terminated).
+ * sfunction kernel_string_n - Retrieves string of given length from kernel memory
+ * @addr: The kernel address to retrieve the string from
+ * @n: The maximum length of the string (if not null terminated)
  *
  * Description: Returns the C string of a maximum given length from a
  * given kernel memory address. Reports an error on string copy fault.
@@ -69,11 +60,8 @@ deref_fault: /* branched to from deref_string() */
 %}
 
 /**
- * sfunction kernel_long - Retrieves a long value stored in kernel memory.
- * 
- * General Syntax: kernel_long:long(addr:long)
- *
- * @addr: The kernel address to retrieve the long from.
+ * sfunction kernel_long - Retrieves a long value stored in kernel memory
+ * @addr: The kernel address to retrieve the long from
  *
  * Description: Returns the long value from a given kernel memory address.
  * Reports an error when reading from the given address fails.
@@ -89,8 +77,8 @@ deref_fault: /* branched to from kread() */
 %}
 
 /**
- * sfunction kernel_int - Retrieves an int value stored in kernel memory.
- * @addr: The kernel address to retrieve the int from.
+ * sfunction kernel_int - Retrieves an int value stored in kernel memory
+ * @addr: The kernel address to retrieve the int from
  *
  * Description: Returns the int value from a given kernel memory address.
  * Reports an error when reading from the given address fails.
@@ -106,11 +94,8 @@ deref_fault: /* branched to from kread() */
 %}
 
 /**
- * sfunction kernel_short - Retrieves a short value stored in kernel memory.
- * 
- * General Syntax: kernel_short:long(addr:long)
- *
- * @addr: The kernel address to retrieve the short from.
+ * sfunction kernel_short - Retrieves a short value stored in kernel memory
+ * @addr: The kernel address to retrieve the short from
  *
  * Description: Returns the short value from a given kernel memory address.
  * Reports an error when reading from the given address fails.
@@ -126,11 +111,8 @@ deref_fault: /* branched to from kread() */
 %}
 
 /**
- * sfunction kernel_char - Retrieves a char value stored in kernel memory.
- * 
- * General Syntax: kernel_char:long(addr:long)
- *
- * @addr: The kernel address to retrieve the char from.
+ * sfunction kernel_char - Retrieves a char value stored in kernel memory
+ * @addr: The kernel address to retrieve the char from
  *
  * Description: Returns the char value from a given kernel memory address.
  * Reports an error when reading from the given address fails.
@@ -146,11 +128,8 @@ deref_fault: /* branched to from kread() */
 %}
 
 /**
- * sfunction kernel_pointer - Retrieves a pointer value stored in kernel memory.
- * 
- * General Syntax: kernel_pointer:long(addr:long)
- *
- * @addr: The kernel address to retrieve the pointer from.
+ * sfunction kernel_pointer - Retrieves a pointer value stored in kernel memory
+ * @addr: The kernel address to retrieve the pointer from
  *
  * Description: Returns the pointer value from a given kernel memory
  * address. Reports an error when reading from the given address
