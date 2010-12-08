@@ -16,13 +16,14 @@ global ListenDrops		/* LINUX_MIB_LISTENDROPS */
 global TCPMemoryPressures	/* LINUX_MIB_TCPMEMORYPRESSURES */
 
 /**
- * probe linuxmib.DelayedACKs - Count of delayed acks.
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe linuxmib.DelayedACKs - Count of delayed acks
+ * @sk: Pointer to the struct sock being acted on
+ * @op: Value to be added to the counter (default value of 1)
  *
- * Counter Name: DelayedACKs
- * MIB: LINUX_MIB_DELAYEDACKS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * linuxmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @DelayedACKs (equivalent to SNMP's MIB
+ * LINUX_MIB_DELAYEDACKS)
  */
 global indelack_timer
 probe linuxmib.DelayedACKs = _linuxmib.DelayedACKs.* {}
@@ -52,12 +53,13 @@ probe _linuxmib.DelayedACKs.C = kernel.function("tcp_delack_timer").return
 
 /**
  * probe linuxmib.ListenOverflows - Count of times a listen queue overflowed
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * @sk: Pointer to the struct sock being acted on
+ * @op: Value to be added to the counter (default value of 1)
  *
- * Counter Name: ListenOverflows
- * MIB: LINUX_MIB_LISTENOVERFLOWS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * linuxmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @ListenOverflows (equivalent to SNMP's MIB
+ * LINUX_MIB_LISTENOVERFLOWS)
  */
 probe linuxmib.ListenOverflows=kernel.function("tcp_v4_syn_recv_sock").return
 {
@@ -70,13 +72,14 @@ probe linuxmib.ListenOverflows=kernel.function("tcp_v4_syn_recv_sock").return
 }
 
 /**
- * probe linuxmib.ListenDrops - Count of times conn request that were dropped.
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe linuxmib.ListenDrops - Count of times conn request that were dropped
+ * @sk: Pointer to the struct sock being acted on
+ * @op: Value to be added to the counter (default value of 1)
  *
- * Counter Name: ListenDrops
- * MIB: LINUX_MIB_LISTENDROPS
- *
+ * The packet pointed to by @skb is filtered by the function
+ * linuxmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @ListenDrops (equivalent to SNMP's MIB
+ * LINUX_MIB_LISTENDROPS)
  */
 probe linuxmib.ListenDrops=kernel.function("tcp_v4_syn_recv_sock").return
 {
@@ -88,13 +91,14 @@ probe linuxmib.ListenDrops=kernel.function("tcp_v4_syn_recv_sock").return
 }
 
 /**
- * probe linuxmib.TCPMemoryPressures - Count of times memory pressure was used.
- * @sk: Pointer to the struct sock being acted on.
- * @op: Value to be added to the counter (Operation). 
+ * probe linuxmib.TCPMemoryPressures - Count of times memory pressure was used
+ * @sk: Pointer to the struct sock being acted on
+ * @op: Value to be added to the counter (default value of 1)
  *
- * Counter Name: TCPMemoryPressures
- * MIB: LINUX_MIB_TCPMEMORYPRESSURES
- *
+ * The packet pointed to by @skb is filtered by the function
+ * linuxmib_filter_key(). If the packet passes the filter is is
+ * counted in the global @TCPMemoryPressures (equivalent to SNMP's MIB
+ * LINUX_MIB_TCPMEMORYPRESSURES)
  */
 probe linuxmib.TCPMemoryPressures=kernel.function("tcp_enter_memory_pressure")
 {
