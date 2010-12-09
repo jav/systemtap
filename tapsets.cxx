@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <deque>
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <set>
 #include <sstream>
@@ -5886,6 +5887,71 @@ dwarf_builder::build(systemtap_session & sess,
         }
 
       user_path = find_executable (module_name); // canonicalize it
+
+      // if the executable starts with "#!", we look for the interpreter of the script
+      {
+         ifstream script_file (user_path.c_str () );
+
+         if (script_file.good ())
+         {
+           string line;
+
+           getline (script_file, line);
+
+           if (line.compare (0, 2, "#!") == 0)
+           {
+              string path_head = line.substr(2);
+
+              // remove white spaces at the beginning of the string
+              size_t p2 = path_head.find_first_not_of(" \t");
+
+              if (p2 != string::npos)
+              {
+                string path = path_head.substr(p2);
+
+                // remove white spaces at the end of the string
+                p2 = path.find_last_not_of(" \t\n");
+                if (string::npos != p2)
+                  path.erase(p2+1);
+
+                user_path = find_executable (path);
+
+                struct stat st;
+
+                if (access (user_path.c_str(), X_OK) == 0
+                  && stat (user_path.c_str(), &st) == 0
+                  && S_ISREG (st.st_mode)) // see find_executable()
+                {
+                  if (sess.verbose > 1)
+                    clog << "Expanded process(\"" << module_name << "\") to "
+                         << "process(\"" << user_path << "\")" << endl;
+
+                  assert (location->components.size() > 0);
+                  assert (location->components[0]->functor == TOK_PROCESS);
+                  assert (location->components[0]->arg);
+                  literal_string* lit = dynamic_cast<literal_string*>(location->components[0]->arg);
+                  assert (lit);
+
+                  // synthesize a new probe_point, with the expanded string
+                  probe_point *pp = new probe_point (*location);
+                  probe_point::component* ppc = new probe_point::component (TOK_PROCESS,
+                                                                            new literal_string (user_path.c_str()));
+                  ppc->tok = location->components[0]->tok; // overwrite [0] slot, pattern matched above
+                  pp->components[0] = ppc;
+
+                  probe* new_probe = new probe (*base, pp);
+
+                  derive_probes (sess, new_probe, finished_results);
+
+                  script_file.close();
+                  return;
+                }
+              }
+           }
+         }
+         script_file.close();
+      }
+
       if (get_param (parameters, TOK_LIBRARY, library_name))
 	{
 	  module_name = find_executable (library_name, "LD_LIBRARY_PATH");

@@ -616,6 +616,8 @@ Note that for all process probes,
 names refer to executables that are searched the same way shells do: relative
 to the working directory if they contain a "/" character, otherwise in 
 .BR $PATH .
+If PATH names refer to scripts, the actual interpreters (specified in the
+script in the first line after the #! characters) are probed.
 PATH may also refer to shared libraries, in which case all proceses that
 map it at runtime would be selected for probing.
 If the PATH string contains wildcards as in the MPATTERN case, then
