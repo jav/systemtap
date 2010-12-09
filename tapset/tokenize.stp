@@ -11,13 +11,11 @@
 %}
 
 /**
- * sfunction tokenize - Return the next non-empty token in a string.
- * 
- * General Syntax: tokenize:string (input:string, delim:string)
+ * sfunction tokenize - Return the next non-empty token in a string
  *
- * @input: String to tokenize. If NULL, returns the next non-empty token
+ * @input: string to tokenize. If NULL, returns the next non-empty token
  * in the string passed in the previous call to tokenize().
- * @delim: Token delimiter. Set of characters that delimit the tokens.
+ * @delim: set of characters that delimit the tokens
  * 
  * Description: This function returns the next non-empty token in the 
  * given input string, where the tokens are delimited by characters in
@@ -45,4 +43,3 @@ function tokenize:string(input:string, delim:string)
 		memcpy(THIS->__retvalue, token, token_end - token + 1);
 	}
 %}
-

@@ -8,9 +8,7 @@
 
 
 /**
- * sfunction tz_gmtoff - Return local time zone offset.
- *
- * General Syntax: tz_gmtoff:string()
+ * sfunction tz_gmtoff - Return local time zone offset
  *
  * Description: Returns the local time zone offset (seconds west of UTC), as
  * passed by staprun at script startup only.
@@ -20,9 +18,7 @@ function tz_gmtoff() {
 }
 
 /**
- * sfunction tz_name - Return local time zone name.
- *
- * General Syntax: tz_name:string()
+ * sfunction tz_name - Return local time zone name
  *
  * Description: Returns the local time zone name, as passed by staprun at
  * script startup only.
@@ -33,11 +29,9 @@ function tz_name() {
 
 
 /**
- * sfunction tz_ctime - Convert seconds since epoch into human readable date/time string, with local time zone.
+ * sfunction tz_ctime - Convert seconds since epoch into human readable date/time string, with local time zone
  *
- * General Syntax: tz_ctime:string(epochsecs:long)
- *
- * @epochsecs: Number of seconds since epoch (as returned by gettimeofday_s()).
+ * @epochsecs: number of seconds since epoch (as returned by gettimeofday_s())
  *
  * Description: Takes an argument of seconds since the epoch as returned by
  * gettimeofday_s().  Returns a string of the same form as ctime(), but
@@ -48,4 +42,3 @@ function tz_name() {
 function tz_ctime(epochsecs) {
    return (ctime(epochsecs - tz_gmtoff()) . " " . tz_name())
 }
-

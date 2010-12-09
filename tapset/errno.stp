@@ -344,9 +344,7 @@ static const int Maxerrno = sizeof(errlist)/sizeof(char *);
 %}
 
 /**
- * sfunction errno_str - Symbolic string associated with error code.
- *
- * General Syntax: errno_str:string(err:long)
+ * sfunction errno_str - Symbolic string associated with error code
  *
  * @err: The error number recieved
  *
@@ -408,8 +406,6 @@ function returnval:long () %{ /* pure */
 /**
  * sfunction returnstr - Formats the return value as a string
  *
- * General Syntax: returnstr:string(format:long)
- *
  * @format: Variable to determine return type base value
  * 
  * Description: This function is used by the nd_syscall tapset, and 
@@ -439,8 +435,6 @@ no_ret:
 
 /** 
  * sfunction return_str - Formats the return value as a string
- *
- * General Syntax: return_str:string(format:long, ret:long)
  *
  * @format: Variable to determine return type base value
  * @ret: Return value (typically $return)

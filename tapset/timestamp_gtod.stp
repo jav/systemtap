@@ -13,9 +13,7 @@
 
 
 /**
- * sfunction gettimeofday_ns - Number of nanoseconds since UNIX epoch.
- * 
- * General Syntax: gettimeofday_ns:long()
+ * sfunction gettimeofday_ns - Number of nanoseconds since UNIX epoch
  *
  * Description: This function returns the number of nanoseconds
  * since the UNIX epoch.
@@ -29,9 +27,7 @@ function gettimeofday_ns:long () %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction gettimeofday_us - Number of microseconds since UNIX epoch.
- *
- * General Syntax: gettimeofday_us:long()
+ * sfunction gettimeofday_us - Number of microseconds since UNIX epoch
  *
  * Description: This function returns the number of microseconds
  * since the UNIX epoch.
@@ -41,9 +37,7 @@ function gettimeofday_us:long () {
 }
 
 /**
- * sfunction gettimeofday_ms - Number of milliseconds since UNIX epoch.
- *
- * General Syntax: gettimeofday_ms:long()
+ * sfunction gettimeofday_ms - Number of milliseconds since UNIX epoch
  *
  * Description: This function returns the number of milliseconds
  * since the UNIX epoch.
@@ -53,9 +47,7 @@ function gettimeofday_ms:long () {
 }
 
 /**
- * sfunction gettimeofday_s - Number of seconds since UNIX epoch.
- * 
- * General Syntax: gettimeofday_s:long()
+ * sfunction gettimeofday_s - Number of seconds since UNIX epoch
  *
  * Description: This function returns the number of seconds since
  * the UNIX epoch.

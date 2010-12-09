@@ -7,9 +7,7 @@
 // later version.
 
 /**
- * sfunction strlen - Returns the length of a string.
- *
- * General Syntax: strlen: long (str:string)
+ * sfunction strlen - Returns the length of a string
  *
  * @s: the string
  *
@@ -21,13 +19,11 @@ function strlen:long(s:string) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction substr - Returns a substring.
+ * sfunction substr - Returns a substring
  *
- * General Syntax: substr:string (str:string, start:long, stop:long)
- *
- * @str: The string to take a substring from
- * @start: Starting position.  0 = start of the string.
- * @length: Length of string to return.
+ * @str: the string to take a substring from
+ * @start: starting position of the extracted string (first character is 0)
+ * @length: length of string to return
  *
  * Description: Returns the substring of the up to the given length
  * starting at the given start position and ending at given stop position.
@@ -39,12 +35,10 @@ function substr:string(str:string,start:long, length:long) %{ /* pure */ /* unpr
 %}
 
 /**
- * sfunction stringat - Returns the char at a given position in the string.
+ * sfunction stringat - Returns the char at a given position in the string
  *
- * General Syntax: stringat:long(srt:string, pos:long)
- *
- * @str: The string to fetch the character from.
- * @pos: The position to get the character from.  0 = start of the string.
+ * @str: the string to fetch the character from
+ * @pos: the position to get the character from  (first character is 0)
  *
  * Description: This function returns the character at a given position in
  * the string or zero if thestring doesn't have as many characters.
@@ -57,14 +51,12 @@ function stringat:long(str:string, pos:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction isinstr - Returns whether a string is a substring of another string.
+ * sfunction isinstr - Returns whether a string is a substring of another string
  *
- * General syntax: isinstr:long (s1:string, s2:string)
+ * @s1: string to search in
+ * @s2: substring to find
  *
- * @s1: String to search in.
- * @s2: Substring to find.
- *
- * Description: This function returns 1 if string s1 contains s2,
+ * Description: This function returns 1 if string @s1 contains @s2,
  * otherwise zero. 
  */
 function isinstr:long(s1:string,s2:string) %{ /* pure */ /* unprivileged */
@@ -75,10 +67,9 @@ function isinstr:long(s1:string,s2:string) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction text_str - Escape any non-printable chars in a string.
+ * sfunction text_str - Escape any non-printable chars in a string
  *
- * General Syntax: text_str:string (input:string)
- * @input: The string to escape.
+ * @input: the string to escape
  *
  * Description: This function accepts a string argument, 
  * and any ASCII characters that are not
@@ -91,14 +82,12 @@ function text_str:string(input:string)
 %}
 
 /**
- * sfunction text_strn - Escape any non-printable chars in a string.
+ * sfunction text_strn - Escape any non-printable chars in a string
  *
- * General Syntax: text_strn:string (input:string, len:long, quoted:long)
- *
- * @input: The string to escape.
- * @len: Maximum length of string to return. 0 means MAXSTRINGLEN.
- * @quoted: Put double quotes around the string. If input string is
- * truncated it will have "..." after the second quote.
+ * @input: the string to escape
+ * @len: maximum length of string to return (0 implies MAXSTRINGLEN)
+ * @quoted: put double quotes around the string. If input string is
+ * truncated it will have "..." after the second quote
  *
  * Description: This function accepts a string of designated length,
  * and any ASCII characters that are not
@@ -113,13 +102,11 @@ function text_strn:string(input:string, len:long, quoted:long)
 
 
 /**
- * sfunction - str_replace Replaces all instances of a substring with another.
+ * sfunction - str_replace Replaces all instances of a substring with another
  *
- * General Syntax: str_replace:string(prnt_str:string, srch_str:string, rplc_str:string)
- *
- * @prnt_str: The string to search and replace in.
- * @srch_str: The substring which is used to search in prnt_str string.
- * @rplc_str: The substring which is used to replace srch_str.
+ * @prnt_str: the string to search and replace in
+ * @srch_str: the substring which is used to search in @prnt_str string
+ * @rplc_str: the substring which is used to replace @srch_str
  *
  * Description: This function returns the given string with
  * substrings replaced.
@@ -150,15 +137,13 @@ function str_replace:string (prnt_str:string, srch_str:string, rplc_str:string)
 %}
 
 /**
- * sfunction - strtol - Convert a string to a long.
- * 
- * General Syntax: strtol:long (str:string, base:long)
- * 
- * @str: String to convert.
- * @base: The base to use
+ * sfunction - strtol - Convert a string to a long
+ *
+ * @str: string to convert
+ * @base: the base to use
  * 
  * Description: This function converts the string representation of a number to an integer. 
- * The base parameter indicates the number base to assume for the string (eg. 16 for hex, 8 for octal, 2 for binary).
+ * The @base parameter indicates the number base to assume for the string (eg. 16 for hex, 8 for octal, 2 for binary).
  */
 function strtol:long(str:string, base:long)
 %{ /* pure */ /* unprivileged */
@@ -166,11 +151,9 @@ function strtol:long(str:string, base:long)
 %}
 
 /**
- * sfunction isdigit - Checks for a digit.
+ * sfunction isdigit - Checks for a digit
  *
- * General Syntax: isdigit:long(str:string)
- *
- * @str: String to check.
+ * @str: string to check
  *
  * Description: Checks for a digit (0 through 9) as the first
  * character of a string.  Returns non-zero if true, and a zero if
@@ -180,4 +163,3 @@ function isdigit:long(str:string)
 %{ /* pure */ /* unprivileged */
 	THIS->__retvalue = isdigit(THIS->str[0]);
 %}
-

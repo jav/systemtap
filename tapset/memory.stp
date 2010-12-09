@@ -20,8 +20,9 @@ global FAULT_FLAG_WRITE=1
 
 /**
  * sfunction vm_fault_contains - Test return value for page fault reason
- * @value: The fault_type returned by vm.page_fault.return
- * @test: The type of fault to test for (VM_FAULT_OOM or similar)
+ *
+ * @value: the fault_type returned by vm.page_fault.return
+ * @test: the type of fault to test for (VM_FAULT_OOM or similar)
  */
 function vm_fault_contains:long (value:long, test:long)
 %{
@@ -54,11 +55,12 @@ function vm_fault_contains:long (value:long, test:long)
 %}
 
 /**
- * probe vm.pagefault - Records that a page fault occurred.
- * @name: Name of the probe point
- * @address: The address of the faulting memory access; i.e. the address that caused the page fault.
- * @write_access: Indicates whether this was a write or read access; 1 indicates a write, 
- * while 0 indicates a read.
+ * probe vm.pagefault - Records that a page fault occurred
+ *
+ * @name: name of the probe point
+ * @address: the address of the faulting memory access; i.e. the address that caused the page fault
+ * @write_access: indicates whether this was a write or read access; 1 indicates a write, 
+ * while 0 indicates a read
  *
  * Context: The process which triggered the fault
  */
@@ -72,9 +74,10 @@ probe vm.pagefault = kernel.function("__handle_mm_fault@mm/memory.c") ?,
 }
 
 /**
- * probe vm.pagefault.return - Indicates what type of fault occurred.
- * @name: Name of the probe point
- * @fault_type: Returns either 
+ * probe vm.pagefault.return - Indicates what type of fault occurred
+ *
+ * @name: name of the probe point
+ * @fault_type: returns either 
  * 0 (VM_FAULT_OOM) for out of memory faults, 
  * 2 (VM_FAULT_MINOR) for minor faults, 3 (VM_FAULT_MAJOR) for 
  * major faults, or 1 (VM_FAULT_SIGBUS) if the fault was neither OOM, minor fault, 
@@ -89,11 +92,9 @@ probe vm.pagefault.return =
 }
 
 /**
- * sfunction addr_to_node - Returns which node a given address belongs to within a NUMA system.
+ * sfunction addr_to_node - Returns which node a given address belongs to within a NUMA system
  *
- * General Syntax: addr_to_node:long(addr:long)
- *
- * @addr: The address of the faulting memory access.
+ * @addr: the address of the faulting memory access
  *
  * Description: This function accepts an address, and returns the 
  * node that the given address belongs to in a NUMA system.
@@ -122,9 +123,10 @@ function _IS_ZERO_PAGE:long(from:long, vaddr:long) %{ /* pure */
 
 
 /**
- * probe vm.write_shared - Attempts at writing to a shared page.
- * @name: Name of the probe point
- * @address: The address of the shared write.
+ * probe vm.write_shared - Attempts at writing to a shared page
+ *
+ * @name: name of the probe point
+ * @address: the address of the shared write
  *
  * Context:
  *  The context is the process attempting the write.
@@ -139,11 +141,12 @@ probe vm.write_shared = kernel.function("do_wp_page") {
 }
 
 /**
- * probe vm.write_shared_copy - Page copy for shared page write.
+ * probe vm.write_shared_copy - Page copy for shared page write
+ *
  * @name: Name of the probe point
- * @address: The address of the shared write.
- * @zero: Boolean indicating whether it is a zero page
- *         (can do a clear instead of a copy).
+ * @address: The address of the shared write
+ * @zero: boolean indicating whether it is a zero page
+ *         (can do a clear instead of a copy)
  *
  * Context:
  *  The process attempting the write.
@@ -160,10 +163,11 @@ probe vm.write_shared_copy = kernel.function("copy_cow_page") ?
 
 
 /**
- * probe vm.mmap - Fires when an mmap is requested.
- * @name: Name of the probe point
- * @address: The requested address
- * @length: The length of the memory segment 
+ * probe vm.mmap - Fires when an mmap is requested
+ *
+ * @name: name of the probe point
+ * @address: the requested address
+ * @length: the length of the memory segment 
  *
  * Context:
  *  The process calling mmap.
@@ -177,10 +181,11 @@ probe vm.mmap = kernel.function("do_mmap"), kernel.function("do_mmap2") ?
 
 
 /**
- * probe vm.munmap - Fires when an munmap is requested.
- * @name: Name of the probe point
- * @address: The requested address
- * @length: The length of the memory segment 
+ * probe vm.munmap - Fires when an munmap is requested
+ *
+ * @name: name of the probe point
+ * @address: the requested address
+ * @length: the length of the memory segment 
  *
  * Context:
  *  The process calling munmap.
@@ -192,10 +197,11 @@ probe vm.munmap = kernel.function("do_munmap") {
 }
 
 /**
- * probe vm.brk - Fires when a brk is requested (i.e. the heap will be resized).
- * @name: Name of the probe point
- * @address: The requested address
- * @length: The length of the memory segment 
+ * probe vm.brk - Fires when a brk is requested (i.e. the heap will be resized)
+ *
+ * @name: name of the probe point
+ * @address: the requested address
+ * @length: the length of the memory segment 
  *
  * Context:
  *  The process calling brk.
@@ -207,9 +213,10 @@ probe vm.brk = kernel.function("do_brk") {
 }
 
 /**
- * probe vm.oom_kill - Fires when a thread is selected for termination by the OOM killer.
- * @name: Name of the probe point
- * @task: The task being killed
+ * probe vm.oom_kill - Fires when a thread is selected for termination by the OOM killer
+ *
+ * @name: name of the probe point
+ * @task: the task being killed
  *
  * Context:
  *  The process that tried to consume excessive memory, and thus
@@ -405,15 +412,16 @@ probe __vm.kmalloc.kp = kernel.function("kmem_cache_alloc_notrace").return !,
 }
 
 /**
- * probe vm.kmalloc - Fires when kmalloc is requested.
- * @name: Name of the probe point
- * @call_site: Address of the kmemory function.
- * @caller_function: Name of the caller function.
- * @bytes_req: Requested Bytes
- * @bytes_alloc: Allocated Bytes
+ * probe vm.kmalloc - Fires when kmalloc is requested
+ *
+ * @name: name of the probe point
+ * @call_site: address of the kmemory function
+ * @caller_function: name of the caller function
+ * @bytes_req: requested Bytes
+ * @bytes_alloc: allocated Bytes
  * @gfp_flags: type of kmemory to allocate
  * @gfp_flag_name: type of kmemory to allocate (in String format)
- * @ptr: Pointer to the kmemory allocated
+ * @ptr: pointer to the kmemory allocated
  */
 probe vm.kmalloc = __vm.kmalloc.tp !, __vm.kmalloc.kp
 {
@@ -463,16 +471,16 @@ probe __vm.kmem_cache_alloc.kp = kernel.function("kmem_cache_alloc").return
 }
 
 /**
- * probe vm.kmem_cache_alloc - Fires when \
- *              kmem_cache_alloc is requested.
- * @name: Name of the probe point
- * @call_site: Address of the function calling this kmemory function.
- * @caller_function: Name of the caller function.
- * @bytes_req: Requested Bytes
- * @bytes_alloc: Allocated Bytes
+ * probe vm.kmem_cache_alloc - Fires when kmem_cache_alloc is requested
+ *
+ * @name: name of the probe point
+ * @call_site: address of the function calling this kmemory function.
+ * @caller_function: name of the caller function.
+ * @bytes_req: requested Bytes
+ * @bytes_alloc: allocated Bytes
  * @gfp_flags: type of kmemory to allocate
- * @gfp_flag_name: Type of kmemory to allocate(in string format)
- * @ptr: Pointer to the kmemory allocated
+ * @gfp_flag_name: type of kmemory to allocate(in string format)
+ * @ptr: pointer to the kmemory allocated
  */
 
 probe vm.kmem_cache_alloc = __vm.kmem_cache_alloc.tp !,
@@ -511,15 +519,16 @@ probe __vm.kmalloc_node.kp = kernel.function("kmalloc_node").return ?
 }
 
 /**
- * probe vm.kmalloc_node - Fires when kmalloc_node is requested.
- * @name: Name of the probe point
- * @call_site: Address of the function caling this  kmemory function.
- * @caller_function: Name of the caller function.
- * @bytes_req: Requested Bytes
- * @bytes_alloc: Allocated Bytes
+ * probe vm.kmalloc_node - Fires when kmalloc_node is requested
+ *
+ * @name: name of the probe point
+ * @call_site: address of the function caling this  kmemory function
+ * @caller_function: name of the caller function
+ * @bytes_req: requested Bytes
+ * @bytes_alloc: allocated Bytes
  * @gfp_flags: type of kmemory to allocate
- * @gfp_flag_name: Type of kmemory to allocate(in string format)
- * @ptr: Pointer to the kmemory allocated
+ * @gfp_flag_name: type of kmemory to allocate(in string format)
+ * @ptr: pointer to the kmemory allocated
  */
 probe vm.kmalloc_node = __vm.kmalloc_node.tp !, __vm.kmalloc_node.kp ?
 {
@@ -566,16 +575,16 @@ probe __vm.kmem_cache_alloc_node.kp =
 }
 
 /**
- * probe vm.kmem_cache_alloc_node - Fires when \
- *              kmem_cache_alloc_node is requested.
- * @name: Name of the probe point
- * @call_site: Address of the function calling this kmemory function.
- * @caller_function: Name of the caller function.
- * @bytes_req: Requested Bytes
- * @bytes_alloc: Allocated Bytes
+ * probe vm.kmem_cache_alloc_node - Fires when kmem_cache_alloc_node is requested
+ *
+ * @name: name of the probe point
+ * @call_site: address of the function calling this kmemory function
+ * @caller_function: name of the caller function
+ * @bytes_req: requested Bytes
+ * @bytes_alloc: allocated Bytes
  * @gfp_flags: type of kmemory to allocate
- * @gfp_flag_name: Type of kmemory to allocate(in string format)
- * @ptr: Pointer to the kmemory allocated
+ * @gfp_flag_name: type of kmemory to allocate(in string format)
+ * @ptr: pointer to the kmemory allocated
  */
 probe vm.kmem_cache_alloc_node = __vm.kmem_cache_alloc_node.tp !,
 				 __vm.kmem_cache_alloc_node.kp ?
@@ -598,11 +607,12 @@ probe __vm.kfree.kp = kernel.function("kfree").return
 }
 
 /**
- * probe vm.kfree - Fires when kfree is requested.
- * @name: Name of the probe point
- * @call_site: Address of the function calling this kmemory function.
- * @caller_function: Name of the caller function.
- * @ptr: Pointer to the kmemory allocated which is returned by kmalloc
+ * probe vm.kfree - Fires when kfree is requested
+ *
+ * @name: name of the probe point
+ * @call_site: address of the function calling this kmemory function
+ * @caller_function: name of the caller function.
+ * @ptr: pointer to the kmemory allocated which is returned by kmalloc
  */
 probe vm.kfree = __vm.kfree.tp !, __vm.kfree.kp
 {
@@ -623,10 +633,10 @@ probe __vm.kmem_cache_free.kp = kernel.function("kmem_cache_free").return
 }
 
 /**
- * probe vm.kmem_cache_free - Fires when \
- *              kmem_cache_free is requested.
+ * probe vm.kmem_cache_free - Fires when kmem_cache_free is requested
+ *
  * @name: Name of the probe point
- * @call_site: Address of the function calling this kmemory function.
+ * @call_site: Address of the function calling this kmemory function
  * @caller_function: Name of the caller function.
  * @ptr: Pointer to the kmemory allocated which is returned by kmem_cache
  */

@@ -33,11 +33,9 @@
 %}
 
 /**
- * sfunction user_string - Retrieves string from user space.
+ * sfunction user_string - Retrieves string from user space
  *
- * General Syntax: user_string:string(addr:long)
- *
- * @addr: The user space address to retrieve the string from.
+ * @addr: the user space address to retrieve the string from
  *
  * Description: Returns the null terminated C string from a given user space
  * memory address. Reports "<unknown>" on the rare cases when userspace
@@ -46,12 +44,10 @@
 function user_string:string (addr:long) { return user_string2 (addr, "<unknown>") }
 
 /**
- * sfunction user_string2 - Retrieves string from user space with alternative error string.
+ * sfunction user_string2 - Retrieves string from user space with alternative error string
  *
- * General Syntax: user_string2:string(addr:long, err_msg:string)
- *
- * @addr: The user space address to retrieve the string from.
- * @err_msg: The error message to return when data isn't available.
+ * @addr: the user space address to retrieve the string from
+ * @err_msg: the error message to return when data isn't available
  *
  * Description: Returns the null terminated C string from a given user space
  * memory address. Reports the given error message on the rare cases when
@@ -66,11 +62,9 @@ function user_string2:string (addr:long, err_msg:string) %{ /* pure */ /* unpriv
 %}
 
 /**
- * sfunction user_string_warn - Retrieves string from user space.
+ * sfunction user_string_warn - Retrieves string from user space
  *
- * General Syntax: user_string_warn:string(addr:long)
- *
- * @addr: The user space address to retrieve the string from.
+ * @addr: the user space address to retrieve the string from
  *
  * Description: Returns the null terminated C string from a given user space
  * memory address. Reports "<unknown>" on the rare cases when userspace
@@ -93,11 +87,9 @@ function user_string_warn:string (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_string_quoted - Retrieves and quotes string from user space.
+ * sfunction user_string_quoted - Retrieves and quotes string from user space
  *
- * General Syntax: user_string_quoted:string(addr:long)
- *
- * @addr: The user space address to retrieve the string from.
+ * @addr: the user space address to retrieve the string from
  *
  * Description: Returns the null terminated C string from a given user space
  * memory address where any ASCII characters that are not printable are
@@ -116,12 +108,10 @@ function user_string_quoted:string (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_string_n - Retrieves string of given length from user space.
+ * sfunction user_string_n - Retrieves string of given length from user space
  *
- * General Syntax: user_string_n:string(addr:long, n:long)
- *
- * @addr: The user space address to retrieve the string from.
- * @n: The maximum length of the string (if not null terminated).
+ * @addr: the user space address to retrieve the string from
+ * @n: the maximum length of the string (if not null terminated)
  *
  * Description: Returns the C string of a maximum given length from a
  * given user space address. Returns "<unknown>" on the rare cases
@@ -132,13 +122,11 @@ function user_string_n:string (addr:long, n:long) {
 }
 
 /**
- * sfunction user_string_n2 - Retrieves string of given length from user space.
+ * sfunction user_string_n2 - Retrieves string of given length from user space
  *
- * General Syntax: user_string_n2:string(addr:long, n:long, err_msg:string)
- *
- * @addr: The user space address to retrieve the string from.
- * @n: The maximum length of the string (if not null terminated).
- * @err_msg: The error message to return when data isn't available.
+ * @addr: the user space address to retrieve the string from
+ * @n: the maximum length of the string (if not null terminated)
+ * @err_msg: the error message to return when data isn't available
  *
  * Description: Returns the C string of a maximum given length from a
  * given user space address. Returns the given error message string on
@@ -157,12 +145,10 @@ function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */
 %}
 
 /**
- * sfunction user_string_n_warn - Retrieves string from user space.
+ * sfunction user_string_n_warn - Retrieves string from user space
  *
- * General Syntax: user_string_n_warn:string(addr:long, n:long)
- *
- * @addr: The user space address to retrieve the string from.
- * @n: The maximum length of the string (if not null terminated).
+ * @addr: the user space address to retrieve the string from
+ * @n: the maximum length of the string (if not null terminated)
  *
  * Description: Returns up to n characters of a C string from a given
  * user space memory address. Reports "<unknown>" on the rare cases
@@ -189,12 +175,10 @@ function user_string_n_warn:string (addr:long, n:long) %{ /* pure */ /* unprivil
 %}
 
 /**
- * sfunction user_string_n_quoted - Retrieves and quotes string from user space.
+ * sfunction user_string_n_quoted - Retrieves and quotes string from user space
  *
- * General Syntax: user_string_n_quoted:string(addr:long, n:long)
- *
- * @addr: The user space address to retrieve the string from.
- * @n: The maximum length of the string (if not null terminated).
+ * @addr: the user space address to retrieve the string from
+ * @n: the maximum length of the string (if not null terminated)
  *
  * Description: Returns up to n characters of a C string from the given
  * user space memory address where any ASCII characters that are not
@@ -215,11 +199,9 @@ function user_string_n_quoted:string (addr:long, n:long) %{ /* pure */ /* unpriv
 %}
 
 /**
- * sfunction user_char - Retrieves a char value stored in user space.
+ * sfunction user_char - Retrieves a char value stored in user space
  *
- * General Syntax: user_char:long(addr:long)
- *
- * @addr: The user space address to retrieve the char from.
+ * @addr: the user space address to retrieve the char from
  *
  * Description: Returns the char value from a given user space address.
  * Returns zero when user space data is not accessible.
@@ -229,11 +211,9 @@ function user_char:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_char_warn - Retrieves a char value stored in user space.
+ * sfunction user_char_warn - Retrieves a char value stored in user space
  *
- * General Syntax: user_char_warn:long(addr:long)
- *
- * @addr: The user space address to retrieve the char from.
+ * @addr: the user space address to retrieve the char from
  *
  * Description: Returns the char value from a given user space address.
  * Returns zero when user space and warns (but does not abort) about the
@@ -244,11 +224,9 @@ function user_char_warn:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_short - Retrieves a short value stored in user space.
+ * sfunction user_short - Retrieves a short value stored in user space
  *
- * General Syntax: user_short:long(addr:long)
- *
- * @addr: The user space address to retrieve the short from.
+ * @addr: the user space address to retrieve the short from
  *
  * Description: Returns the short value from a given user space address.
  * Returns zero when user space data is not accessible.
@@ -258,11 +236,9 @@ function user_short:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_short_warn - Retrieves a short value stored in user space.
+ * sfunction user_short_warn - Retrieves a short value stored in user space
  *
- * General Syntax: user_short_warn:long(addr:long)
- *
- * @addr: The user space address to retrieve the short from.
+ * @addr: the user space address to retrieve the short from
  *
  * Description: Returns the short value from a given user space address.
  * Returns zero when user space and warns (but does not abort) about the
@@ -273,11 +249,9 @@ function user_short_warn:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_int - Retrieves an int value stored in user space.
+ * sfunction user_int - Retrieves an int value stored in user space
  *
- * General Syntax: user_int:long(addr:long)
- *
- * @addr: The user space address to retrieve the int from.
+ * @addr: the user space address to retrieve the int from
  *
  * Description: Returns the int value from a given user space address.
  * Returns zero when user space data is not accessible.
@@ -287,11 +261,9 @@ function user_int:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_int_warn - Retrieves an int value stored in user space.
+ * sfunction user_int_warn - Retrieves an int value stored in user space
  *
- * General Syntax: user_ing_warn:long(addr:long)
- *
- * @addr: The user space address to retrieve the int from.
+ * @addr: the user space address to retrieve the int from
  *
  * Description: Returns the int value from a given user space address.
  * Returns zero when user space and warns (but does not abort) about the
@@ -302,11 +274,9 @@ function user_int_warn:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_long - Retrieves a long value stored in user space.
+ * sfunction user_long - Retrieves a long value stored in user space
  *
- * General Syntax: user_long:long(addr:long)
- *
- * @addr: The user space address to retrieve the long from.
+ * @addr: the user space address to retrieve the long from
  *
  * Description: Returns the long value from a given user space address.
  * Returns zero when user space data is not accessible. Note that the
@@ -323,11 +293,9 @@ function user_long:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_long_warn - Retrieves a long value stored in user space.
+ * sfunction user_long_warn - Retrieves a long value stored in user space
  *
- * General Syntax: user_long_warn:long(addr:long)
- *
- * @addr: The user space address to retrieve the long from.
+ * @addr: the user space address to retrieve the long from
  *
  * Description: Returns the long value from a given user space address.
  * Returns zero when user space and warns (but does not abort) about the
@@ -345,11 +313,9 @@ function user_long_warn:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_int8 - Retrieves a 8-bit integer value stored in user space.
+ * sfunction user_int8 - Retrieves a 8-bit integer value stored in user space
  *
- * General Syntax: user_int8:long(addr:long)
- *
- * @addr: The user space address to retrieve the 8-bit integer from.
+ * @addr: the user space address to retrieve the 8-bit integer from
  *
  * Description: Returns the 8-bit integer value from a given user space
  * address.  Returns zero when user space data is not accessible.
@@ -359,11 +325,9 @@ function user_int8:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_uint8 - Retrieves an unsigned 8-bit integer value stored in user space.
+ * sfunction user_uint8 - Retrieves an unsigned 8-bit integer value stored in user space
  *
- * General Syntax: user_uint8:long(addr:long)
- *
- * @addr: The user space address to retrieve the unsigned 8-bit integer from.
+ * @addr: the user space address to retrieve the unsigned 8-bit integer from
  *
  * Description: Returns the unsigned 8-bit integer value from a given user
  * space address.  Returns zero when user space data is not accessible.
@@ -373,11 +337,9 @@ function user_uint8:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_int16 - Retrieves a 16-bit integer value stored in user space.
+ * sfunction user_int16 - Retrieves a 16-bit integer value stored in user space
  *
- * General Syntax: user_int16:long(addr:long)
- *
- * @addr: The user space address to retrieve the 16-bit integer from.
+ * @addr: the user space address to retrieve the 16-bit integer from
  *
  * Description: Returns the 16-bit integer value from a given user space
  * address.  Returns zero when user space data is not accessible.
@@ -387,11 +349,9 @@ function user_int16:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_uint16 - Retrieves an unsigned 16-bit integer value stored in user space.
+ * sfunction user_uint16 - Retrieves an unsigned 16-bit integer value stored in user space
  *
- * General Syntax: user_uint16:long(addr:long)
- *
- * @addr: The user space address to retrieve the unsigned 16-bit integer from.
+ * @addr: the user space address to retrieve the unsigned 16-bit integer from
  *
  * Description: Returns the unsigned 16-bit integer value from a given user
  * space address.  Returns zero when user space data is not accessible.
@@ -401,11 +361,9 @@ function user_uint16:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_int32 - Retrieves a 32-bit integer value stored in user space.
+ * sfunction user_int32 - Retrieves a 32-bit integer value stored in user space
  *
- * General Syntax: user_int32:long(addr:long)
- *
- * @addr: The user space address to retrieve the 32-bit integer from.
+ * @addr: the user space address to retrieve the 32-bit integer from
  *
  * Description: Returns the 32-bit integer value from a given user space
  * address.  Returns zero when user space data is not accessible.
@@ -415,11 +373,9 @@ function user_int32:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_uint32 - Retrieves an unsigned 32-bit integer value stored in user space.
+ * sfunction user_uint32 - Retrieves an unsigned 32-bit integer value stored in user space
  *
- * General Syntax: user_uint32:long(addr:long)
- *
- * @addr: The user space address to retrieve the unsigned 32-bit integer from.
+ * @addr: the user space address to retrieve the unsigned 32-bit integer from
  *
  * Description: Returns the unsigned 32-bit integer value from a given user
  * space address.  Returns zero when user space data is not accessible.
@@ -429,11 +385,9 @@ function user_uint32:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_int64 - Retrieves a 64-bit integer value stored in user space.
+ * sfunction user_int64 - Retrieves a 64-bit integer value stored in user space
  *
- * General Syntax: user_int64:long(addr:long)
- *
- * @addr: The user space address to retrieve the 64-bit integer from.
+ * @addr: the user space address to retrieve the 64-bit integer from
  *
  * Description: Returns the 64-bit integer value from a given user space
  * address.  Returns zero when user space data is not accessible.
@@ -443,11 +397,9 @@ function user_int64:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
- * sfunction user_uint64 - Retrieves an unsigned 64-bit integer value stored in user space.
+ * sfunction user_uint64 - Retrieves an unsigned 64-bit integer value stored in user space
  *
- * General Syntax: user_uint64:long(addr:long)
- *
- * @addr: The user space address to retrieve the unsigned 64-bit integer from.
+ * @addr: the user space address to retrieve the unsigned 64-bit integer from
  *
  * Description: Returns the unsigned 64-bit integer value from a given user
  * space address.  Returns zero when user space data is not accessible.
@@ -455,4 +407,3 @@ function user_int64:long (addr:long) %{ /* pure */ /* unprivileged */
 function user_uint64:long (addr:long) %{ /* pure */ /* unprivileged */
 	STP_GET_USER(uint64_t);
 %}
-

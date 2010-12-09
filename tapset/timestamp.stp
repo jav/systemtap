@@ -12,9 +12,7 @@
 //or compute the amount of time elapsed between two time stamps.
 // </tapsetdescription>
 /**
- * sfunction get_cycles - Processor cycle count.
- * 
- * General Syntax: get_cycles:long()
+ * sfunction get_cycles - Processor cycle count
  *
  * Description: This function returns the processor cycle counter value
  * if available, else it returns zero. The cycle counter is free running

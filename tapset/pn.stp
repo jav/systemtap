@@ -8,9 +8,7 @@
 
 
 /**
- * sfunction pn - Returns the active probe name.
- *
- * General Syntax: pn:string()
+ * sfunction pn - Returns the active probe name
  *
  * Description: This function returns the script-level probe point
  * associated with a currently running probe handler, including

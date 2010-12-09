@@ -1,17 +1,13 @@
-
-/* 
+/** 
  * sfunction system - Issue a command to the system
- *
- * General Syntax: system(command:string)
  *
  * @cmd: the command to issue to the system
  * 
  * Description: This function runs a command on the system.
  * The command is started in the background when the current
- * probe completes.
- *
+ * probe completes. The command is run with the same UID as
+ * the user running the stap or staprun command.
  */
-
 function system (cmd:string) %{
 	_stp_ctl_write(STP_SYSTEM, THIS->cmd, strlen(THIS->cmd)+1);
 %}
