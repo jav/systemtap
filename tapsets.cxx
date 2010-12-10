@@ -4817,7 +4817,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  precision = lex_cast<int>(asmarg.substr(0, asmarg.find('@')));
 	  asmarg = asmarg.substr(asmarg.find('@')+1);
 	}
-      else precision = 8;
+      else precision = __SIZEOF_LONG__;
 
       // test for a numeric literal.
       // Only accept (signed) decimals throughout. XXX

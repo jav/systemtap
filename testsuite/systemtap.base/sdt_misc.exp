@@ -12,15 +12,7 @@ set test "sdt_misc"
 
 set v_flags {{-DSTAP_SDT_V1} {-DSTAP_SDT_V2} {-DSTAP_SDT_V2} {-DSTAP_SDT_V3}}
 set pbtype_mssgs {{V1_uprobe} {V2_kprobe} {V2_uprobe} {V3_uprobe}}
-set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
-switch -regexp $::tcl_platform(machine) {
-    ^(x86_64|i.86)$ {
-	lappend pbtype_flags {}
-    }
-    default {
-	lappend pbtype_flags {additional_flags=-g}
-    }
-}
+set pbtype_flags {{additional_flags=-g} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT} {} {}}
 
 proc cleanup_handler { verbose } {
     global pbtype_mssgs
@@ -424,7 +416,7 @@ if {$ok == 1} {
 
 # 8. Test V3 asm support
 
-if {[regexp $::tcl_platform(machine) "^(x86_64|i.86)$"]} {
+if {[regexp "^(x86_64|i.86)$" $::tcl_platform(machine)]} {
 set res [target_compile $srcdir/$subdir/sdt_asm.S sdt_asm.x executable [sdt_includes]]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
