@@ -10,22 +10,22 @@ set error_regexp ".*(ERROR)|(You can't specify .* when --unprivileged is specifi
 set invalid_options [list \
   "--unprivileged --client-options -B X=Y" \
   "--unprivileged --client-options -D X=Y" \
-  "--unprivileged --client-options -I /tmp" \
+  "--unprivileged --client-options -I $srcdir/tmp" \
   "--unprivileged --client-options -m test" \
-  "--unprivileged --client-options -R /tmp" \
-  "--unprivileged --client-options -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r]" \
+  "--unprivileged --client-options -R $srcdir/tmp" \
+  "--unprivileged --client-options -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -r [exec uname -r]" \
   "--client-options --unprivileged -B X=Y" \
   "--client-options --unprivileged -D X=Y" \
-  "--client-options --unprivileged -I /tmp" \
+  "--client-options --unprivileged -I $srcdir/tmp" \
   "--client-options --unprivileged -m test" \
-  "--client-options --unprivileged -R /tmp" \
-  "--client-options --unprivileged -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r]" \
+  "--client-options --unprivileged -R $srcdir/tmp" \
+  "--client-options --unprivileged -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -r [exec uname -r]" \
   "--client-options -B X=Y --unprivileged" \
   "--client-options -D X=Y --unprivileged" \
-  "--client-options -I /tmp --unprivileged" \
+  "--client-options -I $srcdir/tmp --unprivileged" \
   "--client-options -m test --unprivileged" \
-  "--client-options -R /tmp --unprivileged" \
-  "--client-options -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r] --unprivileged" \
+  "--client-options -R $srcdir/tmp --unprivileged" \
+  "--client-options -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -r [exec uname -r] --unprivileged" \
   "--client-options -R /path" \
   "-D \"foo;bar\"" \
   "-D 2=4" \
@@ -65,52 +65,52 @@ set valid_options [list \
   "-a i386" \
   "-B X=Y" \
   "-D X=Y" \
-  "-I /tmp" \
+  "-I $srcdir/tmp" \
   "-m test" \
   "-r [exec uname -r]" \
-  "-a i386 -B X=Y -D X=Y -I /tmp -m test -r [exec uname -r]" \
+  "-a i386 -B X=Y -D X=Y -I $srcdir/tmp -m test -r [exec uname -r]" \
   "--unprivileged" \
   "--unprivileged -a i386" \
   "--unprivileged -B X=Y" \
   "--unprivileged -D X=Y" \
-  "--unprivileged -I /tmp" \
+  "--unprivileged -I $srcdir/tmp" \
   "--unprivileged -m test" \
-  "--unprivileged -R /tmp" \
+  "--unprivileged -R $srcdir/tmp" \
   "--unprivileged -r [exec uname -r]" \
-  "--unprivileged -a i386 -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r]" \
+  "--unprivileged -a i386 -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -r [exec uname -r]" \
   "--client-options" \
   "--client-options -a i386" \
   "--client-options -D X=Y" \
-  "--client-options -I /tmp" \
+  "--client-options -I $srcdir/tmp" \
   "--client-options -m test" \
   "--client-options -r [exec uname -r]" \
-  "--client-options -a i386 -D X=Y -I /tmp -m test -r [exec uname -r]" \
+  "--client-options -a i386 -D X=Y -I $srcdir/tmp -m test -r [exec uname -r]" \
   "--unprivileged --client-options" \
   "--client-options --unprivileged" \
   "--unprivileged -a i386 --client-options" \
   "--unprivileged -B X=Y --client-options" \
   "--unprivileged -D X=Y --client-options" \
-  "--unprivileged -I /tmp --client-options" \
+  "--unprivileged -I $srcdir/tmp --client-options" \
   "--unprivileged -m test --client-options" \
-  "--unprivileged -R /tmp --client-options" \
+  "--unprivileged -R $srcdir/tmp --client-options" \
   "--unprivileged -r [exec uname -r] --client-options" \
-  "--unprivileged -a i386 -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r] --client-options" \
+  "--unprivileged -a i386 -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -r [exec uname -r] --client-options" \
   "-a i386 --unprivileged --client-options" \
   "-B X=Y --unprivileged --client-options" \
   "-D X=Y --unprivileged --client-options" \
-  "-I /tmp --unprivileged --client-options" \
+  "-I $srcdir/tmp --unprivileged --client-options" \
   "-m test --unprivileged --client-options" \
-  "-R /tmp --unprivileged --client-options" \
+  "-R $srcdir/tmp --unprivileged --client-options" \
   "-r [exec uname -r] --unprivileged --client-options" \
-  "-a i386 -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r] --unprivileged --client-options" \
+  "-a i386 -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -r [exec uname -r] --unprivileged --client-options" \
   "-a i386 --client-options --unprivileged" \
   "-B X=Y --client-options --unprivileged" \
   "-D X=Y --client-options --unprivileged" \
-  "-I /tmp --client-options --unprivileged" \
+  "-I $srcdir/tmp --client-options --unprivileged" \
   "-m test --client-options --unprivileged" \
-  "-R /tmp --client-options --unprivileged" \
+  "-R $srcdir/tmp --client-options --unprivileged" \
   "-r [exec uname -r] --client-options --unprivileged" \
-  "-a i386 -B X=Y -D X=Y -I /tmp -m test -R /tmp -r [exec uname -r] --client-options --unprivileged" \
+  "-a i386 -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -r [exec uname -r] --client-options --unprivileged" \
 ]
 
 set ::result_string "$no_error_result"
