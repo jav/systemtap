@@ -1726,7 +1726,7 @@ function _signalfd4_flags_str:string(f:long)
 %}
 
 %{
-#ifdef CONFIG_INOTIFY
+#if (defined(CONFIG_INOTIFY) || defined(CONFIG_INOTIFY_USER))
 #include <linux/inotify.h>
 #endif
 %}
