@@ -27,7 +27,7 @@
 #include <sys/uio.h>
 #include <glob.h>
 #include <time.h>
-
+#include <sys/prctl.h>
 
 /* used in dbug, _err and _perr */
 char *__name__ = "staprun";
@@ -174,6 +174,9 @@ static int remove_module(const char *name, int verb)
 {
 	int ret;
 	dbug(2, "%s\n", name);
+
+        /* Make self easier to identify in vmcrash images */
+        prctl (PR_SET_NAME, "staprun-d");
 
         (void) verb; /* XXX: ignore */
 
