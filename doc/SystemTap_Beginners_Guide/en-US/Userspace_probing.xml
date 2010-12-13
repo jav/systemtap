@@ -264,16 +264,94 @@ user process and limits the string to <replaceable>n</replaceable> bytes.
 
 </section>
 
-<!--
 <section id="ustack">
 	<title>User-Space Stack Backtraces</title>
 
-<para>
+<indexterm>
+<primary>Stack backtrace</primary>
+<secondary>user-space</secondary>
+</indexterm>
 
+<!--
+FIXME why is this useful?
+FIXME describe how it works
+FIXME cautions about debuginfo
+FIXME when was -d -ldd options introduced?
 FIXME description of how to use the stack backtracing
-</para>
-</section>
-
 -->
+
+<para>
+      The probe point (<command>pp</command>) function indicates which
+      particular event triggered the the SystemTap event handler.
+      A probe on the entry into a function would list the function name.
+      However, in many cases the same probe point event may be triggered by
+      many different modules in the program; this is particularly true for
+      functions in shared libraries. A SystemTap backtrace of the user-space
+      stack can provide additional context on how the probe point event is
+      triggered.
+</para>
+
+<para>
+      The user-space stack backtrace generation is complicated 
+      by the compiler producing code optimized to eliminate stack frame
+      pointers.
+      However, the compiler also includes information in the debug information
+      section to allow debugging tools to produce stack backtraces.
+      SystemTap user-space stack backtrace mechanism makes use of that
+      debug information to walk the stack to generate stack traces for 32-bit
+      and 64-bit x86 processors; other processor architectures do not yet
+      support the use of debug information to unwind the user-space stack.
+      You will need to use the
+      <command>-d <replaceable>executable</replaceable></command>
+      for the application executable and <command>-ldd</command>
+      for shared libraries to ensure that the needed debug information
+      is used to produce the user-space stack backtraces.
+</para>
+
+<para>
+      If you want to see how the function <command>xmalloc</command> function is
+      being called by the command <command>ls</command>, you could use the
+      user-space backtrack functions to provide that information.  With the
+      debuginfo for the <command>ls</command> command installed the following
+      SystemTap command will provide a backtrace each time the
+      <command>xmalloc</command> function is called:
+</para>
+
+<screen>stap -d /bin/ls --ldd \
+-e 'probe process("ls").function("xmalloc") {print_ustack(ubacktrace())}' \
+-c "ls /"</screen>
+
+<para>
+When the SystemTap script runs will have output similar to the following:
+</para>
+
+<screen>
+bin	dev   lib	  media  net	     proc	sbin	 sys  var
+boot	etc   lib64	  misc	 op_session  profilerc	selinux  tmp
+cgroup	home  lost+found  mnt	 opt	     root	srv	 usr
+ 0x4116c0 : xmalloc+0x0/0x20 [/bin/ls]
+ 0x4116fc : xmemdup+0x1c/0x40 [/bin/ls]
+ 0x40e68b : clone_quoting_options+0x3b/0x50 [/bin/ls]
+ 0x4087e4 : main+0x3b4/0x1900 [/bin/ls]
+ 0x3fa441ec5d : __libc_start_main+0xfd/0x1d0 [/lib64/libc-2.12.so]
+ 0x402799 : _start+0x29/0x2c [/bin/ls]
+ 0x4116c0 : xmalloc+0x0/0x20 [/bin/ls]
+ 0x4116fc : xmemdup+0x1c/0x40 [/bin/ls]
+ 0x40e68b : clone_quoting_options+0x3b/0x50 [/bin/ls]
+ 0x40884a : main+0x41a/0x1900 [/bin/ls]
+ 0x3fa441ec5d : __libc_start_main+0xfd/0x1d0 [/lib64/libc-2.12.so]
+ ...
+</screen>
+
+<para>
+      For more details on the functions available for user-space stack
+      backtraces look at the <command>ucontext-symbols.stp</command> and
+      <command>ucontext-unwind.stp</command> tapsets. The descriptions
+      of the functions in those tapsets can also be found in the
+      <citetitle>SystemTap Tapset Reference Manual</citetitle>.
+</para>
+
+
+</section>
 
 </chapter>
