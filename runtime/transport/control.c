@@ -240,16 +240,21 @@ static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf,
 
 static int _stp_ctl_open_cmd(struct inode *inode, struct file *file)
 {
-	if (_stp_ctl_attached)
+	if (atomic_inc_return (&_stp_ctl_attached) > 1) {
+                atomic_dec (&_stp_ctl_attached);
 		return -EBUSY;
+        }
 	_stp_attach();
 	return 0;
 }
 
 static int _stp_ctl_close_cmd(struct inode *inode, struct file *file)
 {
-	if (_stp_ctl_attached)
-		_stp_detach();
+        if (atomic_dec_return (&_stp_ctl_attached) > 0) {
+                BUG();
+                return -EINVAL;
+        }
+        _stp_detach();
 	return 0;
 }
 

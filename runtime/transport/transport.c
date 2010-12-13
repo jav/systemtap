@@ -27,7 +27,7 @@ static uid_t _stp_uid = 0;
 static gid_t _stp_gid = 0;
 static int _stp_pid = 0;
 
-static int _stp_ctl_attached = 0;
+static atomic_t _stp_ctl_attached = ATOMIC_INIT(0);
 
 static pid_t _stp_target = 0;
 static int _stp_probes_started = 0;
@@ -163,7 +163,6 @@ static void _stp_request_exit(void)
 static void _stp_detach(void)
 {
 	dbug_trans(1, "detach\n");
-	_stp_ctl_attached = 0;
 	_stp_pid = 0;
 
 	if (!_stp_exit_flag)
@@ -179,7 +178,6 @@ static void _stp_detach(void)
 static void _stp_attach(void)
 {
 	dbug_trans(1, "attach\n");
-	_stp_ctl_attached = 1;
 	_stp_pid = current->pid;
 	_stp_transport_data_fs_overwrite(0);
 	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
@@ -208,7 +206,7 @@ static void _stp_work_queue(void *data)
 	/* if exit flag is set AND we have finished with probe_start() */
 	if (unlikely(_stp_exit_flag && _stp_probes_started))
 		_stp_request_exit();
-	if (likely(_stp_ctl_attached))
+	if (atomic_read(& _stp_ctl_attached))
 		queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
 
