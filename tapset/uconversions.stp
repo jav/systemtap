@@ -393,7 +393,22 @@ function user_uint32:long (addr:long) %{ /* pure */ /* unprivileged */
  * address.  Returns zero when user space data is not accessible.
  */
 function user_int64:long (addr:long) %{ /* pure */ /* unprivileged */
+#if defined __i386__
+	/* As with kread() on i386, we must split 64-bit in two.
+	 * STP_GET_USER isn't well designed for that, but I don't
+	 * want to complicate all the other callers. */
+	uint32_t value[2];
+	STP_GET_USER(uint32_t);
+	value[0] = THIS->__retvalue;
+	if (!CONTEXT->last_error) {
+		THIS->addr += 4;
+		STP_GET_USER(uint32_t);
+		value[1] = THIS->__retvalue;
+		THIS->__retvalue = *(int64_t*)value;
+	}
+#else
 	STP_GET_USER(int64_t);
+#endif
 %}
 
 /**
@@ -404,6 +419,8 @@ function user_int64:long (addr:long) %{ /* pure */ /* unprivileged */
  * Description: Returns the unsigned 64-bit integer value from a given user
  * space address.  Returns zero when user space data is not accessible.
  */
-function user_uint64:long (addr:long) %{ /* pure */ /* unprivileged */
-	STP_GET_USER(uint64_t);
-%}
+function user_uint64:long (addr:long) {
+	/* NB: We have no script-level notion of 64-bit unsigned,
+	 * but we keep user_uint64 anyway for API completeness. */
+	return user_int64 (addr);
+}
