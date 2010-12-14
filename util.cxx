@@ -20,6 +20,7 @@
 #include <stdexcept>
 #include <cerrno>
 #include <map>
+#include <set>
 #include <string>
 #include <fstream>
 #include <cassert>
@@ -419,18 +420,24 @@ git_revision(const string& path)
 }
 
 
-static pid_t spawned_pid = 0;
+// XXX written only from the main thread, but can be read in a
+//     signal handler.  synchronization needed?
+static set<pid_t> spawned_pids;
 
-static int
-wait_for_spawn(int verbose)
+
+int
+stap_waitpid(int verbose, pid_t pid)
 {
   int ret, status;
-  ret = waitpid(spawned_pid, &status, 0);
-  if (ret == spawned_pid)
+  if (verbose > 1 && spawned_pids.count(pid) == 0)
+    clog << "Spawn waitpid call on unmanaged pid " << pid << endl;
+  ret = waitpid(pid, &status, 0);
+  if (ret == pid)
     {
+      spawned_pids.erase(pid);
       ret = WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
       if (verbose > 2)
-        clog << "Spawn waitpid result (0x" << ios::hex << status << ios::dec << "): " << ret << endl;
+        clog << "Spawn waitpid result (0x" << lex_cast_hex(status) << "): " << ret << endl;
     }
   else
     {
@@ -442,32 +449,45 @@ wait_for_spawn(int verbose)
 }
 
 // Runs a command with a saved PID, so we can kill it from the signal handler
+pid_t
+stap_spawn(int verbose, const std::string& command)
+{
+  const char *cmd = command.c_str();
+  char const * const argv[] = { "sh", "-c", cmd, NULL };
+  int ret;
+
+  pid_t pid = 0;
+
+  if (verbose > 1)
+    clog << "Running " << command << endl;
+
+  ret = posix_spawn(&pid, "/bin/sh", NULL, NULL,
+                    const_cast<char * const *>(argv), environ);
+  PROBE2(stap, stap_system__spawn, ret, pid);
+  if (ret != 0)
+    {
+      if (verbose > 1)
+        clog << "Spawn error (" << ret << "): " << strerror(ret) << endl;
+      pid = -1;
+    }
+  else
+    spawned_pids.insert(pid);
+  return pid;
+}
+
+// Runs a command with a saved PID, so we can kill it from the signal handler,
+// and wait for it to finish.
 int
 stap_system(int verbose, const std::string& command)
 {
   const char *cmd = command.c_str();
   PROBE1(stap, stap_system__start, cmd);
-  char const * const argv[] = { "sh", "-c", cmd, NULL };
-  int ret;
 
-  spawned_pid = 0;
-
-  if (verbose > 1)
-    clog << "Running " << command << endl;
-
-  ret = posix_spawn(&spawned_pid, "/bin/sh", NULL, NULL,
-                    const_cast<char * const *>(argv), environ);
-  PROBE2(stap, stap_system__spawn, ret, spawned_pid);
-  if (ret == 0)
-    ret = wait_for_spawn(verbose);
-  else
-    {
-      if (verbose > 1)
-        clog << "Spawn error (" << ret << "): " << strerror(ret) << endl;
-      ret = -1;
-    }
+  int ret = -1;
+  pid_t pid = stap_spawn(verbose, command);
+  if (pid > 0)
+    ret = stap_waitpid(verbose, pid);
   PROBE1(stap, stap_system__complete, ret);
-  spawned_pid = 0;
   return ret;
 }
 
@@ -501,7 +521,7 @@ stap_system_read(int verbose, const string& command, ostream& out)
       exit(ret); // only reached on exec error
     }
   else
-    spawned_pid = child;
+    spawned_pids.insert(child);
 
   // read everything from the child
   string readpath = "/proc/self/fd/" + lex_cast(pfd[0]);
@@ -510,18 +530,24 @@ stap_system_read(int verbose, const string& command, ostream& out)
   close(pfd[1]);
   out << in.rdbuf();
 
-  ret = wait_for_spawn(verbose);
-
-  spawned_pid = 0;
-  return ret;
+  return stap_waitpid(verbose, child);
 }
 
 
-// Send a signal to our spawned command
+// Send a signal to our spawned commands
 int
 kill_stap_spawn(int sig)
 {
-  return spawned_pid ? kill(spawned_pid, sig) : 0;
+  int ret = 0;
+  for (set<pid_t>::iterator it = spawned_pids.begin();
+       it != spawned_pids.end(); ++it)
+    if (*it > 0)
+      {
+        int pidret = kill(*it, sig);
+        if (!ret)
+          ret = pidret;
+      }
+  return ret;
 }
 
 
