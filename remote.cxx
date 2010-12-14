@@ -41,14 +41,15 @@ class direct : public remote {
 };
 
 class ssh_remote : public remote {
+    // NB: ssh commands use a tty (-t) so signals are passed along to the remote
   private:
     string uri;
     ssh_remote(systemtap_session& s, const string& uri): uri(uri)
       {
         ostringstream out;
         vector<string> uname;
-        string uname_cmd = "ssh " + lex_cast_qstring(uri) + " uname -rm";
-        int rc = stap_system_read(s.verbose > 1, uname_cmd, out);
+        string uname_cmd = "ssh -t -q " + lex_cast_qstring(uri) + " uname -rm";
+        int rc = stap_system_read(s.verbose, uname_cmd, out);
         if (rc == 0)
           tokenize(out.str(), uname, " \t\r\n");
         if (uname.size() != 2)
@@ -71,10 +72,10 @@ class ssh_remote : public remote {
         {
           ostringstream out;
           vector<string> vout;
-          string cmd = "ssh " + quri + " mktemp -d -t stapXXXXXX";
-          rc = stap_system_read(s.verbose > 1, cmd, out);
+          string cmd = "ssh -t -q " + quri + " mktemp -d -t stapXXXXXX";
+          rc = stap_system_read(s.verbose, cmd, out);
           if (rc == 0)
-            tokenize(out.str(), vout, "\n");
+            tokenize(out.str(), vout, "\r\n");
           if (vout.size() != 1)
             {
               cerr << "failed to make a tempdir on " << uri
@@ -87,8 +88,8 @@ class ssh_remote : public remote {
 
         // Transfer the module.  XXX and uprobes.ko, sigs, etc.
         if (rc == 0) {
-          string cmd = "scp " + localmodule + " " + quri + ":" + tmpmodule;
-          rc = stap_system(s.verbose > 1, cmd);
+          string cmd = "scp -q " + localmodule + " " + quri + ":" + tmpmodule;
+          rc = stap_system(s.verbose, cmd);
           if (rc != 0)
             cerr << "failed to copy the module to " << uri
                  << " : rc=" << rc << endl;
@@ -96,9 +97,9 @@ class ssh_remote : public remote {
 
         // Run the module on the remote.
         if (rc == 0) {
-          string cmd = "ssh " + quri + " "
+          string cmd = "ssh -t -q " + quri + " "
             + lex_cast_qstring(make_run_command(s, tmpmodule));
-          rc = stap_system(s.verbose > 1, cmd);
+          rc = stap_system(s.verbose, cmd);
           if (rc != 0)
             cerr << "failed to run the module on " << uri
                  << " : rc=" << rc << endl;
@@ -107,8 +108,8 @@ class ssh_remote : public remote {
         // Remove the tempdir.
         // XXX need to make sure this runs even with e.g. CTRL-C exits
         {
-          string cmd = "ssh " + quri + " rm -r " + tmpdir;
-          int rc2 = stap_system(s.verbose > 1, cmd);
+          string cmd = "ssh -t -q " + quri + " rm -r " + tmpdir;
+          int rc2 = stap_system(s.verbose, cmd);
           if (rc2 != 0)
             cerr << "failed to delete the tempdir on " << uri
                  << " : rc=" << rc2 << endl;
