@@ -4649,10 +4649,12 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
                                    const string & process_name,
 				   const string & provider_name,
 				   const string & probe_name,
+				   stap_sdt_probe_type probe_type,
 				   const string & arg_string,
 				   int ac):
     session (s), elf_machine (elf_machine), process_name (process_name),
-    provider_name (provider_name), probe_name (probe_name), arg_count ((unsigned) ac)
+    provider_name (provider_name), probe_name (probe_name),
+    probe_type (probe_type), arg_count ((unsigned) ac)
   {
     /* Register name mapping table depends on the elf machine of this particular
        probe target process/file, not upon the host.  So we can't just
@@ -4728,6 +4730,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   const string & process_name;
   const string & provider_name;
   const string & probe_name;
+  stap_sdt_probe_type probe_type;
   unsigned arg_count;
   vector<string> arg_tokens;
   map<string,int> dwarf_regs;
@@ -4807,7 +4810,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       string percent_regnames;
       string regnames;
       vector<string> matches;
-      int precision;
+      long precision;
       int rc;
 
       // Parse the leading length
@@ -4817,7 +4820,15 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  precision = lex_cast<int>(asmarg.substr(0, asmarg.find('@')));
 	  asmarg = asmarg.substr(asmarg.find('@')+1);
 	}
-      else precision = sizeof(long);
+      else
+	{
+	  // V1/V2 do not have precision field so default to signed long
+	  // V3 asm does not have precision field so default to unsigned long
+	  if (probe_type == uprobe3_type)
+	    precision = sizeof(long); // this is an asm probe
+	  else
+	    precision = -sizeof(long);
+	}
 
       // test for a numeric literal.
       // Only accept (signed) decimals throughout. XXX
@@ -4897,6 +4908,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 		case 0xff: width_adjust = ") & 0xff"; break;
 		case 0xff00: width_adjust = ">>8) & 0xff"; break;
 		case 0xffff:
+		  // preserve 16 bit register signness
 		  width_adjust = (precision > 0) ? ") & 0xffff" : ")";
 		  break;
 		default: width_adjust = ")";
@@ -5104,7 +5116,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       // First two args are hidden: 1. pointer to probe name 2. task id
       if (arg_count < 2)
 	{
-	  fc->function = "ulong_arg";
+	  fc->function = "long_arg";
 	  fc->type = pe_long;
 	  fc->tok = e->tok;
 	  // skip the hidden args
@@ -5305,6 +5317,7 @@ sdt_query::handle_probe_entry()
 					    module_val,
 					    provider_name,
 					    probe_name,
+					    probe_type,
 					    arg_string,
 					    arg_count);
       svv.replace (new_base->body);

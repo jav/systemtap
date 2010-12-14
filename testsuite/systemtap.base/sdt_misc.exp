@@ -208,12 +208,16 @@ if { $res != "" } {
 set ok 0
 set notok 0
 set fail "types"
+set uns_notok 0
 verbose -log "spawn $stap_path -g -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x # $pbtype_mssg $extra_type_mssg"
 spawn $stap_path -g -c ./sdt_types.x $srcdir/$subdir/sdt_types.stp ./sdt_types.x
 
 expect {
     -timeout 180
+    # i386 unsigned may xfail because of sign extension but fail anything else
     -re {FAIL: [a-z_]+var} { regexp " .*$" $expect_out(0,string) s;
+	if {[regexp "unsigned" $s] && [regexp "^(i.86)$" $::tcl_platform(machine)]} {
+	    incr uns_notok }
 	incr notok; set fail "$fail $s"; exp_continue }
     -re {PASS: [a-z_]+var} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
@@ -223,7 +227,7 @@ expect {
 catch {close}; catch {wait}
 
 if { $notok != 0 || $ok == 0} {
-    if { [lindex $type_xfail $j]} {
+    if { [lindex $type_xfail $j] || $notok == $uns_notok} {
 	xfail "$test types $fail $pbtype_mssg $extra_type_mssg"
     } else {
 	fail "$test types $fail $pbtype_mssg $extra_type_mssg"
@@ -372,7 +376,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if { $ok == 51 } {
+if { $ok == 51 || ($ok == 43 && [regexp "^(i.86)$" $::tcl_platform(machine)])} {
     pass "$test wildcard $pbtype_mssg"
 } else {
     fail "$test wildcard ($ok) $pbtype_mssg"

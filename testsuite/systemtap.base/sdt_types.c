@@ -25,7 +25,7 @@ main (int argc, char **argv)
   short int * const short_int_ptr_const_var = &short_int_var;
   volatile short int *ptr_volatile_short_int_var = &short_int_var;
   short int * volatile short_int_ptr_volatile_var = &short_int_var;
-  unsigned short int short_uint_var = -32767;
+  unsigned short int short_uint_var = (unsigned short)0xffff8001;
 
   int int_var = 65536;
   const int const_int_var = -65536;
@@ -35,8 +35,7 @@ main (int argc, char **argv)
   int * const int_ptr_const_var = &int_var;
   volatile int *ptr_volatile_int_var = &int_var;
   int * volatile int_ptr_volatile_var = &int_var;
-  unsigned int uint_var = -32767;
-  unsigned int uint_std_var = 4294934529UL;
+  unsigned int uint_var = (unsigned int)0xffff8001;
 
   long int long_int_var = 65536;
   const long int const_long_int_var = -65536;
@@ -48,7 +47,7 @@ main (int argc, char **argv)
   long int * volatile long_int_ptr_volatile_var = &long_int_var;
 
   /* c89 doesn't define __STDC_VERSION. With -pedantic warns about long long. */
-#ifndef NO_LONG_LONG
+#if ! defined NO_LONG_LONG && ! defined __i386__
   long long int long_long_int_var = 65536;
   const long long int const_long_long_int_var = -65536;
   volatile long long int volatile_long_long_int_var = -65536;
@@ -120,7 +119,7 @@ main (int argc, char **argv)
   STAP_PROBE2(provider,short_int_ptr_const_var,short_int_ptr_const_var,&short_int_var);
   STAP_PROBE2(provider,ptr_volatile_short_int_var,ptr_volatile_short_int_var,&short_int_var);
   STAP_PROBE2(provider,short_int_ptr_volatile_var,short_int_ptr_volatile_var,&short_int_var);
-  STAP_PROBE3(provider,unsigned_short_int_var,short_uint_var, 32769, &short_uint_var);
+  STAP_PROBE3(provider,unsigned_short_int_var,short_uint_var, 0x8001, &short_uint_var);
 
   /* int */
   STAP_PROBE1(provider,int_var,int_var);
@@ -131,7 +130,7 @@ main (int argc, char **argv)
   STAP_PROBE2(provider,int_ptr_const_var,int_ptr_const_var,&int_var);
   STAP_PROBE2(provider,ptr_volatile_int_var,ptr_volatile_int_var,&int_var);
   STAP_PROBE2(provider,int_ptr_volatile_var,int_ptr_volatile_var,&int_var);
-  STAP_PROBE3(provider,unsigned_int_var,uint_var, uint_std_var, &uint_var);
+  STAP_PROBE3(provider,unsigned_int_var,uint_var, 0x8001, &uint_var);
 
   /* long */
   STAP_PROBE1(provider,long_int_var,long_int_var);
@@ -144,7 +143,7 @@ main (int argc, char **argv)
   STAP_PROBE2(provider,long_int_ptr_volatile_var,long_int_ptr_volatile_var,&long_int_var);
 
   /* long long */
-#ifndef NO_LONG_LONG
+#if ! defined NO_LONG_LONG && ! defined __i386__
   STAP_PROBE1(provider,long_long_int_var,long_long_int_var);
   STAP_PROBE1(provider,const_long_long_int_var,const_long_long_int_var);
   STAP_PROBE1(provider,volatile_long_long_int_var,volatile_long_long_int_var);

@@ -72,12 +72,8 @@ probe process(@1).mark("short_int_var")
 
 probe process(@1).mark("unsigned_short_int_var")
 {
-  if ($arg1 != $arg2)
-    printf("FAIL: unsigned_short_int_var (%#x != %#x)\n", $arg1, $arg2)
-  else
-    printf("PASS: unsigned_short_int_var\n")
-  if (user_int16($arg3) != -32767)
-    printf("FAIL: unsigned_short_int_var (-32767 != %#x)\n", user_int16($arg3))
+  if ($arg1 != 0x8001)
+    printf("FAIL: unsigned_short_int_var (%#x != 0xffff8001)\n", $arg1)
   else
     printf("PASS: unsigned_short_int_var\n")
   if ($arg1 != user_uint16($arg3))
@@ -156,18 +152,14 @@ probe process(@1).mark("int_var")
 
 probe process(@1).mark("unsigned_int_var")
 {
-  if ($arg1 != $arg2)
-    printf("FAIL: unsigned_int_var (%#x != %#x)\n", $arg1, $arg2)
-  else
-    printf("PASS: unsigned_int_var\n")
-  if (-32767 != user_int32($arg3))
-    printf("FAIL: unsigned_int_var (-32767 != %#x)\n", user_int32($arg3))
-  else
-    printf("PASS: unsigned_int_var\n")
-  if ($arg1 != user_uint32($arg3))
-    printf("FAIL: unsigned_int_var (%#x != %#x)\n", $arg1, user_uint32($arg3))
-  else
-    printf("PASS: unsigned_int_var\n")
+   if ($arg1 != 0xffff8001)
+     printf("FAIL: unsigned_int_var (%#x != 0xffff8001)\n", $arg1)
+   else
+     printf("PASS: unsigned_int_var\n")
+   if ($arg1 != user_uint32($arg3))
+     printf("FAIL: unsigned_int_var (%#x != %#x)\n", $arg1, user_uint32($arg3))
+   else
+     printf("PASS: unsigned_int_var\n")
 }
 
 probe process(@1).mark("const_int_var")
