@@ -13,9 +13,9 @@
 		__label__ deref_fault;					\
 		t *_ptr = (t*) (intptr_t) THIS->addr;			\
 		assert_is_myproc();					\
-		if (access_ok(VERIFY_READ, _ptr, sizeof(t)))		\
-			THIS->__retvalue = kread(_ptr);			\
-		else {							\
+		if (! access_ok(VERIFY_READ, _ptr, sizeof(t)))		\
+			goto deref_fault;				\
+	   	if (__stp_get_user(THIS->__retvalue, _ptr)) {		\
 		deref_fault:						\
 			THIS->__retvalue = 0;				\
 			CONTEXT->last_error = NULL;			\
