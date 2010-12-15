@@ -23,28 +23,44 @@ using namespace std;
 
 // loopback target for running locally
 class direct : public remote {
-  protected:
-    direct(systemtap_session& s)
-      {
-        struct utsname buf;
-        (void) uname (& buf);
-        arch = normalize_machine(buf.machine);
-        release = buf.release;
-      }
+  private:
+    pid_t child;
+    direct(systemtap_session& s): remote(s), child(0) {}
 
   public:
     friend class remote;
-    int run(systemtap_session& s) {
-        string module = s.tmpdir + "/" + s.module_name + ".ko";
-        return stap_system (s.verbose, make_run_command (s, module));
-    }
+
+    virtual ~direct() {}
+
+    int start()
+      {
+        string module = s->tmpdir + "/" + s->module_name + ".ko";
+        pid_t pid = stap_spawn (s->verbose, make_run_command (*s, module));
+	if (pid <= 0)
+	  return 1;
+	child = pid;
+	return 0;
+      }
+
+    int finish()
+      {
+	if (child <= 0)
+	  return 1;
+
+	int ret = stap_waitpid(s->verbose, child);
+	child = 0;
+	return ret;
+      }
 };
 
 class ssh_remote : public remote {
     // NB: ssh commands use a tty (-t) so signals are passed along to the remote
   private:
-    string uri;
-    ssh_remote(systemtap_session& s, const string& uri): uri(uri)
+    string uri, tmpdir;
+    pid_t child;
+
+    ssh_remote(systemtap_session& s, const string& uri)
+      : remote(s), uri(uri), child(0)
       {
         ostringstream out;
         vector<string> uname;
@@ -55,17 +71,22 @@ class ssh_remote : public remote {
         if (uname.size() != 2)
           throw runtime_error("failed to get uname from " + uri
                               + " : rc=" + lex_cast(rc));
-        release = uname[0];
-        arch = uname[1];
+        string release = uname[0];
+        string arch = uname[1];
+	// XXX need to deal with command-line vs. implied arch/release
+	this->s = s.clone(arch, release);
       }
 
   public:
     friend class remote;
-    int run(systemtap_session& s)
+
+    virtual ~ssh_remote() {}
+
+    int start()
       {
         int rc;
-        string localmodule = s.tmpdir + "/" + s.module_name + ".ko";
-        string tmpdir, tmpmodule;
+        string localmodule = s->tmpdir + "/" + s->module_name + ".ko";
+        string tmpmodule;
         string quri = lex_cast_qstring(uri);
 
         // Make a remote tempdir.
@@ -73,7 +94,7 @@ class ssh_remote : public remote {
           ostringstream out;
           vector<string> vout;
           string cmd = "ssh -t -q " + quri + " mktemp -d -t stapXXXXXX";
-          rc = stap_system_read(s.verbose, cmd, out);
+          rc = stap_system_read(s->verbose, cmd, out);
           if (rc == 0)
             tokenize(out.str(), vout, "\r\n");
           if (vout.size() != 1)
@@ -83,13 +104,13 @@ class ssh_remote : public remote {
               return -1;
             }
           tmpdir = vout[0];
-          tmpmodule = tmpdir + "/" + s.module_name + ".ko";
+          tmpmodule = tmpdir + "/" + s->module_name + ".ko";
         }
 
         // Transfer the module.  XXX and uprobes.ko, sigs, etc.
         if (rc == 0) {
           string cmd = "scp -q " + localmodule + " " + quri + ":" + tmpmodule;
-          rc = stap_system(s.verbose, cmd);
+          rc = stap_system(s->verbose, cmd);
           if (rc != 0)
             cerr << "failed to copy the module to " << uri
                  << " : rc=" << rc << endl;
@@ -98,26 +119,47 @@ class ssh_remote : public remote {
         // Run the module on the remote.
         if (rc == 0) {
           string cmd = "ssh -t -q " + quri + " "
-            + lex_cast_qstring(make_run_command(s, tmpmodule));
-          rc = stap_system(s.verbose, cmd);
-          if (rc != 0)
-            cerr << "failed to run the module on " << uri
-                 << " : rc=" << rc << endl;
+            + lex_cast_qstring(make_run_command(*s, tmpmodule));
+          pid_t pid = stap_spawn(s->verbose, cmd);
+          if (pid > 0)
+	    child = pid;
+	  else
+	    {
+	      cerr << "failed to run the module on " << uri
+		   << " : ret=" << pid << endl;
+	      rc = -1;
+	    }
         }
 
-        // Remove the tempdir.
-        // XXX need to make sure this runs even with e.g. CTRL-C exits
-        {
-          string cmd = "ssh -t -q " + quri + " rm -r " + tmpdir;
-          int rc2 = stap_system(s.verbose, cmd);
-          if (rc2 != 0)
-            cerr << "failed to delete the tempdir on " << uri
-                 << " : rc=" << rc2 << endl;
-          if (rc == 0)
-            rc = rc2;
-        }
+	return rc;
+      }
 
-        return rc;
+    int finish()
+      {
+	int rc = 0;
+
+	if (child > 0)
+	  {
+	    rc = stap_waitpid(s->verbose, child);
+	    child = 0;
+	  }
+
+        if (!tmpdir.empty())
+	  {
+	    // Remove the tempdir.
+	    // XXX need to make sure this runs even with e.g. CTRL-C exits
+	    string quri = lex_cast_qstring(uri);
+	    string cmd = "ssh -t -q " + quri + " rm -r " + tmpdir;
+	    tmpdir.clear();
+	    int rc2 = stap_system(s->verbose, cmd);
+	    if (rc2 != 0)
+	      cerr << "failed to delete the tempdir on " << uri
+		   << " : rc=" << rc2 << endl;
+	    if (rc == 0)
+	      rc = rc2;
+	  }
+
+	return rc;
       }
 };
 

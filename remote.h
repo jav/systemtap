@@ -15,20 +15,20 @@
 
 class remote {
   protected:
-    std::string arch, release;
-    remote() {}
+    systemtap_session* s;
+
+    remote(systemtap_session& s): s(&s) {}
 
   public:
     static remote* create(systemtap_session& s, const std::string& uri);
 
-    const std::string& get_arch() { return arch; }
-    const std::string& get_release() { return release; }
+    systemtap_session* get_session() { return s; }
 
     virtual ~remote() {}
-    virtual int run(systemtap_session& s) = 0;
+    virtual int start() = 0;
+    virtual int finish() = 0;
 };
 
 #endif // REMOTE_H
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
-

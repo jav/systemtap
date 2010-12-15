@@ -163,6 +163,9 @@ struct systemtap_session
 
   // Remote execution
   std::vector<std::string> remote_uris;
+  typedef std::map<std::pair<std::string, std::string>, systemtap_session*> session_map_t;
+  session_map_t subsessions;
+  systemtap_session* clone(const std::string& arch, const std::string& release);
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).

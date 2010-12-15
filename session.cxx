@@ -206,6 +206,8 @@ systemtap_session::~systemtap_session ()
   if (NSPR_Initialized)
     PR_Cleanup ();
 #endif // HAVE_NSS
+
+  delete_map(subsessions);
 }
 
 void
@@ -218,6 +220,22 @@ systemtap_session::NSPR_init ()
       NSPR_Initialized = true;
     }
 #endif // HAVE_NSS
+}
+
+systemtap_session*
+systemtap_session::clone(const string& arch, const string& release)
+{
+  if (this->architecture == arch && this->kernel_release == release)
+    return this;
+
+  systemtap_session*& s = subsessions[make_pair(arch, release)];
+  if (!s)
+    {
+      s = new systemtap_session(*this);
+      s->machine = s->architecture = arch;
+      s->setup_kernel_release(release.c_str());
+    }
+  return s;
 }
 
 void
@@ -1431,3 +1449,5 @@ systemtap_session::morehelp =
 "\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20"
 "\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x1b"
                                                                 "\x5b\x30\x6d";
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
