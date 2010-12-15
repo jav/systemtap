@@ -117,7 +117,7 @@ badCertHandler(void *arg __attribute__ ((unused)), PRFileDesc *sslSocket)
   SECItem subAltName;
   PRArenaPool *tmpArena;
   CERTGeneralName *nameList, *current;
-  const char *expected;
+  char *expected;
 
   errorNumber = PR_GetError ();
   if (errorNumber == SSL_ERROR_BAD_CERT_DOMAIN)
@@ -171,6 +171,7 @@ badCertHandler(void *arg __attribute__ ((unused)), PRFileDesc *sslSocket)
       while (current != nameList);
 
       // Don't free nameList. It's part of the tmpArena.
+      PORT_Free (expected);
       PORT_FreeArena (tmpArena, PR_FALSE);
       if (current != nameList)
 	return SECSuccess;
