@@ -289,6 +289,42 @@ and limits the string to <replaceable>n</replaceable> bytes.
 
 </section>
 
+<section id="targetavailable">
+	<title>Checking Target Variable Availablility</title>
+<indexterm>
+<primary>target variables</primary>
+<secondary>variable availability</secondary>
+</indexterm>
+
+<para>
+	As code evolves the target variables available may change.
+	The <command>@defined</command> makes it easier to handle
+	those variations in the available target variables.
+	The <command>@defined</command> provides a test to see if a particular
+	target variable is available. The result of this test
+	can be used to select the appropriate expression.
+</para>
+
+<para>
+	The <xref linkend="available"/> from the
+	<command>memory.stp</command> tapset provides an probe event alias.
+	Some version of the kernel functions being probed have an argument
+	<command>$flags</command>. In those cases, the
+	<command>$flags</command> argument is used to generate
+	the local variable <command>write</command>.
+	The versions of the probed functions that do not have the
+	<command>$flags</command> argument have a <command>$write</command>
+	argument and that is used instead for the local variable
+	<command>write</command>.
+</para>
+
+<example id="available">
+	<title>Testing target variable available Example</title>
+<programlisting><xi:include parse="text" href="extras/defined_example.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
+</example>
+
+</section>
+
 </section>
 
 <section id="handlerconditionalstatements">
