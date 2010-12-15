@@ -259,7 +259,8 @@ and limits the string to <replaceable>n</replaceable> bytes.
 	Also the typing information available within a probe handler is not
 	available within a function;
 	SystemTap functions arguments use a long in place of a typed pointer.
-	SystemTap's <command>@cast</command> operator can be used to indicate
+	SystemTap's <command>@cast</command> operator (first available in 
+	SystemTap 0.9) can be used to indicate
 	the correct type of the object.
 </para>
 
