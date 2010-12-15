@@ -284,10 +284,7 @@ and limits the string to <replaceable>n</replaceable> bytes.
 
 <example id="casting">
 	<title>Casting Example</title>
-<programlisting>function task_state:long (task:long)
-{
-    return @cast(task, "task_struct", "kernel&lt;linux/sched.h>")->state
-}</programlisting>
+<programlisting><xi:include parse="text" href="extras/cast_example.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
 </example>
 
 </section>
