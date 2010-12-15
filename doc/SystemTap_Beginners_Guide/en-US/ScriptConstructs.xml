@@ -243,6 +243,53 @@ and limits the string to <replaceable>n</replaceable> bytes.
 
 <!-- FIXME should mention the $$arg, $$parms, pretty printing -->
 
+<section id="typecasting">
+	<title>Typecasting</title>
+<indexterm>
+<primary>target variables</primary>
+<secondary>typecasting</secondary>
+</indexterm>
+
+<para>
+	In most cases SystemTap can determine a variable's type
+	from the debug information.
+	However, code may use void pointers for variables
+	(for example memory allocation routines) and typing information is
+	not available.
+	Also the typing information available within a probe handler is not
+	available within a function;
+	SystemTap functions arguments use a long in place of a typed pointer.
+	SystemTap's <command>@cast</command> operator can be used to indicate
+	the correct type of the object.
+</para>
+
+<para>
+	The <xref linkend="casting"/> is from the
+	<command>task.stp</command> tapset.
+	The function returns the value of the <command>state</command>
+	field from a <command>task_struct</command> pointed to by
+	the long <command>task</command>.
+	The first argument of the <command>@cast</command> operator,
+	<command>task</command>, is the pointer to the object.
+	The second argument is the type to cast the object to,
+	<command>task_struct</command>.
+	The third arument lists what file that the type definition
+	information comes from and is optional.
+	With the <command>@cast</command> operator the various fields of
+	this particular  <command>task_struct</command> <command>task</command>
+	can be accessed; in this example the <command>state</command> field
+	is obtained.
+</para>
+
+<example id="casting">
+	<title>Casting Example</title>
+<programlisting>function task_state:long (task:long)
+{
+    return @cast(task, "task_struct", "kernel&lt;linux/sched.h>")->state
+}</programlisting>
+</example>
+
+</section>
 
 </section>
 
