@@ -507,7 +507,7 @@ compile_server_client::find_and_connect_to_server ()
   // Examine the specified servers to make sure that each has been resolved
   // with a host name, ip address and port. If not, try to obtain this
   // information by examining online servers.
-  vector<compile_server_info> server_list;
+  vector<compile_server_info> server_list = specified_servers;
   for (vector<compile_server_info>::const_iterator i = specified_servers.begin ();
        i != specified_servers.end ();
        ++i)
@@ -654,8 +654,17 @@ compile_server_client::compile_using_server (
 		 << "  using certificates from the database in " << cert_dir
 		 << endl;
 
-	  assert (! j->ip_address.empty ());
-	  rc = client_main (j->host_name.c_str (),
+	  // The host name defaults to the ip address, if not specified.
+	  string hostName;
+	  if (j->host_name.empty ())
+	    {
+	      assert (! j->ip_address.empty ());
+	      hostName = j->ip_address;
+	    }
+	  else
+	    hostName = j->host_name;
+
+	  rc = client_main (hostName.c_str (),
 			    stringToIpAddress (j->ip_address),
 			    j->port,
 			    client_zipfile.c_str(), server_zipfile.c_str (),
@@ -663,7 +672,7 @@ compile_server_client::compile_using_server (
 	  if (rc == SECSuccess)
 	    {
 	      s.winning_server =
-		j->host_name + string(" [") +
+		hostName + string(" [") +
 		j->ip_address + string(":") +
 		lex_cast(j->port) + string("]");
 	      break; // Success!
@@ -1977,6 +1986,12 @@ get_server_info_from_db (
 	  continue;
 	}
 
+      // We're interested in the first alternate name.
+      assert (nameList->type == certDNSName);
+      server_info.host_name = string ((const char *)nameList->name.other.data,
+				      nameList->name.other.len);
+      // Don't free nameList. It's part of the tmpArena.
+
       // Get the serial number.
       ostringstream field;
       field << hex << setfill('0') << right;
@@ -1987,12 +2002,6 @@ get_server_info_from_db (
 	  field << setw(2) << (unsigned)db_cert->serialNumber.data[i];
 	}
       server_info.certinfo = field.str ();
-
-      // We're interested in the first alternate name.
-      assert (nameList->type == certDNSName);
-      server_info.host_name = string ((const char *)nameList->name.other.data,
-				      nameList->name.other.len);
-      // Don't free nameList. It's part of the tmpArena.
 
       // Our results will at a minimum contain this server.
       add_server_info (server_info, servers);

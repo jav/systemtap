@@ -34,6 +34,8 @@
 
 #include "nsscommon.h"
 
+#include <assert.h>
+
 #define READ_BUFFER_SIZE (60 * 1024)
 static const char *trustNewServer_p = NULL;
 
@@ -112,11 +114,71 @@ badCertHandler(void *arg __attribute__ ((unused)), PRFileDesc *sslSocket)
   SECStatus secStatus;
   PRErrorCode errorNumber;
   CERTCertificate *serverCert;
+  SECItem subAltName;
+  PRArenaPool *tmpArena;
+  CERTGeneralName *nameList, *current;
+  const char *expected;
+
+  errorNumber = PR_GetError ();
+  if (errorNumber == SSL_ERROR_BAD_CERT_DOMAIN)
+    {
+      // The default authentication function does not seem to match names
+      // which resemble ip addresses. Try to the match the
+      // requested host name against the alternate names in the certificate
+      // ourselves.
+      // The alternate names are in the alt-name extension of the
+      // certificate.
+      serverCert = SSL_PeerCertificate (sslSocket);
+      subAltName.data = NULL;
+      secStatus = CERT_FindCertExtension (serverCert,
+					  SEC_OID_X509_SUBJECT_ALT_NAME,
+					  & subAltName);
+      if (secStatus != SECSuccess || ! subAltName.data)
+	{
+	  fprintf (stderr, "Unable to find alt name extension on server certificate\n");
+	  return SECFailure;
+	}
+
+      // Decode the extension.
+      tmpArena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+      if (! tmpArena) 
+	{
+	  fprintf (stderr, "Out of memory\n");
+	  return SECFailure;
+	}
+      nameList = CERT_DecodeAltNameExtension (tmpArena, & subAltName);
+      SECITEM_FreeItem(& subAltName, PR_FALSE);
+      if (! nameList)
+	{
+	  fprintf (stderr, "Unable to decode alt name extension on server certificate\n");
+	  PORT_FreeArena (tmpArena, PR_FALSE);
+	  return SECFailure;
+	}
+
+      /* Look for the expected host name in the list of alternate DNS names.
+	 It is a circular list.  */
+      expected = SSL_RevealURL (sslSocket);
+      current = nameList;
+      do
+	{
+	  /* Make sure this is a DNS name.  */
+	  if (current->type != certDNSName)
+	    continue;
+	  if (strncmp (expected, (char *)current->name.other.data, current->name.other.len) == 0)
+	    break;
+	  current = CERT_GetNextGeneralName (current);
+	}
+      while (current != nameList);
+
+      // Don't free nameList. It's part of the tmpArena.
+      PORT_FreeArena (tmpArena, PR_FALSE);
+      if (current != nameList)
+	return SECSuccess;
+      return SECFailure;
+    }
 
   /* By default, don't trust the certificate.  */
   secStatus = SECFailure;
-
-  errorNumber = PR_GetError ();
   if (errorNumber == SEC_ERROR_CA_CERT_INVALID)
     {
       /* The server's certificate is not trusted. Should we trust it? */
@@ -389,7 +451,7 @@ do_connect(
 }
 
 int
-client_main (const char *hostName, PRUint32 ip __attribute__ ((unused)),
+client_main (const char *hostName, PRUint32 ip,
 	     PRUint16 port,
 	     const char* infileName, const char* outfileName,
 	     const char* trustNewServer)
@@ -495,7 +557,6 @@ main(int argc, char **argv)
 
   progName = PL_strdup(argv[0]);
 
-  hostName = NULL;
   optstate = PL_CreateOptState(argc, argv, "d:h:i:o:p:t:");
   while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK)
     {
