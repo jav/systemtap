@@ -20,6 +20,8 @@ probe begin {
 	print (user_string_n_quoted(0, 0))
 	print (user_short(0))
 	print (user_short_warn(0))
+	print (user_ushort(0))
+	print (user_ushort_warn(0))
 	print (user_int(0))
 	print (user_int_warn(0))
 	print (user_long(0))

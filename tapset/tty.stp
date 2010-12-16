@@ -9,11 +9,6 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-%{
-// For 'struct winsize'
-#include <linux/termios.h>
-%}
-
 /**
  * probe tty.open - Called when a tty is opened
  * @inode_number: the inode number
@@ -66,36 +61,6 @@ probe tty.release = kernel.function("tty_release")
 	file_flags = $filp->f_flags
 }
 
-function _struct_winsize_u:long(uaddr:long, n:long)
-%{
-	struct winsize tmp_ws;
-	char *uaddr = (char *)(unsigned long)THIS->uaddr;
-
-	if (uaddr == NULL || THIS->n > 3)
-		THIS->__retvalue = -1;
-	else {
-		if (_stp_copy_from_user((char *)&tmp_ws, uaddr,
-					sizeof(tmp_ws))) {
-			switch (THIS->n) {
-			case 0:
-				THIS->__retvalue = tmp_ws.ws_row;
-				break;
-			case 1:
-				THIS->__retvalue = tmp_ws.ws_col;
-				break;
-			case 2:
-				THIS->__retvalue = tmp_ws.ws_ypixel;
-				break;
-			case 3:
-				THIS->__retvalue = tmp_ws.ws_xpixel;
-				break;
-			}
-		}
-		else
-			THIS->__retvalue = -1;
-	}
-%}
-
 /**
  * probe tty.resize - Called when a terminal resize happens
  * @name: the tty name
@@ -117,10 +82,10 @@ probe tty.resize = kernel.function("tiocswinsz")
 	old_xpixel = $tty->winsize->ws_xpixel
 
 	if (@defined($arg)) {
-		new_row = _struct_winsize_u($arg, 0)
-		new_col = _struct_winsize_u($arg, 1)
-		new_ypixel = _struct_winsize_u($arg, 2)
-		new_xpixel = _struct_winsize_u($arg, 3)
+		new_row = user_ushort($arg->ws_row)
+		new_col = user_ushort($arg->ws_col)
+		new_ypixel = user_ushort($arg->ws_ypixel)
+		new_xpixel = user_ushort($arg->ws_xpixel)
 	}
 	else {
 		new_row = -1

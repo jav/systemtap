@@ -249,6 +249,31 @@ function user_short_warn:long (addr:long) %{ /* pure */ /* unprivileged */
 %}
 
 /**
+ * sfunction user_ushort - Retrieves an unsigned short value stored in user space
+ *
+ * @addr: the user space address to retrieve the unsigned short from
+ *
+ * Description: Returns the unsigned short value from a given user
+ * space address.  Returns zero when user space data is not accessible.
+ */
+function user_ushort:long (addr:long) %{ /* pure */ /* unprivileged */
+	STP_GET_USER(unsigned short);
+%}
+
+/**
+ * sfunction user_ushort_warn - Retrieves an unsigned short value stored in user space
+ *
+ * @addr: the user space address to retrieve the unsigned short from
+ *
+ * Description: Returns the unsigned short value from a given user
+ * space address.  Returns zero when user space and warns (but does
+ * not abort) about the failure.
+ */
+function user_ushort_warn:long (addr:long) %{ /* pure */ /* unprivileged */
+	STP_GET_USER_WARN(unsigned short);
+%}
+
+/**
  * sfunction user_int - Retrieves an int value stored in user space
  *
  * @addr: the user space address to retrieve the int from
