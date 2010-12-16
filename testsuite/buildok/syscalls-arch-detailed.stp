@@ -3,6 +3,8 @@
 # Arch-specific probes that all/most arches support.
 #
 
+# Newer kernel's syscall.mmap2 tests are in syscalls-detailed.stp.
+%( kernel_v < "2.6.33" %?
 %( arch != "i386" %?
 probe syscall.mmap
 {
@@ -26,6 +28,7 @@ probe syscall.mmap2.return ?
 {
 	printf("%s, %s\n", name, retstr)
 }
+%)
 
 probe syscall.sigaltstack
 {
@@ -504,6 +507,8 @@ probe syscall.iopl.return
 
 # syscall.sysctl32 is above
 
+# Newer kernel's syscall.mmap2 tests are in syscalls-detailed.stp.
+%( kernel_v < "2.6.33" %?
 # syscall.mmap is above, but we want to make sure syscall.mmap32
 # matches syscall.mmap
 probe syscall.mmap, syscall.mmap32
@@ -516,6 +521,7 @@ probe syscall.mmap.return, syscall.mmap32.return
 {
 	printf("%s, %s\n", name, retstr)
 }
+%)
 
 # syscall.mmap2 is above
 
