@@ -115,80 +115,83 @@ badCertHandler(void *arg __attribute__ ((unused)), PRFileDesc *sslSocket)
   PRErrorCode errorNumber;
   CERTCertificate *serverCert;
   SECItem subAltName;
-  PRArenaPool *tmpArena;
+  PRArenaPool *tmpArena = NULL;
   CERTGeneralName *nameList, *current;
-  char *expected;
+  char *expected = NULL;
 
   errorNumber = PR_GetError ();
-  if (errorNumber == SSL_ERROR_BAD_CERT_DOMAIN)
+  switch (errorNumber)
     {
-      // The default authentication function does not seem to match names
-      // which resemble ip addresses. Try to the match the
-      // requested host name against the alternate names in the certificate
-      // ourselves.
-      // The alternate names are in the alt-name extension of the
-      // certificate.
-      serverCert = SSL_PeerCertificate (sslSocket);
+    case SSL_ERROR_BAD_CERT_DOMAIN:
+      /* Since we administer our own client-side databases of trustworthy
+	 certificates, we don't need the domain name(s) on the certificate to
+	 match. If the cert is in our database, then we can trust it.
+	 Issue a warning and accept the certificate.  */
+      expected = SSL_RevealURL (sslSocket);
+      fprintf (stderr, "WARNING: The domain name, %s, does not match the DNS name(s) on the server certificate:\n", expected);
+
+      /* List the DNS names from the server cert as part of the warning.
+	 First, find the alt-name extension on the certificate.  */
       subAltName.data = NULL;
+      serverCert = SSL_PeerCertificate (sslSocket);
       secStatus = CERT_FindCertExtension (serverCert,
 					  SEC_OID_X509_SUBJECT_ALT_NAME,
 					  & subAltName);
       if (secStatus != SECSuccess || ! subAltName.data)
 	{
-	  fprintf (stderr, "Unable to find alt name extension on server certificate\n");
-	  return SECFailure;
+	  fprintf (stderr, "Unable to find alt name extension on the server certificate\n");
+	  secStatus = SECSuccess; /* Not a fatal error */
+	  break;
 	}
 
-      // Decode the extension.
+      // Now, decode the extension.
       tmpArena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
       if (! tmpArena) 
 	{
 	  fprintf (stderr, "Out of memory\n");
-	  return SECFailure;
+	  secStatus = SECSuccess; /* Not a fatal error here */
+	  break;
 	}
       nameList = CERT_DecodeAltNameExtension (tmpArena, & subAltName);
       SECITEM_FreeItem(& subAltName, PR_FALSE);
       if (! nameList)
 	{
 	  fprintf (stderr, "Unable to decode alt name extension on server certificate\n");
-	  PORT_FreeArena (tmpArena, PR_FALSE);
-	  return SECFailure;
+	  secStatus = SECSuccess; /* Not a fatal error */
+	  break;
 	}
 
-      /* Look for the expected host name in the list of alternate DNS names.
-	 It is a circular list.  */
-      expected = SSL_RevealURL (sslSocket);
+      /* List the DNS names from the server cert as part of the warning.
+	 The names are in a circular list.  */
       current = nameList;
       do
 	{
 	  /* Make sure this is a DNS name.  */
-	  if (current->type != certDNSName)
-	    continue;
-	  if (strncmp (expected, (char *)current->name.other.data, current->name.other.len) == 0)
-	    break;
+	  if (current->type == certDNSName)
+	    {
+	      fprintf (stderr, "  %.*s\n",
+		       (int)current->name.other.len, current->name.other.data);
+	    }
 	  current = CERT_GetNextGeneralName (current);
 	}
       while (current != nameList);
 
-      // Don't free nameList. It's part of the tmpArena.
-      PORT_Free (expected);
-      PORT_FreeArena (tmpArena, PR_FALSE);
-      if (current != nameList)
-	return SECSuccess;
-      return SECFailure;
-    }
+      /* Accept the certificate */
+      secStatus = SECSuccess;
+      break;
 
-  /* By default, don't trust the certificate.  */
-  secStatus = SECFailure;
-  if (errorNumber == SEC_ERROR_CA_CERT_INVALID)
-    {
+    case SEC_ERROR_CA_CERT_INVALID:
       /* The server's certificate is not trusted. Should we trust it? */
+      secStatus = SECFailure; /* Do not trust by default. */
       if (trustNewServer_p == NULL)
-	return SECFailure; /* Do not trust this server */
+	break;
 
       /* Trust it for this session only?  */
       if (strcmp (trustNewServer_p, "session") == 0)
-	return SECSuccess;
+	{
+	  secStatus = SECSuccess;
+	  break;
+	}
 
       /* Trust it permanently?  */
       if (strcmp (trustNewServer_p, "permanent") == 0)
@@ -199,7 +202,16 @@ badCertHandler(void *arg __attribute__ ((unused)), PRFileDesc *sslSocket)
 	  if (serverCert != NULL)
 	    secStatus = trustNewServer (serverCert);
 	}
+      break;
+    default:
+      secStatus = SECFailure; /* Do not trust this server */
+      break;
     }
+
+  if (expected)
+    PORT_Free (expected);
+  if (tmpArena)
+    PORT_FreeArena (tmpArena, PR_FALSE);
 
   return secStatus;
 }
