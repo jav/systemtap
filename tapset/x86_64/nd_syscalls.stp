@@ -83,12 +83,15 @@ probe nd_syscall.sysctl32.return = kprobe.function("sys32_sysctl").return ?
 	retstr = returnstr(1)
 }
 
+# In kernels < 2.6.33, mmap()/mmap2() was handled by arch-specific
+# code.  In kernels >= 2.6.33, the arch-specific code just calls
+# generic sys_mmap_pgoff().
+%( kernel_v < "2.6.33" %?
 # mmap
 # long sys_mmap(unsigned long addr, unsigned long len,
 #          unsigned long prot, unsigned long flags,
 #          unsigned long fd, unsigned long off)
-probe nd_syscall.mmap = kprobe.function("sys_mmap") ?,
-                        kprobe.function("sys_mmap_pgoff") ?
+probe nd_syscall.mmap = kprobe.function("sys_mmap") ?
 {
 	name = "mmap"
 	// start = $addr
@@ -112,8 +115,7 @@ probe nd_syscall.mmap = kprobe.function("sys_mmap") ?,
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", start, len,
 		_mprotect_prot_str(prot), _mmap_flags(flags), fd, offset)
 }
-probe nd_syscall.mmap.return = kprobe.function("sys_mmap").return ?,
-                               kprobe.function("sys_mmap_pgoff").return ?
+probe nd_syscall.mmap.return = kprobe.function("sys_mmap").return ?
 {
 	name = "mmap"
 	retstr = returnstr(2)
@@ -139,7 +141,8 @@ probe nd_syscall.mmap32.return = kprobe.function("sys32_mmap").return
 #	unsigned long prot, unsigned long flags,
 #	unsigned long fd, unsigned long pgoff)
 #
-probe nd_syscall.mmap2 = kprobe.function("sys32_mmap2") ?
+probe nd_syscall.mmap2 = kprobe.function("sys_mmap_pgoff") ?,
+	kprobe.function("sys32_mmap2") ?
 {
 	name = "mmap2"
 	// argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
@@ -150,11 +153,13 @@ probe nd_syscall.mmap2 = kprobe.function("sys32_mmap2") ?
 		_mprotect_prot_str(ulong_arg(3)), _mmap_flags(ulong_arg(4)),
 		int_arg(5), ulong_arg(6))
 }
-probe nd_syscall.mmap2.return = kprobe.function("sys32_mmap2").return ?
+probe nd_syscall.mmap2.return = kprobe.function("sys_mmap_pgoff").return ?,
+	kprobe.function("sys32_mmap2").return ?
 {
 	name = "mmap2"
 	retstr = returnstr(2)
 }
+%)
 
 # vm86_warning _____________________________________________________
 #

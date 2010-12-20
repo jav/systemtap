@@ -67,6 +67,10 @@ probe nd_syscall.ipc.return = kprobe.function("sys_ipc").return ?
 	retstr = returnstr(1)
 }
 
+# In kernels < 2.6.33, mmap()/mmap2() was handled by arch-specific
+# code.  In kernels >= 2.6.33, the arch-specific code just calls
+# generic sys_mmap_pgoff().
+%( kernel_v < "2.6.33" %?
 # mmap2 ____________________________________________
 # sys_mmap2(unsigned long addr, unsigned long len,
 #	  unsigned long prot, unsigned long flags,
@@ -104,6 +108,7 @@ probe nd_syscall.mmap2.return = kprobe.function("sys_mmap_pgoff").return ?,
 	name = "mmap2"
 	retstr = returnstr(2)
 }
+%)
 
 # set_thread_area ____________________________________________
 /*

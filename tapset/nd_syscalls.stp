@@ -3383,6 +3383,47 @@ probe nd_syscall.mount.return = kprobe.function("compat_sys_mount").return ?,
 	retstr = returnstr(1)
 }
 
+%( kernel_v >= "2.6.33" %?
+# In newer kernels (2.6.33+), all the sys_mmap() variants are just 
+# wrappers around sys_mmap_pgoff(), which is in arch-generic code.
+#
+# long sys_mmap_pgoff(unsigned long addr, unsigned long len,
+#		unsigned long prot, unsigned long flags,
+#		unsigned long fd, unsigned long pgoff)
+probe nd_syscall.mmap2 = kprobe.function("sys_mmap_pgoff") ?
+{
+	name = "mmap2"
+	// start = $addr
+	// length = $len
+	// prot = $prot
+	// flags = $flags
+	// # Although the kernel gets an unsigned long fd, on the
+	// # user-side it is a signed int.  Fix this.
+	// fd = __int32($fd)
+	// pgoffset = $pgoff
+	// argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
+	// 	_mprotect_prot_str($prot), _mmap_flags($flags),
+	// 	__int32($fd), $pgoff)
+	asmlinkage()
+	start = ulong_arg(1)
+	length = ulong_arg(2)
+	prot = ulong_arg(3)
+	flags = ulong_arg(4)
+	# Although the kernel gets an unsigned long fd, on the
+	# user-side it is a signed int.  Fix this.
+	fd = int_arg(5)
+	pgoffset = ulong_arg(6)
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", start, length,
+		_mprotect_prot_str(prot), _mmap_flags(flags),
+		fd, pgoffset)
+}
+probe nd_syscall.mmap2.return = kprobe.function("sys_mmap_pgoff").return ?
+{
+        name = "mmap2"
+        retstr = returnstr(2)
+}
+%)
+
 # mprotect ___________________________________________________
 # long sys_mprotect(unsigned long start, size_t len, unsigned long prot)
 #

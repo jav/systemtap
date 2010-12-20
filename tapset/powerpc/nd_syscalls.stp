@@ -345,6 +345,33 @@ probe nd_syscall.sys32_rt_sigqueueinfo.return = kprobe.function("sys32_rt_sigque
 	retstr = returnstr(1)
 }
 
+# sigaltstack ________________________________________________
+# long sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss,
+#		       unsigned long r5, unsigned long r6,
+#		       unsigned long r7, unsigned long r8, 
+#		       struct pt_regs *regs)
+#
+# NOTE: args vary between archs.
+#
+probe nd_syscall.sigaltstack = kprobe.function("sys_sigaltstack")
+{
+	name = "sigaltstack"
+	// uss_uaddr = $uss
+	// uoss_uaddr = $uoss
+	// regs = $regs
+	// argstr = sprintf("%p, %p", $uss, $uoss)
+	asmlinkage()
+	uss_uaddr = pointer_arg(1)
+	uoss_uaddr = pointer_arg(2)
+	regs = pointer_arg(7)
+	argstr = sprintf("%p, %p", uss_uaddr, uoss_uaddr)
+}
+probe nd_syscall.sigaltstack.return = kprobe.function("sys_sigaltstack").return
+{
+	name = "sigaltstack"
+	retstr = returnstr(1)
+}
+
 # sys32_sigaltstack ________________________________________
 #
 # int sys32_sigaltstack(u32 __new, u32 __old, int r5,
@@ -625,6 +652,10 @@ probe nd_syscall.compat_set_mempolicy.return = kprobe.function("compat_set_mempo
 	retstr = returnstr(1)
 }
 
+# In kernels < 2.6.33, mmap()/mmap2() was handled by arch-specific
+# code.  In kernels >= 2.6.33, the arch-specific code just calls
+# generic sys_mmap_pgoff().
+%( kernel_v < "2.6.33" %?
 # mmap
 # long sys_mmap(unsigned long addr, size_t len,
 #		       unsigned long prot, unsigned long flags,
@@ -701,6 +732,7 @@ probe nd_syscall.mmap2.return = kprobe.function("sys_mmap2").return ?,
 	name = "mmap2"
 	retstr = returnstr(2)
 }
+%)
 
 # ppc64_sys_stime ________________________________________
 #

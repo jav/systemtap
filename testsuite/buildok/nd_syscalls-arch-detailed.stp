@@ -1,0 +1,548 @@
+#! stap -p4
+#
+# Arch-specific probes that all/most arches support.
+#
+
+# Newer kernel's nd_syscall.mmap2 tests are in nd_syscalls-detailed.stp.
+%( kernel_v < "2.6.33" %?
+%( arch != "i386" %?
+probe nd_syscall.mmap
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %d, %d, %d, %d, %d\n", start, len, prot, flags, fd,
+	       offset)
+}
+probe nd_syscall.mmap.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+%)
+
+probe nd_syscall.mmap2 ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %d, %d, %d, %d, %d", start, length, prot, flags,
+	       fd, pgoffset)
+}
+probe nd_syscall.mmap2.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+%)
+
+probe nd_syscall.sigaltstack ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %p, %p\n", uss_uaddr, uoss_uaddr, regs)
+}
+probe nd_syscall.sigaltstack.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_sigaltstack ?
+{
+	printf("%s, %s\n", name, argstr)
+}
+probe nd_syscall.sys32_sigaltstack.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sysctl ?, nd_syscall.sysctl32 ?
+{
+	printf("%s, %s\n", name, argstr)
+}
+probe nd_syscall.sysctl.return ?, nd_syscall.sysctl32.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+#
+# i386-specific probes
+#
+
+%( arch == "i386" %?
+probe nd_syscall.get_thread_area
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p", u_info_uaddr)
+}
+probe nd_syscall.get_thread_area.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.iopl
+{
+	printf("%s, %s\n", name, argstr)
+}
+probe nd_syscall.iopl.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.ipc ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %d, %d, %d, %p, %d", call, first, second, third,
+	       ptr_uaddr, fifth)
+}
+probe nd_syscall.ipc.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+# nd_syscall.mmap2 is above
+
+probe nd_syscall.set_thread_area
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p", u_info_uaddr)
+}
+probe nd_syscall.set_thread_area.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.set_zone_reclaim ?
+{
+	name = "set_zone_reclaim"
+	printf("%d, %d, %d", node, zone, state)
+}
+probe nd_syscall.set_zone_reclaim.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+# nd_syscall.sigaltstack is above
+
+probe nd_syscall.vm86, nd_syscall.vm86old ?
+{
+	printf("%s, %s\n", name, argstr)
+}
+probe nd_syscall.vm86.return, nd_syscall.vm86old.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+%)
+
+#
+# ia64-specific probes
+#
+
+%( arch == "ia64" %?
+# nd_syscall.mmap is above
+
+# nd_syscall.mmap2 is above
+
+# nd_syscall.sigaltstack is above
+
+# nd_syscall.sysctl32 is above
+%)
+
+#
+# powerpc-specific probes
+#
+
+%( arch == "powerpc" %?
+probe nd_syscall.sys64_time ?
+{
+	printf("%s, %s\n", name, argstr)
+}
+probe nd_syscall.sys64_time.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.ppc64_personality
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d\n", persona)
+}
+probe nd_syscall.ppc64_personality.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.ppc_rtas ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p\n", uargs_uaddr)
+}
+probe nd_syscall.ppc_rtas.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.ppc64_sys32_stime ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p\n", t_uaddr)
+}
+probe nd_syscall.ppc64_sys32_stime.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_ptrace ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %p, %p, %p", request, pid, addr, data)
+}
+probe nd_syscall.sys32_ptrace.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_sysinfo ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p\n", info_uaddr)
+}
+probe nd_syscall.sys32_sysinfo.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+# Notice no convenience variables like i386 version.  'ptr' is of a
+# different type.
+probe nd_syscall.ipc ?
+{
+	printf("%s, %s\n", name, argstr)
+}
+probe nd_syscall.ipc.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_sigreturn ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %p, %p, %p, %p, %p\n", r3, r4, r5, r6, r7, r8)
+}
+probe nd_syscall.sys32_sigreturn.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_adjtimex ?
+{
+	printf("%s, %s\n", name, argstr)
+}
+probe nd_syscall.sys32_adjtimex.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_getdents = kernel.function("sys32_getdents") ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %p, %d\n", fd, dirp_uaddr, count)
+}
+probe nd_syscall.sys32_getdents.return = kernel.function("sys32_getdents").return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+# nd_syscall.sysctl32 is above
+#probe nd_syscall.compat_sysctl ?
+#{
+#	printf("%s, %s\n", name, argstr)
+#}
+#probe nd_syscall.compat_sysctl.return ?
+#{
+#	printf("%s, %s\n", name, retstr)
+#}
+
+probe nd_syscall.sys32_sched_setparam ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %p\n", pid, param_uaddr)
+}
+probe nd_syscall.sys32_sched_setparam.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_sched_rr_get_interval ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %p\n", pid, interval_uaddr)
+}
+probe nd_syscall.sys32_sched_rr_get_interval.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_rt_sigpending ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %d\n", set_uaddr, sigsetsize)
+}
+probe nd_syscall.sys32_rt_sigpending.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_rt_sigtimedwait ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %p, %p, %p\n", uthese_uaddr, uinfo_uaddr,
+	       uts_uaddr, sigsetsize)
+}
+probe nd_syscall.sys32_rt_sigtimedwait.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_rt_sigqueueinfo ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %d, %p\n", pid, sig, uinfo_uaddr)
+}
+probe nd_syscall.sys32_rt_sigqueueinfo.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+# nd_syscall.sigaltstack is above
+
+probe nd_syscall.sys32_sendfile64 ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %d, %p, %d", out_fd, in_fd, offset_uaddr, count)
+}
+probe nd_syscall.sys32_sendfile64.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.ppc32_timer_create ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %p, %p\n", which_clock, timer_event_spec, created_timer_id)
+}
+probe nd_syscall.ppc32_timer_create.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.compat_timer_settime ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %d, %p, %p\n", timer_id, flags, new_setting_uaddr,
+	       old_setting_uaddr)
+}
+probe nd_syscall.compat_timer_settime.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.compat_timer_gettime ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %p\n", timer_id, setting_uaddr)
+}
+probe nd_syscall.compat_timer_gettime.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.compat_clock_settime ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %p\n", which_clock, tp_uaddr)
+}
+probe nd_syscall.compat_clock_settime.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_swapcontext ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %p, %d, %d, %d, %d, %p\n", old_ctx_uaddr,
+	       new_ctx_uaddr, r5, r6, r7, r8, regs)
+}
+probe nd_syscall.sys32_swapcontext.return = kernel.function("sys32_swapcontext").return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.sys32_utimes ?
+{
+	printf("%s, %s\n", name, argstr)
+	argstr = sprintf("%p(%s), %p\n", filename_uaddr, path, tvp_uaddr)
+}
+probe nd_syscall.sys32_utimes.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.compat_mbind ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %d, %d, %p, %d, %d\n", start_uaddr, len, policy,
+	       nodemask_uaddr, maxnode, flags)
+}
+probe nd_syscall.compat_mbind.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.compat_get_mempolicy ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %p, %d, %d, %d\n", policy_uaddr, nmask_uaddr,
+	       maxnode, addr, flags)
+}
+probe nd_syscall.compat_get_mempolicy.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.compat_set_mempolicy ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %p, %d\n", policy, nodemask_uaddr, maxnode)
+}
+probe nd_syscall.compat_set_mempolicy.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+# nd_syscall.mmap is above
+
+# nd_syscall.mmap2 is above
+
+probe nd_syscall.ppc64_sys_stime ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p\n", t_uaddr)
+}
+probe nd_syscall.ppc64_sys_stime.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.ppc64_newuname ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p\n", name_uaddr)
+}
+probe nd_syscall.ppc64_newuname.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+%)
+
+#
+# s390-specific probes
+#
+
+%( arch == "s390" %?
+probe nd_syscall.getresgid16
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %p, %p\n", rgid_uaddr, egid_uaddr, sgid_uaddr)
+}
+probe nd_syscall.getresgid16.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.getresuid16
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %p, %p\n", ruid_uaddr, euid_uaddr, suid_uaddr)
+}
+probe nd_syscall.getresuid16.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.ipc ?
+{
+	printf("%s, %s\n", name, argstr)
+}
+probe nd_syscall.ipc.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+# nd_syscall.mmap is above
+
+# nd_syscall.mmap2 is above
+
+# nd_syscall.sysctl32 is above
+%)
+
+#
+# x86_64-specific probes
+#
+
+%( arch == "x86_64" %?
+probe nd_syscall.arch_prctl
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %d\n", code, addr)
+}
+probe nd_syscall.arch_prctl.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.iopl
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d\n", level)
+}
+probe nd_syscall.iopl.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+# nd_syscall.sigaltstack is above
+
+# nd_syscall.sysctl32 is above
+
+# Newer kernel's nd_syscall.mmap2 tests are in nd_syscalls-detailed.stp.
+%( kernel_v < "2.6.33" %?
+# nd_syscall.mmap is above, but we want to make sure nd_syscall.mmap32
+# matches nd_syscall.mmap
+probe nd_syscall.mmap, nd_syscall.mmap32
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %d, %d, %d, %d, %d\n", start, len, prot, flags, fd,
+	       offset)
+}
+probe nd_syscall.mmap.return, nd_syscall.mmap32.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+%)
+
+# nd_syscall.mmap2 is above
+
+probe nd_syscall.vm86_warning
+{
+	printf("%s, %s\n", name, argstr)
+}
+probe nd_syscall.vm86_warning.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+probe nd_syscall.pipe32 ?
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%d, %s, %p, %d, %d\n", flags, flag_str, fildes_uaddr, pipe0,
+	       pipe1)
+}
+probe nd_syscall.pipe32.return ?
+{
+	printf("%s, %s\n", name, retstr)
+}
+
+%)
