@@ -241,7 +241,129 @@ and limits the string to <replaceable>n</replaceable> bytes.
 
 </variablelist>
 
-<!-- FIXME should mention the $$arg, $$parms, pretty printing -->
+<section id="targetprettyprinting">
+	<title>Pretty Printing Target Variables</title>
+<indexterm>
+<primary>target variables</primary>
+<secondary>pretty printing</secondary>
+</indexterm>
+
+<para>
+	SystemTap scripts are often used to observe what is happening within
+	the code.
+	In many cases just printing the values of the various context variables
+	is sufficient.
+	SystemTap makes a number operations available that can generate
+	printable strings for target variables:
+</para>
+
+<variablelist>
+	<varlistentry>
+	  <term>$$vars</term>
+	  <listitem>
+	    <para>
+	      Expands to a character string that is equivalent to
+	      <command>sprintf("parm1=%x ... parmN=%x var1=%x ... varN=%x",
+	      parm1, ..., parmN, var1, ..., varN)</command>
+	      for  each  variable  in  scope  at the probe point.
+	      Some values may be printed as <quote>=?</quote>
+	      if their run-time location cannot be found.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+
+	<varlistentry>
+	  <term>$$locals</term>
+	  <listitem>
+	    <para>
+              Expands to a subset of <command>$$vars</command>
+	      for only local variables.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>$$parms</term>
+	  <listitem>
+	    <para>
+              Expands to a subset of <command>$$vars</command>
+	      for only function parameters.
+	    </para>
+	  </listitem>
+	</varlistentry>
+
+	<varlistentry>
+	  <term>$$return</term>
+	  <listitem>
+	    <para>
+              Is available in return probes only.  It expands to a string that
+              is equivalent to 
+	      <command>sprintf("return=%x",  $return)</command> if the probed
+              function has a return value, or else an empty string.
+	    </para>
+	  </listitem>
+	</varlistentry>
+      </variablelist>
+
+<para>
+	Below is a command-line script that prints the values of the
+	parameters passed into the function <command>vfs_read</command>:
+</para>
+
+<programlisting>stap -e 'probe kernel.function("vfs_read") {printf("%s\n", $$parms); exit(); }'</programlisting>
+
+<para>
+	There are four parameters passed into <command>vfs_read</command>:
+	<command>file</command>, <command>buf</command>,
+	<command>count</command>, and <command>pos</command>.
+	The <command>$$parms</command> generates a string for the parameters
+	passed into the function. In this case all but the
+	<command>count</command> parameter are pointers. The following
+	is an example of the output from the previous command-line script:
+</para>
+
+<programlisting>file=0xffff8800b40d4c80 buf=0x7fff634403e0 count=0x2004 pos=0xffff8800af96df48</programlisting>
+
+<para>
+	Having the address a pointer points to may not be useful.
+	You might be more interested in the fields of the data structure the
+	pointer points to.
+	You can use the the <quote>$</quote> suffix to pretty print
+	the data structure.
+	The following command-line example uses the pretty printing suffix to
+	print more details about the data structures passed into the function
+	<command>vfs_read</command>:
+</para>
+
+<programlisting>stap -e 'probe kernel.function("vfs_read") {printf("%s\n", $$parms$); exit(); }'</programlisting>
+
+<para>
+	The previous command line will generate something similar to the
+	following with the fields of the data structure included in the output:
+</para>
+
+<programlisting>file={.f_u={...}, .f_path={...}, .f_op=0xffffffffa06e1d80, .f_lock={...}, .f_count={...}, .f_flags=34818, .f_mode=31, .f_pos=0, .f_owner={...}, .f_cred=0xffff88013148fc80, .f_ra={...}, .f_version=0, .f_security=0xffff8800b8dce560, .private_data=0x0, .f_ep_links={...}, .f_mapping=0xffff880037f8fdf8} buf="" count=8196 pos=-131938753921208</programlisting>
+
+<para>
+	With the <quote>$</quote> suffix fields that are composed of 
+	data structures are not expanded.
+	The <quote>$$</quote> suffix will print the values contained within
+	the nested data structures.
+	Below is an example using the <quote>$$</quote> suffix:
+</para>
+
+<programlisting>stap -e 'probe kernel.function("vfs_read") {printf("%s\n", $$parms$$); exit(); }'</programlisting>
+
+<para>
+	The <quote>$$</quote> suffix (and <quote>$</quote> suffix) output is 
+	limited to the maximum string size.
+	Below is a represenative output from the previous command-line script:
+</para>
+
+<programlisting>file={.f_u={.fu_list={.next=0xffff8801336ca0e8, .prev=0xffff88012ded0840}, .fu_rcuhead={.next=0xffff8801336ca0e8, .func=0xffff88012ded0840}}, .f_path={.mnt=0xffff880132fc97c0, .dentry=0xffff88001a889cc0}, .f_op=0xffffffffa06f64c0, .f_lock={.raw_lock={.slock=196611}}, .f_count={.counter=2}, .f_flags=34818, .f_mode=31, .f_pos=0, .f_owner={.lock={.raw_lock={.lock=16777216}}, .pid=0x0, .pid_type=0, .uid=0, .euid=0, .signum=0}, .f_cred=0xffff880130129a80, .f_ra={.start=0, .size=0, .async_size=0, .ra_pages=32, .</programlisting>
+
+</section>
 
 <section id="typecasting">
 	<title>Typecasting</title>
