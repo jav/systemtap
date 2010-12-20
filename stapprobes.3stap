@@ -856,7 +856,15 @@ refers to all kernel functions with "init" or "exit" in the name.
 .TP
 kernel.function("*@kernel/sched.c:240")
 refers to any functions within the "kernel/sched.c" file that span
-line 240.
+line 240.  
+.BR
+Note
+that this is
+.BR not
+a probe at the statement at that line number.  Use the
+.IR
+kernel.statement
+probe instead.
 .TP
 kernel.mark("getuid")
 refers to an STAP_MARK(getuid, ...) macro call in the kernel.
