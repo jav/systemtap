@@ -5927,7 +5927,31 @@ dwarf_builder::build(systemtap_session & sess,
                 if (string::npos != p2)
                   path.erase(p2+1);
 
-                user_path = find_executable (path);
+                // handle "#!/usr/bin/env" redirect
+                size_t offset = 0;
+                if (path.compare(0, sizeof("/bin/env")-1, "/bin/env") == 0)
+                {
+                  offset = sizeof("/bin/env")-1;
+                }
+                else if (path.compare(0, sizeof("/usr/bin/env")-1, "/usr/bin/env") == 0)
+                {
+                  offset = sizeof("/usr/bin/env")-1;
+                }
+
+                if (offset != 0)
+                {
+                    size_t p3 = path.find_first_not_of(" \t", offset);
+
+                    if (p3 != string::npos)
+                    {
+                       string env_path = path.substr(p3);
+                       user_path = find_executable (env_path);
+                    }
+                }
+                else
+                {
+                   user_path = find_executable (path);
+                }
 
                 struct stat st;
 
