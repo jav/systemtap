@@ -364,7 +364,8 @@ probe PROBEPOINT [, PROBEPOINT] { [STMT ...] }
 Events are specified in a special syntax called \emph{probe points}. There
 are several varieties of probe points defined by the translator, and tapset
 scripts may define others using aliases. The provided probe points are listed
-in the \tt{stapprobes(3)}, \tt{tapset::*(3stap)}, and \tt{probe::*(3stap)} man pages.
+in the \texttt{stapprobes(3)}, \texttt{tapset::*(3stap)}, and
+\texttt{probe::*(3stap)} man pages.
 
 The probe handler is interpreted relative to the context of each event. For
 events associated with kernel code, this context may include variables defined
@@ -2620,8 +2621,10 @@ rather than printing it.
 \section{Tapset-defined functions\label{sec:Predefined-Functions}}
 
 Unlike built-in functions, tapset-defined functions are implemented in tapset scripts.
-These are individually documented in the in the \tt{stapfuncs(3)}, \tt{function::*(3stap)},
-and \tt{probe::*(3stap)} man pages, and implemented under \tt{/usr/share/systemtap/tapset}.
+These are individually documented in the in the \texttt{stapfuncs(3)}, 
+\texttt{function::*(3stap)},
+and \texttt{probe::*(3stap)} man pages, and implemented under
+\texttt{/usr/share/systemtap/tapset}.
 
 \section{For Further Reference\label{sec:For-Further-Reference}}
 
