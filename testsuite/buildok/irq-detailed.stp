@@ -36,7 +36,7 @@ probe irq_handler.entry ?, irq_handler.exit ?
 
 probe softirq.entry ?, softirq.exit ?
 {
-	printf("%p %p %p\n", h, vec, action)
+	printf("%p %p %p %d\n", h, vec, action, vec_nr)
 }
 
 # Make sure we've got at least one probe.

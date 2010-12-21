@@ -130,12 +130,16 @@ probe irq_handler.exit = kernel.trace("irq_handler_exit") ?
  * @h: struct softirq_action* for current pending softirq
  * @vec: softirq_action vector
  * @action: pointer to softirq handler just about to execute
+ * @vec_nr:  softirq vector number
  */
 probe softirq.entry = kernel.trace("softirq_entry") ?
 {
-	h = $h
-	vec = $vec
-	action = $h->action
+	# kernels < 2.6.37
+	h = (@defined($h) ? $h : 0)
+	vec = (@defined($vec) ? $vec : 0)
+	action = (@defined($h) ? $h->action : 0)
+	# kernels >= 2.6.37
+	vec_nr = (@defined($vec_nr) ? $vec_nr : 0)
 }
 
 /**
@@ -143,10 +147,14 @@ probe softirq.entry = kernel.trace("softirq_entry") ?
  * @h: struct softirq_action* for just executed softirq
  * @vec: softirq_action vector
  * @action: pointer to softirq handler that just finished execution
+ * @vec_nr:  softirq vector number
  */
 probe softirq.exit = kernel.trace("softirq_exit") ?
 {
-	h = $h
-	vec = $vec
-	action = $h->action
+	# kernels < 2.6.37
+	h = (@defined($h) ? $h : 0)
+	vec = (@defined($vec) ? $vec : 0)
+	action = (@defined($h) ? $h->action : 0)
+	# kernels >= 2.6.37
+	vec_nr = (@defined($vec_nr) ? $vec_nr : 0)
 }
