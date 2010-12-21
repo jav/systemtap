@@ -1657,6 +1657,14 @@ query_cu (Dwarf_Die * cudie, void * arg)
 
       if (q->spec_type == function_file_and_line)
         {
+          // .statement(...:NN) often gets mixed up with .function(...:NN)
+          if (q->has_function_str)
+            q->sess.print_warning ("Using line number in .function() probe "
+                                   "means that function spanning given line "
+                                   "will be probed, not particular line. Use "
+                                   ".statement(\"" + q->function_str_val + "\") "
+                                   "instead if you're after fine-grained probing.");
+
           // If we have a pattern string with target *line*, we
           // have to look at lines in all the matched srcfiles.
           void (* callback) (const dwarf_line_t&, void*) =
