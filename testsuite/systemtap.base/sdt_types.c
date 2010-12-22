@@ -98,7 +98,13 @@ main (int argc, char **argv)
     blue = 2
   } primary_colors_var = green;
 
-  struct opaque *incomplete_type = 0;
+# if !defined(__cplusplus) || \
+	((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)) && __GXX_EXPERIMENTAL_CXX0X__)
+  struct opaque_struct *incomplete_struct_type = 0;
+# endif
+
+  /* gnu90 and gnu99 don't support this so for now don't test it
+     enum opaque_enum *incomplete_enum_type = 0; */
 
   /* char */
   STAP_PROBE1(provider,char_var,char_var);
@@ -155,7 +161,10 @@ main (int argc, char **argv)
 #endif
 
   STAP_PROBE1(provider,arr_char,ARRAY(arr_char));
+# if !defined(__cplusplus) || \
+	((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)) && __GXX_EXPERIMENTAL_CXX0X__)
   STAP_PROBE1(provider,arr_struct,ARRAY(arr_struct));
+# endif
 
   STAP_PROBE8(provider,bitfields_small_var,
 	      (int)bitfields_small_var.bit1_0,
@@ -178,11 +187,17 @@ main (int argc, char **argv)
 	       (int)bitfields_bit_var.bit9_25,
 	       bitfields_bit_var.char_34);
 
+# if !defined(__cplusplus) || \
+	((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)) && __GXX_EXPERIMENTAL_CXX0X__)
   STAP_PROBE1(provider,primary_colors_var,primary_colors_var);
+# endif
 
   STAP_PROBE3(provider,constants,0x7fffffff,'~',"constants");
 
-  STAP_PROBE1(provider, incomplete_type, incomplete_type);
+# if !defined(__cplusplus) || \
+	((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)) && __GXX_EXPERIMENTAL_CXX0X__)
+  STAP_PROBE1(provider, incomplete_struct_type, incomplete_struct_type);
+# endif
 
   STAP_PROBE(provider,something__dash__dash__something);
 
