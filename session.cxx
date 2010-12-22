@@ -26,6 +26,7 @@
 extern "C" {
 #include <getopt.h>
 #include <limits.h>
+#include <grp.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include <elfutils/libdwfl.h>
@@ -904,6 +905,29 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 void
 systemtap_session::check_options (int argc, char * const argv [])
 {
+  for (int i = optind; i < argc; i++)
+    {
+      if (! have_script)
+        {
+          script_file = string (argv[i]);
+          have_script = true;
+        }
+      else
+        args.push_back (string (argv[i]));
+    }
+
+  // need a user file
+  // NB: this is also triggered if stap is invoked with no arguments at all
+  if (! have_script)
+    {
+      // We don't need a script if --list-servers or --trust-servers was specified
+      if (server_status_strings.empty () && server_trust_spec.empty ())
+	{
+	  cerr << "A script must be specified." << endl;
+	  usage(1);
+	}
+    }
+
 #if ! HAVE_NSS
   if (client_options)
     cerr << "WARNING: --client-options is not supported by this version of systemtap" << endl;
@@ -927,6 +951,33 @@ systemtap_session::check_options (int argc, char * const argv [])
     {
       last_pass = 4; /* Quietly downgrade.  Server passed through -p5 naively. */
     }
+
+  // If phase 5 has been requested and the user is a member of stapusr but not
+  // stapdev, then add --unprivileged and --use-server to the invocation,
+  // if not already specified.
+  if (last_pass > 4 && have_script)
+    {
+      struct group *stgr = getgrnam ("stapusr");
+      if (stgr && in_group_id (stgr->gr_gid))
+	{
+	  stgr = getgrnam ("stapdev");
+	  if (! stgr || ! in_group_id (stgr->gr_gid))
+	    {
+	      if (! unprivileged)
+		{
+		  cerr << "Using --unprivileged for member of the group stapusr" << endl;
+		  unprivileged = true;
+		  server_args.push_back ("--unprivileged");
+		}
+	      if (specified_servers.empty ())
+		{
+		  cerr << "Using --use-server for member of the group stapusr" << endl;
+		  specified_servers.push_back ("");
+		}
+	    }
+	}
+    }
+
   if (client_options && unprivileged && ! client_options_disallowed.empty ())
     {
       cerr << "You can't specify " << client_options_disallowed << " when --unprivileged is specified." << endl;
@@ -962,29 +1013,6 @@ systemtap_session::check_options (int argc, char * const argv [])
        cerr << "WARNING: kernel release/architecture mismatch with host forces last-pass 4." << endl;
      last_pass = 4;
    }
-
-  for (int i = optind; i < argc; i++)
-    {
-      if (! have_script)
-        {
-          script_file = string (argv[i]);
-          have_script = true;
-        }
-      else
-        args.push_back (string (argv[i]));
-    }
-
-  // need a user file
-  // NB: this is also triggered if stap is invoked with no arguments at all
-  if (! have_script)
-    {
-      // We don't need a script if --list-servers or --trust-servers was specified
-      if (server_status_strings.empty () && server_trust_spec.empty ())
-	{
-	  cerr << "A script must be specified." << endl;
-	  usage(1);
-	}
-    }
 
   // translate path of runtime to absolute path
   if (runtime_path[0] != '/')
