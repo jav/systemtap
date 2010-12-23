@@ -965,13 +965,15 @@ systemtap_session::check_options (int argc, char * const argv [])
 	    {
 	      if (! unprivileged)
 		{
-		  cerr << "Using --unprivileged for member of the group stapusr" << endl;
+                  if (perpass_verbose[0] > 1)
+                    cerr << "Using --unprivileged for member of the group stapusr" << endl;
 		  unprivileged = true;
 		  server_args.push_back ("--unprivileged");
 		}
 	      if (specified_servers.empty ())
 		{
-		  cerr << "Using --use-server for member of the group stapusr" << endl;
+                  if (perpass_verbose[0] > 1)
+                    cerr << "Using --use-server for member of the group stapusr" << endl;
 		  specified_servers.push_back ("");
 		}
 	    }
