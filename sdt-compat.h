@@ -1,4 +1,4 @@
-/* Copyright (C) 2005-2010 Red Hat Inc.
+/* Copyright (C) 2005-2011 Red Hat Inc.
 
    This file is part of systemtap, and is free software in the public domain.
 */
@@ -84,7 +84,7 @@ typedef struct
 #elif defined STAP_SDT_V2 || ! defined STAP_SDT_V1
  #define STAP_UPROBE_GUARD UPROBE2_TYPE
  #define STAP_TYPE(t) size_t
- #define STAP_CAST(t) (size_t)t
+ #define STAP_CAST(t) (size_t) (t)
  #define STAP_PROBE_DATA_(provider,probe,guard,argc,arg_format,args,semaphore)	\
   __asm__ volatile (".section .probes," ALLOCSEC "\n"	\
   		    "\t.balign 8\n"			\
@@ -375,13 +375,13 @@ extern long int syscall (long int __sysno, ...) __THROW;
 
 #define STAP_PROBE1(provider,probe,parm1)				\
   do { STAP_PROBE_DATA(provider,probe,STAP_GUARD,1);                     \
-  syscall (STAP_SYSCALL, #probe, STAP_GUARD, (size_t)parm1);		\
+  syscall (STAP_SYSCALL, #probe, STAP_GUARD, (size_t)(parm1));	\
   } while (0)
 
 #define STAP_PROBE2(provider,probe,parm1,parm2)				\
   do { __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));}			\
-  stap_probe2_args = {(size_t)parm1, (size_t)parm2};			\
+  stap_probe2_args = {(size_t)(parm1), (size_t)(parm2)};		\
   STAP_PROBE_DATA(provider,probe,STAP_GUARD,2);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe2_args);	\
   } while (0)
@@ -390,7 +390,7 @@ extern long int syscall (long int __sysno, ...) __THROW;
 do { __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));			\
 	  size_t arg3 __attribute__((aligned(8)));}			\
-  stap_probe3_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3};	\
+  stap_probe3_args = {(size_t)(parm1), (size_t)(parm2), (size_t)(parm3)}; \
   STAP_PROBE_DATA(provider,probe,STAP_GUARD,3);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe3_args);	\
   } while (0)
@@ -400,7 +400,8 @@ do { __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg2 __attribute__((aligned(8)));			\
 	  size_t arg3 __attribute__((aligned(8)));			\
 	  size_t arg4 __attribute__((aligned(8)));}			\
-  stap_probe4_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4}; \
+  stap_probe4_args = {(size_t)(parm1), (size_t)(parm2), (size_t)(parm3),\
+		      (size_t)(parm4)};					\
   STAP_PROBE_DATA(provider,probe,STAP_GUARD,4);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD,&stap_probe4_args);		\
   } while (0)
@@ -411,8 +412,9 @@ do { __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg3 __attribute__((aligned(8)));			\
 	  size_t arg4 __attribute__((aligned(8)));			\
 	  size_t arg5 __attribute__((aligned(8)));}			\
-  stap_probe5_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
-	(size_t)parm5};							\
+  stap_probe5_args = {(size_t)(parm1), (size_t)(parm2), (size_t)(parm3),\
+		      (size_t)(parm4),					\
+		      (size_t)(parm5)};					\
   STAP_PROBE_DATA(provider,probe,STAP_GUARD,5);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe5_args);	\
   } while (0)
@@ -424,8 +426,9 @@ do { __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg4 __attribute__((aligned(8)));			\
 	  size_t arg5 __attribute__((aligned(8)));			\
 	  size_t arg6 __attribute__((aligned(8)));}			\
-  stap_probe6_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
-	(size_t)parm5, (size_t)parm6};					\
+  stap_probe6_args = {(size_t)(parm1), (size_t)(parm2), (size_t)(parm3),\
+		      (size_t)(parm4),					\
+		      (size_t)(parm5), (size_t)(parm6)};		\
   STAP_PROBE_DATA(provider,probe,STAP_GUARD,6);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe6_args);	\
   } while (0)
@@ -438,8 +441,9 @@ do { __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg5 __attribute__((aligned(8)));			\
 	  size_t arg6 __attribute__((aligned(8)));			\
 	  size_t arg7 __attribute__((aligned(8)));}			\
-  stap_probe7_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
-	(size_t)parm5, (size_t)parm6, (size_t)parm7};			\
+  stap_probe7_args = {(size_t)(parm1), (size_t)(parm2), (size_t)(parm3),\
+		      (size_t)(parm4),					\
+		      (size_t)(parm5), (size_t)(parm6), (size_t)(parm7)}; \
   STAP_PROBE_DATA(provider,probe,STAP_GUARD,7);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe7_args);	\
   } while (0)
@@ -453,8 +457,10 @@ do { __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg6 __attribute__((aligned(8)));			\
 	  size_t arg7 __attribute__((aligned(8)));			\
 	  size_t arg8 __attribute__((aligned(8)));}			\
-  stap_probe8_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
-	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8};	\
+  stap_probe8_args = {(size_t)(parm1), (size_t)(parm2), (size_t)(parm3),\
+		      (size_t)(parm4),					\
+		      (size_t)(parm5), (size_t)(parm6), (size_t)(parm7),\
+		      (size_t)(parm8)};					\
   STAP_PROBE_DATA(provider,probe,STAP_GUARD,8);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe8_args);	\
   } while (0)
@@ -469,8 +475,10 @@ do { __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg7 __attribute__((aligned(8)));			\
 	  size_t arg8 __attribute__((aligned(8)));			\
 	  size_t arg9 __attribute__((aligned(8)));}			\
-  stap_probe9_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
-	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8, (size_t)parm9}; \
+  stap_probe9_args = {(size_t)(parm1), (size_t)(parm2), (size_t)(parm3),\
+		      (size_t)(parm4),					\
+		      (size_t)(parm5), (size_t)(parm6), (size_t)(parm7),\
+		      (size_t)(parm8), (size_t)(parm9)};		\
   STAP_PROBE_DATA(provider,probe,STAP_GUARD,9);                         \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe9_args);	\
   } while (0)
@@ -486,8 +494,10 @@ do { __extension__ struct {size_t arg1 __attribute__((aligned(8)));	\
 	  size_t arg8 __attribute__((aligned(8)));			\
 	  size_t arg9 __attribute__((aligned(8)));			\
 	  size_t arg10 __attribute__((aligned(8)));}			\
-  stap_probe10_args = {(size_t)parm1, (size_t)parm2, (size_t)parm3, (size_t)parm4, \
-	(size_t)parm5, (size_t)parm6, (size_t)parm7, (size_t)parm8, (size_t)parm9, (size_t)parm10}; \
+  stap_probe10_args = {(size_t)(parm1), (size_t)(parm2), (size_t)(parm3),\
+		       (size_t)(parm4),					\
+		       (size_t)(parm5), (size_t)(parm6), (size_t)(parm7),\
+		       (size_t)(parm8), (size_t)(parm9), (size_t)(parm10)}; \
   STAP_PROBE_DATA(provider,probe,STAP_GUARD,10);                        \
   syscall (STAP_SYSCALL, #probe, STAP_GUARD, &stap_probe10_args);	\
   } while (0)

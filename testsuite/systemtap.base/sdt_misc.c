@@ -1,18 +1,21 @@
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #ifndef ONLY_MAIN
 #include "sdt_misc_.h"
 
+void
 sem_display ()
 {
-    printf("%s epilogue %s=%d\n", (SDT_MISC_TEST_PROBE_0_ENABLED() ? "FAIL" : "PASS"), "test_probe_0_semaphore", SDT_MISC_TEST_PROBE_0_ENABLED());
-    printf("%s epilogue %s=%d\n", (SDT_MISC_TEST_PROBE_2_ENABLED() ? "FAIL" : "PASS"), "test_probe_2_semaphore", SDT_MISC_TEST_PROBE_2_ENABLED());
-    printf("%s epilogue %s=%d\n", (SDT_MISC_TEST_PROBE_3_ENABLED() ? "FAIL" : "PASS"), "test_probe_3_semaphore", SDT_MISC_TEST_PROBE_3_ENABLED());
- printf("%s epilogue %s=%d\n", (SDT_MISC_TEST_PROBE_4_ENABLED() ? "FAIL" : "PASS"), "test_probe_4_semaphore", SDT_MISC_TEST_PROBE_4_ENABLED());
+    printf("%s epilogue %s=%ld\n", (SDT_MISC_TEST_PROBE_0_ENABLED() ? "FAIL" : "PASS"), "test_probe_0_semaphore", SDT_MISC_TEST_PROBE_0_ENABLED());
+    printf("%s epilogue %s=%ld\n", (SDT_MISC_TEST_PROBE_2_ENABLED() ? "FAIL" : "PASS"), "test_probe_2_semaphore", SDT_MISC_TEST_PROBE_2_ENABLED());
+    printf("%s epilogue %s=%ld\n", (SDT_MISC_TEST_PROBE_3_ENABLED() ? "FAIL" : "PASS"), "test_probe_3_semaphore", SDT_MISC_TEST_PROBE_3_ENABLED());
+ printf("%s epilogue %s=%ld\n", (SDT_MISC_TEST_PROBE_4_ENABLED() ? "FAIL" : "PASS"), "test_probe_4_semaphore", SDT_MISC_TEST_PROBE_4_ENABLED());
 }
 
 #ifdef LOOP
+int
 loop_check()
 {
     return SDT_MISC_TEST_PROBE_0_ENABLED();
@@ -56,12 +59,15 @@ buz (int parm)
   {
     int a;
     int b;
+    int *c;
   };
   struct astruct bstruct = {parm, parm + 1};
+  struct astruct *cstruct = &bstruct;
   if (parm == 0)
     parm = 1000;
   if (SDT_MISC_TEST_PROBE_4_ENABLED())
      DTRACE_PROBE1(sdt_misc,test_probe_4,&bstruct);
+  SDT_MISC_TEST_PROBE_1(cstruct->c != ((void*)0));
 }
 #endif
 
@@ -95,5 +101,6 @@ main ()
 #ifdef LOOP
   while (1) {}
 #endif
+  return 0;
 }
 #endif

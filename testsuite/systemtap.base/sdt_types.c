@@ -64,9 +64,6 @@ main (int argc, char **argv)
 #define ARRAY(x) (x)
 #endif
   char arr_char [] = "!~";
-  struct {
-    int int_var;
-  } arr_struct [2] = {{1},{2}};
 
   struct {
     unsigned int bit1_0:1;
@@ -92,14 +89,18 @@ main (int argc, char **argv)
     char char_34;
   } bitfields_bit_var = {'A', -1, 1, 1, 3, 3, 7, 255, 511, 'Z'};
 
+# if !defined(__cplusplus) || \
+	((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)) && __GXX_EXPERIMENTAL_CXX0X__)
+  struct {
+    int int_var;
+  } arr_struct [2] = {{1},{2}};
+
   enum  {
     red = 0,
     green = 1,
     blue = 2
   } primary_colors_var = green;
 
-# if !defined(__cplusplus) || \
-	((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)) && __GXX_EXPERIMENTAL_CXX0X__)
   struct opaque_struct *incomplete_struct_type = 0;
 # endif
 
