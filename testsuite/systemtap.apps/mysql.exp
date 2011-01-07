@@ -325,8 +325,16 @@ fi
 cd mysql/bld
 
 J=\$(getconf _NPROCESSORS_CONF)
-make -j\$J
-cp ./abi_check.out ../../src/include/mysql.h.pp
+# skip the 'make abi_check' step
+touch do_abi_check
+
+# mysql erroneously defines min/max which c++ limits (via sdt.h) also defines
+sed -i -e '/HAVE_DTRACE/i\\
+#undef max\\
+#undef min' -e '/endif.*PROBES_MYSQL_H/i\\
+#define max(a, b)       ((a) > (b) ? (a) : (b))\\
+#define min(a, b)       ((a) < (b) ? (a) : (b))' ../src/include/probes_mysql.h
+
 make -j\$J
 make install
 run_tests uprobe
