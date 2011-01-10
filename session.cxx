@@ -1,5 +1,5 @@
 // session functions
-// Copyright (C) 2010 Red Hat Inc.
+// Copyright (C) 2010-2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -249,7 +249,7 @@ systemtap_session::version ()
     << "SystemTap translator/driver "
     << "(version " << VERSION << "/" << dwfl_version (NULL)
     << " " << GIT_MESSAGE << ")" << endl
-    << "Copyright (C) 2005-2010 Red Hat, Inc. and others" << endl
+    << "Copyright (C) 2005-2011 Red Hat, Inc. and others" << endl
     << "This is free software; see the source for copying conditions." << endl;
   clog << "enabled features:"
 #ifdef HAVE_AVAHI
