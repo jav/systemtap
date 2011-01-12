@@ -6,6 +6,16 @@ probe process(@1).mark("test_probe_0")
 {
   printf("In %s probe %#x\n", $$name, $arg1)
 }
+
+%( $# > 1 %?
+probe process(@1).library(@2).mark("test_probe_1")
+%:
+probe process(@1).mark("test_probe_1")
+%)
+{
+  printf("In %s probe %#x\n", $$name, $arg1)
+}
+
 %( $# > 1 %?
 probe process(@1).library(@2).mark("test_probe_2")
 %:
@@ -14,6 +24,7 @@ probe process(@1).mark("test_probe_2")
 {
   printf("In %s probe %#x\n", $$name, $arg1)
 }
+
 %( $# > 1 %?
 probe process(@1).library(@2).mark("test_probe_3")
 %:
@@ -22,6 +33,7 @@ probe process(@1).mark("test_probe_3")
 {
   printf("In %s probe %#x %#x\n", $$name, $arg1, $arg2)
 }
+
 %( $# > 1 %?
 probe process(@1).library(@2).mark("test_probe_4")
 %:

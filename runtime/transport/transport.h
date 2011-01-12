@@ -47,7 +47,7 @@ static void _stp_handle_start(struct _stp_msg_start *st);
 static uid_t _stp_uid;
 static gid_t _stp_gid;
 
-static int _stp_ctl_attached;
+static atomic_t _stp_ctl_attached;
 
 static int _stp_bufsize;
 

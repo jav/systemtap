@@ -62,6 +62,8 @@ if {[file exists $sup_hpath] && [file exists $sup_opath]} then {
 }
 
 set sup_flags [sdt_includes]
+set sup_flags "$sup_flags additional_flags=-Wall"
+set sup_flags "$sup_flags additional_flags=-Werror"
 set sup_flags "$sup_flags additional_flags=$sup_opath"
 set sup_flags "$sup_flags additional_flags=-I. $pbtype_flag"
 set res [target_compile $srcdir/$subdir/sdt_misc.c $sup_exepath executable $sup_flags]
@@ -94,16 +96,18 @@ expect {
     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
     -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
     -re {In test_probe_4 dtrace probe 0x[0-9a-f]} { incr ok; exp_continue }
+    -re {In test_probe_1 probe 0x0} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
 
 catch {close}; catch {wait}
 
-if {$ok == 5} {
+if {$ok == 6} {
     pass "$test $pbtype_mssg"
 } else {
     fail "$test ($ok) $pbtype_mssg"
+    return
 }
 
 # 2. Test attaching to a running process
@@ -135,12 +139,13 @@ expect {
     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
     -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
     -re {In test_probe_4 dtrace probe 0x[0-9a-f]} { incr ok; exp_continue }
+    -re {In test_probe_1 probe 0x0} { incr ok; exp_continue }
     eof { }
 }
 
 catch {close}; catch {wait}
 
-if {$ok == 5} {
+if {$ok == 6} {
     pass "$test $pbtype_mssg attach"
 } else {
     fail "$test ($ok) $pbtype_mssg attach"
@@ -194,11 +199,7 @@ set type_flags "$sup_flags [lindex $extra_type_flags $j] [lindex $type_pedantics
 set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $type_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    if { $pbtype_mssgs == "V3_uprobe" } {
-	xfail "$test compiling types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
-    } else {
-	fail "$test compiling types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
-    }
+    fail "$test compiling types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
     untested "$test types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
     continue ; # type_pedantics_idx
 } else {
@@ -269,13 +270,14 @@ expect {
     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
     -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
     -re {In test_probe_4 dtrace probe 0x[0-9a-f]} { incr ok; exp_continue }
+    -re {In test_probe_1 probe 0x0} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
 
 catch {close}; catch {wait}
 
-if {$ok == 5} {
+if {$ok == 6} {
     pass "$test shared $pbtype_mssg"
 } else {
     fail "$test ($ok) shared $pbtype_mssg"
@@ -318,12 +320,13 @@ expect {
     -re {In test_probe_0 probe 0x3} { incr ok; exp_continue }
     -re {In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
     -re {In test_probe_4 dtrace probe 0x[0-9a-f]} { incr ok; exp_continue }
+    -re {In test_probe_1 probe 0x0} { incr ok; exp_continue }
     eof { }
 }
 
 catch {close}; catch {wait}
 
-if {$ok == 5} {
+if {$ok == 6} {
     pass "$test $pbtype_mssg shared attach"
 } else {
     fail "$test ($ok) $pbtype_mssg shared attach"
@@ -376,7 +379,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if { $ok == 51 || ($ok == 43 && [regexp "^(i.86)$" $::tcl_platform(machine)])} {
+if { $ok == 51 || ($ok == 42 && [regexp "^(i.86)$" $::tcl_platform(machine)])} {
     pass "$test wildcard $pbtype_mssg"
 } else {
     fail "$test wildcard ($ok) $pbtype_mssg"

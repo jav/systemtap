@@ -15,7 +15,18 @@
 ### END INIT INFO
 
 # Source function library.
-. /etc/rc.d/init.d/functions
+if [ -f /etc/rc.d/init.d/functions ]; then
+  # Red Hat init functions
+  . /etc/rc.d/init.d/functions
+else
+  # Default init functions
+  success () {
+    echo -n "OK"
+  }
+  failure () {
+    echo -n "FAILED"
+  }
+fi
 
 prog=systemtap
 

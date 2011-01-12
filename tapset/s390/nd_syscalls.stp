@@ -50,6 +50,10 @@ probe nd_syscall.ipc.return = kprobe.function("sys_ipc").return ?
 	retstr = returnstr(1)
 }
 
+# In kernels < 2.6.33, mmap()/mmap2() was handled by arch-specific
+# code.  In kernels >= 2.6.33, the arch-specific code just calls
+# generic sys_mmap_pgoff().
+%( kernel_v < "2.6.33" %?
 # mmap _________________________________________________
 # long old_mmap(struct mmap_arg_struct __user *arg)
 # long old32_mmap(struct mmap_arg_struct_emu31 __user *arg)
@@ -107,6 +111,7 @@ probe nd_syscall.mmap2.return = kprobe.function("sys_mmap2").return ?,
 	name = "mmap2"
 	retstr = returnstr(2)
 }
+%)
 
 # sysctl _____________________________________________________
 #
@@ -138,7 +143,7 @@ function get_32mmap_args:string (args:long)
 	}a;
 
 	char proto[60];
-	char flags[256];
+	char flags[160];
 
 	if(_stp_copy_from_user((char *)&a, (char *)THIS->args, sizeof(a))== 0){
 		/* _mprotect_prot_str */

@@ -17,7 +17,6 @@
 #include "transport.h"
 #include <linux/debugfs.h>
 #include <linux/namei.h>
-#include <linux/workqueue.h>
 #include <linux/delay.h>
 #include <linux/mutex.h>
 
@@ -27,12 +26,17 @@ static uid_t _stp_uid = 0;
 static gid_t _stp_gid = 0;
 static int _stp_pid = 0;
 
-static int _stp_ctl_attached = 0;
+static atomic_t _stp_ctl_attached = ATOMIC_INIT(0);
 
 static pid_t _stp_target = 0;
 static int _stp_probes_started = 0;
 static int _stp_exit_called = 0;
 static DEFINE_MUTEX(_stp_transport_mutex);
+
+#ifndef STP_CTL_TIMER_INTERVAL
+/* ctl timer interval in jiffies (default 20 ms) */
+#define STP_CTL_TIMER_INTERVAL		((HZ+49)/50)
+#endif
 
 
 // For now, disable transport version 3 (unless STP_USE_RING_BUFFER is
@@ -68,16 +72,7 @@ MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 static void probe_exit(void);
 static int probe_start(void);
 
-/* check for new workqueue API */
-#ifdef DECLARE_DELAYED_WORK
-static void _stp_work_queue(struct work_struct *data);
-static DECLARE_DELAYED_WORK(_stp_work, _stp_work_queue);
-#else
-static void _stp_work_queue(void *data);
-static DECLARE_WORK(_stp_work, _stp_work_queue, NULL);
-#endif
-
-static struct workqueue_struct *_stp_wq;
+struct timer_list _stp_ctl_work_timer;
 
 /*
  *	_stp_handle_start - handle STP_START
@@ -163,15 +158,17 @@ static void _stp_request_exit(void)
 static void _stp_detach(void)
 {
 	dbug_trans(1, "detach\n");
-	_stp_ctl_attached = 0;
 	_stp_pid = 0;
 
 	if (!_stp_exit_flag)
 		_stp_transport_data_fs_overwrite(1);
 
-	cancel_delayed_work(&_stp_work);
+        del_timer_sync(&_stp_ctl_work_timer);
 	wake_up_interruptible(&_stp_ctl_wq);
 }
+
+
+static void _stp_ctl_work_callback(unsigned long val);
 
 /*
  * Called when stapio opens the control channel.
@@ -179,21 +176,20 @@ static void _stp_detach(void)
 static void _stp_attach(void)
 {
 	dbug_trans(1, "attach\n");
-	_stp_ctl_attached = 1;
 	_stp_pid = current->pid;
 	_stp_transport_data_fs_overwrite(0);
-	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
+	init_timer(&_stp_ctl_work_timer);
+	_stp_ctl_work_timer.expires = jiffies + STP_CTL_TIMER_INTERVAL;
+	_stp_ctl_work_timer.function = _stp_ctl_work_callback;
+	_stp_ctl_work_timer.data= 0;
+	add_timer(&_stp_ctl_work_timer);
 }
 
 /*
- *	_stp_work_queue - periodically check for IO or exit
+ *	_stp_ctl_work_callback - periodically check for IO or exit
  *	This is run by a kernel thread and may sleep.
  */
-#ifdef DECLARE_DELAYED_WORK
-static void _stp_work_queue(struct work_struct *data)
-#else
-static void _stp_work_queue(void *data)
-#endif
+static void _stp_ctl_work_callback(unsigned long val)
 {
 	int do_io = 0;
 	unsigned long flags;
@@ -208,8 +204,8 @@ static void _stp_work_queue(void *data)
 	/* if exit flag is set AND we have finished with probe_start() */
 	if (unlikely(_stp_exit_flag && _stp_probes_started))
 		_stp_request_exit();
-	if (likely(_stp_ctl_attached))
-		queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
+	if (atomic_read(& _stp_ctl_attached))
+                mod_timer (&_stp_ctl_work_timer, jiffies + STP_CTL_TIMER_INTERVAL);
 }
 
 /**
@@ -223,7 +219,6 @@ static void _stp_transport_close(void)
 	dbug_trans(1, "%d: ************** transport_close *************\n",
 		   current->pid);
 	_stp_cleanup_and_exit(0);
-	destroy_workqueue(_stp_wq);
 	_stp_unregister_ctl_channel();
 	_stp_transport_fs_close();
 	_stp_print_cleanup();	/* free print buffers */
@@ -278,11 +273,6 @@ static int _stp_transport_init(void)
 	/* start transport */
 	_stp_transport_data_fs_start();
 
-	/* create workqueue of kernel threads */
-	_stp_wq = create_workqueue("systemtap");
-	if (!_stp_wq)
-		goto err3;
-	
         /* Signal stapio to send us STP_START back (XXX: ?!?!?!).  */
 	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
 

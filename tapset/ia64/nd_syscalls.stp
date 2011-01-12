@@ -1,5 +1,9 @@
 # IA64 system calls
 
+# In kernels < 2.6.33, mmap()/mmap2() was handled by arch-specific
+# code.  In kernels >= 2.6.33, the arch-specific code just calls
+# generic sys_mmap_pgoff().
+%( kernel_v < "2.6.33" %?
 # mmap
 # sys_mmap (unsigned long addr, unsigned long len, int prot, int flags, int fd, long off)
 #
@@ -60,6 +64,7 @@ probe nd_syscall.mmap2.return = kprobe.function("sys_mmap2").return ?
 	name = "mmap2"
 	retstr = returnstr(2)
 }
+%)
 
 # sigaltstack _______________________________________________
 # asmlinkage long

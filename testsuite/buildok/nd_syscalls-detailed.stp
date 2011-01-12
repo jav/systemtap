@@ -1218,6 +1218,20 @@ probe nd_syscall.mount.return
 	printf("%s, %s\n", name, retstr)
 }
 
+# Older kernel's nd_syscall.mmap* tests are in nd_syscalls-arch-detailed.stp.
+%( kernel_v >= "2.6.33" %?
+probe nd_syscall.mmap2
+{
+	printf("%s, %s\n", name, argstr)
+	printf("%p, %d, %d, %d, %d, %d", start, length, prot, flags,
+	       fd, pgoffset)
+}
+probe nd_syscall.mmap2.return
+{
+	printf("%s, %s\n", name, retstr)
+}
+%)
+
 probe nd_syscall.mprotect
 {
 	printf("%s, %s\n", name, argstr)

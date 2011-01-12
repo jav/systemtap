@@ -34,6 +34,8 @@
 
 #include "nsscommon.h"
 
+#include <assert.h>
+
 #define READ_BUFFER_SIZE (60 * 1024)
 static const char *trustNewServer_p = NULL;
 
@@ -112,20 +114,84 @@ badCertHandler(void *arg __attribute__ ((unused)), PRFileDesc *sslSocket)
   SECStatus secStatus;
   PRErrorCode errorNumber;
   CERTCertificate *serverCert;
-
-  /* By default, don't trust the certificate.  */
-  secStatus = SECFailure;
+  SECItem subAltName;
+  PRArenaPool *tmpArena = NULL;
+  CERTGeneralName *nameList, *current;
+  char *expected = NULL;
 
   errorNumber = PR_GetError ();
-  if (errorNumber == SEC_ERROR_CA_CERT_INVALID)
+  switch (errorNumber)
     {
+    case SSL_ERROR_BAD_CERT_DOMAIN:
+      /* Since we administer our own client-side databases of trustworthy
+	 certificates, we don't need the domain name(s) on the certificate to
+	 match. If the cert is in our database, then we can trust it.
+	 Issue a warning and accept the certificate.  */
+      expected = SSL_RevealURL (sslSocket);
+      fprintf (stderr, "WARNING: The domain name, %s, does not match the DNS name(s) on the server certificate:\n", expected);
+
+      /* List the DNS names from the server cert as part of the warning.
+	 First, find the alt-name extension on the certificate.  */
+      subAltName.data = NULL;
+      serverCert = SSL_PeerCertificate (sslSocket);
+      secStatus = CERT_FindCertExtension (serverCert,
+					  SEC_OID_X509_SUBJECT_ALT_NAME,
+					  & subAltName);
+      if (secStatus != SECSuccess || ! subAltName.data)
+	{
+	  fprintf (stderr, "Unable to find alt name extension on the server certificate\n");
+	  secStatus = SECSuccess; /* Not a fatal error */
+	  break;
+	}
+
+      // Now, decode the extension.
+      tmpArena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+      if (! tmpArena) 
+	{
+	  fprintf (stderr, "Out of memory\n");
+	  secStatus = SECSuccess; /* Not a fatal error here */
+	  break;
+	}
+      nameList = CERT_DecodeAltNameExtension (tmpArena, & subAltName);
+      SECITEM_FreeItem(& subAltName, PR_FALSE);
+      if (! nameList)
+	{
+	  fprintf (stderr, "Unable to decode alt name extension on server certificate\n");
+	  secStatus = SECSuccess; /* Not a fatal error */
+	  break;
+	}
+
+      /* List the DNS names from the server cert as part of the warning.
+	 The names are in a circular list.  */
+      current = nameList;
+      do
+	{
+	  /* Make sure this is a DNS name.  */
+	  if (current->type == certDNSName)
+	    {
+	      fprintf (stderr, "  %.*s\n",
+		       (int)current->name.other.len, current->name.other.data);
+	    }
+	  current = CERT_GetNextGeneralName (current);
+	}
+      while (current != nameList);
+
+      /* Accept the certificate */
+      secStatus = SECSuccess;
+      break;
+
+    case SEC_ERROR_CA_CERT_INVALID:
       /* The server's certificate is not trusted. Should we trust it? */
+      secStatus = SECFailure; /* Do not trust by default. */
       if (trustNewServer_p == NULL)
-	return SECFailure; /* Do not trust this server */
+	break;
 
       /* Trust it for this session only?  */
       if (strcmp (trustNewServer_p, "session") == 0)
-	return SECSuccess;
+	{
+	  secStatus = SECSuccess;
+	  break;
+	}
 
       /* Trust it permanently?  */
       if (strcmp (trustNewServer_p, "permanent") == 0)
@@ -136,7 +202,16 @@ badCertHandler(void *arg __attribute__ ((unused)), PRFileDesc *sslSocket)
 	  if (serverCert != NULL)
 	    secStatus = trustNewServer (serverCert);
 	}
+      break;
+    default:
+      secStatus = SECFailure; /* Do not trust this server */
+      break;
     }
+
+  if (expected)
+    PORT_Free (expected);
+  if (tmpArena)
+    PORT_FreeArena (tmpArena, PR_FALSE);
 
   return secStatus;
 }
@@ -389,7 +464,7 @@ do_connect(
 }
 
 int
-client_main (const char *hostName, PRUint32 ip __attribute__ ((unused)),
+client_main (const char *hostName, PRUint32 ip,
 	     PRUint16 port,
 	     const char* infileName, const char* outfileName,
 	     const char* trustNewServer)
@@ -495,7 +570,6 @@ main(int argc, char **argv)
 
   progName = PL_strdup(argv[0]);
 
-  hostName = NULL;
   optstate = PL_CreateOptState(argc, argv, "d:h:i:o:p:t:");
   while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK)
     {

@@ -109,6 +109,7 @@ static int stap_uprobe_change_plus (struct task_struct *tsk, unsigned long reloc
 	   so we need to borrow the mutex temporarily. */
         mutex_lock (& stap_uprobes_lock);
         sup->spec_index = -1;
+	sup->sdt_sem_address = 0;
         mutex_unlock (& stap_uprobes_lock);
       } else {
         handled_p = 1;
@@ -214,6 +215,7 @@ static int stap_uprobe_change_minus (struct task_struct *tsk, unsigned long relo
       #if (UPROBES_API_VERSION >= 2)
       unmap_uretprobe (& sup->urp);
       sup->spec_index = -1;
+      sup->sdt_sem_address = 0;
       #else
       /* Uprobes lacks unmap_uretprobe.  Before reusing sup, we must wait
 	 until uprobes turns loose of the uretprobe on its own, as indicated
@@ -229,11 +231,13 @@ static int stap_uprobe_change_minus (struct task_struct *tsk, unsigned long relo
       #if (UPROBES_API_VERSION >= 2)
       unmap_uprobe (& sup->up);
       sup->spec_index = -1;
+      sup->sdt_sem_address = 0;
       #else
       /* Uprobes lacks unmap_uprobe.  Before reusing sup, we must wait
 	 until uprobes turns loose of the uprobe on its own, as indicated
 	 by uprobe.kdata = NULL. */
       sup->spec_index = -1;
+      sup->sdt_sem_address = 0;
       #endif
       /* PR10655: we don't need to fidget with the ENABLED semaphore either,
 	 as the process is gone, buh-bye, toodaloo, au revoir, see ya later! */

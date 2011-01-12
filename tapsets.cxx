@@ -1,5 +1,5 @@
 // tapset resolution
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -24,7 +24,7 @@
 #include "setupdwfl.h"
 #include <gelf.h>
 
-#include "sdt-compat.h"
+#include "sdt_types.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -1657,6 +1657,12 @@ query_cu (Dwarf_Die * cudie, void * arg)
 
       if (q->spec_type == function_file_and_line)
         {
+          // .statement(...:NN) often gets mixed up with .function(...:NN)
+          if (q->has_function_str && ! q->sess.suppress_warnings)
+            q->sess.print_warning ("For probing a particular line, use a "
+                                   ".statement() probe, not .function()", 
+                                   q->base_probe->tok);
+
           // If we have a pattern string with target *line*, we
           // have to look at lines in all the matched srcfiles.
           void (* callback) (const dwarf_line_t&, void*) =
@@ -5927,7 +5933,31 @@ dwarf_builder::build(systemtap_session & sess,
                 if (string::npos != p2)
                   path.erase(p2+1);
 
-                user_path = find_executable (path);
+                // handle "#!/usr/bin/env" redirect
+                size_t offset = 0;
+                if (path.compare(0, sizeof("/bin/env")-1, "/bin/env") == 0)
+                {
+                  offset = sizeof("/bin/env")-1;
+                }
+                else if (path.compare(0, sizeof("/usr/bin/env")-1, "/usr/bin/env") == 0)
+                {
+                  offset = sizeof("/usr/bin/env")-1;
+                }
+
+                if (offset != 0)
+                {
+                    size_t p3 = path.find_first_not_of(" \t", offset);
+
+                    if (p3 != string::npos)
+                    {
+                       string env_path = path.substr(p3);
+                       user_path = find_executable (env_path);
+                    }
+                }
+                else
+                {
+                   user_path = find_executable (path);
+                }
 
                 struct stat st;
 

@@ -44,7 +44,12 @@ static long _stp_perf_init (struct stap_perf_probe *stp)
 			continue;
 		}
 		*event = perf_event_create_kernel_counter(&stp->attr,
-							  cpu, -1,
+							  cpu,
+#if STAPCONF_PERF_STRUCTPID
+                                                          NULL,
+#else
+                                                          -1,
+#endif
 							  stp->callback);
 
 		if (IS_ERR(*event)) {

@@ -1,0 +1,8 @@
+probe vm.pagefault = kernel.function("__handle_mm_fault@mm/memory.c") ?,
+                     kernel.function("handle_mm_fault@mm/memory.c") ?
+{
+        name = "pagefault"
+        write_access = (@defined($flags)
+			? $flags & FAULT_FLAG_WRITE : $write_access)
+	address =  $address
+}

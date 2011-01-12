@@ -364,7 +364,7 @@ probe process(@1).mark("arr_char")
     printf("PASS: arr_char_var\n")
 }
 
-probe process(@1).mark("arr_struct")
+probe process(@1).mark("arr_struct") ?
 {
   arr_struct_int_var = user_int ($arg1)
   if (arr_struct_int_var != 1)
@@ -393,7 +393,7 @@ probe process(@1).mark("bitfields_bit_var")
 }
 
 
-probe process(@1).mark("primary_colors_var")
+probe process(@1).mark("primary_colors_var") ?
 {
   if ($arg1 != 1)
     printf("FAIL: primary_colors_var (%#d != 1)\n", $arg1)
@@ -418,10 +418,18 @@ probe process(@1).mark("constants")
     printf("PASS: constants\n")
 }
 
-probe process(@1).mark("incomplete_type")
+probe process(@1).mark("incomplete_struct_type") ?
 {
   if ($arg1 != 0)
-    printf("FAIL: incomplete_type (%#x != 0)\n", $arg1)
+    printf("FAIL: incomplete_struct_type (%#x != 0)\n", $arg1)
   else
-    printf("PASS: incomplete_type\n")
+    printf("PASS: incomplete_struct_type\n")
+}
+
+probe process(@1).mark("incomplete_enum_type") ?
+{
+  if ($arg1 != 0)
+    printf("FAIL: incomplete_enum_type (%#x != 0)\n", $arg1)
+  else
+    printf("PASS: incomplete_enum_type\n")
 }

@@ -1,6 +1,6 @@
 set test "bad kprobe registration"
 set script {
-    probe $1 {}
+    probe $1 { k++ }  global k
     probe timer.ms(100) { exit() }
     probe end { println("cleanup ok") }
 }
@@ -16,7 +16,7 @@ set bad_kprobes {
 
 foreach bk $bad_kprobes {
     set test "bad kprobe registration: $bk"
-    spawn stap -g -w -e "$script" "$bk"
+    spawn stap -g -e "$script" "$bk"
     expect {
         -timeout 60
         -re "^WARNING: probe .*registration error.*\r\ncleanup ok\r\n" { pass $test }

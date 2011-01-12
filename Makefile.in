@@ -235,7 +235,7 @@ man7dir = $(mandir)/man7
 man8dir = $(mandir)/man8
 NROFF = nroff
 MANS = $(man_MANS)
-am__noinst_HEADERS_DIST = sdt-compat.h
+am__noinst_HEADERS_DIST = sdt_types.h
 HEADERS = $(noinst_HEADERS) $(oldinclude_HEADERS)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
@@ -398,7 +398,7 @@ oldinclude_HEADERS = includes/sys/sdt.h includes/sys/sdt-config.h
 @BUILD_TRANSLATOR_TRUE@	rpm_finder.cxx setupdwfl.cxx \
 @BUILD_TRANSLATOR_TRUE@	csclient.cxx remote.cxx \
 @BUILD_TRANSLATOR_TRUE@	$(am__append_15)
-@BUILD_TRANSLATOR_TRUE@noinst_HEADERS = sdt-compat.h
+@BUILD_TRANSLATOR_TRUE@noinst_HEADERS = sdt_types.h
 @BUILD_TRANSLATOR_TRUE@stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ \
 @BUILD_TRANSLATOR_TRUE@	$(am__append_14) $(am__append_19)
 @BUILD_TRANSLATOR_TRUE@stap_DEPENDENCIES = $(am__append_25)

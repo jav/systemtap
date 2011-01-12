@@ -10,12 +10,12 @@ probe syscall.nanosleep.return, syscall.compat_nanosleep.return ?
 	printf("%s %s\n", name, retstr)
 }
 
-probe syscall.nfsservctl
+probe syscall.nfsservctl ?
 {
 	printf("%s(%s)\n", name, argstr)
 	printf("%d %p %p\n", cmd, argp_uaddr, resp_uaddr)
 }
-probe syscall.nfsservctl.return
+probe syscall.nfsservctl.return ?
 {
 	printf("%s %s\n", name, retstr)
 }

@@ -417,7 +417,7 @@ passes_0_4 (systemtap_session &s)
       compile_server_client client (s);
       return client.passes_0_4 ();
 #else
-      cerr << "WARNING: Compiliation using a compile-server is not supported by this version of systemtap" << endl;
+      cerr << "WARNING: Without NSS, using a compile-server is not supported by this version of systemtap" << endl;
 #endif
     }
 

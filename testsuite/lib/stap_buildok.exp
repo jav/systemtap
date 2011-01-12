@@ -12,7 +12,8 @@ proc buildok_known_failures {test rc} {
 	buildok/fortyfive.stp -
 	buildok/nd_syscalls-all-probes.stp -
 	buildok/nd_syscalls-detailed.stp -
-	buildok/nd_syscalls2-detailed.stp {
+	buildok/nd_syscalls2-detailed.stp -
+	buildok/nd_syscalls-arch-detailed.stp {
 	    if {$rc != 0 && [istarget ia64-*-*]} { setup_kfail 6971 ia64-*-* } }
 
 	buildok/networking-change_rx_flag.stp {

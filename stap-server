@@ -2,7 +2,7 @@
 #
 # stap-server script for managing the systemtap compile server
 #
-# Copyright (C) 2008-2010 Red Hat Inc.
+# Copyright (C) 2008-2011 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -12,7 +12,18 @@
 # This script provides management of systemtap compile servers as a service.
 # See stap-server(8) for more information.
 
-. /etc/rc.d/init.d/functions
+if [ -f /etc/rc.d/init.d/functions ]; then
+  # Red Hat init functions
+  . /etc/rc.d/init.d/functions
+else
+  # Default init functions
+  success () {
+    echo -n "OK"
+  }
+  failure () {
+    echo -n "FAILED"
+  }
+fi
 
 # Systemtap function library
 . ${PKGLIBEXECDIR}stap-env

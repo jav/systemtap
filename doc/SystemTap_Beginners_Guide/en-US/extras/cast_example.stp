@@ -1,0 +1,4 @@
+function task_state:long (task:long)
+{
+    return @cast(task, "task_struct", "kernel<linux/sched.h>")->state
+}
