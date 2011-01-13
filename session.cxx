@@ -377,6 +377,8 @@ systemtap_session::usage (int exitcode)
     << "   --trust-servers[=TRUST-SPEC]" << endl
     << "              add/revoke trust of specified compile-servers" << endl
 #endif
+    << "   --remote=HOSTNAME" << endl
+    << "              run pass 5 on the specified ssh host (EXPERIMENTAL)" << endl
     ;
 
   time_t now;

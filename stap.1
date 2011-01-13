@@ -385,6 +385,14 @@ Unless \fBno\-prompt\fR has been specified,
 the user will be prompted to confirm the trust to be granted or revoked before
 the operation is performed.
 
+.TP
+.BI \-\-remote " [USER@]HOSTNAME"
+Set the execution target to the specified ssh host, optionally using a username
+not matching your own.  This option may be repeated to target multiple
+execution targets.  Passes 1-4 are completed locally as normal to build the
+script, and then pass 5 will copy the module to the target and run it.
+(EXPERIMENTAL)
+
 .SH ARGUMENTS
 
 Any additional arguments on the command line are passed to the script
