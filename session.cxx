@@ -964,7 +964,8 @@ systemtap_session::check_options (int argc, char * const argv [])
   // If phase 5 has been requested and the user is a member of stapusr but not
   // stapdev, then add --unprivileged and --use-server to the invocation,
   // if not already specified.
-  if (last_pass > 4 && have_script)
+  // XXX Eventually we could check remote hosts, but disable that case for now.
+  if (last_pass > 4 && have_script && remote_uris.empty())
     {
       struct group *stgr = getgrnam ("stapusr");
       if (stgr && in_group_id (stgr->gr_gid))
