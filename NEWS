@@ -1,7 +1,7 @@
 * What's new in version 1.4
 
-- The experimental --remote option will run pass 5 on a given ssh host, after
-  building locally (or with --use-server) for that target.
+- The experimental "--remote USER@HOST" option will run pass 5 on a given
+  ssh host, after building locally (or with --use-server) for that target.
 
 - Warning messages from the script may now be suppressed with the stap
   and/or staprun -w option.  By default, duplicate warning messages are
