@@ -3196,7 +3196,7 @@ c_unparser::visit_embedded_expr (embedded_expr* e)
   // Automatically add a call to assert_is_myproc to any code tagged with
   // /* myproc-unprivileged */
   if (e->code.find ("/* myproc-unprivileged */") != string::npos)
-    o->line() << "assert_is_myproc(), ";
+    o->line() << "({ assert_is_myproc(); }), ";
 
   if (e->type == pe_long)
     o->line() << "((int64_t) (" << e->code << "))";
