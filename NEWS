@@ -36,6 +36,11 @@
 - The -t option now displays information per probe-point rather than a summary
   for each probe.  It also now shows the derivation chain for each probe-point.
 
+- A rewrite of the sys/sdt.h header file provides zero-cost startup (few or
+  no ELF relocations) for the debuginfo-less near-zero-cost runtime probes.
+  Binaries compiled with earlier sdt.h versions remain supported.  The
+  stap -L (listing) option now lists parameters for sys/sdt.h markers.
+
 - The implementation of the integrated compile-server client has been
   extended.
   o --use-server now accepts an argument representing a particular server and
