@@ -1208,8 +1208,8 @@ semantic_pass_conditions (systemtap_session & sess)
 // /* pragma:vma */.
 
 // /* pragma:uprobes */ is handled during the typeresolution_info pass.
-// /* pure */, /* unprivileged */ and /* guru */ are handled by the
-// varuse_collecting_visitor.
+// /* pure */, /* unprivileged */. /* myproc-unprivileged */ and /* guru */
+// are handled by the varuse_collecting_visitor.
 
 struct embeddedcode_info: public functioncall_traversing_visitor
 {

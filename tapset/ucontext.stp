@@ -1,5 +1,5 @@
 // User context tapset
-// Copyright (C) 2010 Red Hat Inc.
+// Copyright (C) 2010-2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -21,9 +21,8 @@
  * isn't in a (mapped in) module, or the module cannot be found for some reason.
  */
 function umodname:string (addr:long) %{
-/* pure */ /* unprivileged */ /* pragma:vma */
+/* pure */ /* myproc-unprivileged */ /* pragma:vma */
   const char *name = NULL;
-  assert_is_myproc();
   _stp_umod_lookup(THIS->addr, current, &name, NULL, NULL);
   if (!name)
     name = "<unknown>";

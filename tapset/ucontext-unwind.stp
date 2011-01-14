@@ -1,5 +1,5 @@
 // User context unwind tapset
-// Copyright (C) 2009, 2010 Red Hat Inc.
+// Copyright (C) 2009-2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -26,9 +26,7 @@
  * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
 function print_ubacktrace () %{
-/* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-  assert_is_myproc();
-
+/* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
     {
@@ -76,9 +74,7 @@ function print_ubacktrace () %{
  * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
 function sprint_ubacktrace:string () %{
-/* pure */ /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-  assert_is_myproc();
-
+/* pure */ /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
     {
@@ -119,9 +115,7 @@ function sprint_ubacktrace:string () %{
  * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
 function print_ubacktrace_brief () %{
-/* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-  assert_is_myproc();
-
+/* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
     {
@@ -162,9 +156,7 @@ function print_ubacktrace_brief () %{
  * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
 function ubacktrace:string () %{
-/* pure */ /* unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-  assert_is_myproc();
-
+/* pure */ /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
     {

@@ -1,5 +1,5 @@
 // context tapset
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -350,9 +350,8 @@ function stack_unused:long ()
  * where it entered the kernel. FIXME - need VDSO tracking support #10080.
  */
 function uaddr:long ()
-%{ /* pure */ /* unprivileged */
+%{ /* pure */ /* myproc-unprivileged */
   int64_t addr = 0;
-  assert_is_myproc();
   if (current->mm)
     {
       struct pt_regs *uregs;

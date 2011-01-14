@@ -261,6 +261,12 @@ information except that belonging to the user's own processes.
 speaking, it should only perform operations that the same user
 could already do from ordinary userspace interfaces.
 
+Add the string
+    /* myproc-unprivileged */
+into the body of the embedded-C function, to mark it as /* unprivileged */
+(see above) and to have the systemtap translator automatically add a call to
+assert_is_myproc() to the beginning of the function.
+
 
 Review & Submission
 -------------------

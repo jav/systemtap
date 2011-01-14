@@ -1,5 +1,5 @@
 // translation pass
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2005-2008 Intel Corporation.
 // Copyright (C) 2010 Novell Corporation.
 //
@@ -2440,6 +2440,10 @@ void c_unparser::visit_try_block (try_block *s)
 void
 c_unparser::visit_embeddedcode (embeddedcode *s)
 {
+  // Automatically add a call to assert_is_myproc to any code tagged with
+  // /* myproc-unprivileged */
+  if (s->code.find ("/* myproc-unprivileged */") != string::npos)
+    o->newline() << "assert_is_myproc();";
   o->newline() << "{";
   o->newline(1) << s->code;
   o->newline(-1) << "}";
@@ -3187,12 +3191,21 @@ c_tmpcounter::visit_binary_expression (binary_expression* e)
 void
 c_unparser::visit_embedded_expr (embedded_expr* e)
 {
+  o->line() << "(";
+
+  // Automatically add a call to assert_is_myproc to any code tagged with
+  // /* myproc-unprivileged */
+  if (e->code.find ("/* myproc-unprivileged */") != string::npos)
+    o->line() << "assert_is_myproc(), ";
+
   if (e->type == pe_long)
     o->line() << "((int64_t) (" << e->code << "))";
   else if (e->type == pe_string)
     o->line() << "((const char *) (" << e->code << "))";
   else
     throw semantic_error ("expected numeric or string type", e->tok);
+
+  o->line() << ")";
 }
 
 

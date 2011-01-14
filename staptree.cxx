@@ -1,5 +1,5 @@
 // parse tree functions
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -1916,8 +1916,10 @@ varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
   assert (current_function); // only they get embedded code
 
   // Don't allow embedded C functions in unprivileged mode unless
-  // they are tagged with /* unprivileged */
-  if (session.unprivileged && s->code.find ("/* unprivileged */") == string::npos)
+  // they are tagged with /* unprivileged */ or /* myproc-unprivileged */
+  if (session.unprivileged &&
+      s->code.find ("/* unprivileged */") == string::npos &&
+      s->code.find ("/* myproc-unprivileged */") == string::npos)
     throw semantic_error ("function may not be used when --unprivileged is specified",
 			  current_function->tok);
 
@@ -1949,7 +1951,9 @@ varuse_collecting_visitor::visit_embedded_expr (embedded_expr *e)
 {
   // Don't allow embedded C functions in unprivileged mode unless
   // they are tagged with /* unprivileged */
-  if (session.unprivileged && e->code.find ("/* unprivileged */") == string::npos)
+  if (session.unprivileged &&
+      e->code.find ("/* unprivileged */") == string::npos &&
+      e->code.find ("/* myproc-unprivileged */") == string::npos)
     throw semantic_error ("embedded expression may not be used when --unprivileged is specified",
 			  e->tok);
 
