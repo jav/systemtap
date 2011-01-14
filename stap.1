@@ -1112,6 +1112,11 @@ value is not used by script code.
 means that the C code is so safe that even unprivileged users are permitted
 to use it.
 .TP
+.I /* myproc\-unprivileged */
+means that the C code is so safe that even unprivileged users are permitted
+to use it, provided that the target of the current probe is within the user's
+own process.
+.TP
 .I /* guru */
 means that the C code is so unsafe that a systemtap user must specify
 .IR -g

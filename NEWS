@@ -1,5 +1,13 @@
 * What's new in version 1.4
 
+- A new /* myproc-unprivileged */ marker is now available for embedded C
+  code and and expressions. Like the /* unprivileged */ marker, it makes
+  the code or expression available for use in unprivileged mode (see
+  --unprivileged). However, it also automatically adds a call to
+  assert_is_myproc() to the code or expression, thus, making it available
+  to the unprivileged user only if the target of the current probe is within
+  the user's own process.
+
 - The experimental "--remote USER@HOST" option will run pass 5 on a given
   ssh host, after building locally (or with --use-server) for that target.
 
