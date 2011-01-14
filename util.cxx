@@ -480,7 +480,8 @@ stap_spawn(int verbose, const std::string& command)
 int
 stap_system(int verbose, const std::string& command)
 {
-  const char *cmd = command.c_str();
+  const char *cmd;
+  cmd = command.c_str();
   PROBE1(stap, stap_system__start, cmd);
 
   int ret = -1;
