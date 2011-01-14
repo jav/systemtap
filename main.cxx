@@ -806,7 +806,7 @@ pass_5 (systemtap_session &s, vector<remote*> targets)
   // and don't take an indefinite amount of time.
   PROBE1(stap, pass5__start, &s);
   if (s.verbose) clog << "Pass 5: starting run." << endl;
-  int rc; // XXX with multiple targets, need to deal with partial failure
+  int rc = 0; // XXX with multiple targets, need to deal with partial failure
   for (unsigned i = 0; i < targets.size() && !pending_interrupts; ++i)
     rc |= targets[i]->start();
   for (unsigned i = 0; i < targets.size(); ++i)
