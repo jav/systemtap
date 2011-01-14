@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# We should be able to parse this function
+
+stap --check-version --compatible=1.5 -p2 -e 'probe nd_syscall.accept { println(flag_str++) }'

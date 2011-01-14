@@ -146,6 +146,7 @@ struct systemtap_session
   bool load_only; // flight recorder mode
   bool omit_werror;
   bool unprivileged;
+  bool systemtap_v_check;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).

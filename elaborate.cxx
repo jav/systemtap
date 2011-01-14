@@ -1350,6 +1350,29 @@ semantic_pass_symbols (systemtap_session& s)
   // all resolution, so it's time to release caches.
   s.pattern_root->build_no_more (s);
 
+  if(s.systemtap_v_check){ 
+    for(unsigned i=0;i<s.globals.size();i++){
+      if(s.globals[i]->systemtap_v_conditional)
+        s.print_warning("This global uses tapset constructs that are dependent on systemtap version", s.globals[i]->tok);
+    }
+
+    for(map<string, functiondecl*>::const_iterator i=s.functions.begin();i != s.functions.end();++i){
+      if(i->second->systemtap_v_conditional)
+        s.print_warning("This function uses tapset constructs that are dependent on systemtap version", i->second->tok);
+    }
+
+    for(unsigned i=0;i<s.probes.size();i++){
+      vector<probe*> sysvc;
+      s.probes[i]->collect_derivation_chain(sysvc);
+      for(unsigned j=0;j<sysvc.size();j++){
+        if(sysvc[j]->systemtap_v_conditional)
+          s.print_warning("This probe uses tapset constructs that are dependent on systemtap version", sysvc[j]->tok);
+        if(sysvc[j]->get_alias() && sysvc[j]->get_alias()->systemtap_v_conditional)
+          s.print_warning("This alias uses tapset constructs that are dependent on systemtap version", sysvc[j]->get_alias()->tok);
+      }
+    }
+  }
+
   return s.num_errors(); // all those print_error calls
 }
 
@@ -1844,7 +1867,8 @@ symresolution_info::visit_functioncall (functioncall* e)
     }
 }
 
-
+/*find_var will return an argument other than zero if the name matches the var
+ * name ie, if the current local name matches the name passed to find_var*/
 vardecl*
 symresolution_info::find_var (const string& name, int arity, const token* tok)
 {

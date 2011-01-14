@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# We shouldn't be able to parse a deprecated function
+
+stap --check-version --compatible=1.4 -W -p2 -e 'probe nd_syscall.accept { println(flag_str++) }'

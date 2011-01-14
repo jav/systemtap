@@ -272,6 +272,12 @@ systemtap script fails to run.  See the DEPRECATION section for more
 details.
 
 .TP
+.BI \-\-check-version
+This option is used to check if the active script has any constructors
+that may be systemtap version specific.  See the DEPRECATION section
+for more details.
+
+.TP
 \fB\-\-use\-server \fR[\fIHOSTNAME\fR[\fI:PORT\fR] | \fIIP_ADDRESS\fR[\fI:PORT\fR] | \fICERT_SERIAL\fR]
 Specify compile\-server(s) to be used for compilation and/or in conjunction
 with
@@ -1495,9 +1501,12 @@ may undergo incompatible changes, so that a script written against
 an old version of systemtap may no longer run.  In these cases, it may
 help to run systemtap with the
 .I \-\-compatible VERSION
-flag, specifying the last known working version of systemtap.  Below
-is a table of recently deprecated tapset functions and syntax elements
-that require the given \-\-compatible flag to use:
+flag, specifying the last known working version of systemtap.  Running
+systemtap with the 
+.I \-\-check\-version
+flag will output a warning if any possible incompatible elements have
+been parsed. Below is a table of recently deprecated tapset functions
+and syntax elements that require the given \-\-compatible flag to use:
 .PP
 .TP 
 \-\-compatible=1.2

@@ -128,6 +128,7 @@ systemtap_session::systemtap_session ():
   unwindsym_ldd = false;
   client_options = false;
   NSPR_Initialized = false;
+  systemtap_v_check = false;
 
   /*  adding in the XDG_DATA_DIRS variable path,
    *  this searches in conjunction with SYSTEMTAP_TAPSET
@@ -367,6 +368,9 @@ systemtap_session::usage (int exitcode)
     << "   --compatible=VERSION" << endl
     << "              suppress incompatible language/tapset changes beyond VERSION," << endl
     << "              instead of " << compatible << endl
+    << "   --check-version" << endl
+    << "              displays warnings where a syntax element may be " << endl
+    << "              version dependent" << endl 
     << "   --skip-badvars" << endl
     << "              substitute zero for bad context $variables" << endl
     << "   --use-server[=SERVER-SPEC]" << endl
@@ -421,6 +425,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_TRUST_SERVERS 18
 #define LONG_OPT_ALL_MODULES 19
 #define LONG_OPT_REMOTE 20
+#define LONG_OPT_CHECK_VERSION 21
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -449,6 +454,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "trust-servers", 2, &long_opt, LONG_OPT_TRUST_SERVERS },
         { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
         { "remote", 1, &long_opt, LONG_OPT_REMOTE },
+        { "check-version", 0, &long_opt, LONG_OPT_CHECK_VERSION },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -871,7 +877,13 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
                   cerr << "ERROR: --remote is invalid with --client-options" << endl;
                   return 1;
               }
+
               remote_uris.push_back(optarg);
+              break;
+
+            case LONG_OPT_CHECK_VERSION:
+              push_server_opt = true;
+              systemtap_v_check = true;
               break;
 
             default:

@@ -96,6 +96,7 @@ private:
   const token* next (bool wildcard=false);
   const token* peek (bool wildcard=false);
 
+  const token* systemtap_v_seen;
   const token* last_t; // the last value returned by peek() or next()
   const token* next_t; // lookahead token
 
@@ -189,14 +190,14 @@ parser::parser (systemtap_session& s, istream& i, bool p):
   session (s),
   input_name ("<input>"), free_input (0),
   input (i, input_name, s), privileged (p),
-  context(con_unknown), last_t (0), next_t (0), num_errors (0)
+  context(con_unknown), systemtap_v_seen(0), last_t (0), next_t (0), num_errors (0)
 { }
 
 parser::parser (systemtap_session& s, const string& fn, bool p):
   session (s),
   input_name (fn), free_input (new ifstream (input_name.c_str(), ios::in)),
   input (* free_input, input_name, s), privileged (p),
-  context(con_unknown), last_t (0), next_t (0), num_errors (0)
+  context(con_unknown), systemtap_v_seen(0), last_t (0), next_t (0), num_errors (0)
 { }
 
 parser::~parser()
@@ -547,7 +548,7 @@ parser::scan_pp (bool wildcard)
           if (pp == PP_NONE)
             throw parse_error ("incomplete conditional - missing '%('", t);
           delete pp_state.back().first;
-          delete t;
+          delete t; //this is the closing bracket
           pp_state.pop_back();
           continue;
         }
@@ -573,9 +574,14 @@ parser::scan_pp (bool wildcard)
         // Do not evaluate the condition if we haven't expanded everything.
         // This may occur when having several recursive conditionals.
         and_result &= eval_pp_conditional (session, l, op, r);
+        if(l->content=="systemtap_v")
+          systemtap_v_seen=r;
+
+        else
+          delete r;
+
         delete l;
         delete op;
-        delete r;
         delete n;
 
         n = input.scan ();
@@ -1164,6 +1170,7 @@ parser::parse ()
     {
       try
 	{
+          systemtap_v_seen = 0;
 	  const token* t = peek ();
 	  if (! t) // nice clean EOF
 	    break;
@@ -1300,6 +1307,7 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
       p->locations = locations;
       p->body = parse_stmt_block ();
       p->privileged = privileged;
+      p->systemtap_v_conditional = systemtap_v_seen;
       probe_ret.push_back (p);
     }
   else
@@ -1313,6 +1321,7 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
       p->locations = locations;
       p->body = parse_stmt_block ();
       p->privileged = privileged;
+      p->systemtap_v_conditional = systemtap_v_seen;
       alias_ret.push_back (p);
     }
 }
@@ -1485,6 +1494,7 @@ parser::parse_global (vector <vardecl*>& globals, vector<probe*>&)
       vardecl* d = new vardecl;
       d->name = t->content;
       d->tok = t;
+      d->systemtap_v_conditional = systemtap_v_seen;
       globals.push_back (d);
 
       t = peek ();
@@ -1577,6 +1587,7 @@ parser::parse_functiondecl (std::vector<functiondecl*>& functions)
       vd->name = t->content;
       vd->tok = t;
       fd->formal_args.push_back (vd);
+      fd->systemtap_v_conditional = systemtap_v_seen;
 
       t = next ();
       if (t->type == tok_operator && t->content == ":")

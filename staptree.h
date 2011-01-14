@@ -465,6 +465,7 @@ struct symboldecl // unique object per (possibly implicit)
 		  // symbol declaration
 {
   const token* tok;
+  const token* systemtap_v_conditional; //checking systemtap compatibility
   std::string name;
   exp_type type;
   symboldecl ();
@@ -695,6 +696,7 @@ struct probe
   std::vector<probe_point*> locations;
   statement* body;
   const token* tok;
+  const token* systemtap_v_conditional;//checking systemtap compatibility
   std::vector<vardecl*> locals;
   std::vector<vardecl*> unused_locals;
   static unsigned last_probeidx;

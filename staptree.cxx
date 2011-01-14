@@ -78,7 +78,7 @@ functioncall::functioncall ():
 
 
 symboldecl::symboldecl ():
-  tok (0),
+  tok (0), systemtap_v_conditional (0),
   type (pe_unknown)
 {
 }
@@ -111,7 +111,7 @@ probe_point::probe_point ():
 unsigned probe::last_probeidx = 0;
 
 probe::probe ():
-  body (0), tok (0)
+  body (0), tok (0), systemtap_v_conditional (0)
 {
   this->name = string ("probe_") + lex_cast(last_probeidx ++);
 }
@@ -127,6 +127,7 @@ probe::probe(const probe& p, probe_point* l)
   this->locations.push_back(l);
   this->body = p.body; // NB: not needed to be copied yet; a later derived_probe will
   this->privileged = p.privileged;
+  this->systemtap_v_conditional = p.systemtap_v_conditional;
   assert (p.locals.size() == 0);
   assert (p.unused_locals.size() == 0);
 }
