@@ -37,8 +37,8 @@ Build steps:
   Or if desired, build elfutils separately one time, and install
   it to /usr/local.
   See http://fedorahosted.org/elfutils/
-  Version 0.150+ is recommended for i386 hosts probing prelinked shared
-  libraries. (PR12141)
+  Version 0.151 is recommended for i386 hosts probing prelinked programs.
+  (PR12141)
 
 - On modern Fedora, install general optional build-requisites:
   # yum-builddep systemtap
