@@ -414,7 +414,7 @@ static void handleRequest (const char* requestDirName, const char* responseDirNa
     }
 
   for (u=0; u<words.we_wordc; u++)
-    stapargv[stapargc++] = words.we_wordv[i];
+    stapargv[stapargc++] = words.we_wordv[u];
 
   stapargv[stapargc++] = "-k"; /* Need to keep temp files in order to package them up again. */
 
