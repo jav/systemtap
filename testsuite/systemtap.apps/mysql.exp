@@ -330,10 +330,12 @@ touch do_abi_check
 
 # mysql erroneously defines min/max which c++ limits (via sdt.h) also defines
 sed -i -e '/HAVE_DTRACE/i\\
+#pragma push_macro(\"max\")\\
+#pragma push_macro(\"min\")\\
 #undef max\\
 #undef min' -e '/endif.*PROBES_MYSQL_H/i\\
-#define max(a, b)       ((a) > (b) ? (a) : (b))\\
-#define min(a, b)       ((a) < (b) ? (a) : (b))' ../src/include/probes_mysql.h
+#pragma pop_macro(\"max\")\\
+#pragma pop_macro(\"min\")' ../src/include/probes_mysql.h
 
 make -j\$J
 make install
