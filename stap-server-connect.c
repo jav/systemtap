@@ -388,6 +388,7 @@ static void handleRequest (const char* requestDirName, const char* responseDirNa
   int stapargc=0;
   int rc;
   wordexp_t words;
+  unsigned u;
   int i;
   FILE* f;
   int unprivileged = 0;
@@ -412,7 +413,7 @@ static void handleRequest (const char* requestDirName, const char* responseDirNa
       return;
     }
 
-  for (i=0; i<words.we_wordc; i++)
+  for (u=0; u<words.we_wordc; u++)
     stapargv[stapargc++] = words.we_wordv[i];
 
   stapargv[stapargc++] = "-k"; /* Need to keep temp files in order to package them up again. */
@@ -954,7 +955,7 @@ accept_connection(PRFileDesc *listenSocket)
  *
  */
 static void
-server_main(unsigned short port, SECKEYPrivateKey *privKey)
+server_main(unsigned short port)
 {
   SECStatus           secStatus;
   PRStatus            prStatus;
@@ -1008,7 +1009,7 @@ server_main(unsigned short port, SECKEYPrivateKey *privKey)
  * should point to dynamically allocated memory that will be freed later.
  */
 static char *
-myPasswd(PK11SlotInfo *info, PRBool retry, void *arg)
+myPasswd(PK11SlotInfo *info __attribute ((unused)), PRBool retry, void *arg)
 {
   char * passwd = NULL;
 
@@ -1139,7 +1140,7 @@ main(int argc, char **argv)
   SSL_ConfigMPServerSIDCache(256, 0, 0, NULL);
 
   /* Launch server. */
-  server_main(port, privKey);
+  server_main(port);
 
   /* Shutdown NSS and exit NSPR gracefully. */
   NSS_Shutdown();

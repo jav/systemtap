@@ -161,8 +161,8 @@ stap_server_connect_LINK = $(CCLD) $(stap_server_connect_CFLAGS) \
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_sign_module-nsscommon.$(OBJEXT)
 stap_sign_module_OBJECTS = $(am_stap_sign_module_OBJECTS)
 stap_sign_module_DEPENDENCIES =
-stap_sign_module_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
-	$(stap_sign_module_LDFLAGS) $(LDFLAGS) -o $@
+stap_sign_module_LINK = $(CXXLD) $(stap_sign_module_CXXFLAGS) \
+	$(CXXFLAGS) $(stap_sign_module_LDFLAGS) $(LDFLAGS) -o $@
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -296,8 +296,6 @@ PIECFLAGS = @PIECFLAGS@
 PIECXXFLAGS = @PIECXXFLAGS@
 PIELDFLAGS = @PIELDFLAGS@
 PKG_CONFIG = @PKG_CONFIG@
-PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
-PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PUBLICAN_BRAND = @PUBLICAN_BRAND@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
@@ -429,13 +427,15 @@ PHONIES = $(am__append_20) $(am__append_26) runcheck dist-gzip uprobes \
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_LDFLAGS = $(AM_LDFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_SOURCES = modsign.cxx nsscommon.c
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CPPFLAGS = -Wall -Werror $(AM_CPPFLAGS) $(nss_CFLAGS) $(nspr_CFLAGS)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CPPFLAGS = $(AM_CPPFLAGS)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_LDADD = -lnss3 -lnspr4
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_client_connect_SOURCES = stap-client-connect.c nsscommon.c
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_client_connect_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_client_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_server_connect_SOURCES = stap-server-connect.c nsscommon.c
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_server_connect_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_server_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
 @BUILD_TRANSLATOR_TRUE@loc2c_test_SOURCES = loc2c-test.c loc2c.c
 @BUILD_TRANSLATOR_TRUE@loc2c_test_CFLAGS = $(stap_CFLAGS)
@@ -912,20 +912,20 @@ stap_server_connect-nsscommon.obj: nsscommon.c
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_server_connect_CFLAGS) $(CFLAGS) -c -o stap_server_connect-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
 
 stap_sign_module-nsscommon.o: nsscommon.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT stap_sign_module-nsscommon.o -MD -MP -MF $(DEPDIR)/stap_sign_module-nsscommon.Tpo -c -o stap_sign_module-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(stap_sign_module_CFLAGS) $(CFLAGS) -MT stap_sign_module-nsscommon.o -MD -MP -MF $(DEPDIR)/stap_sign_module-nsscommon.Tpo -c -o stap_sign_module-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap_sign_module-nsscommon.Tpo $(DEPDIR)/stap_sign_module-nsscommon.Po
 @am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='nsscommon.c' object='stap_sign_module-nsscommon.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o stap_sign_module-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(stap_sign_module_CFLAGS) $(CFLAGS) -c -o stap_sign_module-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c
 
 stap_sign_module-nsscommon.obj: nsscommon.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT stap_sign_module-nsscommon.obj -MD -MP -MF $(DEPDIR)/stap_sign_module-nsscommon.Tpo -c -o stap_sign_module-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(stap_sign_module_CFLAGS) $(CFLAGS) -MT stap_sign_module-nsscommon.obj -MD -MP -MF $(DEPDIR)/stap_sign_module-nsscommon.Tpo -c -o stap_sign_module-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap_sign_module-nsscommon.Tpo $(DEPDIR)/stap_sign_module-nsscommon.Po
 @am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='nsscommon.c' object='stap_sign_module-nsscommon.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o stap_sign_module-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(stap_sign_module_CFLAGS) $(CFLAGS) -c -o stap_sign_module-nsscommon.obj `if test -f 'nsscommon.c'; then $(CYGPATH_W) 'nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/nsscommon.c'; fi`
 
 .cxx.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -1360,20 +1360,20 @@ stap-remote.obj: remote.cxx
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-remote.obj `if test -f 'remote.cxx'; then $(CYGPATH_W) 'remote.cxx'; else $(CYGPATH_W) '$(srcdir)/remote.cxx'; fi`
 
 stap_sign_module-modsign.o: modsign.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT stap_sign_module-modsign.o -MD -MP -MF $(DEPDIR)/stap_sign_module-modsign.Tpo -c -o stap_sign_module-modsign.o `test -f 'modsign.cxx' || echo '$(srcdir)/'`modsign.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(stap_sign_module_CXXFLAGS) $(CXXFLAGS) -MT stap_sign_module-modsign.o -MD -MP -MF $(DEPDIR)/stap_sign_module-modsign.Tpo -c -o stap_sign_module-modsign.o `test -f 'modsign.cxx' || echo '$(srcdir)/'`modsign.cxx
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap_sign_module-modsign.Tpo $(DEPDIR)/stap_sign_module-modsign.Po
 @am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='modsign.cxx' object='stap_sign_module-modsign.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o stap_sign_module-modsign.o `test -f 'modsign.cxx' || echo '$(srcdir)/'`modsign.cxx
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(stap_sign_module_CXXFLAGS) $(CXXFLAGS) -c -o stap_sign_module-modsign.o `test -f 'modsign.cxx' || echo '$(srcdir)/'`modsign.cxx
 
 stap_sign_module-modsign.obj: modsign.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT stap_sign_module-modsign.obj -MD -MP -MF $(DEPDIR)/stap_sign_module-modsign.Tpo -c -o stap_sign_module-modsign.obj `if test -f 'modsign.cxx'; then $(CYGPATH_W) 'modsign.cxx'; else $(CYGPATH_W) '$(srcdir)/modsign.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(stap_sign_module_CXXFLAGS) $(CXXFLAGS) -MT stap_sign_module-modsign.obj -MD -MP -MF $(DEPDIR)/stap_sign_module-modsign.Tpo -c -o stap_sign_module-modsign.obj `if test -f 'modsign.cxx'; then $(CYGPATH_W) 'modsign.cxx'; else $(CYGPATH_W) '$(srcdir)/modsign.cxx'; fi`
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap_sign_module-modsign.Tpo $(DEPDIR)/stap_sign_module-modsign.Po
 @am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='modsign.cxx' object='stap_sign_module-modsign.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o stap_sign_module-modsign.obj `if test -f 'modsign.cxx'; then $(CYGPATH_W) 'modsign.cxx'; else $(CYGPATH_W) '$(srcdir)/modsign.cxx'; fi`
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_sign_module_CPPFLAGS) $(CPPFLAGS) $(stap_sign_module_CXXFLAGS) $(CXXFLAGS) -c -o stap_sign_module-modsign.obj `if test -f 'modsign.cxx'; then $(CYGPATH_W) 'modsign.cxx'; else $(CYGPATH_W) '$(srcdir)/modsign.cxx'; fi`
 install-man1: $(man_MANS)
 	@$(NORMAL_INSTALL)
 	test -z "$(man1dir)" || $(MKDIR_P) "$(DESTDIR)$(man1dir)"

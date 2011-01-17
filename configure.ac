@@ -68,7 +68,7 @@ AS_IF([test "x$enable_ssp" != xno],[
    AC_COMPILE_IFELSE([int something ();], [
        AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])
 	CFLAGS="$save_CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-	CXFXLAGS="$save_CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"],[
+	CXXFLAGS="$save_CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"],[
        AC_MSG_NOTICE([Compiler does not support -fstack-protector-all et al.])
        CFLAGS="$save_CFLAGS"
        CXXFLAGS="$save_CXXFLAGS"])])
@@ -490,7 +490,7 @@ AC_COMPILE_IFELSE([asm(".section .note.foo,\"?\",\"note\"\n"
 		       ".popsection\n"
 		       ".byte 2\n");],
 		  stap_cv_sectionq=yes, stap_cv_sectionq=no)
-CFLAGS="$oldCFLAGS"])
+CFLAGS="$old_CFLAGS"])
 AC_SUBST(support_section_question)
 support_section_question=0
 if test $stap_cv_sectionq = yes; then

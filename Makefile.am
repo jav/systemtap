@@ -170,16 +170,18 @@ CLEANFILES +=  $(pkglibexec_PROGRAMS)
 if BUILD_TRANSLATOR
 if HAVE_NSS
 stap_sign_module_SOURCES = modsign.cxx nsscommon.c
-stap_sign_module_CPPFLAGS = -Wall -Werror $(AM_CPPFLAGS) $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_sign_module_CPPFLAGS = $(AM_CPPFLAGS)
+stap_sign_module_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_sign_module_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_sign_module_LDADD = -lnss3 -lnspr4
 
 if BUILD_SERVER
 stap_client_connect_SOURCES = stap-client-connect.c nsscommon.c
-stap_client_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_client_connect_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_client_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
 
 stap_server_connect_SOURCES = stap-server-connect.c nsscommon.c
-stap_server_connect_CFLAGS = -Wall -Werror $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_server_connect_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_server_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
 endif
 endif
