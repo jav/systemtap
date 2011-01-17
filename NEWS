@@ -1,4 +1,4 @@
-* What's new in version 1.4
+* What's new in version 1.4, 2011-01-17
 
 - A new /* myproc-unprivileged */ marker is now available for embedded C
   code and and expressions. Like the /* unprivileged */ marker, it makes
