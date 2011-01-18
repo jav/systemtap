@@ -50,6 +50,10 @@ static inline int _stp_is_compat_task(void)
 #if defined(__x86_64__)
 #define task_pt_regs(tsk)	((struct pt_regs *)(tsk)->thread.rsp0 - 1)
 #endif
+#if defined(__ia64__)
+/* pre-commit 6450578f32 */
+#define task_pt_regs(tsk)	ia64_task_regs(tsk)
+#endif
 #endif
 
 /* Whether all user registers are valid. If not the pt_regs needs,
