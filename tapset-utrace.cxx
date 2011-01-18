@@ -205,24 +205,36 @@ utrace_derived_probe::join_group (systemtap_session& s)
 void
 utrace_derived_probe::emit_unprivileged_assertion (translator_output* o)
 {
-  // Process end probes are allowed for unprivileged users, even if the process
-  // does not belong to them. They are required to check is_myproc() from within
-  // their probe script before doing anything "dangerous".
+  // Process end probes can fire for unprivileged users even if the process
+  // does not belong to the user. On example is that process.end will fire
+  // at the end of a process which executes execve on an executable which
+  // has the setuid bit set. When the setuid executable ends, the process.end
+  // will fire even though the owner of the process is different than the
+  // original owner.
+  // Unprivileged users must use check is_myproc() from within any
+  // process.end variant in their script before doing anything "dangerous".
   if (flags == UDPF_END)
     return;
 
-  // Other process probes are allowed for unprivileged users, but only in the
-  // context of processes which they own.
+  // Other process probes should only fire for unprivileged users in the
+  // context of processes which they own. Generate an assertion to this effect
+  // as a safety net.
   emit_process_owner_assertion (o);
 }
 
 void
 utrace_derived_probe::print_dupe_stamp(ostream& o)
 {
-  // Process end probes are allowed for unprivileged users, even if the process
-  // does not belong to them. They are required to check is_myproc() from within
-  // their probe script before doing anything "dangerous".
-  // Other process probes are allowed for unprivileged users, but only in the
+  // Process end probes can fire for unprivileged users even if the process
+  // does not belong to the user. On example is that process.end will fire
+  // at the end of a process which executes execve on an executable which
+  // has the setuid bit set. When the setuid executable ends, the process.end
+  // will fire even though the owner of the process is different than the
+  // original owner.
+  // Unprivileged users must use check is_myproc() from within any
+  // process.end variant in their script before doing anything "dangerous".
+  //
+  // Other process probes should only fire for unprivileged users in the
   // context of processes which they own.
   if (flags == UDPF_END)
     print_dupe_stamp_unprivileged (o);
