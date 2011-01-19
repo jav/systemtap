@@ -34,17 +34,14 @@ bin_SCRIPTS += dtrace
 pkglibexec_PROGRAMS =
 
 if HAVE_NSS
-man_MANS += stap-authorize-signing-cert.8
-bin_SCRIPTS += stap-authorize-signing-cert
 pkglibexec_PROGRAMS += stap-sign-module
 pkglibexec_SCRIPTS += stap-gen-cert stap-authorize-cert
 
 if BUILD_SERVER
-man_MANS += stap-client.8 stap-server.8 stap-authorize-server-cert.8
-pkglibexec_PROGRAMS += stap-client-connect stap-server-connect
-bin_SCRIPTS += stap-client stap-server stap-authorize-server-cert
-pkglibexec_SCRIPTS += stap-serverd stap-find-servers \
-	       stap-start-server stap-find-or-start-server stap-stop-server
+man_MANS += stap-server.8
+pkglibexec_PROGRAMS += stap-server-connect
+bin_SCRIPTS += stap-server
+pkglibexec_SCRIPTS += stap-serverd stap-start-server stap-stop-server
 endif
 endif
 
@@ -119,7 +116,6 @@ stap_CFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS) -DSTAP
 stap_CXXFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_CPPFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_LDADD += -lssl3 -lnss3 -lnspr4 -lplc4
-stap_client_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_sign_module_LDFLAGS = $(AM_LDFLAGS)
 
@@ -133,7 +129,7 @@ install-scripts: install-binSCRIPTS install-pkglibexecSCRIPTS
 	   sed -i -e "s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(bindir)/$$f; \
 	done
 	for f in $(pkglibexec_SCRIPTS); do \
-	   sed -i -e "/INSTALL-HOOK/d;s,exec_prefix=.*,exec_prefix=$(exec_prefix)/bin/,;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)/,;s,localstatedir=.*,localstatedir=$(localstatedir),;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
+	   sed -i -e "/INSTALL-HOOK/d;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)/,;s,localstatedir=.*,localstatedir=$(localstatedir),;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
 	done
 endif
 endif
@@ -176,10 +172,6 @@ stap_sign_module_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_sign_module_LDADD = -lnss3 -lnspr4
 
 if BUILD_SERVER
-stap_client_connect_SOURCES = stap-client-connect.c nsscommon.c
-stap_client_connect_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_client_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
-
 stap_server_connect_SOURCES = stap-server-connect.c nsscommon.c
 stap_server_connect_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_server_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4

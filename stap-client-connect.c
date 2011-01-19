@@ -2,7 +2,7 @@
   SSL client program that sets up a connection to a SSL server, transmits
   the given input file and then writes the reply to the given output file.
 
-  Copyright (C) 2008-2010 Red Hat Inc.
+  Copyright (C) 2008-2011 Red Hat Inc.
 
   This file is part of systemtap, and is free software.  You can
   redistribute it and/or modify it under the terms of the GNU General Public
@@ -39,33 +39,17 @@
 #define READ_BUFFER_SIZE (60 * 1024)
 static const char *trustNewServer_p = NULL;
 
-/* Exit error codes */
-#define GENERAL_ERROR         1
-#define CA_CERT_INVALID_ERROR 2
 
-#if ! STAP /* temporary until stap-client-connect program goes away*/
-static void
-Usage(const char *progName)
+#if 0 /* No client authorization */
+static char *
+myPasswd(PK11SlotInfo *info, PRBool retry, void *arg)
 {
-  fprintf(stderr, "Usage: %s -h hostname -p port -d dbdir -i infile -o outfile\n",
-	  progName);
-  exit(1);
-}
-#endif
+  char * passwd = NULL;
 
-#if STAP /* temporary until stap-client-connect program goes away*/
-#define exitErr(errorStr, rc) return (rc)
-#else
-static void
-exitErr(const char* errorStr, int rc)
-{
-  fprintf (stderr, "%s: ", errorStr);
-  nssError();
-  /* Exit gracefully. */
-  /* ignoring return value of NSS_Shutdown. */
-  (void) NSS_Shutdown();
-  PR_Cleanup();
-  exit(rc);
+  if ( (!retry) && arg )
+    passwd = PORT_Strdup((char *)arg);
+
+  return passwd;
 }
 #endif
 
@@ -351,14 +335,16 @@ handle_connection(
 
   /* read until EOF */
   readBuffer = PORT_Alloc(READ_BUFFER_SIZE);
-  if (! readBuffer)
-    exitErr("Out of memory", GENERAL_ERROR);
+  if (! readBuffer) {
+    fprintf (stderr, "Out of memory\n");
+    return SECFailure;
+  }
 
   local_file_fd = PR_Open(outfileName, PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
 			  PR_IRUSR | PR_IWUSR | PR_IRGRP | PR_IWGRP | PR_IROTH);
   if (local_file_fd == NULL)
     {
-      fprintf (stderr, "could not open output file %s\n", outfileName);
+      fprintf (stderr, "Unable to open output file %s\n", outfileName);
       return SECFailure;
     }
   while (PR_TRUE)
@@ -463,6 +449,11 @@ do_connect(
   return secStatus;
 }
 
+/* Exit error codes */
+#define SUCCESS               0
+#define GENERAL_ERROR         1
+#define CA_CERT_INVALID_ERROR 2
+
 int
 client_main (const char *hostName, PRUint32 ip,
 	     PRUint16 port,
@@ -477,7 +468,7 @@ client_main (const char *hostName, PRUint32 ip,
   PRErrorCode errorNumber;
   char        buffer[PR_NETDB_BUF_SIZE];
   int         attempt;
-  int errCode = GENERAL_ERROR;
+  int         errCode = GENERAL_ERROR;
 
   trustNewServer_p = trustNewServer;
 
@@ -492,12 +483,16 @@ client_main (const char *hostName, PRUint32 ip,
   else
     {
       prStatus = PR_GetHostByName(hostName, buffer, sizeof (buffer), &hostEntry);
-      if (prStatus != PR_SUCCESS)
-	exitErr ("Unable to resolve server host name", GENERAL_ERROR);
+      if (prStatus != PR_SUCCESS) {
+	fprintf (stderr, "Unable to resolve server host name");
+	return errCode;
+      }
 
       rv = PR_EnumerateHostEnt(0, &hostEntry, port, &addr);
-      if (rv < 0)
-	exitErr ("Unable to resolve server host address", GENERAL_ERROR);
+      if (rv < 0) {
+	fprintf (stderr, "Unable to resolve server host address");
+	return errCode;
+      }
     }
 
   /* Some errors (see below) represent a situation in which trying again
@@ -506,7 +501,7 @@ client_main (const char *hostName, PRUint32 ip,
     {
       secStatus = do_connect (&addr, hostName, port, infileName, outfileName);
       if (secStatus == SECSuccess)
-	return secStatus;
+	return SUCCESS;
 
       errorNumber = PR_GetError ();
       switch (errorNumber)
@@ -534,86 +529,8 @@ client_main (const char *hostName, PRUint32 ip,
 
  failed:
   /* Unrecoverable error */
-  exitErr("Unable to connect to server", errCode);
+  fprintf (stderr, "Unable to connect to server\n");
   return errCode;
 }
-
-#if 0 /* No client authorization */
-static char *
-myPasswd(PK11SlotInfo *info, PRBool retry, void *arg)
-{
-  char * passwd = NULL;
-
-  if ( (!retry) && arg )
-    passwd = PORT_Strdup((char *)arg);
-
-  return passwd;
-}
-#endif
-
-#if ! STAP /* temporary until stap-client-connect program goes away*/
-int
-main(int argc, char **argv)
-{
-  const char *progName = NULL;
-  const char *certDir = NULL;
-  const char *hostName = NULL;
-  unsigned short port = 0;
-  const char *infileName = NULL;
-  const char *outfileName = NULL;
-  SECStatus    secStatus;
-  PLOptState  *optstate;
-  PLOptStatus  status;
-
-  /* Call the NSPR initialization routines */
-  PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
-
-  progName = PL_strdup(argv[0]);
-
-  optstate = PL_CreateOptState(argc, argv, "d:h:i:o:p:t:");
-  while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK)
-    {
-      switch(optstate->option)
-	{
-	case 'd' : certDir = PL_strdup(optstate->value);      break;
-	case 'h' : hostName = PL_strdup(optstate->value);     break;
-	case 'i' : infileName = PL_strdup(optstate->value);   break;
-	case 'o' : outfileName = PL_strdup(optstate->value);  break;
-	case 'p' : port = PORT_Atoi(optstate->value);         break;
-	case 't' : trustNewServer_p = PL_strdup(optstate->value);  break;
-	case '?' :
-	default  : Usage(progName);
-	}
-    }
-
-  if (port == 0 || hostName == NULL || infileName == NULL || outfileName == NULL || certDir == NULL)
-    Usage(progName);
-
-#if 0 /* no client authentication */
-  /* Set our password function callback. */
-  PK11_SetPasswordFunc(myPasswd);
-#endif
-
-  /* Initialize the NSS libraries. */
-  secStatus = NSS_InitReadWrite(certDir);
-  if (secStatus != SECSuccess)
-    {
-      /* Try it again, readonly.  */
-      secStatus = NSS_Init(certDir);
-      if (secStatus != SECSuccess)
-	exitErr("Error initializing NSS", GENERAL_ERROR);
-    }
-
-  /* All cipher suites except RSA_NULL_MD5 are enabled by Domestic Policy. */
-  NSS_SetDomesticPolicy();
-
-  client_main (hostName, 0, port, infileName, outfileName, trustNewServer_p);
-
-  NSS_Shutdown();
-  PR_Cleanup();
-
-  return 0;
-}
-#endif /* ! STAP -- temporary */
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

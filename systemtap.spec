@@ -104,21 +104,6 @@ Requires: systemtap systemtap-sdt-devel dejagnu which prelink
 The testsuite allows testing of the entire SystemTap toolchain
 without having to rebuild from sources.
 
-%package client
-Summary: Instrumentation System Client
-Group: Development/System
-License: GPLv2+
-URL: http://sourceware.org/systemtap/
-Requires: systemtap-runtime = %{version}-%{release}
-Requires: avahi avahi-tools nss nss-tools mktemp
-Requires: zip unzip
-
-%description client
-This is the remote script compilation client component of systemtap.
-It relies on a nearby compilation server to translate systemtap
-scripts to kernel objects, so a client workstation only needs the
-runtime, and not the compiler/etc toolchain.
-
 %package server
 Summary: Instrumentation System Server
 Group: Development/System
@@ -431,7 +416,6 @@ exit 0
 %attr(4110,root,stapusr) %{_bindir}/staprun
 %{_bindir}/stap-merge
 %{_bindir}/stap-report
-%{_bindir}/stap-authorize-signing-cert
 %{_libexecdir}/%{name}/stapio
 %{_libexecdir}/%{name}/stap-env
 %{_libexecdir}/%{name}/stap-authorize-cert
@@ -440,7 +424,6 @@ exit 0
 %endif
 %{_mandir}/man7/stappaths.7*
 %{_mandir}/man8/staprun.8*
-%{_mandir}/man8/stap-authorize-signing-cert.8*
 
 %doc README AUTHORS NEWS COPYING
 
@@ -448,31 +431,17 @@ exit 0
 %defattr(-,root,root)
 %{_datadir}/%{name}/testsuite
 
-%files client
-%defattr(-,root,root)
-%{_bindir}/stap-client
-%{_bindir}/stap-authorize-server-cert
-%{_libexecdir}/%{name}/stap-find-servers
-%{_libexecdir}/%{name}/stap-client-connect
-%{_mandir}/man7/stappaths.7*
-%{_mandir}/man8/stap-client.8*
-%{_mandir}/man8/stap-authorize-server-cert.8*
-
 %files server
 %defattr(-,root,root)
-%{_bindir}/stap-authorize-server-cert
 %{_bindir}/stap-server
 %{_libexecdir}/%{name}/stap-serverd
 %{_libexecdir}/%{name}/stap-start-server
-%{_libexecdir}/%{name}/stap-find-servers
-%{_libexecdir}/%{name}/stap-find-or-start-server
 %{_libexecdir}/%{name}/stap-stop-server
 %{_libexecdir}/%{name}/stap-gen-cert
 %{_libexecdir}/%{name}/stap-server-connect
 %{_libexecdir}/%{name}/stap-sign-module
 %{_mandir}/man7/stappaths.7*
 %{_mandir}/man8/stap-server.8*
-%{_mandir}/man8/stap-authorize-server-cert.8*
 %{_sysconfdir}/rc.d/init.d/stap-server
 %config(noreplace) %{_sysconfdir}/logrotate.d/stap-server
 %dir %{_sysconfdir}/stap-server

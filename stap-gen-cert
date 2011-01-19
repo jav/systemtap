@@ -17,7 +17,7 @@
 serverdb="$1"
 shift
 
-# We need to keep localhost in the domain list until stap-client goes away
+# Domains for the certificate.
 domains="$HOSTNAME"
 while test $# != 0
 do
@@ -28,7 +28,7 @@ done
 
 # Obtain the certificate database directory name.
 if  test "X$serverdb" = "X"; then
-    serverdb="$stap_ssl_db/server"
+    serverdb="$stap_user_ssl_db/server"
 fi
 rm -fr "$serverdb"
 

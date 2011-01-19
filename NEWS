@@ -1,5 +1,13 @@
 * What's new in version 1.5
 
+- The following deprecated tools have been removed:
+      stap-client
+      stap-authorize-server-cert
+      stap-authorize-signing-cert
+      stap-find-or-start-server
+      stap-find-servers
+  Use the --use-server, --trust-server and --list-servers options of stap
+  instead. See man stap(1) for complete details.
 
 * What's new in version 1.4, 2011-01-17
 

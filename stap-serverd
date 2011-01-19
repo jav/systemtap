@@ -64,7 +64,7 @@ function initialization {
 
     # Where is the ssl certificate/key database?
     if test "X$ssl_db" = "X"; then
-	ssl_db="$stap_ssl_db/server"
+	ssl_db="$stap_user_ssl_db/server"
     fi
 
     nss_pw="$ssl_db/pw"
@@ -325,11 +325,11 @@ function check_cert {
 
         # Now add the new certificate to the client's database,
         # making it a trusted peer for this user.
-	${stap_pkglibexecdir}stap-authorize-cert "$ssl_db/$stap_certfile" "$stap_ssl_db/client" >> "$logfile" 2>&1
-    elif ! test -f "$stap_ssl_db/client/cert8.db"; then
+	${stap_pkglibexecdir}stap-authorize-cert "$ssl_db/$stap_certfile" "$stap_user_ssl_db/client" >> "$logfile" 2>&1
+    elif ! test -f "$stap_user_ssl_db/client/cert8.db"; then
 	# Our certificate exists and is valid.
 	# If the client's database does not exist, then initialize it with our certificate.
-	${stap_pkglibexecdir}stap-authorize-cert "$ssl_db/$stap_certfile" "$stap_ssl_db/client" >> "$logfile" 2>&1
+	${stap_pkglibexecdir}stap-authorize-cert "$ssl_db/$stap_certfile" "$stap_user_ssl_db/client" >> "$logfile" 2>&1
     fi
 }
 
