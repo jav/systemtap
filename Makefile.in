@@ -50,7 +50,7 @@ bin_PROGRAMS = $(am__EXEEXT_1)
 @BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_10 = $(avahi_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_11 = $(avahi_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_12 = -lavahi-client -lavahi-common
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_13 = stap-client-connect.c nsscommon.c
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_13 = nsscommon.c
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_14 = $(nss_CFLAGS) $(nspr_CFLAGS) -DSTAP
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_15 = $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_16 = $(nss_CFLAGS) $(nspr_CFLAGS)
@@ -107,8 +107,7 @@ am__DEPENDENCIES_1 =
 @BUILD_TRANSLATOR_TRUE@	$(am__DEPENDENCIES_2)
 loc2c_test_LINK = $(CCLD) $(loc2c_test_CFLAGS) $(CFLAGS) \
 	$(loc2c_test_LDFLAGS) $(LDFLAGS) -o $@
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__objects_1 = stap-stap-client-connect.$(OBJEXT) \
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap-nsscommon.$(OBJEXT)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__objects_1 = stap-nsscommon.$(OBJEXT)
 @BUILD_TRANSLATOR_TRUE@am_stap_OBJECTS = stap-main.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-session.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-parse.$(OBJEXT) \
@@ -695,7 +694,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-rpm_finder.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-session.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-setupdwfl.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-stap-client-connect.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-staptree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-been.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-itrace.Po@am__quote@
@@ -792,22 +790,6 @@ stap-mdfour.obj: mdfour.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mdfour.c' object='stap-mdfour.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -c -o stap-mdfour.obj `if test -f 'mdfour.c'; then $(CYGPATH_W) 'mdfour.c'; else $(CYGPATH_W) '$(srcdir)/mdfour.c'; fi`
-
-stap-stap-client-connect.o: stap-client-connect.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -MT stap-stap-client-connect.o -MD -MP -MF $(DEPDIR)/stap-stap-client-connect.Tpo -c -o stap-stap-client-connect.o `test -f 'stap-client-connect.c' || echo '$(srcdir)/'`stap-client-connect.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-stap-client-connect.Tpo $(DEPDIR)/stap-stap-client-connect.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stap-client-connect.c' object='stap-stap-client-connect.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -c -o stap-stap-client-connect.o `test -f 'stap-client-connect.c' || echo '$(srcdir)/'`stap-client-connect.c
-
-stap-stap-client-connect.obj: stap-client-connect.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -MT stap-stap-client-connect.obj -MD -MP -MF $(DEPDIR)/stap-stap-client-connect.Tpo -c -o stap-stap-client-connect.obj `if test -f 'stap-client-connect.c'; then $(CYGPATH_W) 'stap-client-connect.c'; else $(CYGPATH_W) '$(srcdir)/stap-client-connect.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-stap-client-connect.Tpo $(DEPDIR)/stap-stap-client-connect.Po
-@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stap-client-connect.c' object='stap-stap-client-connect.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -c -o stap-stap-client-connect.obj `if test -f 'stap-client-connect.c'; then $(CYGPATH_W) 'stap-client-connect.c'; else $(CYGPATH_W) '$(srcdir)/stap-client-connect.c'; fi`
 
 stap-nsscommon.o: nsscommon.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CFLAGS) $(CFLAGS) -MT stap-nsscommon.o -MD -MP -MF $(DEPDIR)/stap-nsscommon.Tpo -c -o stap-nsscommon.o `test -f 'nsscommon.c' || echo '$(srcdir)/'`nsscommon.c

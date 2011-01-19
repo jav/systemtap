@@ -111,7 +111,7 @@ stap_LDADD += -lavahi-client -lavahi-common
 endif
 
 if HAVE_NSS
-stap_SOURCES += stap-client-connect.c nsscommon.c
+stap_SOURCES += nsscommon.c
 stap_CFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS) -DSTAP
 stap_CXXFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_CPPFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
