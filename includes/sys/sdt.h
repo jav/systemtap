@@ -1,5 +1,5 @@
 /* <sys/sdt.h> - Systemtap static probe definition macros.
-   Copyright (C) 2010 Red Hat Inc.
+   Copyright (C) 2010-2011 Red Hat Inc.
 
    This file is part of systemtap, and is free software in the public domain.
 */
@@ -61,8 +61,23 @@
 				 ? sizeof (void *) : sizeof (x))
 # define _SDT_ARGVAL(x)		(x)
 
+/* The C++ <limits> header uses the names 'min' and 'max' and conflicts
+   with any application-defined macros by these names.  In GCC 4.3 and
+   later, we can hack around this problem with new #pragma magic.  */
+# if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
+  #pragma push_macro("min")
+  #pragma push_macro("max")
+#  undef min
+#  undef max
+# endif
+
 # include <cstddef>
 # include <limits>
+
+# if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
+  #pragma pop_macro("min")
+  #pragma pop_macro("max")
+# endif
 
 template<typename __sdt_T>
 struct __sdt_type
