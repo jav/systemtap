@@ -4648,11 +4648,9 @@ struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
 };
 
 
-#define DRI(name,num,width)  dwarf_regs[name]=make_pair(num,width)
-
 struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
 {
-  enum {QI, QIh, HI, SI, DI} regwidths;
+  enum regwidths {QI, QIh, HI, SI, DI};
   sdt_uprobe_var_expanding_visitor(systemtap_session& s,
                                    int elf_machine,
                                    const string & process_name,
@@ -4668,6 +4666,8 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
     /* Register name mapping table depends on the elf machine of this particular
        probe target process/file, not upon the host.  So we can't just
        #ifdef _i686_ etc. */
+
+#define DRI(name,num,width)  dwarf_regs[name]=make_pair(num,width)
     if (elf_machine == EM_X86_64) {
       DRI ("%rax", 0, DI); DRI ("%eax", 0, SI); DRI ("%ax", 0, HI); 
       	 DRI ("%al", 0, QI); DRI ("%ah", 0, QIh); 
@@ -4798,6 +4798,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
     } else if (arg_count) {
       /* permit this case; just fall back to dwarf */
     }
+#undef DRI
 
     need_debug_info = false;
     tokenize(arg_string, arg_tokens, " ");
