@@ -175,7 +175,8 @@ static int setup_uprobe_post_ssout(struct uprobe_probept *ppt,
 	int prefix_ok = 0;
 	switch (*insn) {
 	case 0xc3:		/* ret */
-		if ((insn - ppt->insn == 1) && (*ppt->insn == 0xf3))
+		if ((insn - ppt->insn == 1) &&
+		    (*ppt->insn == 0xf3 || *ppt->insn == 0xf2))
 			/*
 			 * "rep ret" is an AMD kludge that's used by GCC,
 			 * so we need to treat it like a normal ret.

@@ -210,7 +210,8 @@ static int setup_uprobe_post_ssout(struct uprobe_probept *ppt,
 	int prefix_ok = 0;
 	switch (*insn) {
 	case 0xc3:		/* ret */
-		if ((insn - ppt->insn == 1) && (*ppt->insn == 0xf3))
+		if ((insn - ppt->insn == 1) &&
+		    (*ppt->insn == 0xf3 || *ppt->insn == 0xf2))
 			/*
 			 * "rep ret" is an AMD kludge that's used by GCC,
 			 * so we need to treat it like a normal ret.
@@ -276,7 +277,7 @@ static int validate_insn_32bits(struct uprobe_probept *ppt)
 		if (test_bit(insn[1], (unsigned long*)good_2byte_insns))
 			return 0;
 		report_bad_2byte_opcode(insn[1]);
-	} else 
+	} else
 		report_bad_1byte_opcode(32, insn[0]);
 	return -EPERM;
 }
@@ -304,7 +305,7 @@ static int validate_insn_64bits(struct uprobe_probept *ppt)
 		if (test_bit(insn[1], (unsigned long*)good_2byte_insns))
 			return 0;
 		report_bad_2byte_opcode(insn[1]);
-	} else 
+	} else
 		report_bad_1byte_opcode(64, insn[0]);
 	return -EPERM;
 }
