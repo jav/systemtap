@@ -268,8 +268,10 @@ compile_pass (systemtap_session& s)
     + string (" -C \"") + module_dir + string("\""); // XXX: lex_cast_qstring?
   make_cmd += string(" M=\"") + s.tmpdir + string("\"");
 
-  // Add architecture
-  make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
+  // Add architecture, except for old powerpc (RHBZ669082)
+  if (s.architecture != "powerpc" ||
+      (strverscmp (s.kernel_base_release.c_str(), "2.6.15") >= 0))
+    make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
 
   // Add any custom kbuild flags
   for (unsigned k=0; k<s.kbuildflags.size(); k++)
@@ -542,8 +544,10 @@ make_tracequery(systemtap_session& s, string& name,
   string make_cmd = "make -C '" + s.kernel_build_tree + "'"
     + " M='" + dir + "' modules";
 
-  // Add architecture
-  make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
+  // Add architecture, except for old powerpc (RHBZ669082)
+  if (s.architecture != "powerpc" ||
+      (strverscmp (s.kernel_base_release.c_str(), "2.6.15") >= 0))
+    make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
 
   // Add any custom kbuild flags
   for (unsigned k=0; k<s.kbuildflags.size(); k++)
@@ -605,8 +609,10 @@ make_typequery_kmod(systemtap_session& s, const vector<string>& headers, string&
   string make_cmd = "make -C '" + s.kernel_build_tree + "'"
     + " M='" + dir + "' modules";
 
-  // Add architecture
-  make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
+  // Add architecture, except for old powerpc (RHBZ669082)
+  if (s.architecture != "powerpc" ||
+      (strverscmp (s.kernel_base_release.c_str(), "2.6.15") >= 0))
+    make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
 
   // Add any custom kbuild flags
   for (unsigned k=0; k<s.kbuildflags.size(); k++)

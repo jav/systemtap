@@ -639,6 +639,10 @@ normalize_machine(const string& machine)
   //
   // This logic needs to match the logic in the stap_get_arch shell
   // function in stap-env.
+  //
+  // But: RHBZ669082 reminds us that this renaming post-dates some
+  // of the kernel versions we know and love.  So in buildrun.cxx
+  // we undo this renaming for ancient powerpc.
 
   if (machine == "i486") return "i386";
   else if (machine == "i586") return "i386";
