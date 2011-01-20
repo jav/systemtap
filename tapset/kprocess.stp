@@ -15,8 +15,9 @@ function _IS_ERR:long(ptr:long) %{ /* pure */
 
 
 /**
- * probe kprocess.create - Fires whenever a new process is successfully created
+ * probe kprocess.create - Fires whenever a new process or thread is successfully created
  * @new_pid: The PID of the newly created process
+ * @new_tid: The TID of the newly created task
  *
  * Context:
  *  Parent of the created process.
@@ -28,6 +29,7 @@ probe kprocess.create = kernel.function("copy_process").return {
     task = $return
     if (_IS_ERR(task)) next
     new_pid = task_pid(task)
+    new_tid = task_tid(task)
 }
 
 
@@ -99,7 +101,9 @@ probe kprocess.exit = kernel.function("do_exit") {
 /**
  * probe kprocess.release - Process released
  * @task: A task handle to the process being released
- * @pid: PID of the process being released
+ * @released_pid: PID of the process being released
+ * @released_tid: TID of the task being released
+ * @pid: Same as @released_pid for compatibility (deprecated)
  *
  * Context:
  *  The context of the parent, if it wanted notification of this process'
@@ -112,4 +116,6 @@ probe kprocess.exit = kernel.function("do_exit") {
 probe kprocess.release = kernel.function("release_task") {
     task = $p
     pid = $p->pid;
+    released_pid = $p->pid;
+    released_tid = $p->tid;
 }
