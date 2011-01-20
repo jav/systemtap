@@ -885,7 +885,7 @@ probe vfs.read
 
 <note>
 	<title>Note</title>
-	<para>In the context of <xref linkend="simpleaggregates"/>, <literal>count</literal> returns the amount of data written by the returned <command>execname()</command> to the virtual file system.</para>
+	<para>In the context of <xref linkend="simpleaggregates"/>, <literal>count</literal> returns the amount of data read by the returned <command>execname()</command> to the virtual file system.</para>
 </note>
 
 
@@ -953,7 +953,7 @@ probe vfs.read
 <tertiary>array operations</tertiary>
 </indexterm>
 <para>
-	Returns the number of all values stored into the variable/array index expression. Given the sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@count(writes[execname()])</command> will return <emphasis>how many values are stored</emphasis> in each unique key in array <literal>writes</literal>.
+	Returns the number of all values stored into the variable/array index expression. Given the sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@count(reads[execname()])</command> will return <emphasis>how many values are stored</emphasis> in each unique key in array <literal>reads</literal>.
 </para>
 </listitem>
 </varlistentry>
@@ -989,7 +989,7 @@ probe vfs.read
 </indexterm>
 
 <para>
-	Returns the sum of all values stored into the variable/array index expression. Again, given sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@sum(writes[execname()])</command> will return <emphasis>the total of all values stored</emphasis> in each unique key in array <literal>writes</literal>.
+	Returns the sum of all values stored into the variable/array index expression. Again, given sample probe in <xref linkend="simpleaggregates"/>, the expression <command>@sum(reads[execname()])</command> will return <emphasis>the total of all values stored</emphasis> in each unique key in array <literal>reads</literal>.
 </para>
 	</listitem>
 </varlistentry>
