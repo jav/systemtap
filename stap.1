@@ -278,6 +278,25 @@ that may be systemtap version specific.  See the DEPRECATION section
 for more details.
 
 .TP
+.BI \-\-clean\-cache
+This option prunes stale entries from the cache directory.  This is normally
+done automatically after successful runs, but this option will trigger the
+cleanup manually and then exit.  See the CACHING section for more details about
+cache limits.
+
+.TP
+.BI \-\-disable\-cache
+This option disables all use of the cache directory.  No files will be either
+read from or written to the cache.
+
+.TP
+.BI \-\-poison\-cache
+This option treats files in the cache directory as invalid.  No files will be
+read from the cache, but resulting files from this run will still be written to
+the cache.  This is meant as a troubleshooting aid when stap's cached behavior
+seems to be misbehaving.
+
+.TP
 \fB\-\-use\-server \fR[\fIHOSTNAME\fR[\fI:PORT\fR] | \fIIP_ADDRESS\fR[\fI:PORT\fR] | \fICERT_SERIAL\fR]
 Specify compile\-server(s) to be used for compilation and/or in conjunction
 with
