@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAP-MERGE 1
+.TH STAP\-MERGE 1
 .SH NAME
 stap\-merge \- systemtap per-cpu binary merger
 
@@ -19,7 +19,7 @@ stap\-merge \- systemtap per-cpu binary merger
 .SH SYNOPSIS
 
 .br
-.B stap-merge
+.B stap\-merge
 [
 .I OPTIONS
 ]
@@ -29,12 +29,12 @@ stap\-merge \- systemtap per-cpu binary merger
 
 .SH DESCRIPTION
 
-The stap-merge executable applies when the \-b option has been used 
+The stap\-merge executable applies when the \-b option has been used 
 while running a 
 .IR stap 
 script.  The \-b option will generate files 
-per\-cpu, based on the timestamp field. Stap-merge will 
-then merge and sort through the per\-cpu files based on the timestamp
+per\-cpu, based on the timestamp field. Then stap\-merge will 
+merge and sort through the per-cpu files based on the timestamp
 field.
 
 .SH OPTIONS
@@ -55,7 +55,7 @@ output will be pushed to standard out.
 
 .SH EXAMPLES
 .SAMPLE
-$ stap -v -b -e 'probe syscall.open { printf("%s(%d) open\\n",
+$ stap \-v \-b \-e 'probe syscall.open { printf("%s(%d) open\\n",
 execname(), pid()) }' 
 
 .ESAMPLE
@@ -66,15 +66,15 @@ files (each labled with a number
 representing which cpu the file was produced from).
 
 .SAMPLE
-$ stap-merge -v stpd_cpu0 stpd_cpu1
+$ stap\-merge \-v stpd_cpu0 stpd_cpu1
 
 .ESAMPLE
 
-Running the stap-merge program in the same directory as the stap 
+Running the stap\-merge program in the same directory as the stap 
 script earlier in the example, will produce an ordered sequence of 
 packets with the three part label for each set of data.  This
 result will be pushed through the standard output.  An output file 
-could have been specified using the "-o" option.
+could have been specified using the "\-o" option.
 
 .SH FILES
 
@@ -89,7 +89,7 @@ stappaths (7) manual page.
 .IR staprun (8),
 .IR stapvars (3stap),
 .IR stapex (3stap),
-.IR stap-server (8),
+.IR stap\-server (8),
 .IR gdb (1)
 
 .SH BUGS

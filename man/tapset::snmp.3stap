@@ -21,7 +21,7 @@ tapset::snmp \- Systemtap simple network management protocol probe points.
 This family of probe points enhances the Linux system's implementation of the Simple Network Management Protocol
 .B (SNMP)
 by allowing the user to collect per-socket statistics. SNMP data is collected in the Linux kernel by counting various events occurring in the networking subsystem. Linux provides one counter for each type of event, thus providing a system-wide collection of network statistics. These statistics can be viewed with the command:
-.B netstat -s. 
+.B netstat \-s. 
 
 The probe points defined in the SNMP group of tapsets allow users to aberrate each SNMP counter into groups of counters. For example, the user may count SNMP events for a single network socket or for a group of sockets.
 

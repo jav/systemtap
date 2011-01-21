@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH STAP-SERVER 8 
+.TH STAP\-SERVER 8 
 .SH NAME
 stap\-server \- systemtap server management
 
@@ -189,7 +189,7 @@ that server will be used as if they were specified on the command line.
 \fB\-u\fR \fIuser\-name\fR
 Each systemtap compile server is normally run by the user name
 \fistap\-server\fR (for the initscript) or as the user invoking
-\fIstap-server\fR,
+\fIstap\-server\fR,
 unless otherwise configured (see \fBFILES\fR). This option
 specifies the user name used to run the server(s). The user name specified
 must be a member of the group \fIstap\-server\fR.
@@ -233,7 +233,7 @@ Specifies the absolute path of the log file
 .B STAP_USER
 Specifies the userid which will be used to run the server(s)
 (default: for the initscript \fIstap\-server\fR, otherwise the user running
-\fIstap-server\fR).
+\fIstap\-server\fR).
 
 .SH Individual Server Configuration
 
@@ -373,7 +373,7 @@ structures and potentially private user information.  See the
 manual page for additional information on safety and security.
 
 .PP
-As a network server, stap-server should be activated with care in
+As a network server, stap\-server should be activated with care in
 order to limit the potential effects of bugs or mischevious users.
 Consider the following prophylactic measures.
 .TP
@@ -410,20 +410,20 @@ Neither form of stap\-server will run if the selected user is root.
 
 .TP
 2
-Run stap-server with resource limits that impose maximum 
+Run stap\-server with resource limits that impose maximum 
 cpu time, file size, memory consumption, in order to bound
 the effects of processing excessively large or bogus inputs.
 
 When the user running the servers is \fIstap\-server\fR,
 each server is run with limits equivalent to 
 
-  ulimit -f 50000 -s 1000 -t 60 -u 20 -v 500000
+  ulimit \-f 50000 \-s 1000 \-t 60 \-u 20 \-v 500000
 
 otherwise, no limits are imposed.
 
 .TP
 3
-Run stap-server with a TMPDIR environment variable that
+Run stap\-server with a TMPDIR environment variable that
 points to a separate and/or quota-enforced directory, in
 order to prevent filling up of important filesystems.
 

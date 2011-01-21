@@ -68,15 +68,15 @@ By default, systemtap will also look for vmlinux in these locations:
 /lib/modules/`uname \-r`/build/vmlinux
 /lib/modules/`uname \-r`/.debug/vmlinux.debug
 /usr/lib/debug/lib/modules/`uname \-r`/vmlinux.debug
-/var/cache/abrt-di/usr/debug/lib/modules/`uname \-r`/
-/var/cache/abrt-di/usr/lib/debug/lib/modules/`uname \-r`/vmlinux.debug
+/var/cache/abrt\-di/usr/debug/lib/modules/`uname \-r`/
+/var/cache/abrt\-di/usr/lib/debug/lib/modules/`uname \-r`/vmlinux.debug
 .PP
 .ESAMPLE
 .IP
       
 Debuginfo for user-space applications have source files located in /usr/src/debug/
 Further file information on user-space applications can be determined per-basis using
-rpm -ql <package>-debuginfo. For supported user-space applications information please 
+rpm \-ql <package>\-debuginfo. For supported user-space applications information please 
 visit the systemtap wiki. 
 .TP
 $HOME/.systemtap
@@ -111,17 +111,17 @@ Global client\-side SSL certificate database.
 @prefix@/etc/systemtap/staprun/
 \fIstaprun\fR\[aq]s trusted signer certificate database.
 .TP
-@prefix@/etc/sysconfig/stap-server/
-stap-server service global configuration file.
+@prefix@/etc/sysconfig/stap\-server/
+stap\-server service global configuration file.
 .TP
-@prefix@/etc/stap-server/conf.d/*.conf
-stap-server service configuration files for default servers.
+@prefix@/etc/stap\-server/conf.d/*.conf
+stap\-server service configuration files for default servers.
 .TP
-@prefix@/var/run/stap-server/
-stap-server service default location of status files for running servers.
+@prefix@/var/run/stap\-server/
+stap\-server service default location of status files for running servers.
 .TP
-@prefix@/var/log/stap-server.log
-stap-server service default log file.
+@prefix@/var/log/stap\-server.log
+stap\-server service default log file.
 
 
 .PP
@@ -136,7 +136,7 @@ stap-server service default log file.
 .IR staprun (8),
 .IR stapvars (3stap),
 .IR stapex (3stap),
-.IR stap-server (8),
+.IR stap\-server (8),
 .IR awk (1),
 .IR gdb (1)
 

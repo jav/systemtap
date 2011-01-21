@@ -333,7 +333,7 @@ or a "+".  The line number is assumed to be an
 absolute line number if preceded by a ":", or relative to the entry of
 the function if preceded by a "+".  
 All the lines in the function can be matched with ":*".  
-A range of lines x through y can be matched with ":x-y".
+A range of lines x through y can be matched with ":x\-y".
 .PP
 As an alternative, PATTERN may be a numeric constant, indicating an
 address.  Such an address may be found from symbol tables of the
@@ -417,7 +417,7 @@ is addressable.
 expands to 1 or 0 iff the given context variable expression is resolvable,
 for use in conditionals such as   
 .SAMPLE
-@defined($foo->bar) ? $foo->bar : 0
+@defined($foo\->bar) ? $foo\->bar : 0
 .ESAMPLE
 .TP
 $EXPR$
@@ -572,7 +572,7 @@ probe gets called for every block-stepped instruction of the process described b
 .PP
 If a process probe is specified without a PID or FULLPATH, all user
 threads will be probed.  However, if systemtap was invoked with the
-.IR -c " or " -x
+.IR \-c " or " \-x
 options, then process probes are restricted to the process
 hierarchy associated with the target process.
 
@@ -602,7 +602,7 @@ parts of the probe point name.
 Finally, full symbolic source-level probes in user-space programs
 and shared libraries are supported.  These are exactly analogous
 to the symbolic DWARF-based kernel/module probes described above,
-and expose similar contextual $-variables.
+and expose similar contextual $variables.
 .SAMPLE
 process("PATH").function("NAME")
 process("PATH").statement("*@FILE.c:123")

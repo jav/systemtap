@@ -28,13 +28,13 @@ Contains the value of the
 .BR
 $#
 value: the number of command line arguments passed to the systemtap script.
-It is initialized with an implicit begin(-1) probe.
+It is initialized with an implicit begin(\-1) probe.
 
 .TP
 argv:string [long]
 Contains each command line argument as a string.  argv[1] will equal @1 if
 there was at least one command line argument.  Arguments beyond #32 are not
-transcribed, and produce a warning message within the begin(-1) probe that
+transcribed, and produce a warning message within the begin(\-1) probe that
 initializes this array.
 
 .SS NULL

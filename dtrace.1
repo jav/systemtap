@@ -12,8 +12,8 @@ dtrace \- Dtrace compatibile user application static probe generation tool.
 
 The dtrace command converts probe descriptions defined in \fIfile.d\fR
 into a probe header
-file via the \fB-h\fR option
-or a probe description file via the \fB-G\fR option.
+file via the \fB\-h\fR option
+or a probe description file via the \fB\-G\fR option.
 
 .SH OPTIONS
 .PP
@@ -28,7 +28,7 @@ generate a systemtap probe definition object file.
 .TP
 .B \-o \fIfile\fR
 is the name of the output file.  If the \fB\-G\fR option is given then
-the output file will be called \fIfile.o\fR; if the \fB-h\fR option is
+the output file will be called \fIfile.o\fR; if the \fB\-h\fR option is
 given then the output file will be called \fIfile.h\fR.
 
 .TP
@@ -67,9 +67,9 @@ struct astruct {int a; int b;};
 .fi
 .in
 .RE
-Then the command \fI"dtrace\ -s\ test.d\ -G"\fR
+Then the command \fI"dtrace\ \-s\ test.d\ \-G"\fR
 will create the probe definition file \fItest.o\fR
-and the command \fI"dtrace\ -s\ test.d\ -h"\fR
+and the command \fI"dtrace\ \-s\ test.d\ \-h"\fR
 will create the probe header file \fItest.h\fR
 Subsequently the application can define probes using
 .in +2
