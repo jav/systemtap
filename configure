@@ -615,13 +615,13 @@ gtkmm_CFLAGS
 PKG_CONFIG
 HAVE_AVAHI_FALSE
 HAVE_AVAHI_TRUE
-HAVE_NSS_FALSE
-HAVE_NSS_TRUE
 BUILD_SERVER_FALSE
 BUILD_SERVER_TRUE
+have_certutil
+HAVE_NSS_FALSE
+HAVE_NSS_TRUE
 nspr_CFLAGS
 nss_CFLAGS
-have_certutil
 BUILD_PDFREFDOCS_FALSE
 BUILD_PDFREFDOCS_TRUE
 XMLTO_STRINGPARAM_FALSE
@@ -1422,8 +1422,8 @@ Optional Features:
                           documentation built).
   --enable-refdocs        enable building reference documentation (default on
                           if xmlto etc. found and other documentation built).
-  --enable-server         enable building of stap-server/client (default on if
-                          nss etc. found).
+  --enable-server         enable building of stap-server (default on if nss
+                          etc. found).
   --enable-grapher        enable building of grapher (default on if needed
                           requirements are found).
 
@@ -6253,54 +6253,7 @@ fi
 
 rm -f conftest.xml
 
-
-# Check whether --enable-server was given.
-if test "${enable_server+set}" = set; then :
-  enableval=$enable_server; enable_server=$enableval
-else
-  enable_server="check"
-fi
-
-if test "$enable_server" != "no"; then
-  # Extract the first word of "certutil", so it can be a program name with args.
-set dummy certutil; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_prog_have_certutil+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$have_certutil"; then
-  ac_cv_prog_have_certutil="$have_certutil" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_prog_have_certutil="yes"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_prog_have_certutil" && ac_cv_prog_have_certutil="no"
-fi
-fi
-have_certutil=$ac_cv_prog_have_certutil
-if test -n "$have_certutil"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_certutil" >&5
-$as_echo "$have_certutil" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/nss3" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/nss3" >&5
 $as_echo_n "checking for /usr/include/nss3... " >&6; }
 if test "${ac_cv_file__usr_include_nss3+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -6319,7 +6272,7 @@ if test "x$ac_cv_file__usr_include_nss3" = x""yes; then :
   nssdir=nss3
 else
 
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/nss" >&5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/nss" >&5
 $as_echo_n "checking for /usr/include/nss... " >&6; }
 if test "${ac_cv_file__usr_include_nss+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -6341,7 +6294,7 @@ fi
 
 fi
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/nspr4" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/nspr4" >&5
 $as_echo_n "checking for /usr/include/nspr4... " >&6; }
 if test "${ac_cv_file__usr_include_nspr4+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -6360,7 +6313,7 @@ if test "x$ac_cv_file__usr_include_nspr4" = x""yes; then :
   nsprdir=nspr4
 else
 
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/nspr" >&5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/nspr" >&5
 $as_echo_n "checking for /usr/include/nspr... " >&6; }
 if test "${ac_cv_file__usr_include_nspr+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -6382,15 +6335,15 @@ fi
 
 fi
 
-  if test "x$nssdir" != "x" -a "x$nsprdir" != "x"; then
-    nss_CFLAGS="-I/usr/include/$nssdir"
-    nspr_CFLAGS="-I/usr/include/$nsprdir"
+if test "x$nssdir" != "x" -a "x$nsprdir" != "x"; then
+  nss_CFLAGS="-I/usr/include/$nssdir"
+  nspr_CFLAGS="-I/usr/include/$nsprdir"
 
 
-    save_CPPFLAGS="$CPPFLAGS"
-    CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
-    have_nss_includes=yes
-    for ac_header in "$nsprdir/nspr.h" "$nsprdir/plgetopt.h" "$nsprdir/prerror.h" "$nssdir/ssl.h" "$nssdir/nss.h" "$nssdir/pk11func.h" "$nssdir/secerr.h"
+  save_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
+  have_nss_includes=yes
+  for ac_header in "$nsprdir/nspr.h" "$nsprdir/plgetopt.h" "$nsprdir/prerror.h" "$nssdir/ssl.h" "$nssdir/nss.h" "$nssdir/pk11func.h" "$nssdir/secerr.h"
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -6406,9 +6359,10 @@ fi
 
 done
 
-    CPPFLAGS="$save_CPPFLAGS"
-    have_nss_libs=no
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for PR_Connect in -lnspr4" >&5
+  CPPFLAGS="$save_CPPFLAGS"
+  have_nss_libs=no
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for PR_Connect in -lnspr4" >&5
 $as_echo_n "checking for PR_Connect in -lnspr4... " >&6; }
 if test "${ac_cv_lib_nspr4_PR_Connect+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -6446,7 +6400,7 @@ fi
 $as_echo "$ac_cv_lib_nspr4_PR_Connect" >&6; }
 if test "x$ac_cv_lib_nspr4_PR_Connect" = x""yes; then :
 
-      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_ReHandshake in -lssl3" >&5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_ReHandshake in -lssl3" >&5
 $as_echo_n "checking for SSL_ReHandshake in -lssl3... " >&6; }
 if test "${ac_cv_lib_ssl3_SSL_ReHandshake+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -6489,21 +6443,99 @@ fi
 
 fi
 
-  fi
-  if test "x${have_nss_includes}${have_nss_libs}${have_certutil}" != "xyesyesyes"; then
-    if test "$enable_server" == "yes"; then
-      as_fn_error "cannot find all libraries or tools for systemtap compile client or server" "$LINENO" 5
-    fi
-    if test "$enable_server" == "check"; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: will not build systemtap client or server, cannot find all libraries or tools" >&5
-$as_echo "$as_me: WARNING: will not build systemtap client or server, cannot find all libraries or tools" >&2;}
-    fi
-  else
+if test "x${have_nss_includes}${have_nss_libs}" = "xyesyes"; then
 
 $as_echo "#define HAVE_NSS 1" >>confdefs.h
 
+fi
+ if test "x${have_nss_includes}${have_nss_libs}" == "xyesyes"; then
+  HAVE_NSS_TRUE=
+  HAVE_NSS_FALSE='#'
+else
+  HAVE_NSS_TRUE='#'
+  HAVE_NSS_FALSE=
+fi
+
+
+# Check whether --enable-server was given.
+if test "${enable_server+set}" = set; then :
+  enableval=$enable_server; enable_server=$enableval
+else
+  enable_server="check"
+fi
+
+
+if test "$enable_server" != "no"; then
+  if test "x${have_nss_includes}" != "xyes"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: will not build systemtap compile server, cannot find nss/nspr headers" >&5
+$as_echo "$as_me: WARNING: will not build systemtap compile server, cannot find nss/nspr headers" >&2;}
   fi
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/avahi-client" >&5
+  if test "x${have_nss_libs}" != "xyes"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: will not build systemtap compile server, cannot find nss/nspr libraries" >&5
+$as_echo "$as_me: WARNING: will not build systemtap compile server, cannot find nss/nspr libraries" >&2;}
+  fi
+  # Extract the first word of "certutil", so it can be a program name with args.
+set dummy certutil; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_prog_have_certutil+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$have_certutil"; then
+  ac_cv_prog_have_certutil="$have_certutil" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_have_certutil="yes"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_have_certutil" && ac_cv_prog_have_certutil="no"
+fi
+fi
+have_certutil=$ac_cv_prog_have_certutil
+if test -n "$have_certutil"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_certutil" >&5
+$as_echo "$have_certutil" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  if test "x${have_certutil}" != "xyes"; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: will not build systemtap compile server, cannot find certutil" >&5
+$as_echo "$as_me: WARNING: will not build systemtap compile server, cannot find certutil" >&2;}
+  fi
+fi
+ if test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes" -a "$enable_server" != "no"; then
+  BUILD_SERVER_TRUE=
+  BUILD_SERVER_FALSE='#'
+else
+  BUILD_SERVER_TRUE='#'
+  BUILD_SERVER_FALSE=
+fi
+
+
+if test "x${have_nss_includes}" != "xyes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: some compile server client functionality will be restricted, cannot find nss/nspr headers" >&5
+$as_echo "$as_me: WARNING: some compile server client functionality will be restricted, cannot find nss/nspr headers" >&2;}
+fi
+if test "x${have_nss_libs}" != "xyes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: some compile server client functionality will be restricted, cannot find nss/nspr libraries" >&5
+$as_echo "$as_me: WARNING: some compile server client functionality will be restricted, cannot find nss/nspr libraries" >&2;}
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/avahi-client" >&5
 $as_echo_n "checking for /usr/include/avahi-client... " >&6; }
 if test "${ac_cv_file__usr_include_avahi_client+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -6522,7 +6554,7 @@ if test "x$ac_cv_file__usr_include_avahi_client" = x""yes; then :
   avahi_clientdir=avahi-client
 fi
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/avahi-common" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for /usr/include/avahi-common" >&5
 $as_echo_n "checking for /usr/include/avahi-common... " >&6; }
 if test "${ac_cv_file__usr_include_avahi_common+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -6541,9 +6573,9 @@ if test "x$ac_cv_file__usr_include_avahi_common" = x""yes; then :
   avahi_commondir=avahi-common
 fi
 
-  if test "x$avahi_clientdir" != "x" -a "x$avahi_commondir" != "x"; then
-    have_avahi_includes=yes
-    for ac_header in "$avahi_clientdir/client.h" "$avahi_clientdir/lookup.h" "$avahi_commondir/simple-watch.h" "$avahi_commondir/malloc.h" "$avahi_commondir/error.h"
+if test "x$avahi_clientdir" != "x" -a "x$avahi_commondir" != "x"; then
+  have_avahi_includes=yes
+  for ac_header in "$avahi_clientdir/client.h" "$avahi_clientdir/lookup.h" "$avahi_commondir/simple-watch.h" "$avahi_commondir/malloc.h" "$avahi_commondir/error.h"
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -6559,8 +6591,9 @@ fi
 
 done
 
-    have_avahi_libs=no
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for avahi_client_new in -lavahi-client" >&5
+  have_avahi_libs=no
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for avahi_client_new in -lavahi-client" >&5
 $as_echo_n "checking for avahi_client_new in -lavahi-client... " >&6; }
 if test "${ac_cv_lib_avahi_client_avahi_client_new+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -6639,37 +6672,19 @@ fi
 
 fi
 
-  fi
-  if test "x${have_avahi_includes}${have_avahi_libs}" != "xyesyes"; then
-    if test "$enable_server" == "yes"; then
-      as_fn_error "cannot find all libraries or tools for systemtap compile client or server" "$LINENO" 5
-    fi
-    if test "$enable_server" == "check"; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: will not build systemtap internal client or server, cannot find all libraries or tools" >&5
-$as_echo "$as_me: WARNING: will not build systemtap internal client or server, cannot find all libraries or tools" >&2;}
-    fi
-  else
+if test "x${have_avahi_includes}" != "xyes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: some compile server client functionality will be restricted, cannot find avahi headers" >&5
+$as_echo "$as_me: WARNING: some compile server client functionality will be restricted, cannot find avahi headers" >&2;}
+fi
+if test "x${have_avahi_libs}" != "xyes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: some compile server client functionality will be restricted, cannot find avahi libraries" >&5
+$as_echo "$as_me: WARNING: some compile server client functionality will be restricted, cannot find avahi libraries" >&2;}
+fi
+if test "x${have_avahi_includes}${have_avahi_libs}" = "xyesyes"; then
 
 $as_echo "#define HAVE_AVAHI 1" >>confdefs.h
 
-  fi
 fi
- if test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes" -a "$enable_server" != "no"; then
-  BUILD_SERVER_TRUE=
-  BUILD_SERVER_FALSE='#'
-else
-  BUILD_SERVER_TRUE='#'
-  BUILD_SERVER_FALSE=
-fi
-
- if test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes"; then
-  HAVE_NSS_TRUE=
-  HAVE_NSS_FALSE='#'
-else
-  HAVE_NSS_TRUE='#'
-  HAVE_NSS_FALSE=
-fi
-
  if test "x${have_avahi_includes}${have_avahi_libs}" == "xyesyes"; then
   HAVE_AVAHI_TRUE=
   HAVE_AVAHI_FALSE='#'
@@ -7755,12 +7770,12 @@ if test -z "${BUILD_PDFREFDOCS_TRUE}" && test -z "${BUILD_PDFREFDOCS_FALSE}"; th
   as_fn_error "conditional \"BUILD_PDFREFDOCS\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
-if test -z "${BUILD_SERVER_TRUE}" && test -z "${BUILD_SERVER_FALSE}"; then
-  as_fn_error "conditional \"BUILD_SERVER\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
 if test -z "${HAVE_NSS_TRUE}" && test -z "${HAVE_NSS_FALSE}"; then
   as_fn_error "conditional \"HAVE_NSS\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_SERVER_TRUE}" && test -z "${BUILD_SERVER_FALSE}"; then
+  as_fn_error "conditional \"BUILD_SERVER\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_AVAHI_TRUE}" && test -z "${HAVE_AVAHI_FALSE}"; then
