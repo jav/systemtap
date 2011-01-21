@@ -21,6 +21,48 @@ extern "C" {
 
 using namespace std;
 
+// Decode URIs as per RFC 3986, though not bothering to be strict
+class uri_decoder {
+  public:
+    const string uri;
+    string scheme, authority, path, query, fragment;
+    bool has_authority, has_query, has_fragment;
+
+    uri_decoder(const string& uri):
+      uri(uri), has_authority(false), has_query(false), has_fragment(false)
+    {
+      const string re =
+        "^([^:]+):(//[^/?#]*)?([^?#]*)(\\?[^#]*)?(#.*)?$";
+
+      vector<string> matches;
+      if (regexp_match(uri, re, matches) != 0)
+        throw runtime_error("string doesn't appear to be a URI: " + uri);
+
+      scheme = matches[1];
+
+      if (!matches[2].empty())
+        {
+          has_authority = true;
+          authority = matches[2].substr(2);
+        }
+
+      path = matches[3];
+
+      if (!matches[4].empty())
+        {
+          has_query = true;
+          query = matches[4].substr(1);
+        }
+
+      if (!matches[5].empty())
+        {
+          has_fragment = true;
+          fragment = matches[5].substr(1);
+        }
+    }
+};
+
+
 // loopback target for running locally
 class direct : public remote {
   private:
@@ -56,25 +98,46 @@ class direct : public remote {
 class ssh_remote : public remote {
     // NB: ssh commands use a tty (-t) so signals are passed along to the remote
   private:
-    string uri, tmpdir;
+    string host, tmpdir;
     pid_t child;
 
-    ssh_remote(systemtap_session& s, const string& uri)
-      : remote(s), uri(uri), child(0)
+    ssh_remote(systemtap_session& s, const string& host)
+      : remote(s), host(host), child(0)
+      {
+        get_uname();
+      }
+
+    ssh_remote(systemtap_session& s, const uri_decoder& ud)
+      : remote(s), child(0)
+      {
+        if (!ud.has_authority || ud.authority.empty())
+          throw runtime_error("ssh target requires a hostname");
+        if (!ud.path.empty() && ud.path != "/")
+          throw runtime_error("ssh target URI doesn't support a /path");
+        if (ud.has_query)
+          throw runtime_error("ssh target URI doesn't support a ?query");
+        if (ud.has_fragment)
+          throw runtime_error("ssh target URI doesn't support a #fragment");
+
+        host = ud.authority;
+        get_uname();
+      }
+
+    void get_uname()
       {
         ostringstream out;
         vector<string> uname;
-        string uname_cmd = "ssh -t -q " + lex_cast_qstring(uri) + " uname -rm";
-        int rc = stap_system_read(s.verbose, uname_cmd, out);
+        string uname_cmd = "ssh -t -q " + lex_cast_qstring(host) + " uname -rm";
+        int rc = stap_system_read(s->verbose, uname_cmd, out);
         if (rc == 0)
           tokenize(out.str(), uname, " \t\r\n");
         if (uname.size() != 2)
-          throw runtime_error("failed to get uname from " + uri
+          throw runtime_error("failed to get uname from " + host
                               + " : rc=" + lex_cast(rc));
         string release = uname[0];
         string arch = uname[1];
 	// XXX need to deal with command-line vs. implied arch/release
-	this->s = s.clone(arch, release);
+	this->s = s->clone(arch, release);
       }
 
   public:
@@ -87,19 +150,19 @@ class ssh_remote : public remote {
         int rc;
         string localmodule = s->tmpdir + "/" + s->module_name + ".ko";
         string tmpmodule;
-        string quri = lex_cast_qstring(uri);
+        string qhost = lex_cast_qstring(host);
 
         // Make a remote tempdir.
         {
           ostringstream out;
           vector<string> vout;
-          string cmd = "ssh -t -q " + quri + " mktemp -d -t stapXXXXXX";
+          string cmd = "ssh -t -q " + qhost + " mktemp -d -t stapXXXXXX";
           rc = stap_system_read(s->verbose, cmd, out);
           if (rc == 0)
             tokenize(out.str(), vout, "\r\n");
           if (vout.size() != 1)
             {
-              cerr << "failed to make a tempdir on " << uri
+              cerr << "failed to make a tempdir on " << host
                    << " : rc=" << rc << endl;
               return -1;
             }
@@ -109,23 +172,23 @@ class ssh_remote : public remote {
 
         // Transfer the module.  XXX and uprobes.ko, sigs, etc.
         if (rc == 0) {
-          string cmd = "scp -q " + localmodule + " " + quri + ":" + tmpmodule;
+          string cmd = "scp -q " + localmodule + " " + qhost + ":" + tmpmodule;
           rc = stap_system(s->verbose, cmd);
           if (rc != 0)
-            cerr << "failed to copy the module to " << uri
+            cerr << "failed to copy the module to " << host
                  << " : rc=" << rc << endl;
         }
 
         // Run the module on the remote.
         if (rc == 0) {
-          string cmd = "ssh -t -q " + quri + " "
+          string cmd = "ssh -t -q " + qhost + " "
             + lex_cast_qstring(make_run_command(*s, tmpmodule));
           pid_t pid = stap_spawn(s->verbose, cmd);
           if (pid > 0)
 	    child = pid;
 	  else
 	    {
-	      cerr << "failed to run the module on " << uri
+	      cerr << "failed to run the module on " << host
 		   << " : ret=" << pid << endl;
 	      rc = -1;
 	    }
@@ -148,12 +211,12 @@ class ssh_remote : public remote {
 	  {
 	    // Remove the tempdir.
 	    // XXX need to make sure this runs even with e.g. CTRL-C exits
-	    string quri = lex_cast_qstring(uri);
-	    string cmd = "ssh -t -q " + quri + " rm -r " + tmpdir;
+	    string qhost = lex_cast_qstring(host);
+	    string cmd = "ssh -t -q " + qhost + " rm -r " + tmpdir;
 	    tmpdir.clear();
 	    int rc2 = stap_system(s->verbose, cmd);
 	    if (rc2 != 0)
-	      cerr << "failed to delete the tempdir on " << uri
+	      cerr << "failed to delete the tempdir on " << host
 		   << " : rc=" << rc2 << endl;
 	    if (rc == 0)
 	      rc = rc2;
@@ -171,6 +234,19 @@ remote::create(systemtap_session& s, const string& uri)
     {
       if (uri == "direct")
         return new direct(s);
+      else if (uri.find(':') != string::npos)
+        {
+          const uri_decoder ud(uri);
+          if (ud.scheme == "ssh")
+            return new ssh_remote(s, ud);
+          else
+            {
+              ostringstream msg;
+              msg << "unrecognized URI scheme '" << ud.scheme
+                  << "' in remote: " << uri;
+              throw runtime_error(msg.str());
+            }
+        }
       else
         // XXX assuming everything else is ssh for now...
         return new ssh_remote(s, uri);
