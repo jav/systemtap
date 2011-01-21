@@ -1,96 +1,183 @@
 probe process(@1).mark("a") 
-{ if ($arg1 == 86) {printf ("PASS: %sh\n", $$name)}
-  else {printf ("FAIL: %sh (%#x != 0x78)\n",$$name, $arg1)}
-  if ($arg2 == 120) {printf ("PASS: %sl\n", $$name)}
-  else {printf ("FAIL: %sl (%#x != 0x56)\n", $$name, $arg2)}
-  if ($arg3 == 22136) {printf ("PASS: %sx\n", $$name)}
-  else {printf ("FAIL: %sx (%#x != 0x5678)\n", $$name, $arg3)}}
+{ if ($arg1 == 0x30) {printf ("PASS: %sh\n", $$name)}
+  else {printf ("FAIL: %sh (%#x != 0x30)\n",$$name, $arg1)}
+  if ($arg2 == 0x40) {printf ("PASS: %sl\n", $$name)}
+  else {printf ("FAIL: %sl (%#x != 0x40)\n", $$name, $arg2)}
+  if ($arg3 == 0x3040) {printf ("PASS: %sx\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x3040)\n", $$name, $arg3)}
+  if ($arg4 == 0x10203040) {printf ("PASS: e%sx\n", $$name)}
+  else {printf ("FAIL: e%sx (%#x != 0x10203040)\n", $$name, $arg4)}
+}
+
+probe process(@1).mark("rax") 
+{ if ($arg1 == 0x1020304010203040) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x1020304010203040)\n", $$name, $arg1)}
+}
 
 probe process(@1).mark("b") 
-{ if ($arg1 == 86) {printf ("PASS: %sh\n", $$name)}
-  else {printf ("FAIL: %sh (%#x != 0x78)\n",$$name, $arg1)}
-  if ($arg2 == 120) {printf ("PASS: %sl\n", $$name)}
-  else {printf ("FAIL: %sl (%#x != 0x56)\n", $$name, $arg2)}
-  if ($arg3 == 22136) {printf ("PASS: %sx\n", $$name)}
-  else {printf ("FAIL: %sx (%#x != 0x5678)\n", $$name, $arg3)}}
+{ if ($arg1 == 0x31) {printf ("PASS: %sh\n", $$name)}
+  else {printf ("FAIL: %sh (%#x != 0x31)\n",$$name, $arg1)}
+  if ($arg2 == 0x41) {printf ("PASS: %sl\n", $$name)}
+  else {printf ("FAIL: %sl (%#x != 0x41)\n", $$name, $arg2)}
+  if ($arg3 == 0x3141) {printf ("PASS: %sx\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x3141)\n", $$name, $arg3)}
+  if ($arg4 == 0x11213141) {printf ("PASS: e%sx\n", $$name)}
+  else {printf ("FAIL: e%sx (%#x != 0x11213141)\n", $$name, $arg4)}
+}
+
+probe process(@1).mark("rbx") 
+{ if ($arg1 == 0x1121314111213141) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x1121314111213141)\n", $$name, $arg1)}
+}
 
 probe process(@1).mark("c") 
-{ if ($arg1 == 86) {printf ("PASS: %sh\n", $$name)}
-  else {printf ("FAIL: %sh (%#x != 0x78)\n",$$name, $arg1)}
-  if ($arg2 == 120) {printf ("PASS: %sl\n", $$name)}
-  else {printf ("FAIL: %sl (%#x != 0x56)\n", $$name, $arg2)}
-  if ($arg3 == 22136) {printf ("PASS: %sx\n", $$name)}
-  else {printf ("FAIL: %sx (%#x != 0x5678)\n", $$name, $arg3)}}
+{ if ($arg1 == 0x32) {printf ("PASS: %sh\n", $$name)}
+  else {printf ("FAIL: %sh (%#x != 0x32)\n",$$name, $arg1)}
+  if ($arg2 == 0x42) {printf ("PASS: %sl\n", $$name)}
+  else {printf ("FAIL: %sl (%#x != 0x42)\n", $$name, $arg2)}
+  if ($arg3 == 0x3242) {printf ("PASS: %sx\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x3242)\n", $$name, $arg3)}
+  if ($arg4 == 0x12223242) {printf ("PASS: e%sx\n", $$name)}
+  else {printf ("FAIL: e%sx (%#x != 0x12223242)\n", $$name, $arg4)}
+}
+
+probe process(@1).mark("rcx") 
+{ if ($arg1 == 0x1222324212223242) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x1222324212223242)\n", $$name, $arg1)}
+}
 
 probe process(@1).mark("d") 
-{ if ($arg1 == 86) {printf ("PASS: %sh\n", $$name)}
-  else {printf ("FAIL: %sh (%#x != 0x78)\n",$$name, $arg1)}
-  if ($arg2 == 120) {printf ("PASS: %sl\n", $$name)}
-  else {printf ("FAIL: %sl (%#x != 0x56)\n", $$name, $arg2)}
-  if ($arg3 == 22136) {printf ("PASS: %sx\n", $$name)}
-  else {printf ("FAIL: %sx (%#x != 0x5678)\n", $$name, $arg3)}}
+{ if ($arg1 == 0x33) {printf ("PASS: %sh\n", $$name)}
+  else {printf ("FAIL: %sh (%#x != 0x33)\n",$$name, $arg1)}
+  if ($arg2 == 0x43) {printf ("PASS: %sl\n", $$name)}
+  else {printf ("FAIL: %sl (%#x != 0x43)\n", $$name, $arg2)}
+  if ($arg3 == 0x3343) {printf ("PASS: %sx\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x3343)\n", $$name, $arg3)}
+  if ($arg4 == 0x13233343) {printf ("PASS: e%sx\n", $$name)}
+  else {printf ("FAIL: e%sx (%#x != 0x13233343)\n", $$name, $arg4)}
+}
 
-probe process(@1).mark("sil") ?
-{ if ($arg1 == 120) {printf ("PASS: %s\n", $$name)}
-  else {printf ("FAIL: %s (%#x != 0x56)\n",$$name, $arg1)}}
-
-probe process(@1).mark("dil") ?
-{ if ($arg1 == 120) {printf ("PASS: %s\n", $$name)}
-  else {printf ("FAIL: %s (%#x != 0x56)\n",$$name, $arg1)}}
+probe process(@1).mark("rdx") 
+{ if ($arg1 == 0x1323334313233343) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x1323334313233343)\n", $$name, $arg1)}
+}
 
 probe process(@1).mark("si") 
-{ if ($arg1 == 22136) {printf ("PASS: %s\n", $$name)}
-  else {printf ("FAIL: %s (%#x != 0x5678)\n", $$name, $arg1)}}
+{ if ($arg1 == 0x44) {printf ("PASS: %sl\n", $$name)}
+  else {printf ("FAIL: %sl (%#x != 0x44)\n",$$name, $arg1)}
+  if ($arg2 == 0x3444) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x3444)\n", $$name, $arg2)}
+  if ($arg3 == 0x14243444) {printf ("PASS: e%s\n", $$name)}
+  else {printf ("FAIL: e%s (%#x != 0x14243444)\n", $$name, $arg3)}
+}
+
+probe process(@1).mark("rsi") 
+{ if ($arg1 == 0x1424344414243444) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x1424344414243444)\n", $$name, $arg1)}
+}
 
 probe process(@1).mark("di") 
-{ if ($arg1 == 22136) {printf ("PASS: %s\n", $$name)}
-  else {printf ("FAIL: %s (%#x != 0x5678)\n", $$name, $arg1)}}
+{ if ($arg1 == 0x45) {printf ("PASS: %sl\n", $$name)}
+  else {printf ("FAIL: %sl (%#x != 0x45)\n",$$name, $arg1)}
+  if ($arg2 == 0x3545) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x3545)\n", $$name, $arg2)}
+  if ($arg3 == 0x15253545) {printf ("PASS: e%s\n", $$name)}
+  else {printf ("FAIL: e%s (%#x != 0x15253545)\n", $$name, $arg3)}
+}
+
+probe process(@1).mark("rdi") 
+{ if ($arg1 == 0x1525354515253545) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x1525354515253545)\n", $$name, $arg1)}
+}
+
+probe process(@1).mark("bp") 
+{ if ($arg2 == 0x16263646) {printf ("PASS: e%s\n", $$name)}
+  else {printf ("FAIL: e%s (%#x != 0x16263646)\n", $$name, $arg2)}
+}
+
+probe process(@1).mark("rbp") 
+{ if ($arg1 == 0x1626364616263646) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x1626364616263646)\n", $$name, $arg1)}
+}
+
+probe process(@1).mark("sp") 
+{ if ($arg2 == 0x17273747) {printf ("PASS: e%s\n", $$name)}
+  else {printf ("FAIL: e%s (%#x != 0x17273747)\n", $$name, $arg2)}
+}
+
+probe process(@1).mark("rsp") 
+{ if ($arg1 == 0x1727374717273747) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s (%#x != 0x1727374717273747)\n", $$name, $arg1)}
+}
 
 probe process(@1).mark("r8") ?
-{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
-  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
-  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
-  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+{ if ($arg1 == 0x48) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x48)\n",$$name, $arg1)}
+  if ($arg2 == 0x3848) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x3848)\n", $$name, $arg2)}
+  if ($arg3 == 0x1828384818283848) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x1828384818283848)\n", $$name, $arg3)}
+}
 
 probe process(@1).mark("r9") ?
-{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
-  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
-  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
-  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+{ if ($arg1 == 0x49) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x49)\n",$$name, $arg1)}
+  if ($arg2 == 0x3949) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x3949)\n", $$name, $arg2)}
+  if ($arg4 == 0x1929394919293949) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x1929394919293949)\n", $$name, $arg3)}
+}
 
 probe process(@1).mark("r10") ?
-{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
-  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
-  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
-  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+{ if ($arg1 == 0x4a) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x4a)\n",$$name, $arg1)}
+  if ($arg2 == 0x3a4a) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x3a4a)\n", $$name, $arg2)}
+  if ($arg3 == 0x1a2a3a4a1a2a3a4a) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x1a2a3a4a1a2a3a4a)\n", $$name, $arg3)}
+}
 
 probe process(@1).mark("r11") ?
-{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
-  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
-  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
-  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+{ if ($arg1 == 0x4b) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x4b)\n",$$name, $arg1)}
+  if ($arg2 == 0x3b4b) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x3b4b)\n", $$name, $arg2)}
+  if ($arg3 == 0x1b2b3b4b1b2b3b4b) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x1b2b3b4b1b2b3b4b)\n", $$name, $arg3)}
+}
 
 probe process(@1).mark("r12") ?
-{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
-  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
-  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
-  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+{ if ($arg1 == 0x4c) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x4c)\n",$$name, $arg1)}
+  if ($arg2 == 0x3c4c) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x3c4c)\n", $$name, $arg2)}
+  if ($arg3 == 0x1c2c3c4c1c2c3c4c) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x1c2c3c4c1c2c3c4c)\n", $$name, $arg3)}
+}
 
 probe process(@1).mark("r13") ?
-{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
-  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
-  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
-  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+{ if ($arg1 == 0x4d) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x4d)\n",$$name, $arg1)}
+  if ($arg2 == 0x3d4d) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x3d4d)\n", $$name, $arg2)}
+  if ($arg3 == 0x1d2d3d4d1d2d3d4d) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x1d2d3d4d1d2d3d4d)\n", $$name, $arg3)}
+}
 
 probe process(@1).mark("r14") ?
-{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
-  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
-  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
-  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
+{ if ($arg1 == 0x4e) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x4e)\n",$$name, $arg1)}
+  if ($arg2 == 0x3e4e) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x3e4e)\n", $$name, $arg2)}
+  if ($arg3 == 0x1e2e3e4e1e2e3e4e) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x1e2e3e4e1e2e3e4e)\n", $$name, $arg3)}
+}
 
 probe process(@1).mark("r15") ?
-{ if ($arg1 == 120) {printf ("PASS: %sb\n", $$name)}
-  else {printf ("FAIL: %sb (%#x != 0x56)\n",$$name, $arg1)}
-  if ($arg2 == 22136) {printf ("PASS: %sw\n", $$name)}
-  else {printf ("FAIL: %sw (%#x != 0x5678)\n", $$name, $arg2)}}
-
+{ if ($arg1 == 0x4f) {printf ("PASS: %sb\n", $$name)}
+  else {printf ("FAIL: %sb (%#x != 0x4f)\n",$$name, $arg1)}
+  if ($arg2 == 0x3f4f) {printf ("PASS: %sw\n", $$name)}
+  else {printf ("FAIL: %sw (%#x != 0x3f4f)\n", $$name, $arg2)}
+  if ($arg3 == 0x1f2f3f4f1f2f3f4f) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %sx (%#x != 0x1f2f3f4f1f2f3f4f)\n", $$name, $arg3)}
+}
