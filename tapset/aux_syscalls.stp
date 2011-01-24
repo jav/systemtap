@@ -1616,7 +1616,9 @@ static const _stp_val_array const _stp_fork_list[] = {
 	V(CLONE_DETACHED),
 	V(CLONE_UNTRACED),
 	V(CLONE_CHILD_SETTID),
+#ifdef CLONE_STOPPED
 	V(CLONE_STOPPED),
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
 	V(CLONE_NEWUTS),
 	V(CLONE_NEWIPC),
