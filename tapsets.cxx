@@ -5341,7 +5341,6 @@ sdt_query::handle_probe_entry()
   probe *new_base = convert_location();
   probe_point *new_location = new_base->locations[0];
 
-  bool kprobe_found = false;
   bool need_debug_info = false;
 
   Dwarf_Addr bias;
@@ -5351,7 +5350,6 @@ sdt_query::handle_probe_entry()
   if (have_kprobe())
     {
       convert_probe(new_base);
-      kprobe_found = true;
       // Expand the local variables in the probe body
       sdt_kprobe_var_expanding_visitor svv (module_val,
 					    provider_name,
@@ -7726,13 +7724,15 @@ hwbkpt_builder::build(systemtap_session & sess,
 							    "",len,0,
 							    has_write,
 							    has_rw));
-  else // has symbol_str
+  else if (has_symbol_str)
       finished_results.push_back (new hwbkpt_derived_probe (base,
 							    location,
 							    0,
 							    symbol_str_val,len,0,
 							    has_write,
 							    has_rw));
+  else
+    assert (0);
 }
 
 // ------------------------------------------------------------------------

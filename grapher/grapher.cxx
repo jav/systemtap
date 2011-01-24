@@ -72,11 +72,13 @@ extern "C"
              strerror_r(errno, errbuf, sizeof(errbuf));
              err = write(STDERR_FILENO, errbuf, strlen(errbuf));
              err = write(STDERR_FILENO, "\n", 1);
+             (void) err; /* XXX: notused */
              return;
            }
          else if (childInfo.pid > 0)
            {
              err = write(signalPipe[1], &childInfo, sizeof(childInfo));
+             (void) err; /* XXX: notused */
            }
          else
            return;

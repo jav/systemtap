@@ -4447,6 +4447,8 @@ c_unparser::visit_print_format (print_format* e)
 	if (components[i].prectype == print_format::prec_dynamic)
 	  prec_ix = arg_ix++;
 
+        (void) width_ix; /* XXX: notused */
+
         /* %m and %M need special care for digging into memory. */
 	if (components[i].type == print_format::conv_memory
 	    || components[i].type == print_format::conv_memory_hex)

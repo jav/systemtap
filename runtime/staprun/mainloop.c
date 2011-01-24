@@ -60,6 +60,7 @@ static void chld_proc(int signum)
     return;
   // send STP_EXIT
   rc = write(control_channel, &btype, sizeof(btype));
+  (void) rc; /* XXX: notused */
 }
 
 #if WORKAROUND_BZ467568
@@ -622,6 +623,7 @@ int stp_main_loop(void)
         dbug(2, "got STP_REQUEST_EXIT\n");
         int32_t rc, btype = STP_EXIT;
         rc = write(control_channel, &btype, sizeof(btype));
+        (void) rc; /* XXX: notused */
         break;
       }
     case STP_START:

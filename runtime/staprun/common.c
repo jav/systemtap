@@ -399,6 +399,7 @@ static void fatal_handler (int signum)
         rc = write (STDERR_FILENO, ERR_MSG, sizeof(ERR_MSG));
         rc = write (STDERR_FILENO, str, strlen(str));
         rc = write (STDERR_FILENO, "\n", 1);
+        (void) rc; /* notused */
 	_exit(1);
 }
 
