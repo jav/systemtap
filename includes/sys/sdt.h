@@ -61,31 +61,50 @@
 				 ? sizeof (void *) : sizeof (x))
 # define _SDT_ARGVAL(x)		(x)
 
-/* The C++ <limits> header uses the names 'min' and 'max' and conflicts
-   with any application-defined macros by these names.  In GCC 4.3 and
-   later, we can hack around this problem with new #pragma magic.  */
-# if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
-  #pragma push_macro("min")
-  #pragma push_macro("max")
-#  undef min
-#  undef max
-# endif
-
 # include <cstddef>
-# include <limits>
-
-# if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
-  #pragma pop_macro("min")
-  #pragma pop_macro("max")
-# endif
 
 template<typename __sdt_T>
 struct __sdt_type
 {
-  static const bool __sdt_signed
-  = (std::numeric_limits<__sdt_T>::is_signed
-     && std::numeric_limits<__sdt_T>::is_integer);
+  static const bool __sdt_signed = false;
 };
+  
+#define __SDT_ALWAYS_SIGNED(T) \
+template<> struct __sdt_type<T> { static const bool __sdt_signed = true; };
+#define __SDT_COND_SIGNED(T) \
+template<> struct __sdt_type<T> { static const bool __sdt_signed = ((T)(-1) < 0); };
+__SDT_ALWAYS_SIGNED(signed char)
+__SDT_ALWAYS_SIGNED(short)
+__SDT_ALWAYS_SIGNED(int)
+__SDT_ALWAYS_SIGNED(long)
+__SDT_ALWAYS_SIGNED(long long)
+__SDT_ALWAYS_SIGNED(volatile signed char)
+__SDT_ALWAYS_SIGNED(volatile short)
+__SDT_ALWAYS_SIGNED(volatile int)
+__SDT_ALWAYS_SIGNED(volatile long)
+__SDT_ALWAYS_SIGNED(volatile long long)
+__SDT_ALWAYS_SIGNED(const signed char)
+__SDT_ALWAYS_SIGNED(const short)
+__SDT_ALWAYS_SIGNED(const int)
+__SDT_ALWAYS_SIGNED(const long)
+__SDT_ALWAYS_SIGNED(const long long)
+__SDT_ALWAYS_SIGNED(const volatile signed char)
+__SDT_ALWAYS_SIGNED(const volatile short)
+__SDT_ALWAYS_SIGNED(const volatile int)
+__SDT_ALWAYS_SIGNED(const volatile long)
+__SDT_ALWAYS_SIGNED(const volatile long long)
+__SDT_COND_SIGNED(char)
+__SDT_COND_SIGNED(wchar_t)
+__SDT_COND_SIGNED(volatile char)
+__SDT_COND_SIGNED(volatile wchar_t)
+__SDT_COND_SIGNED(const char)
+__SDT_COND_SIGNED(const wchar_t)
+__SDT_COND_SIGNED(const volatile char)
+__SDT_COND_SIGNED(const volatile wchar_t)
+#if defined (__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))
+/* __SDT_COND_SIGNED(char16_t) */
+/* __SDT_COND_SIGNED(char32_t) */
+#endif
 
 template<typename __sdt_E>
 struct __sdt_type<__sdt_E[]> : public __sdt_type<__sdt_E *> {};

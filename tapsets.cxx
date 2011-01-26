@@ -4989,7 +4989,13 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 		case QIh: width_adjust = ">>8) & 0xff"; break;
 		case HI:
 		  // preserve 16 bit register signness
-		  width_adjust = (precision > 0) ? ") & 0xffff" : ")";
+		  width_adjust = ") & (int64_t)0xffff";
+		  width_adjust += (precision < 0) ? " << 48 >> 48" : "";
+		  break;
+		case SI:
+		  // preserve 32 bit register signness
+		  width_adjust = ") & (int64_t)0xffffffff";
+		  width_adjust += (precision < 0) ? " << 32 >> 32" : "";
 		  break;
 		default: width_adjust = ")";
 		}

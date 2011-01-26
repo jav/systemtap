@@ -379,7 +379,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if { $ok == 51 || ($ok == 42 && [regexp "^(i.86)$" $::tcl_platform(machine)])} {
+if { $ok == 51 || ($ok == 43 && [regexp "^(i.86)$" $::tcl_platform(machine)])} {
     pass "$test wildcard $pbtype_mssg"
 } else {
     fail "$test wildcard ($ok) $pbtype_mssg"
