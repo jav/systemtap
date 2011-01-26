@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -152,7 +152,7 @@ struct systemtap_session
   // to be cleared in the systemtap_session ctor (session.cxx).
 
   // Client/server
-  bool NSPR_Initialized;
+  static bool NSPR_Initialized; // only once for all sessions
   void NSPR_init ();
   bool client_options;
   std::string client_options_disallowed;
@@ -161,6 +161,7 @@ struct systemtap_session
   std::string server_trust_spec;
   std::vector<std::string> server_args;
   std::string winning_server;
+  bool try_server;
 
   // Remote execution
   std::vector<std::string> remote_uris;

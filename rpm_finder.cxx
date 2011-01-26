@@ -35,6 +35,12 @@ extern "C" {
 
 }
 
+#if ! HAVE_LIBRPMIO && HAVE_NSS
+extern "C" {
+#include <nss.h>
+}
+#endif
+
 /* Returns the count of newly added rpms.  */
 /* based on the code in F11 gdb-6.8.50.20090302 source rpm */
 /* Added in the rpm_type parameter to specify what rpm to look for */
@@ -173,6 +179,19 @@ missing_rpm_enlist (systemtap_session& sess, const char *filename, const char *r
     }
 
   rpmtsFree(ts);
+
+#if HAVE_NSS
+  // librpm uses NSS cryptography but doesn't shut down NSS when it is done.
+  // If NSS is available, it will be used by the compile server client on
+  // specific certificate databases and thus, it must be shut down first.
+  // Get librpm to do it if we can. Otherwise do it ourselves.
+#if HAVE_LIBRPMIO
+  rpmFreeCrypto (); // Shuts down NSS within librpm
+#else
+  NSS_Shutdown (); // Shut down NSS ourselves
+#endif
+#endif
+
   return count;
 }
 #endif	/* HAVE_LIBRPM */

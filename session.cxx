@@ -47,6 +47,8 @@ extern int optind;
 
 #define PATH_TBD string("__TBD__")
 
+bool systemtap_session::NSPR_Initialized = false;
+
 systemtap_session::systemtap_session ():
   // NB: pointer members must be manually initialized!
   base_hash(0),
@@ -127,7 +129,7 @@ systemtap_session::systemtap_session ():
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
   client_options = false;
-  NSPR_Initialized = false;
+  try_server = false;
   systemtap_v_check = false;
 
   /*  adding in the XDG_DATA_DIRS variable path,
@@ -204,11 +206,6 @@ systemtap_session::systemtap_session ():
 
 systemtap_session::~systemtap_session ()
 {
-#if HAVE_NSS
-  if (NSPR_Initialized)
-    PR_Cleanup ();
-#endif // HAVE_NSS
-
   delete_map(subsessions);
 }
 

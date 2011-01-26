@@ -1078,7 +1078,7 @@ compile_server_client::compile_using_server (
   // This code will never be called if we don't have NSS, but it must still
   // compile.
 #if HAVE_NSS
-  // Make sure NSPR is initialized
+  // Make sure NSPR is initialized. Must be done before NSS is initialized
   s.NSPR_init ();
 
   // Attempt connection using each of the available client certificate
@@ -1822,6 +1822,9 @@ add_server_trust (
   // Must predeclare this because of jumps to cleanup: below.
   vector<string> processed_certs;
 
+  // Make sure NSPR is initialized. Must be done before NSS is initialized
+  s.NSPR_init ();
+
   // Initialize the NSS libraries -- read/write
   SECStatus secStatus = NSS_InitReadWrite (cert_db_path.c_str ());
   if (secStatus != SECSuccess)
@@ -1929,6 +1932,9 @@ revoke_server_trust (
   CERTCertList *certs = NULL;
   CERTCertificate *db_cert;
   vector<string> processed_certs;
+
+  // Make sure NSPR is initialized. Must be done before NSS is initialized
+  s.NSPR_init ();
 
   // Initialize the NSS libraries -- read/write
   SECStatus secStatus = NSS_InitReadWrite (cert_db_path.c_str ());
@@ -2381,6 +2387,9 @@ get_server_info_from_db (
   PRArenaPool *tmpArena = NULL;
   CERTCertList *certs = NULL;
   CERTCertificate *db_cert;
+
+  // Make sure NSPR is initialized. Must be done before NSS is initialized
+  s.NSPR_init ();
 
   // Initialize the NSS libraries -- readonly
   SECStatus secStatus = NSS_Init (cert_db_path.c_str ());
