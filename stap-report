@@ -8,7 +8,7 @@ run(){
 run "stap -V"
 run "which stap"
 run "locate --regex '/stap(run)?$' | xargs ls -ald"
-run "printenv | egrep '^PATH=|^LD_LIBRARY_PATH=|^SYSTEMTAP_.*='"
+run "printenv | egrep '^PATH=|^LD_LIBRARY_PATH=|^SYSTEMTAP_.*=|^XDG_DATA.*='"
 run "gcc -v"
 run "uname -a"
 run "dmesg | egrep 'stap|systemtap' | tail -n 10"
@@ -19,3 +19,4 @@ else
   run "rpm -qa --qf '%{name}-%{version} %{release}.%{arch}\\n' | egrep 'systemtap|elfutils|kernel|gcc' | sort"
 fi
 run "egrep 'PROBE|TRACE|MARKER|_DEBUG_' /lib/modules/`uname -r`/build/.config | grep -v not.set | sort | fmt -w 80"
+run "find /debugfs /proc /sys /dev -name '*kprobes*' 2>/dev/null | xargs grep ."
