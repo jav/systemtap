@@ -1924,7 +1924,6 @@ revoke_server_trust (
     }
 
   // Must predeclare these because of jumps to cleanup: below.
-  PK11SlotInfo *slot = NULL;
   CERTCertDBHandle *handle;
   PRArenaPool *tmpArena = NULL;
   CERTCertList *certs = NULL;
@@ -1939,7 +1938,6 @@ revoke_server_trust (
       nssError ();
       goto cleanup;
     }
-  slot = PK11_GetInternalKeySlot ();
   handle = CERT_GetDefaultCertDB();
 
   // A memory pool to work in
@@ -2046,8 +2044,6 @@ revoke_server_trust (
  cleanup:
   if (certs)
     CERT_DestroyCertList (certs);
-  if (slot)
-    PK11_FreeSlot (slot);
   if (tmpArena)
     PORT_FreeArena (tmpArena, PR_FALSE);
 
@@ -2381,7 +2377,6 @@ get_server_info_from_db (
     }
 
   // Must predeclare these because of jumps to cleanup: below.
-  PK11SlotInfo *slot = NULL;
   CERTCertDBHandle *handle;
   PRArenaPool *tmpArena = NULL;
   CERTCertList *certs = NULL;
@@ -2397,7 +2392,6 @@ get_server_info_from_db (
     }
 
   // Search the client-side database of trusted servers.
-  slot = PK11_GetInternalKeySlot ();
   handle = CERT_GetDefaultCertDB();
   db_cert = PK11_FindCertFromNickname (server_cert_nickname, NULL);
   if (! db_cert)
@@ -2494,8 +2488,6 @@ get_server_info_from_db (
  cleanup:
   if (certs)
     CERT_DestroyCertList (certs);
-  if (slot)
-    PK11_FreeSlot (slot);
   if (tmpArena)
     PORT_FreeArena (tmpArena, PR_FALSE);
 
