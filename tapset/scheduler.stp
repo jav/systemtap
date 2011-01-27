@@ -126,21 +126,28 @@ probe __scheduler.ctxswitch.kp =
 	kernel.function("context_switch")
 %)
 {
-	if (@defined($prev)) {
-		prev_priority = $prev->prio
-		prev_pid = $prev->tgid
-		prev_tid = $prev->pid
-		prev_task = $prev
-		prev_task_name = task_execname($prev)
-		prevtsk_state = $prev->state
-	}
-	else {
+	/*
+	 * Note that we prefer '$prev_p' here because on RHEL5
+	 * (2.6.18-238.1.1.el5) the '__switch_to()' function has both
+	 * a '$prev_p' and a '$prev' argument.  Since '$prev_p' is of
+	 * the correct type (struct task_struct *), we need to look
+	 * for it first.
+	 */
+	if (@defined($prev_p)) {
 		prev_priority = $prev_p->prio
 		prev_pid = $prev_p->tgid
 		prev_tid = $prev_p->pid
 		prev_task = $prev_p
 		prev_task_name = task_execname($prev_p)
 		prevtsk_state = $prev_p->state
+	}
+	else {
+		prev_priority = $prev->prio
+		prev_pid = $prev->tgid
+		prev_tid = $prev->pid
+		prev_task = $prev
+		prev_task_name = task_execname($prev)
+		prevtsk_state = $prev->state
 	}
 
 	if (@defined($next)) {
