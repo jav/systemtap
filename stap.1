@@ -808,7 +808,9 @@ probe syscall.read += kernel.function("sys_read") {
 .ESAMPLE
 defines a new probe point with the given statement as an epilogue, which
 is useful to take actions based upon variables set or left over by the
-the alias user.
+the alias user.  Please note that in each case, the statements in the
+alias handler block are treated ordinarily, so that variables assigned
+there constitute mere initialization, not a macro substitution.
 
 An alias is used just like a built-in probe type.
 .SAMPLE
