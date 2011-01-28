@@ -1067,6 +1067,12 @@ systemtap_session::check_options (int argc, char * const argv [])
           runtime_path = string(cwd) + "/" + runtime_path;
         }
     }
+
+  // Abnormal characters in our temp path can break us, including parts out
+  // of our control like Kbuild.  Let's enforce nice, safe characters only.
+  const char *tmpdir = getenv("TMPDIR");
+  if (tmpdir)
+    assert_regexp_match("TMPDIR", tmpdir, "^[-/._0-9a-z]+$");
 }
 
 

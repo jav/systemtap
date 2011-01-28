@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Test a TMPDIR that is technically legal, but has "weird" characters.
+# Anything that would trip up a shell or makefile is bad, including spaces.
+
+TMPDIR="/tmp/stap tmp here"
+export TMPDIR
+
+mkdir "$TMPDIR" || exit 0  # "success" signals a problem for parseko
+
+stap -p1 -e 'probe begin { exit() }'
+RC=$?
+
+rmdir "$TMPDIR" || exit 0
+
+exit $RC
