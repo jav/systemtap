@@ -7,7 +7,8 @@ foreach value {0 0xffffffff 0xffffffffffffffff} {
     if {[istarget ia64-*-*] && $value == 0xffffffffffffffff } { set value 0xafffffffffffffff }
     set test "conversions.stp $value"
     if {![installtest_p]} { untested $test; continue }
-    spawn stap -DMAXERRORS=40 $file $value
+    # Turn off the duplication elimination to get an accurate count (PR12168)
+    spawn stap -vv -DMAXERRORS=40 $file $value
     set errs 0
     verbose -log "exp $test $errs"
     expect {
