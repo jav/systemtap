@@ -47,6 +47,8 @@ extern int optind;
 
 #define PATH_TBD string("__TBD__")
 
+bool systemtap_session::NSPR_Initialized = false;
+
 systemtap_session::systemtap_session ():
   // NB: pointer members must be manually initialized!
   base_hash(0),
@@ -127,7 +129,8 @@ systemtap_session::systemtap_session ():
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
   client_options = false;
-  NSPR_Initialized = false;
+  use_server_on_error = true;
+  try_server_status = try_server_unset;
   systemtap_v_check = false;
 
   /*  adding in the XDG_DATA_DIRS variable path,
@@ -204,11 +207,6 @@ systemtap_session::systemtap_session ():
 
 systemtap_session::~systemtap_session ()
 {
-#if HAVE_NSS
-  if (NSPR_Initialized)
-    PR_Cleanup ();
-#endif // HAVE_NSS
-
   delete_map(subsessions);
 }
 
@@ -380,6 +378,8 @@ systemtap_session::usage (int exitcode)
 #if HAVE_NSS
     << "   --trust-servers[=TRUST-SPEC]" << endl
     << "              add/revoke trust of specified compile-servers" << endl
+    << "   --use-server-on-error[=yes/no]" << endl
+    << "              retry compilation using a compile server upon compilation error" << endl
 #endif
     << "   --remote=HOSTNAME" << endl
     << "              run pass 5 on the specified ssh host (EXPERIMENTAL)" << endl
@@ -426,6 +426,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_ALL_MODULES 19
 #define LONG_OPT_REMOTE 20
 #define LONG_OPT_CHECK_VERSION 21
+#define LONG_OPT_USE_SERVER_ON_ERROR 22
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -452,6 +453,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "use-server", 2, &long_opt, LONG_OPT_USE_SERVER },
         { "list-servers", 2, &long_opt, LONG_OPT_LIST_SERVERS },
         { "trust-servers", 2, &long_opt, LONG_OPT_TRUST_SERVERS },
+        { "use-server-on-error", 2, &long_opt, LONG_OPT_USE_SERVER_ON_ERROR },
         { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
         { "remote", 1, &long_opt, LONG_OPT_REMOTE },
         { "check-version", 0, &long_opt, LONG_OPT_CHECK_VERSION },
@@ -807,6 +809,24 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      else
 		specified_servers.push_back ("");
 	      break;
+	    case LONG_OPT_USE_SERVER_ON_ERROR:
+	      if (client_options)
+		client_options_disallowed += client_options_disallowed.empty () ? "--use-server-on-error" : ", --use-server-on-error";
+	      if (optarg)
+		{
+		  string arg = optarg;
+		  for (unsigned i = 0; i < arg.size (); ++i)
+		    arg[i] = tolower (arg[i]);
+		  if (arg == "yes" || arg == "ye" || arg == "y")
+		    use_server_on_error = true;
+		  else if (arg == "no" || arg == "n")
+		    use_server_on_error = false;
+		  else
+		    cerr << "Invalid argument '" << optarg << "' for --use-server-on-error." << endl;
+		}
+	      else
+		use_server_on_error = true;
+	      break;
 	    case LONG_OPT_LIST_SERVERS:
 	      if (client_options)
 		client_options_disallowed += client_options_disallowed.empty () ? "--list-servers" : ", --list-servers";
@@ -1048,6 +1068,31 @@ systemtap_session::check_options (int argc, char * const argv [])
         }
     }
 }
+
+
+void
+systemtap_session::init_try_server ()
+{
+#if HAVE_NSS
+  // If the option is disabled or we are a server or we are already using a
+  // server, then never retry compilation using a server.
+  if (! use_server_on_error || client_options || ! specified_servers.empty ())
+    try_server_status = dont_try_server;
+  else
+    try_server_status = try_server_unset;
+#else
+  // No client, so don't bother.
+  try_server_status = dont_try_server;
+#endif
+}
+
+void
+systemtap_session::set_try_server (int t)
+{
+  if (try_server_status != dont_try_server)
+    try_server_status = t;
+}
+
 
 void systemtap_session::insert_loaded_modules()
 {

@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -152,7 +152,7 @@ struct systemtap_session
   // to be cleared in the systemtap_session ctor (session.cxx).
 
   // Client/server
-  bool NSPR_Initialized;
+  static bool NSPR_Initialized; // only once for all sessions
   void NSPR_init ();
   bool client_options;
   std::string client_options_disallowed;
@@ -161,6 +161,24 @@ struct systemtap_session
   std::string server_trust_spec;
   std::vector<std::string> server_args;
   std::string winning_server;
+
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (session.cxx).
+
+  // Mechanism for retrying compilation with a compile server should it fail due
+  // to lack of resources on the local host.
+  // Once it has been decided not to try the server (e.g. syntax error),
+  // that decision cannot be changed.
+  int try_server_status;
+  bool use_server_on_error;
+
+  enum { dont_try_server = -1, try_server_unset = 0, do_try_server = 1 };
+  void init_try_server ();
+  void set_try_server (int t = do_try_server);
+  bool try_server () const { return try_server_status == do_try_server; }
+
+  // NB: It is very important for all of the above (and below) fields
+  // to be cleared in the systemtap_session ctor (session.cxx).
 
   // Remote execution
   std::vector<std::string> remote_uris;
