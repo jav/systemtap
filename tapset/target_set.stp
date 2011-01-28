@@ -12,7 +12,7 @@ probe begin
 		_target_set[target()] = stp_pid()
 }
 
-%( kernel_v >= "2.6.18" %?
+%( arch != "ia64" && kernel_v >= "2.6.18" %?
 probe nd_syscall.fork.return
 {
 	pid = returnval()
@@ -30,8 +30,8 @@ probe nd_syscall.exit
 
 %: 
 
-# pre-2.6.18 doesn't support dwarfless probes, so we'll use 'syscall'
-# probes instead of 'nd_syscall' probes.
+# ia64 systems and pre-2.6.18 systems don't support dwarfless probes,
+# so we'll use 'syscall' probes instead of 'nd_syscall' probes.
 probe syscall.fork.return
 {
 	pid = $return
