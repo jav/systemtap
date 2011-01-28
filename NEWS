@@ -1,5 +1,10 @@
 * What's new in version 1.5
 
+- A new command line option, --use-server-on-error[=yes|no] is available for
+  stap. 'yes' instructs stap to retry compilation of a script using a
+  compile server if it fails on the local host. The default setting is 'yes'.
+  See See man stap(1) for complete details.
+
 - The following deprecated tools have been removed:
       stap-client
       stap-authorize-server-cert

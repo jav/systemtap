@@ -58,7 +58,7 @@ if { $res != "" } {
 # line number error (expect no output at all, since no label found)
 
 set ok 0
-spawn stap -l "process(\"$label_exepath\").function(\"foo@${label_srcpath}:10\").label(\"*\")"
+spawn stap --use-server-on-error=no -l "process(\"$label_exepath\").function(\"foo@${label_srcpath}:10\").label(\"*\")"
 
 expect {
     -timeout 180

@@ -324,6 +324,17 @@ port number may be specified. This is useful for accessing servers which are
 not on the local network or to specify a particular server.
 
 .TP
+\fB\-\-use\-server\-on\-error \fR[\fByes\fR|\fBno\fR]
+Instructs stap to retry compilation of a script using a compile server if
+compilation on the local host fails.
+If this option is not specified or if no argument is provided, then the default
+is \fIyes\fR. Compilation will not be retried for certain types of errors
+(e.g. syntax errors) which would also occur during re\-compilation by a compile
+server. One local compile server will be selected automatically for the
+re\-compilation attempt as if \fI\-\-use\-server\fR was specified with no
+arguments.
+
+.TP
 .BI \-\-list\-servers " [SERVERS]"
 Display the status of the requested
 .IR SERVERS ,
