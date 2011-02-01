@@ -4990,17 +4990,24 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 		case HI:
 		  // preserve 16 bit register signness
 		  width_adjust = ") & (int64_t)0xffff";
-		  width_adjust += (precision < 0) ? " << 48 >> 48" : "";
+		  if (precision < 0 && sizeof(long) == 8)
+		    width_adjust += " << 48 >> 48";
+		  else if (precision < 0 && sizeof(long) == 4)
+		    width_adjust += " << 16 >> 16";
 		  break;
 		case SI:
 		  // preserve 32 bit register signness
 		  width_adjust = ") & (int64_t)0xffffffff";
-		  width_adjust += (precision < 0) ? " << 32 >> 32" : "";
+		  if (precision < 0 && sizeof(long) == 8)
+		    width_adjust += " << 32 >> 32";
 		  break;
 		default: width_adjust = ")";
 		}
-              string type = (precision < 0 ? "(int" : "(uint")
-                  + lex_cast(abs(precision) * 8) + "_t)((";
+              string type = "";
+	      if (probe_type == uprobe3_type)
+		type = (precision < 0
+			? "(int" : "(uint") + lex_cast(abs(precision) * 8) + "_t)";
+	      type = type + "((";
               get_arg1->tok = e->tok;
               get_arg1->code = string("/* unprivileged */ /* pure */")
                 + string(" (int64_t)") + type

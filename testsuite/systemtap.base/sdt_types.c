@@ -47,7 +47,7 @@ main (int argc, char **argv)
   long int * volatile long_int_ptr_volatile_var = &long_int_var;
 
   /* c89 doesn't define __STDC_VERSION. With -pedantic warns about long long. */
-#if ! defined NO_LONG_LONG && ! defined __i386__
+#if ! defined NO_LONG_LONG && __SIZEOF_SIZE_T__ == 8
   long long int long_long_int_var = 65536;
   const long long int const_long_long_int_var = -65536;
   volatile long long int volatile_long_long_int_var = -65536;
@@ -74,7 +74,7 @@ main (int argc, char **argv)
     char char_8;
     unsigned int bit1_9:1;
     unsigned int bit1_10:1;
-  } bitfields_small_var = { 1, 0, 'a', 1, 0, 'z', 1, 0};
+  } bitfields_a_var = { 1, 0, 'a', 1, 0, 'z', 1, 0};
 
   struct {
     unsigned char char_0;
@@ -87,7 +87,7 @@ main (int argc, char **argv)
     int bit9_16:9;
     unsigned int bit9_25:9;
     char char_34;
-  } bitfields_bit_var = {'A', -1, 1, 1, 3, 3, 7, 255, 511, 'Z'};
+  } bitfields_b_var = {'A', -1, 1, 1, 3, 3, 7, 255, 511, 'Z'};
 
 # if !defined(__cplusplus) || \
 	((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)) && __GXX_EXPERIMENTAL_CXX0X__)
@@ -150,7 +150,7 @@ main (int argc, char **argv)
   STAP_PROBE2(provider,long_int_ptr_volatile_var,long_int_ptr_volatile_var,&long_int_var);
 
   /* long long */
-#if ! defined NO_LONG_LONG && ! defined __i386__
+#if ! defined NO_LONG_LONG && __SIZEOF_SIZE_T__ == 8
   STAP_PROBE1(provider,long_long_int_var,long_long_int_var);
   STAP_PROBE1(provider,const_long_long_int_var,const_long_long_int_var);
   STAP_PROBE1(provider,volatile_long_long_int_var,volatile_long_long_int_var);
@@ -167,26 +167,26 @@ main (int argc, char **argv)
   STAP_PROBE1(provider,arr_struct,ARRAY(arr_struct));
 # endif
 
-  STAP_PROBE8(provider,bitfields_small_var,
-	      (int)bitfields_small_var.bit1_0,
-	      (int)bitfields_small_var.bit1_1,
-	      bitfields_small_var.char_2,
-	      (int)bitfields_small_var.bit1_6,
-	      (int)bitfields_small_var.bit1_7,
-	      bitfields_small_var.char_8,
-	      (int)bitfields_small_var.bit1_9,
-	      (int)bitfields_small_var.bit1_10);
+  STAP_PROBE8(provider,bitfields_a_var,
+	      (int)bitfields_a_var.bit1_0,
+	      (int)bitfields_a_var.bit1_1,
+	      bitfields_a_var.char_2,
+	      (int)bitfields_a_var.bit1_6,
+	      (int)bitfields_a_var.bit1_7,
+	      bitfields_a_var.char_8,
+	      (int)bitfields_a_var.bit1_9,
+	      (int)bitfields_a_var.bit1_10);
 
-  STAP_PROBE10(provider,bitfields_bit_var,bitfields_bit_var.char_0,
-	       (int)bitfields_bit_var.bit1_4,
-	       (int)bitfields_bit_var.bit1_5,
-	       (int)bitfields_bit_var.bit2_6,
-	       (int)bitfields_bit_var.bit2_8,
-	       (int)bitfields_bit_var.bit3_10,
-	       (int)bitfields_bit_var.bit3_13,
-	       (int)bitfields_bit_var.bit9_16,
-	       (int)bitfields_bit_var.bit9_25,
-	       bitfields_bit_var.char_34);
+  STAP_PROBE10(provider,bitfields_b_var,bitfields_b_var.char_0,
+	       (int)bitfields_b_var.bit1_4,
+	       (int)bitfields_b_var.bit1_5,
+	       (int)bitfields_b_var.bit2_6,
+	       (int)bitfields_b_var.bit2_8,
+	       (int)bitfields_b_var.bit3_10,
+	       (int)bitfields_b_var.bit3_13,
+	       (int)bitfields_b_var.bit9_16,
+	       (int)bitfields_b_var.bit9_25,
+	       bitfields_b_var.char_34);
 
 # if !defined(__cplusplus) || \
 	((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)) && __GXX_EXPERIMENTAL_CXX0X__)
