@@ -173,7 +173,8 @@ systemtap_session::systemtap_session ():
     {
       const char* e = strerror (errno);
       if (! suppress_warnings)
-        cerr << autosprintf(_("Warning: failed to create systemtap data driector \"%s\":%s, disablig cache support."),data_path.c_str(),e) << endl;
+        cerr << autosprintf(_("Warning: failed to create systemtap data driector \"%s\":%s, disablig cache support."),
+                data_path.c_str(),e) << endl;
         //cerr << "Warning: failed to create systemtap data directory (\""
         //     << data_path << "\"): " << e
         //     << ", disabling cache support." << endl;
@@ -187,7 +188,8 @@ systemtap_session::systemtap_session ():
         {
 	  const char* e = strerror (errno);
           if (! suppress_warnings)
-            cerr << autosprintf(_("Warning: failed to create cache directory (\" %s \"): %s, disabling cache support."),cache_path.c_str(),e) << endl;
+            cerr << autosprintf(_("Warning: failed to create cache directory (\" %s \"): %s, disabling cache support."),
+                    cache_path.c_str(),e) << endl;
             //cerr << "Warning: failed to create cache directory (\""
             //     << cache_path << "\"): " << e
             //     << ", disabling cache support." << endl;
@@ -1007,7 +1009,8 @@ systemtap_session::check_options (int argc, char * const argv [])
 
   if (client_options && unprivileged && ! client_options_disallowed.empty ())
     {
-      cerr << autosprintf(_("You can't specify %s when --unprivileged is specified."), client_options_disallowed.c_str()) << endl;
+      cerr << autosprintf(_("You can't specify %s when --unprivileged is specified."),
+              client_options_disallowed.c_str()) << endl;
       usage (1);
     }
   if ((cmd != "") && (target_pid))
@@ -1146,7 +1149,8 @@ systemtap_session::register_library_aliases()
                         //throw semantic_error("alias component "
                         //                     + comp->functor
                         //                     + " contains illegal parameter");
-                        throw semantic_error(autosprintf(_("alias component %s contains illegal parameter"), comp->functor.c_str()));
+                        throw semantic_error(autosprintf(_("alias component %s contains illegal parameter"),
+                                             comp->functor.c_str()));
                       n = n->bind(comp->functor);
                     }
                   n->bind(new alias_expansion_builder(alias));

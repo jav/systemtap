@@ -300,7 +300,8 @@ int parse_kernel_config (systemtap_session &s)
   int rc = stat(kernel_config_file.c_str(), &st);
   if (rc != 0)
     {  
-        clog << autosprintf(_("Checking \"%s\" failed with error: %s"),kernel_config_file.c_str(), strerror(errno)) << endl;
+        clog << autosprintf(_("Checking \"%s\" failed with error: %s"),
+                kernel_config_file.c_str(), strerror(errno)) << endl;
 	//clog << "Checking \"" << kernel_config_file << "\" failed: " << strerror(errno) << endl;
 	find_devel_rpms(s, s.kernel_build_tree.c_str());
 	missing_rpm_list_print(s,"-devel");
@@ -319,9 +320,9 @@ int parse_kernel_config (systemtap_session &s)
       s.kernel_config[key] = value;
     }
   if (s.verbose > 2)
-    clog << autosprintf( _("Parsed kernel \"%s\", "),kernel_config_file.c_str()) 
+    clog << autosprintf( _("Parsed kernel \"%s\", "), kernel_config_file.c_str()) 
          << autosprintf(ngettext("containing %zu tuple", "containing %zu tuples", 
-            s.kernel_config.size()),s.kernel_config.size()) << endl;
+            s.kernel_config.size()), s.kernel_config.size()) << endl;
     //clog << "Parsed kernel \"" << kernel_config_file << "\", number of tuples: " << s.kernel_config.size() << endl;
   
   kcf.close();
@@ -336,7 +337,8 @@ int parse_kernel_exports (systemtap_session &s)
   int rc = stat(kernel_exports_file.c_str(), &st);
   if (rc != 0)
     {
-        clog << autosprintf( _("Checking \"%s\" failed with error: %s"),kernel_exports_file.c_str(), strerror(errno)) << endl
+        clog << autosprintf( _("Checking \"%s\" failed with error: %s"),
+                kernel_exports_file.c_str(), strerror(errno)) << endl
 	//clog << "Checking \"" << kernel_exports_file << "\" failed: " << strerror(errno) << endl
 	     << _("Ensure kernel development headers & makefiles are installed.") << endl;
 	return rc;
@@ -355,7 +357,8 @@ int parse_kernel_exports (systemtap_session &s)
     }
   if (s.verbose > 2)
     clog << autosprintf(_("Parsed kernel \"%s\", "),kernel_exports_file.c_str()) 
-         << autosprintf(ngettext("which contained one vmlinux export", "which contained %zu vmlinux exports", s.kernel_exports.size()),s.kernel_exports.size()) << endl;
+         << autosprintf(ngettext("which contained one vmlinux export", "which contained %zu vmlinux exports",
+            s.kernel_exports.size()), s.kernel_exports.size()) << endl;
     //clog << "Parsed kernel \"" << kernel_exports_file << "\", number of vmlinux exports: " << s.kernel_exports.size() << endl;
   
   kef.close();
@@ -596,7 +599,7 @@ passes_0_4 (systemtap_session &s)
           if (s.verbose>1 && globbuf.gl_pathc > 0)
             // search a directory, report a number of found  with number of processed 
             clog << autosprintf(_("Searched: \" %s \", found: %zu, processed: %u"),
-                 dir.c_str(), globbuf.gl_pathc, (next_s_library_files-prev_s_library_files)) << endl;
+                    dir.c_str(), globbuf.gl_pathc, (next_s_library_files-prev_s_library_files)) << endl;
             //clog << "Searched \"" << dir << "\","
             //     << " found " << globbuf.gl_pathc 
             //     << " processed " << (next_s_library_files-prev_s_library_files) << endl;
