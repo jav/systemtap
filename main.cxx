@@ -1,5 +1,5 @@
 // systemtap translator/driver
-// Copyright (C) 2005-2011 Red Hat Inc.
+// Copyright (C) 2005-2010 Red Hat Inc.
 // Copyright (C) 2005 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
 //
@@ -24,6 +24,10 @@
 #include "csclient.h"
 #include "remote.h"
 
+#include <libintl.h>
+#include <locale.h>
+#include "autosprintf.h"
+
 #include "stap-probe.h"
 
 #include <cstdlib>
@@ -41,6 +45,7 @@ extern "C" {
 }
 
 using namespace std;
+using namespace gnu;
 
 static void
 uniq_list(list<string>& l)
@@ -173,7 +178,7 @@ printscript(systemtap_session& s, ostream& o)
   else
     {
       if (s.embeds.size() > 0)
-        o << "# global embedded code" << endl;
+        o << _("# global embedded code") << endl;
       for (unsigned i=0; i<s.embeds.size(); i++)
         {
           if (pending_interrupts) return;
@@ -183,7 +188,7 @@ printscript(systemtap_session& s, ostream& o)
         }
 
       if (s.globals.size() > 0)
-        o << "# globals" << endl;
+        o << _("# globals") << endl;
       for (unsigned i=0; i<s.globals.size(); i++)
         {
           if (pending_interrupts) return;
@@ -198,7 +203,7 @@ printscript(systemtap_session& s, ostream& o)
         }
 
       if (s.functions.size() > 0)
-        o << "# functions" << endl;
+        o << _("# functions") << endl;
       for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
         {
           if (pending_interrupts) return;
@@ -206,7 +211,7 @@ printscript(systemtap_session& s, ostream& o)
           f->printsig (o);
           o << endl;
           if (f->locals.size() > 0)
-            o << "  # locals" << endl;
+            o << _("  # locals") << endl;
           for (unsigned j=0; j<f->locals.size(); j++)
             {
               vardecl* v = f->locals[j];
@@ -222,7 +227,7 @@ printscript(systemtap_session& s, ostream& o)
         }
 
       if (s.probes.size() > 0)
-        o << "# probes" << endl;
+        o << _("# probes") << endl;
       for (unsigned i=0; i<s.probes.size(); i++)
         {
           if (pending_interrupts) return;
@@ -230,7 +235,7 @@ printscript(systemtap_session& s, ostream& o)
           p->printsig (o);
           o << endl;
           if (p->locals.size() > 0)
-            o << "  # locals" << endl;
+            o << _("  # locals") << endl;
           for (unsigned j=0; j<p->locals.size(); j++)
             {
               vardecl* v = p->locals[j];
@@ -295,7 +300,8 @@ int parse_kernel_config (systemtap_session &s)
   int rc = stat(kernel_config_file.c_str(), &st);
   if (rc != 0)
     {  
-	clog << "Checking \"" << kernel_config_file << "\" failed: " << strerror(errno) << endl;
+        clog << autosprintf(_("Checking \"%s\" failed with error: %s"),kernel_config_file.c_str(), strerror(errno)) << endl;
+	//clog << "Checking \"" << kernel_config_file << "\" failed: " << strerror(errno) << endl;
 	find_devel_rpms(s, s.kernel_build_tree.c_str());
 	missing_rpm_list_print(s,"-devel");
 	return rc;
@@ -313,7 +319,10 @@ int parse_kernel_config (systemtap_session &s)
       s.kernel_config[key] = value;
     }
   if (s.verbose > 2)
-    clog << "Parsed kernel \"" << kernel_config_file << "\", number of tuples: " << s.kernel_config.size() << endl;
+    clog << autosprintf( _("Parsed kernel \"%s\", "),kernel_config_file.c_str()) 
+         << autosprintf(ngettext("containing %zu tuple", "containing %zu tuples", 
+            s.kernel_config.size()),s.kernel_config.size()) << endl;
+    //clog << "Parsed kernel \"" << kernel_config_file << "\", number of tuples: " << s.kernel_config.size() << endl;
   
   kcf.close();
   return 0;
@@ -327,8 +336,9 @@ int parse_kernel_exports (systemtap_session &s)
   int rc = stat(kernel_exports_file.c_str(), &st);
   if (rc != 0)
     {
-	clog << "Checking \"" << kernel_exports_file << "\" failed: " << strerror(errno) << endl
-	     << "Ensure kernel development headers & makefiles are installed." << endl;
+        clog << autosprintf( _("Checking \"%s\" failed with error: %s"),kernel_exports_file.c_str(), strerror(errno)) << endl
+	//clog << "Checking \"" << kernel_exports_file << "\" failed: " << strerror(errno) << endl
+	     << _("Ensure kernel development headers & makefiles are installed.") << endl;
 	return rc;
     }
 
@@ -344,7 +354,9 @@ int parse_kernel_exports (systemtap_session &s)
         s.kernel_exports.insert (tokens[1]);
     }
   if (s.verbose > 2)
-    clog << "Parsed kernel \"" << kernel_exports_file << "\", number of vmlinux exports: " << s.kernel_exports.size() << endl;
+    clog << autosprintf(_("Parsed kernel \"%s\", "),kernel_exports_file.c_str()) 
+         << autosprintf(ngettext("which contained one vmlinux export", "which contained %zu vmlinux exports", s.kernel_exports.size()),s.kernel_exports.size()) << endl;
+    //clog << "Parsed kernel \"" << kernel_exports_file << "\", number of vmlinux exports: " << s.kernel_exports.size() << endl;
   
   kef.close();
   return 0;
@@ -368,14 +380,17 @@ create_temp_dir (systemtap_session &s)
   if (! tmpdir_name)
     {
       const char* e = strerror (errno);
-      cerr << "ERROR: cannot create temporary directory (\"" << tmpdirt << "\"): " << e << endl;
+      //we can't make the directory due to the error
+      cerr << autosprintf(_("ERROR: cannot create termporary directory (\" %s \"): %s"), tmpdirt.c_str(), e) << endl;
+      //cerr << "ERROR: cannot create temporary directory (\"" << tmpdirt << "\"): " << e << endl;
       exit (1); // die
     }
   else
     s.tmpdir = tmpdir_name;
 
   if (s.verbose>1)
-    clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
+    clog << autosprintf(_("Created termorary directory \" %s \""), s.tmpdir.c_str()) << endl;
+    //clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
 }
 
 static void
@@ -386,7 +401,8 @@ remove_temp_dir (systemtap_session &s)
       if (s.keep_tmpdir)
         // NB: the format of this message needs to match the expectations
         // of stap-server-connect.c.
-        clog << "Keeping temporary directory \"" << s.tmpdir << "\"" << endl;
+        clog << autosprintf(_("Keeping termorary directory \" %s \""), s.tmpdir.c_str()) << endl;
+        //clog << "Keeping temporary directory \"" << s.tmpdir << "\"" << endl;
       else
         {
 	  // Ignore signals while we're deleting the temporary directory.
@@ -401,7 +417,6 @@ remove_temp_dir (systemtap_session &s)
     }
 }
 
-// Compilation passes 0 through 4
 static int
 passes_0_4 (systemtap_session &s)
 {
@@ -418,17 +433,14 @@ passes_0_4 (systemtap_session &s)
       compile_server_client client (s);
       return client.passes_0_4 ();
 #else
-      cerr << "WARNING: Without NSS, using a compile-server is not supported by this version of systemtap" << endl;
-      // If this was an attempt to use a server after a local compile failed
-      // then a local compile will fail again.
-      if (s.try_server ())
-	return 1;
+      cerr << _("WARNING: Without NSS, using a compile-server is not supported by this version of systemtap") << endl;
 #endif
     }
 
   // PASS 0: setting up
   s.verbose = s.perpass_verbose[0];
   PROBE1(stap, pass0__start, &s);
+
 
   // For PR1477, we used to override $PATH and $LC_ALL and other stuff
   // here.  We seem to use complete pathnames in
@@ -442,25 +454,19 @@ passes_0_4 (systemtap_session &s)
   if (s.verbose > 1)
     {
       s.version ();
-      clog << "Session arch: " << s.architecture
-           << " release: " << s.kernel_release
-           << endl;
+      clog << autosprintf( _("Session arch: %s release: %s"), s.architecture.c_str(), s.kernel_release.c_str()) << endl;
+      //clog << "Session arch: " << s.architecture
+           //<< " release: " << s.kernel_release
+           //<< endl;
     }
 
   // Now that no further changes to s.kernel_build_tree can occur, let's use it.
-  if ((rc = parse_kernel_config (s)) != 0)
-    {
-      // Try again with a server
-      s.set_try_server ();
-      return rc;
-    }
+  if (parse_kernel_config (s) != 0)
+    exit (1);
 
-  if ((rc = parse_kernel_exports (s)) != 0)
-    {
-      // Try again with a server
-      s.set_try_server ();
-      return rc;
-    }
+  if (parse_kernel_exports (s) != 0)
+    exit (1);
+
 
   // Create the name of the C source file within the temporary
   // directory.
@@ -499,12 +505,8 @@ passes_0_4 (systemtap_session &s)
       s.user_file = parse (s, ii, s.guru_mode);
     }
   if (s.user_file == 0)
-    {
-      // Syntax errors already printed.
-      rc ++;
-      // Don't bother trying to compile with a server.
-      s.set_try_server (systemtap_session::dont_try_server);
-    }
+    // syntax errors already printed
+    rc ++;
 
   // Construct arch / kernel-versioning search path
   vector<string> version_suffixes;
@@ -547,12 +549,8 @@ passes_0_4 (systemtap_session &s)
           string dir = s.include_path[i] + version_suffixes[k] + "/*.stp";
           int r = glob(dir.c_str (), 0, NULL, & globbuf);
           if (r == GLOB_NOSPACE || r == GLOB_ABORTED)
-	    {
-	      rc ++;
-	      // Try again with a server.
-	      s.set_try_server ();
-	    }
-	  // GLOB_NOMATCH is acceptable
+            rc ++;
+          // GLOB_NOMATCH is acceptable
 
           unsigned prev_s_library_files = s.library_files.size();
 
@@ -567,11 +565,12 @@ passes_0_4 (systemtap_session &s)
                   user_file_stat.st_dev == tapset_file_stat.st_dev &&
                   user_file_stat.st_ino == tapset_file_stat.st_ino)
                 {
-                  cerr << "usage error: tapset file '" << globbuf.gl_pathv[j]
-                       << "' cannot be run directly as a session script." << endl;
+                  cerr 
+                  << autosprintf(_("usage error: tapset file '%s' cannot be run directly as a session script."), 
+                     globbuf.gl_pathv[j]) << endl;
+                  //cerr << "usage error: tapset file '" << globbuf.gl_pathv[j]
+                  //     << "' cannot be run directly as a session script." << endl;
                   rc ++;
-		  // Don't bother trying to compile with a server.
-		  s.set_try_server (systemtap_session::dont_try_server);
                 }
 
               // PR11949: duplicate-eliminate tapset files
@@ -595,23 +594,22 @@ passes_0_4 (systemtap_session &s)
 
           unsigned next_s_library_files = s.library_files.size();
           if (s.verbose>1 && globbuf.gl_pathc > 0)
-            clog << "Searched \"" << dir << "\","
-                 << " found " << globbuf.gl_pathc 
-                 << " processed " << (next_s_library_files-prev_s_library_files) << endl;
+            // search a directory, report a number of found  with number of processed 
+            clog << autosprintf(_("Searched: \" %s \", found: %zu, processed: %u"),
+                 dir.c_str(), globbuf.gl_pathc, (next_s_library_files-prev_s_library_files)) << endl;
+            //clog << "Searched \"" << dir << "\","
+            //     << " found " << globbuf.gl_pathc 
+            //     << " processed " << (next_s_library_files-prev_s_library_files) << endl;
 
           globfree (& globbuf);
         }
     }
   if (s.num_errors())
-    {
-      rc ++;
-      // Try again with a server.
-      s.set_try_server ();
-    }
+    rc ++;
 
   if (rc == 0 && s.last_pass == 1)
     {
-      cout << "# parse tree dump" << endl;
+      cout << _("# parse tree dump") << endl;
       s.user_file->print (cout);
       cout << endl;
       if (s.verbose)
@@ -648,9 +646,10 @@ passes_0_4 (systemtap_session &s)
     }
 
   if (rc && !s.listing_mode)
-    cerr << "Pass 1: parse failed.  "
-         << "Try again with another '--vp 1' option."
-         << endl;
+    cerr << _("Pass 1: parse failed.  Try again with another '--vp 1' option.") << endl;
+    //cerr << "Pass 1: parse failed.  "
+    //     << "Try again with another '--vp 1' option."
+    //     << endl;
 
   PROBE1(stap, pass1__end, &s);
 
@@ -663,11 +662,6 @@ passes_0_4 (systemtap_session &s)
   s.verbose = s.perpass_verbose[1];
   PROBE1(stap, pass2__start, &s);
   rc = semantic_pass (s);
-  if (rc)
-    {
-      // Try again with a server.
-      s.set_try_server ();
-    }
 
   if (s.listing_mode || (rc == 0 && s.last_pass == 2))
     printscript(s, cout);
@@ -684,10 +678,11 @@ passes_0_4 (systemtap_session &s)
                       << TIMESPRINT
                       << endl;
 
-  if (rc && !s.listing_mode && !s.try_server ())
-    cerr << "Pass 2: analysis failed.  "
-         << "Try again with another '--vp 01' option."
-         << endl;
+  if (rc && !s.listing_mode)
+    cerr << _("Pass 2: analysis failed.  Try agaain with another '--vp 01' option.") << endl;
+    //cerr << "Pass 2: analysis failed.  "
+    //     << "Try again with another '--vp 01' option."
+    //     << endl;
 
   /* Print out list of missing files.  XXX should be "if (rc)" ? */
   missing_rpm_list_print(s,"-debuginfo");
@@ -697,11 +692,6 @@ passes_0_4 (systemtap_session &s)
   if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) return rc;
 
   rc = prepare_translate_pass (s);
-  if (rc)
-    {
-      // Try again with a server.
-      s.set_try_server ();
-    }
   if (rc || pending_interrupts) return rc;
 
   // Generate hash.  There isn't any point in generating the hash
@@ -742,12 +732,8 @@ passes_0_4 (systemtap_session &s)
   PROBE1(stap, pass3__start, &s);
 
   rc = translate_pass (s);
-  if (rc)
-    {
-      // Try again with a server.
-      s.set_try_server ();
-    }
-  else if (s.last_pass == 3)
+
+  if (rc == 0 && s.last_pass == 3)
     {
       ifstream i (s.translated_source.c_str());
       cout << i.rdbuf();
@@ -756,17 +742,19 @@ passes_0_4 (systemtap_session &s)
   times (& tms_after);
   gettimeofday (&tv_after, NULL);
 
-  if (s.verbose) clog << "Pass 3: translated to C into \""
-                      << s.translated_source
-                      << "\" "
-                      << getmemusage()
-                      << TIMESPRINT
-                      << endl;
-
-  if (rc && ! s.try_server ())
-    cerr << "Pass 3: translation failed.  "
-         << "Try again with another '--vp 001' option."
+  if (s.verbose) 
+    clog << "Pass 3: translated to C into \""
+         << s.translated_source
+         << "\" "
+         << getmemusage()
+         << TIMESPRINT
          << endl;
+
+  if (rc)
+    cerr << _("Pass 3: translation failed.  Try again with another '--vp 001' option.") << endl;
+    //cerr << "Pass 3: translation failed.  "
+    //     << "Try again with another '--vp 001' option."
+    //     << endl;
 
   PROBE1(stap, pass3__end, &s);
 
@@ -784,12 +772,8 @@ passes_0_4 (systemtap_session &s)
       get_stapconf_from_cache(s);
     }
   rc = compile_pass (s);
-  if (rc)
-    {
-      // Try again with a server.
-      s.set_try_server ();
-    }
-  else if (s.last_pass == 4)
+
+  if (rc == 0 && s.last_pass == 4)
     {
       cout << ((s.hash_path == "") ? (s.module_name + string(".ko")) : s.hash_path);
       cout << endl;
@@ -804,10 +788,11 @@ passes_0_4 (systemtap_session &s)
                       << TIMESPRINT
                       << endl;
 
-  if (rc && ! s.try_server ())
-    cerr << "Pass 4: compilation failed.  "
-         << "Try again with another '--vp 0001' option."
-         << endl;
+  if (rc)
+    cerr << _("Pass 4: compilation failed.  Try again with another '--vp 0001' option.") << endl;
+    //cerr << "Pass 4: compilation failed.  "
+    //     << "Try again with another '--vp 0001' option."
+    //     << endl;
   else
     {
       // Update cache. Cache cleaning is kicked off at the beginning of this function.
@@ -848,7 +833,7 @@ pass_5 (systemtap_session &s, vector<remote*> targets)
   // a "hello, I'm starting" message, but then the others aren't interactive
   // and don't take an indefinite amount of time.
   PROBE1(stap, pass5__start, &s);
-  if (s.verbose) clog << "Pass 5: starting run." << endl;
+  if (s.verbose) clog << _("Pass 5: starting run.") << endl;
   int rc = 0; // XXX with multiple targets, need to deal with partial failure
   for (unsigned i = 0; i < targets.size() && !pending_interrupts; ++i)
     rc |= targets[i]->start();
@@ -864,9 +849,10 @@ pass_5 (systemtap_session &s, vector<remote*> targets)
                       << endl;
 
   if (rc)
-    cerr << "Pass 5: run failed.  "
-         << "Try again with another '--vp 00001' option."
-         << endl;
+    cerr << _("Pass 5: run failed.  Try again with another '--vp 00001' option.") << endl;
+    //cerr << "Pass 5: run failed.  "
+    //     << "Try again with another '--vp 00001' option."
+    //     << endl;
   else
     // Interrupting pass-5 to quit is normal, so we want an EXIT_SUCCESS below.
     pending_interrupts = 0;
@@ -891,7 +877,7 @@ cleanup (systemtap_session &s, int rc)
 #ifdef HAVE_LIBSQLITE3
     update_coverage_db(s);
 #else
-    cerr << "Coverage database not available without libsqlite3" << endl;
+    cerr << _("Coverage database not available without libsqlite3") << endl;
 #endif
   }
 
@@ -901,31 +887,15 @@ cleanup (systemtap_session &s, int rc)
   PROBE1(stap, pass6__end, &s);
 }
 
-static int
-passes_0_4_again_with_server (systemtap_session &s)
-{
-  // Not a server and not already using a server.
-  assert (! s.client_options);
-  assert (s.specified_servers.empty ());
-
-  // Specify default server(s).
-  s.specified_servers.push_back ("");
-
-  // Remove the previous temporary directory and start fresh.
-  remove_temp_dir (s);
-
-  // Try to compile again, using the server
-  clog << "Attempting compilation using a compile server"
-       << endl;
-  int rc = passes_0_4 (s);
-  return rc;
-}
-
 int
 main (int argc, char * const argv [])
 {
   // Initialize defaults.
   systemtap_session s;
+
+  setlocale (LC_ALL, "");
+  bindtextdomain (PACKAGE, LOCALEDIR);
+  textdomain (PACKAGE);
 
   // Process the command line.
   int rc = s.parse_cmdline (argc, argv);
@@ -976,18 +946,8 @@ main (int argc, char * const argv [])
 	    sessions.insert(targets[i]->get_session());
 	  for (set<systemtap_session*>::iterator it = sessions.begin();
 	       it != sessions.end(); ++it)
-	    {
-	      (*it)->init_try_server ();
-	      if ((rc = passes_0_4 (**it)))
-		{
-		  // Compilation failed.
-		  // Try again using a server if appropriate.
-		  if ((*it)->try_server ())
-		    rc = passes_0_4_again_with_server (**it);
-		  if (rc)
-		    break;
-		}
-	    }
+	    if ((rc = passes_0_4 (**it)))
+	      break;
 	}
 
       // Run pass 5, if requested
