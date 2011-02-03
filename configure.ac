@@ -420,8 +420,15 @@ if test "$with_rpm" != "no"; then
                     AC_DEFINE([HAVE_LIBRPM],[1],[have librpm])
                     stap_LIBS="$stap_LIBS -lrpm"
                     have_librpm="yes"], [have_librpm="no"])
+  AC_CHECK_LIB(rpmio, rpmFreeCrypto, [
+                    AC_DEFINE([HAVE_LIBRPMIO],[1],[have librpmio])
+                    stap_LIBS="$stap_LIBS -lrpmio"
+                    have_librpmio="yes"], [have_librpmio="no"])
   if test "x$have_librpm" != "xyes" -a "$with_rpm" == "yes"; then
      AC_MSG_ERROR([cannot find librpm])
+  fi
+  if test "x$have_librpmio" != "xyes" -a "$with_rpm" == "yes"; then
+     AC_MSG_WARN([cannot find librpmio])
   fi
 fi
 

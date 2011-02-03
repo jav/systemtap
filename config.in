@@ -36,6 +36,9 @@
 /* have librpm */
 #undef HAVE_LIBRPM
 
+/* have librpmio */
+#undef HAVE_LIBRPMIO
+
 /* Define to 1 if you have the `sqlite3' library (-lsqlite3). */
 #undef HAVE_LIBSQLITE3
 

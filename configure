@@ -7207,8 +7207,59 @@ else
   have_librpm="no"
 fi
 
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for rpmFreeCrypto in -lrpmio" >&5
+$as_echo_n "checking for rpmFreeCrypto in -lrpmio... " >&6; }
+if test "${ac_cv_lib_rpmio_rpmFreeCrypto+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lrpmio  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char rpmFreeCrypto ();
+int
+main ()
+{
+return rpmFreeCrypto ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_rpmio_rpmFreeCrypto=yes
+else
+  ac_cv_lib_rpmio_rpmFreeCrypto=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rpmio_rpmFreeCrypto" >&5
+$as_echo "$ac_cv_lib_rpmio_rpmFreeCrypto" >&6; }
+if test "x$ac_cv_lib_rpmio_rpmFreeCrypto" = x""yes; then :
+
+
+$as_echo "#define HAVE_LIBRPMIO 1" >>confdefs.h
+
+                    stap_LIBS="$stap_LIBS -lrpmio"
+                    have_librpmio="yes"
+else
+  have_librpmio="no"
+fi
+
   if test "x$have_librpm" != "xyes" -a "$with_rpm" == "yes"; then
      as_fn_error "cannot find librpm" "$LINENO" 5
+  fi
+  if test "x$have_librpmio" != "xyes" -a "$with_rpm" == "yes"; then
+     { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot find librpmio" >&5
+$as_echo "$as_me: WARNING: cannot find librpmio" >&2;}
   fi
 fi
 
