@@ -144,7 +144,7 @@ proc setup_server {} {
 	    print "Unable to discover the port used by the systemtap server"
 	    return 0
 	}
-	set server_spec $env(HOSTNAME):$server_port
+	set server_spec [info hostname]:$server_port
 	print "Client/Server tests will be run by contacting the server directly as $server_spec"
 
 	# Make sure stap can contact the server directly
