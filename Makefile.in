@@ -264,6 +264,8 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
+LIBASPRINTF = @LIBASPRINTF@
+LIBINTL = @LIBINTL@
 LIBS = @LIBS@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
@@ -383,7 +385,7 @@ oldinclude_HEADERS = includes/sys/sdt.h includes/sys/sdt-config.h
 @BUILD_TRANSLATOR_TRUE@	csclient.cxx remote.cxx \
 @BUILD_TRANSLATOR_TRUE@	$(am__append_13)
 @BUILD_TRANSLATOR_TRUE@noinst_HEADERS = sdt_types.h
-@BUILD_TRANSLATOR_TRUE@stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ \
+@BUILD_TRANSLATOR_TRUE@stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ -lasprintf \
 @BUILD_TRANSLATOR_TRUE@	$(am__append_12) $(am__append_17)
 @BUILD_TRANSLATOR_TRUE@stap_DEPENDENCIES = $(am__append_23)
 
@@ -429,7 +431,7 @@ PHONIES = $(am__append_18) $(am__append_24) runcheck dist-gzip uprobes \
 @BUILD_CRASHMOD_TRUE@STAPLOG = staplog.so
 
 # Get extra libs as needed
-LDADD = 
+LDADD =
 EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
 EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
 TEST_COV_DIR = coverage

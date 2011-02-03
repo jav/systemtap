@@ -54,7 +54,7 @@ stap_SOURCES = main.cxx session.cxx \
 	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx \
 	setupdwfl.cxx csclient.cxx remote.cxx
 noinst_HEADERS = sdt_types.h
-stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
+stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ @LIBASPRINTF@ @LIBINTL@
 stap_DEPENDENCIES =
 endif
 

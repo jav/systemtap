@@ -420,15 +420,8 @@ if test "$with_rpm" != "no"; then
                     AC_DEFINE([HAVE_LIBRPM],[1],[have librpm])
                     stap_LIBS="$stap_LIBS -lrpm"
                     have_librpm="yes"], [have_librpm="no"])
-  AC_CHECK_LIB(rpmio, rpmFreeCrypto, [
-                    AC_DEFINE([HAVE_LIBRPMIO],[1],[have librpmio])
-                    stap_LIBS="$stap_LIBS -lrpmio"
-                    have_librpmio="yes"], [have_librpmio="no"])
   if test "x$have_librpm" != "xyes" -a "$with_rpm" == "yes"; then
      AC_MSG_ERROR([cannot find librpm])
-  fi
-  if test "x$have_librpmio" != "xyes" -a "$with_rpm" == "yes"; then
-     AC_MSG_WARN([cannot find librpmio])
   fi
 fi
 
@@ -571,6 +564,11 @@ dnl the config.h files so files depending on it are recompiled
 dnl prefix is passed through indirectly in the Makefile.am AM_CPPFLAGS.
 dnl Formerly: Don't use this directly (when not given it is set to NONE).
 dnl Currently: inline autoconf's later defaulting
+
+localedir=/usr/share/locale
+AC_DEFINE_UNQUOTED(LOCALEDIR, "$localedir", [I18N the thing])
+AC_LIB_LINKFLAGS([asprintf])
+
 stap_prefix=$prefix
 test "$stap_prefix" = NONE && stap_prefix=$ac_default_prefix
 AC_DEFINE_UNQUOTED(STAP_PREFIX, "$stap_prefix", [configure prefix location])
