@@ -74,6 +74,7 @@ BuildRequires: libglademm24-devel >= 2.6.7
 BuildRequires: boost-devel
 %endif
 %endif
+BuildRequires: gettext-devel
 
 %description
 SystemTap is an instrumentation system for systems running Linux 2.6.
