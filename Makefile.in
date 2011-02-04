@@ -70,8 +70,7 @@ DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(srcdir)/Makefile.am $(top_srcdir)/configure \
 	$(am__configure_deps) $(srcdir)/config.in \
 	$(top_srcdir)/includes/sys/sdt-config.h.in \
-	$(srcdir)/stappaths.7.in $(srcdir)/stap-server.8.in \
-	$(top_srcdir)/initscript/systemtap.in \
+	$(srcdir)/stappaths.7.in $(top_srcdir)/initscript/systemtap.in \
 	$(top_srcdir)/initscript/stap-server.in $(srcdir)/run-stap.in \
 	$(srcdir)/dtrace.in depcomp $(am__noinst_HEADERS_DIST) \
 	$(oldinclude_HEADERS)
@@ -84,8 +83,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = includes/sys/sdt-config.h stappaths.7 \
-	stap-server.8 initscript/systemtap initscript/stap-server \
-	run-stap dtrace
+	initscript/systemtap initscript/stap-server run-stap dtrace
 CONFIG_CLEAN_VPATH_FILES =
 @BUILD_TRANSLATOR_TRUE@am__EXEEXT_1 = stap$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
@@ -502,8 +500,6 @@ distclean-hdr:
 includes/sys/sdt-config.h: $(top_builddir)/config.status $(top_srcdir)/includes/sys/sdt-config.h.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 stappaths.7: $(top_builddir)/config.status $(srcdir)/stappaths.7.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-stap-server.8: $(top_builddir)/config.status $(srcdir)/stap-server.8.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 initscript/systemtap: $(top_builddir)/config.status $(top_srcdir)/initscript/systemtap.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@

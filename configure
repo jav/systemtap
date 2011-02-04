@@ -7652,7 +7652,7 @@ _ACEOF
 
 ac_config_headers="$ac_config_headers config.h:config.in"
 
-ac_config_files="$ac_config_files Makefile doc/Makefile doc/beginners/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile grapher/stapgraph.1 stappaths.7 stap-server.8 initscript/systemtap initscript/stap-server"
+ac_config_files="$ac_config_files Makefile doc/Makefile doc/beginners/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile grapher/stapgraph.1 stappaths.7 initscript/systemtap initscript/stap-server"
 
 
 
@@ -8454,7 +8454,6 @@ do
     "grapher/Makefile") CONFIG_FILES="$CONFIG_FILES grapher/Makefile" ;;
     "grapher/stapgraph.1") CONFIG_FILES="$CONFIG_FILES grapher/stapgraph.1" ;;
     "stappaths.7") CONFIG_FILES="$CONFIG_FILES stappaths.7" ;;
-    "stap-server.8") CONFIG_FILES="$CONFIG_FILES stap-server.8" ;;
     "initscript/systemtap") CONFIG_FILES="$CONFIG_FILES initscript/systemtap" ;;
     "initscript/stap-server") CONFIG_FILES="$CONFIG_FILES initscript/stap-server" ;;
     "run-stap") CONFIG_FILES="$CONFIG_FILES run-stap" ;;

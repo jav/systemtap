@@ -586,7 +586,6 @@ doc/beginners/Makefile doc/SystemTap_Tapset_Reference/Makefile \
 grapher/Makefile \
 grapher/stapgraph.1 \
 stappaths.7 \
-stap-server.8 \
 initscript/systemtap initscript/stap-server ])
 AC_CONFIG_SUBDIRS(testsuite runtime/staprun)
 if test $enable_translator == "yes"; then

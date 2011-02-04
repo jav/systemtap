@@ -297,6 +297,24 @@ the cache.  This is meant as a troubleshooting aid when stap's cached behavior
 seems to be misbehaving.
 
 .TP
+.BI \-\-unprivileged
+This option instructs \fIstap\fR to examine the script looking for constructs
+which are not allowed for unprivileged users. Compilation fails if any such
+constructs are used.
+If this option is specified when using a compile server
+(see \fI\-\-use\-server\fR),
+the server will examine the script and, if compilation succeeds, the
+server will cryptographically sign the resulting kernel module, certifying
+that is it safe for use by unprivileged users.
+
+If \fI\-\-unprivileged\fR has not been specified,
+\fI\-pN\fR has not been specified with N < 5,
+and the invoking user not
+\fIroot\fR, is not a member of the group \fIstapdev\fR, but is a member of the
+group \fIstapusr\fR, then \fIstap\fR will automatically
+add \fI\-\-unprivileged\fR to the options already specified.
+
+.TP
 \fB\-\-use\-server \fR[\fIHOSTNAME\fR[\fI:PORT\fR] | \fIIP_ADDRESS\fR[\fI:PORT\fR] | \fICERT_SERIAL\fR]
 Specify compile\-server(s) to be used for compilation and/or in conjunction
 with
@@ -323,14 +341,24 @@ below). If a server is specified by host name or ip address, then an optional
 port number may be specified. This is useful for accessing servers which are
 not on the local network or to specify a particular server.
 
+If \fI\-\-use\-server\fR has not been specified,
+\fI\-pN\fR has not been specified with N < 5,
+and the invoking user not \fIroot\fR,
+is not a member of the group \fIstapdev\fR, but is a member of the group
+\fIstapusr\fR, then \fIstap\fR will automatically
+add \fI\-\-use\-server\fR to the options already specified.
+
 .TP
 \fB\-\-use\-server\-on\-error \fR[\fByes\fR|\fBno\fR]
 Instructs stap to retry compilation of a script using a compile server if
-compilation on the local host fails.
-If this option is not specified or if no argument is provided, then the default
-is \fIyes\fR. Compilation will not be retried for certain types of errors
-(e.g. syntax errors) which would also occur during re\-compilation by a compile
-server. One local compile server will be selected automatically for the
+compilation on the local host fails in a manner which suggests that it might
+succeed using a server.
+If this option is not specified, the default is \fIno\fR.
+If no argument is provided, then the default
+is \fIyes\fR. Compilation will be retried for certain types of errors
+(e.g. insufficient data or resources) which may not occur during
+re\-compilation by a compile
+server. Compile servers will be selected automatically for the
 re\-compilation attempt as if \fI\-\-use\-server\fR was specified with no
 arguments.
 

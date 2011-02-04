@@ -160,8 +160,9 @@ This option allows the specification of a server configuration by nickname.
 When \fB\-n\fR is specified, a currently running server with the given nickname
 will be searched for. If no currently running server with the given nickname is
 found, a server configuration with the given nickname will be searched for in
-\fI@prefix@/etc/stap\-server/conf.d/*.conf\fR, or the path configured in
-\fI@prefix@/etc/sysconfig/stap\-server\fR or the config file specified by the
+the configuration files for default servers,
+or the path configured in the global configuration file or
+the configuration file specified by the
 \fB\-c\fR option. If a server configuration for the given
 nickname is found, the
 \fB\-a\fR, \fB\-r\fR, \fB\-I\fR, \fB\-R\fR, \fB\-B\fR and \fB\-u\fR options for
@@ -205,7 +206,7 @@ specify which servers are to be started by default.
 
 .SH Global Configuration
 
-The Global Configuration file (\fI@prefix@/etc/sysconfig/stap\-server\fR) contains
+The Global Configuration file contains
 variable assignments used to configure the overall operation of the service.
 Each line beginning with a '#' character is ignored. All other lines must be
 of the form \fIVARIABLE=VALUE\fR. This is not a shell script. The entire
@@ -216,18 +217,15 @@ The following variables may be assigned:
 .TP
 .B CONFIG_PATH
 Specifies the absolute path of the directory containing the default server
-configurations
-(default: \fI@prefix@/etc/stap\-server/conf.d/\fR).
+configurations.
 
 .TP
 .B STAT_PATH
-Specifies the absolute path of the running server status directory
-(default: \fI@prefix@/var/run/stap\-server/\fR).
+Specifies the absolute path of the running server status directory.
 
 .TP
 .B LOG_FILE
-Specifies the absolute path of the log file
-(default: \fI@prefix@/var/log/stap\-server.log\fR).
+Specifies the absolute path of the log file.
 
 .TP
 .B STAP_USER
@@ -248,7 +246,7 @@ contents of the line after the = will be assigned as\-is to the variable.
 
 Each configuration file must have a
 filename suffix of \fI.conf\fR. The default
-location of these files is \fI@prefix@/etc/stap\-server/conf.d/\fR, but this can be
+location of these files can be
 overridden in the global configuration file using the \fB\-c\fR option
 (see \fIOPTIONS\fR).
 
@@ -326,14 +324,22 @@ certificate for the default user (\fIstap\-server\fR) is automatically
 generated and installed. This means that servers started by the
 \fIstap\-server\fR initscript,
 with the default user, are automatically trusted by clients on the local
-host.
+host, both as an SSL peer and as a systemtap module signer. Furthermore,
+when stap is invoked by an unprivileged user 
+(not root, not a member of the group stapdev, but a member of the group
+stapusr), the options \fI\-\-use\-server\fR and \fI\-\-unprivileged\fR
+are automatically added to the specified options.
+This means that unprivileged users 
+on the local host can use a server on the local host
+in unprivileged mode with no further setup or options required.
 
 .PP
 In order to use a server running on another host, that server\[aq]s certificate
 must be installed on the client\[aq]s host.
 See the \fI\-\-trust\-servers\fR option in the
 .IR stap (1)
-manual page for more details.
+manual page for more details and README.unprivileged in the systemtap sources
+for more details..
 
 .SH EXAMPLES
 See the 
@@ -361,6 +367,14 @@ To stop one of the servers by referencing its process id (obtained by running
 \fBstap\-server status\fR):
 .PP
 .B \& $ [ service ] stap\-server stop \-p \fIPID\fR
+.PP
+To run a script using a compile server:
+.PP
+.B \& $ stap SCRIPT \-\-use\-server
+.PP
+To run a script as an unprivileged user using a compile server:
+.PP
+.B \& $ stap SCRIPT
 .PP
 To stop all running servers:
 .PP
@@ -391,20 +405,20 @@ using the \fI\-u\fR option on invocation, by specifying
 user must have authority to run processes as another user.
 See \fICONFIGURATION\fR.
 
-The selected user must have write access to the server log file (default: \fI@prefix@/var/log/stap\-server.log\fR). The location of the server log file may
+The selected user must have write access to the server log file.
+The location of the server log file may
 be changed by setting \fILOG_FILE=\fRpath in the global configuration file.
 See \fICONFIGURATION\fR.
 
 The selected user must have 
-read/write access to the directory containing the server status files
-(default: \fI@prefix@/var/run/stap\-server/\fR). The location of the server
+read/write access to the directory containing the server status files.
+The location of the server
 status files may be changed by setting \fISTAT_PATH=\fRpath in the global
 configuration file.
 See \fICONFIGURATION\fR.
 
 The selected user must have 
-read/write access to the uprobes.ko build directory and its files
-(default: \fI@prefix@/share/systemtap/runtime/uprobes/\fR).
+read/write access to the uprobes.ko build directory and its files.
 
 Neither form of stap\-server will run if the selected user is root.
 
@@ -451,28 +465,8 @@ access permissions before making use of any certificate database.
 
 .SH FILES
 .TP
-@prefix@/etc/sysconfig/stap\-server/
-Global configuration file.
-
-.TP
-@prefix@/etc/stap\-server/conf.d/*.conf
-Configuration files for default servers.
-
-.TP
-@prefix@/var/run/stap\-server/
-Default location of status files for running servers.
-
-.TP
-@prefix@/var/log/stap\-server.log
-Default log file.
-
-.TP
-@prefix@/share/systemtap/runtime/uprobes/
-Location of the uprobes.ko build directory.
-
-.TP
-/lib/modules/
-Location of installed kernels.
+Important files and their corresponding paths can be located in the 
+stappaths (7) manual page.
 
 .SH SEE ALSO
 .IR stap (1),
