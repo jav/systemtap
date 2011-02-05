@@ -1,5 +1,7 @@
 * What's new in version 1.5
 
+- process.mark now supports $$parms for reading probe parameters.
+
 - A new command line option, --use-server-on-error[=yes|no] is available for
   stap. 'yes' instructs stap to retry compilation of a script using a
   compile server if it fails on the local host. The default setting is 'yes'.
