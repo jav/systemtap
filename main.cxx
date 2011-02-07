@@ -384,7 +384,7 @@ create_temp_dir (systemtap_session &s)
     {
       const char* e = strerror (errno);
       //we can't make the directory due to the error
-      cerr << autosprintf(_("ERROR: cannot create termporary directory (\" %s \"): %s"), tmpdirt.c_str(), e) << endl;
+      cerr << autosprintf(_("ERROR: cannot create temporary directory (\" %s \"): %s"), tmpdirt.c_str(), e) << endl;
       //cerr << "ERROR: cannot create temporary directory (\"" << tmpdirt << "\"): " << e << endl;
       exit (1); // die
     }

@@ -459,5 +459,21 @@ if { $notok != 0 || $ok == 0} {
 }
 } ; # x86_64 | i.86
 
-cleanup_handler $verbose
+set ok 0
+verbose -log "spawn $stap_path -c ./sdt_misc_V3_uprobe.x -e \"probe process(\"./sdt_misc_V3_uprobe.x\").mark(\"test_probe_5\") {printf(\"%s %s %s\\n\", \$\$provider, \$\$name, \$\$parms)}\""
+spawn $stap_path -c ./sdt_misc_V3_uprobe.x -e "probe process(\"./sdt_misc_V3_uprobe.x\").mark(\"test_probe_3\") {printf(\"%s %s %s\\n\", \$\$provider, \$\$name, \$\$parms)}"
+expect {
+    -timeout 180
+    -re {sdt_misc test_probe_3 \$arg1=0x3 \$arg2=0x[0-9a-f][0-9a-f]} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
 
+if {$ok == 1} {
+    pass "$test \$\$parms"
+} else {
+    fail "$test ($ok) \$\$parms"
+    return
+}
+
+cleanup_handler $verbose

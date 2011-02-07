@@ -4817,35 +4817,79 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   bool need_debug_info;
 
   void visit_target_symbol (target_symbol* e);
+  void visit_target_symbol_arg (target_symbol* e);
+  void visit_target_symbol_context (target_symbol* e);
 };
 
 
 void
-sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
+sdt_uprobe_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
+{
+  if (e->addressof)
+    throw semantic_error("cannot take address of context variable", e->tok);
+
+  if (e->name == "$$name")
+    {
+      literal_string *myname = new literal_string (probe_name);
+      myname->tok = e->tok;
+      provide(myname);
+      return;
+    }
+
+  else if (e->name == "$$provider")
+    {
+      literal_string *myname = new literal_string (provider_name);
+      myname->tok = e->tok;
+      provide(myname);
+      return;
+    }
+
+  else if (e->name == "$$vars" || e->name == "$$parms")
+    {
+      e->assert_no_components("sdt", true);
+      assert(arg_count >= 0 && arg_count <= 10);
+
+      // Convert $$vars to sprintf of a list of vars which we recursively evaluate
+      // NB: we synthesize a new token here rather than reusing
+      // e->tok, because print_format::print likes to use
+      // its tok->content.
+      token* pf_tok = new token(*e->tok);
+      pf_tok->content = "sprintf";
+
+      print_format* pf = print_format::create(pf_tok);
+
+      for (unsigned i = 1; i <= arg_count; ++i)
+        {
+          if (i > 1)
+            pf->raw_components += " ";
+          target_symbol *tsym = new target_symbol;
+          tsym->tok = e->tok;
+          tsym->name = "$arg" + lex_cast(i);
+          pf->raw_components += tsym->name;
+          tsym->components = e->components;
+
+          expression *texp = require (tsym);
+          if (!e->components.empty() &&
+              e->components[0].type == target_symbol::comp_pretty_print)
+            pf->raw_components += "=%s";
+          else
+            pf->raw_components += "=%#x";
+          pf->args.push_back(texp);
+        }
+
+      pf->components = print_format::string_to_components(pf->raw_components);
+      provide (pf);
+    }
+  else
+    assert(0); // shouldn't get here
+}
+
+
+void
+sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
 {
   try
     {
-      if (e->name == "$$name")
-	{
-	  if (e->addressof)
-	    throw semantic_error("cannot take address of sdt context variable", e->tok);
-
-	  literal_string *myname = new literal_string (probe_name);
-	  myname->tok = e->tok;
-	  provide(myname);
-	  return;
-	}
-      if (e->name == "$$provider")
-	{
-	  if (e->addressof)
-	    throw semantic_error("cannot take address of sdt context variable", e->tok);
-
-	  literal_string *myname = new literal_string (provider_name);
-	  myname->tok = e->tok;
-	  provide(myname);
-	  return;
-	}
-
       unsigned argno = 0; // the N in $argN
       try
 	{
@@ -5129,6 +5173,26 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
         }
 
       /* NOTREACHED */
+    }
+  catch (const semantic_error &er)
+    {
+      e->chain (er);
+      provide (e);
+    }
+}
+
+
+void
+sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol* e)
+{
+  try
+    {
+      assert(e->name.size() > 0 && e->name[0] == '$');
+
+      if (e->name == "$$name" || e->name == "$$provider" || e->name == "$$parms" || e->name == "$$vars")
+        visit_target_symbol_context (e);
+      else
+        visit_target_symbol_arg (e);
     }
   catch (const semantic_error &er)
     {
@@ -7990,10 +8054,6 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
     {
       e->assert_no_components("tracepoint", true);
 
-      // Convert $$vars to sprintf of a list of vars which we recursively evaluate
-      // NB: we synthesize a new token here rather than reusing
-      // e->tok, because print_format::print likes to use
-      // its tok->content.
       token* pf_tok = new token(*e->tok);
       pf_tok->content = "sprintf";
 
