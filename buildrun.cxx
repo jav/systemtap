@@ -1,5 +1,5 @@
 // build/run probes
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -46,6 +46,7 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
     {
       const char* e = strerror (errno);
       cerr << "unsetenv failed: " << e << endl;
+      s.set_try_server ();
     }
 
   // Disable ccache to avoid saving files that will never be reused.
@@ -78,7 +79,10 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
       make_cmd += " >/dev/null";
     }
 
-  return stap_system (s.verbose, make_cmd);
+  rc = stap_system (s.verbose, make_cmd);
+  if (rc != 0)
+    s.set_try_server ();
+  return rc;
 }
 
 static void
@@ -117,7 +121,10 @@ compile_pass (systemtap_session& s)
 {
   int rc = uprobes_pass (s);
   if (rc)
-    return rc;
+    {
+      s.set_try_server ();
+      return rc;
+    }
 
   // fill in a quick Makefile
   string makefile_nm = s.tmpdir + "/Makefile";
@@ -260,6 +267,7 @@ compile_pass (systemtap_session& s)
     {
 	clog << "Checking \"" << module_dir_makefile << "\" failed: " << strerror(errno) << endl
 	     << "Ensure kernel development headers & makefiles are installed." << endl;
+	s.set_try_server ();
 	return rc;
     }
 
@@ -280,7 +288,8 @@ compile_pass (systemtap_session& s)
   make_cmd += string (" modules");
 
   rc = run_make_cmd(s, make_cmd);
-
+  if (rc)
+    s.set_try_server ();
   return rc;
 }
 
@@ -384,7 +393,8 @@ make_uprobes (systemtap_session& s)
   int rc = run_make_cmd(s, make_cmd);
   if (s.verbose > 1)
     clog << "uprobes rebuild rc=" << rc << endl;
-
+  if (rc)
+    s.set_try_server ();
   return rc;
 }
 
@@ -410,6 +420,7 @@ uprobes_pass (systemtap_session& s)
 
   if (s.kernel_config["CONFIG_UTRACE"] != string("y")) {
     clog << "user-space facilities not available without kernel CONFIG_UTRACE" << endl;
+    s.set_try_server ();
     return 1;
   }
 
@@ -431,6 +442,8 @@ uprobes_pass (systemtap_session& s)
     rc = verify_uprobes_uptodate(s);
   if (rc == 0)
     rc = copy_uprobes_symbols(s);
+  if (rc)
+    s.set_try_server ();
   return rc;
 }
 
@@ -490,6 +503,7 @@ make_tracequery(systemtap_session& s, string& name,
     {
       if (! s.suppress_warnings)
         cerr << "Warning: failed to create directory for querying tracepoints." << endl;
+      s.set_try_server ();
       return 1;
     }
 
@@ -555,7 +569,10 @@ make_tracequery(systemtap_session& s, string& name,
 
   if (s.verbose < 4)
     make_cmd += " >/dev/null 2>&1";
-  return run_make_cmd(s, make_cmd);
+  int rc = run_make_cmd(s, make_cmd);
+  if (rc)
+    s.set_try_server ();
+  return rc;
 }
 
 
@@ -572,6 +589,7 @@ make_typequery_kmod(systemtap_session& s, const vector<string>& headers, string&
     {
       if (! s.suppress_warnings)
         cerr << "Warning: failed to create directory for querying types." << endl;
+      s.set_try_server ();
       return 1;
     }
 
@@ -620,7 +638,10 @@ make_typequery_kmod(systemtap_session& s, const vector<string>& headers, string&
 
   if (s.verbose < 4)
     make_cmd += " >/dev/null 2>&1";
-  return run_make_cmd(s, make_cmd);
+  int rc = run_make_cmd(s, make_cmd);
+  if (rc)
+    s.set_try_server ();
+  return rc;
 }
 
 
@@ -644,7 +665,10 @@ make_typequery_umod(systemtap_session& s, const vector<string>& headers, string&
     cmd << " -include " << lex_cast_qstring(headers[i]);
   if (s.verbose < 4)
     cmd << " >/dev/null 2>&1";
-  return stap_system (s.verbose, cmd.str());
+  int rc = stap_system (s.verbose, cmd.str());
+  if (rc)
+    s.set_try_server ();
+  return rc;
 }
 
 

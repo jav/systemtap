@@ -130,7 +130,7 @@ systemtap_session::systemtap_session ():
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
   client_options = false;
-  use_server_on_error = true;
+  use_server_on_error = false;
   try_server_status = try_server_unset;
   systemtap_v_check = false;
 

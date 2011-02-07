@@ -176,7 +176,7 @@ struct systemtap_session
   int try_server_status;
   bool use_server_on_error;
 
-  enum { dont_try_server = -1, try_server_unset = 0, do_try_server = 1 };
+  enum { try_server_unset, dont_try_server, do_try_server };
   void init_try_server ();
   void set_try_server (int t = do_try_server);
   bool try_server () const { return try_server_status == do_try_server; }

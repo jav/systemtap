@@ -392,7 +392,7 @@ create_temp_dir (systemtap_session &s)
     s.tmpdir = tmpdir_name;
 
   if (s.verbose>1)
-    clog << autosprintf(_("Created termorary directory \" %s \""), s.tmpdir.c_str()) << endl;
+    clog << autosprintf(_("Created temporary directory \"%s\""), s.tmpdir.c_str()) << endl;
     //clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
 }
 
@@ -404,7 +404,7 @@ remove_temp_dir (systemtap_session &s)
       if (s.keep_tmpdir)
         // NB: the format of this message needs to match the expectations
         // of stap-server-connect.c.
-        clog << autosprintf(_("Keeping termorary directory \" %s \""), s.tmpdir.c_str()) << endl;
+        clog << autosprintf(_("Keeping temporary directory \"%s\""), s.tmpdir.c_str()) << endl;
         //clog << "Keeping temporary directory \"" << s.tmpdir << "\"" << endl;
       else
         {
@@ -438,10 +438,10 @@ passes_0_4 (systemtap_session &s)
       return client.passes_0_4 ();
 #else
       cerr << _("WARNING: Without NSS, using a compile-server is not supported by this version of systemtap") << endl;
-      // If this was an attempt to use a server after a local compile failed
-      // then a local compile will fail again.
-      if (s.try_server ())
-	return 1;
+      // This cannot be an attempt to use a server after a local compile failed
+      // since --use-server-on-error is locked to 'no' if we don't have
+      // NSS.
+      assert (! s.try_server ());
 #endif
     }
 
@@ -522,8 +522,6 @@ passes_0_4 (systemtap_session &s)
     {
       // Syntax errors already printed.
       rc ++;
-      // Don't bother trying to compile with a server.
-      s.set_try_server (systemtap_session::dont_try_server);
     }
 
   // Construct arch / kernel-versioning search path
@@ -567,11 +565,7 @@ passes_0_4 (systemtap_session &s)
           string dir = s.include_path[i] + version_suffixes[k] + "/*.stp";
           int r = glob(dir.c_str (), 0, NULL, & globbuf);
           if (r == GLOB_NOSPACE || r == GLOB_ABORTED)
-	    {
-	      rc ++;
-	      // Try again with a server.
-	      s.set_try_server ();
-	    }
+	    rc ++;
 	  // GLOB_NOMATCH is acceptable
 
           unsigned prev_s_library_files = s.library_files.size();
@@ -593,8 +587,6 @@ passes_0_4 (systemtap_session &s)
                   //cerr << "usage error: tapset file '" << globbuf.gl_pathv[j]
                   //     << "' cannot be run directly as a session script." << endl;
                   rc ++;
-		  // Don't bother trying to compile with a server.
-		  s.set_try_server (systemtap_session::dont_try_server);
                 }
 
               // PR11949: duplicate-eliminate tapset files
@@ -629,11 +621,7 @@ passes_0_4 (systemtap_session &s)
         }
     }
   if (s.num_errors())
-    {
-      rc ++;
-      // Try again with a server.
-      s.set_try_server ();
-    }
+    rc ++;
 
   if (rc == 0 && s.last_pass == 1)
     {
@@ -690,11 +678,6 @@ passes_0_4 (systemtap_session &s)
   s.verbose = s.perpass_verbose[1];
   PROBE1(stap, pass2__start, &s);
   rc = semantic_pass (s);
-  if (rc)
-    {
-      // Try again with a server.
-      s.set_try_server ();
-    }
 
   if (s.listing_mode || (rc == 0 && s.last_pass == 2))
     printscript(s, cout);
@@ -712,7 +695,7 @@ passes_0_4 (systemtap_session &s)
                       << endl;
 
   if (rc && !s.listing_mode && !s.try_server ())
-    cerr << _("Pass 2: analysis failed.  Try agaain with another '--vp 01' option.") << endl;
+    cerr << _("Pass 2: analysis failed.  Try again with another '--vp 01' option.") << endl;
     //cerr << "Pass 2: analysis failed.  "
     //     << "Try again with another '--vp 01' option."
     //     << endl;
@@ -725,11 +708,6 @@ passes_0_4 (systemtap_session &s)
   if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) return rc;
 
   rc = prepare_translate_pass (s);
-  if (rc)
-    {
-      // Try again with a server.
-      s.set_try_server ();
-    }
   if (rc || pending_interrupts) return rc;
 
   // Generate hash.  There isn't any point in generating the hash
@@ -770,12 +748,7 @@ passes_0_4 (systemtap_session &s)
   PROBE1(stap, pass3__start, &s);
 
   rc = translate_pass (s);
-  if (rc)
-    {
-      // Try again with a server.
-      s.set_try_server ();
-    }
-  else if (s.last_pass == 3)
+  if (! rc && s.last_pass == 3)
     {
       ifstream i (s.translated_source.c_str());
       cout << i.rdbuf();
@@ -814,12 +787,7 @@ passes_0_4 (systemtap_session &s)
       get_stapconf_from_cache(s);
     }
   rc = compile_pass (s);
-  if (rc)
-    {
-      // Try again with a server.
-      s.set_try_server ();
-    }
-  else if (s.last_pass == 4)
+  if (! rc && s.last_pass == 4)
     {
       cout << ((s.hash_path == "") ? (s.module_name + string(".ko")) : s.hash_path);
       cout << endl;
