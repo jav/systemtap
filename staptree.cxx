@@ -790,6 +790,17 @@ print_format::string_to_components(string const & str)
       if (i == str.end())
 	break;
 
+      // Parse the type modifier
+      switch (*i)
+      {
+      case 'l':
+        ++i;
+        break;
+      }
+
+      if (i == str.end())
+	break;
+
       // Parse the actual conversion specifier (bcsmdioupxXn)
       switch (*i)
 	{
