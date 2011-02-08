@@ -369,6 +369,9 @@ int parse_kernel_exports (systemtap_session &s)
 static void
 create_temp_dir (systemtap_session &s)
 {
+  if (!s.tmpdir.empty())
+    return;
+
   // Create a temporary directory to build within.
   // Be careful with this, as "tmpdir" is "rm -rf"'d at the end.
   const char* tmpdir_env = getenv("TMPDIR");
@@ -399,7 +402,7 @@ create_temp_dir (systemtap_session &s)
 static void
 remove_temp_dir (systemtap_session &s)
 {
-  if (s.tmpdir != "")
+  if (!s.tmpdir.empty())
     {
       if (s.keep_tmpdir)
         // NB: the format of this message needs to match the expectations
@@ -416,6 +419,7 @@ remove_temp_dir (systemtap_session &s)
           cleanupcmd += s.tmpdir;
 
 	  (void) stap_system (s.verbose, cleanupcmd);
+          s.tmpdir.clear();
         }
     }
 }
@@ -949,6 +953,10 @@ main (int argc, char * const argv [])
   // a script has already been checked in systemtap_session::check_options.
   if (s.have_script)
     {
+      // Some of the remote methods need to write temporary data, so go ahead
+      // and create the main tempdir now.
+      create_temp_dir (s);
+
       vector<remote*> targets;
       if (s.remote_uris.empty())
 	{
