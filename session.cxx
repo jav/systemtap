@@ -52,6 +52,7 @@ bool systemtap_session::NSPR_Initialized = false;
 
 systemtap_session::systemtap_session ():
   // NB: pointer members must be manually initialized!
+  // NB: don't forget the copy constructor too!
   base_hash(0),
   pattern_root(new match_node),
   user_file (0),
@@ -210,6 +211,118 @@ systemtap_session::systemtap_session ():
   }
 }
 
+systemtap_session::systemtap_session (const systemtap_session& other,
+                                      const string& arch,
+                                      const string& kern):
+  // NB: pointer members must be manually initialized!
+  // NB: this needs to consider everything that the base ctor does,
+  //     plus copying any wanted implicit fields (strings, vectors, etc.)
+  base_hash(0),
+  pattern_root(new match_node),
+  user_file (other.user_file),
+  be_derived_probes(0),
+  dwarf_derived_probes(0),
+  kprobe_derived_probes(0),
+  hwbkpt_derived_probes(0),
+  perf_derived_probes(0),
+  uprobe_derived_probes(0),
+  utrace_derived_probes(0),
+  itrace_derived_probes(0),
+  task_finder_derived_probes(0),
+  timer_derived_probes(0),
+  profile_derived_probes(0),
+  mark_derived_probes(0),
+  tracepoint_derived_probes(0),
+  hrtimer_derived_probes(0),
+  procfs_derived_probes(0),
+  op (0), up (0),
+  sym_kprobes_text_start (0),
+  sym_kprobes_text_end (0),
+  sym_stext (0),
+  module_cache (0),
+  last_token (0)
+{
+  release = kernel_release = kern;
+  kernel_build_tree = "/lib/modules/" + kernel_release + "/build";
+  architecture = machine = normalize_machine(arch);
+  setup_kernel_release(kern.c_str());
+
+  // These are all copied in the same order as the default ctor did above.
+
+  copy(other.perpass_verbose, other.perpass_verbose + 5, perpass_verbose);
+  verbose = other.verbose;
+
+  have_script = other.have_script;
+  runtime_specified = other.runtime_specified;
+  include_arg_start = other.include_arg_start;
+  timing = other.timing;
+  guru_mode = other.guru_mode;
+  bulk_mode = other.bulk_mode;
+  unoptimized = other.unoptimized;
+  suppress_warnings = other.suppress_warnings;
+  panic_warnings = other.panic_warnings;
+  listing_mode = other.listing_mode;
+  listing_mode_vars = other.listing_mode_vars;
+
+  prologue_searching = other.prologue_searching;
+
+  buffer_size = other.buffer_size;
+  last_pass = other.last_pass;
+  module_name = other.module_name;
+  stapconf_name = other.stapconf_name;
+  output_file = other.output_file; // XXX how should multiple remotes work?
+  save_module = other.save_module;
+  keep_tmpdir = other.keep_tmpdir;
+  cmd = other.cmd;
+  target_pid = other.target_pid; // XXX almost surely nonsense for multiremote
+  use_cache = other.use_cache;
+  use_script_cache = other.use_script_cache;
+  poison_cache = other.poison_cache;
+  tapset_compile_coverage = other.tapset_compile_coverage;
+  need_uprobes = false;
+  uprobes_path = "";
+  consult_symtab = other.consult_symtab;
+  ignore_vmlinux = other.ignore_vmlinux;
+  ignore_dwarf = other.ignore_dwarf;
+  load_only = other.load_only;
+  skip_badvars = other.skip_badvars;
+  unprivileged = other.unprivileged;
+  omit_werror = other.omit_werror;
+  compatible = other.compatible;
+  unwindsym_ldd = other.unwindsym_ldd;
+  client_options = other.client_options;
+  use_server_on_error = other.use_server_on_error;
+  try_server_status = other.try_server_status;
+  systemtap_v_check = other.systemtap_v_check;
+
+  include_path = other.include_path;
+  runtime_path = other.runtime_path;
+
+  // NB: assuming that "other" created these already
+  data_path = other.data_path;
+  cache_path = other.cache_path;
+
+  tapset_compile_coverage = other.tapset_compile_coverage;
+
+
+  // These are fields that were left to their default ctor, but now we want to
+  // copy them from "other".  In the same order as declared...
+  script_file = other.script_file;
+  cmdline_script = other.cmdline_script;
+  macros = other.macros;
+  args = other.args;
+  kbuildflags = other.kbuildflags;
+  globalopts = other.globalopts;
+
+  client_options_disallowed = other.client_options_disallowed;
+  server_status_strings = other.server_status_strings;
+  specified_servers = other.specified_servers;
+  server_trust_spec = other.server_trust_spec;
+  server_args = other.server_args;
+
+  unwindsym_modules = other.unwindsym_modules;
+}
+
 systemtap_session::~systemtap_session ()
 {
   delete_map(subsessions);
@@ -235,11 +348,7 @@ systemtap_session::clone(const string& arch, const string& release)
 
   systemtap_session*& s = subsessions[make_pair(arch, release)];
   if (!s)
-    {
-      s = new systemtap_session(*this);
-      s->machine = s->architecture = arch;
-      s->setup_kernel_release(release.c_str());
-    }
+    s = new systemtap_session(*this, arch, release);
   return s;
 }
 

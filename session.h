@@ -82,6 +82,17 @@ struct statistic_decl
 
 struct systemtap_session
 {
+private:
+  // disable implicit constructors by not implementing these
+  systemtap_session (const systemtap_session& other);
+  systemtap_session& operator= (const systemtap_session& other);
+
+  // copy constructor used by ::clone()
+  systemtap_session (const systemtap_session& other,
+                     const std::string& arch,
+                     const std::string& kern);
+
+public:
   systemtap_session ();
   ~systemtap_session ();
 
