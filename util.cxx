@@ -595,7 +595,7 @@ int regexp_match (const string& value, const string& re, vector<string>& matches
       int rc = regcomp (r, re.c_str(), REG_EXTENDED); /* REG_ICASE? */
       if (rc) {
         cerr << "regcomp " << re << " error rc=" << rc << endl;
-        exit(1);
+        return rc;
       }
       compiled[re] = r;
     }

@@ -366,11 +366,11 @@ int parse_kernel_exports (systemtap_session &s)
 }
 
 
-static void
+static int
 create_temp_dir (systemtap_session &s)
 {
   if (!s.tmpdir.empty())
-    return;
+    return 0;
 
   // Create a temporary directory to build within.
   // Be careful with this, as "tmpdir" is "rm -rf"'d at the end.
@@ -389,7 +389,7 @@ create_temp_dir (systemtap_session &s)
       //we can't make the directory due to the error
       cerr << autosprintf(_("ERROR: cannot create temporary directory (\" %s \"): %s"), tmpdirt.c_str(), e) << endl;
       //cerr << "ERROR: cannot create temporary directory (\"" << tmpdirt << "\"): " << e << endl;
-      exit (1); // die
+      return 1;
     }
   else
     s.tmpdir = tmpdir_name;
@@ -397,6 +397,7 @@ create_temp_dir (systemtap_session &s)
   if (s.verbose>1)
     clog << autosprintf(_("Created temporary directory \"%s\""), s.tmpdir.c_str()) << endl;
     //clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
+  return 0;
 }
 
 static void
@@ -430,9 +431,22 @@ passes_0_4 (systemtap_session &s)
 {
   int rc = 0;
 
+  // If we don't know the release, there's no hope either locally or on a server.
+  if (s.kernel_release.empty())
+    {
+      if (s.kernel_build_tree.empty())
+        cerr << _("ERROR: kernel release isn't specified") << endl;
+      else
+        cerr << autosprintf(_("ERROR: kernel release isn't found in \"%s\""),
+                            s.kernel_build_tree.c_str()) << endl;
+      return 1;
+    }
+
   // Create a temporary directory to build within.
   // Be careful with this, as "s.tmpdir" is "rm -rf"'d at the end.
-  create_temp_dir (s);
+  rc = create_temp_dir (s);
+  if (rc)
+    return rc;
 
   // Perform passes 0 through 4 using a compile server?
   if (! s.specified_servers.empty ())
@@ -949,14 +963,14 @@ main (int argc, char * const argv [])
   // If requested, manage trust of servers. This is independent of other tasks.
   manage_server_trust (s);
 
+  // Some of the remote methods need to write temporary data, so go ahead
+  // and create the main tempdir now.
+  rc = create_temp_dir (s);
+
   // Run the passes only if a script has been specified. The requirement for
   // a script has already been checked in systemtap_session::check_options.
-  if (s.have_script)
+  if (rc == 0 && s.have_script)
     {
-      // Some of the remote methods need to write temporary data, so go ahead
-      // and create the main tempdir now.
-      create_temp_dir (s);
-
       vector<remote*> targets;
       if (s.remote_uris.empty())
 	{

@@ -334,7 +334,7 @@ void update_coverage_db(systemtap_session &s)
   if( rc ){
     cerr << "Can't open database: " << sqlite3_errmsg(db) << endl;
     sqlite3_close(db);
-    exit(EXIT_FAILURE);
+    return;
   }
 
   // lock the database

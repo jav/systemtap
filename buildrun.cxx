@@ -688,8 +688,15 @@ make_typequery(systemtap_session& s, string& module)
       if (end == string::npos)
         return -1;
       string header = module.substr(i, end - i);
-      assert_regexp_match("@cast header", header, "^[a-z0-9/_.+-]+$");
-      headers.push_back(header);
+      vector<string> matches;
+      if (regexp_match(header, "^[a-z0-9/_.+-]+$", matches))
+        {
+          if (! s.suppress_warnings)
+            cerr << "Warning: skipping malformed @cast header \""
+                 << header << "\"" << endl;
+        }
+      else
+        headers.push_back(header);
     }
   if (headers.empty())
     return -1;

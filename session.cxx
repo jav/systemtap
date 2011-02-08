@@ -1233,6 +1233,7 @@ void systemtap_session::insert_loaded_modules()
 void
 systemtap_session::setup_kernel_release (const char* kstr) 
 {
+  kernel_release = kernel_build_tree = kernel_source_tree = "";
   if (kstr[0] == '/') // fully specified path
     {
       kernel_build_tree = kstr;
@@ -1242,13 +1243,13 @@ systemtap_session::setup_kernel_release (const char* kstr)
       ifstream version_file (version_file_name.c_str());
       if (version_file.fail ())
 	{
-	  cerr << autosprintf(_("Missing %s"), version_file_name.c_str()) << endl;
-	  exit(1);
+          if (verbose > 1)
+            cerr << autosprintf(_("Missing %s"), version_file_name.c_str()) << endl;
+          return; // pass0 will realize the failure
 	}
       else
 	{
 	  char c;
-	  kernel_release = "";
 	  while (version_file.get(c) && c != '\n')
 	    kernel_release.push_back(c);
 	}
@@ -1271,7 +1272,8 @@ systemtap_session::setup_kernel_release (const char* kstr)
   else
     {
       kernel_release = string (kstr);
-      kernel_build_tree = "/lib/modules/" + kernel_release + "/build";
+      if (!kernel_release.empty())
+        kernel_build_tree = "/lib/modules/" + kernel_release + "/build";
 
       // PR10745
       // Let's not look for the kernel_source_tree; it's definitely

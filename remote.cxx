@@ -190,7 +190,10 @@ class ssh_remote : public remote {
   public:
     friend class remote;
 
-    virtual ~ssh_remote() {}
+    virtual ~ssh_remote()
+      {
+        close_control_master();
+      }
 
     int start()
       {
