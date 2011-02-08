@@ -113,7 +113,7 @@ proc setup_server {} {
 
     # Make sure that the necessary resources are available to run the client/server.
     if {[catch {exec /usr/bin/which avahi-publish-service} dummy]} then {
-	print "Unable to start a server: avahi-publish-service is not found in PATH"
+	verbose -log "Unable to start a server: avahi-publish-service is not found in PATH"
 	return 0
     }
 
@@ -133,25 +133,29 @@ proc setup_server {} {
 
     # Make sure that stap can find the server.
     set use_server --use-server
-    set res [catch { exec stap --list-servers=online,trusted,compatible 2>@ stdout | grep "^ host" } looksee]
-    verbose -log "stap --list-servers found:\n$looksee"
+    set res [catch { exec stap --list-servers=online,trusted,compatible >& $net_path/stap-list-servers.out } looksee]
+    verbose -log "stap --list-servers returned: res==$res\n$looksee"
+    set res [catch { exec grep "^ host" $net_path/stap-list-servers.out } looksee]
+    verbose -log "grep for servers returned: res==$res\n$looksee"
     if {$res != 0} then {
-	print "Unable to automatically find a systemtap server -- check firewall settings for mDNS"
+	verbose -log "Unable to automatically find a systemtap server -- check firewall settings for mDNS"
 	# Try to discover the port the server is listening on from the server
 	# log.
 	set res [catch { exec /bin/cat [exec pwd]/server.log | awk "/^Systemtap Compile Server on port .* ready/ {print \$6}" } server_port]
 	if {$res != 0} then {
-	    print "Unable to discover the port used by the systemtap server"
+	    verbose -log "Unable to discover the port used by the systemtap server"
+	    shutdown_server
 	    return 0
 	}
 	set server_spec [info hostname]:$server_port
-	print "Client/Server tests will be run by contacting the server directly as $server_spec"
+	verbose -log "Client/Server tests will be run by contacting the server directly as $server_spec"
 
 	# Make sure stap can contact the server directly
 	set use_server --use-server=$server_spec
 	set res [catch {exec stap $use_server -p2 -e {probe begin {exit()}}} looksee]
 	if {$res != 0} then {
-	    print "Unable to contact the server at $server_spec directly"
+	    verbose -log "Unable to contact the server at $server_spec directly"
+	    shutdown_server
 	    return 0
 	}
     }
@@ -198,7 +202,7 @@ proc start_server {} {
     # Try to start the server.
     set server_pid [exec env STAP_PR11197_OVERRIDE=1 env SYSTEMTAP_STAP=[exec which stap] stap-start-server --log=$logfile]
     if { "$server_pid" == "" } then {
-	print "Cannot start a systemtap server"
+	verbose -log "Cannot start a systemtap server"
 	set server_pid 0
 	return 0
     } else {
