@@ -386,120 +386,120 @@ systemtap_session::version ()
        << endl;
 }
 
-  void
-  systemtap_session::usage (int exitcode)
+void
+systemtap_session::usage (int exitcode)
+{
+  version ();
+  clog
+    << endl
+    //Session.cxx:287-390 detail systemtap usage from stap -h
+    << _("Usage: stap [options] FILE         Run script in file.")
+    << endl
+    << _("   or: stap [options] -            Run script on stdin.")
+    << endl
+    << _("   or: stap [options] -e SCRIPT    Run given script.")
+    << endl
+    << _("   or: stap [options] -l PROBE     List matching probes.")
+    << endl
+    << _("   or: stap [options] -L PROBE     List matching probes and local variables.")
+    << endl
+    << endl
+    << _("Options:") << endl
+    << _("   --         end of translator options, script options follow") << endl
+    << _("   -h --help  show help") << endl
+    << _("   -V         show version") << endl
+    << _("   -p NUM     stop after pass NUM 1-5, instead of ") << last_pass << endl
+    << _("              (parse, elaborate, translate, compile, run)") << endl
+    << _("   -v         add verbosity to all passes") << endl
+    << _("   --vp {N}+  add per-pass verbosity [");
+  for (unsigned i=0; i<5; i++)
+    clog << (perpass_verbose[i] <= 9 ? perpass_verbose[i] : 9);
+  clog 
+    << _("]") << endl
+    << _("   -k         keep temporary directory") << endl
+    << autosprintf(_("   -u         unoptimized translation %s"), (unoptimized ? _(" [set]") : "")) << endl
+    //<< "   -u         unoptimized translation" << (unoptimized ? " [set]" : "") << endl
+    << autosprintf(_("   -w         suppress warnings %s"), (suppress_warnings ? _(" [set]") : "")) << endl
+    << autosprintf(_("   -W         turn warnings into errors %s"), (panic_warnings ? _(" [set]") : "")) << endl
+    << autosprintf(_("   -g         guru mode %s"), (guru_mode ? _(" [set]") : "")) << endl
+    << autosprintf(_("   -P         prologue-searching for function probes %s"),
+       (prologue_searching ? _(" [set]") : "")) << endl
+    << autosprintf(_("   -b         bulk (percpu file) mode %s"), (bulk_mode ? _(" [set]") : "")) << endl
+    << autosprintf(_("   -s NUM     buffer size in megabytes, instead of %d"), buffer_size) << endl
+    << _("   -I DIR     look in DIR for additional .stp script files");
+  if (include_path.size() == 0)
+    clog << endl;
+  else
+    clog << _(", in addition to") << endl;
+  for (unsigned i=0; i<include_path.size(); i++)
+    clog << autosprintf(_("              %s"), include_path[i].c_str()) << endl;
+  clog
+    << _("   -D NM=VAL  emit macro definition into generated C code") << endl
+    << _("   -B NM=VAL  pass option to kbuild make") << endl
+    << _("   -G VAR=VAL set global variable to value") << endl
+    << _("   -R DIR     look in DIR for runtime, instead of") << endl
+    << autosprintf(_("              %s"), runtime_path.c_str()) << endl
+    << _("   -r DIR     cross-compile to kernel with given build tree; or else") << endl
+    << _("   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of") << endl
+    << autosprintf(_("              %s"), kernel_build_tree.c_str()) << endl
+    << autosprintf(_("   -a ARCH    cross-compile to given architecture, instead of %s"), architecture.c_str()) << endl
+    << _("   -m MODULE  set probe module name, instead of ") << endl
+    << autosprintf(_("              %s"), module_name.c_str()) << endl
+    << _("   -o FILE    send script output to file, instead of stdout. This supports") << endl
+    << _("              strftime(3) formats for FILE") << endl
+    << _("   -c CMD     start the probes, run CMD, and exit when it finishes") << endl
+    << _("   -x PID     sets target() to PID") << endl
+    << _("   -F         run as on-file flight recorder with -o.") << endl
+    << _("              run as on-memory flight recorder without -o.") << endl
+    << _("   -S size[,n] set maximum of the size and the number of files.") << endl
+    << _("   -d OBJECT  add unwind/symbol data for OBJECT file");
+  if (unwindsym_modules.size() == 0)
+    clog << endl;
+  else
+    clog << _(", in addition to") << endl;
   {
-    version ();
-    clog
-      << endl
-      //Session.cxx:287-390 detail systemtap usage from stap -h
-      << _("Usage: stap [options] FILE         Run script in file.")
-      << endl
-      << _("   or: stap [options] -            Run script on stdin.")
-      << endl
-      << _("   or: stap [options] -e SCRIPT    Run given script.")
-      << endl
-      << _("   or: stap [options] -l PROBE     List matching probes.")
-      << endl
-      << _("   or: stap [options] -L PROBE     List matching probes and local variables.")
-      << endl
-      << endl
-      << _("Options:") << endl
-      << _("   --         end of translator options, script options follow") << endl
-      << _("   -h --help  show help") << endl
-      << _("   -V         show version") << endl
-      << _("   -p NUM     stop after pass NUM 1-5, instead of ") << last_pass << endl
-      << _("              (parse, elaborate, translate, compile, run)") << endl
-      << _("   -v         add verbosity to all passes") << endl
-      << _("   --vp {N}+  add per-pass verbosity [");
-    for (unsigned i=0; i<5; i++)
-      clog << (perpass_verbose[i] <= 9 ? perpass_verbose[i] : 9);
-    clog 
-      << _("]") << endl
-      << _("   -k         keep temporary directory") << endl
-      << autosprintf(_("   -u         unoptimized translation %s"), (unoptimized ? _(" [set]") : "")) << endl
-      //<< "   -u         unoptimized translation" << (unoptimized ? " [set]" : "") << endl
-      << autosprintf(_("   -w         suppress warnings %s"), (suppress_warnings ? _(" [set]") : "")) << endl
-      << autosprintf(_("   -W         turn warnings into errors %s"), (panic_warnings ? _(" [set]") : "")) << endl
-      << autosprintf(_("   -g         guru mode %s"), (guru_mode ? _(" [set]") : "")) << endl
-      << autosprintf(_("   -P         prologue-searching for function probes %s"),
-         (prologue_searching ? _(" [set]") : "")) << endl
-      << autosprintf(_("   -b         bulk (percpu file) mode %s"), (bulk_mode ? _(" [set]") : "")) << endl
-      << autosprintf(_("   -s NUM     buffer size in megabytes, instead of %d"), buffer_size) << endl
-      << _("   -I DIR     look in DIR for additional .stp script files");
-    if (include_path.size() == 0)
-      clog << endl;
-    else
-      clog << _(", in addition to") << endl;
-    for (unsigned i=0; i<include_path.size(); i++)
-      clog << autosprintf(_("              %s"), include_path[i].c_str()) << endl;
-    clog
-      << _("   -D NM=VAL  emit macro definition into generated C code") << endl
-      << _("   -B NM=VAL  pass option to kbuild make") << endl
-      << _("   -G VAR=VAL set global variable to value") << endl
-      << _("   -R DIR     look in DIR for runtime, instead of") << endl
-      << autosprintf(_("              %s"), runtime_path.c_str()) << endl
-      << _("   -r DIR     cross-compile to kernel with given build tree; or else") << endl
-      << _("   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of") << endl
-      << autosprintf(_("              %s"), kernel_build_tree.c_str()) << endl
-      << autosprintf(_("   -a ARCH    cross-compile to given architecture, instead of %s"), architecture.c_str()) << endl
-      << _("   -m MODULE  set probe module name, instead of ") << endl
-      << autosprintf(_("              %s"), module_name.c_str()) << endl
-      << _("   -o FILE    send script output to file, instead of stdout. This supports") << endl
-      << _("              strftime(3) formats for FILE") << endl
-      << _("   -c CMD     start the probes, run CMD, and exit when it finishes") << endl
-      << _("   -x PID     sets target() to PID") << endl
-      << _("   -F         run as on-file flight recorder with -o.") << endl
-      << _("              run as on-memory flight recorder without -o.") << endl
-      << _("   -S size[,n] set maximum of the size and the number of files.") << endl
-      << _("   -d OBJECT  add unwind/symbol data for OBJECT file");
-    if (unwindsym_modules.size() == 0)
-      clog << endl;
-    else
-      clog << _(", in addition to") << endl;
-    {
-      vector<string> syms (unwindsym_modules.begin(), unwindsym_modules.end());
-      for (unsigned i=0; i<syms.size(); i++)
-        clog << autosprintf(_("              %s"), syms[i].c_str()) << endl;
-    }
-    clog
-      << _("   --ldd      add unwind/symbol data for all referenced OBJECT files.") << endl
-      << _("   --all-modules") << endl
-      << _("              add unwind/symbol data for all loaded kernel objects.") << endl
-      << _("   -t         collect probe timing information") << endl
-  #ifdef HAVE_LIBSQLITE3
-      << _("   -q         generate information on tapset coverage") << endl
-  #endif /* HAVE_LIBSQLITE3 */
-      << _("   --unprivileged") << endl
-      << _("              restrict usage to features available to unprivileged users") << endl
-  #if 0 /* PR6864: disable temporarily; should merge with -d somehow */
-      << "   --kelf     make do with symbol table from vmlinux" << endl
-      << "   --kmap[=FILE]" << endl
-      << "              make do with symbol table from nm listing" << endl
-  #endif
-    // Formerly present --ignore-{vmlinux,dwarf} options are for testsuite use
-    // only, and don't belong in the eyesight of a plain user.
-      << _("   --compatible=VERSION") << endl
-      << _("              suppress incompatible language/tapset changes beyond VERSION,") << endl
-      << autosprintf(_("              instead of %s"), compatible.c_str()) << endl
-      << _("   --check-version") << endl
-      << _("              displays warnings where a syntax element may be ") << endl
-      << _("              version dependent") << endl 
-      << _("   --skip-badvars") << endl
-      << _("              substitute zero for bad context $variables") << endl
-      << _("   --use-server[=SERVER-SPEC]") << endl
-      << _("              specify systemtap compile-servers") << endl
-      << _("   --list-servers[=PROPERTIES]") << endl
-      << _("              report on the status of the specified compile-servers") << endl
-  #if HAVE_NSS
-      << _("   --trust-servers[=TRUST-SPEC]") << endl
-      << _("              add/revoke trust of specified compile-servers") << endl
-      << _("   --use-server-on-error[=yes/no]") << endl
-      << _("              retry compilation using a compile server upon compilation error") << endl
-  #endif
-      << _("   --remote=HOSTNAME") << endl
-      << _("              run pass 5 on the specified ssh host (EXPERIMENTAL)") << endl
-    ;
+    vector<string> syms (unwindsym_modules.begin(), unwindsym_modules.end());
+    for (unsigned i=0; i<syms.size(); i++)
+      clog << autosprintf(_("              %s"), syms[i].c_str()) << endl;
+  }
+  clog
+    << _("   --ldd      add unwind/symbol data for all referenced OBJECT files.") << endl
+    << _("   --all-modules") << endl
+    << _("              add unwind/symbol data for all loaded kernel objects.") << endl
+    << _("   -t         collect probe timing information") << endl
+#ifdef HAVE_LIBSQLITE3
+    << _("   -q         generate information on tapset coverage") << endl
+#endif /* HAVE_LIBSQLITE3 */
+    << _("   --unprivileged") << endl
+    << _("              restrict usage to features available to unprivileged users") << endl
+#if 0 /* PR6864: disable temporarily; should merge with -d somehow */
+    << "   --kelf     make do with symbol table from vmlinux" << endl
+    << "   --kmap[=FILE]" << endl
+    << "              make do with symbol table from nm listing" << endl
+#endif
+  // Formerly present --ignore-{vmlinux,dwarf} options are for testsuite use
+  // only, and don't belong in the eyesight of a plain user.
+    << _("   --compatible=VERSION") << endl
+    << _("              suppress incompatible language/tapset changes beyond VERSION,") << endl
+    << autosprintf(_("              instead of %s"), compatible.c_str()) << endl
+    << _("   --check-version") << endl
+    << _("              displays warnings where a syntax element may be ") << endl
+    << _("              version dependent") << endl 
+    << _("   --skip-badvars") << endl
+    << _("              substitute zero for bad context $variables") << endl
+    << _("   --use-server[=SERVER-SPEC]") << endl
+    << _("              specify systemtap compile-servers") << endl
+    << _("   --list-servers[=PROPERTIES]") << endl
+    << _("              report on the status of the specified compile-servers") << endl
+#if HAVE_NSS
+    << _("   --trust-servers[=TRUST-SPEC]") << endl
+    << _("              add/revoke trust of specified compile-servers") << endl
+    << _("   --use-server-on-error[=yes/no]") << endl
+    << _("              retry compilation using a compile server upon compilation error") << endl
+#endif
+    << _("   --remote=HOSTNAME") << endl
+    << _("              run pass 5 on the specified ssh host (EXPERIMENTAL)") << endl
+  ;
 
   time_t now;
   time (& now);
