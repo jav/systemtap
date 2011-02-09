@@ -2747,20 +2747,25 @@ void resolve_callback(
         case AVAHI_RESOLVER_FOUND: {
             char a[AVAHI_ADDRESS_STR_MAX], *t;
             avahi_address_snprint(a, sizeof(a), address);
-            t = avahi_string_list_to_string(txt);
 
-	    // Save the information of interest.
-	    compile_server_info info;
-	    info.host_name = host_name;
-	    info.ip_address = strdup (a);
-	    info.port = port;
-	    info.sysinfo = extract_field_from_avahi_txt ("sysinfo=", t);
-	    info.certinfo = extract_field_from_avahi_txt ("certinfo=", t);
+	    // Ignore entries using IPv6 addresses for now
+	    vector<string> parts;
+	    tokenize (a, parts, ".");
+	    if (parts.size () == 4)
+	      {
+		// Save the information of interest.
+		compile_server_info info;
+		info.host_name = host_name;
+		info.ip_address = strdup (a);
+		info.port = port;
+		t = avahi_string_list_to_string(txt);
+		info.sysinfo = extract_field_from_avahi_txt ("sysinfo=", t);
+		info.certinfo = extract_field_from_avahi_txt ("certinfo=", t);
+		avahi_free(t);
 
-	    // Add this server to the list of discovered servers.
-	    add_server_info (info, *servers);
-
-            avahi_free(t);
+		// Add this server to the list of discovered servers.
+		add_server_info (info, *servers);
+	      }
         }
     }
 
