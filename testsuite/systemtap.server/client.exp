@@ -196,7 +196,7 @@ if {$n == 0} {
 
 # Our server should now be trusted, separate from the previously discovered
 # trusted servers.
-list_servers "List current trusted servers" trusted
+list_servers "List current trusted servers" online,trusted
 array unset current_trusted_servers
 array set current_trusted_servers [array get servers]
 
@@ -340,7 +340,7 @@ catch close
 
 # Our server should be trusted again, separate from the previously discovered
 # trusted servers.
-list_servers "List current trusted servers after reinstatement by ip address" trusted
+list_servers "List current trusted servers after reinstatement by ip address" online,trusted
 array unset current_trusted_servers
 array set current_trusted_servers [array get servers]
 
