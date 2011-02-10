@@ -105,8 +105,7 @@ class ssh_remote : public remote {
     ssh_remote(systemtap_session& s, const string& host)
       : remote(s), host(host), child(0)
       {
-        open_control_master();
-        get_uname();
+        init();
       }
 
     ssh_remote(systemtap_session& s, const uri_decoder& ud)
@@ -122,8 +121,21 @@ class ssh_remote : public remote {
           throw runtime_error("ssh target URI doesn't support a #fragment");
 
         host = ud.authority;
+        init();
+      }
+
+    void init()
+      {
         open_control_master();
-        get_uname();
+        try
+          {
+            get_uname();
+          }
+        catch (runtime_error&)
+          {
+            close_control_master();
+            throw;
+          }
       }
 
     void open_control_master()
