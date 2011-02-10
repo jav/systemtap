@@ -24,6 +24,7 @@
 #include <string>
 #include <fstream>
 #include <cassert>
+#include <ext/stdio_filebuf.h>
 
 extern "C" {
 #include <fcntl.h>
@@ -40,6 +41,7 @@ extern "C" {
 }
 
 using namespace std;
+using namespace __gnu_cxx;
 
 
 // Return current users home directory or die.
@@ -525,11 +527,9 @@ stap_system_read(int verbose, const string& command, ostream& out)
     spawned_pids.insert(child);
 
   // read everything from the child
-  string readpath = "/proc/self/fd/" + lex_cast(pfd[0]);
-  ifstream in(readpath.c_str());
-  close(pfd[0]);
+  stdio_filebuf<char> in(pfd[0], ios_base::in);
   close(pfd[1]);
-  out << in.rdbuf();
+  out << &in;
 
   return stap_waitpid(verbose, child);
 }
