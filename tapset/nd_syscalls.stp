@@ -808,7 +808,6 @@ probe nd_syscall.execve = kprobe.function("do_execve")
 	// filename = kernel_string($filename)
 	// args = __get_argv($argv, 0)
 	// argstr = sprintf("%s %s", filename, __get_argv($argv, 1))
-	asmlinkage()
 	filename = kernel_string(pointer_arg(1))
 	args = __get_argv(pointer_arg(2), 0)
 	argstr = sprintf("%s %s", filename, __get_argv(pointer_arg(2), 1))
@@ -830,7 +829,6 @@ probe nd_syscall.compat_execve = kprobe.function("compat_do_execve") ?
 	// filename = kernel_string($filename)
 	// args = __get_compat_argv($argv, 0)
 	// argstr = sprintf("%s %s", filename, __get_compat_argv($argv, 1))
-	asmlinkage()
 	filename = kernel_string(pointer_arg(1))
 	args = __get_compat_argv(pointer_arg(2), 0)
 	argstr = sprintf("%s %s", filename, __get_compat_argv(pointer_arg(2), 1))
@@ -1244,7 +1242,6 @@ probe nd_syscall.fork = kprobe.function("do_fork")
 	// stack_size = $stack_size
 	// parent_tid_uaddr = $parent_tidptr
 	// child_tid_uaddr = $child_tidptr
-	asmlinkage()
 	clone_flags = ulong_arg(1)
 	stack_start = ulong_arg(2)
 	regs = pointer_arg(3)
@@ -3384,7 +3381,7 @@ probe nd_syscall.mount.return = kprobe.function("compat_sys_mount").return ?,
 }
 
 %( kernel_v >= "2.6.33" %?
-# In newer kernels (2.6.33+), all the sys_mmap() variants are just 
+# In newer kernels (2.6.33+), all the sys_mmap() variants are just
 # wrappers around sys_mmap_pgoff(), which is in arch-generic code.
 #
 # long sys_mmap_pgoff(unsigned long addr, unsigned long len,
