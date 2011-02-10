@@ -414,7 +414,7 @@ if {$effective_pid != 0} {
 
 # Our server should now be trusted as a signer, separate from the previously
 # discovered trusted signing servers.
-list_servers "List current signing servers" signer
+list_servers "List current signing servers" online,signer
 array unset current_signing_servers
 array set current_signing_servers [array get servers]
 
@@ -501,6 +501,7 @@ expect {
     -re {^stap_[0-9]*\.ko\r\n} {
 	set module_name [string trim "$expect_out(0,string)" \r\n]
     }
+    -re {^.*\r\n} { exp_continue }
     timeout { 
 	exec kill -INT -[exp_pid]
 	wait
@@ -514,64 +515,76 @@ if {$failed == 0} {
 send_log "'$module_name'\n"
 
 # Make sure that the module was returned
+set no_module 0
 set test "Module was created"
 if {[file exists $module_name]} {
     pass "$test"
 } else {
     fail "$test"
+    set no_module 1
 }
 
 # Make sure that the module was signed
+set no_signature 0
 set test "Module was signed"
 if {[file exists $module_name.sgn]} {
     pass "$test"
 } else {
     fail "$test"
+    set no_signature 1
 }
 
 # Make sure we can load the module. This will verify that the signature
-# is correct and trusted. If we are not root or a member of either
-# the group stapdev or stapusr, then we still won't be able to load
-# the module.
-set expect_failure 1
-if {$effective_pid == 0} {
-    set expect_failure 0
-} else {
-    set id_info [exec /usr/bin/id]
-    if {[regexp {.*\(stapdev\).*} "$id_info"]} {
+# is correct and trusted. If the module was not created, or if we are not root
+# or a member of the groups stapdev and stapusr, then we still won't be
+# able to load the module. If there is no signature, then being a member of
+# stapuse won't help.
+if {$no_module == 0} {
+    set expect_failure 1
+    if {$effective_pid == 0} {
 	set expect_failure 0
-    } elseif {[regexp {.*\(stapusr\).*} "$id_info"]} {
-	if {$effective_pid != 0} {
-	    set expect_failure 0
-	}
-    }    
-}
-if {$expect_failure} {
-    setup_xfail *-*-*
+    } else {
+	set id_info [exec /usr/bin/id]
+	if {[regexp {.*\(stapusr\).*} "$id_info"]} {
+	    if {[regexp {.*\(stapdev\).*} "$id_info"]} {
+		set expect_failure 0
+	    } else {
+		if {$no_signature == 0} {
+		    set expect_failure 0
+		}
+	    }
+	}    
+    }
+    if {$expect_failure} {
+	setup_xfail *-*-*
+    }
 }
 set test "Load and run signed module when trusted"
-set failed 1
-set cmd [concat staprun $module_name]
-send_log "executing: $cmd\n"
-eval spawn $cmd
-expect {
-    -timeout 150
-    -re {^Hello From Server\r\n} {
-	set failed 0
-    }
-    timeout { 
-	exec kill -INT -[exp_pid]
-	wait
-	set failed 1
-    }
-}
-catch close
-if {$failed == 0} {
-    pass "$test"
+if {$no_module == 1} {
+    untested "$test"
 } else {
-    fail "$test"
+    set failed 1
+    set cmd [concat staprun $module_name]
+    send_log "executing: $cmd\n"
+    eval spawn $cmd
+    expect {
+	-timeout 150
+	-re {^Hello From Server\r\n} {
+	    set failed 0
+	}
+	timeout { 
+	    exec kill -INT -[exp_pid]
+	    wait
+	    set failed 1
+	}
+    }
+    catch close
+    if {$failed == 0} {
+	pass "$test"
+    } else {
+	fail "$test"
+    }
 }
-
 
 # Revoke trust in our server as a module signer. This must be done as root.
 # Specify the server by certificate serial number so that we don't accidentally
@@ -609,39 +622,47 @@ if {$failed == 0} {
 
 # Since our server is no longer a trusted signer, attempting
 # to load and run the module now should fail unless we
-# are root or a member of the group stapdev.
-set expect_failure 1
-if {[exec /usr/bin/id -u] == 0} {
-    set expect_failure 0
-} else {
-    if {[regexp {.*\(stapdev\).*} "$id_info"]} {
+# are root or a member of the groups stapdev and stapusr.
+if {$no_module == 0} {
+    set expect_failure 1
+    if {[exec /usr/bin/id -u] == 0} {
 	set expect_failure 0
+    } else {
+	if {[regexp {.*\(stapdev\).*} "$id_info"]} {
+	    if {[regexp {.*\(stapusr\).*} "$id_info"]} {
+		set expect_failure 0
+	    }
+	}
     }
-}
-if {$expect_failure} {
-    setup_xfail *-*-*
+    if {$expect_failure} {
+	setup_xfail *-*-*
+    }
 }
 set test "Load and run signed module when not trusted"
-set failed 1
-set cmd [concat staprun $module_name]
-send_log "executing: $cmd\n"
-eval spawn $cmd
-expect {
-    -timeout 150
-    -re {^Hello From Server\r\n} {
-	set failed 0
-    }
-    timeout { 
-	exec kill -INT -[exp_pid]
-	wait
-	set failed 1
-    }
-}
-catch close
-if {$failed == 0} {
-    pass "$test"
+if {$no_module == 1} {
+    untested "$test"
 } else {
-    fail "$test"
+    set failed 1
+    set cmd [concat staprun $module_name]
+    send_log "executing: $cmd\n"
+    eval spawn $cmd
+    expect {
+	-timeout 150
+	-re {^Hello From Server\r\n} {
+	    set failed 0
+	}
+	timeout { 
+	    exec kill -INT -[exp_pid]
+	    wait
+	    set failed 1
+	}
+    }
+    catch close
+    if {$failed == 0} {
+	pass "$test"
+    } else {
+	fail "$test"
+    }
 }
 
 # Shutdown the server we started
