@@ -450,9 +450,27 @@ stap_waitpid(int verbose, pid_t pid)
   return ret;
 }
 
+static int
+pipe_child_fd(posix_spawn_file_actions_t* fa, int pipefd[2], int childfd)
+{
+  if (pipe(pipefd))
+    return -1;
+
+  int dir = childfd ? 1 : 0;
+  if (!fcntl(pipefd[0], F_SETFD, FD_CLOEXEC) &&
+      !fcntl(pipefd[1], F_SETFD, FD_CLOEXEC) &&
+      !posix_spawn_file_actions_adddup2(fa, pipefd[dir], childfd))
+    return 0;
+
+  close(pipefd[0]);
+  close(pipefd[1]);
+  return -1;
+}
+
 // Runs a command with a saved PID, so we can kill it from the signal handler
-pid_t
-stap_spawn(int verbose, const std::string& command)
+static pid_t
+stap_spawn(int verbose, const std::string& command,
+           posix_spawn_file_actions_t* fa)
 {
   const char *cmd = command.c_str();
   char const * const argv[] = { "sh", "-c", cmd, NULL };
@@ -463,7 +481,7 @@ stap_spawn(int verbose, const std::string& command)
   if (verbose > 1)
     clog << "Running " << command << endl;
 
-  ret = posix_spawn(&pid, "/bin/sh", NULL, NULL,
+  ret = posix_spawn(&pid, "/bin/sh", fa, NULL,
                     const_cast<char * const *>(argv), environ);
   PROBE2(stap, stap_system__spawn, ret, pid);
   if (ret != 0)
@@ -475,6 +493,13 @@ stap_spawn(int verbose, const std::string& command)
   else
     spawned_pids.insert(pid);
   return pid;
+}
+
+// The API version of stap_spawn doesn't expose file_actions, for now.
+pid_t
+stap_spawn(int verbose, const std::string& command)
+{
+  return stap_spawn(verbose, command, NULL);
 }
 
 // Runs a command with a saved PID, so we can kill it from the signal handler,
@@ -498,40 +523,33 @@ stap_system(int verbose, const std::string& command)
 int
 stap_system_read(int verbose, const string& command, ostream& out)
 {
-  int ret, pfd[2];
+  posix_spawn_file_actions_t fa;
+  if (posix_spawn_file_actions_init(&fa) != 0)
+    return -1;
 
-  ret = pipe(pfd);
-  if (ret != 0)
+  // remap the write fd to the child's stdout
+  int ret = -1, pfd[2];
+  if (pipe_child_fd(&fa, pfd, 1) == 0)
     {
-      return -1;
+      pid_t child = stap_spawn(verbose, command, &fa);
+      if (child > 0)
+        {
+          // read everything from the child
+          stdio_filebuf<char> in(pfd[0], ios_base::in);
+          close(pfd[1]);
+          out << &in;
+
+          ret = stap_waitpid(verbose, child);
+        }
+      else
+        {
+          close(pfd[0]);
+          close(pfd[1]);
+        }
     }
 
-  pid_t child = fork();
-  if (child < 0)
-    {
-      return -1;
-    }
-  else if (child == 0)
-    {
-      // remap the write fd to stdout
-      dup2(pfd[1], 1);
-      close(pfd[0]);
-      close(pfd[1]);
-
-      // exec the desired command
-      char const * const argv[] = { "sh", "-c", command.c_str(), NULL };
-      ret = execv("/bin/sh", const_cast<char * const *>(argv));
-      exit(ret); // only reached on exec error
-    }
-  else
-    spawned_pids.insert(child);
-
-  // read everything from the child
-  stdio_filebuf<char> in(pfd[0], ios_base::in);
-  close(pfd[1]);
-  out << &in;
-
-  return stap_waitpid(verbose, child);
+  posix_spawn_file_actions_destroy(&fa);
+  return ret;
 }
 
 
