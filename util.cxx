@@ -468,6 +468,13 @@ pipe_child_fd(posix_spawn_file_actions_t* fa, int pipefd[2], int childfd)
   return -1;
 }
 
+static int
+null_child_fd(posix_spawn_file_actions_t* fa, int childfd)
+{
+  int flags = childfd ? O_WRONLY : O_RDONLY;
+  return posix_spawn_file_actions_addopen(fa, childfd, "/dev/null", flags, 0);
+}
+
 // Runs a command with a saved PID, so we can kill it from the signal handler
 static pid_t
 stap_spawn(int verbose, const vector<string>& args,
@@ -512,23 +519,27 @@ stap_spawn(int verbose, const vector<string>& args)
 // Runs a command with a saved PID, so we can kill it from the signal handler,
 // and wait for it to finish.
 int
-stap_system(int verbose, const vector<string>& args)
+stap_system(int verbose, const vector<string>& args,
+            bool null_out, bool null_err)
 {
-  int ret = -1;
-  pid_t pid = stap_spawn(verbose, args, NULL);
-  if (pid > 0)
-    ret = stap_waitpid(verbose, pid);
-  return ret;
-}
+  int ret = 0;
+  posix_spawn_file_actions_t fa;
+  if (posix_spawn_file_actions_init(&fa) != 0)
+    return -1;
 
-int
-stap_system(int verbose, const string& command)
-{
-  vector<string> args;
-  args.push_back("/bin/sh");
-  args.push_back("-c");
-  args.push_back(command);
-  return stap_system(verbose, args);
+  if ((null_out && null_child_fd(&fa, 1) != 0) ||
+      (null_err && null_child_fd(&fa, 2) != 0))
+    ret = -1;
+  else
+    {
+      pid_t pid = stap_spawn(verbose, args, &fa);
+      ret = pid;
+      if (pid > 0)
+        ret = stap_waitpid(verbose, pid);
+    }
+
+  posix_spawn_file_actions_destroy(&fa);
+  return ret;
 }
 
 // Like stap_system, but capture stdout

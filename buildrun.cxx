@@ -34,7 +34,8 @@ static int uprobes_pass (systemtap_session& s);
 
 /* Adjust and run make_cmd to build a kernel module. */
 static int
-run_make_cmd(systemtap_session& s, string& make_cmd)
+run_make_cmd(systemtap_session& s, vector<string>& make_cmd,
+             bool null_out=false, bool null_err=false)
 {
   // Before running make, fix up the environment a bit.  PATH should
   // already be overridden.  Clean out a few variables that
@@ -56,11 +57,14 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
   (void) setenv("CCACHE_DISABLE", "1", 0);
 
   if (s.verbose > 2)
-    make_cmd += " V=1";
+    make_cmd.push_back("V=1");
   else if (s.verbose > 1)
-    make_cmd += " --no-print-directory";
+    make_cmd.push_back("--no-print-directory");
   else
-    make_cmd += " -s --no-print-directory";
+    {
+      make_cmd.push_back("-s");
+      make_cmd.push_back("--no-print-directory");
+    }
 
   // NB: there appears to be no parallelism opportunity in the
   // module-building makefiles, so while the following works, it
@@ -68,7 +72,7 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
 #if 0
   long smp = sysconf(_SC_NPROCESSORS_ONLN);
   if (smp > 1)
-    make_cmd += " -j " + lex_cast(smp);
+    make_cmd.push_back("-j" + lex_cast(smp));
 #endif
 
   if (strverscmp (s.kernel_base_release.c_str(), "2.6.29") < 0)
@@ -76,10 +80,10 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
       // Older kernels, before linux commit #fd54f502841c1, include
       // gratuitous "echo"s in their Makefile.  We need to suppress
       // that with this bluntness.
-      make_cmd += " >/dev/null";
+      null_out = true;
     }
 
-  rc = stap_system (s.verbose, make_cmd);
+  rc = stap_system (s.verbose, make_cmd, null_out, null_err);
   if (rc != 0)
     s.set_try_server ();
   return rc;
@@ -218,7 +222,7 @@ compile_pass (systemtap_session& s)
   o << module_cflags << " += -include $(STAPCONF_HEADER)" << endl;
 
   for (unsigned i=0; i<s.macros.size(); i++)
-    o << "EXTRA_CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;
+    o << "EXTRA_CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl; // XXX right quoting?
 
   if (s.verbose > 3)
     o << "EXTRA_CFLAGS += -ftime-report -Q" << endl;
@@ -272,20 +276,21 @@ compile_pass (systemtap_session& s)
     }
 
   // Run make
-  string make_cmd = string("make")
-    + string (" -C \"") + module_dir + string("\""); // XXX: lex_cast_qstring?
-  make_cmd += string(" M=\"") + s.tmpdir + string("\"");
+  vector<string> make_cmd;
+  make_cmd.push_back("make");
+  make_cmd.push_back("-C");
+  make_cmd.push_back(module_dir);
+  make_cmd.push_back("M=\"" + s.tmpdir + "\""); // need make-quoting?
 
   // Add architecture, except for old powerpc (RHBZ669082)
   if (s.architecture != "powerpc" ||
       (strverscmp (s.kernel_base_release.c_str(), "2.6.15") >= 0))
-    make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
+    make_cmd.push_back("ARCH=" + s.architecture); // need make-quoting?
 
   // Add any custom kbuild flags
-  for (unsigned k=0; k<s.kbuildflags.size(); k++)
-    make_cmd += string(" ") + lex_cast_qstring(s.kbuildflags[k]);
+  make_cmd.insert(make_cmd.end(), s.kbuildflags.begin(), s.kbuildflags.end());
 
-  make_cmd += string (" modules");
+  make_cmd.push_back("modules");
 
   rc = run_make_cmd(s, make_cmd);
   if (rc)
@@ -355,8 +360,12 @@ verify_uprobes_uptodate (systemtap_session& s)
 	 << endl;
 
   string uprobes_home = s.runtime_path + "/uprobes";
-  string make_cmd = string("make -q -C ") + uprobes_home
-    + string(" uprobes.ko");
+  vector<string> make_cmd;
+  make_cmd.push_back("make");
+  make_cmd.push_back("-q");
+  make_cmd.push_back("-C");
+  make_cmd.push_back(uprobes_home);
+  make_cmd.push_back("uprobes.ko");
   int rc = run_make_cmd(s, make_cmd);
   if (rc) {
     clog << "SystemTap's version of uprobes is out of date." << endl;
@@ -392,7 +401,10 @@ make_uprobes (systemtap_session& s)
 	 << endl;
 
   string uprobes_home = s.runtime_path + "/uprobes";
-  string make_cmd = string("make -C ") + uprobes_home;
+  vector<string> make_cmd;
+  make_cmd.push_back("make");
+  make_cmd.push_back("-C");
+  make_cmd.push_back(uprobes_home);
   int rc = run_make_cmd(s, make_cmd);
   if (s.verbose > 1)
     clog << "uprobes rebuild rc=" << rc << endl;
@@ -559,21 +571,23 @@ make_tracequery(systemtap_session& s, string& name,
   osrc.close();
 
   // make the module
-  string make_cmd = "make -C '" + s.kernel_build_tree + "'"
-    + " M='" + dir + "' modules";
+  vector<string> make_cmd;
+  make_cmd.push_back("make");
+  make_cmd.push_back("-C");
+  make_cmd.push_back(s.kernel_build_tree);
+  make_cmd.push_back("M=" + dir); // need make-quoting?
+  make_cmd.push_back("modules");
 
   // Add architecture, except for old powerpc (RHBZ669082)
   if (s.architecture != "powerpc" ||
       (strverscmp (s.kernel_base_release.c_str(), "2.6.15") >= 0))
-    make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
+    make_cmd.push_back("ARCH=" + s.architecture); // need make-quoting?
 
   // Add any custom kbuild flags
-  for (unsigned k=0; k<s.kbuildflags.size(); k++)
-    make_cmd += string(" ") + lex_cast_qstring(s.kbuildflags[k]);
+  make_cmd.insert(make_cmd.end(), s.kbuildflags.begin(), s.kbuildflags.end());
 
-  if (s.verbose < 4)
-    make_cmd += " >/dev/null 2>&1";
-  int rc = run_make_cmd(s, make_cmd);
+  bool quiet = (s.verbose < 4);
+  int rc = run_make_cmd(s, make_cmd, quiet, quiet);
   if (rc)
     s.set_try_server ();
   return rc;
@@ -616,7 +630,7 @@ make_typequery_kmod(systemtap_session& s, const vector<string>& headers, string&
   //    @cast(foo, "bsd_acct_struct", "kernel<kernel/acct.c>")->...
   omf << "CFLAGS_" << basename << ".o :=";
   for (size_t i = 0; i < headers.size(); ++i)
-    omf << " -include " << lex_cast_qstring(headers[i]);
+    omf << " -include " << lex_cast_qstring(headers[i]); // XXX right quoting?
   omf << endl;
 
   omf << "obj-m := " + basename + ".o" << endl;
@@ -628,21 +642,23 @@ make_typequery_kmod(systemtap_session& s, const vector<string>& headers, string&
   osrc.close();
 
   // make the module
-  string make_cmd = "make -C '" + s.kernel_build_tree + "'"
-    + " M='" + dir + "' modules";
+  vector<string> make_cmd;
+  make_cmd.push_back("make");
+  make_cmd.push_back("-C");
+  make_cmd.push_back(s.kernel_build_tree);
+  make_cmd.push_back("M=" + dir); // need make-quoting?
+  make_cmd.push_back("modules");
 
   // Add architecture, except for old powerpc (RHBZ669082)
   if (s.architecture != "powerpc" ||
       (strverscmp (s.kernel_base_release.c_str(), "2.6.15") >= 0))
-    make_cmd += string(" ARCH=") + lex_cast_qstring(s.architecture);
+    make_cmd.push_back("ARCH=" + s.architecture); // need make-quoting?
 
   // Add any custom kbuild flags
-  for (unsigned k=0; k<s.kbuildflags.size(); k++)
-    make_cmd += string(" ") + lex_cast_qstring(s.kbuildflags[k]);
+  make_cmd.insert(make_cmd.end(), s.kbuildflags.begin(), s.kbuildflags.end());
 
-  if (s.verbose < 4)
-    make_cmd += " >/dev/null 2>&1";
-  int rc = run_make_cmd(s, make_cmd);
+  bool quiet = (s.verbose < 4);
+  int rc = run_make_cmd(s, make_cmd, quiet, quiet);
   if (rc)
     s.set_try_server ();
   return rc;
@@ -663,13 +679,22 @@ make_typequery_umod(systemtap_session& s, const vector<string>& headers, string&
   // cwd in this case will be the cwd of stap itself though, which may be
   // trickier to deal with.  It might be better to "cd `dirname $script`"
   // first...
-  ostringstream cmd;
-  cmd << "gcc -shared -g -fno-eliminate-unused-debug-types -xc /dev/null -o " << name;
+  vector<string> cmd;
+  cmd.push_back("gcc");
+  cmd.push_back("-shared");
+  cmd.push_back("-g");
+  cmd.push_back("-fno-eliminate-unused-debug-types");
+  cmd.push_back("-xc");
+  cmd.push_back("/dev/null");
+  cmd.push_back("-o");
+  cmd.push_back(name);
   for (size_t i = 0; i < headers.size(); ++i)
-    cmd << " -include " << lex_cast_qstring(headers[i]);
-  if (s.verbose < 4)
-    cmd << " >/dev/null 2>&1";
-  int rc = stap_system (s.verbose, cmd.str());
+    {
+      cmd.push_back("-include");
+      cmd.push_back(headers[i]);
+    }
+  bool quiet = (s.verbose < 4);
+  int rc = stap_system (s.verbose, cmd, quiet, quiet);
   if (rc)
     s.set_try_server ();
   return rc;

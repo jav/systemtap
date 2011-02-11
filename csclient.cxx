@@ -976,8 +976,13 @@ compile_server_client::package_request ()
 {
   // Package up the temporary directory into a zip file.
   client_zipfile = client_tmpdir + ".zip";
-  string cmd = "cd " + client_tmpdir + " && zip -qr " + client_zipfile + " *";
-  int rc = stap_system (s.verbose, cmd);
+  string cmd = "cd " + cmdstr_quoted(client_tmpdir) + " && zip -qr "
+      + cmdstr_quoted(client_zipfile) + " *";
+  vector<string> sh_cmd;
+  sh_cmd.push_back("sh");
+  sh_cmd.push_back("-c");
+  sh_cmd.push_back(cmd);
+  int rc = stap_system (s.verbose, sh_cmd);
   return rc;
 }
 
