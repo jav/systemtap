@@ -689,7 +689,7 @@ make_typequery(systemtap_session& s, string& module)
         return -1;
       string header = module.substr(i, end - i);
       vector<string> matches;
-      if (regexp_match(header, "^[a-z0-9/_.+-]+$", matches))
+      if (regexp_match(header, "^[a-zA-Z0-9/_.+-]+$", matches))
         {
           if (! s.suppress_warnings)
             cerr << "Warning: skipping malformed @cast header \""
