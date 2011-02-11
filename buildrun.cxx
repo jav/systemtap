@@ -280,7 +280,7 @@ compile_pass (systemtap_session& s)
   make_cmd.push_back("make");
   make_cmd.push_back("-C");
   make_cmd.push_back(module_dir);
-  make_cmd.push_back("M=\"" + s.tmpdir + "\""); // need make-quoting?
+  make_cmd.push_back("M=" + s.tmpdir); // need make-quoting?
 
   // Add architecture, except for old powerpc (RHBZ669082)
   if (s.architecture != "powerpc" ||
