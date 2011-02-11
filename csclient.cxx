@@ -1183,7 +1183,11 @@ compile_server_client::unpack_response ()
 {
   // Unzip the response package.
   server_tmpdir = s.tmpdir + "/server";
-  string cmd = "unzip -qd " + server_tmpdir + " " + server_zipfile;
+  vector<string> cmd;
+  cmd.push_back("unzip");
+  cmd.push_back("-qd");
+  cmd.push_back(server_tmpdir);
+  cmd.push_back(server_zipfile);
   int rc = stap_system (s.verbose, cmd);
   if (rc != 0)
     {
@@ -1241,12 +1245,17 @@ compile_server_client::unpack_response ()
     }
 
   // Remove the output line due to the synthetic server-side -k
-  cmd = "sed -i '/^Keeping temporary directory.*/ d' " +
-    server_tmpdir + "/stderr";
+  cmd.clear();
+  cmd.push_back("sed");
+  cmd.push_back("-i");
+  cmd.push_back("/^Keeping temporary directory.*/ d");
+  cmd.push_back(server_tmpdir + "/stderr");
   stap_system (s.verbose, cmd);
 
   // Remove the output line due to the synthetic server-side -p4
-  cmd = "sed -i '/^.*\\.ko$/ d' " + server_tmpdir + "/stdout";
+  cmd.erase(cmd.end() - 2, cmd.end());
+  cmd.push_back("/^.*\\.ko$/ d");
+  cmd.push_back(server_tmpdir + "/stdout");
   stap_system (s.verbose, cmd);
 
  done:

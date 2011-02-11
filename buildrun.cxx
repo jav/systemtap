@@ -301,8 +301,11 @@ compile_pass (systemtap_session& s)
 static bool
 kernel_built_uprobes (systemtap_session& s)
 {
-  string grep_cmd = string ("/bin/grep -q unregister_uprobe ") + 
-    s.kernel_build_tree + string ("/Module.symvers");
+  vector<string> grep_cmd;
+  grep_cmd.push_back ("/bin/grep");
+  grep_cmd.push_back ("-q");
+  grep_cmd.push_back ("unregister_uprobe");
+  grep_cmd.push_back (s.kernel_build_tree + "/Module.symvers");
 
   return (stap_system (s.verbose, grep_cmd) == 0);
 }
@@ -405,9 +408,10 @@ make_uprobes (systemtap_session& s)
 static int
 copy_uprobes_symbols (const systemtap_session& s)
 {
-  string uprobes_home = s.runtime_path + "/uprobes";
-  string cp_cmd = string("/bin/cp ") + uprobes_home +
-    string("/Module.symvers ") + s.tmpdir;
+  vector<string> cp_cmd;
+  cp_cmd.push_back ("/bin/cp");
+  cp_cmd.push_back (s.runtime_path + "/uprobes/Module.symvers");
+  cp_cmd.push_back (s.tmpdir);
 
   return stap_system (s.verbose, cp_cmd);
 }

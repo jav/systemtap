@@ -416,8 +416,10 @@ remove_temp_dir (systemtap_session &s)
 	  setup_signals (SIG_IGN);
 
 	  // Remove the temporary directory.
-          string cleanupcmd = "rm -rf ";
-          cleanupcmd += s.tmpdir;
+	  vector<string> cleanupcmd;
+	  cleanupcmd.push_back("rm");
+	  cleanupcmd.push_back("-rf");
+	  cleanupcmd.push_back(s.tmpdir);
 
 	  (void) stap_system (s.verbose, cleanupcmd);
           s.tmpdir.clear();
