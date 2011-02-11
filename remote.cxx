@@ -76,8 +76,13 @@ class direct : public remote {
 
     int start()
       {
-        string module = s->tmpdir + "/" + s->module_name + ".ko";
-        pid_t pid = stap_spawn (s->verbose, make_run_command (*s, module));
+        // TODO: flip make_run_command to return a vector for us
+        vector<string> cmd;
+        cmd.push_back("/bin/sh");
+        cmd.push_back("-c");
+        cmd.push_back(make_run_command (*s));
+
+        pid_t pid = stap_spawn (s->verbose, cmd);
         if (pid <= 0)
           return 1;
         child = pid;
@@ -98,7 +103,8 @@ class direct : public remote {
 class ssh_remote : public remote {
     // NB: ssh commands use a tty (-t) so signals are passed along to the remote
   private:
-    string ssh_opts, ssh_control;
+    vector<string> ssh_args, scp_args;
+    string ssh_control;
     string host, tmpdir;
     pid_t child;
 
@@ -146,12 +152,24 @@ class ssh_remote : public remote {
           throw runtime_error("No tmpdir available for ssh control master");
 
         ssh_control = s->tmpdir + "/ssh_remote_control_" + lex_cast(++index);
-        ssh_opts = " -q -o ControlPath=" + lex_cast_qstring(ssh_control) + " ";
+
+        scp_args.clear();
+        scp_args.push_back("scp");
+        scp_args.push_back("-q");
+        scp_args.push_back("-o");
+        scp_args.push_back("ControlPath=" + ssh_control);
+
+        ssh_args = scp_args;
+        ssh_args[0] = "ssh";
+        ssh_args.push_back(host);
 
         // NB: ssh -f will stay in the foreground until authentication is
         // complete and the control socket is created, so we know it's ready to
         // go when stap_system returns.
-        string cmd = "ssh -f -N -M " + ssh_opts + lex_cast_qstring(host);
+        vector<string> cmd = ssh_args;
+        cmd.push_back("-f");
+        cmd.push_back("-N");
+        cmd.push_back("-M");
         int rc = stap_system(s->verbose, cmd);
         if (rc != 0)
           {
@@ -171,23 +189,28 @@ class ssh_remote : public remote {
         if (ssh_control.empty())
           return;
 
-        string cmd = "ssh " + ssh_opts + lex_cast_qstring(host)
-          + " -O exit 2>/dev/null >/dev/null";
+        vector<string> cmd = ssh_args;
+        cmd.push_back("-O");
+        cmd.push_back("exit");
+        // XXX need redirects to quiet the exit message
         int rc = stap_system(s->verbose, cmd);
         if (rc != 0)
           cerr << "failed to stop the ssh control master for " << host
                << " : rc=" << rc << endl;
 
         ssh_control.clear();
-        ssh_opts.clear();
+        scp_args.clear();
+        ssh_args.clear();
       }
 
     void get_uname()
       {
         ostringstream out;
         vector<string> uname;
-        string uname_cmd = "ssh -t " + ssh_opts + lex_cast_qstring(host) + " uname -rm";
-        int rc = stap_system_read(s->verbose, uname_cmd, out);
+        vector<string> cmd = ssh_args;
+        cmd.push_back("-t");
+        cmd.push_back("uname -rm");
+        int rc = stap_system_read(s->verbose, cmd, out);
         if (rc == 0)
           tokenize(out.str(), uname, " \t\r\n");
         if (uname.size() != 2)
@@ -212,13 +235,14 @@ class ssh_remote : public remote {
         int rc;
         string localmodule = s->tmpdir + "/" + s->module_name + ".ko";
         string tmpmodule;
-        string qhost = lex_cast_qstring(host);
 
         // Make a remote tempdir.
         {
           ostringstream out;
           vector<string> vout;
-          string cmd = "ssh -t " + ssh_opts + qhost + " mktemp -d -t stapXXXXXX";
+          vector<string> cmd = ssh_args;
+          cmd.push_back("-t");
+          cmd.push_back("mktemp -d -t stapXXXXXX");
           rc = stap_system_read(s->verbose, cmd, out);
           if (rc == 0)
             tokenize(out.str(), vout, "\r\n");
@@ -234,7 +258,9 @@ class ssh_remote : public remote {
 
         // Transfer the module.  XXX and uprobes.ko, sigs, etc.
         if (rc == 0) {
-          string cmd = "scp " + ssh_opts + localmodule + " " + qhost + ":" + tmpmodule;
+          vector<string> cmd = scp_args;
+          cmd.push_back(localmodule);
+          cmd.push_back(host + ":" + tmpmodule);
           rc = stap_system(s->verbose, cmd);
           if (rc != 0)
             cerr << "failed to copy the module to " << host
@@ -243,8 +269,9 @@ class ssh_remote : public remote {
 
         // Run the module on the remote.
         if (rc == 0) {
-          string cmd = "ssh -t " + ssh_opts + qhost + " "
-            + lex_cast_qstring(make_run_command(*s, tmpmodule));
+          vector<string> cmd = ssh_args;
+          cmd.push_back("-t");
+          cmd.push_back(make_run_command(*s, tmpmodule));
           pid_t pid = stap_spawn(s->verbose, cmd);
           if (pid > 0)
             child = pid;
@@ -273,15 +300,16 @@ class ssh_remote : public remote {
           {
             // Remove the tempdir.
             // XXX need to make sure this runs even with e.g. CTRL-C exits
-            string qhost = lex_cast_qstring(host);
-            string cmd = "ssh -t " + ssh_opts + qhost + " rm -r " + tmpdir;
-            tmpdir.clear();
+            vector<string> cmd = ssh_args;
+            cmd.push_back("-t");
+            cmd.push_back("rm -r " + cmdstr_quoted(tmpdir));
             int rc2 = stap_system(s->verbose, cmd);
             if (rc2 != 0)
               cerr << "failed to delete the tempdir on " << host
                    << " : rc=" << rc2 << endl;
             if (rc == 0)
               rc = rc2;
+            tmpdir.clear();
           }
 
         close_control_master();

@@ -447,6 +447,7 @@ stap_waitpid(int verbose, pid_t pid)
         clog << "Spawn waitpid error (" << ret << "): " << strerror(errno) << endl;
       ret = -1;
     }
+  PROBE2(stap, stap_system__complete, ret, pid);
   return ret;
 }
 
@@ -469,20 +470,26 @@ pipe_child_fd(posix_spawn_file_actions_t* fa, int pipefd[2], int childfd)
 
 // Runs a command with a saved PID, so we can kill it from the signal handler
 static pid_t
-stap_spawn(int verbose, const std::string& command,
+stap_spawn(int verbose, const vector<string>& args,
            posix_spawn_file_actions_t* fa)
 {
-  const char *cmd = command.c_str();
-  char const * const argv[] = { "sh", "-c", cmd, NULL };
-  int ret;
+  const char *cmd;
+  string command;
+  for (size_t i = 0; i < args.size(); ++i)
+    command += " " + args[i];
+  cmd = command.c_str();
+  PROBE1(stap, stap_system__start, cmd);
+  if (verbose > 1)
+    clog << "Running" << command << endl;
+
+  char const * argv[args.size() + 1];
+  for (size_t i = 0; i < args.size(); ++i)
+    argv[i] = args[i].c_str();
+  argv[args.size()] = NULL;
 
   pid_t pid = 0;
-
-  if (verbose > 1)
-    clog << "Running " << command << endl;
-
-  ret = posix_spawn(&pid, "/bin/sh", fa, NULL,
-                    const_cast<char * const *>(argv), environ);
+  int ret = posix_spawnp(&pid, argv[0], fa, NULL,
+                         const_cast<char * const *>(argv), environ);
   PROBE2(stap, stap_system__spawn, ret, pid);
   if (ret != 0)
     {
@@ -497,31 +504,36 @@ stap_spawn(int verbose, const std::string& command,
 
 // The API version of stap_spawn doesn't expose file_actions, for now.
 pid_t
-stap_spawn(int verbose, const std::string& command)
+stap_spawn(int verbose, const vector<string>& args)
 {
-  return stap_spawn(verbose, command, NULL);
+  return stap_spawn(verbose, args, NULL);
 }
 
 // Runs a command with a saved PID, so we can kill it from the signal handler,
 // and wait for it to finish.
 int
-stap_system(int verbose, const std::string& command)
+stap_system(int verbose, const vector<string>& args)
 {
-  const char *cmd;
-  cmd = command.c_str();
-  PROBE1(stap, stap_system__start, cmd);
-
   int ret = -1;
-  pid_t pid = stap_spawn(verbose, command);
+  pid_t pid = stap_spawn(verbose, args, NULL);
   if (pid > 0)
     ret = stap_waitpid(verbose, pid);
-  PROBE1(stap, stap_system__complete, ret);
   return ret;
+}
+
+int
+stap_system(int verbose, const string& command)
+{
+  vector<string> args;
+  args.push_back("/bin/sh");
+  args.push_back("-c");
+  args.push_back(command);
+  return stap_system(verbose, args);
 }
 
 // Like stap_system, but capture stdout
 int
-stap_system_read(int verbose, const string& command, ostream& out)
+stap_system_read(int verbose, const vector<string>& args, ostream& out)
 {
   posix_spawn_file_actions_t fa;
   if (posix_spawn_file_actions_init(&fa) != 0)
@@ -531,7 +543,7 @@ stap_system_read(int verbose, const string& command, ostream& out)
   int ret = -1, pfd[2];
   if (pipe_child_fd(&fa, pfd, 1) == 0)
     {
-      pid_t child = stap_spawn(verbose, command, &fa);
+      pid_t child = stap_spawn(verbose, args, &fa);
       if (child > 0)
         {
           // read everything from the child

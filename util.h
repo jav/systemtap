@@ -27,9 +27,10 @@ std::string find_executable(const std::string& name,
 const std::string cmdstr_quoted(const std::string& cmd);
 std::string git_revision(const std::string& path);
 int stap_waitpid(int verbose, pid_t pid);
-pid_t stap_spawn(int verbose, const std::string& command);
-int stap_system(int verbose, const std::string& command);
-int stap_system_read(int verbose, const std::string& command, std::ostream& out);
+pid_t stap_spawn(int verbose, const std::vector<std::string>& args);
+int stap_system(int verbose, const std::string& command); // to be phased out
+int stap_system(int verbose, const std::vector<std::string>& args);
+int stap_system_read(int verbose, const std::vector<std::string>& args, std::ostream& out);
 int kill_stap_spawn(int sig);
 void assert_regexp_match (const std::string& name, const std::string& value, const std::string& re);
 int regexp_match (const std::string& value, const std::string& re, std::vector<std::string>& matches);
