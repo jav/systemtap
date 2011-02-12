@@ -23,6 +23,7 @@ Source: ftp://sourceware.org/pub/%{name}/releases/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires: kernel >= 2.6.9-11
+BuildRequires: gettext
 %if %{with_sqlite}
 BuildRequires: sqlite-devel
 %endif
@@ -242,6 +243,7 @@ make %{?_smp_mflags}
 %install
 rm -rf ${RPM_BUILD_ROOT}
 make DESTDIR=$RPM_BUILD_ROOT install
+%find_lang %{name}
 
 # We want the examples in the special doc dir, not the build install dir.
 # We build it in place and then move it away so it doesn't get installed
@@ -382,7 +384,7 @@ exit 0
 (make -C %{_datadir}/%{name}/runtime/uprobes clean) >/dev/null 2>&1 || true
 (/sbin/rmmod uprobes) >/dev/null 2>&1 || true
 
-%files
+%files -f %{name}.lang
 %defattr(-,root,root)
 
 %doc README AUTHORS NEWS COPYING examples
@@ -412,7 +414,7 @@ exit 0
 # Make sure that the uprobes module can be built by root and by the server
 %dir %attr(0775,root,stap-server) %{_datadir}/%{name}/runtime/uprobes
 
-%files runtime
+%files runtime -f %{name}.lang
 %defattr(-,root,root)
 %attr(4110,root,stapusr) %{_bindir}/staprun
 %{_bindir}/stap-merge
@@ -432,7 +434,7 @@ exit 0
 %defattr(-,root,root)
 %{_datadir}/%{name}/testsuite
 
-%files server
+%files server -f %{name}.lang
 %defattr(-,root,root)
 %{_bindir}/stap-server
 %{_libexecdir}/%{name}/stap-serverd
