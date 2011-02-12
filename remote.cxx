@@ -186,8 +186,7 @@ class ssh_remote : public remote {
         vector<string> cmd = ssh_args;
         cmd.push_back("-O");
         cmd.push_back("exit");
-        // XXX need redirects to quiet the exit message
-        int rc = stap_system(s->verbose, cmd);
+        int rc = stap_system(s->verbose, cmd, true, true);
         if (rc != 0)
           cerr << "failed to stop the ssh control master for " << host
                << " : rc=" << rc << endl;
