@@ -37,7 +37,7 @@ void assert_regexp_match (const std::string& name, const std::string& value, con
 int regexp_match (const std::string& value, const std::string& re, std::vector<std::string>& matches);
 bool contains_glob_chars (const std::string &str);
 std::string normalize_machine(const std::string& machine);
-std::string autosprintf(const char* format, ...);
+std::string autosprintf(const char* format, ...) __attribute__ ((format (printf, 1, 2)));
 
 
 // stringification generics
