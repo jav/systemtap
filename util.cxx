@@ -395,6 +395,21 @@ const string cmdstr_quoted(const string& cmd)
 }
 
 
+const string
+cmdstr_join(const vector<string>& cmds)
+{
+  if (cmds.empty())
+    throw runtime_error("cmdstr_join called with an empty command!");
+
+  stringstream cmd;
+  cmd << cmdstr_quoted(cmds[0]);
+  for (size_t i = 1; i < cmds.size(); ++i)
+    cmd << " " << cmdstr_quoted(cmds[i]);
+
+  return cmd.str();
+}
+
+
 string
 git_revision(const string& path)
 {

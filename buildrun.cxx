@@ -463,43 +463,67 @@ uprobes_pass (systemtap_session& s)
   return rc;
 }
 
-string
+vector<string>
 make_run_command (systemtap_session& s, const string& module)
 {
   // for now, just spawn staprun
-  string staprun_cmd = string(getenv("SYSTEMTAP_STAPRUN") ?: BINDIR "/staprun")
-    + " "
-    + (s.verbose>1 ? "-v " : "")
-    + (s.verbose>2 ? "-v " : "")
-    + (s.suppress_warnings ? "-w " : "")
-    + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
+  vector<string> staprun_cmd;
+  staprun_cmd.push_back(getenv("SYSTEMTAP_STAPRUN") ?: BINDIR "/staprun");
+  if (s.verbose>1)
+    staprun_cmd.push_back("-v");
+  if (s.verbose>2)
+    staprun_cmd.push_back("-v");
+  if (s.suppress_warnings)
+    staprun_cmd.push_back("-w");
 
-  if (s.cmd != "")
-    staprun_cmd += "-c " + cmdstr_quoted(s.cmd) + " ";
+  if (!s.output_file.empty())
+    {
+      staprun_cmd.push_back("-o");
+      staprun_cmd.push_back(s.output_file);
+    }
+
+  if (!s.cmd.empty())
+    {
+      staprun_cmd.push_back("-c");
+      staprun_cmd.push_back(s.cmd);
+    }
 
   if (s.target_pid)
-    staprun_cmd += "-t " + lex_cast(s.target_pid) + " ";
+    {
+      staprun_cmd.push_back("-t");
+      staprun_cmd.push_back(lex_cast(s.target_pid));
+    }
 
   if (s.buffer_size)
-    staprun_cmd += "-b " + lex_cast(s.buffer_size) + " ";
+    {
+      staprun_cmd.push_back("-b");
+      staprun_cmd.push_back(lex_cast(s.buffer_size));
+    }
 
   if (s.need_uprobes)
-    staprun_cmd += "-u" + s.uprobes_path + " ";
+    {
+      staprun_cmd.push_back("-u");
+      if (!s.uprobes_path.empty())
+        staprun_cmd.push_back(s.uprobes_path);
+    }
 
   if (s.load_only)
-    staprun_cmd += (s.output_file.empty() ? "-L " : "-D ");
+    staprun_cmd.push_back(s.output_file.empty() ? "-L" : "-D");
 
   if (!s.size_option.empty())
-    staprun_cmd += "-S " + s.size_option + " ";
+    {
+      staprun_cmd.push_back("-S");
+      staprun_cmd.push_back(s.size_option);
+    }
 
   if (module.empty())
-    staprun_cmd += s.tmpdir + "/" + s.module_name + ".ko";
+    staprun_cmd.push_back(s.tmpdir + "/" + s.module_name + ".ko");
   else
-    staprun_cmd += module;
+    staprun_cmd.push_back(module);
 
   // add module arguments
-  for (unsigned i=0; i<s.globalopts.size(); i++)
-    staprun_cmd += " " + s.globalopts[i];
+  staprun_cmd.insert(staprun_cmd.end(),
+                     s.globalopts.begin(), s.globalopts.end());
 
   return staprun_cmd;
 }

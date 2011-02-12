@@ -76,13 +76,7 @@ class direct : public remote {
 
     int start()
       {
-        // TODO: flip make_run_command to return a vector for us
-        vector<string> cmd;
-        cmd.push_back("/bin/sh");
-        cmd.push_back("-c");
-        cmd.push_back(make_run_command (*s));
-
-        pid_t pid = stap_spawn (s->verbose, cmd);
+        pid_t pid = stap_spawn (s->verbose, make_run_command (*s));
         if (pid <= 0)
           return 1;
         child = pid;
@@ -271,7 +265,7 @@ class ssh_remote : public remote {
         if (rc == 0) {
           vector<string> cmd = ssh_args;
           cmd.push_back("-t");
-          cmd.push_back(make_run_command(*s, tmpmodule));
+          cmd.push_back(cmdstr_join(make_run_command(*s, tmpmodule)));
           pid_t pid = stap_spawn(s->verbose, cmd);
           if (pid > 0)
             child = pid;

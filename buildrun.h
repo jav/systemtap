@@ -12,8 +12,8 @@
 #include "elaborate.h"
 
 int compile_pass (systemtap_session& s);
-std::string make_run_command (systemtap_session& s,
-                              const std::string& module="");
+std::vector<std::string> make_run_command (systemtap_session& s,
+                                           const std::string& module="");
 
 int make_tracequery(systemtap_session& s, std::string& name,
                     const std::vector<std::string>& headers);

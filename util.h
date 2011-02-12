@@ -25,6 +25,7 @@ void tokenize(const std::string& str, std::vector<std::string>& tokens,
 std::string find_executable(const std::string& name,
 			    const std::string& env_path = "PATH");
 const std::string cmdstr_quoted(const std::string& cmd);
+const std::string cmdstr_join(const std::vector<std::string>& cmds);
 std::string git_revision(const std::string& path);
 int stap_waitpid(int verbose, pid_t pid);
 pid_t stap_spawn(int verbose, const std::vector<std::string>& args);
