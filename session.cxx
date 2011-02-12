@@ -406,7 +406,7 @@ systemtap_session::usage (int exitcode)
     << _("Options:") << endl
     << _("   --         end of translator options, script options follow") << endl
     << _("   -h --help  show help") << endl
-    << _("   -V         show version") << endl
+    << _("   -V --version  show version") << endl
     << _("   -p NUM     stop after pass NUM 1-5, instead of ") << last_pass << endl
     << _("              (parse, elaborate, translate, compile, run)") << endl
     << _("   -v         add verbosity to all passes") << endl
@@ -542,6 +542,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_REMOTE 20
 #define LONG_OPT_CHECK_VERSION 21
 #define LONG_OPT_USE_SERVER_ON_ERROR 22
+#define LONG_OPT_VERSION 23
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -572,6 +573,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
         { "remote", 1, &long_opt, LONG_OPT_REMOTE },
         { "check-version", 0, &long_opt, LONG_OPT_CHECK_VERSION },
+        { "version", 0, &long_opt, LONG_OPT_VERSION },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -851,6 +853,11 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         case 0:
           switch (long_opt)
             {
+            case LONG_OPT_VERSION:
+              push_server_opt = true;
+              version ();
+              exit (0);
+	      break;
             case LONG_OPT_KELF:
 	      push_server_opt = true;
 	      consult_symtab = true;
