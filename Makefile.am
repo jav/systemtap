@@ -9,8 +9,9 @@ oldincludedir = ${includedir}/sys
 
 AM_CPPFLAGS = -DBINDIR='"$(bindir)"' \
 	      -DSYSCONFDIR='"$(sysconfdir)"' \
-	      -DPKGDATADIR='"${pkgdatadir}"' \
+	      -DPKGDATADIR='"$(pkgdatadir)"' \
 	      -DPKGLIBDIR='"$(pkglibexecdir)"' \
+	      -DLOCALEDIR='"$(localedir)"' \
 	      -I$(srcdir)/includes -I$(builddir)/includes/sys
 
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
@@ -289,9 +290,9 @@ if BUILD_SERVER
 endif
 	(cd $(srcdir)/man; for f in *.3*; do rm -rf "$(DESTDIR)$(man3dir)/$$f"; done)
 
-SUBDIRS = . runtime/staprun grapher doc
+SUBDIRS = . runtime/staprun grapher doc po
 DIST_SUBDIRS = testsuite $(SUBDIRS)
-EXTRA_DIST = man/tapset*.3stap
+EXTRA_DIST = m4/ChangeLog  man/tapset*.3stap
 
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \
@@ -351,3 +352,5 @@ rpm: dist-gzip
 	mkdir -p `rpm --eval %_builddir`
 	mkdir -p `rpm --eval %_buildroot`
 	rpmbuild --define "_sourcedir $(PWD)/" -ta systemtap-$(VERSION).tar.gz $(RPMBUILDFLAGS)
+
+ACLOCAL_AMFLAGS = -I m4

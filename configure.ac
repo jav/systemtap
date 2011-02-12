@@ -10,6 +10,7 @@ AM_MAINTAINER_MODE
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
+AC_USE_SYSTEM_EXTENSIONS
 AM_PROG_MKDIR_P
 AC_SUBST(MKDIR_P)
 AC_PROG_LN_S
@@ -26,6 +27,7 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
+AM_GNU_GETTEXT(external)
 
 dnl Handle the prologues option.
 dnl
@@ -514,7 +516,7 @@ support_section_question=0
 if test $stap_cv_sectionq = yes; then
   support_section_question=1
 fi
-AC_CONFIG_FILES([includes/sys/sdt-config.h])
+AC_CONFIG_FILES([includes/sys/sdt-config.h po/Makefile.in])
 
 
 if test $build_elfutils = yes -a $enable_translator = yes; then
@@ -572,8 +574,7 @@ dnl prefix is passed through indirectly in the Makefile.am AM_CPPFLAGS.
 dnl Formerly: Don't use this directly (when not given it is set to NONE).
 dnl Currently: inline autoconf's later defaulting
 
-localedir=/usr/share/locale
-AC_DEFINE_UNQUOTED(LOCALEDIR, "$localedir", [I18N the thing])
+AC_SUBST(LOCALEDIR, "$localedir")
 AC_LIB_LINKFLAGS([asprintf])
 
 stap_prefix=$prefix
