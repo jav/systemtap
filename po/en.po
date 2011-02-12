@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-02-12 15:16-0500\n"
+"POT-Creation-Date: 2011-02-12 16:49-0500\n"
 "PO-Revision-Date: 2011-02-12 15:27-0500\n"
 "Last-Translator: Frank Ch. Eigler <fche@redhat.com>\n"
 "Language-Team: English\n"
@@ -239,629 +239,6 @@ msgstr "cannot index into computed value"
 msgid "cannot index into unavailable value"
 msgstr "cannot index into unavailable value"
 
-#: main.cxx:181
-msgid "# global embedded code"
-msgstr "# global embedded code"
-
-#: main.cxx:191
-msgid "# globals"
-msgstr "# globals"
-
-#: main.cxx:206
-msgid "# functions"
-msgstr "# functions"
-
-#: main.cxx:214 main.cxx:238
-msgid "  # locals"
-msgstr "  # locals"
-
-#: main.cxx:230
-msgid "# probes"
-msgstr "# probes"
-
-#: main.cxx:303 main.cxx:340
-#, c-format
-msgid "Checking \"%s\" failed with error: %s"
-msgstr "Checking \"%s\" failed with error: %s"
-
-#: main.cxx:323 main.cxx:359
-#, c-format
-msgid "Parsed kernel \"%s\", "
-msgstr "Parsed kernel \"%s\", "
-
-#: main.cxx:324
-#, c-format
-msgid "containing %zu tuple"
-msgid_plural "containing %zu tuples"
-msgstr[0] "containing %zu tuple"
-msgstr[1] "containing %zu tuples"
-
-#: main.cxx:343
-msgid "Ensure kernel development headers & makefiles are installed."
-msgstr "Ensure kernel development headers & makefiles are installed."
-
-#: main.cxx:360
-#, c-format
-msgid "which contained one vmlinux export"
-msgid_plural "which contained %zu vmlinux exports"
-msgstr[0] "which contained one vmlinux export"
-msgstr[1] "which contained %zu vmlinux exports"
-
-#: main.cxx:390
-#, c-format
-msgid "ERROR: cannot create temporary directory (\" %s \"): %s"
-msgstr "ERROR: cannot create temporary directory (\" %s \"): %s"
-
-#: main.cxx:398
-#, c-format
-msgid "Created temporary directory \"%s\""
-msgstr "Created temporary directory \"%s\""
-
-#: main.cxx:411
-#, c-format
-msgid "Keeping temporary directory \"%s\""
-msgstr "Keeping temporary directory \"%s\""
-
-#: main.cxx:440
-msgid "ERROR: kernel release isn't specified"
-msgstr "ERROR: kernel release isn't specified"
-
-#: main.cxx:442
-#, c-format
-msgid "ERROR: kernel release isn't found in \"%s\""
-msgstr "ERROR: kernel release isn't found in \"%s\""
-
-#: main.cxx:460
-msgid ""
-"WARNING: Without NSS, using a compile-server is not supported by this "
-"version of systemtap"
-msgstr ""
-"WARNING: Without NSS, using a compile-server is not supported by this "
-"version of systemtap"
-
-#: main.cxx:484
-#, c-format
-msgid "Session arch: %s release: %s"
-msgstr "Session arch: %s release: %s"
-
-#: main.cxx:605
-#, c-format
-msgid ""
-"usage error: tapset file '%s' cannot be run directly as a session script."
-msgstr ""
-"usage error: tapset file '%s' cannot be run directly as a session script."
-
-#: main.cxx:634
-#, c-format
-msgid "Searched: \" %s \", found: %zu, processed: %u"
-msgstr "Searched: \" %s \", found: %zu, processed: %u"
-
-#: main.cxx:648
-msgid "# parse tree dump"
-msgstr "# parse tree dump"
-
-#: main.cxx:685
-msgid "Pass 1: parse failed.  Try again with another '--vp 1' option."
-msgstr "Pass 1: parse failed.  Try again with another '--vp 1' option."
-
-#: main.cxx:718
-msgid "Pass 2: analysis failed.  Try again with another '--vp 01' option."
-msgstr "Pass 2: analysis failed.  Try again with another '--vp 01' option."
-
-#: main.cxx:789
-msgid "Pass 3: translation failed.  Try again with another '--vp 001' option."
-msgstr "Pass 3: translation failed.  Try again with another '--vp 001' option."
-
-#: main.cxx:826
-msgid "Pass 4: compilation failed.  Try again with another '--vp 0001' option."
-msgstr ""
-"Pass 4: compilation failed.  Try again with another '--vp 0001' option."
-
-#: main.cxx:870
-msgid "Pass 5: starting run."
-msgstr "Pass 5: starting run."
-
-#: main.cxx:886
-msgid "Pass 5: run failed.  Try again with another '--vp 00001' option."
-msgstr "Pass 5: run failed.  Try again with another '--vp 00001' option."
-
-#: main.cxx:914
-msgid "Coverage database not available without libsqlite3"
-msgstr "Coverage database not available without libsqlite3"
-
-#: session.cxx:180
-#, c-format
-msgid ""
-"Warning: failed to create systemtap data driector \"%s\":%s, disablig cache "
-"support."
-msgstr ""
-"Warning: failed to create systemtap data driector \"%s\":%s, disablig cache "
-"support."
-
-#: session.cxx:195
-#, c-format
-msgid ""
-"Warning: failed to create cache directory (\" %s \"): %s, disabling cache "
-"support."
-msgstr ""
-"Warning: failed to create cache directory (\" %s \"): %s, disabling cache "
-"support."
-
-#: session.cxx:359
-msgid "SystemTap translator/driver "
-msgstr "SystemTap translator/driver "
-
-#: session.cxx:360
-msgid "(version "
-msgstr "(version "
-
-#: session.cxx:362
-msgid "Copyright (C) 2005-2011 Red Hat, Inc. and others"
-msgstr "Copyright (C) 2005-2011 Red Hat, Inc. and others"
-
-#: session.cxx:363
-msgid "This is free software; see the source for copying conditions."
-msgstr "This is free software; see the source for copying conditions."
-
-#: session.cxx:364
-msgid "enabled features:"
-msgstr "enabled features:"
-
-#: session.cxx:396
-msgid "Usage: stap [options] FILE         Run script in file."
-msgstr "Usage: stap [options] FILE         Run script in file."
-
-#: session.cxx:398
-msgid "   or: stap [options] -            Run script on stdin."
-msgstr "   or: stap [options] -            Run script on stdin."
-
-#: session.cxx:400
-msgid "   or: stap [options] -e SCRIPT    Run given script."
-msgstr "   or: stap [options] -e SCRIPT    Run given script."
-
-#: session.cxx:402
-msgid "   or: stap [options] -l PROBE     List matching probes."
-msgstr "   or: stap [options] -l PROBE     List matching probes."
-
-#: session.cxx:404
-msgid ""
-"   or: stap [options] -L PROBE     List matching probes and local variables."
-msgstr ""
-"   or: stap [options] -L PROBE     List matching probes and local variables."
-
-#: session.cxx:407
-msgid "Options:"
-msgstr "Options:"
-
-#: session.cxx:408
-msgid "   --         end of translator options, script options follow"
-msgstr "   --         end of translator options, script options follow"
-
-#: session.cxx:409
-msgid "   -h --help  show help"
-msgstr "   -h --help  show help"
-
-#: session.cxx:410
-msgid "   -V         show version"
-msgstr "   -V         show version"
-
-#: session.cxx:411
-msgid "   -p NUM     stop after pass NUM 1-5, instead of "
-msgstr "   -p NUM     stop after pass NUM 1-5, instead of "
-
-#: session.cxx:412
-msgid "              (parse, elaborate, translate, compile, run)"
-msgstr "              (parse, elaborate, translate, compile, run)"
-
-#: session.cxx:413
-msgid "   -v         add verbosity to all passes"
-msgstr "   -v         add verbosity to all passes"
-
-#: session.cxx:414
-msgid "   --vp {N}+  add per-pass verbosity ["
-msgstr "   --vp {N}+  add per-pass verbosity ["
-
-#: session.cxx:418
-msgid "]"
-msgstr "]"
-
-#: session.cxx:419
-msgid "   -k         keep temporary directory"
-msgstr "   -k         keep temporary directory"
-
-#: session.cxx:420
-#, c-format
-msgid "   -u         unoptimized translation %s"
-msgstr "   -u         unoptimized translation %s"
-
-#: session.cxx:420 session.cxx:422 session.cxx:423 session.cxx:424
-#: session.cxx:426 session.cxx:427
-msgid " [set]"
-msgstr " [set]"
-
-#: session.cxx:422
-#, c-format
-msgid "   -w         suppress warnings %s"
-msgstr "   -w         suppress warnings %s"
-
-#: session.cxx:423
-#, c-format
-msgid "   -W         turn warnings into errors %s"
-msgstr "   -W         turn warnings into errors %s"
-
-#: session.cxx:424
-#, c-format
-msgid "   -g         guru mode %s"
-msgstr "   -g         guru mode %s"
-
-#: session.cxx:425
-#, c-format
-msgid "   -P         prologue-searching for function probes %s"
-msgstr "   -P         prologue-searching for function probes %s"
-
-#: session.cxx:427
-#, c-format
-msgid "   -b         bulk (percpu file) mode %s"
-msgstr "   -b         bulk (percpu file) mode %s"
-
-#: session.cxx:428
-#, c-format
-msgid "   -s NUM     buffer size in megabytes, instead of %d"
-msgstr "   -s NUM     buffer size in megabytes, instead of %d"
-
-#: session.cxx:429
-msgid "   -I DIR     look in DIR for additional .stp script files"
-msgstr "   -I DIR     look in DIR for additional .stp script files"
-
-#: session.cxx:433 session.cxx:459
-msgid ", in addition to"
-msgstr ", in addition to"
-
-#: session.cxx:435 session.cxx:441 session.cxx:444 session.cxx:447
-#: session.cxx:463
-#, c-format
-msgid "              %s"
-msgstr "              %s"
-
-#: session.cxx:437
-msgid "   -D NM=VAL  emit macro definition into generated C code"
-msgstr "   -D NM=VAL  emit macro definition into generated C code"
-
-#: session.cxx:438
-msgid "   -B NM=VAL  pass option to kbuild make"
-msgstr "   -B NM=VAL  pass option to kbuild make"
-
-#: session.cxx:439
-msgid "   -G VAR=VAL set global variable to value"
-msgstr "   -G VAR=VAL set global variable to value"
-
-#: session.cxx:440
-msgid "   -R DIR     look in DIR for runtime, instead of"
-msgstr "   -R DIR     look in DIR for runtime, instead of"
-
-#: session.cxx:442
-msgid "   -r DIR     cross-compile to kernel with given build tree; or else"
-msgstr "   -r DIR     cross-compile to kernel with given build tree; or else"
-
-#: session.cxx:443
-msgid ""
-"   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of"
-msgstr ""
-"   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of"
-
-#: session.cxx:445
-#, c-format
-msgid "   -a ARCH    cross-compile to given architecture, instead of %s"
-msgstr "   -a ARCH    cross-compile to given architecture, instead of %s"
-
-#: session.cxx:446
-msgid "   -m MODULE  set probe module name, instead of "
-msgstr "   -m MODULE  set probe module name, instead of "
-
-#: session.cxx:448
-msgid ""
-"   -o FILE    send script output to file, instead of stdout. This supports"
-msgstr ""
-"   -o FILE    send script output to file, instead of stdout. This supports"
-
-#: session.cxx:449
-msgid "              strftime(3) formats for FILE"
-msgstr "              strftime(3) formats for FILE"
-
-#: session.cxx:450
-msgid "   -c CMD     start the probes, run CMD, and exit when it finishes"
-msgstr "   -c CMD     start the probes, run CMD, and exit when it finishes"
-
-#: session.cxx:451
-msgid "   -x PID     sets target() to PID"
-msgstr "   -x PID     sets target() to PID"
-
-#: session.cxx:452
-msgid "   -F         run as on-file flight recorder with -o."
-msgstr "   -F         run as on-file flight recorder with -o."
-
-#: session.cxx:453
-msgid "              run as on-memory flight recorder without -o."
-msgstr "              run as on-memory flight recorder without -o."
-
-#: session.cxx:454
-msgid "   -S size[,n] set maximum of the size and the number of files."
-msgstr "   -S size[,n] set maximum of the size and the number of files."
-
-#: session.cxx:455
-msgid "   -d OBJECT  add unwind/symbol data for OBJECT file"
-msgstr "   -d OBJECT  add unwind/symbol data for OBJECT file"
-
-#: session.cxx:466
-msgid "   --ldd      add unwind/symbol data for all referenced OBJECT files."
-msgstr "   --ldd      add unwind/symbol data for all referenced OBJECT files."
-
-#: session.cxx:467
-msgid "   --all-modules"
-msgstr "   --all-modules"
-
-#: session.cxx:468
-msgid "              add unwind/symbol data for all loaded kernel objects."
-msgstr "              add unwind/symbol data for all loaded kernel objects."
-
-#: session.cxx:469
-msgid "   -t         collect probe timing information"
-msgstr "   -t         collect probe timing information"
-
-#: session.cxx:471
-msgid "   -q         generate information on tapset coverage"
-msgstr "   -q         generate information on tapset coverage"
-
-#: session.cxx:473
-msgid "   --unprivileged"
-msgstr "   --unprivileged"
-
-#: session.cxx:474
-msgid ""
-"              restrict usage to features available to unprivileged users"
-msgstr ""
-"              restrict usage to features available to unprivileged users"
-
-#: session.cxx:482
-msgid "   --compatible=VERSION"
-msgstr "   --compatible=VERSION"
-
-#: session.cxx:483
-msgid ""
-"              suppress incompatible language/tapset changes beyond VERSION,"
-msgstr ""
-"              suppress incompatible language/tapset changes beyond VERSION,"
-
-#: session.cxx:484
-#, c-format
-msgid "              instead of %s"
-msgstr "              instead of %s"
-
-#: session.cxx:485
-msgid "   --check-version"
-msgstr "   --check-version"
-
-#: session.cxx:486
-msgid "              displays warnings where a syntax element may be "
-msgstr "              displays warnings where a syntax element may be "
-
-#: session.cxx:487
-msgid "              version dependent"
-msgstr "              version dependent"
-
-#: session.cxx:488
-msgid "   --skip-badvars"
-msgstr "   --skip-badvars"
-
-#: session.cxx:489
-msgid "              substitute zero for bad context $variables"
-msgstr "              substitute zero for bad context $variables"
-
-#: session.cxx:490
-msgid "   --use-server[=SERVER-SPEC]"
-msgstr "   --use-server[=SERVER-SPEC]"
-
-#: session.cxx:491
-msgid "              specify systemtap compile-servers"
-msgstr "              specify systemtap compile-servers"
-
-#: session.cxx:492
-msgid "   --list-servers[=PROPERTIES]"
-msgstr "   --list-servers[=PROPERTIES]"
-
-#: session.cxx:493
-msgid "              report on the status of the specified compile-servers"
-msgstr "              report on the status of the specified compile-servers"
-
-#: session.cxx:495
-msgid "   --trust-servers[=TRUST-SPEC]"
-msgstr "   --trust-servers[=TRUST-SPEC]"
-
-#: session.cxx:496
-msgid "              add/revoke trust of specified compile-servers"
-msgstr "              add/revoke trust of specified compile-servers"
-
-#: session.cxx:497
-msgid "   --use-server-on-error[=yes/no]"
-msgstr "   --use-server-on-error[=yes/no]"
-
-#: session.cxx:498
-msgid ""
-"              retry compilation using a compile server upon compilation error"
-msgstr ""
-"              retry compilation using a compile server upon compilation error"
-
-#: session.cxx:500
-msgid "   --remote=HOSTNAME"
-msgstr "   --remote=HOSTNAME"
-
-#: session.cxx:501
-msgid "              run pass 5 on the specified ssh host (EXPERIMENTAL)"
-msgstr "              run pass 5 on the specified ssh host (EXPERIMENTAL)"
-
-#: session.cxx:627
-msgid "Invalid pass number (should be 1-5)."
-msgstr "Invalid pass number (should be 1-5)."
-
-#: session.cxx:632
-msgid "Listing (-l) mode implies pass 2."
-msgstr "Listing (-l) mode implies pass 2."
-
-#: session.cxx:669 session.cxx:832
-msgid "Only one script can be given on the command line."
-msgstr "Only one script can be given on the command line."
-
-#: session.cxx:685
-msgid "ERROR: -R invalid with --client-options"
-msgstr "ERROR: -R invalid with --client-options"
-
-#: session.cxx:701 session.cxx:719
-#, c-format
-msgid "Truncating module name to '%s'"
-msgstr "Truncating module name to '%s'"
-
-#: session.cxx:707
-msgid "Module name cannot be empty."
-msgstr "Module name cannot be empty."
-
-#: session.cxx:770
-msgid "Invalid buffer size (should be 1-4095)."
-msgstr "Invalid buffer size (should be 1-4095)."
-
-#: session.cxx:783
-msgid "Empty CMD string invalid."
-msgstr "Empty CMD string invalid."
-
-#: session.cxx:792
-msgid "Invalid target process ID number."
-msgstr "Invalid target process ID number."
-
-#: session.cxx:813
-msgid "ERROR: -q invalid with --client-options"
-msgstr "ERROR: -q invalid with --client-options"
-
-#: session.cxx:847
-msgid "ERROR: -B invalid with --client-options"
-msgstr "ERROR: -B invalid with --client-options"
-
-#: session.cxx:863
-msgid "You can't specify multiple --kmap options."
-msgstr "You can't specify multiple --kmap options."
-
-#: session.cxx:894
-msgid "Invalid --vp argument: it takes 1 to 5 digits."
-msgstr "Invalid --vp argument: it takes 1 to 5 digits."
-
-#: session.cxx:967
-msgid "ERROR: --disable-cache is invalid with --client-options"
-msgstr "ERROR: --disable-cache is invalid with --client-options"
-
-#: session.cxx:974
-msgid "ERROR: --poison-cache is invalid with --client-options"
-msgstr "ERROR: --poison-cache is invalid with --client-options"
-
-#: session.cxx:981
-msgid "ERROR: --clean-cache is invalid with --client-options"
-msgstr "ERROR: --clean-cache is invalid with --client-options"
-
-#: session.cxx:994
-msgid "ERROR: --ldd is invalid with --client-options"
-msgstr "ERROR: --ldd is invalid with --client-options"
-
-#: session.cxx:1003
-msgid "ERROR: --all-modules is invalid with --client-options"
-msgstr "ERROR: --all-modules is invalid with --client-options"
-
-#: session.cxx:1011
-msgid "ERROR: --remote is invalid with --client-options"
-msgstr "ERROR: --remote is invalid with --client-options"
-
-#: session.cxx:1025
-#, c-format
-msgid "Unhandled long argument id %d"
-msgstr "Unhandled long argument id %d"
-
-#: session.cxx:1039
-#, c-format
-msgid "Unhandled argument code %d"
-msgstr "Unhandled argument code %d"
-
-#: session.cxx:1081
-msgid "A script must be specified."
-msgstr "A script must be specified."
-
-#: session.cxx:1088
-msgid "WARNING: --client-options is not supported by this version of systemtap"
-msgstr ""
-"WARNING: --client-options is not supported by this version of systemtap"
-
-#: session.cxx:1094
-msgid "WARNING: --trust-servers is not supported by this version of systemtap"
-msgstr "WARNING: --trust-servers is not supported by this version of systemtap"
-
-#: session.cxx:1101
-msgid "Warning: Ignoring --use-server due to the use of -R"
-msgstr "Warning: Ignoring --use-server due to the use of -R"
-
-#: session.cxx:1125
-msgid "Using --unprivileged for member of the group stapusr"
-msgstr "Using --unprivileged for member of the group stapusr"
-
-#: session.cxx:1132
-msgid "Using --use-server for member of the group stapusr"
-msgstr "Using --use-server for member of the group stapusr"
-
-#: session.cxx:1141
-#, c-format
-msgid "You can't specify %s when --unprivileged is specified."
-msgstr "You can't specify %s when --unprivileged is specified."
-
-#: session.cxx:1147
-msgid "You can't specify -c and -x options together."
-msgstr "You can't specify -c and -x options together."
-
-#: session.cxx:1152
-msgid "You can't specify -g and --unprivileged together."
-msgstr "You can't specify -g and --unprivileged together."
-
-#: session.cxx:1159
-msgid "You can't specify --kelf and --kmap together."
-msgstr "You can't specify --kelf and --kmap together."
-
-#: session.cxx:1172
-msgid ""
-"WARNING: kernel release/architecture mismatch with host forces last-pass 4."
-msgstr ""
-"WARNING: kernel release/architecture mismatch with host forces last-pass 4."
-
-#: session.cxx:1247
-#, c-format
-msgid "Missing %s"
-msgstr "Missing %s"
-
-#: session.cxx:1269
-#, c-format
-msgid "Located kernel source tree (COPYING) at '%s'"
-msgstr "Located kernel source tree (COPYING) at '%s'"
-
-#: session.cxx:1314
-#, c-format
-msgid "alias component %s contains illegal parameter"
-msgstr "alias component %s contains illegal parameter"
-
-#: session.cxx:1326
-msgid " while registering probe alias "
-msgstr " while registering probe alias "
-
-#: session.cxx:1379
-#, c-format
-msgid "semantic error: %s"
-msgstr "semantic error: %s"
-
-#: session.cxx:1458
-msgid "WARNING: "
-msgstr "WARNING: "
-
 #: loc2c-test.c:90
 #, c-format
 msgid "cannot get type of variable: %s"
@@ -937,3 +314,627 @@ msgstr "cannot get die scopes inlined_subroutine: %s"
 #, c-format
 msgid "cannot get location of variable: %s"
 msgstr "cannot get location of variable: %s"
+
+#: main.cxx:179
+msgid "# global embedded code"
+msgstr "# global embedded code"
+
+#: main.cxx:189
+msgid "# globals"
+msgstr "# globals"
+
+#: main.cxx:204
+msgid "# functions"
+msgstr "# functions"
+
+#: main.cxx:212 main.cxx:236
+msgid "  # locals"
+msgstr "  # locals"
+
+#: main.cxx:228
+msgid "# probes"
+msgstr "# probes"
+
+#: main.cxx:301 main.cxx:338
+#, c-format
+msgid "Checking \"%s\" failed with error: %s"
+msgstr "Checking \"%s\" failed with error: %s"
+
+#: main.cxx:321 main.cxx:357
+#, c-format
+msgid "Parsed kernel \"%s\", "
+msgstr "Parsed kernel \"%s\", "
+
+#: main.cxx:322
+#, c-format
+msgid "containing %zu tuple"
+msgid_plural "containing %zu tuples"
+msgstr[0] "containing %zu tuple"
+msgstr[1] "containing %zu tuples"
+
+#: main.cxx:341
+msgid "Ensure kernel development headers & makefiles are installed."
+msgstr "Ensure kernel development headers & makefiles are installed."
+
+#: main.cxx:358
+#, c-format
+msgid "which contained one vmlinux export"
+msgid_plural "which contained %zu vmlinux exports"
+msgstr[0] "which contained one vmlinux export"
+msgstr[1] "which contained %zu vmlinux exports"
+
+#: main.cxx:388
+#, c-format
+msgid "ERROR: cannot create temporary directory (\" %s \"): %s"
+msgstr "ERROR: cannot create temporary directory (\" %s \"): %s"
+
+#: main.cxx:396
+#, c-format
+msgid "Created temporary directory \"%s\""
+msgstr "Created temporary directory \"%s\""
+
+#: main.cxx:409
+#, c-format
+msgid "Keeping temporary directory \"%s\""
+msgstr "Keeping temporary directory \"%s\""
+
+#: main.cxx:438
+msgid "ERROR: kernel release isn't specified"
+msgstr "ERROR: kernel release isn't specified"
+
+#: main.cxx:440
+#, c-format
+msgid "ERROR: kernel release isn't found in \"%s\""
+msgstr "ERROR: kernel release isn't found in \"%s\""
+
+#: main.cxx:458
+msgid ""
+"WARNING: Without NSS, using a compile-server is not supported by this "
+"version of systemtap"
+msgstr ""
+"WARNING: Without NSS, using a compile-server is not supported by this "
+"version of systemtap"
+
+#: main.cxx:482
+#, c-format
+msgid "Session arch: %s release: %s"
+msgstr "Session arch: %s release: %s"
+
+#: main.cxx:603
+#, c-format
+msgid ""
+"usage error: tapset file '%s' cannot be run directly as a session script."
+msgstr ""
+"usage error: tapset file '%s' cannot be run directly as a session script."
+
+#: main.cxx:632
+#, c-format
+msgid "Searched: \" %s \", found: %zu, processed: %u"
+msgstr "Searched: \" %s \", found: %zu, processed: %u"
+
+#: main.cxx:646
+msgid "# parse tree dump"
+msgstr "# parse tree dump"
+
+#: main.cxx:683
+msgid "Pass 1: parse failed.  Try again with another '--vp 1' option."
+msgstr "Pass 1: parse failed.  Try again with another '--vp 1' option."
+
+#: main.cxx:716
+msgid "Pass 2: analysis failed.  Try again with another '--vp 01' option."
+msgstr "Pass 2: analysis failed.  Try again with another '--vp 01' option."
+
+#: main.cxx:787
+msgid "Pass 3: translation failed.  Try again with another '--vp 001' option."
+msgstr "Pass 3: translation failed.  Try again with another '--vp 001' option."
+
+#: main.cxx:824
+msgid "Pass 4: compilation failed.  Try again with another '--vp 0001' option."
+msgstr ""
+"Pass 4: compilation failed.  Try again with another '--vp 0001' option."
+
+#: main.cxx:868
+msgid "Pass 5: starting run."
+msgstr "Pass 5: starting run."
+
+#: main.cxx:884
+msgid "Pass 5: run failed.  Try again with another '--vp 00001' option."
+msgstr "Pass 5: run failed.  Try again with another '--vp 00001' option."
+
+#: main.cxx:912
+msgid "Coverage database not available without libsqlite3"
+msgstr "Coverage database not available without libsqlite3"
+
+#: session.cxx:179
+#, c-format
+msgid ""
+"Warning: failed to create systemtap data driector \"%s\":%s, disablig cache "
+"support."
+msgstr ""
+"Warning: failed to create systemtap data driector \"%s\":%s, disablig cache "
+"support."
+
+#: session.cxx:194
+#, c-format
+msgid ""
+"Warning: failed to create cache directory (\" %s \"): %s, disabling cache "
+"support."
+msgstr ""
+"Warning: failed to create cache directory (\" %s \"): %s, disabling cache "
+"support."
+
+#: session.cxx:358
+msgid "SystemTap translator/driver "
+msgstr "SystemTap translator/driver "
+
+#: session.cxx:359
+msgid "(version "
+msgstr "(version "
+
+#: session.cxx:361
+msgid "Copyright (C) 2005-2011 Red Hat, Inc. and others"
+msgstr "Copyright (C) 2005-2011 Red Hat, Inc. and others"
+
+#: session.cxx:362
+msgid "This is free software; see the source for copying conditions."
+msgstr "This is free software; see the source for copying conditions."
+
+#: session.cxx:363
+msgid "enabled features:"
+msgstr "enabled features:"
+
+#: session.cxx:395
+msgid "Usage: stap [options] FILE         Run script in file."
+msgstr "Usage: stap [options] FILE         Run script in file."
+
+#: session.cxx:397
+msgid "   or: stap [options] -            Run script on stdin."
+msgstr "   or: stap [options] -            Run script on stdin."
+
+#: session.cxx:399
+msgid "   or: stap [options] -e SCRIPT    Run given script."
+msgstr "   or: stap [options] -e SCRIPT    Run given script."
+
+#: session.cxx:401
+msgid "   or: stap [options] -l PROBE     List matching probes."
+msgstr "   or: stap [options] -l PROBE     List matching probes."
+
+#: session.cxx:403
+msgid ""
+"   or: stap [options] -L PROBE     List matching probes and local variables."
+msgstr ""
+"   or: stap [options] -L PROBE     List matching probes and local variables."
+
+#: session.cxx:406
+msgid "Options:"
+msgstr "Options:"
+
+#: session.cxx:407
+msgid "   --         end of translator options, script options follow"
+msgstr "   --         end of translator options, script options follow"
+
+#: session.cxx:408
+msgid "   -h --help  show help"
+msgstr "   -h --help  show help"
+
+#: session.cxx:409
+#, fuzzy
+msgid "   -V --version  show version"
+msgstr "   -V         show version"
+
+#: session.cxx:410
+msgid "   -p NUM     stop after pass NUM 1-5, instead of "
+msgstr "   -p NUM     stop after pass NUM 1-5, instead of "
+
+#: session.cxx:411
+msgid "              (parse, elaborate, translate, compile, run)"
+msgstr "              (parse, elaborate, translate, compile, run)"
+
+#: session.cxx:412
+msgid "   -v         add verbosity to all passes"
+msgstr "   -v         add verbosity to all passes"
+
+#: session.cxx:413
+msgid "   --vp {N}+  add per-pass verbosity ["
+msgstr "   --vp {N}+  add per-pass verbosity ["
+
+#: session.cxx:417
+msgid "]"
+msgstr "]"
+
+#: session.cxx:418
+msgid "   -k         keep temporary directory"
+msgstr "   -k         keep temporary directory"
+
+#: session.cxx:419
+#, c-format
+msgid "   -u         unoptimized translation %s"
+msgstr "   -u         unoptimized translation %s"
+
+#: session.cxx:419 session.cxx:421 session.cxx:422 session.cxx:423
+#: session.cxx:425 session.cxx:426
+msgid " [set]"
+msgstr " [set]"
+
+#: session.cxx:421
+#, c-format
+msgid "   -w         suppress warnings %s"
+msgstr "   -w         suppress warnings %s"
+
+#: session.cxx:422
+#, c-format
+msgid "   -W         turn warnings into errors %s"
+msgstr "   -W         turn warnings into errors %s"
+
+#: session.cxx:423
+#, c-format
+msgid "   -g         guru mode %s"
+msgstr "   -g         guru mode %s"
+
+#: session.cxx:424
+#, c-format
+msgid "   -P         prologue-searching for function probes %s"
+msgstr "   -P         prologue-searching for function probes %s"
+
+#: session.cxx:426
+#, c-format
+msgid "   -b         bulk (percpu file) mode %s"
+msgstr "   -b         bulk (percpu file) mode %s"
+
+#: session.cxx:427
+#, c-format
+msgid "   -s NUM     buffer size in megabytes, instead of %d"
+msgstr "   -s NUM     buffer size in megabytes, instead of %d"
+
+#: session.cxx:428
+msgid "   -I DIR     look in DIR for additional .stp script files"
+msgstr "   -I DIR     look in DIR for additional .stp script files"
+
+#: session.cxx:432 session.cxx:458
+msgid ", in addition to"
+msgstr ", in addition to"
+
+#: session.cxx:434 session.cxx:440 session.cxx:443 session.cxx:446
+#: session.cxx:462
+#, c-format
+msgid "              %s"
+msgstr "              %s"
+
+#: session.cxx:436
+msgid "   -D NM=VAL  emit macro definition into generated C code"
+msgstr "   -D NM=VAL  emit macro definition into generated C code"
+
+#: session.cxx:437
+msgid "   -B NM=VAL  pass option to kbuild make"
+msgstr "   -B NM=VAL  pass option to kbuild make"
+
+#: session.cxx:438
+msgid "   -G VAR=VAL set global variable to value"
+msgstr "   -G VAR=VAL set global variable to value"
+
+#: session.cxx:439
+msgid "   -R DIR     look in DIR for runtime, instead of"
+msgstr "   -R DIR     look in DIR for runtime, instead of"
+
+#: session.cxx:441
+msgid "   -r DIR     cross-compile to kernel with given build tree; or else"
+msgstr "   -r DIR     cross-compile to kernel with given build tree; or else"
+
+#: session.cxx:442
+msgid ""
+"   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of"
+msgstr ""
+"   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of"
+
+#: session.cxx:444
+#, c-format
+msgid "   -a ARCH    cross-compile to given architecture, instead of %s"
+msgstr "   -a ARCH    cross-compile to given architecture, instead of %s"
+
+#: session.cxx:445
+msgid "   -m MODULE  set probe module name, instead of "
+msgstr "   -m MODULE  set probe module name, instead of "
+
+#: session.cxx:447
+msgid ""
+"   -o FILE    send script output to file, instead of stdout. This supports"
+msgstr ""
+"   -o FILE    send script output to file, instead of stdout. This supports"
+
+#: session.cxx:448
+msgid "              strftime(3) formats for FILE"
+msgstr "              strftime(3) formats for FILE"
+
+#: session.cxx:449
+msgid "   -c CMD     start the probes, run CMD, and exit when it finishes"
+msgstr "   -c CMD     start the probes, run CMD, and exit when it finishes"
+
+#: session.cxx:450
+msgid "   -x PID     sets target() to PID"
+msgstr "   -x PID     sets target() to PID"
+
+#: session.cxx:451
+msgid "   -F         run as on-file flight recorder with -o."
+msgstr "   -F         run as on-file flight recorder with -o."
+
+#: session.cxx:452
+msgid "              run as on-memory flight recorder without -o."
+msgstr "              run as on-memory flight recorder without -o."
+
+#: session.cxx:453
+msgid "   -S size[,n] set maximum of the size and the number of files."
+msgstr "   -S size[,n] set maximum of the size and the number of files."
+
+#: session.cxx:454
+msgid "   -d OBJECT  add unwind/symbol data for OBJECT file"
+msgstr "   -d OBJECT  add unwind/symbol data for OBJECT file"
+
+#: session.cxx:465
+msgid "   --ldd      add unwind/symbol data for all referenced OBJECT files."
+msgstr "   --ldd      add unwind/symbol data for all referenced OBJECT files."
+
+#: session.cxx:466
+msgid "   --all-modules"
+msgstr "   --all-modules"
+
+#: session.cxx:467
+msgid "              add unwind/symbol data for all loaded kernel objects."
+msgstr "              add unwind/symbol data for all loaded kernel objects."
+
+#: session.cxx:468
+msgid "   -t         collect probe timing information"
+msgstr "   -t         collect probe timing information"
+
+#: session.cxx:470
+msgid "   -q         generate information on tapset coverage"
+msgstr "   -q         generate information on tapset coverage"
+
+#: session.cxx:472
+msgid "   --unprivileged"
+msgstr "   --unprivileged"
+
+#: session.cxx:473
+msgid ""
+"              restrict usage to features available to unprivileged users"
+msgstr ""
+"              restrict usage to features available to unprivileged users"
+
+#: session.cxx:481
+msgid "   --compatible=VERSION"
+msgstr "   --compatible=VERSION"
+
+#: session.cxx:482
+msgid ""
+"              suppress incompatible language/tapset changes beyond VERSION,"
+msgstr ""
+"              suppress incompatible language/tapset changes beyond VERSION,"
+
+#: session.cxx:483
+#, c-format
+msgid "              instead of %s"
+msgstr "              instead of %s"
+
+#: session.cxx:484
+msgid "   --check-version"
+msgstr "   --check-version"
+
+#: session.cxx:485
+msgid "              displays warnings where a syntax element may be "
+msgstr "              displays warnings where a syntax element may be "
+
+#: session.cxx:486
+msgid "              version dependent"
+msgstr "              version dependent"
+
+#: session.cxx:487
+msgid "   --skip-badvars"
+msgstr "   --skip-badvars"
+
+#: session.cxx:488
+msgid "              substitute zero for bad context $variables"
+msgstr "              substitute zero for bad context $variables"
+
+#: session.cxx:489
+msgid "   --use-server[=SERVER-SPEC]"
+msgstr "   --use-server[=SERVER-SPEC]"
+
+#: session.cxx:490
+msgid "              specify systemtap compile-servers"
+msgstr "              specify systemtap compile-servers"
+
+#: session.cxx:491
+msgid "   --list-servers[=PROPERTIES]"
+msgstr "   --list-servers[=PROPERTIES]"
+
+#: session.cxx:492
+msgid "              report on the status of the specified compile-servers"
+msgstr "              report on the status of the specified compile-servers"
+
+#: session.cxx:494
+msgid "   --trust-servers[=TRUST-SPEC]"
+msgstr "   --trust-servers[=TRUST-SPEC]"
+
+#: session.cxx:495
+msgid "              add/revoke trust of specified compile-servers"
+msgstr "              add/revoke trust of specified compile-servers"
+
+#: session.cxx:496
+msgid "   --use-server-on-error[=yes/no]"
+msgstr "   --use-server-on-error[=yes/no]"
+
+#: session.cxx:497
+msgid ""
+"              retry compilation using a compile server upon compilation error"
+msgstr ""
+"              retry compilation using a compile server upon compilation error"
+
+#: session.cxx:499
+msgid "   --remote=HOSTNAME"
+msgstr "   --remote=HOSTNAME"
+
+#: session.cxx:500
+msgid "              run pass 5 on the specified ssh host (EXPERIMENTAL)"
+msgstr "              run pass 5 on the specified ssh host (EXPERIMENTAL)"
+
+#: session.cxx:628
+msgid "Invalid pass number (should be 1-5)."
+msgstr "Invalid pass number (should be 1-5)."
+
+#: session.cxx:633
+msgid "Listing (-l) mode implies pass 2."
+msgstr "Listing (-l) mode implies pass 2."
+
+#: session.cxx:670 session.cxx:833
+msgid "Only one script can be given on the command line."
+msgstr "Only one script can be given on the command line."
+
+#: session.cxx:686
+msgid "ERROR: -R invalid with --client-options"
+msgstr "ERROR: -R invalid with --client-options"
+
+#: session.cxx:702 session.cxx:720
+#, c-format
+msgid "Truncating module name to '%s'"
+msgstr "Truncating module name to '%s'"
+
+#: session.cxx:708
+msgid "Module name cannot be empty."
+msgstr "Module name cannot be empty."
+
+#: session.cxx:771
+msgid "Invalid buffer size (should be 1-4095)."
+msgstr "Invalid buffer size (should be 1-4095)."
+
+#: session.cxx:784
+msgid "Empty CMD string invalid."
+msgstr "Empty CMD string invalid."
+
+#: session.cxx:793
+msgid "Invalid target process ID number."
+msgstr "Invalid target process ID number."
+
+#: session.cxx:814
+msgid "ERROR: -q invalid with --client-options"
+msgstr "ERROR: -q invalid with --client-options"
+
+#: session.cxx:848
+msgid "ERROR: -B invalid with --client-options"
+msgstr "ERROR: -B invalid with --client-options"
+
+#: session.cxx:869
+msgid "You can't specify multiple --kmap options."
+msgstr "You can't specify multiple --kmap options."
+
+#: session.cxx:900
+msgid "Invalid --vp argument: it takes 1 to 5 digits."
+msgstr "Invalid --vp argument: it takes 1 to 5 digits."
+
+#: session.cxx:973
+msgid "ERROR: --disable-cache is invalid with --client-options"
+msgstr "ERROR: --disable-cache is invalid with --client-options"
+
+#: session.cxx:980
+msgid "ERROR: --poison-cache is invalid with --client-options"
+msgstr "ERROR: --poison-cache is invalid with --client-options"
+
+#: session.cxx:987
+msgid "ERROR: --clean-cache is invalid with --client-options"
+msgstr "ERROR: --clean-cache is invalid with --client-options"
+
+#: session.cxx:1000
+msgid "ERROR: --ldd is invalid with --client-options"
+msgstr "ERROR: --ldd is invalid with --client-options"
+
+#: session.cxx:1009
+msgid "ERROR: --all-modules is invalid with --client-options"
+msgstr "ERROR: --all-modules is invalid with --client-options"
+
+#: session.cxx:1017
+msgid "ERROR: --remote is invalid with --client-options"
+msgstr "ERROR: --remote is invalid with --client-options"
+
+#: session.cxx:1031
+#, c-format
+msgid "Unhandled long argument id %d"
+msgstr "Unhandled long argument id %d"
+
+#: session.cxx:1045
+#, c-format
+msgid "Unhandled argument code %d"
+msgstr "Unhandled argument code %d"
+
+#: session.cxx:1087
+msgid "A script must be specified."
+msgstr "A script must be specified."
+
+#: session.cxx:1094
+msgid "WARNING: --client-options is not supported by this version of systemtap"
+msgstr ""
+"WARNING: --client-options is not supported by this version of systemtap"
+
+#: session.cxx:1100
+msgid "WARNING: --trust-servers is not supported by this version of systemtap"
+msgstr "WARNING: --trust-servers is not supported by this version of systemtap"
+
+#: session.cxx:1107
+msgid "Warning: Ignoring --use-server due to the use of -R"
+msgstr "Warning: Ignoring --use-server due to the use of -R"
+
+#: session.cxx:1131
+msgid "Using --unprivileged for member of the group stapusr"
+msgstr "Using --unprivileged for member of the group stapusr"
+
+#: session.cxx:1138
+msgid "Using --use-server for member of the group stapusr"
+msgstr "Using --use-server for member of the group stapusr"
+
+#: session.cxx:1147
+#, c-format
+msgid "You can't specify %s when --unprivileged is specified."
+msgstr "You can't specify %s when --unprivileged is specified."
+
+#: session.cxx:1153
+msgid "You can't specify -c and -x options together."
+msgstr "You can't specify -c and -x options together."
+
+#: session.cxx:1158
+msgid "You can't specify -g and --unprivileged together."
+msgstr "You can't specify -g and --unprivileged together."
+
+#: session.cxx:1165
+msgid "You can't specify --kelf and --kmap together."
+msgstr "You can't specify --kelf and --kmap together."
+
+#: session.cxx:1178
+msgid ""
+"WARNING: kernel release/architecture mismatch with host forces last-pass 4."
+msgstr ""
+"WARNING: kernel release/architecture mismatch with host forces last-pass 4."
+
+#: session.cxx:1253
+#, c-format
+msgid "Missing %s"
+msgstr "Missing %s"
+
+#: session.cxx:1275
+#, c-format
+msgid "Located kernel source tree (COPYING) at '%s'"
+msgstr "Located kernel source tree (COPYING) at '%s'"
+
+#: session.cxx:1320
+#, c-format
+msgid "alias component %s contains illegal parameter"
+msgstr "alias component %s contains illegal parameter"
+
+#: session.cxx:1332
+msgid " while registering probe alias "
+msgstr " while registering probe alias "
+
+#: session.cxx:1385
+#, c-format
+msgid "semantic error: %s"
+msgstr "semantic error: %s"
+
+#: session.cxx:1464
+msgid "WARNING: "
+msgstr "WARNING: "

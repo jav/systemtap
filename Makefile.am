@@ -326,6 +326,13 @@ testsuite/dtrace: dtrace
 	chmod 555 $@.new
 	mv -f $@.new $@
 
+PHONIES += update-po
+update-po:
+	(cd $(srcdir); ls -1d *.c *.cxx *.h runtime/staprun/*.c runtime/staprun/*.h) \
+	| sort > $(srcdir)/po/POTFILES.in
+	$(MAKE) -C po update-po
+
+
 # Any extra flags, such as:
 #     --define "with_docs 0"
 #     --define "with_bundled_elfutils 1" --define "elfutils_version 0.135"

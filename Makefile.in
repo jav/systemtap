@@ -429,8 +429,8 @@ oldinclude_HEADERS = includes/sys/sdt.h includes/sys/sdt-config.h
 BUILT_SOURCES = git_version.stamp $(am__append_21)
 CLEANFILES = git_version.h $(am__append_22) $(pkglibexec_PROGRAMS)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
-PHONIES = $(am__append_18) $(am__append_24) runcheck dist-gzip uprobes \
-	install-uprobes
+PHONIES = $(am__append_18) $(am__append_24) runcheck update-po \
+	dist-gzip uprobes install-uprobes
 @BUILD_TRANSLATOR_TRUE@stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ \
 @BUILD_TRANSLATOR_TRUE@	-D_FILE_OFFSET_BITS=64 $(am__append_14)
 @BUILD_TRANSLATOR_TRUE@stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ \
@@ -1949,6 +1949,10 @@ testsuite/dtrace: dtrace
 	(echo '#!/bin/sh'; echo "exec `pwd`/dtrace" '$${1+"$$@"}') > $@.new
 	chmod 555 $@.new
 	mv -f $@.new $@
+update-po:
+	(cd $(srcdir); ls -1d *.c *.cxx *.h runtime/staprun/*.c runtime/staprun/*.h) \
+	| sort > $(srcdir)/po/POTFILES.in
+	$(MAKE) -C po update-po
 uprobes:
 	$(MAKE) -C $(srcdir)/runtime/uprobes clean default
 install-uprobes:
