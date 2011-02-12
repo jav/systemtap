@@ -575,7 +575,6 @@ dnl Formerly: Don't use this directly (when not given it is set to NONE).
 dnl Currently: inline autoconf's later defaulting
 
 AC_SUBST(LOCALEDIR, "$localedir")
-AC_LIB_LINKFLAGS([asprintf])
 
 stap_prefix=$prefix
 test "$stap_prefix" = NONE && stap_prefix=$ac_default_prefix

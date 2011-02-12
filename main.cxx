@@ -26,7 +26,6 @@
 
 #include <libintl.h>
 #include <locale.h>
-#include "autosprintf.h"
 
 #include "stap-probe.h"
 
@@ -45,7 +44,6 @@ extern "C" {
 }
 
 using namespace std;
-using namespace gnu;
 
 static void
 uniq_list(list<string>& l)

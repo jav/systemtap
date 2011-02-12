@@ -1,5 +1,5 @@
 // Copyright (C) Andrew Tridgell 2002 (original file)
-// Copyright (C) 2006-2010 Red Hat Inc. (systemtap changes)
+// Copyright (C) 2006-2011 Red Hat Inc. (systemtap changes)
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as
@@ -38,6 +38,7 @@ extern "C" {
 #include <sys/wait.h>
 #include <unistd.h>
 #include <regex.h>
+#include <stdarg.h>
 }
 
 using namespace std;
@@ -713,6 +714,21 @@ normalize_machine(const string& machine)
   else if (machine.substr(0,3) == "sh3") return "sh";
   else if (machine.substr(0,3) == "sh4") return "sh";
   return machine;
+}
+
+
+std::string autosprintf(const char* format, ...)
+{
+  va_list args;
+  char *str;
+  va_start (args, format);
+  int rc = vasprintf (&str, format, args);
+  if (rc < 0)
+    throw runtime_error ("autosprintf/vasprintf error " + lex_cast(rc));
+  string s = str;
+  va_end (args);
+  free (str);
+  return s; /* by copy */
 }
 
 

@@ -12,7 +12,6 @@
 #include "config.h"
 #include <libintl.h>
 #include <locale.h>
-#include "autosprintf.h"
 
 #include <list>
 #include <string>

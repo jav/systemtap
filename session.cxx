@@ -41,7 +41,6 @@ extern "C" {
 #include <string>
 
 using namespace std;
-using namespace gnu;
 
 /* getopt variables */
 extern int optind;
