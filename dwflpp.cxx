@@ -1150,10 +1150,27 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
       Dwarf_Line *line;
       int line_number;
 
-      dwarf_assert ("dwarf_entrypc", dwarf_entrypc (this->function, &addr));
-      line = dwarf_getsrc_die (this->cu, addr);
-      dwarf_assert ("dwarf_getsrc_die", line == NULL);
-      dwarf_assert ("dwarf_lineno", dwarf_lineno (line, &line_number));
+      die_entrypc(this->function, &addr);
+
+      if (addr != 0)
+        {
+          line = dwarf_getsrc_die (this->cu, addr);
+          dwarf_assert ("dwarf_getsrc_die", line == NULL);
+          dwarf_assert ("dwarf_lineno", dwarf_lineno (line, &line_number));
+        }
+      else if (dwarf_decl_line (this->function, &line_number) != 0)
+        {
+          // use DW_AT_decl_line as a fallback method
+          Dwarf_Attribute type_attr;
+          Dwarf_Word constant;
+          if (dwarf_attr_integrate (this->function, DW_AT_decl_line, &type_attr))
+            {
+              dwarf_formudata (&type_attr, &constant);
+              line_number = constant;
+            }
+          else
+            return;
+        }
       lineno += line_number;
     }
   else if (line_type == WILDCARD)

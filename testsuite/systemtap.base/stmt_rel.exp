@@ -43,3 +43,33 @@ if { $ok >= 3 } {
 } else {
     fail "$test wildcard ($ok)"
 }
+
+# Compile with inlining and check we can set a relative statement there
+set ok 0
+set rel_flags "additional_flags=-Wall additional_flags=-Werror"
+set rel_flags "$rel_flags additional_flags=-Winline"
+set rel_flags "$rel_flags additional_flags=-O3 additional_flags=-g"
+set res [target_compile $srcdir/$subdir/stmt_rel.c [pwd]/stmt_rel.x executable $rel_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "$test compiling stmt_rel"
+    cleanup_handler $verbose
+    return
+} else {
+    pass "$test compiling stmt_rel"
+}
+
+spawn stap -c ./stmt_rel.x -e "probe process(\"./stmt_rel.x\").statement(\"Move@stmt_rel.c+1\") {printf(\"Move %d\\n\",\$s1)}"
+expect {
+    -timeout 180
+    -re {Move [0-9]} { incr ok; exp_continue }
+    timeout { fail "$test stmt_rel (timeout)" }
+    eof { }
+}
+catch {close}; catch {wait}
+
+if { $ok == 8192 } {
+    pass "$test stmt_rel"
+} else {
+    fail "$test stmt_rel ($ok)"
+}
