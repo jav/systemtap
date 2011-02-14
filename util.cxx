@@ -532,6 +532,48 @@ stap_spawn(int verbose, const vector<string>& args)
   return stap_spawn(verbose, args, NULL);
 }
 
+pid_t
+stap_spawn_piped(int verbose, const vector<string>& args,
+                 int *child_out, int* child_err)
+{
+  pid_t pid = -1;
+  int outfd[2], errfd[2];
+  posix_spawn_file_actions_t fa;
+  if (posix_spawn_file_actions_init(&fa) != 0)
+    return -1;
+
+  if (child_out && pipe_child_fd(&fa, outfd, 1) != 0)
+    goto cleanup_fa;
+  if (child_err && pipe_child_fd(&fa, errfd, 2) != 0)
+    goto cleanup_out;
+
+  pid = stap_spawn(verbose, args, &fa);
+
+  if (child_err)
+    {
+      if (pid > 0)
+        *child_err = errfd[0];
+      else
+        close(errfd[0]);
+      close(errfd[1]);
+    }
+
+cleanup_out:
+  if (child_out)
+    {
+      if (pid > 0)
+        *child_out = outfd[0];
+      else
+        close(outfd[0]);
+      close(outfd[1]);
+    }
+
+cleanup_fa:
+  posix_spawn_file_actions_destroy(&fa);
+
+  return pid;
+}
+
 // Runs a command with a saved PID, so we can kill it from the signal handler,
 // and wait for it to finish.
 int
@@ -562,33 +604,16 @@ stap_system(int verbose, const vector<string>& args,
 int
 stap_system_read(int verbose, const vector<string>& args, ostream& out)
 {
-  posix_spawn_file_actions_t fa;
-  if (posix_spawn_file_actions_init(&fa) != 0)
-    return -1;
-
-  // remap the write fd to the child's stdout
-  int ret = -1, pfd[2];
-  if (pipe_child_fd(&fa, pfd, 1) == 0)
+  int child_fd = -1;
+  pid_t child = stap_spawn_piped(verbose, args, &child_fd);
+  if (child > 0)
     {
-      pid_t child = stap_spawn(verbose, args, &fa);
-      if (child > 0)
-        {
-          // read everything from the child
-          stdio_filebuf<char> in(pfd[0], ios_base::in);
-          close(pfd[1]);
-          out << &in;
-
-          ret = stap_waitpid(verbose, child);
-        }
-      else
-        {
-          close(pfd[0]);
-          close(pfd[1]);
-        }
+      // read everything from the child
+      stdio_filebuf<char> in(child_fd, ios_base::in);
+      out << &in;
+      return stap_waitpid(verbose, child);
     }
-
-  posix_spawn_file_actions_destroy(&fa);
-  return ret;
+  return -1;
 }
 
 

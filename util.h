@@ -29,6 +29,8 @@ const std::string cmdstr_join(const std::vector<std::string>& cmds);
 std::string git_revision(const std::string& path);
 int stap_waitpid(int verbose, pid_t pid);
 pid_t stap_spawn(int verbose, const std::vector<std::string>& args);
+pid_t stap_spawn_piped(int verbose, const std::vector<std::string>& args,
+                       int* child_out=NULL, int* child_err=NULL);
 int stap_system(int verbose, const std::vector<std::string>& args,
                 bool null_out=false, bool null_err=false);
 int stap_system_read(int verbose, const std::vector<std::string>& args, std::ostream& out);
