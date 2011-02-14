@@ -1,0 +1,926 @@
+# Polish translations for systemtap package.
+# This file is distributed under the same license as the systemtap package.
+# Przemyslaw Pawelczyk <przemyslaw@pawelczyk.it>, 2011
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: systemtap 1.5\n"
+"Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
+"POT-Creation-Date: 2011-02-12 16:49-0500\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Przemysław Pawełczyk <przemyslaw@pawelczyk.it>\n"
+"Language-Team: Polish\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2);\n"
+"X-Poedit-Language: Polish\n"
+"X-Poedit-Country: POLAND\n"
+
+#: loc2c.c:188
+#, c-format
+msgid "cannot get constant address: %s"
+msgstr ""
+
+#: loc2c.c:208
+#, c-format
+msgid "cannot get constant block: %s"
+msgstr ""
+
+#: loc2c.c:223
+#, c-format
+msgid "cannot get string constant: %s"
+msgstr ""
+
+#: loc2c.c:237
+#, c-format
+msgid "cannot get constant value: %s"
+msgstr ""
+
+#: loc2c.c:314
+#, c-format
+msgid "%s in DWARF expression [%Zu] at %<PRIu64> (%#x: %<PRId64>, %<PRId64>)"
+msgstr ""
+
+#: loc2c.c:914
+msgid "required DW_AT_frame_base attribute not supplied"
+msgstr ""
+
+#: loc2c.c:928 loc2c-test.c:65
+#, c-format
+msgid "dwarf_getlocation_addr (form %#x): %s"
+msgstr ""
+
+#: loc2c.c:934
+msgid "DW_AT_frame_base not accessible at this address"
+msgstr ""
+
+#: loc2c.c:943
+msgid "No cfa_ops supplied, but needed by DW_OP_call_frame_cfa"
+msgstr ""
+
+#: loc2c.c:978 loc2c-test.c:71
+msgid "not accessible at this address"
+msgstr ""
+
+#: loc2c.c:983
+#, c-format
+msgid "dwarf_getlocation_addr: %s"
+msgstr ""
+
+#: loc2c.c:1524 loc2c.c:2445
+msgid "cannot handle offset into register in fetch"
+msgstr ""
+
+#: loc2c.c:1529
+msgid "noncontiguous location for base fetch"
+msgstr ""
+
+#: loc2c.c:1533 loc2c.c:1576
+msgid "pointer has been optimized out"
+msgstr ""
+
+#: loc2c.c:1537
+msgid "location not available"
+msgstr ""
+
+#: loc2c.c:1567
+msgid "cannot handle offset into register in store"
+msgstr ""
+
+#: loc2c.c:1572
+msgid "noncontiguous location for base store"
+msgstr ""
+
+#: loc2c.c:1580
+msgid "location is computed value, cannot store"
+msgstr ""
+
+#: loc2c.c:1584
+msgid "location is constant value, cannot store"
+msgstr ""
+
+#: loc2c.c:1588
+msgid "location is not available, cannot store"
+msgstr ""
+
+#: loc2c.c:1692
+msgid "stack value too big for fetch ???"
+msgstr ""
+
+#: loc2c.c:1696
+msgid "single register too big for fetch/store ???"
+msgstr ""
+
+#: loc2c.c:1700
+msgid "implicit pointer too big for fetch/store ???"
+msgstr ""
+
+#: loc2c.c:1705
+msgid "discontiguify of noncontiguous location not supported"
+msgstr ""
+
+#: loc2c.c:1733
+msgid "declaring noncontig union for depth > 9, too many pieces"
+msgstr ""
+
+#: loc2c.c:1782 loc2c.c:2130 loc2c.c:2219
+#, c-format
+msgid "cannot get byte_size attribute for type %s: %s"
+msgstr ""
+
+#: loc2c.c:1823
+#, c-format
+msgid "cannot get bit field parameters: %s"
+msgstr ""
+
+#: loc2c.c:1898
+msgid "fetch is larger than base integer types"
+msgstr ""
+
+#: loc2c.c:1917
+#, c-format
+msgid "cannot determine CU address size from %s: %s"
+msgstr ""
+
+#: loc2c.c:2036
+msgid "store is larger than base integer types"
+msgstr ""
+
+#: loc2c.c:2165
+msgid "cannot take the address of a bit field"
+msgstr ""
+
+#: loc2c.c:2176
+msgid "cannot take address of object in register"
+msgstr ""
+
+#: loc2c.c:2179
+msgid "cannot take address of noncontiguous object"
+msgstr ""
+
+#: loc2c.c:2182
+msgid "cannot take address of computed value"
+msgstr ""
+
+#: loc2c.c:2185
+msgid "cannot take address of constant value"
+msgstr ""
+
+#: loc2c.c:2188
+msgid "cannot take address of unavailable value"
+msgstr ""
+
+#: loc2c.c:2191
+msgid "cannot take address of implicit pointer"
+msgstr ""
+
+#: loc2c.c:2242
+#, c-format
+msgid "cannot get inner type of type %s: %s"
+msgstr ""
+
+#: loc2c.c:2254
+#, c-format
+msgid "cannot get byte_size attribute for array element type %s: %s"
+msgstr ""
+
+#: loc2c.c:2259
+msgid "confused about array element size"
+msgstr ""
+
+#: loc2c.c:2273
+#, c-format
+msgid "cannot get byte_stride attribute array type %s: %s"
+msgstr ""
+
+#: loc2c.c:2281
+#, c-format
+msgid "cannot get element type of array type %s: %s"
+msgstr ""
+
+#: loc2c.c:2300
+msgid "cannot dynamically index noncontiguous array"
+msgstr ""
+
+#: loc2c.c:2311
+msgid "constant index is outside noncontiguous array"
+msgstr ""
+
+#: loc2c.c:2313
+msgid "noncontiguous array splits elements"
+msgstr ""
+
+#: loc2c.c:2334
+msgid "cannot index array stored in a register"
+msgstr ""
+
+#: loc2c.c:2336
+msgid "constant index is outside array held in register"
+msgstr ""
+
+#: loc2c.c:2346
+msgid "cannot index into constant value"
+msgstr ""
+
+#: loc2c.c:2348
+msgid "constant index is outside constant array value"
+msgstr ""
+
+#: loc2c.c:2359
+msgid "cannot index into implicit pointer"
+msgstr ""
+
+#: loc2c.c:2366
+msgid "cannot index into computed value"
+msgstr ""
+
+#: loc2c.c:2371
+msgid "cannot index into unavailable value"
+msgstr ""
+
+#: loc2c-test.c:90
+#, c-format
+msgid "cannot get type of variable: %s"
+msgstr ""
+
+#: loc2c-test.c:101
+msgid "extra fields after ="
+msgstr ""
+
+#: loc2c-test.c:141
+#, c-format
+msgid "bad field for array type: %s"
+msgstr ""
+
+#: loc2c-test.c:149
+#, c-format
+msgid "empty struct %s"
+msgstr ""
+
+#: loc2c-test.c:154
+#, c-format
+msgid "%s %s: %s"
+msgstr ""
+
+#: loc2c-test.c:167
+#, c-format
+msgid "field name %s not found"
+msgstr ""
+
+#: loc2c-test.c:175
+#, c-format
+msgid "no location for field %s: %s"
+msgstr ""
+
+#: loc2c-test.c:205
+#, c-format
+msgid "field %s vs base type %s"
+msgstr ""
+
+#: loc2c-test.c:210
+#, c-format
+msgid "cannot find type: %s"
+msgstr ""
+
+#: loc2c-test.c:214
+#, c-format
+msgid "%s: unexpected type tag %#x"
+msgstr ""
+
+#: loc2c-test.c:222 loc2c-test.c:235 loc2c-test.c:242
+#, c-format
+msgid "cannot get type of field: %s"
+msgstr ""
+
+#: loc2c-test.c:257
+msgid "store not supported for pointer type"
+msgstr ""
+
+#: loc2c-test.c:264
+msgid "store supported only for base type"
+msgstr ""
+
+#: loc2c-test.c:266
+msgid "fetch supported only for base type or pointer"
+msgstr ""
+
+#: loc2c-test.c:336
+#, c-format
+msgid "cannot get die scopes inlined_subroutine: %s"
+msgstr ""
+
+#: loc2c-test.c:355
+#, c-format
+msgid "cannot get location of variable: %s"
+msgstr ""
+
+#: main.cxx:179
+msgid "# global embedded code"
+msgstr ""
+
+#: main.cxx:189
+msgid "# globals"
+msgstr ""
+
+#: main.cxx:204
+msgid "# functions"
+msgstr ""
+
+#: main.cxx:212 main.cxx:236
+msgid "  # locals"
+msgstr ""
+
+#: main.cxx:228
+msgid "# probes"
+msgstr ""
+
+#: main.cxx:301 main.cxx:338
+#, c-format
+msgid "Checking \"%s\" failed with error: %s"
+msgstr ""
+
+#: main.cxx:321 main.cxx:357
+#, c-format
+msgid "Parsed kernel \"%s\", "
+msgstr ""
+
+#: main.cxx:322
+#, c-format
+msgid "containing %zu tuple"
+msgid_plural "containing %zu tuples"
+msgstr[0] ""
+msgstr[1] ""
+
+#: main.cxx:341
+msgid "Ensure kernel development headers & makefiles are installed."
+msgstr ""
+
+#: main.cxx:358
+#, c-format
+msgid "which contained one vmlinux export"
+msgid_plural "which contained %zu vmlinux exports"
+msgstr[0] ""
+msgstr[1] ""
+
+#: main.cxx:388
+#, c-format
+msgid "ERROR: cannot create temporary directory (\" %s \"): %s"
+msgstr ""
+
+#: main.cxx:396
+#, c-format
+msgid "Created temporary directory \"%s\""
+msgstr ""
+
+#: main.cxx:409
+#, c-format
+msgid "Keeping temporary directory \"%s\""
+msgstr ""
+
+#: main.cxx:438
+msgid "ERROR: kernel release isn't specified"
+msgstr ""
+
+#: main.cxx:440
+#, c-format
+msgid "ERROR: kernel release isn't found in \"%s\""
+msgstr ""
+
+#: main.cxx:458
+msgid ""
+"WARNING: Without NSS, using a compile-server is not supported by this "
+"version of systemtap"
+msgstr ""
+
+#: main.cxx:482
+#, c-format
+msgid "Session arch: %s release: %s"
+msgstr ""
+
+#: main.cxx:603
+#, c-format
+msgid ""
+"usage error: tapset file '%s' cannot be run directly as a session script."
+msgstr ""
+
+#: main.cxx:632
+#, c-format
+msgid "Searched: \" %s \", found: %zu, processed: %u"
+msgstr ""
+
+#: main.cxx:646
+msgid "# parse tree dump"
+msgstr ""
+
+#: main.cxx:683
+msgid "Pass 1: parse failed.  Try again with another '--vp 1' option."
+msgstr ""
+
+#: main.cxx:716
+msgid "Pass 2: analysis failed.  Try again with another '--vp 01' option."
+msgstr ""
+
+#: main.cxx:787
+msgid "Pass 3: translation failed.  Try again with another '--vp 001' option."
+msgstr ""
+
+#: main.cxx:824
+msgid "Pass 4: compilation failed.  Try again with another '--vp 0001' option."
+msgstr ""
+
+#: main.cxx:868
+msgid "Pass 5: starting run."
+msgstr ""
+
+#: main.cxx:884
+msgid "Pass 5: run failed.  Try again with another '--vp 00001' option."
+msgstr ""
+
+#: main.cxx:912
+msgid "Coverage database not available without libsqlite3"
+msgstr ""
+
+#: session.cxx:179
+#, c-format
+msgid ""
+"Warning: failed to create systemtap data driector \"%s\":%s, disablig cache "
+"support."
+msgstr ""
+
+#: session.cxx:194
+#, c-format
+msgid ""
+"Warning: failed to create cache directory (\" %s \"): %s, disabling cache "
+"support."
+msgstr ""
+
+#: session.cxx:358
+msgid "SystemTap translator/driver "
+msgstr ""
+
+#: session.cxx:359
+msgid "(version "
+msgstr "(wersja "
+
+#: session.cxx:361
+msgid "Copyright (C) 2005-2011 Red Hat, Inc. and others"
+msgstr ""
+
+#: session.cxx:362
+msgid "This is free software; see the source for copying conditions."
+msgstr ""
+"To oprogramowanie jest darmowe; warunki kopiowania są opisane w źródłach."
+
+#: session.cxx:363
+msgid "enabled features:"
+msgstr ""
+
+#: session.cxx:395
+msgid "Usage: stap [options] FILE         Run script in file."
+msgstr ""
+
+#: session.cxx:397
+msgid "   or: stap [options] -            Run script on stdin."
+msgstr ""
+
+#: session.cxx:399
+msgid "   or: stap [options] -e SCRIPT    Run given script."
+msgstr ""
+
+#: session.cxx:401
+msgid "   or: stap [options] -l PROBE     List matching probes."
+msgstr ""
+
+#: session.cxx:403
+msgid ""
+"   or: stap [options] -L PROBE     List matching probes and local variables."
+msgstr ""
+
+#: session.cxx:406
+msgid "Options:"
+msgstr ""
+
+#: session.cxx:407
+msgid "   --         end of translator options, script options follow"
+msgstr ""
+
+#: session.cxx:408
+msgid "   -h --help  show help"
+msgstr ""
+
+#: session.cxx:409
+msgid "   -V --version  show version"
+msgstr ""
+
+#: session.cxx:410
+msgid "   -p NUM     stop after pass NUM 1-5, instead of "
+msgstr ""
+
+#: session.cxx:411
+msgid "              (parse, elaborate, translate, compile, run)"
+msgstr ""
+
+#: session.cxx:412
+msgid "   -v         add verbosity to all passes"
+msgstr ""
+
+#: session.cxx:413
+msgid "   --vp {N}+  add per-pass verbosity ["
+msgstr ""
+
+#: session.cxx:417
+msgid "]"
+msgstr ""
+
+#: session.cxx:418
+msgid "   -k         keep temporary directory"
+msgstr ""
+
+#: session.cxx:419
+#, c-format
+msgid "   -u         unoptimized translation %s"
+msgstr ""
+
+#: session.cxx:419 session.cxx:421 session.cxx:422 session.cxx:423
+#: session.cxx:425 session.cxx:426
+msgid " [set]"
+msgstr ""
+
+#: session.cxx:421
+#, c-format
+msgid "   -w         suppress warnings %s"
+msgstr ""
+
+#: session.cxx:422
+#, c-format
+msgid "   -W         turn warnings into errors %s"
+msgstr ""
+
+#: session.cxx:423
+#, c-format
+msgid "   -g         guru mode %s"
+msgstr ""
+
+#: session.cxx:424
+#, c-format
+msgid "   -P         prologue-searching for function probes %s"
+msgstr ""
+
+#: session.cxx:426
+#, c-format
+msgid "   -b         bulk (percpu file) mode %s"
+msgstr ""
+
+#: session.cxx:427
+#, c-format
+msgid "   -s NUM     buffer size in megabytes, instead of %d"
+msgstr ""
+
+#: session.cxx:428
+msgid "   -I DIR     look in DIR for additional .stp script files"
+msgstr ""
+
+#: session.cxx:432 session.cxx:458
+msgid ", in addition to"
+msgstr ""
+
+#: session.cxx:434 session.cxx:440 session.cxx:443 session.cxx:446
+#: session.cxx:462
+#, c-format
+msgid "              %s"
+msgstr ""
+
+#: session.cxx:436
+msgid "   -D NM=VAL  emit macro definition into generated C code"
+msgstr ""
+
+#: session.cxx:437
+msgid "   -B NM=VAL  pass option to kbuild make"
+msgstr ""
+
+#: session.cxx:438
+msgid "   -G VAR=VAL set global variable to value"
+msgstr ""
+
+#: session.cxx:439
+msgid "   -R DIR     look in DIR for runtime, instead of"
+msgstr ""
+
+#: session.cxx:441
+msgid "   -r DIR     cross-compile to kernel with given build tree; or else"
+msgstr ""
+
+#: session.cxx:442
+msgid ""
+"   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of"
+msgstr ""
+
+#: session.cxx:444
+#, c-format
+msgid "   -a ARCH    cross-compile to given architecture, instead of %s"
+msgstr ""
+
+#: session.cxx:445
+msgid "   -m MODULE  set probe module name, instead of "
+msgstr ""
+
+#: session.cxx:447
+msgid ""
+"   -o FILE    send script output to file, instead of stdout. This supports"
+msgstr ""
+
+#: session.cxx:448
+msgid "              strftime(3) formats for FILE"
+msgstr ""
+
+#: session.cxx:449
+msgid "   -c CMD     start the probes, run CMD, and exit when it finishes"
+msgstr ""
+
+#: session.cxx:450
+msgid "   -x PID     sets target() to PID"
+msgstr ""
+
+#: session.cxx:451
+msgid "   -F         run as on-file flight recorder with -o."
+msgstr ""
+
+#: session.cxx:452
+msgid "              run as on-memory flight recorder without -o."
+msgstr ""
+
+#: session.cxx:453
+msgid "   -S size[,n] set maximum of the size and the number of files."
+msgstr ""
+
+#: session.cxx:454
+msgid "   -d OBJECT  add unwind/symbol data for OBJECT file"
+msgstr ""
+
+#: session.cxx:465
+msgid "   --ldd      add unwind/symbol data for all referenced OBJECT files."
+msgstr ""
+
+#: session.cxx:466
+msgid "   --all-modules"
+msgstr ""
+
+#: session.cxx:467
+msgid "              add unwind/symbol data for all loaded kernel objects."
+msgstr ""
+
+#: session.cxx:468
+msgid "   -t         collect probe timing information"
+msgstr ""
+
+#: session.cxx:470
+msgid "   -q         generate information on tapset coverage"
+msgstr ""
+
+#: session.cxx:472
+msgid "   --unprivileged"
+msgstr ""
+
+#: session.cxx:473
+msgid ""
+"              restrict usage to features available to unprivileged users"
+msgstr ""
+
+#: session.cxx:481
+msgid "   --compatible=VERSION"
+msgstr ""
+
+#: session.cxx:482
+msgid ""
+"              suppress incompatible language/tapset changes beyond VERSION,"
+msgstr ""
+
+#: session.cxx:483
+#, c-format
+msgid "              instead of %s"
+msgstr ""
+
+#: session.cxx:484
+msgid "   --check-version"
+msgstr ""
+
+#: session.cxx:485
+msgid "              displays warnings where a syntax element may be "
+msgstr ""
+
+#: session.cxx:486
+msgid "              version dependent"
+msgstr ""
+
+#: session.cxx:487
+msgid "   --skip-badvars"
+msgstr ""
+
+#: session.cxx:488
+msgid "              substitute zero for bad context $variables"
+msgstr ""
+
+#: session.cxx:489
+msgid "   --use-server[=SERVER-SPEC]"
+msgstr ""
+
+#: session.cxx:490
+msgid "              specify systemtap compile-servers"
+msgstr ""
+
+#: session.cxx:491
+msgid "   --list-servers[=PROPERTIES]"
+msgstr ""
+
+#: session.cxx:492
+msgid "              report on the status of the specified compile-servers"
+msgstr ""
+
+#: session.cxx:494
+msgid "   --trust-servers[=TRUST-SPEC]"
+msgstr ""
+
+#: session.cxx:495
+msgid "              add/revoke trust of specified compile-servers"
+msgstr ""
+
+#: session.cxx:496
+msgid "   --use-server-on-error[=yes/no]"
+msgstr ""
+
+#: session.cxx:497
+msgid ""
+"              retry compilation using a compile server upon compilation error"
+msgstr ""
+
+#: session.cxx:499
+msgid "   --remote=HOSTNAME"
+msgstr ""
+
+#: session.cxx:500
+msgid "              run pass 5 on the specified ssh host (EXPERIMENTAL)"
+msgstr ""
+
+#: session.cxx:628
+msgid "Invalid pass number (should be 1-5)."
+msgstr ""
+
+#: session.cxx:633
+msgid "Listing (-l) mode implies pass 2."
+msgstr ""
+
+#: session.cxx:670 session.cxx:833
+msgid "Only one script can be given on the command line."
+msgstr ""
+
+#: session.cxx:686
+msgid "ERROR: -R invalid with --client-options"
+msgstr ""
+
+#: session.cxx:702 session.cxx:720
+#, c-format
+msgid "Truncating module name to '%s'"
+msgstr ""
+
+#: session.cxx:708
+msgid "Module name cannot be empty."
+msgstr ""
+
+#: session.cxx:771
+msgid "Invalid buffer size (should be 1-4095)."
+msgstr ""
+
+#: session.cxx:784
+msgid "Empty CMD string invalid."
+msgstr ""
+
+#: session.cxx:793
+msgid "Invalid target process ID number."
+msgstr ""
+
+#: session.cxx:814
+msgid "ERROR: -q invalid with --client-options"
+msgstr ""
+
+#: session.cxx:848
+msgid "ERROR: -B invalid with --client-options"
+msgstr ""
+
+#: session.cxx:869
+msgid "You can't specify multiple --kmap options."
+msgstr ""
+
+#: session.cxx:900
+msgid "Invalid --vp argument: it takes 1 to 5 digits."
+msgstr ""
+
+#: session.cxx:973
+msgid "ERROR: --disable-cache is invalid with --client-options"
+msgstr ""
+
+#: session.cxx:980
+msgid "ERROR: --poison-cache is invalid with --client-options"
+msgstr ""
+
+#: session.cxx:987
+msgid "ERROR: --clean-cache is invalid with --client-options"
+msgstr ""
+
+#: session.cxx:1000
+msgid "ERROR: --ldd is invalid with --client-options"
+msgstr ""
+
+#: session.cxx:1009
+msgid "ERROR: --all-modules is invalid with --client-options"
+msgstr ""
+
+#: session.cxx:1017
+msgid "ERROR: --remote is invalid with --client-options"
+msgstr ""
+
+#: session.cxx:1031
+#, c-format
+msgid "Unhandled long argument id %d"
+msgstr ""
+
+#: session.cxx:1045
+#, c-format
+msgid "Unhandled argument code %d"
+msgstr ""
+
+#: session.cxx:1087
+msgid "A script must be specified."
+msgstr ""
+
+#: session.cxx:1094
+msgid "WARNING: --client-options is not supported by this version of systemtap"
+msgstr ""
+
+#: session.cxx:1100
+msgid "WARNING: --trust-servers is not supported by this version of systemtap"
+msgstr ""
+
+#: session.cxx:1107
+msgid "Warning: Ignoring --use-server due to the use of -R"
+msgstr ""
+
+#: session.cxx:1131
+msgid "Using --unprivileged for member of the group stapusr"
+msgstr ""
+
+#: session.cxx:1138
+msgid "Using --use-server for member of the group stapusr"
+msgstr ""
+
+#: session.cxx:1147
+#, c-format
+msgid "You can't specify %s when --unprivileged is specified."
+msgstr ""
+
+#: session.cxx:1153
+msgid "You can't specify -c and -x options together."
+msgstr ""
+
+#: session.cxx:1158
+msgid "You can't specify -g and --unprivileged together."
+msgstr ""
+
+#: session.cxx:1165
+msgid "You can't specify --kelf and --kmap together."
+msgstr ""
+
+#: session.cxx:1178
+msgid ""
+"WARNING: kernel release/architecture mismatch with host forces last-pass 4."
+msgstr ""
+
+#: session.cxx:1253
+#, c-format
+msgid "Missing %s"
+msgstr ""
+
+#: session.cxx:1275
+#, c-format
+msgid "Located kernel source tree (COPYING) at '%s'"
+msgstr ""
+
+#: session.cxx:1320
+#, c-format
+msgid "alias component %s contains illegal parameter"
+msgstr ""
+
+#: session.cxx:1332
+msgid " while registering probe alias "
+msgstr ""
+
+#: session.cxx:1385
+#, c-format
+msgid "semantic error: %s"
+msgstr ""
+
+#: session.cxx:1464
+msgid "WARNING: "
+msgstr "UWAGA: "
