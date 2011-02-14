@@ -14,6 +14,10 @@
 #include "session.h"
 
 class remote {
+  private:
+    virtual int start() = 0;
+    virtual int finish() = 0;
+
   protected:
     systemtap_session* s;
 
@@ -21,12 +25,11 @@ class remote {
 
   public:
     static remote* create(systemtap_session& s, const std::string& uri);
+    static int run(const std::vector<remote*>& remotes);
 
     systemtap_session* get_session() { return s; }
 
     virtual ~remote() {}
-    virtual int start() = 0;
-    virtual int finish() = 0;
 };
 
 #endif // REMOTE_H

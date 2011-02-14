@@ -69,11 +69,6 @@ class direct : public remote {
     pid_t child;
     direct(systemtap_session& s): remote(s), child(0) {}
 
-  public:
-    friend class remote;
-
-    virtual ~direct() {}
-
     int start()
       {
         pid_t pid = stap_spawn (s->verbose, make_run_command (*s));
@@ -92,6 +87,11 @@ class direct : public remote {
         child = 0;
         return ret;
       }
+
+  public:
+    friend class remote;
+
+    virtual ~direct() {}
 };
 
 class ssh_remote : public remote {
@@ -215,14 +215,6 @@ class ssh_remote : public remote {
         this->s = s->clone(arch, release);
       }
 
-  public:
-    friend class remote;
-
-    virtual ~ssh_remote()
-      {
-        close_control_master();
-      }
-
     int start()
       {
         int rc;
@@ -309,6 +301,14 @@ class ssh_remote : public remote {
 
         return rc;
       }
+
+  public:
+    friend class remote;
+
+    virtual ~ssh_remote()
+      {
+        close_control_master();
+      }
 };
 
 
@@ -341,6 +341,29 @@ remote::create(systemtap_session& s, const string& uri)
       cerr << e.what() << endl;
       return NULL;
     }
+}
+
+int
+remote::run(const vector<remote*>& remotes)
+{
+  // NB: the first failure "wins"
+  int ret = 0, rc = 0;
+
+  for (unsigned i = 0; i < remotes.size() && !pending_interrupts; ++i)
+    {
+      rc = remotes[i]->start();
+      if (!ret)
+        ret = rc;
+    }
+
+  for (unsigned i = 0; i < remotes.size(); ++i)
+    {
+      rc = remotes[i]->finish();
+      if (!ret)
+        ret = rc;
+    }
+
+  return ret;
 }
 
 
