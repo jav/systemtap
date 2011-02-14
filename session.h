@@ -26,7 +26,11 @@ extern "C" {
 #include <elfutils/libdw.h>
 }
 
+#if ENABLE_NLS
 #define _(string) gettext(string)
+#else
+#define _(string) (string)
+#endif
 
 // forward decls for all referenced systemtap types
 struct hash;
