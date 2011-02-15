@@ -269,8 +269,8 @@ compile_pass (systemtap_session& s)
   rc = stat(module_dir_makefile.c_str(), &st);
   if (rc != 0)
     {
-	clog << "Checking \"" << module_dir_makefile << "\" failed: " << strerror(errno) << endl
-	     << "Ensure kernel development headers & makefiles are installed." << endl;
+        clog << autosprintf(_("Checking \" %s \" failed: %s \nEnsure kernel developement headers & makefiles are installed."),
+                              module_dir_makefile.c_str(), strerror(errno)) << endl;
 	s.set_try_server ();
 	return rc;
     }
@@ -332,7 +332,7 @@ may_build_uprobes (const systemtap_session& s)
   string uprobes_home = s.runtime_path + "/uprobes";
   struct stat file_info;
   if (stat(uprobes_home.c_str(), &file_info) != 0) {
-    clog << "Unable to obtain information on " << uprobes_home << '.' << endl;
+    clog << _("Unable to obtain information on ") << uprobes_home << '.' << endl;
     return false;
   }
 
@@ -355,8 +355,7 @@ static bool
 verify_uprobes_uptodate (systemtap_session& s)
 {
   if (s.verbose > 1)
-    clog << "Pass 4, preamble: "
-	 << "verifying that SystemTap's version of uprobes is up to date."
+    clog << _("Pass 4, preamble: verifying that SystemTap's version of uprobes is up to date.")
 	 << endl;
 
   string uprobes_home = s.runtime_path + "/uprobes";
@@ -368,23 +367,23 @@ verify_uprobes_uptodate (systemtap_session& s)
   make_cmd.push_back("uprobes.ko");
   int rc = run_make_cmd(s, make_cmd);
   if (rc) {
-    clog << "SystemTap's version of uprobes is out of date." << endl;
+    clog << _("SystemTap's version of uprobes is out of date.") << endl;
 
     struct stat file_info;
     if (stat(uprobes_home.c_str(), &file_info) != 0) {
-      clog << "Unable to obtain information on " << uprobes_home << '.' << endl;
+      clog << _("Unable to obtain information on ") << uprobes_home << '.' << endl;
     }
     else {
       struct passwd *owner = getpwuid (file_info.st_uid);
-      string owner_name = owner == NULL ? "The owner of " + uprobes_home :
+      string owner_name = owner == NULL ? _("The owner of ") + uprobes_home :
 	                                  owner->pw_name;
       if (owner_name == "root")
 	owner_name = "";
       struct group *owner_group = getgrgid (file_info.st_gid);
-      string owner_group_name = owner_group == NULL ? "The owner group of " + uprobes_home :
+      string owner_group_name = owner_group == NULL ? _("The owner group of ") + uprobes_home :
 	                                              owner_group->gr_name;
-      clog << "As root, " << owner_name << (owner_name.empty () ? "" : ", ")
-	   << "or a member of the '" << owner_group_name << "' group, run" << endl;
+      clog << autosprintf(_("As root, %s%s or a member of the '%s' group, run\n"),
+                             owner_name.c_str(), (owner_name.empty() ? "" : ", "), owner_group_name.c_str());
       clog << "\"make -C " << uprobes_home << "\"." << endl;
     }
   }
@@ -396,8 +395,7 @@ static int
 make_uprobes (systemtap_session& s)
 {
   if (s.verbose > 1)
-    clog << "Pass 4, preamble: "
-	 << "(re)building SystemTap's version of uprobes."
+    clog << _("Pass 4, preamble: (re)building SystemTap's version of uprobes.")
 	 << endl;
 
   string uprobes_home = s.runtime_path + "/uprobes";
@@ -407,7 +405,7 @@ make_uprobes (systemtap_session& s)
   make_cmd.push_back(uprobes_home);
   int rc = run_make_cmd(s, make_cmd);
   if (s.verbose > 1)
-    clog << "uprobes rebuild rc=" << rc << endl;
+    clog << _("uprobes rebuild rc=") << rc << endl;
   if (rc)
     s.set_try_server ();
   return rc;
@@ -435,7 +433,7 @@ uprobes_pass (systemtap_session& s)
     return 0;
 
   if (s.kernel_config["CONFIG_UTRACE"] != string("y")) {
-    clog << "user-space facilities not available without kernel CONFIG_UTRACE" << endl;
+    clog << _("user-space facilities not available without kernel CONFIG_UTRACE") << endl;
     s.set_try_server ();
     return 1;
   }
@@ -542,7 +540,7 @@ make_tracequery(systemtap_session& s, string& name,
   if (create_dir(dir.c_str()) != 0)
     {
       if (! s.suppress_warnings)
-        cerr << "Warning: failed to create directory for querying tracepoints." << endl;
+        cerr << _("Warning: failed to create directory for querying tracepoints.") << endl;
       s.set_try_server ();
       return 1;
     }
@@ -630,7 +628,7 @@ make_typequery_kmod(systemtap_session& s, const vector<string>& headers, string&
   if (create_dir(dir.c_str()) != 0)
     {
       if (! s.suppress_warnings)
-        cerr << "Warning: failed to create directory for querying types." << endl;
+        cerr << _("Warning: failed to create directory for querying types.") << endl;
       s.set_try_server ();
       return 1;
     }
@@ -745,7 +743,7 @@ make_typequery(systemtap_session& s, string& module)
       if (regexp_match(header, "^[a-zA-Z0-9/_.+-]+$", matches))
         {
           if (! s.suppress_warnings)
-            cerr << "Warning: skipping malformed @cast header \""
+            cerr << _("Warning: skipping malformed @cast header \"")
                  << header << "\"" << endl;
         }
       else
