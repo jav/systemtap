@@ -622,7 +622,10 @@ Inconsistent type-related use of identifiers signals an error.
 Variables may be declared global, so that they are shared amongst all
 probes and live as long as the entire systemtap session.  There is one
 namespace for all global variables, regardless of which script file
-they are found within.  A global declaration may be written at the
+they are found within.  Concurrent access to global variables is
+automatically protected with locks, see the
+.B SAFETY AND SECURITY
+section for more details.  A global declaration may be written at the
 outermost level anywhere, not within a block of code.  Global
 variables which are written but never read will be displayed
 automatically at session shutdown.  The translator will
@@ -1374,8 +1377,11 @@ groups.
 The translator asserts certain safety constraints.  It aims to ensure
 that no handler routine can run for very long, allocate memory,
 perform unsafe operations, or in unintentionally interfere with the
-kernel.  Use of script global variables is suitably locked to protect
-against manipulation by concurrent probe handlers.  Use of guru mode
+kernel.  Uses of script global variables are automatically read/write 
+locked as appropriate, to protect against manipulation by concurrent probe
+handlers.  (Deadlocks are detected with timeouts.  Use the 
+.BR \-t
+flag to receive reports of excessive lock contention.)  Use of guru mode
 constructs such as embedded C can violate these constraints, leading
 to kernel crash or data corruption.
 .PP
