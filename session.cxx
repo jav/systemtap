@@ -176,7 +176,7 @@ systemtap_session::systemtap_session ():
     {
       const char* e = strerror (errno);
       if (! suppress_warnings)
-        cerr << autosprintf(_("Warning: failed to create systemtap data driector \"%s\":%s, disablig cache support."),
+        cerr << autosprintf(_("Warning: failed to create systemtap data directory \"%s\":%s, disabling cache support."),
                 data_path.c_str(),e) << endl;
         //cerr << "Warning: failed to create systemtap data directory (\""
         //     << data_path << "\"): " << e

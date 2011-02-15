@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-02-15 11:41-0500\n"
+"POT-Creation-Date: 2011-02-15 15:01-0500\n"
 "PO-Revision-Date: 2011-02-15 10:51-0500\n"
 "Last-Translator: Frank Ch. Eigler <fche@redhat.com>\n"
 "Language-Team: English\n"
@@ -21,7 +21,7 @@ msgstr ""
 #, fuzzy, c-format
 msgid ""
 "Checking \" %s \" failed: %s \n"
-"Ensure kernel developement headers & makefiles are installed."
+"Ensure kernel development headers & makefiles are installed."
 msgstr "Ensure kernel development headers & makefiles are installed."
 
 #: buildrun.cxx:335 buildrun.cxx:374
@@ -598,6 +598,67 @@ msgstr "Pass 5: run failed.  Try again with another '--vp 00001' option."
 msgid "Coverage database not available without libsqlite3"
 msgstr "Coverage database not available without libsqlite3"
 
+#: modsign.cxx:131
+msgid "Could not obtain information on password file "
+msgstr ""
+
+#: modsign.cxx:139
+msgid "Could not open password file "
+msgstr ""
+
+#: modsign.cxx:155
+msgid "Error reading password file "
+msgstr ""
+
+#: modsign.cxx:187
+msgid "Could not create signing context."
+msgstr ""
+
+#: modsign.cxx:194
+msgid "Could not initialize signing context."
+msgstr ""
+
+#: modsign.cxx:203
+msgid "Could not open module file "
+msgstr ""
+
+#: modsign.cxx:216
+msgid "Error reading module file "
+msgstr ""
+
+#: modsign.cxx:225
+msgid "Error while signing module file "
+msgstr ""
+
+#: modsign.cxx:237
+msgid "Could not complete signature of module file "
+msgstr ""
+
+#: modsign.cxx:249
+msgid "Could not open signature file "
+msgstr ""
+
+#: modsign.cxx:257
+msgid "Error writing to signature file "
+msgstr ""
+
+#: modsign.cxx:279
+#, fuzzy
+msgid "Module name was not specified."
+msgstr "Module name cannot be empty."
+
+#: modsign.cxx:296
+msgid "Unable to determine the certificate database path."
+msgstr ""
+
+#: modsign.cxx:312
+msgid "Unable to obtain certificate database password."
+msgstr ""
+
+#: modsign.cxx:326
+msgid "Unable to initialize nss library."
+msgstr ""
+
 #: parse.cxx:261
 #, fuzzy
 msgid "parse error: "
@@ -914,10 +975,10 @@ msgid "can't dereference after pretty-printing"
 msgstr ""
 
 #: session.cxx:179
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"Warning: failed to create systemtap data driector \"%s\":%s, disablig cache "
-"support."
+"Warning: failed to create systemtap data directory \"%s\":%s, disabling "
+"cache support."
 msgstr ""
 "Warning: failed to create systemtap data driector \"%s\":%s, disablig cache "
 "support."
