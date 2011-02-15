@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-02-15 10:52-0500\n"
+"POT-Creation-Date: 2011-02-15 11:18-0500\n"
 "PO-Revision-Date: 2011-02-15 10:51-0500\n"
 "Last-Translator: Frank Ch. Eigler <fche@redhat.com>\n"
 "Language-Team: English\n"
@@ -585,6 +585,321 @@ msgstr "Pass 5: run failed.  Try again with another '--vp 00001' option."
 msgid "Coverage database not available without libsqlite3"
 msgstr "Coverage database not available without libsqlite3"
 
+#: parse.cxx:261
+#, fuzzy
+msgid "parse error: "
+msgstr "semantic error: %s"
+
+#: parse.cxx:265
+msgid "\tat: "
+msgstr ""
+
+#: parse.cxx:273 parse.cxx:277
+msgid "\tsaw: "
+msgstr ""
+
+#: parse.cxx:277
+msgid " EOF"
+msgstr ""
+
+#: parse.cxx:311 parse.cxx:373
+msgid "expected comparison operator"
+msgstr ""
+
+#: parse.cxx:343 parse.cxx:398
+msgid "expected string literal"
+msgstr ""
+
+#: parse.cxx:376
+msgid "wildcard not allowed with order comparison operators"
+msgstr ""
+
+#: parse.cxx:411 parse.cxx:430
+#, fuzzy
+msgid "expected '==' or '!='"
+msgstr "# functions"
+
+#: parse.cxx:471
+msgid "expected string, number literal or other CONFIG_... as right value"
+msgstr ""
+
+#: parse.cxx:489
+msgid "expected string literal as right value"
+msgstr ""
+
+#: parse.cxx:492
+msgid "expected number literal as right value"
+msgstr ""
+
+#: parse.cxx:495
+msgid ""
+"expected 'arch' or 'kernel_v' or 'kernel_vr' or 'CONFIG_...'\n"
+"             or comparison between strings or integers"
+msgstr ""
+
+#: parse.cxx:522
+msgid "incomplete conditional at end of file"
+msgstr ""
+
+#: parse.cxx:529 parse.cxx:535 parse.cxx:549
+msgid "incomplete conditional - missing '%('"
+msgstr ""
+
+#: parse.cxx:537
+msgid "invalid conditional - duplicate '%:'"
+msgstr ""
+
+#: parse.cxx:570
+msgid "incomplete condition after '%('"
+msgstr ""
+
+#: parse.cxx:602
+msgid "expected '%?' marker for conditional"
+msgstr ""
+
+#: parse.cxx:652
+msgid "unexpected end-of-file"
+msgstr ""
+
+#: parse.cxx:685
+#, fuzzy
+msgid "expected '"
+msgstr "# functions"
+
+#: parse.cxx:695
+#, fuzzy
+msgid "expected "
+msgstr "# functions"
+
+#: parse.cxx:736
+msgid "expected number"
+msgstr ""
+
+#: parse.cxx:751 parse.cxx:1751
+msgid "number invalid or out of range"
+msgstr ""
+
+#: parse.cxx:933 parse.cxx:953
+msgid "invalid nested substitution of command line arguments"
+msgstr ""
+
+#: parse.cxx:1010
+msgid "Could not find matching closing quote"
+msgstr ""
+
+#: parse.cxx:1100
+msgid "Could not find matching '%}' to close embedded function block"
+msgstr ""
+
+#: parse.cxx:1202
+msgid "expected 'probe', 'global', 'function', or '%{'"
+msgstr ""
+
+#: parse.cxx:1232
+#, c-format
+msgid "Input file '%s' is empty or missing."
+msgstr ""
+
+#: parse.cxx:1254
+#, fuzzy
+msgid "expected 'probe'"
+msgstr "# functions"
+
+#: parse.cxx:1272 parse.cxx:1281
+msgid "probe point alias name cannot be optional nor sufficient"
+msgstr ""
+
+#: parse.cxx:1300
+msgid "expected probe point specifier"
+msgstr ""
+
+#: parse.cxx:1336
+#, fuzzy
+msgid "expected '%{'"
+msgstr "# functions"
+
+#: parse.cxx:1339
+msgid "embedded code in unprivileged script"
+msgstr ""
+
+#: parse.cxx:1355
+#, fuzzy
+msgid "expected '{'"
+msgstr "# functions"
+
+#: parse.cxx:1409 parse.cxx:1488 parse.cxx:1551 parse.cxx:1585 parse.cxx:2048
+msgid "expected identifier"
+msgstr ""
+
+#: parse.cxx:1464
+msgid "expected statement"
+msgstr ""
+
+#: parse.cxx:1482
+#, fuzzy
+msgid "expected 'global'"
+msgstr "# functions"
+
+#: parse.cxx:1492
+msgid "duplicate global name"
+msgstr ""
+
+#: parse.cxx:1508
+msgid "array size out of range"
+msgstr ""
+
+#: parse.cxx:1517
+msgid "only scalar globals can be initialized"
+msgstr ""
+
+#: parse.cxx:1544
+#, fuzzy
+msgid "expected 'function'"
+msgstr "# functions"
+
+#: parse.cxx:1555
+msgid "duplicate function name"
+msgstr ""
+
+#: parse.cxx:1569 parse.cxx:1600
+#, fuzzy
+msgid "expected 'string' or 'long'"
+msgstr "# functions"
+
+#: parse.cxx:1575 parse.cxx:1682 parse.cxx:1778 parse.cxx:1889 parse.cxx:1955
+#: parse.cxx:1989
+#, fuzzy
+msgid "expected '('"
+msgstr "# functions"
+
+#: parse.cxx:1609 parse.cxx:2798
+#, fuzzy
+msgid "expected ',' or ')'"
+msgstr "# functions"
+
+#: parse.cxx:1633
+#, fuzzy
+msgid "expected identifier or '*'"
+msgstr "# functions"
+
+#: parse.cxx:1652 parse.cxx:1689 parse.cxx:1784 parse.cxx:1934 parse.cxx:1966
+#: parse.cxx:2568
+#, fuzzy
+msgid "expected ')'"
+msgstr "# functions"
+
+#: parse.cxx:1700
+msgid "expected one of '. , ( ? ! { = +='"
+msgstr ""
+
+#: parse.cxx:1759
+msgid "expected literal string or number"
+msgstr ""
+
+#: parse.cxx:1772
+#, fuzzy
+msgid "expected 'if'"
+msgstr "# functions"
+
+#: parse.cxx:1817
+#, fuzzy
+msgid "expected 'return'"
+msgstr "# functions"
+
+#: parse.cxx:1819
+msgid "found 'return' not in function context"
+msgstr ""
+
+#: parse.cxx:1832
+msgid "expected 'delete'"
+msgstr ""
+
+#: parse.cxx:1845
+#, fuzzy
+msgid "expected 'next'"
+msgstr "# functions"
+
+#: parse.cxx:1847
+msgid "found 'next' not in probe context"
+msgstr ""
+
+#: parse.cxx:1859
+#, fuzzy
+msgid "expected 'break'"
+msgstr "# functions"
+
+#: parse.cxx:1871
+#, fuzzy
+msgid "expected 'continue'"
+msgstr "# functions"
+
+#: parse.cxx:1883
+#, fuzzy
+msgid "expected 'for'"
+msgstr "# functions"
+
+#: parse.cxx:1903 parse.cxx:1919
+#, fuzzy
+msgid "expected ';'"
+msgstr "# functions"
+
+#: parse.cxx:1949
+msgid "expected 'while'"
+msgstr ""
+
+#: parse.cxx:1980
+#, fuzzy
+msgid "expected 'foreach'"
+msgstr "# functions"
+
+#: parse.cxx:2059 parse.cxx:2096
+msgid "multiple sort directives"
+msgstr ""
+
+#: parse.cxx:2079 parse.cxx:2332 parse.cxx:2843
+#, fuzzy
+msgid "expected ',' or ']'"
+msgstr "# functions"
+
+#: parse.cxx:2087
+#, fuzzy
+msgid "expected 'in'"
+msgstr "# functions"
+
+#: parse.cxx:2178
+#, fuzzy
+msgid "expected ':'"
+msgstr "# functions"
+
+#: parse.cxx:2355
+msgid "unexpected comma-separated expression list"
+msgstr ""
+
+#: parse.cxx:2548
+msgid "expected value"
+msgstr ""
+
+#: parse.cxx:2554
+msgid "embedded expression code in unprivileged script"
+msgstr ""
+
+#: parse.cxx:2671
+msgid "unknown statistic operator "
+msgstr ""
+
+#: parse.cxx:2853
+msgid "base histogram operator where expression expected"
+msgstr ""
+
+#: parse.cxx:2900
+#, fuzzy
+msgid "expected @cast or $var"
+msgstr "# functions"
+
+#: parse.cxx:3000
+msgid "can't dereference after pretty-printing"
+msgstr ""
+
 #: session.cxx:179
 #, c-format
 msgid ""
@@ -1082,11 +1397,3 @@ msgstr "WARNING: "
 #, fuzzy
 #~ msgid " while resolving probe point "
 #~ msgstr " while registering probe alias "
-
-#, fuzzy
-#~ msgid "parse error: "
-#~ msgstr "semantic error: %s"
-
-#, fuzzy
-#~ msgid "expected 'function'"
-#~ msgstr "# functions"
