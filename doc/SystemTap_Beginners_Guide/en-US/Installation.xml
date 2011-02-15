@@ -173,8 +173,61 @@
 	    <filename>-devel</filename>,
 	    <filename>-debuginfo</filename>, and
 	    <filename>-debuginfo-common</filename> packages for your
-	    kernel. To install the corresponding packages for a
-	    specific kernel, run the following commands:
+	    kernel.
+   </para>
+
+   <para  condition="RedHat">
+     For Red Hat Enterprise Linux 6 and newer you need 
+     the appropriate channels enabled for the system for
+     <command>yum</command> to download and install the appropriate packages.
+     Configure the channels with either the
+     <command>rhn-channel</command> command or the Red Hat Network
+     web interface.
+     To obtain a list of the channels SystemTap needs on the system use
+     the following script:
+   </para>
+
+<!-- next 2 indexterms for rhelchannels.sh -->
+
+<indexterm condition="RedHat">
+<primary>Installation</primary>
+<secondary>rhelchannels.sh</secondary>
+</indexterm>
+
+<indexterm condition="RedHat">
+<primary>rhelchannels.sh</primary>
+</indexterm>
+<formalpara condition="RedHat">
+<title>rhelchannels.sh</title>
+<para>
+<programlisting><xi:include parse="text" href="extras/rhelchannels.sh" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
+</para>
+</formalpara>
+
+   <para condition="RedHat">
+     On a system with Red Hat Enterprise Linux 6 for Workstation running the
+     previous script would return the following list:
+   </para>
+<screen condition="RedHat">rhel-x86_64-workstation-6
+rhel-x86_64-workstation-6-debuginfo
+rhel-x86_64-workstation-optional-6-debuginfo
+rhel-x86_64-workstation-optional-6</screen>
+   <para condition="RedHat">
+     The <command>rhn-channel --list</command> will provide a list of
+     channels the machine is currently subscribed to.
+     If the machine is only subscribed to
+     <command>rhel-x86_64-workstation-6</command>, then 
+     with root and Red Hat Network administrator privileges for the machine
+     the other channels could be added with the following command:
+   </para>
+<screen condition="RedHat">rhn-channel --add \
+--channel=rhel-x86_64-workstation-6-debuginfo \
+--channel=rhel-x86_64-workstation-optional-6-debuginfo \
+--channel=rhel-x86_64-workstation-optional-6</screen>
+   <para>
+     With the appropriate software repositories are enabled, 
+     install the corresponding packages for a specific kernel using
+     <command>yum</command> with the following commands:
    </para>
 
 <itemizedlist>
@@ -194,8 +247,13 @@
 	<listitem><para><command>debuginfo-install kernel-PAE-2.6.18-53.1.13.el5</command></para></listitem>
 </itemizedlist>
 
-<para>
-	If you do not have <command>yum</command> and <command>yum-utils</command> installed (and you are unable to install them), you will have to manually download and install the required kernel information packages. To generate the URL from which to download the required packages, use the following script:
+<para condition="fedora">
+	If you do not have <command>yum</command> and
+	<command>yum-utils</command> installed (and you are unable to install
+	them), you will have to manually download and install the required
+	kernel information packages.
+	To generate the URL from which to download the required packages,
+	use the following script:
 </para>
 <indexterm condition="fedora">
 <primary>Installation</primary>
@@ -207,6 +265,15 @@
 </indexterm>
 
 
+<para condition="RedHat">
+	If you do not have <command>yum</command>
+	and <command>yum-utils</command> installed (and you are unable to
+	install them) on Red Hat Enterprise Linux 4 or 5,
+	you will have to manually download and
+	install the required kernel information packages.
+	To generate the URL from which to download the required packages,
+	use the following script:
+</para>
 <!-- next 2 indexterms for rheldebugurl.sh -->
 
 <indexterm condition="RedHat">
