@@ -269,7 +269,7 @@ compile_pass (systemtap_session& s)
   rc = stat(module_dir_makefile.c_str(), &st);
   if (rc != 0)
     {
-        clog << autosprintf(_("Checking \" %s \" failed: %s \nEnsure kernel developement headers & makefiles are installed."),
+        clog << autosprintf(_("Checking \" %s \" failed: %s \nEnsure kernel development headers & makefiles are installed."),
                               module_dir_makefile.c_str(), strerror(errno)) << endl;
 	s.set_try_server ();
 	return rc;
