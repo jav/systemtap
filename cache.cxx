@@ -125,7 +125,7 @@ get_stapconf_from_cache(systemtap_session& s)
   close(fd_stapconf);
 
   if (s.verbose > 1)
-    clog << "Pass 4: using cached " << s.stapconf_path << endl;
+    clog << _("Pass 4: using cached ") << s.stapconf_path << endl;
 
   return true;
 }
@@ -212,9 +212,9 @@ get_script_from_cache(systemtap_session& s)
   // NB: don't use s.verbose here, since we're still in pass-2,
   // i.e., s.verbose = s.perpass_verbose[1].
   if (s.perpass_verbose[2])
-    clog << "Pass 3: using cached " << c_src_path << endl;
+    clog << _("Pass 3: using cached ") << c_src_path << endl;
   if (s.perpass_verbose[3] && s.last_pass != 3)
-    clog << "Pass 4: using cached " << s.hash_path << endl;
+    clog << _("Pass 4: using cached ") << s.hash_path << endl;
 
   PROBE2(stap, cache__get, c_src_path.c_str(), s.hash_path.c_str());
 
@@ -246,9 +246,8 @@ clean_cache(systemtap_session& s)
           cache_mb_max = SYSTEMTAP_CACHE_DEFAULT_MB;
 
           if (s.verbose > 1)
-            clog << "Cache limit file " << s.cache_path << "/"
-              << SYSTEMTAP_CACHE_MAX_FILENAME
-              << " missing, creating default." << endl;
+            clog << autosprintf(_("Cache limit file %s/%s missing, creating default."),
+                                  s.cache_path.c_str(), SYSTEMTAP_CACHE_MAX_FILENAME) << endl;
         }
 
       //glob for all kernel modules in the cache dir
@@ -347,14 +346,14 @@ clean_cache(systemtap_session& s)
         {
           //remove trailing ", "
           removed_dirs = removed_dirs.substr(0, removed_dirs.length() - 2);
-          clog << "Cache cleaning successful, removed entries: " 
+          clog << _("Cache cleaning successful, removed entries: ")
                << removed_dirs << endl;
         }
     }
   else
     {
       if (s.verbose > 1)
-        clog << "Cache cleaning skipped, no cache path." << endl;
+        clog << _("Cache cleaning skipped, no cache path.") << endl;
     }
 }
 
