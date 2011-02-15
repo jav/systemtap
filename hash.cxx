@@ -128,7 +128,7 @@ void create_hash_log(const string &type_str, const string &parms, const string &
   log_file << "[" << time_str.substr(0,time_str.length()-1); // erase terminated '\n'
   log_file << "] " << type_str << ":" << endl;
   log_file << parms << endl;
-  log_file << "result:" << result << endl;
+  log_file << _("result:") << result << endl;
   log_file.close();
 }
 
@@ -204,9 +204,8 @@ create_hashdir (systemtap_session& s, const string& result, string& hashdir)
       if (create_dir(hashdir.c_str()) != 0)
         {
           if (! s.suppress_warnings)
-            cerr << "Warning: failed to create cache directory (\""
-                 << hashdir + "\"): " << strerror(errno)
-                 << ", disabling cache support." << endl;
+            cerr << autosprintf(_("Warning: failed to create cache directory (\"%s\") %s, disabling cache support"),
+                                  hashdir.c_str(), strerror(errno)) << endl;
 	  s.use_cache = s.use_script_cache = false;
 	  return false;
 	}
