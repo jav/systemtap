@@ -1229,7 +1229,7 @@ parser::parse ()
 
   if (empty)
     {
-      cerr << autosprintf(_("Input file '%s' is empty or missing."), input_name.c_str()) << endl;
+      cerr << _F("Input file '%s' is empty or missing.", input_name.c_str()) << endl;
       delete f;
       f = 0;
     }

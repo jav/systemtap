@@ -204,8 +204,8 @@ create_hashdir (systemtap_session& s, const string& result, string& hashdir)
       if (create_dir(hashdir.c_str()) != 0)
         {
           if (! s.suppress_warnings)
-            cerr << autosprintf(_("Warning: failed to create cache directory (\"%s\") %s, disabling cache support"),
-                                  hashdir.c_str(), strerror(errno)) << endl;
+            cerr << _F("Warning: failed to create cache directory (\"%s\") %s, disabling cache support",
+                       hashdir.c_str(), strerror(errno)) << endl;
 	  s.use_cache = s.use_script_cache = false;
 	  return false;
 	}

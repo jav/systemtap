@@ -269,8 +269,8 @@ compile_pass (systemtap_session& s)
   rc = stat(module_dir_makefile.c_str(), &st);
   if (rc != 0)
     {
-        clog << autosprintf(_("Checking \" %s \" failed: %s \nEnsure kernel development headers & makefiles are installed."),
-                              module_dir_makefile.c_str(), strerror(errno)) << endl;
+        clog << _F("Checking \" %s \" failed: %s \nEnsure kernel development headers & makefiles are installed.",
+                   module_dir_makefile.c_str(), strerror(errno)) << endl;
 	s.set_try_server ();
 	return rc;
     }
@@ -382,8 +382,8 @@ verify_uprobes_uptodate (systemtap_session& s)
       struct group *owner_group = getgrgid (file_info.st_gid);
       string owner_group_name = owner_group == NULL ? _("The owner group of ") + uprobes_home :
 	                                              owner_group->gr_name;
-      clog << autosprintf(_("As root, %s%s or a member of the '%s' group, run\n"),
-                             owner_name.c_str(), (owner_name.empty() ? "" : ", "), owner_group_name.c_str());
+      clog << _F("As root, %s%s or a member of the '%s' group, run\n",
+                 owner_name.c_str(), (owner_name.empty() ? "" : ", "), owner_group_name.c_str());
       clog << "\"make -C " << uprobes_home << "\"." << endl;
     }
   }

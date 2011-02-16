@@ -297,9 +297,9 @@ int parse_kernel_config (systemtap_session &s)
   struct stat st;
   int rc = stat(kernel_config_file.c_str(), &st);
   if (rc != 0)
-    {  
-        clog << autosprintf(_("Checking \"%s\" failed with error: %s"),
-                kernel_config_file.c_str(), strerror(errno)) << endl;
+    {
+        clog << _F("Checking \"%s\" failed with error: %s",
+                   kernel_config_file.c_str(), strerror(errno)) << endl;
 	//clog << "Checking \"" << kernel_config_file << "\" failed: " << strerror(errno) << endl;
 	find_devel_rpms(s, s.kernel_build_tree.c_str());
 	missing_rpm_list_print(s,"-devel");
@@ -318,11 +318,11 @@ int parse_kernel_config (systemtap_session &s)
       s.kernel_config[key] = value;
     }
   if (s.verbose > 2)
-    clog << autosprintf( _("Parsed kernel \"%s\", "), kernel_config_file.c_str()) 
-         << autosprintf(ngettext("containing %zu tuple", "containing %zu tuples", 
-            s.kernel_config.size()), s.kernel_config.size()) << endl;
+    clog << _F("Parsed kernel \"%s\", ", kernel_config_file.c_str())
+         << _NF("containing %zu tuple", "containing %zu tuples",
+                s.kernel_config.size(), s.kernel_config.size()) << endl;
     //clog << "Parsed kernel \"" << kernel_config_file << "\", number of tuples: " << s.kernel_config.size() << endl;
-  
+
   kcf.close();
   return 0;
 }
@@ -335,8 +335,8 @@ int parse_kernel_exports (systemtap_session &s)
   int rc = stat(kernel_exports_file.c_str(), &st);
   if (rc != 0)
     {
-        clog << autosprintf( _("Checking \"%s\" failed with error: %s"),
-                kernel_exports_file.c_str(), strerror(errno)) << endl
+        clog << _F("Checking \"%s\" failed with error: %s",
+                   kernel_exports_file.c_str(), strerror(errno)) << endl
 	//clog << "Checking \"" << kernel_exports_file << "\" failed: " << strerror(errno) << endl
 	     << _("Ensure kernel development headers & makefiles are installed.") << endl;
 	return rc;
@@ -354,11 +354,11 @@ int parse_kernel_exports (systemtap_session &s)
         s.kernel_exports.insert (tokens[1]);
     }
   if (s.verbose > 2)
-    clog << autosprintf(_("Parsed kernel \"%s\", "),kernel_exports_file.c_str()) 
-         << autosprintf(ngettext("which contained one vmlinux export", "which contained %zu vmlinux exports",
-            s.kernel_exports.size()), s.kernel_exports.size()) << endl;
+    clog << _F("Parsed kernel \"%s\", ", kernel_exports_file.c_str())
+         << _NF("which contained one vmlinux export", "which contained %zu vmlinux exports",
+                s.kernel_exports.size(), s.kernel_exports.size()) << endl;
     //clog << "Parsed kernel \"" << kernel_exports_file << "\", number of vmlinux exports: " << s.kernel_exports.size() << endl;
-  
+
   kef.close();
   return 0;
 }
@@ -385,7 +385,7 @@ create_temp_dir (systemtap_session &s)
     {
       const char* e = strerror (errno);
       //we can't make the directory due to the error
-      cerr << autosprintf(_("ERROR: cannot create temporary directory (\" %s \"): %s"), tmpdirt.c_str(), e) << endl;
+      cerr << _F("ERROR: cannot create temporary directory (\" %s \"): %s", tmpdirt.c_str(), e) << endl;
       //cerr << "ERROR: cannot create temporary directory (\"" << tmpdirt << "\"): " << e << endl;
       return 1;
     }
@@ -393,7 +393,7 @@ create_temp_dir (systemtap_session &s)
     s.tmpdir = tmpdir_name;
 
   if (s.verbose>1)
-    clog << autosprintf(_("Created temporary directory \"%s\""), s.tmpdir.c_str()) << endl;
+    clog << _F("Created temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
     //clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
   return 0;
 }
@@ -406,7 +406,7 @@ remove_temp_dir (systemtap_session &s)
       if (s.keep_tmpdir)
         // NB: the format of this message needs to match the expectations
         // of stap-server-connect.c.
-        clog << autosprintf(_("Keeping temporary directory \"%s\""), s.tmpdir.c_str()) << endl;
+        clog << _F("Keeping temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
         //clog << "Keeping temporary directory \"" << s.tmpdir << "\"" << endl;
       else
         {
@@ -437,8 +437,8 @@ passes_0_4 (systemtap_session &s)
       if (s.kernel_build_tree.empty())
         cerr << _("ERROR: kernel release isn't specified") << endl;
       else
-        cerr << autosprintf(_("ERROR: kernel release isn't found in \"%s\""),
-                            s.kernel_build_tree.c_str()) << endl;
+        cerr << _F("ERROR: kernel release isn't found in \"%s\"",
+                   s.kernel_build_tree.c_str()) << endl;
       return 1;
     }
 
@@ -479,7 +479,7 @@ passes_0_4 (systemtap_session &s)
   if (s.verbose > 1)
     {
       s.version ();
-      clog << autosprintf( _("Session arch: %s release: %s"), s.architecture.c_str(), s.kernel_release.c_str()) << endl;
+      clog << _F("Session arch: %s release: %s", s.architecture.c_str(), s.kernel_release.c_str()) << endl;
       //clog << "Session arch: " << s.architecture
            //<< " release: " << s.kernel_release
            //<< endl;
@@ -600,8 +600,8 @@ passes_0_4 (systemtap_session &s)
                   user_file_stat.st_ino == tapset_file_stat.st_ino)
                 {
                   cerr 
-                  << autosprintf(_("usage error: tapset file '%s' cannot be run directly as a session script."), 
-                     globbuf.gl_pathv[j]) << endl;
+                  << _F("usage error: tapset file '%s' cannot be run directly as a session script.",
+                        globbuf.gl_pathv[j]) << endl;
                   //cerr << "usage error: tapset file '" << globbuf.gl_pathv[j]
                   //     << "' cannot be run directly as a session script." << endl;
                   rc ++;
@@ -629,8 +629,9 @@ passes_0_4 (systemtap_session &s)
           unsigned next_s_library_files = s.library_files.size();
           if (s.verbose>1 && globbuf.gl_pathc > 0)
             // search a directory, report a number of found  with number of processed 
-            clog << autosprintf(_("Searched: \" %s \", found: %zu, processed: %u"),
-                    dir.c_str(), globbuf.gl_pathc, (next_s_library_files-prev_s_library_files)) << endl;
+            clog << _F("Searched: \" %s \", found: %zu, processed: %u",
+                       dir.c_str(), globbuf.gl_pathc,
+                       (next_s_library_files-prev_s_library_files)) << endl;
             //clog << "Searched \"" << dir << "\","
             //     << " found " << globbuf.gl_pathc 
             //     << " processed " << (next_s_library_files-prev_s_library_files) << endl;

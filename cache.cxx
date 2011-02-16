@@ -246,8 +246,8 @@ clean_cache(systemtap_session& s)
           cache_mb_max = SYSTEMTAP_CACHE_DEFAULT_MB;
 
           if (s.verbose > 1)
-            clog << autosprintf(_("Cache limit file %s/%s missing, creating default."),
-                                  s.cache_path.c_str(), SYSTEMTAP_CACHE_MAX_FILENAME) << endl;
+            clog << _F("Cache limit file %s/%s missing, creating default.",
+                       s.cache_path.c_str(), SYSTEMTAP_CACHE_MAX_FILENAME) << endl;
         }
 
       //glob for all kernel modules in the cache dir

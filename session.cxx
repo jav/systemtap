@@ -176,8 +176,8 @@ systemtap_session::systemtap_session ():
     {
       const char* e = strerror (errno);
       if (! suppress_warnings)
-        cerr << autosprintf(_("Warning: failed to create systemtap data directory \"%s\":%s, disabling cache support."),
-                data_path.c_str(),e) << endl;
+        cerr << _F("Warning: failed to create systemtap data directory \"%s\":%s, disabling cache support.",
+                   data_path.c_str(),e) << endl;
         //cerr << "Warning: failed to create systemtap data directory (\""
         //     << data_path << "\"): " << e
         //     << ", disabling cache support." << endl;
@@ -191,8 +191,8 @@ systemtap_session::systemtap_session ():
         {
 	  const char* e = strerror (errno);
           if (! suppress_warnings)
-            cerr << autosprintf(_("Warning: failed to create cache directory (\" %s \"): %s, disabling cache support."),
-                    cache_path.c_str(),e) << endl;
+            cerr << _F("Warning: failed to create cache directory (\" %s \"): %s, disabling cache support.",
+                       cache_path.c_str(),e) << endl;
             //cerr << "Warning: failed to create cache directory (\""
             //     << cache_path << "\"): " << e
             //     << ", disabling cache support." << endl;
@@ -419,34 +419,34 @@ systemtap_session::usage (int exitcode)
   clog 
     << _("]") << endl
     << _("   -k         keep temporary directory") << endl
-    << autosprintf(_("   -u         unoptimized translation %s"), (unoptimized ? _(" [set]") : "")) << endl
+    << _F("   -u         unoptimized translation %s", (unoptimized ? _(" [set]") : "")) << endl
     //<< "   -u         unoptimized translation" << (unoptimized ? " [set]" : "") << endl
-    << autosprintf(_("   -w         suppress warnings %s"), (suppress_warnings ? _(" [set]") : "")) << endl
-    << autosprintf(_("   -W         turn warnings into errors %s"), (panic_warnings ? _(" [set]") : "")) << endl
-    << autosprintf(_("   -g         guru mode %s"), (guru_mode ? _(" [set]") : "")) << endl
-    << autosprintf(_("   -P         prologue-searching for function probes %s"),
-       (prologue_searching ? _(" [set]") : "")) << endl
-    << autosprintf(_("   -b         bulk (percpu file) mode %s"), (bulk_mode ? _(" [set]") : "")) << endl
-    << autosprintf(_("   -s NUM     buffer size in megabytes, instead of %d"), buffer_size) << endl
+    << _F("   -w         suppress warnings %s", (suppress_warnings ? _(" [set]") : "")) << endl
+    << _F("   -W         turn warnings into errors %s", (panic_warnings ? _(" [set]") : "")) << endl
+    << _F("   -g         guru mode %s", (guru_mode ? _(" [set]") : "")) << endl
+    << _F("   -P         prologue-searching for function probes %s",
+          (prologue_searching ? _(" [set]") : "")) << endl
+    << _F("   -b         bulk (percpu file) mode %s", (bulk_mode ? _(" [set]") : "")) << endl
+    << _F("   -s NUM     buffer size in megabytes, instead of %d", buffer_size) << endl
     << _("   -I DIR     look in DIR for additional .stp script files");
   if (include_path.size() == 0)
     clog << endl;
   else
     clog << _(", in addition to") << endl;
   for (unsigned i=0; i<include_path.size(); i++)
-    clog << autosprintf(_("              %s"), include_path[i].c_str()) << endl;
+    clog << _F("              %s", include_path[i].c_str()) << endl;
   clog
     << _("   -D NM=VAL  emit macro definition into generated C code") << endl
     << _("   -B NM=VAL  pass option to kbuild make") << endl
     << _("   -G VAR=VAL set global variable to value") << endl
     << _("   -R DIR     look in DIR for runtime, instead of") << endl
-    << autosprintf(_("              %s"), runtime_path.c_str()) << endl
+    << _F("              %s", runtime_path.c_str()) << endl
     << _("   -r DIR     cross-compile to kernel with given build tree; or else") << endl
     << _("   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of") << endl
-    << autosprintf(_("              %s"), kernel_build_tree.c_str()) << endl
-    << autosprintf(_("   -a ARCH    cross-compile to given architecture, instead of %s"), architecture.c_str()) << endl
+    << _F("              %s", kernel_build_tree.c_str()) << endl
+    << _F("   -a ARCH    cross-compile to given architecture, instead of %s", architecture.c_str()) << endl
     << _("   -m MODULE  set probe module name, instead of ") << endl
-    << autosprintf(_("              %s"), module_name.c_str()) << endl
+    << _F("              %s", module_name.c_str()) << endl
     << _("   -o FILE    send script output to file, instead of stdout. This supports") << endl
     << _("              strftime(3) formats for FILE") << endl
     << _("   -c CMD     start the probes, run CMD, and exit when it finishes") << endl
@@ -462,7 +462,7 @@ systemtap_session::usage (int exitcode)
   {
     vector<string> syms (unwindsym_modules.begin(), unwindsym_modules.end());
     for (unsigned i=0; i<syms.size(); i++)
-      clog << autosprintf(_("              %s"), syms[i].c_str()) << endl;
+      clog << _F("              %s", syms[i].c_str()) << endl;
   }
   clog
     << _("   --ldd      add unwind/symbol data for all referenced OBJECT files.") << endl
@@ -483,7 +483,7 @@ systemtap_session::usage (int exitcode)
   // only, and don't belong in the eyesight of a plain user.
     << _("   --compatible=VERSION") << endl
     << _("              suppress incompatible language/tapset changes beyond VERSION,") << endl
-    << autosprintf(_("              instead of %s"), compatible.c_str()) << endl
+    << _F("              instead of %s", compatible.c_str()) << endl
     << _("   --check-version") << endl
     << _("              displays warnings where a syntax element may be ") << endl
     << _("              version dependent") << endl 
@@ -702,7 +702,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    if (endswith(module_name, ".ko"))
 	      {
 		module_name.erase(module_name.size() - 3);
-		cerr << autosprintf(_("Truncating module name to '%s'"), module_name.c_str()) << endl;
+		cerr << _F("Truncating module name to '%s'", module_name.c_str()) << endl;
 	      }
 
 	    // Make sure an empty module name wasn't specified (-m "")
@@ -720,7 +720,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    if (module_name.size() >= (MODULE_NAME_LEN - 1))
 	      {
 		module_name.resize(MODULE_NAME_LEN - 1);
-		cerr << autosprintf(_("Truncating module name to '%s'"), module_name.c_str()) << endl;
+		cerr << _F("Truncating module name to '%s'", module_name.c_str()) << endl;
 	      }
 	  }
 
@@ -1031,7 +1031,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 
             default:
               // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
-              cerr << autosprintf(_("Unhandled long argument id %d"), long_opt) << endl;
+              cerr << _F("Unhandled long argument id %d", long_opt) << endl;
               return 1;
             }
           break;
@@ -1045,7 +1045,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 
         default:
           // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
-          cerr << autosprintf(_("Unhandled argument code %d"), (char)grc) << endl;
+          cerr << _F("Unhandled argument code %d", (char)grc) << endl;
           return 1;
           break;
         }
@@ -1147,8 +1147,8 @@ systemtap_session::check_options (int argc, char * const argv [])
 
   if (client_options && unprivileged && ! client_options_disallowed.empty ())
     {
-      cerr << autosprintf(_("You can't specify %s when --unprivileged is specified."),
-              client_options_disallowed.c_str()) << endl;
+      cerr << _F("You can't specify %s when --unprivileged is specified.",
+                 client_options_disallowed.c_str()) << endl;
       usage (1);
     }
   if ((cmd != "") && (target_pid))
@@ -1253,7 +1253,7 @@ systemtap_session::setup_kernel_release (const char* kstr)
       if (version_file.fail ())
 	{
           if (verbose > 1)
-            cerr << autosprintf(_("Missing %s"), version_file_name.c_str()) << endl;
+            cerr << _F("Missing %s", version_file_name.c_str()) << endl;
           return; // pass0 will realize the failure
 	}
       else
@@ -1275,7 +1275,7 @@ systemtap_session::setup_kernel_release (const char* kstr)
         {
           kernel_source_tree = kernel_build_tree;
           if (verbose > 2)
-            clog << autosprintf(_("Located kernel source tree (COPYING) at '%s'"), kernel_source_tree.c_str()) << endl;
+            clog << _F("Located kernel source tree (COPYING) at '%s'", kernel_source_tree.c_str()) << endl;
         }
     }
   else
@@ -1320,8 +1320,8 @@ systemtap_session::register_library_aliases()
                         //throw semantic_error("alias component "
                         //                     + comp->functor
                         //                     + " contains illegal parameter");
-                        throw semantic_error(autosprintf(_("alias component %s contains illegal parameter"),
-                                             comp->functor.c_str()));
+                        throw semantic_error(_F("alias component %s contains illegal parameter",
+                                                comp->functor.c_str()));
                       n = n->bind(comp->functor);
                     }
                   n->bind(new alias_expansion_builder(alias));
@@ -1385,7 +1385,7 @@ systemtap_session::print_error (const semantic_error& e)
     {
       stringstream message;
 
-      message << autosprintf(_("semantic error: %s"), e.what ());
+      message << _F("semantic error: %s", e.what ());
       if (e.tok1 || e.tok2)
         message << ": ";
       if (e.tok1)
