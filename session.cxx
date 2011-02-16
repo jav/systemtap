@@ -382,6 +382,9 @@ systemtap_session::version ()
 #ifdef ENABLE_PROLOGUES
        << " PROLOGUES"
 #endif
+#ifdef ENABLE_NLS
+       << " NLS"
+#endif
        << endl;
 }
 
