@@ -45,7 +45,7 @@ PACKAGE_DISTRIBUTION ?= @PACKAGE_DISTRIBUTION@
 SGI_CHROOT_BUILD ?= 0
 SGI_ISSP_BUILD ?= 0
 
-BUILDRULES = $(TOPDIR)/src/include/buildrules
+BUILDRULES = @abs_srcdir@/buildrules
 
 TARGET_OS = @target_os@
 TARGET_VENDOR = @target_vendor@
@@ -154,7 +154,7 @@ ECHO	= @echo@
 LN_S	= @LN_S@
 GREP    = @grep@
 
-INSTALL_SH = $(TOPDIR)/install-sh
+INSTALL_SH = @abs_top_srcdir@/install-sh
 INSTALL	= $(INSTALL_SH) -o @pcp_owner@ -g @pcp_group@
 
 CCF	= $(CC) $(CFLAGS)
