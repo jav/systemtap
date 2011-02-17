@@ -1,0 +1,68 @@
+#
+# Copyright (c) 2000,2003 Silicon Graphics, Inc.  All Rights Reserved.
+# Copyright (c) 2011 Red Hat Inc.
+# 
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+#
+
+ifneq (,)
+This makefile requires GNU Make.
+endif
+
+srcdir = @srcdir@
+TOPDIR = .
+-include $(TOPDIR)/src/include/builddefs
+-include ./GNUlocaldefs
+
+CONFFILES = configure
+LDIRT = config.cache config.status config.log
+
+SUBDIRS = src
+
+default :: default_pcp
+
+pcp : default_pcp
+
+default_pcp : configure_pcp
+	@for d in `echo $(SUBDIRS)`; do \
+	    if test -d "$$d" ; then \
+		echo === $$d ===; \
+		$(MAKE) -C $$d $@ || exit $$?; \
+	    fi; \
+	done
+
+install :: default_pcp install_pcp
+
+install_pcp :  default_pcp
+	@for d in `echo $(SUBDIRS)`; do \
+	    if test -d "$$d" ; then \
+		echo === $$d ===; \
+		$(MAKE) -C $$d $@ || exit $$?; \
+	    fi; \
+	done
+
+ifdef BUILDRULES
+include $(BUILDRULES)
+else
+# if src/include/builddefs doesn't exist, we are pristine (hence also clean)
+realclean distclean clean clobber:
+	@true
+endif
+
+configure_pcp: $(srcdir)/configure
+
+$(srcdir)/configure : $(srcdir)/configure.in
+	cd $(srcdir) && rm -fr config.cache autom4te.cache
+	cd $(srcdir) && autoconf

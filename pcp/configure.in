@@ -1812,6 +1812,9 @@ dnl   PCP paths and other defs
 dnl    src/include/pcp.conf
 dnl   Linux Software Map entry
 dnl    pcp.lsm
-dnl   pmda Makefiles
+dnl   Makefiles
+    GNUmakefile
+    src/GNUmakefile
+    src/pmdas/GNUmakefile
     src/pmdas/logger/GNUmakefile
 )
