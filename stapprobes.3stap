@@ -1,4 +1,4 @@
-.\" -*- nroff -*-
+.\" t
 .TH STAPPROBES 3stap 
 .SH NAME
 stapprobes \- systemtap probe points
@@ -73,7 +73,6 @@ signal.*? if (switch)
 kprobe.function("foo")
 .ESAMPLE
 
-
 Probes may be broadly classified into "synchronous" and
 "asynchronous".  A "synchronous" event is deemed to occur when any
 processor executes an instruction matched by the specification.  This
@@ -85,6 +84,39 @@ point specification may match multiple locations (for example, using
 wildcards or aliases), and all them are then probed.  A probe
 declaration may also contain several comma-separated specifications,
 all of which are probed.
+
+.SH DWARF DEBUGINFO
+
+Resolving some probe points requires DWARF debuginfo or "debug
+symbols" for the specific part being instrumented.  For some others,
+DWARF is automatically synthesized on the fly from source code header
+files.  For others, it is not needed at all.  Since a systemtap script
+may use any mixture of probe points together, the union of their DWARF
+requirements has to be met on the computer where script compilation
+occurs.  (See the \fI\-\-use\-server\fR option and the \fBstap-server\
+(8)\fR man page for information about the remote compilation facility,
+which allows these requirements to be met on a different machine.)
+.PP
+The following point lists many of the available probe point families,
+to classify them with respect to their need for DWARF debuginfo.
+
+.TS
+l l l.
+\fBDWARF	AUTO-DWARF	NON-DWARF\fP
+
+kernel.function, .statement	kernel.trace	kernel.mark
+module.function, .statement		process.mark
+process.function, .statement		begin, end, error, never
+process.mark \fI(backup)\fP		timer
+		perf
+		procfs
+		kernel.statement.absolute
+		kprobe.function
+		process.statement.absolute
+		process.begin, .end, .error
+.TE
+
+.SH PROBE POINT FAMILIES
 
 .SS BEGIN/END/ERROR
 
