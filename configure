@@ -607,6 +607,8 @@ stap_LIBS
 elfutils_abs_srcdir
 BUILD_ELFUTILS_FALSE
 BUILD_ELFUTILS_TRUE
+BUILD_PCP_FALSE
+BUILD_PCP_TRUE
 BUILD_GRAPHER_FALSE
 BUILD_GRAPHER_TRUE
 CXXCPP
@@ -795,6 +797,7 @@ with_publican_brand
 enable_refdocs
 enable_server
 enable_grapher
+enable_pcp
 with_rpm
 with_elfutils
 '
@@ -818,7 +821,8 @@ gtkmm_LIBS
 libglade_CFLAGS
 libglade_LIBS
 CXXCPP'
-ac_subdirs_all='testsuite runtime/staprun'
+ac_subdirs_all='testsuite runtime/staprun
+pcp'
 
 # Initialize some variables set by options.
 ac_init_help=
@@ -1466,6 +1470,8 @@ Optional Features:
   --enable-server         enable building of stap-server (default on if nss
                           etc. found).
   --enable-grapher        enable building of grapher (default on if needed
+                          requirements are found).
+  --enable-pcp            enable building PCP support (default on if needed
                           requirements are found).
 
 Optional Packages:
@@ -10087,6 +10093,98 @@ else
 fi
 
 
+# Check whether --enable-pcp was given.
+if test "${enable_pcp+set}" = set; then :
+  enableval=$enable_pcp;
+else
+    enable_pcp="check"
+fi
+			if test "x$enable_pcp" != xno; then :
+
+      for ac_header in pcp/pmapi.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "pcp/pmapi.h" "ac_cv_header_pcp_pmapi_h" "$ac_includes_default"
+if test "x$ac_cv_header_pcp_pmapi_h" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PCP_PMAPI_H 1
+_ACEOF
+ have_pcp_headers="yes"
+else
+  have_pcp_headers="no"
+fi
+
+done
+
+   if test "x${have_pcp_headers}" == "xno" -a x"$enable_pcp" == "xyes"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot find required pcp headers (pcp-libs-devel may need to be installed)" >&5
+$as_echo "$as_me: WARNING: cannot find required pcp headers (pcp-libs-devel may need to be installed)" >&2;}
+fi
+      have_pcp_event="no"
+   if test "x${have_pcp_headers}" == "xyes"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pmdaEventNewArray in -lpcp_pmda" >&5
+$as_echo_n "checking for pmdaEventNewArray in -lpcp_pmda... " >&6; }
+if test "${ac_cv_lib_pcp_pmda_pmdaEventNewArray+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpcp_pmda  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pmdaEventNewArray ();
+int
+main ()
+{
+return pmdaEventNewArray ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_pcp_pmda_pmdaEventNewArray=yes
+else
+  ac_cv_lib_pcp_pmda_pmdaEventNewArray=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pcp_pmda_pmdaEventNewArray" >&5
+$as_echo "$ac_cv_lib_pcp_pmda_pmdaEventNewArray" >&6; }
+if test "x$ac_cv_lib_pcp_pmda_pmdaEventNewArray" = x""yes; then :
+  have_pcp_event="yes"
+fi
+
+      if test "x${have_pcp_event}" == "xno" -a x"$enable_pcp" == "xyes"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot find required pcp pmda event support (pcp-libs-devel version 3.5.0 or higher may need be installed)" >&5
+$as_echo "$as_me: WARNING: cannot find required pcp pmda event support (pcp-libs-devel version 3.5.0 or higher may need be installed)" >&2;}
+fi
+
+fi
+
+fi
+if test "x${have_pcp_event}" == "xno" -a x"$enable_pcp" == "xyes"; then :
+  as_fn_error $? "systemtap cannot find pcp build requirements" "$LINENO" 5
+fi
+ if test "x${have_pcp_event}" == "xyes" -a x"$enable_pcp" != "xno"; then
+  BUILD_PCP_TRUE=
+  BUILD_PCP_FALSE='#'
+else
+  BUILD_PCP_TRUE='#'
+  BUILD_PCP_FALSE=
+fi
+
+if test "x${have_pcp_event}" == "xyes" -a x"$enable_pcp" != "xno"; then :
+  run_pcp_config="yes"
+else
+  run_pcp_config="no"
+fi
 
 
 # Check whether --with-rpm was given.
@@ -10593,6 +10691,10 @@ ac_config_files="$ac_config_files Makefile doc/Makefile doc/beginners/Makefile d
 
 subdirs="$subdirs testsuite runtime/staprun"
 
+if test "x${run_pcp_config}" == "xyes"; then :
+  subdirs="$subdirs pcp"
+
+fi
 if test $enable_translator == "yes"; then
 	ac_config_files="$ac_config_files run-stap"
 
@@ -10780,6 +10882,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_GRAPHER_TRUE}" && test -z "${BUILD_GRAPHER_FALSE}"; then
   as_fn_error $? "conditional \"BUILD_GRAPHER\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_PCP_TRUE}" && test -z "${BUILD_PCP_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_PCP\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_ELFUTILS_TRUE}" && test -z "${BUILD_ELFUTILS_FALSE}"; then

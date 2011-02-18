@@ -413,6 +413,38 @@ dnl If the user didn't say to disable the grapher, and all the
 dnl requirements are installed, enable the grapher.
 AM_CONDITIONAL([BUILD_GRAPHER], [test "x${have_grapher_reqs}" == "xyes" -a x"$enable_grapher" != "xno"])
 
+dnl Handle the optional pcp support
+AC_ARG_ENABLE([pcp],
+  AS_HELP_STRING([--enable-pcp],
+    [enable building PCP support (default on if needed requirements are found).]),
+  [],					dnl ACTION-IF-GIVEN
+  [enable_pcp="check"])			dnl ACTION-IF-NOT-GIVEN
+dnl If the user didn't disable pcp support, check the requirements.
+AS_IF([test "x$enable_pcp" != xno],
+  [
+   dnl Check for pcp headers
+   AC_CHECK_HEADERS([pcp/pmapi.h], [have_pcp_headers="yes"],
+     [have_pcp_headers="no"])
+   AS_IF([test "x${have_pcp_headers}" == "xno" -a x"$enable_pcp" == "xyes"],
+     AC_MSG_WARN([cannot find required pcp headers (pcp-libs-devel may need to be installed)]))
+   dnl Check for pcp event support (if we have pcp headers)
+   have_pcp_event="no"
+   AS_IF([test "x${have_pcp_headers}" == "xyes"],
+     [AC_CHECK_LIB([pcp_pmda], [pmdaEventNewArray], [have_pcp_event="yes"])
+      AS_IF([test "x${have_pcp_event}" == "xno" -a x"$enable_pcp" == "xyes"],
+        AC_MSG_WARN([cannot find required pcp pmda event support (pcp-libs-devel version 3.5.0 or higher may need be installed)]))
+     ])
+  ])
+dnl If the user explicitly said to enable pcp support, but we can't
+dnl (since its requirements aren't installed), error.
+AS_IF([test "x${have_pcp_event}" == "xno" -a x"$enable_pcp" == "xyes"],
+  AC_MSG_ERROR([systemtap cannot find pcp build requirements]))
+dnl If the user didn't say to disable pcp support, and all the
+dnl requirements are installed, enable pcp support (and later run
+dnl pcp's configure).
+AM_CONDITIONAL([BUILD_PCP], [test "x${have_pcp_event}" == "xyes" -a x"$enable_pcp" != "xno"])
+AS_IF([test "x${have_pcp_event}" == "xyes" -a x"$enable_pcp" != "xno"],
+  [run_pcp_config="yes"], [run_pcp_config="no"])
 
 dnl Look for librpm.
 AC_ARG_WITH([rpm],
@@ -589,6 +621,8 @@ grapher/stapgraph.1 \
 stappaths.7 \
 initscript/systemtap initscript/stap-server ])
 AC_CONFIG_SUBDIRS(testsuite runtime/staprun)
+AS_IF([test "x${run_pcp_config}" == "xyes"],
+  AC_CONFIG_SUBDIRS(pcp))
 if test $enable_translator == "yes"; then
 	AC_CONFIG_FILES([run-stap], [chmod +x run-stap])
 fi

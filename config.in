@@ -62,6 +62,9 @@
 /* Define to 1 if you have the nss libraries. */
 #undef HAVE_NSS
 
+/* Define to 1 if you have the <pcp/pmapi.h> header file. */
+#undef HAVE_PCP_PMAPI_H
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
