@@ -28,6 +28,7 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 AM_GNU_GETTEXT(external)
+AM_GNU_GETTEXT_VERSION
 
 dnl Handle the prologues option.
 dnl
