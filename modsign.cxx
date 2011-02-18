@@ -151,11 +151,7 @@ get_password (const string &fileName)
   password = (char*)PORT_Alloc (fileInfo.size + 1);
   if (! password)
     {
-      //cerr << "Unable to allocate " << (fileInfo.size + 1) << " bytes." << endl;
-      //cerr << autosprintf(ngettext("Unable to allocate one byte", "Unable to allocate %#x bytes",
-      //            (fileInfo.size + 1)), (fileInfo.size + 1)) << endl;
-      cerr << _F(ngettext("Unable to allocate %#x byte", "Unable to allocate %#x bytes",
-                  (fileInfo.size + 1)), (fileInfo.size + 1)) << endl;
+      cerr << "Unable to allocate " << (fileInfo.size + 1) << " bytes." << endl;
       nssError ();
       return NULL;
     }
