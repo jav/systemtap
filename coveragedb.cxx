@@ -25,43 +25,43 @@ using namespace std;
 void print_coverage_info(systemtap_session &s)
 {
   // print out used probes
-  clog << "---- used probes-----" << endl;
+  clog << _("---- used probes-----") << endl;
   for (unsigned i=0; i<s.probes.size(); i++) {
     // walk through the chain of probes
     vector<probe*> used_probe_list;
     s.probes[i]->collect_derivation_chain(used_probe_list);
     for (unsigned j=0; j<used_probe_list.size(); ++j) {
       for (unsigned k=0; k< used_probe_list[j]->locations.size(); ++k)
-        clog << "probe: "
+        clog << _("probe: ")
 	     << used_probe_list[j]->locations[k]->components.front()->tok->location << endl;
     }
 
     clog << "----" << endl;
     // for each probe print used and unused variables
     for (unsigned j=0; j<s.probes[i]->locals.size(); ++j) {
-	    clog << "local: " << s.probes[i]->locals[j]->tok->location << endl;
+	    clog << _("local: ") << s.probes[i]->locals[j]->tok->location << endl;
     }
     for (unsigned j=0; j<s.probes[i]->unused_locals.size(); ++j) {
-	    clog << "unused_local: "
+	    clog << _("unused_local: ")
 		 << s.probes[i]->unused_locals[j]->tok->location
 		 << endl;
     }
   }
   // print out unused probes
-  clog << "---- unused probes----- " << endl;
+  clog << _("---- unused probes----- ") << endl;
   for (unsigned i=0; i<s.unused_probes.size(); i++) {
     // walk through the chain of probes
     vector<probe*> unused_probe_list;
     s.unused_probes[i]->collect_derivation_chain(unused_probe_list);
     for (unsigned j=0; j<unused_probe_list.size(); ++j) {
       for (unsigned k=0; k< unused_probe_list[j]->locations.size(); ++k)
-        clog << "probe: "
+        clog << _("probe: ")
 	     << unused_probe_list[j]->locations[k]->components.front()->tok->location << endl;
     }
 
   }
   // print out used functions
-  clog << "---- used functions----- " << endl;
+  clog << _("---- used functions----- ") << endl;
   for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
     {
       clog << "function: " << it->second->tok->location
@@ -69,23 +69,23 @@ void print_coverage_info(systemtap_session &s)
            << endl;
     }
   // print out unused functions
-  clog << "---- unused functions----- " << endl;
+  clog << _("---- unused functions----- ") << endl;
   for (unsigned i=0; i<s.unused_functions.size(); i++) {
-     clog << "unused_function: " << s.unused_functions[i]->tok->location
+     clog << _("unused_function: ") << s.unused_functions[i]->tok->location
 	  << " "  << s.unused_functions[i]->name
 	  << endl;
   }
   // print out used globals
-  clog << "---- used globals----- " << endl;
+  clog << _("---- used globals----- ") << endl;
   for (unsigned i=0; i<s.globals.size(); i++) {
-     clog << "globals: " << s.globals[i]->tok->location
+     clog << _("globals: ") << s.globals[i]->tok->location
 	  << " " << s.globals[i]->name
 	  << endl;
   }
   // print out unused globals
-  clog << "---- unused globals----- " << endl;
+  clog << _("---- unused globals----- ") << endl;
   for (unsigned i=0; i<s.unused_globals.size(); i++) {
-     clog << "globals: " << s.unused_globals[i]->tok->location
+     clog << _("globals: ") << s.unused_globals[i]->tok->location
 	  << " " << s.unused_globals[i]->name
 	  << endl;
   }
@@ -107,7 +107,7 @@ has_table(sqlite3 *db, const char * table)
 			 &results, &rows, &columns, &errmsg);
 
   if(rc != SQLITE_OK) {
-    cerr << "Error in statement: " << command << " [" << errmsg << "]."
+    cerr << _("Error in statement: ") << command << " [" << errmsg << "]."
 				 << endl;
   }
   sqlite3_free_table(results);
@@ -130,7 +130,7 @@ has_index(sqlite3 *db, const char * index)
 			 &results, &rows, &columns, &errmsg);
 
   if(rc != SQLITE_OK) {
-    cerr << "Error in statement: " << command << " [" << errmsg << "]."
+    cerr << _("Error in statement: ") << command << " [" << errmsg << "]."
 				 << endl;
   }
   sqlite3_free_table(results);
@@ -148,7 +148,7 @@ void sql_stmt(sqlite3 *db, const char* stmt)
   ret = sqlite3_exec(db, stmt, 0, 0, &errmsg);
 
   if(ret != SQLITE_OK) {
-    cerr << "Error in statement: " << stmt << " [" << errmsg << "]."
+    cerr << _("Error in statement: ") << stmt << " [" << errmsg << "]."
 				 << endl;
   }
 }
@@ -156,7 +156,7 @@ void sql_stmt(sqlite3 *db, const char* stmt)
 void enter_element(sqlite3 *db, coverage_element &x)
 {
   ostringstream command;
-  command << "insert or ignore into counts values ('"
+  command << _("insert or ignore into counts values ('")
           << x.file << "', '"
           << x.line << "', '"
           << x.col  << "', '"
@@ -172,7 +172,7 @@ void increment_element(sqlite3 *db, coverage_element &x)
 {
   ostringstream command;
   // make sure value in table
-  command << "insert or ignore into counts values ('"
+  command << _("insert or ignore into counts values ('")
           << x.file << "', '"
           << x.line << "', '"
           << x.col  << "', '"

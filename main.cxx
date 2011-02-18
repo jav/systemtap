@@ -300,7 +300,6 @@ int parse_kernel_config (systemtap_session &s)
     {
         clog << _F("Checking \"%s\" failed with error: %s",
                    kernel_config_file.c_str(), strerror(errno)) << endl;
-	//clog << "Checking \"" << kernel_config_file << "\" failed: " << strerror(errno) << endl;
 	find_devel_rpms(s, s.kernel_build_tree.c_str());
 	missing_rpm_list_print(s,"-devel");
 	return rc;
@@ -319,9 +318,8 @@ int parse_kernel_config (systemtap_session &s)
     }
   if (s.verbose > 2)
     clog << _F("Parsed kernel \"%s\", ", kernel_config_file.c_str())
-         << _NF("containing %zu tuple", "containing %zu tuples",
-                s.kernel_config.size(), s.kernel_config.size()) << endl;
-    //clog << "Parsed kernel \"" << kernel_config_file << "\", number of tuples: " << s.kernel_config.size() << endl;
+         << _F(ngettext("containing %zu tuple", "containing %zu tuples",
+                s.kernel_config.size()), s.kernel_config.size()) << endl;
 
   kcf.close();
   return 0;
@@ -335,10 +333,8 @@ int parse_kernel_exports (systemtap_session &s)
   int rc = stat(kernel_exports_file.c_str(), &st);
   if (rc != 0)
     {
-        clog << _F("Checking \"%s\" failed with error: %s",
-                   kernel_exports_file.c_str(), strerror(errno)) << endl
-	//clog << "Checking \"" << kernel_exports_file << "\" failed: " << strerror(errno) << endl
-	     << _("Ensure kernel development headers & makefiles are installed.") << endl;
+        clog << _F("Checking \"%s\" failed with error: %s\nEnsure kernel development headers & makefiles are installed",
+                   kernel_exports_file.c_str(), strerror(errno)) << endl;
 	return rc;
     }
 
@@ -355,9 +351,8 @@ int parse_kernel_exports (systemtap_session &s)
     }
   if (s.verbose > 2)
     clog << _F("Parsed kernel \"%s\", ", kernel_exports_file.c_str())
-         << _NF("which contained one vmlinux export", "which contained %zu vmlinux exports",
-                s.kernel_exports.size(), s.kernel_exports.size()) << endl;
-    //clog << "Parsed kernel \"" << kernel_exports_file << "\", number of vmlinux exports: " << s.kernel_exports.size() << endl;
+         << _F(ngettext("which contained one vmlinux export", "which contained %zu vmlinux exports",
+                s.kernel_exports.size()), s.kernel_exports.size()) << endl;
 
   kef.close();
   return 0;
@@ -384,9 +379,8 @@ create_temp_dir (systemtap_session &s)
   if (! tmpdir_name)
     {
       const char* e = strerror (errno);
-      //we can't make the directory due to the error
+      //TRANSLATORS: we can't make the directory due to the error
       cerr << _F("ERROR: cannot create temporary directory (\" %s \"): %s", tmpdirt.c_str(), e) << endl;
-      //cerr << "ERROR: cannot create temporary directory (\"" << tmpdirt << "\"): " << e << endl;
       return 1;
     }
   else
@@ -394,7 +388,6 @@ create_temp_dir (systemtap_session &s)
 
   if (s.verbose>1)
     clog << _F("Created temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
-    //clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
   return 0;
 }
 
@@ -407,7 +400,6 @@ remove_temp_dir (systemtap_session &s)
         // NB: the format of this message needs to match the expectations
         // of stap-server-connect.c.
         clog << _F("Keeping temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
-        //clog << "Keeping temporary directory \"" << s.tmpdir << "\"" << endl;
       else
         {
 	  // Ignore signals while we're deleting the temporary directory.
@@ -480,9 +472,6 @@ passes_0_4 (systemtap_session &s)
     {
       s.version ();
       clog << _F("Session arch: %s release: %s", s.architecture.c_str(), s.kernel_release.c_str()) << endl;
-      //clog << "Session arch: " << s.architecture
-           //<< " release: " << s.kernel_release
-           //<< endl;
     }
 
   // Now that no further changes to s.kernel_build_tree can occur, let's use it.
@@ -602,8 +591,6 @@ passes_0_4 (systemtap_session &s)
                   cerr 
                   << _F("usage error: tapset file '%s' cannot be run directly as a session script.",
                         globbuf.gl_pathv[j]) << endl;
-                  //cerr << "usage error: tapset file '" << globbuf.gl_pathv[j]
-                  //     << "' cannot be run directly as a session script." << endl;
                   rc ++;
                 }
 
@@ -632,9 +619,6 @@ passes_0_4 (systemtap_session &s)
             clog << _F("Searched: \" %s \", found: %zu, processed: %u",
                        dir.c_str(), globbuf.gl_pathc,
                        (next_s_library_files-prev_s_library_files)) << endl;
-            //clog << "Searched \"" << dir << "\","
-            //     << " found " << globbuf.gl_pathc 
-            //     << " processed " << (next_s_library_files-prev_s_library_files) << endl;
 
           globfree (& globbuf);
         }

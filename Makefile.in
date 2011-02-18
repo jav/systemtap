@@ -149,8 +149,8 @@ stap_server_connect_OBJECTS = $(am_stap_server_connect_OBJECTS)
 stap_server_connect_DEPENDENCIES =
 stap_server_connect_LINK = $(CCLD) $(stap_server_connect_CFLAGS) \
 	$(CFLAGS) $(stap_server_connect_LDFLAGS) $(LDFLAGS) -o $@
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am_stap_sign_module_OBJECTS = stap_sign_module-modsign.$(OBJEXT) \
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_sign_module-nsscommon.$(OBJEXT)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am_stap_sign_module_OBJECTS = stap_sign_module-modsign.$(OBJEXT) stap-util.$(OBJEXT) \
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_sign_module-nsscommon.$(OBJEXT) 
 stap_sign_module_OBJECTS = $(am_stap_sign_module_OBJECTS)
 stap_sign_module_DEPENDENCIES =
 stap_sign_module_LINK = $(CXXLD) $(stap_sign_module_CXXFLAGS) \
@@ -442,7 +442,7 @@ PHONIES = $(am__append_18) $(am__append_24) runcheck update-po \
 @BUILD_TRANSLATOR_TRUE@	$(am__append_20)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_LDFLAGS = $(AM_LDFLAGS)
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_SOURCES = modsign.cxx nsscommon.c
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_SOURCES = modsign.cxx nsscommon.c util.cxx
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CPPFLAGS = $(AM_CPPFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)

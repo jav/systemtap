@@ -178,9 +178,6 @@ systemtap_session::systemtap_session ():
       if (! suppress_warnings)
         cerr << _F("Warning: failed to create systemtap data directory \"%s\":%s, disabling cache support.",
                    data_path.c_str(),e) << endl;
-        //cerr << "Warning: failed to create systemtap data directory (\""
-        //     << data_path << "\"): " << e
-        //     << ", disabling cache support." << endl;
       use_cache = use_script_cache = false;
     }
 
@@ -193,9 +190,6 @@ systemtap_session::systemtap_session ():
           if (! suppress_warnings)
             cerr << _F("Warning: failed to create cache directory (\" %s \"): %s, disabling cache support.",
                        cache_path.c_str(),e) << endl;
-            //cerr << "Warning: failed to create cache directory (\""
-            //     << cache_path << "\"): " << e
-            //     << ", disabling cache support." << endl;
 	  use_cache = use_script_cache = false;
 	}
     }
@@ -420,7 +414,6 @@ systemtap_session::usage (int exitcode)
     << _("]") << endl
     << _("   -k         keep temporary directory") << endl
     << _F("   -u         unoptimized translation %s", (unoptimized ? _(" [set]") : "")) << endl
-    //<< "   -u         unoptimized translation" << (unoptimized ? " [set]" : "") << endl
     << _F("   -w         suppress warnings %s", (suppress_warnings ? _(" [set]") : "")) << endl
     << _F("   -W         turn warnings into errors %s", (panic_warnings ? _(" [set]") : "")) << endl
     << _F("   -g         guru mode %s", (guru_mode ? _(" [set]") : "")) << endl
@@ -1317,9 +1310,6 @@ systemtap_session::register_library_aliases()
                       probe_point::component * comp = name->components[c];
                       // XXX: alias parameters
                       if (comp->arg)
-                        //throw semantic_error("alias component "
-                        //                     + comp->functor
-                        //                     + " contains illegal parameter");
                         throw semantic_error(_F("alias component %s contains illegal parameter",
                                                 comp->functor.c_str()));
                       n = n->bind(comp->functor);

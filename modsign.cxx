@@ -21,8 +21,11 @@
 */
 
 #include "util.h"
+#include "config.h"
 #include <iostream>
 #include <string>
+#include <libintl.h>
+#include <locale.h>
 
 extern "C" {
 #include "nsscommon.h"
@@ -40,6 +43,19 @@ extern "C" {
 #include <sys/types.h>
 #include <pwd.h>
 }
+
+#if ENABLE_NLS
+#define _(string) gettext(string)
+#define _N(string, string_plural, count) \
+        ngettext((string), (string_plural), (count))
+#else
+#define _(string) (string)
+#define _N(string, string_plural, count) \
+        ( (count) == 1 ? (string) : (string_plural) )
+#endif
+#define _F(format, ...) autosprintf(_(format), __VA_ARGS__)
+#define _NF(format, format_plural, count, ...) \
+        autosprintf(_N((format), (format_plural), (count)), __VA_ARGS__)
 
 using namespace std;
 
@@ -119,7 +135,7 @@ get_password (const string &fileName)
   prStatus = PR_GetFileInfo (fileName.c_str(), &fileInfo);
   if (prStatus != PR_SUCCESS || fileInfo.type != PR_FILE_FILE || fileInfo.size < 0)
     {
-      cerr << "Could not obtain information on password file " << fileName << "." << endl;
+      cerr << _("Could not obtain information on password file ") << fileName << "." << endl;
       nssError ();
       return NULL;
     }
@@ -127,7 +143,7 @@ get_password (const string &fileName)
   local_file_fd = PR_Open (fileName.c_str(), PR_RDONLY, 0);
   if (local_file_fd == NULL)
     {
-      cerr << "Could not open password file " << fileName << "." << endl;
+      cerr << _("Could not open password file ") << fileName << "." << endl;
       nssError ();
       return NULL;
     }
@@ -135,7 +151,11 @@ get_password (const string &fileName)
   password = (char*)PORT_Alloc (fileInfo.size + 1);
   if (! password)
     {
-      cerr << "Unable to allocate " << (fileInfo.size + 1) << " bytes." << endl;
+      //cerr << "Unable to allocate " << (fileInfo.size + 1) << " bytes." << endl;
+      //cerr << autosprintf(ngettext("Unable to allocate one byte", "Unable to allocate %#x bytes",
+      //            (fileInfo.size + 1)), (fileInfo.size + 1)) << endl;
+      cerr << _F(ngettext("Unable to allocate %#x byte", "Unable to allocate %#x bytes",
+                  (fileInfo.size + 1)), (fileInfo.size + 1)) << endl;
       nssError ();
       return NULL;
     }
@@ -143,7 +163,7 @@ get_password (const string &fileName)
   numBytesRead = PR_Read (local_file_fd, password, fileInfo.size);
   if (numBytesRead <= 0)
     {
-      cerr << "Error reading password file " << fileName << "." << endl;
+      cerr << _("Error reading password file ") << fileName << "." << endl;
       nssError ();
       return 0;
     }
@@ -175,14 +195,14 @@ sign_it (const string &inputName, const string &outputName, SECKEYPrivateKey *pr
   sgn = SGN_NewContext (SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION, privKey);
   if (! sgn) 
     {
-      cerr << "Could not create signing context." << endl;
+      cerr << _("Could not create signing context.") << endl;
       nssError ();
       return;
     }
   secStatus = SGN_Begin (sgn);
   if (secStatus != SECSuccess)
     {
-      cerr << "Could not initialize signing context." << endl;
+      cerr << _("Could not initialize signing context.") << endl;
       nssError ();
       return;
     }
@@ -191,7 +211,7 @@ sign_it (const string &inputName, const string &outputName, SECKEYPrivateKey *pr
   local_file_fd = PR_Open (inputName.c_str(), PR_RDONLY, 0);
   if (local_file_fd == NULL)
     {
-      cerr << "Could not open module file " << inputName << "." << endl;
+      cerr << _("Could not open module file ") << inputName << "." << endl;
       nssError ();
       return;
     }
@@ -204,7 +224,7 @@ sign_it (const string &inputName, const string &outputName, SECKEYPrivateKey *pr
 
       if (numBytes < 0)
 	{
-	  cerr << "Error reading module file " << inputName << "." << endl;
+	  cerr << _("Error reading module file ") << inputName << "." << endl;
 	  nssError ();
 	  return;
 	}
@@ -213,7 +233,7 @@ sign_it (const string &inputName, const string &outputName, SECKEYPrivateKey *pr
       secStatus = SGN_Update (sgn, buffer, numBytes);
       if (secStatus != SECSuccess)
 	{
-	  cerr << "Error while signing module file " << inputName << "." << endl;
+	  cerr << _("Error while signing module file ") << inputName << "." << endl;
 	  nssError ();
 	  return;
 	}
@@ -225,7 +245,7 @@ sign_it (const string &inputName, const string &outputName, SECKEYPrivateKey *pr
   secStatus = SGN_End (sgn, & signedData);
   if (secStatus != SECSuccess)
     {
-      cerr << "Could not complete signature of module file " << inputName << "." << endl;
+      cerr << _("Could not complete signature of module file ") << inputName << "." << endl;
       nssError ();
       return;
     }
@@ -237,7 +257,7 @@ sign_it (const string &inputName, const string &outputName, SECKEYPrivateKey *pr
 			   PR_IRUSR | PR_IWUSR | PR_IRGRP | PR_IWGRP | PR_IROTH);
   if (local_file_fd == NULL)
     {
-      cerr << "Could not open signature file " << outputName << "." << endl;
+      cerr << _("Could not open signature file ") << outputName << "." << endl;
       nssError ();
       return;
     }
@@ -245,7 +265,7 @@ sign_it (const string &inputName, const string &outputName, SECKEYPrivateKey *pr
   numBytes = PR_Write (local_file_fd, signedData.data, signedData.len);
   if (numBytes < 0 || numBytes != signedData.len)
     {
-      cerr << "Error writing to signature file " << outputName << "." << endl;
+      cerr << _("Error writing to signature file ") << outputName << "." << endl;
       nssError ();
       return;
     }
@@ -256,6 +276,10 @@ sign_it (const string &inputName, const string &outputName, SECKEYPrivateKey *pr
 int
 main(int argc, char **argv)
 {
+  setlocale (LC_ALL, "");
+  bindtextdomain (PACKAGE, LOCALEDIR);
+  textdomain (PACKAGE);
+
   const char *nickName = "stap-server";
   string module_name;
   string cert_db_path;
@@ -267,7 +291,7 @@ main(int argc, char **argv)
   struct passwd *pwd;
 
   if (argc < 2) {
-      cerr << "Module name was not specified." << endl;
+      cerr << _("Module name was not specified.") << endl;
       return 1;
   }
   module_name = argv[1];
@@ -284,7 +308,7 @@ main(int argc, char **argv)
 	if (pwd)
 	  stap_dir = pwd->pw_dir;
 	else {
-	  cerr << "Unable to determine the certificate database path." << endl;
+	  cerr << _("Unable to determine the certificate database path.") << endl;
 	  return 1;
 	}
       }
@@ -300,7 +324,7 @@ main(int argc, char **argv)
   password = get_password (cert_db_path + "/pw");
   if (! password)
     {
-      cerr << "Unable to obtain certificate database password." << endl;
+      cerr << _("Unable to obtain certificate database password.") << endl;
       return 1;
     }
 
@@ -314,7 +338,7 @@ main(int argc, char **argv)
   secStatus = NSS_Init (cert_db_path.c_str());
   if (secStatus != SECSuccess)
     {
-      cerr << "Unable to initialize nss library." << endl;
+      cerr << _("Unable to initialize nss library.") << endl;
       nssError ();
       return 1;
     }
@@ -323,8 +347,8 @@ main(int argc, char **argv)
   cert = PK11_FindCertFromNickname (nickName, password);
   if (cert == NULL)
     {
-      cerr << "Unable to find certificate with nickname " << nickName
-	   << " in " << cert_db_path << "." << endl;
+      cerr << _F("Unable to find certificate with nickname %s in %s.",
+                            nickName, cert_db_path.c_str()) << endl;
       nssError ();
       return 1;
     }
@@ -332,8 +356,8 @@ main(int argc, char **argv)
   privKey = PK11_FindKeyByAnyCert (cert, password);
   if (privKey == NULL)
     {
-      cerr << "Unable to obtain private key from the certificate with nickname " << nickName
-	   << " in " << cert_db_path << "." << endl;
+      cerr << _F("Unable to obtain private key from the certificate with nickname %s, in %s.",
+                    nickName, cert_db_path.c_str()) << endl;
       nssError ();
       return 1;
     }

@@ -166,7 +166,7 @@ CLEANFILES +=  $(pkglibexec_PROGRAMS)
 
 if BUILD_TRANSLATOR
 if HAVE_NSS
-stap_sign_module_SOURCES = modsign.cxx nsscommon.c
+stap_sign_module_SOURCES = modsign.cxx nsscommon.c util.cxx
 stap_sign_module_CPPFLAGS = $(AM_CPPFLAGS)
 stap_sign_module_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_sign_module_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
