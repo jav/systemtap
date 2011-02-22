@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-02-18 09:14-0500\n"
+"POT-Creation-Date: 2011-02-22 08:35-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -499,7 +499,7 @@ msgstr[1] ""
 #, c-format
 msgid ""
 "Checking \"%s\" failed with error: %s\n"
-" Ensure kernel development headers & makefiles are installed"
+"Ensure kernel development headers & makefiles are installed"
 msgstr ""
 
 #: main.cxx:354
@@ -596,71 +596,64 @@ msgstr ""
 msgid "Could not open password file "
 msgstr ""
 
-#: modsign.cxx:157
-#, c-format
-msgid "Unable to allocate %#x byte"
-msgid_plural "Unable to allocate %#x bytes"
-msgstr[0] ""
-msgstr[1] ""
-
-#: modsign.cxx:166
+#: modsign.cxx:162
 msgid "Error reading password file "
 msgstr ""
 
-#: modsign.cxx:198
+#: modsign.cxx:194
 msgid "Could not create signing context."
 msgstr ""
 
-#: modsign.cxx:205
+#: modsign.cxx:201
 msgid "Could not initialize signing context."
 msgstr ""
 
-#: modsign.cxx:214
+#: modsign.cxx:210
 msgid "Could not open module file "
 msgstr ""
 
-#: modsign.cxx:227
+#: modsign.cxx:223
 msgid "Error reading module file "
 msgstr ""
 
-#: modsign.cxx:236
+#: modsign.cxx:232
 msgid "Error while signing module file "
 msgstr ""
 
-#: modsign.cxx:248
+#: modsign.cxx:244
 msgid "Could not complete signature of module file "
 msgstr ""
 
-#: modsign.cxx:260
+#: modsign.cxx:256
 msgid "Could not open signature file "
 msgstr ""
 
-#: modsign.cxx:268
+#: modsign.cxx:264
 msgid "Error writing to signature file "
 msgstr ""
 
-#: modsign.cxx:294
+#: modsign.cxx:290
 msgid "Module name was not specified."
 msgstr ""
 
-#: modsign.cxx:311
+#: modsign.cxx:307
 msgid "Unable to determine the certificate database path."
 msgstr ""
 
-#: modsign.cxx:327
+#: modsign.cxx:323
 msgid "Unable to obtain certificate database password."
 msgstr ""
 
-#: modsign.cxx:341
+#: modsign.cxx:337
 msgid "Unable to initialize nss library."
 msgstr ""
 
-#: modsign.cxx:350
+#: modsign.cxx:346
 #, c-format
 msgid "Unable to find certificate with nickname %s in %s."
 msgstr ""
 
-#: modsign.cxx:359
+#: modsign.cxx:355
 #, c-format
 msgid ""
 "Unable to obtain private key from the certificate with nickname %s, in %s."
@@ -953,6 +946,26 @@ msgstr ""
 
 #: parse.cxx:3000
 msgid "can't dereference after pretty-printing"
+msgstr ""
+
+#: rpm_finder.cxx:70
+msgid "Error reading the rpm configuration files"
+msgstr ""
+
+#: rpm_finder.cxx:103 rpm_finder.cxx:122 rpm_finder.cxx:158
+msgid "Error querying the rpm file `"
+msgstr ""
+
+#: rpm_finder.cxx:206
+msgid "Incorrect version or missing kernel-devel package, use: yum install "
+msgstr ""
+
+#: rpm_finder.cxx:209
+msgid "Missing separate debuginfos, use: debuginfo-install "
+msgstr ""
+
+#: rpm_finder.cxx:212
+msgid "Incorrect parameter passed, please report this error."
 msgstr ""
 
 #: session.cxx:179
@@ -1328,6 +1341,11 @@ msgstr ""
 msgid "Invalid --vp argument: it takes 1 to 5 digits."
 msgstr ""
 
+#: session.cxx:941
+#, c-format
+msgid "Invalid argument '%s' for --use-server-on-error."
+msgstr ""
+
 #: session.cxx:969
 msgid "ERROR: --disable-cache is invalid with --client-options"
 msgstr ""
@@ -1432,6 +1450,168 @@ msgstr ""
 msgid "semantic error: %s"
 msgstr ""
 
-#: session.cxx:1457
+#. TRANSLATORS:  Here were are printing the source string of the error
+#: session.cxx:1437
+msgid "source: "
+msgstr ""
+
+#: session.cxx:1458
 msgid "WARNING: "
+msgstr ""
+
+#: tapset-itrace.cxx:79
+msgid "process probes not available without kernel CONFIG_UTRACE"
+msgstr ""
+
+#: tapset-mark.cxx:100
+msgid "invalid marker argument number"
+msgstr ""
+
+#: tapset-mark.cxx:103
+msgid "write to marker parameter not permitted"
+msgstr ""
+
+#: tapset-mark.cxx:123
+#, c-format
+msgid "write to marker '%s' not permitted"
+msgstr ""
+
+#: tapset-mark.cxx:187
+msgid "cannot take address of marker variable"
+msgstr ""
+
+#: tapset-mark.cxx:195
+msgid ""
+"invalid target symbol for marker, $argN, $name, $format, $$parms or $$vars "
+"expected"
+msgstr ""
+
+#: tapset-mark.cxx:449
+msgid "cannot expand unknown type"
+msgstr ""
+
+#: tapset-mark.cxx:582
+msgid "mark_builder releasing cache"
+msgstr ""
+
+#. TRANSLATORS: specific path cannot be opened
+#: tapset-mark.cxx:620
+msgid " cannot be opened: "
+msgstr ""
+
+#: tapset-perfmon.cxx:195
+msgid ""
+"perf probes not available without exported perf_event_create_kernel_counter"
+msgstr ""
+
+#: tapset-perfmon.cxx:197
+msgid "perf probes not available without CONFIG_PERF_EVENTS"
+msgstr ""
+
+#: tapset-perfmon.cxx:212
+msgid "invalid perf sample period "
+msgstr ""
+
+#: tapset-perfmon.cxx:216
+#, c-format
+msgid "perf probe type=%ld config=%ld period=%ld"
+msgstr ""
+
+#: tapset-procfs.cxx:147
+msgid "only one write procfs probe can exist for procfs path \""
+msgstr ""
+
+#: tapset-procfs.cxx:149
+msgid "only one read procfs probe can exist for procfs path \""
+msgstr ""
+
+#: tapset-procfs.cxx:406
+msgid "invalid target symbol for procfs probe, $value expected"
+msgstr ""
+
+#: tapset-procfs.cxx:413
+msgid "procfs $value variable is read-only in a procfs write probe"
+msgstr ""
+
+#: tapset-procfs.cxx:415
+msgid "procfs $value variable cannot be read in a procfs read probe"
+msgstr ""
+
+#: tapset-procfs.cxx:418
+msgid "cannot take address of procfs variable"
+msgstr ""
+
+#: tapset-procfs.cxx:459
+msgid ""
+"Only the following assign operators are implemented on procfs read target "
+"variables: '=', '.='"
+msgstr ""
+
+#: tapset-procfs.cxx:547
+msgid "maxsize must be greater than 0"
+msgstr ""
+
+#: tapset-procfs.cxx:569
+msgid "procfs path cannot start with a '/'"
+msgstr ""
+
+#: tapset-procfs.cxx:575
+msgid "procfs path component cannot be empty"
+msgstr ""
+
+#: tapset-procfs.cxx:579 tapset-procfs.cxx:589
+msgid "procfs path cannot be relative (and contain '.' or '..')"
+msgstr ""
+
+#: tapset-procfs.cxx:586
+msgid "procfs path cannot end with a '/'"
+msgstr ""
+
+#: tapset-procfs.cxx:593
+msgid "need read/write component"
+msgstr ""
+
+#: tapsets.cxx:861
+#, c-format
+msgid ""
+"Error: Pattern '%s' matches every single instruction address in the symbol "
+"table,\n"
+"some of which aren't even functions.\n"
+msgstr ""
+
+#: tapsets.cxx:895
+#, c-format
+msgid "Warning: address %#<PRIx64> out of range for module %s"
+msgstr ""
+
+#: tapsets.cxx:909
+#, c-format
+msgid ""
+"Warning: address %#<PRIx64> maps to no known compilation unit in module %s"
+msgstr ""
+
+#: tapsets.cxx:1023
+#, c-format
+msgid "parse '%s'"
+msgstr ""
+
+#: tapsets.cxx:1064
+#, c-format
+msgid "malformed specification '%s'"
+msgstr ""
+
+#: tapsets.cxx:1093
+msgid "probe "
+msgstr ""
+
+#: tapsets.cxx:1095
+msgid " kernel"
+msgstr ""
+
+#: tapsets.cxx:1097
+msgid " module="
+msgstr ""
+
+#: tapsets.cxx:1099
+msgid " process="
 msgstr ""

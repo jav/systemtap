@@ -938,7 +938,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 		  else if (arg == "no" || arg == "n")
 		    use_server_on_error = false;
 		  else
-		    cerr << "Invalid argument '" << optarg << "' for --use-server-on-error." << endl;
+                    cerr << _F("Invalid argument '%s' for --use-server-on-error.", optarg) << endl;
 		}
 	      else
 		use_server_on_error = true;
@@ -1433,7 +1433,8 @@ systemtap_session::print_error_source (std::ostream& message,
       end_pos = file_contents.find ('\n', start_pos) + 1;
       i++;
     }
-  message << align << "source: " << file_contents.substr (start_pos, end_pos-start_pos-1) << endl;
+  //TRANSLATORS:  Here were are printing the source string of the error
+  message << align << _("source: ") << file_contents.substr (start_pos, end_pos-start_pos-1) << endl;
   message << align << "        ";
   //Navigate to the appropriate column
   for (i=start_pos; i<start_pos+col-1; i++)

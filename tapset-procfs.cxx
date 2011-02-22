@@ -144,9 +144,9 @@ procfs_derived_probe_group::enroll (procfs_derived_probe* p)
 
       // You can only specify 1 read and 1 write probe.
       if (p->write && pset->write_probe != NULL)
-        throw semantic_error("only one write procfs probe can exist for procfs path \"" + p->path + "\"");
+        throw semantic_error(_("only one write procfs probe can exist for procfs path \"") + p->path + "\"");
       else if (! p->write && pset->read_probe != NULL)
-        throw semantic_error("only one read procfs probe can exist for procfs path \"" + p->path + "\"");
+        throw semantic_error(_("only one read procfs probe can exist for procfs path \"") + p->path + "\"");
 
       // XXX: multiple writes should be acceptable
     }
@@ -403,19 +403,19 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
       assert(e->name.size() > 0 && e->name[0] == '$');
 
       if (e->name != "$value")
-        throw semantic_error ("invalid target symbol for procfs probe, $value expected",
+        throw semantic_error (_("invalid target symbol for procfs probe, $value expected"),
                               e->tok);
 
       e->assert_no_components("procfs");
 
       bool lvalue = is_active_lvalue(e);
       if (write_probe && lvalue)
-        throw semantic_error("procfs $value variable is read-only in a procfs write probe", e->tok);
+        throw semantic_error(_("procfs $value variable is read-only in a procfs write probe"), e->tok);
   else if (! write_probe && ! lvalue)
-    throw semantic_error("procfs $value variable cannot be read in a procfs read probe", e->tok);
+    throw semantic_error(_("procfs $value variable cannot be read in a procfs read probe"), e->tok);
 
       if (e->addressof)
-        throw semantic_error("cannot take address of procfs variable", e->tok);
+        throw semantic_error(_("cannot take address of procfs variable"), e->tok);
 
       // Remember that we've seen a target variable.
       target_symbol_seen = true;
@@ -456,9 +456,9 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
             }
           else
             {
-              throw semantic_error ("Only the following assign operators are"
+              throw semantic_error (_("Only the following assign operators are"
                                     " implemented on procfs read target variables:"
-                                    " '=', '.='", e->tok);
+                                    " '=', '.='"), e->tok);
             }
         }
       fname += lex_cast(++tick);
@@ -544,7 +544,7 @@ procfs_builder::build(systemtap_session & sess,
   if (get_param(parameters, TOK_MAXSIZE, maxsize_val))
     {
       if (maxsize_val <= 0)
-	throw semantic_error ("maxsize must be greater than 0");
+	throw semantic_error (_("maxsize must be greater than 0"));
     }
 
   // If no procfs path, default to "command".  The runtime will do
@@ -566,31 +566,31 @@ procfs_builder::build(systemtap_session & sess,
         {
           // Make sure it doesn't start with '/'.
           if (end_pos == 0)
-            throw semantic_error ("procfs path cannot start with a '/'",
+            throw semantic_error (_("procfs path cannot start with a '/'"),
                                   location->components.front()->tok);
 
           component = path.substr(start_pos, end_pos - start_pos);
           // Make sure it isn't empty.
           if (component.size() == 0)
-            throw semantic_error ("procfs path component cannot be empty",
+            throw semantic_error (_("procfs path component cannot be empty"),
                                   location->components.front()->tok);
           // Make sure it isn't relative.
           else if (component == "." || component == "..")
-            throw semantic_error ("procfs path cannot be relative (and contain '.' or '..')", location->components.front()->tok);
+            throw semantic_error (_("procfs path cannot be relative (and contain '.' or '..')"), location->components.front()->tok);
 
           start_pos = end_pos + 1;
         }
       component = path.substr(start_pos);
       // Make sure it doesn't end with '/'.
       if (component.size() == 0)
-        throw semantic_error ("procfs path cannot end with a '/'", location->components.front()->tok);
+        throw semantic_error (_("procfs path cannot end with a '/'"), location->components.front()->tok);
       // Make sure it isn't relative.
       else if (component == "." || component == "..")
-        throw semantic_error ("procfs path cannot be relative (and contain '.' or '..')", location->components.front()->tok);
+        throw semantic_error (_("procfs path cannot be relative (and contain '.' or '..')"), location->components.front()->tok);
     }
 
   if (!(has_read ^ has_write))
-    throw semantic_error ("need read/write component", location->components.front()->tok);
+    throw semantic_error (_("need read/write component"), location->components.front()->tok);
 
   finished_results.push_back(new procfs_derived_probe(sess, base, location,
                                                       path, has_write,

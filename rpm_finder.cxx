@@ -67,7 +67,7 @@ missing_rpm_enlist (systemtap_session& sess, const char *filename, const char *r
 
       if (rpmReadConfigFiles(NULL, NULL) != 0)
 	{
-	  cerr << "Error reading the rpm configuration files" << endl;
+	  cerr << _("Error reading the rpm configuration files") << endl;
 	  return 0;
 	}
 
@@ -100,7 +100,7 @@ missing_rpm_enlist (systemtap_session& sess, const char *filename, const char *r
 
 	  if (!rpminfo)
 	    {
-	      cerr << "Error querying the rpm file `" << filename << "': "
+	      cerr << _("Error querying the rpm file `") << filename << "': "
 		   << err << endl;
 	      continue;
 	    }
@@ -119,7 +119,7 @@ missing_rpm_enlist (systemtap_session& sess, const char *filename, const char *r
 	    }
 	  if (!s2)
 	    {
-	      cerr << "Error querying the rpm file `" << filename 
+	      cerr << _("Error querying the rpm file `") << filename 
 		   << "': " << rpminfo << endl;
 	      xfree (rpminfo);
 	      continue;
@@ -155,7 +155,7 @@ missing_rpm_enlist (systemtap_session& sess, const char *filename, const char *r
 	  }
 	  if (!rpminfo)
 	    {
-	      cerr << "Error querying the rpm file `" << filename 
+	      cerr << _("Error querying the rpm file `") << filename 
 		   << "': " << err << endl;
 	      continue;
 	    }
@@ -203,13 +203,13 @@ missing_rpm_list_print (systemtap_session &sess, const char* rpm_type)
   if (sess.rpms_to_install.size() > 0 && ! sess.suppress_warnings) {
 
     if(strcmp(rpm_type,"-devel")==0)
-	cerr << "Incorrect version or missing kernel-devel package, use: yum install ";
+	cerr << _("Incorrect version or missing kernel-devel package, use: yum install ");
 
     else if(strcmp(rpm_type,"-debuginfo")==0)
-	cerr << "Missing seperate debuginfos, use: debuginfo-install ";
+	cerr << _("Missing separate debuginfos, use: debuginfo-install ");
 
     else{
-        cerr << "Incorrect paramater passed, please report this error." << endl;
+        cerr << _("Incorrect parameter passed, please report this error.") << endl;
 	_exit(1);
 	}
 
