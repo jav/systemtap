@@ -124,7 +124,7 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
   target_symbol_seen(false)
 {
   if (s.kernel_config["CONFIG_UTRACE"] != string("y"))
-    throw semantic_error ("process probes not available without kernel CONFIG_UTRACE");
+    throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE"));
 
   // Expand local variables in the probe body
   utrace_var_expanding_visitor v (s, l, name, flags);
@@ -456,7 +456,7 @@ void
 utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 {
   if (flags != UDPF_SYSCALL)
-    throw semantic_error ("only \"process(PATH_OR_PID).syscall\" support $argN or $$parms.", e->tok);
+    throw semantic_error (_("only \"process(PATH_OR_PID).syscall\" support $argN or $$parms."), e->tok);
 
   if (e->name == "$$parms")
     {
@@ -502,18 +502,18 @@ utrace_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
           }
         catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
           {
-           throw semantic_error ("invalid syscall argument number (1-6)", e->tok);
+           throw semantic_error (_("invalid syscall argument number (1-6)"), e->tok);
           }
 
         e->assert_no_components("utrace");
 
         // FIXME: max argnument number should not be hardcoded.
         if (argnum < 1 || argnum > 6)
-           throw semantic_error ("invalid syscall argument number (1-6)", e->tok);
+           throw semantic_error (_("invalid syscall argument number (1-6)"), e->tok);
 
         bool lvalue = is_active_lvalue(e);
         if (lvalue)
-           throw semantic_error("utrace '$argN' variable is read-only", e->tok);
+           throw semantic_error(_("utrace '$argN' variable is read-only"), e->tok);
 
         // Remember that we've seen a target variable.
         target_symbol_seen = true;
@@ -542,13 +542,13 @@ utrace_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 
   bool lvalue = is_active_lvalue(e);
   if (lvalue)
-    throw semantic_error("utrace '" + sname + "' variable is read-only", e->tok);
+    throw semantic_error(_F("utrace '%s' variable is read-only", sname.c_str()), e->tok);
 
   string fname;
   if (sname == "$return")
     {
       if (flags != UDPF_SYSCALL_RETURN)
-	throw semantic_error ("only \"process(PATH_OR_PID).syscall.return\" support $return.", e->tok);
+	throw semantic_error (_("only \"process(PATH_OR_PID).syscall.return\" support $return."), e->tok);
       fname = "_utrace_syscall_return";
     }
   else if (sname == "$syscall")
@@ -573,7 +573,7 @@ utrace_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
     }
   else
     {
-      throw semantic_error ("unknown target variable", e->tok);
+      throw semantic_error (_("unknown target variable"), e->tok);
     }
 
   // Remember that we've seen a target variable.
@@ -597,18 +597,20 @@ utrace_var_expanding_visitor::visit_target_symbol (target_symbol* e)
   try
     {
       if (flags != UDPF_SYSCALL && flags != UDPF_SYSCALL_RETURN)
-        throw semantic_error ("only \"process(PATH_OR_PID).syscall\" and \"process(PATH_OR_PID).syscall.return\" probes support target symbols",
+        throw semantic_error (_("only \"process(PATH_OR_PID).syscall\""
+                                " and \"process(PATH_OR_PID).syscall.return\" probes support target symbols"),
                               e->tok);
 
       if (e->addressof)
-        throw semantic_error("cannot take address of utrace variable", e->tok);
+        throw semantic_error(_("cannot take address of utrace variable"), e->tok);
 
       if (startswith(e->name, "$arg") || e->name == "$$parms")
         visit_target_symbol_arg(e);
       else if (e->name == "$syscall" || e->name == "$return")
         visit_target_symbol_context(e);
       else
-        throw semantic_error ("invalid target symbol for utrace probe, $syscall, $return, $argN or $$parms expected",
+        throw semantic_error (_("invalid target symbol for utrace probe,"
+                                " $syscall, $return, $argN or $$parms expected"),
                               e->tok);
     }
   catch (const semantic_error &er)
@@ -673,7 +675,7 @@ struct utrace_builder: public derived_probe_builder
       {
 	// We can't probe 'init' (pid 1).  XXX: where does this limitation come from?
 	if (pid < 2)
-	  throw semantic_error ("process pid must be greater than 1",
+	  throw semantic_error (_("process pid must be greater than 1"),
 				location->components.front()->tok);
 
         // XXX: could we use /proc/$pid/exe in unwindsym_modules and elsewhere?

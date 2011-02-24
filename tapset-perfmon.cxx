@@ -192,9 +192,9 @@ perf_builder::build(systemtap_session & sess,
   // XXX need additional version checks too?
   // --- perhaps look for export of perf_event_create_kernel_counter
   if (sess.kernel_exports.find("perf_event_create_kernel_counter") == sess.kernel_exports.end())
-    throw semantic_error ("perf probes not available without exported perf_event_create_kernel_counter");
+    throw semantic_error (_("perf probes not available without exported perf_event_create_kernel_counter"));
   if (sess.kernel_config["CONFIG_PERF_EVENTS"] != "y")
-    throw semantic_error ("perf probes not available without CONFIG_PERF_EVENTS");
+    throw semantic_error (_("perf probes not available without CONFIG_PERF_EVENTS"));
 
   int64_t type;
   bool has_type = get_param(parameters, TOK_TYPE, type);
@@ -209,11 +209,11 @@ perf_builder::build(systemtap_session & sess,
   if (!has_period)
     period = 1000000; // XXX: better parametrize this default
   else if (period < 1)
-    throw semantic_error("invalid perf sample period " + lex_cast(period),
+    throw semantic_error(_("invalid perf sample period ") + lex_cast(period),
                          parameters.find(TOK_SAMPLE)->second->tok);
 
   if (sess.verbose > 1)
-    clog << "perf probe type=" << type << " config=" << config << " period=" << period << endl;
+    clog << _F("perf probe type=%ld config=%ld period=%ld", type, config, period) << endl;
 
   finished_results.push_back
     (new perf_derived_probe(base, location, type, config, period));

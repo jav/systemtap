@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-02-18 09:14-0500\n"
+"POT-Creation-Date: 2011-02-24 16:32-0500\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Przemysław Pawełczyk <przemyslaw@pawelczyk.it>\n"
 "Language-Team: Polish\n"
@@ -501,7 +501,7 @@ msgstr[2] ""
 #, c-format
 msgid ""
 "Checking \"%s\" failed with error: %s\n"
-" Ensure kernel development headers & makefiles are installed"
+"Ensure kernel development headers & makefiles are installed"
 msgstr ""
 
 #: main.cxx:354
@@ -599,72 +599,64 @@ msgstr ""
 msgid "Could not open password file "
 msgstr ""
 
-#: modsign.cxx:157
-#, c-format
-msgid "Unable to allocate %#x byte"
-msgid_plural "Unable to allocate %#x bytes"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-
-#: modsign.cxx:166
+#: modsign.cxx:162
 msgid "Error reading password file "
 msgstr ""
 
-#: modsign.cxx:198
+#: modsign.cxx:194
 msgid "Could not create signing context."
 msgstr ""
 
-#: modsign.cxx:205
+#: modsign.cxx:201
 msgid "Could not initialize signing context."
 msgstr ""
 
-#: modsign.cxx:214
+#: modsign.cxx:210
 msgid "Could not open module file "
 msgstr ""
 
-#: modsign.cxx:227
+#: modsign.cxx:223
 msgid "Error reading module file "
 msgstr ""
 
-#: modsign.cxx:236
+#: modsign.cxx:232
 msgid "Error while signing module file "
 msgstr ""
 
-#: modsign.cxx:248
+#: modsign.cxx:244
 msgid "Could not complete signature of module file "
 msgstr ""
 
-#: modsign.cxx:260
+#: modsign.cxx:256
 msgid "Could not open signature file "
 msgstr ""
 
-#: modsign.cxx:268
+#: modsign.cxx:264
 msgid "Error writing to signature file "
 msgstr ""
 
-#: modsign.cxx:294
+#: modsign.cxx:290
 msgid "Module name was not specified."
 msgstr ""
 
-#: modsign.cxx:311
+#: modsign.cxx:307
 msgid "Unable to determine the certificate database path."
 msgstr ""
 
-#: modsign.cxx:327
+#: modsign.cxx:323
 msgid "Unable to obtain certificate database password."
 msgstr ""
 
-#: modsign.cxx:341
+#: modsign.cxx:337
 msgid "Unable to initialize nss library."
 msgstr ""
 
-#: modsign.cxx:350
+#: modsign.cxx:346
 #, c-format
 msgid "Unable to find certificate with nickname %s in %s."
 msgstr ""
 
-#: modsign.cxx:359
+#: modsign.cxx:355
 #, c-format
 msgid ""
 "Unable to obtain private key from the certificate with nickname %s, in %s."
@@ -957,6 +949,26 @@ msgstr ""
 
 #: parse.cxx:3000
 msgid "can't dereference after pretty-printing"
+msgstr ""
+
+#: rpm_finder.cxx:70
+msgid "Error reading the rpm configuration files"
+msgstr ""
+
+#: rpm_finder.cxx:103 rpm_finder.cxx:122 rpm_finder.cxx:158
+msgid "Error querying the rpm file `"
+msgstr ""
+
+#: rpm_finder.cxx:206
+msgid "Incorrect version or missing kernel-devel package, use: yum install "
+msgstr ""
+
+#: rpm_finder.cxx:209
+msgid "Missing separate debuginfos, use: debuginfo-install "
+msgstr ""
+
+#: rpm_finder.cxx:212
+msgid "Incorrect parameter passed, please report this error."
 msgstr ""
 
 #: session.cxx:179
@@ -1333,6 +1345,11 @@ msgstr ""
 msgid "Invalid --vp argument: it takes 1 to 5 digits."
 msgstr ""
 
+#: session.cxx:941
+#, c-format
+msgid "Invalid argument '%s' for --use-server-on-error."
+msgstr ""
+
 #: session.cxx:969
 msgid "ERROR: --disable-cache is invalid with --client-options"
 msgstr ""
@@ -1437,6 +1454,733 @@ msgstr ""
 msgid "semantic error: %s"
 msgstr ""
 
-#: session.cxx:1457
+#. TRANSLATORS:  Here were are printing the source string of the error
+#: session.cxx:1437
+msgid "source: "
+msgstr ""
+
+#: session.cxx:1458
 msgid "WARNING: "
 msgstr "UWAGA: "
+
+#: tapset-itrace.cxx:79 tapsets.cxx:6120 tapset-utrace.cxx:127
+msgid "process probes not available without kernel CONFIG_UTRACE"
+msgstr ""
+
+#: tapset-mark.cxx:100
+msgid "invalid marker argument number"
+msgstr ""
+
+#: tapset-mark.cxx:103
+msgid "write to marker parameter not permitted"
+msgstr ""
+
+#: tapset-mark.cxx:123
+#, c-format
+msgid "write to marker '%s' not permitted"
+msgstr ""
+
+#: tapset-mark.cxx:187
+msgid "cannot take address of marker variable"
+msgstr ""
+
+#: tapset-mark.cxx:195
+msgid ""
+"invalid target symbol for marker, $argN, $name, $format, $$parms or $$vars "
+"expected"
+msgstr ""
+
+#: tapset-mark.cxx:241
+#, c-format
+msgid "marker-based %s mark=%s fmt='%s'"
+msgstr ""
+
+#: tapset-mark.cxx:449
+msgid "cannot expand unknown type"
+msgstr ""
+
+#: tapset-mark.cxx:582
+msgid "mark_builder releasing cache"
+msgstr ""
+
+#. TRANSLATORS: specific path cannot be opened
+#: tapset-mark.cxx:620
+msgid " cannot be opened: "
+msgstr ""
+
+#: tapset-perfmon.cxx:195
+msgid ""
+"perf probes not available without exported perf_event_create_kernel_counter"
+msgstr ""
+
+#: tapset-perfmon.cxx:197
+msgid "perf probes not available without CONFIG_PERF_EVENTS"
+msgstr ""
+
+#: tapset-perfmon.cxx:212
+msgid "invalid perf sample period "
+msgstr ""
+
+#: tapset-perfmon.cxx:216
+#, c-format
+msgid "perf probe type=%ld config=%ld period=%ld"
+msgstr ""
+
+#: tapset-procfs.cxx:147
+msgid "only one write procfs probe can exist for procfs path \""
+msgstr ""
+
+#: tapset-procfs.cxx:149
+msgid "only one read procfs probe can exist for procfs path \""
+msgstr ""
+
+#: tapset-procfs.cxx:406
+msgid "invalid target symbol for procfs probe, $value expected"
+msgstr ""
+
+#: tapset-procfs.cxx:413
+msgid "procfs $value variable is read-only in a procfs write probe"
+msgstr ""
+
+#: tapset-procfs.cxx:415
+msgid "procfs $value variable cannot be read in a procfs read probe"
+msgstr ""
+
+#: tapset-procfs.cxx:418
+msgid "cannot take address of procfs variable"
+msgstr ""
+
+#: tapset-procfs.cxx:459
+msgid ""
+"Only the following assign operators are implemented on procfs read target "
+"variables: '=', '.='"
+msgstr ""
+
+#: tapset-procfs.cxx:547
+msgid "maxsize must be greater than 0"
+msgstr ""
+
+#: tapset-procfs.cxx:569
+msgid "procfs path cannot start with a '/'"
+msgstr ""
+
+#: tapset-procfs.cxx:575
+msgid "procfs path component cannot be empty"
+msgstr ""
+
+#: tapset-procfs.cxx:579 tapset-procfs.cxx:589
+msgid "procfs path cannot be relative (and contain '.' or '..')"
+msgstr ""
+
+#: tapset-procfs.cxx:586
+msgid "procfs path cannot end with a '/'"
+msgstr ""
+
+#: tapset-procfs.cxx:593
+msgid "need read/write component"
+msgstr ""
+
+#: tapsets.cxx:861
+#, c-format
+msgid ""
+"Error: Pattern '%s' matches every single instruction address in the symbol "
+"table,\n"
+"some of which aren't even functions.\n"
+msgstr ""
+
+#: tapsets.cxx:895
+#, c-format
+msgid "Warning: address %#<PRIx64> out of range for module %s"
+msgstr ""
+
+#: tapsets.cxx:906
+#, c-format
+msgid ""
+"Warning: address %#<PRIx64> maps to no known compilation unit in module %s"
+msgstr ""
+
+#: tapsets.cxx:1016
+#, c-format
+msgid "parse '%s'"
+msgstr ""
+
+#: tapsets.cxx:1057
+#, c-format
+msgid "malformed specification '%s'"
+msgstr ""
+
+#: tapsets.cxx:1086
+msgid "probe "
+msgstr ""
+
+#: tapsets.cxx:1088
+msgid " kernel"
+msgstr ""
+
+#: tapsets.cxx:1090
+msgid " module="
+msgstr ""
+
+#: tapsets.cxx:1092
+msgid " process="
+msgstr ""
+
+#: tapsets.cxx:1306
+#, c-format
+msgid "address 0x%#<PRIx64> does not match the beginning of a statement"
+msgstr ""
+
+#: tapsets.cxx:1309
+#, c-format
+msgid " (try 0x%#<PRIx64>)"
+msgstr ""
+
+#: tapsets.cxx:1311
+#, c-format
+msgid " (no line info found for '%s', in module '%s')"
+msgstr ""
+
+#: tapsets.cxx:1365
+#, c-format
+msgid "querying entrypc %#<PRIx64> of instance of inline '%s'\n"
+msgstr ""
+
+#: tapsets.cxx:1446
+msgid "function DIE lands on srcfile\n"
+msgstr ""
+
+#: tapsets.cxx:1467
+msgid "inline instance DIE lands on srcfile\n"
+msgstr ""
+
+#: tapsets.cxx:1508
+#, c-format
+msgid "selected inline instance of %s\n"
+msgstr ""
+
+#: tapsets.cxx:1564
+#, c-format
+msgid "checking instances of inline %s\n"
+msgstr ""
+
+#: tapsets.cxx:1574
+#, c-format
+msgid "selected function %s\n"
+msgstr ""
+
+#: tapsets.cxx:1612
+#, c-format
+msgid "focused on CU '%s', in module '%s'\n"
+msgstr ""
+
+#: tapsets.cxx:1653
+msgid ""
+"For probing a particular line, use a .statement() probe, not .function()"
+msgstr ""
+
+#: tapsets.cxx:1810
+#, c-format
+msgid "ELF machine %s|%s (code %d) mismatch with target %s in '%s'"
+msgstr ""
+
+#: tapsets.cxx:1817
+#, c-format
+msgid ""
+"focused on module '%s' = [0x%#<PRIx64>, -0x%#<PRIx64>, bias 0x%#<PRIx64> "
+"file %s ELF machine %s|%s (code %d)\n"
+msgstr ""
+
+#: tapsets.cxx:1906
+#, c-format
+msgid "focused on module '%s'\n"
+msgstr ""
+
+#: tapsets.cxx:1948
+msgid "deleting module_cache"
+msgstr ""
+
+#: tapsets.cxx:2050
+#, c-format
+msgid ""
+"Only the following assign operator is impletmented on target variables: %s"
+msgid_plural ""
+"Only the following assign operators are impletmented on target variables: %s"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: tapsets.cxx:2243
+msgid "cannot take address of pretty-printed variable"
+msgstr ""
+
+#: tapsets.cxx:2247
+msgid "invalid target_symbol for pretty-print"
+msgstr ""
+
+#: tapsets.cxx:3029
+msgid "unknown type to save in kretprobe"
+msgstr ""
+
+#: tapsets.cxx:3179 tapsets.cxx:8066
+msgid "variable location problem: "
+msgstr ""
+
+#: tapsets.cxx:3213
+msgid "write to target variable not permitted"
+msgstr ""
+
+#: tapsets.cxx:3225
+msgid "write to target variable not permitted in .return probes"
+msgstr ""
+
+#: tapsets.cxx:3234
+msgid "cannot write to context variable"
+msgstr ""
+
+#: tapsets.cxx:3237 tapsets.cxx:4816 tapsets.cxx:8021
+msgid "cannot take address of context variable"
+msgstr ""
+
+#: tapsets.cxx:3249 tapsets.cxx:3509 tapsets.cxx:7918
+msgid "cannot write to pretty-printed variable"
+msgstr ""
+
+#. TRANSLATORS: Here we're using a cached module.
+#: tapsets.cxx:3629
+msgid "Pass 2: using cached "
+msgstr ""
+
+#: tapsets.cxx:3652
+msgid "write to typecast value not permitted"
+msgstr ""
+
+#: tapsets.cxx:3792
+msgid "missing relocation base against"
+msgstr ""
+
+#: tapsets.cxx:3794
+msgid "inconsistent relocation address"
+msgstr ""
+
+#: tapsets.cxx:3804
+#, c-format
+msgid "maxactive value out of range [0,%s]"
+msgstr ""
+
+#: tapsets.cxx:3935
+#, c-format
+msgid "saveargs: examining '%s' (dieoffset: %#<PRIx64>)\n"
+msgstr ""
+
+#: tapsets.cxx:3947
+#, c-format
+msgid ""
+"saveargs: failed to retrieve type name for return value (dieoffset: %s)\n"
+msgstr ""
+
+#: tapsets.cxx:3975
+#, c-format
+msgid "saveargs: failed to retrieve name for local (dieoffset: %s)\n"
+msgstr ""
+
+#: tapsets.cxx:3981
+#, c-format
+msgid "saveargs: finding location for local '%s' (dieoffset: %s)\n"
+msgstr ""
+
+#: tapsets.cxx:3996
+#, c-format
+msgid ""
+"saveargs: failed to resolve the location for local '%s' (dieoffset: %s)\n"
+msgstr ""
+
+#: tapsets.cxx:4004
+#, c-format
+msgid ""
+"saveargs: local '%s' (dieoffset: %s) is not available at this address (%s)\n"
+msgstr ""
+
+#: tapsets.cxx:4017
+#, c-format
+msgid "saveargs: failed to retrieve type name for local '%s' (dieoffset: %s)\n"
+msgstr ""
+
+#: tapsets.cxx:5130
+#, c-format
+msgid "Downgrading SDT_V2 probe argument to dwarf, can't parse '%s'"
+msgstr ""
+
+#. TRANSLATORS: We're mapping the opperand to a new expression*.
+#: tapsets.cxx:5141
+#, c-format
+msgid "mapped asm operand %s to "
+msgstr ""
+
+#: tapsets.cxx:5146 tapsets.cxx:5276
+msgid "cannot take address of sdt variable"
+msgstr ""
+
+#: tapsets.cxx:5201 tapsets.cxx:5211
+msgid "cannot take address of sdt context variable"
+msgstr ""
+
+#: tapsets.cxx:5229
+msgid "invalid variable, must be of the form $argN"
+msgstr ""
+
+#: tapsets.cxx:5231
+msgid "invalid argument number"
+msgstr ""
+
+#. TRANSLATORS: Describing what probe type (kprobe or uprobe) the probe
+#. TRANSLATORS: is matched to.
+#: tapsets.cxx:5386
+#, c-format
+msgid "matched probe_name %s probe type "
+msgstr ""
+
+#: tapsets.cxx:5538
+#, c-format
+msgid "got .probes elf scn_addr@0x%zu, size: %zu"
+msgstr ""
+
+#: tapsets.cxx:5638 tapsets.cxx:5702
+msgid " (provider "
+msgstr ""
+
+#: tapsets.cxx:5638
+#, c-format
+msgid " saw .note.stapsdt %s%s "
+msgstr ""
+
+#: tapsets.cxx:5659
+#, c-format
+msgid "got unknown probe_type : 0x%x"
+msgstr ""
+
+#: tapsets.cxx:5702
+msgid "saw .probes "
+msgstr ""
+
+#: tapsets.cxx:5720
+#, c-format
+msgid "looking for semaphore symbol %s "
+msgstr ""
+
+#: tapsets.cxx:5736
+msgid ", found at 0x"
+msgstr ""
+
+#: tapsets.cxx:5741
+msgid ", not found"
+msgstr ""
+
+#: tapsets.cxx:5868
+msgid "probe_type == uprobe1, use statement addr: 0x"
+msgstr ""
+
+#: tapsets.cxx:5872
+msgid "probe_type == uprobe2, use statement addr: 0x"
+msgstr ""
+
+#: tapsets.cxx:5876
+msgid "probe_type == uprobe3, use statement addr: 0x"
+msgstr ""
+
+#: tapsets.cxx:5886
+#, c-format
+msgid "probe_type == use_uprobe_no_dwarf, use label name: _stapprobe1_%s"
+msgstr ""
+
+#: tapsets.cxx:5971
+#, c-format
+msgid "glob %s error (%s)"
+msgstr ""
+
+#: tapsets.cxx:5992
+#, c-format
+msgid "Expanded process(\"%s\" to process(\"%s\")"
+msgstr ""
+
+#: tapsets.cxx:6082
+#, c-format
+msgid "Expanded process(\"%s\") to process(\"%s\")"
+msgstr ""
+
+#: tapsets.cxx:6128
+#, c-format
+msgid "dwarf_builder::build for %s"
+msgstr ""
+
+#: tapsets.cxx:6148 tapsets.cxx:7451
+msgid "absolute statement probe in unprivileged script"
+msgstr ""
+
+#: tapsets.cxx:6188
+#, c-format
+msgid "cannot probe .return of %u inlined function %s"
+msgid_plural "cannot probe .return of %u inlined functions %s"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: tapsets.cxx:6194
+#, c-format
+msgid "skipped .return probe of %u inlined function"
+msgid_plural "skipped .return probe of %u inlined functions"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: tapsets.cxx:6252
+#, c-format
+msgid ""
+"Symbol table error: Line %d of symbol list from %s is not in correct format: "
+"addess type name [module]"
+msgstr ""
+
+#: tapsets.cxx:6269
+#, c-format
+msgid "Symbol table error: %s contains no function symbols."
+msgstr ""
+
+#: tapsets.cxx:6289
+#, c-format
+msgid "Internal error reading symbol table from %s -- %s"
+msgstr ""
+
+#: tapsets.cxx:6297
+#, c-format
+msgid "Warning: nm cannot read symbol table from %s"
+msgstr ""
+
+#: tapsets.cxx:6311
+#, c-format
+msgid "Warning: cannot read symbol table from %s -- %s"
+msgstr ""
+
+#: tapsets.cxx:6461
+#, c-format
+msgid "Warning: reading symbol table from %s -- ignoring %s"
+msgstr ""
+
+#: tapsets.cxx:6471
+msgid "Error: Cannot find vmlinux.  Consider using --kmap instead of --kelf."
+msgstr ""
+
+#: tapsets.cxx:7583
+#, c-format
+msgid "Too many hardware breakpoint probes requested for %s (%zu vs. %u)"
+msgstr ""
+
+#: tapsets.cxx:7767
+msgid "CONFIG_PERF_EVENTS not available on this kernel"
+msgstr ""
+
+#: tapsets.cxx:7770
+msgid "CONFIG_HAVE_HW_BREAKPOINT not available on this kernel"
+msgstr ""
+
+#: tapsets.cxx:7877
+#, c-format
+msgid "unable to find tracepoint variable '%s' (alternatives: %s)"
+msgstr ""
+
+#: tapsets.cxx:7891
+#, c-format
+msgid "write to tracepoint variable '%s' not permitted"
+msgstr ""
+
+#: tapsets.cxx:7900
+msgid "cannot take address of tracepoint variable"
+msgstr ""
+
+#: tapsets.cxx:8024
+#, c-format
+msgid "write to tracepoint '%s' not permitted"
+msgstr ""
+
+#: tapsets.cxx:8160
+#, c-format
+msgid "tracepoint-based %s tracepoint='%s'"
+msgstr ""
+
+#: tapsets.cxx:8230
+#, c-format
+msgid "cannot get type of tracepoint '%s' parameter '%s'"
+msgstr ""
+
+#: tapsets.cxx:8236
+#, c-format
+msgid "found parameter for tracepoint '%s': type:'%s' name:'%s'"
+msgstr ""
+
+#: tapsets.cxx:8558
+msgid "tracepoint_builder releasing dwflpp"
+msgstr ""
+
+#: tapsets.cxx:8578
+#, c-format
+msgid "Pass 2: getting a tracequery for %zu headers: "
+msgstr ""
+
+#: tapsets.cxx:8594
+#, c-format
+msgid "Pass 2: using cached %s"
+msgstr ""
+
+#: tapsets.cxx:8660
+#, c-format
+msgid "Located kernel source tree (DW_AT_comp_dir) at '%s'"
+msgstr ""
+
+#: tapsets.cxx:8692
+msgid "Checking tracepoint glob "
+msgstr ""
+
+#: tapset-timers.cxx:63
+msgid "invalid interval for jiffies timer"
+msgstr ""
+
+#: tapset-timers.cxx:66
+msgid "invalid randomize for jiffies timer"
+msgstr ""
+
+#: tapset-timers.cxx:69
+msgid "expect single probe point"
+msgstr ""
+
+#: tapset-timers.cxx:197
+#, c-format
+msgid "interval value out of range (%s, %s)"
+msgstr ""
+
+#: tapset-timers.cxx:203
+msgid "randomization value out of range"
+msgstr ""
+
+#: tapset-timers.cxx:551
+msgid "frequency must be greater than 0"
+msgstr ""
+
+#: tapset-timers.cxx:581
+msgid "unrecognized timer variant"
+msgstr ""
+
+#: tapset-utrace.cxx:459
+msgid "only \"process(PATH_OR_PID).syscall\" support $argN or $$parms."
+msgstr ""
+
+#: tapset-utrace.cxx:505 tapset-utrace.cxx:512
+msgid "invalid syscall argument number (1-6)"
+msgstr ""
+
+#: tapset-utrace.cxx:516
+msgid "utrace '$argN' variable is read-only"
+msgstr ""
+
+#: tapset-utrace.cxx:545
+#, c-format
+msgid "utrace '%s' variable is read-only"
+msgstr ""
+
+#: tapset-utrace.cxx:551
+msgid "only \"process(PATH_OR_PID).syscall.return\" support $return."
+msgstr ""
+
+#: tapset-utrace.cxx:576
+msgid "unknown target variable"
+msgstr ""
+
+#: tapset-utrace.cxx:600
+msgid ""
+"only \"process(PATH_OR_PID).syscall\" and \"process(PATH_OR_PID).syscall."
+"return\" probes support target symbols"
+msgstr ""
+
+#: tapset-utrace.cxx:605
+msgid "cannot take address of utrace variable"
+msgstr ""
+
+#: tapset-utrace.cxx:612
+msgid ""
+"invalid target symbol for utrace probe, $syscall, $return, $argN or $$parms "
+"expected"
+msgstr ""
+
+#: tapset-utrace.cxx:678
+msgid "process pid must be greater than 1"
+msgstr ""
+
+#: util.cxx:75
+msgid "Unable to determine home directory"
+msgstr ""
+
+#: util.cxx:129
+#, c-format
+msgid "Copying %s to %s"
+msgstr ""
+
+#: util.cxx:183
+#, c-format
+msgid "Copy failed (\"%s\" to \"%s\"): %s"
+msgstr ""
+
+#: util.cxx:240
+msgid "remove returned 0"
+msgstr ""
+
+#: util.cxx:266
+msgid "Unable to retrieve group list"
+msgstr ""
+
+#: util.cxx:289
+msgid "using "
+msgstr ""
+
+#: util.cxx:418
+msgid "cmdstr_join called with an empty command!"
+msgstr ""
+
+#: util.cxx:466
+msgid "Spawn waitpid call on unmanaged pid "
+msgstr ""
+
+#: util.cxx:473
+#, c-format
+msgid "Spawn waitpid result (0x%x): %d"
+msgstr ""
+
+#: util.cxx:478
+#, c-format
+msgid "Spawn waitpid error (%d): %s"
+msgstr ""
+
+#: util.cxx:521
+msgid "Running"
+msgstr ""
+
+#: util.cxx:535
+#, c-format
+msgid "Spawn error (%d): %s"
+msgstr ""
+
+#: util.cxx:664
+#, c-format
+msgid "regcomp %s (%s) error rc= %d"
+msgstr ""
+
+#: util.cxx:676
+#, c-format
+msgid "ERROR: Safety pattern mismatch for %s ('%s' vs. '%s') rc=%d"
+msgstr ""
+
+#: util.cxx:694
+#, c-format
+msgid "regcomp %s error rc=%d"
+msgstr ""
+
+#: util.cxx:767
+#, c-format
+msgid "autosprintf/vasprintf error %s"
+msgstr ""

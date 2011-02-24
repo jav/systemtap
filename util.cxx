@@ -25,6 +25,8 @@
 #include <fstream>
 #include <cassert>
 #include <ext/stdio_filebuf.h>
+#include <libintl.h>
+#include <locale.h>
 
 extern "C" {
 #include <fcntl.h>
@@ -40,6 +42,19 @@ extern "C" {
 #include <regex.h>
 #include <stdarg.h>
 }
+
+#if ENABLE_NLS
+#define _(string) gettext(string)
+#define _N(string, string_plural, count) \
+        ngettext((string), (string_plural), (count))
+#else
+#define _(string) (string)
+#define _N(string, string_plural, count) \
+        ( (count) == 1 ? (string) : (string_plural) )
+#endif
+#define _F(format, ...) autosprintf(_(format), __VA_ARGS__)
+#define _NF(format, format_plural, count, ...) \
+        autosprintf(_N((format), (format_plural), (count)), __VA_ARGS__)
 
 using namespace std;
 using namespace __gnu_cxx;
@@ -57,7 +72,7 @@ get_home_directory(void)
   if (pwd)
     return pwd->pw_dir;
 
-  throw runtime_error("Unable to determine home directory");
+  throw runtime_error(_("Unable to determine home directory"));
   return NULL;
 }
 
@@ -111,7 +126,7 @@ copy_file(const string& src, const string& dest, bool verbose)
   mode_t mask;
 
   if (verbose)
-    clog << "Copying " << src << " to " << dest << endl;
+    clog << _F("Copying %s to %s", src.c_str(), dest.c_str()) << endl;
 
   // Open the src file.
   fd1 = open(src.c_str(), O_RDONLY);
@@ -165,8 +180,8 @@ copy_file(const string& src, const string& dest, bool verbose)
   return true;
 
 error:
-  cerr << "Copy failed (\"" << src << "\" to \"" << dest << "\"): "
-       << strerror(errno) << endl;
+  cerr << _F("Copy failed (\"%s\" to \"%s\"): %s", src.c_str(),
+             dest.c_str(), strerror(errno)) << endl;
   return false;
 }
 
@@ -222,7 +237,7 @@ remove_file_or_dir (const char *name)
 
   if (remove (name) != 0)
     return 1;
-  cerr << "remove returned 0" << endl;
+  cerr << _("remove returned 0") << endl;
   return 0;
 }
 
@@ -248,7 +263,7 @@ in_group_id (gid_t target_gid)
     }
   }
   if (ngids < 0) {
-    cerr << "Unable to retrieve group list" << endl;
+    cerr << _("Unable to retrieve group list") << endl;
     return false;
   }
 
@@ -271,7 +286,7 @@ getmemusage ()
   ifstream statm("/proc/self/statm");
   statm >> pages;
   kb = pages * sz / 1024;
-  oss << "using " << kb << "virt/";
+  oss << _("using ") << kb << "virt/";
   statm >> pages;
   kb = pages * sz / 1024;
   oss << kb << "res/";
@@ -400,7 +415,7 @@ const string
 cmdstr_join(const vector<string>& cmds)
 {
   if (cmds.empty())
-    throw runtime_error("cmdstr_join called with an empty command!");
+    throw runtime_error(_("cmdstr_join called with an empty command!"));
 
   stringstream cmd;
   cmd << cmdstr_quoted(cmds[0]);
@@ -448,19 +463,19 @@ stap_waitpid(int verbose, pid_t pid)
 {
   int ret, status;
   if (verbose > 1 && spawned_pids.count(pid) == 0)
-    clog << "Spawn waitpid call on unmanaged pid " << pid << endl;
+    clog << _("Spawn waitpid call on unmanaged pid ") << pid << endl;
   ret = waitpid(pid, &status, 0);
   if (ret == pid)
     {
       spawned_pids.erase(pid);
       ret = WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
       if (verbose > 2)
-        clog << "Spawn waitpid result (0x" << lex_cast_hex(status) << "): " << ret << endl;
+        clog << _F("Spawn waitpid result (0x%x): %d", status, ret) << endl;
     }
   else
     {
       if (verbose > 1)
-        clog << "Spawn waitpid error (" << ret << "): " << strerror(errno) << endl;
+        clog << _F("Spawn waitpid error (%d): %s", ret, strerror(errno)) << endl;
       ret = -1;
     }
   PROBE2(stap, stap_system__complete, ret, pid);
@@ -503,7 +518,7 @@ stap_spawn(int verbose, const vector<string>& args,
   cmd = command.c_str();
   PROBE1(stap, stap_system__start, cmd);
   if (verbose > 1)
-    clog << "Running" << command << endl;
+    clog << _("Running") << command << endl;
 
   char const * argv[args.size() + 1];
   for (size_t i = 0; i < args.size(); ++i)
@@ -517,7 +532,7 @@ stap_spawn(int verbose, const vector<string>& args,
   if (ret != 0)
     {
       if (verbose > 1)
-        clog << "Spawn error (" << ret << "): " << strerror(ret) << endl;
+        clog << _F("Spawn error (%d): %s", ret, strerror(ret)) << endl;
       pid = -1;
     }
   else
@@ -646,7 +661,7 @@ void assert_regexp_match (const string& name, const string& value, const string&
       r = new regex_t;
       int rc = regcomp (r, re.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED);
       if (rc) {
-        cerr << "regcomp " << re << " (" << name << ") error rc=" << rc << endl;
+        cerr << _F("regcomp %s (%s) error rc= %d", re.c_str(), name.c_str(), rc) << endl;
         exit(1);
       }
       compiled[re] = r;
@@ -658,8 +673,8 @@ void assert_regexp_match (const string& name, const string& value, const string&
   int rc = regexec (r, value.c_str(), 0, 0, 0);
   if (rc)
     {
-      cerr << "ERROR: Safety pattern mismatch for " << name
-           << " ('" << value << "' vs. '" << re << "') rc=" << rc << endl;
+      cerr << _F("ERROR: Safety pattern mismatch for %s ('%s' vs. '%s') rc=%d",
+                 name.c_str(), value.c_str(), re.c_str(), rc) << endl;
       exit(1);
     }
 }
@@ -676,7 +691,7 @@ int regexp_match (const string& value, const string& re, vector<string>& matches
       r = new regex_t;
       int rc = regcomp (r, re.c_str(), REG_EXTENDED); /* REG_ICASE? */
       if (rc) {
-        cerr << "regcomp " << re << " error rc=" << rc << endl;
+        cerr << _F("regcomp %s error rc=%d", re.c_str(), rc) << endl;
         return rc;
       }
       compiled[re] = r;
@@ -749,7 +764,7 @@ std::string autosprintf(const char* format, ...)
   va_start (args, format);
   int rc = vasprintf (&str, format, args);
   if (rc < 0)
-    throw runtime_error ("autosprintf/vasprintf error " + lex_cast(rc));
+    throw runtime_error (_F("autosprintf/vasprintf error %s", lex_cast(rc).c_str()));
   string s = str;
   va_end (args);
   free (str);

@@ -858,13 +858,9 @@ dwarf_query::query_module_symtab()
           if (function_str_val.find_first_not_of("*?") == string::npos)
             {
               // e.g., kernel.function("*")
-              cerr << "Error: Pattern '"
-                   << function_str_val
-                   << "' matches every instruction address in the symbol table,"
-                   << endl
-                   << "some of which aren't even functions."
-                   << "  Please be more precise."
-                   << endl;
+              cerr << _F("Error: Pattern '%s' matches every single "
+                         "instruction address in the symbol table,\n"
+                         "some of which aren't even functions.\n", function_str_val.c_str()) << endl;
               return;
             }
           symbol_table::iterator_t iter;
@@ -896,10 +892,8 @@ dwarf_query::query_module_symtab()
       if (!fi)
         {
 	  if (! sess.suppress_warnings)
-	    cerr << "Warning: address "
-		 << hex << addr << dec
-		 << " out of range for module "
-		 << dw.module_name;
+            cerr << _F("Warning: address %#" PRIx64 " out of range for module %s",
+                       addr, dw.module_name.c_str());
           return;
         }
       if (!null_die(&fi->die))
@@ -909,10 +903,8 @@ dwarf_query::query_module_symtab()
           // match addr to any compilation unit, so addr must be
           // above that cu's address range.
 	  if (! sess.suppress_warnings)
-	    cerr << "Warning: address "
-		 << hex << addr << dec
-		 << " maps to no known compilation unit in module "
-		 << dw.module_name;
+            cerr << _F("Warning: address %#" PRIx64 " maps to no known compilation unit in module %s",
+                       addr, dw.module_name.c_str());
           return;
         }
       query_func_info(fi->addr, *fi, this);
@@ -1020,7 +1012,8 @@ dwarf_query::parse_function_spec(const string & spec)
 
   if (sess.verbose > 2)
     {
-      clog << "parsed '" << spec << "'";
+      //clog << "parsed '" << spec << "'";
+      clog << _F("parse '%s'", spec.c_str());
 
       if (!scopes.empty())
         clog << ", scope '" << scopes[0] << "'";
@@ -1061,7 +1054,7 @@ dwarf_query::parse_function_spec(const string & spec)
   return;
 
 bad:
-  throw semantic_error("malformed specification '" + spec + "'",
+  throw semantic_error(_F("malformed specification '%s'", spec.c_str()),
                        base_probe->tok);
 }
 
@@ -1090,13 +1083,13 @@ dwarf_query::add_probe_point(const string& dw_funcname,
 
   if (sess.verbose > 1)
     {
-      clog << "probe " << funcname << "@" << filename << ":" << line;
+      clog << _("probe ") << funcname << "@" << filename << ":" << line;
       if (string(module) == TOK_KERNEL)
-        clog << " kernel";
+        clog << _(" kernel");
       else if (has_module)
-        clog << " module=" << module;
+        clog << _(" module=") << module;
       else if (has_process)
-        clog << " process=" << module;
+        clog << _(" process=") << module;
       if (reloc_section != "") clog << " reloc=" << reloc_section;
       clog << " pc=0x" << hex << addr << dec;
     }
@@ -1310,13 +1303,13 @@ query_addr(Dwarf_Addr addr, dwarf_query *q)
       if (!q->has_mark && (!address_line || address_line.addr() != addr))
         {
           stringstream msg;
-          msg << "address 0x" << hex << addr
-              << " does not match the beginning of a statement";
+          msg << _F("address 0x%#" PRIx64 " does not match the beginning of a statement",
+                    addr);
           if (address_line)
-            msg << " (try 0x" << hex << address_line.addr() << ")";
+            msg << _F(" (try 0x%#" PRIx64 ")", address_line.addr());
           else
-            msg << " (no line info found for '" << dw.cu_name()
-                << "', in module '" << dw.module_name << "')";
+            msg << _F(" (no line info found for '%s', in module '%s')",
+                      dw.cu_name().c_str(), dw.module_name.c_str());
           if (! q->sess.guru_mode)
             throw semantic_error(msg.str());
           else if (! q->sess.suppress_warnings)
@@ -1369,9 +1362,8 @@ query_inline_instance_info (inline_instance_info & ii,
     {
       assert (! q->has_return); // checked by caller already
       if (q->sess.verbose>2)
-        clog << "querying entrypc "
-             << hex << ii.entrypc << dec
-             << " of instance of inline '" << ii.name << "'\n";
+        clog << _F("querying entrypc %#" PRIx64 " of instance of inline '%s'\n",
+                   ii.entrypc, ii.name.c_str());
       query_statement (ii.name, ii.decl_file, ii.decl_line,
                        &ii.die, ii.entrypc, q);
     }
@@ -1451,7 +1443,7 @@ query_srcfile_line (const dwarf_line_t& line, void * arg)
       if (q->dw.die_has_pc (i->die, addr))
 	{
 	  if (q->sess.verbose>3)
-	    clog << "function DIE lands on srcfile\n";
+	    clog << _("function DIE lands on srcfile\n");
 	  if (q->has_statement_str)
             {
               Dwarf_Die scope;
@@ -1472,7 +1464,7 @@ query_srcfile_line (const dwarf_line_t& line, void * arg)
       if (q->dw.die_has_pc (i->die, addr))
 	{
 	  if (q->sess.verbose>3)
-	    clog << "inline instance DIE lands on srcfile\n";
+	    clog << _("inline instance DIE lands on srcfile\n");
 	  if (q->has_statement_str)
             {
               Dwarf_Die scope;
@@ -1513,7 +1505,7 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
   try
     {
       if (q->sess.verbose>2)
-        clog << "selected inline instance of " << q->dw.function_name << "\n";
+        clog << _F("selected inline instance of %s\n", q->dw.function_name.c_str());
 
       Dwarf_Addr entrypc;
       if (q->dw.die_entrypc (die, &entrypc))
@@ -1569,8 +1561,7 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
       if (q->dw.func_is_inline () && (! q->has_call) && (! q->has_return))
 	{
 	  if (q->sess.verbose>3)
-	    clog << "checking instances of inline " << q->dw.function_name
-                 << "\n";
+            clog << _F("checking instances of inline %s\n", q->dw.function_name.c_str());
 	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, q);
 	}
       else if (q->dw.func_is_inline () && (q->has_return)) // PR 11553
@@ -1580,7 +1571,7 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
       else if (!q->dw.func_is_inline () && (! q->has_inline))
 	{
           if (q->sess.verbose>2)
-            clog << "selected function " << q->dw.function_name << "\n";
+            clog << _F("selected function %s\n", q->dw.function_name.c_str());
 
           func_info func;
           q->dw.function_die (&func.die);
@@ -1618,8 +1609,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
       q->dw.focus_on_cu (cudie);
 
       if (false && q->sess.verbose>2)
-        clog << "focused on CU '" << q->dw.cu_name()
-             << "', in module '" << q->dw.module_name << "'\n";
+        clog << _F("focused on CU '%s', in module '%s'\n",
+                   q->dw.cu_name().c_str(), q->dw.module_name.c_str());
 
       q->filtered_srcfiles.clear();
       q->filtered_functions.clear();
@@ -1659,8 +1650,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
         {
           // .statement(...:NN) often gets mixed up with .function(...:NN)
           if (q->has_function_str && ! q->sess.suppress_warnings)
-            q->sess.print_warning ("For probing a particular line, use a "
-                                   ".statement() probe, not .function()", 
+            q->sess.print_warning (_("For probing a particular line, use a "
+                                   ".statement() probe, not .function()"), 
                                    q->base_probe->tok);
 
           // If we have a pattern string with target *line*, we
@@ -1816,22 +1807,18 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
       fnmatch (expect_machine2.c_str(), sess_machine.c_str(), 0) != 0)
     {
       stringstream msg;
-      msg << "ELF machine " << expect_machine << "|" << expect_machine2
-          << " (code " << elf_machine
-          << ") mismatch with target " << sess_machine
-          << " in '" << debug_filename << "'";
+      msg << _F("ELF machine %s|%s (code %d) mismatch with target %s in '%s'",
+                expect_machine.c_str(), expect_machine2.c_str(), elf_machine,
+                sess_machine.c_str(), debug_filename);
       throw semantic_error(msg.str ());
     }
 
   if (q->sess.verbose>2)
-    clog << "focused on module '" << q->dw.module_name
-         << " = [0x" << hex << q->dw.module_start
-         << "-0x" << q->dw.module_end
-         << ", bias 0x" << q->dw.module_bias << "]" << dec
-         << " file " << debug_filename
-         << " ELF machine " << expect_machine << "|" << expect_machine2
-         << " (code " << elf_machine << ")"
-         << "\n";
+    clog << _F("focused on module '%s' = [0x%#" PRIx64 ", -0x%#" PRIx64 ", bias 0x%#" PRIx64 
+               " file %s ELF machine %s|%s (code %d)\n",
+               q->dw.module_name.c_str(), q->dw.module_start, q->dw.module_end,
+               q->dw.module_bias, debug_filename, expect_machine.c_str(),
+               expect_machine2.c_str(), elf_machine);
 }
 
 
@@ -1916,7 +1903,7 @@ query_module (Dwfl_Module *mod,
         assert(q->has_kernel);   // and no vmlinux to examine
 
       if (q->sess.verbose>2)
-        cerr << "focused on module '" << q->dw.module_name << "'\n";
+        cerr << _F("focused on module '%s'\n", q->dw.module_name.c_str());
 
 
       // Collect a few kernel addresses.  XXX: these belong better
@@ -1958,7 +1945,7 @@ delete_session_module_cache (systemtap_session& s)
 {
   if (s.module_cache) {
     if (s.verbose > 3)
-      clog << "deleting module_cache" << endl;
+      clog << _("deleting module_cache") << endl;
     delete s.module_cache;
     s.module_cache = 0;
   }
@@ -2051,14 +2038,19 @@ var_expanding_visitor::rewrite_lvalue(const token* tok, const std::string& eop,
 	  // Build up a list of supported operators.
 	  string ops;
 	  std::set<string>::iterator i;
+          int valid_ops_size = 0;
 	  for (i = valid_ops.begin(); i != valid_ops.end(); i++)
+          {
 	    ops += " " + *i + ",";
+            valid_ops_size++;
+          }
 	  ops.resize(ops.size() - 1);	// chop off the last ','
 
 	  // Throw the error.
-	  throw semantic_error ("Only the following assign operators are"
-				" implemented on target variables:" + ops,
-				tok);
+	  throw semantic_error (_F(ngettext("Only the following assign operator is impletmented on target variables: %s",
+                                            "Only the following assign operators are impletmented on target variables: %s",
+                                           valid_ops_size), ops.c_str()), tok);
+
 	}
 
       assert (lvalue == fcall);
@@ -2248,11 +2240,11 @@ dwarf_pretty_print::init_ts (const target_symbol& e)
   ts = new target_symbol (e);
 
   if (ts->addressof)
-    throw semantic_error("cannot take address of pretty-printed variable", ts->tok);
+    throw semantic_error(_("cannot take address of pretty-printed variable"), ts->tok);
 
   if (ts->components.empty() ||
       ts->components.back().type != target_symbol::comp_pretty_print)
-    throw semantic_error("invalid target_symbol for pretty-print", ts->tok);
+    throw semantic_error(_("invalid target_symbol for pretty-print"), ts->tok);
   print_full = ts->components.back().member.length() > 1;
   ts->components.pop_back();
 }
@@ -3034,7 +3026,7 @@ dwarf_var_expanding_visitor::gen_kretprobe_saved_return(expression* e)
       getfn = "_get_kretprobe_long";
       break;
     default:
-      throw semantic_error("unknown type to save in kretprobe", e->tok);
+      throw semantic_error(_("unknown type to save in kretprobe"), e->tok);
     }
 
   // Create the entry code
@@ -3184,7 +3176,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
                         for (semantic_error *c = tsym->saved_conversion_error;
                              c != 0;
                              c = c->chain) {
-                            clog << "variable location problem: " << c->what() << endl;
+                            clog << _("variable location problem: ") << c->what() << endl;
                         }
                       }
 
@@ -3218,7 +3210,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
     {
       bool lvalue = is_active_lvalue(e);
       if (lvalue && !q.sess.guru_mode)
-        throw semantic_error("write to target variable not permitted", e->tok);
+        throw semantic_error(_("write to target variable not permitted"), e->tok);
 
       // XXX: process $context vars should be writeable
 
@@ -3230,7 +3222,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           && e->name != "$$return") // nor the other special variable handled below
         {
           if (lvalue)
-            throw semantic_error("write to target variable not permitted in .return probes", e->tok);
+            throw semantic_error(_("write to target variable not permitted in .return probes"), e->tok);
           visit_target_symbol_saved_return(e);
           return;
         }
@@ -3239,10 +3231,10 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           || (q.has_return && (e->name == "$$return")))
         {
           if (lvalue)
-            throw semantic_error("cannot write to context variable", e->tok);
+            throw semantic_error(_("cannot write to context variable"), e->tok);
 
           if (e->addressof)
-            throw semantic_error("cannot take address of context variable", e->tok);
+            throw semantic_error(_("cannot take address of context variable"), e->tok);
 
           e->assert_no_components("dwarf", true);
 
@@ -3254,7 +3246,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           e->components.back().type == target_symbol::comp_pretty_print)
         {
           if (lvalue)
-            throw semantic_error("cannot write to pretty-printed variable", e->tok);
+            throw semantic_error(_("cannot write to pretty-printed variable"), e->tok);
 
           if (q.has_return && (e->name == "$return"))
             {
@@ -3418,6 +3410,8 @@ dwarf_var_expanding_visitor::getscopes(target_symbol *e)
     {
       scopes = q.dw.getscopes(scope_die);
       if (scopes.empty())
+        //throw semantic_error (_F("unable to find any scopes containing %d", addr), e->tok);
+        //                        ((scope_die == NULL) ? "" : (string (" in ") + (dwarf_diename(scope_die) ?: "<unknown>") + "(" + (dwarf_diename(q.dw.cu) ?: "<unknown>") ")" ))
         throw semantic_error ("unable to find any scopes containing "
                               + lex_cast_hex(addr)
                               + ((scope_die == NULL) ? ""
@@ -3512,7 +3506,7 @@ dwarf_cast_query::handle_query_module()
           e.components.back().type == target_symbol::comp_pretty_print)
         {
           if (lvalue)
-            throw semantic_error("cannot write to pretty-printed variable", e.tok);
+            throw semantic_error(_("cannot write to pretty-printed variable"), e.tok);
 
           dwarf_pretty_print dpp(dw, type_die, e.operand, true, userspace_p, e);
           result = dpp.expand();
@@ -3631,7 +3625,8 @@ void dwarf_cast_expanding_visitor::filter_special_modules(string& module)
               if (fd != -1)
                 {
                   if (s.verbose > 2)
-                    clog << "Pass 2: using cached " << cached_module << endl;
+                    //TRANSLATORS: Here we're using a cached module.
+                    clog << _("Pass 2: using cached ") << cached_module << endl;
                   module = cached_module;
                   close(fd);
                   return;
@@ -3654,7 +3649,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 {
   bool lvalue = is_active_lvalue(e);
   if (lvalue && !s.guru_mode)
-    throw semantic_error("write to typecast value not permitted", e->tok);
+    throw semantic_error(_("write to typecast value not permitted"), e->tok);
 
   if (e->module.empty())
     e->module = "kernel"; // "*" may also be reasonable to search all kernel modules
@@ -3794,9 +3789,9 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     {
       // Assert kernel relocation invariants
       if (section == "" && dwfl_addr != addr) // addr should be absolute
-        throw semantic_error ("missing relocation base against", tok);
+        throw semantic_error (_("missing relocation base against"), tok);
       if (section != "" && dwfl_addr == addr) // addr should be an offset
-        throw semantic_error ("inconsistent relocation address", tok);
+        throw semantic_error (_("inconsistent relocation address"), tok);
     }
 
   // XXX: hack for strange g++/gcc's
@@ -3806,9 +3801,8 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
   // Range limit maxactive() value
   if (has_maxactive && (maxactive_val < 0 || maxactive_val > USHRT_MAX))
-    throw semantic_error ("maxactive value out of range [0,"
-                          + lex_cast(USHRT_MAX) + "]",
-                          q.base_loc->components.front()->tok);
+    throw semantic_error (_F("maxactive value out of range [0,%s]",
+                          lex_cast(USHRT_MAX).c_str()), q.base_loc->components.front()->tok);
 
   // Expand target variables in the probe body
   if (!null_die(scope_die))
@@ -3938,8 +3932,7 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die,
   bool verbose = q.sess.verbose > 2;
 
   if (verbose)
-    clog << "saveargs: examining '" << (dwarf_diename(scope_die) ?: "<unknown>")
-         << "' (dieoffset: " << lex_cast_hex(dwarf_dieoffset(scope_die)) << ")\n";
+    clog << _F("saveargs: examining '%s' (dieoffset: %#" PRIx64 ")\n", (dwarf_diename(scope_die)?: "unknown"), dwarf_dieoffset(scope_die));
 
   if (has_return)
     {
@@ -3951,9 +3944,8 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die,
         args.push_back("$return:"+type_name);
 
       else if (verbose)
-        clog << "saveargs: failed to retrieve type name for return value"
-             << " (dieoffset: " << lex_cast_hex(dwarf_dieoffset(scope_die))
-             << ")\n";
+        clog << _F("saveargs: failed to retrieve type name for return value (dieoffset: %s)\n",
+                   lex_cast_hex(dwarf_dieoffset(scope_die)).c_str());
     }
 
   Dwarf_Die arg;
@@ -3980,15 +3972,14 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die,
             if (!arg_name)
               {
                 if (verbose)
-                  clog << "saveargs: failed to retrieve name for local (dieoffset: "
-                       << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+                  clog << _F("saveargs: failed to retrieve name for local (dieoffset: %s)\n",
+                             lex_cast_hex(dwarf_dieoffset(&arg)).c_str());
                 continue;
               }
 
             if (verbose)
-              clog << "saveargs: finding location for local '"
-                   << arg_name << "' (dieoffset: "
-                   << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+              clog << _F("saveargs: finding location for local '%s' (dieoffset: %s)\n",
+                         arg_name, lex_cast_hex(dwarf_dieoffset(&arg)).c_str());
 
             /* Ignore this local if it has no location (or not at this PC). */
             /* NB: It still may not be directly accessible, e.g. if it is an
@@ -4002,19 +3993,16 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die,
                 if (!dwarf_attr_integrate (&arg, DW_AT_location, &attr_mem))
                   {
                     if (verbose)
-                      clog << "saveargs: failed to resolve the location for local '"
-                           << arg_name << "' (dieoffset: "
-                           << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+                      clog << _F("saveargs: failed to resolve the location for local '%s' (dieoffset: %s)\n",
+                                  arg_name, lex_cast_hex(dwarf_dieoffset(&arg)).c_str());
                     continue;
                   }
                 else if (!(dwarf_getlocation_addr(&attr_mem, dwfl_addr, &expr,
                                                   &len, 1) == 1 && len > 0))
                   {
                     if (verbose)
-                      clog << "saveargs: local '" << arg_name << "' (dieoffset: "
-                           << lex_cast_hex(dwarf_dieoffset(&arg))
-                           << ") is not available at this address ("
-                           << lex_cast_hex(dwfl_addr) << ")\n";
+                      clog << _F("saveargs: local '%s' (dieoffset: %s) is not available at this address (%s)\n",
+                                 arg_name, lex_cast_hex(dwarf_dieoffset(&arg)).c_str(), lex_cast_hex(dwfl_addr).c_str());
                     continue;
                   }
               }
@@ -4026,9 +4014,8 @@ dwarf_derived_probe::saveargs(dwarf_query& q, Dwarf_Die* scope_die,
                 !dwarf_type_name(&type_die, type_name))
               {
                 if (verbose)
-                  clog << "saveargs: failed to retrieve type name for local '"
-                       << arg_name << "' (dieoffset: "
-                       << lex_cast_hex(dwarf_dieoffset(&arg)) << ")\n";
+                  clog << _F("saveargs: failed to retrieve type name for local '%s' (dieoffset: %s)\n",
+                             arg_name, lex_cast_hex(dwarf_dieoffset(&arg)).c_str());
                 continue;
               }
 
@@ -4826,7 +4813,7 @@ void
 sdt_uprobe_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
   if (e->addressof)
-    throw semantic_error("cannot take address of context variable", e->tok);
+    throw semantic_error(_("cannot take address of context variable"), e->tok);
 
   if (e->name == "$$name")
     {
@@ -5140,7 +5127,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
     not_matched:
       // The asmarg operand was not recognized.  Back down to dwarf.
       if (! session.suppress_warnings)
-        session.print_warning ("Downgrading SDT_V2 probe argument to dwarf, can't parse '"+asmarg+"'", e->tok);
+        session.print_warning (_F("Downgrading SDT_V2 probe argument to dwarf, can't parse '%s'", asmarg.c_str()), e->tok);
       assert (argexpr == 0);
       need_debug_info = true;
       provide (e);
@@ -5150,12 +5137,13 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
       assert (argexpr != 0);
 
       if (session.verbose > 2)
-        clog << "mapped asm operand " << asmarg << " to " << *argexpr << endl;
+        //TRANSLATORS: We're mapping the opperand to a new expression*.
+        clog << _F("mapped asm operand %s to ", asmarg.c_str()) << *argexpr << endl;
 
       if (e->components.empty()) // We have a scalar
         {
           if (e->addressof)
-            throw semantic_error("cannot take address of sdt variable", e->tok);
+            throw semantic_error(_("cannot take address of sdt variable"), e->tok);
           provide (argexpr);
           return;
         }
@@ -5210,7 +5198,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       if (e->name == "$$name")
 	{
 	  if (e->addressof)
-	    throw semantic_error("cannot take address of sdt context variable", e->tok);
+	    throw semantic_error(_("cannot take address of sdt context variable"), e->tok);
 
 	  literal_string *myname = new literal_string (probe_name);
 	  myname->tok = e->tok;
@@ -5220,7 +5208,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       if (e->name == "$$provider")
 	{
 	  if (e->addressof)
-	    throw semantic_error("cannot take address of sdt context variable", e->tok);
+	    throw semantic_error(_("cannot take address of sdt context variable"), e->tok);
 
 	  literal_string *myname = new literal_string (provider_name);
 	  myname->tok = e->tok;
@@ -5238,9 +5226,9 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 	{
 	}
       if (argno < 0)
-	throw semantic_error("invalid variable, must be of the form $argN", e->tok);
+	throw semantic_error(_("invalid variable, must be of the form $argN"), e->tok);
       if (argno < 1 || argno > arg_count)
-	throw semantic_error("invalid argument number", e->tok);
+	throw semantic_error(_("invalid argument number"), e->tok);
 
       bool lvalue = is_active_lvalue(e);
       functioncall *fc = new functioncall;
@@ -5285,7 +5273,7 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       if (e->components.empty()) // We have a scalar
 	{
 	  if (e->addressof)
-	    throw semantic_error("cannot take address of sdt variable", e->tok);
+	    throw semantic_error(_("cannot take address of sdt variable"), e->tok);
 
 	  provide(fc);
 	  return;
@@ -5393,7 +5381,9 @@ sdt_query::handle_probe_entry()
 
   if (sess.verbose > 3)
     {
-      clog << "matched probe_name " << probe_name << " probe_type ";
+      //TRANSLATORS: Describing what probe type (kprobe or uprobe) the probe 
+      //TRANSLATORS: is matched to.
+      clog << _F("matched probe_name %s probe type ", probe_name.c_str());
       switch (probe_type)
 	{
 	case uprobe1_type:
@@ -5545,8 +5535,8 @@ sdt_query::init_probe_scn()
       probe_scn_addr = shdr->sh_addr;
       assert (pdata != NULL);
       if (sess.verbose > 4)
-	clog << "got .probes elf scn_addr@0x" << probe_scn_addr << dec
-	     << ", size: " << pdata->d_size << endl;
+        clog << _F("got .probes elf scn_addr@0x%zu, size: %zu",
+                   probe_scn_addr, pdata->d_size) << endl;
       probe_loc = probe_section;
       return true;
     }
@@ -5645,8 +5635,7 @@ sdt_query::setup_note_probe_entry (int type, const char *data, size_t len)
   pc += base - base_ref;
 
   if (sess.verbose > 4)
-    clog << "saw .note.stapsdt " << probe_name << (provider_name != "" ? " (provider "+provider_name+") " : "")
-	     << "@0x" << hex << pc << dec << endl;
+    clog << _F(" saw .note.stapsdt %s%s ", probe_name.c_str(), (provider_name != "" ? _(" (provider ")+provider_name+") " : "").c_str()) << "@0x" << hex << pc << dec << endl;
 
   handle_probe_entry();
 }
@@ -5667,8 +5656,7 @@ sdt_query::iterate_over_probe_entries()
 	  // because the name of the probe comes first, followed by
 	  // the sentinel.
 	  if (sess.verbose > 5)
-	    clog << "got unknown probe_type: 0x" << hex << probe_type
-		 << dec << endl;
+            clog << _F("got unknown probe_type : 0x%x", probe_type) << endl;
 	  probe_scn_offset += sizeof(__uint32_t);
 	  continue;
 	}
@@ -5711,7 +5699,7 @@ sdt_query::iterate_over_probe_entries()
 	  probe_scn_offset += sizeof (__uint32_t) - probe_scn_offset % sizeof (__uint32_t);
 	}
       if (sess.verbose > 4)
-	clog << "saw .probes " << probe_name << (provider_name != "" ? " (provider "+provider_name+") " : "")
+	clog << _("saw .probes ") << probe_name << (provider_name != "" ? _(" (provider ")+provider_name+") " : "")
 	     << "@0x" << hex << pc << dec << endl;
 
       if (dw.function_name_matches_pattern (probe_name, pp_mark)
@@ -5729,7 +5717,7 @@ sdt_query::record_semaphore (vector<derived_probe *> & results, unsigned start)
     string semaphore = (i==0 ? (provider_name+"_") : "") + probe_name + "_semaphore";
     // XXX: multiple addresses?
     if (sess.verbose > 2)
-      clog << "looking for semaphore symbol " << semaphore;
+      clog << _F("looking for semaphore symbol %s ", semaphore.c_str());
 
     Dwarf_Addr addr;
     if (this->semaphore)
@@ -5745,12 +5733,12 @@ sdt_query::record_semaphore (vector<derived_probe *> & results, unsigned start)
         for (unsigned i = start; i < results.size(); ++i)
           results[i]->sdt_semaphore_addr = addr;
         if (sess.verbose > 2)
-          clog << ", found at 0x" << hex << addr << dec << endl;
+          clog << _(", found at 0x") << hex << addr << dec << endl;
         return;
       }
     else
       if (sess.verbose > 2)
-        clog << ", not found" << endl;
+        clog << _(", not found") << endl;
   }
 }
 
@@ -5877,15 +5865,15 @@ sdt_query::convert_location ()
 	  switch (probe_type)
 	    {
 	    case uprobe1_type:
-              clog << "probe_type == uprobe1, use statement addr: 0x"
+              clog << _("probe_type == uprobe1, use statement addr: 0x")
 		   << hex << pc << dec << endl;
 	      break;
 	    case uprobe2_type:
-              clog << "probe_type == uprobe2, use statement addr: 0x"
+              clog << _("probe_type == uprobe2, use statement addr: 0x")
 		   << hex << pc << dec << endl;
             break;
 	    case uprobe3_type:
-              clog << "probe_type == uprobe3, use statement addr: 0x"
+              clog << _("probe_type == uprobe3, use statement addr: 0x")
 		   << hex << pc << dec << endl;
 	      break;
 	    case kprobe1_type:
@@ -5895,8 +5883,8 @@ sdt_query::convert_location ()
 	      clog << "probe_type == kprobe2" << endl;
 	      break;
 	    default:
-              clog << "probe_type == use_uprobe_no_dwarf, use label name: "
-		   << "_stapprobe1_" << pp_mark << endl;
+              clog << _F("probe_type == use_uprobe_no_dwarf, use label name: _stapprobe1_%s",
+                         pp_mark.c_str()) << endl;
           }
 
         switch (probe_type)
@@ -5979,7 +5967,8 @@ dwarf_builder::build(systemtap_session & sess,
           // Evaluate glob here, and call derive_probes recursively with each match.
           glob_t the_blob;
           int rc = glob (module_name.c_str(), 0, NULL, & the_blob);
-          if (rc) throw semantic_error ("glob " + module_name + " error (" + lex_cast (rc) + ")");
+          if (rc)
+            throw semantic_error (_F("glob %s error (%s)", module_name.c_str(), lex_cast(rc).c_str() ));
           for (unsigned i = 0; i < the_blob.gl_pathc; ++i)
             {
               if (pending_interrupts) return;
@@ -6000,8 +5989,8 @@ dwarf_builder::build(systemtap_session & sess,
                   if (cf) globbed = cf;
 
                   if (sess.verbose > 1)
-                    clog << "Expanded process(\"" << module_name << "\") to "
-                         << "process(\"" << globbed << "\")" << endl;
+                    clog << _F("Expanded process(\"%s\" to process(\"%s\")",
+                               module_name.c_str(), globbed) << endl;
                   // synthesize a new probe_point, with the glob-expanded string
                   probe_point *pp = new probe_point (*location);
                   probe_point::component* ppc = new probe_point::component (TOK_PROCESS,
@@ -6090,8 +6079,8 @@ dwarf_builder::build(systemtap_session & sess,
                   && S_ISREG (st.st_mode)) // see find_executable()
                 {
                   if (sess.verbose > 1)
-                    clog << "Expanded process(\"" << module_name << "\") to "
-                         << "process(\"" << user_path << "\")" << endl;
+                    clog << _F("Expanded process(\"%s\") to process(\"%s\")",
+                               module_name.c_str(), user_path.c_str()) << endl;
 
                   assert (location->components.size() > 0);
                   assert (location->components[0]->functor == TOK_PROCESS);
@@ -6128,7 +6117,7 @@ dwarf_builder::build(systemtap_session & sess,
 	module_name = user_path; // canonicalize it
 
       if (sess.kernel_config["CONFIG_UTRACE"] != string("y"))
-        throw semantic_error ("process probes not available without kernel CONFIG_UTRACE");
+        throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE"));
 
       // user-space target; we use one dwflpp instance per module name
       // (= program or shared library)
@@ -6136,7 +6125,7 @@ dwarf_builder::build(systemtap_session & sess,
     }
 
   if (sess.verbose > 3)
-    clog << "dwarf_builder::build for " << module_name << endl;
+    clog << _F("dwarf_builder::build for %s", module_name.c_str()) << endl;
 
   string dummy_mark_name; // NB: PR10245: dummy value, need not substitute - => __
   if (get_param(parameters, TOK_MARK, dummy_mark_name))
@@ -6156,7 +6145,7 @@ dwarf_builder::build(systemtap_session & sess,
       // assert guru mode for absolute probes
       if (! q.base_probe->privileged)
         {
-          throw semantic_error ("absolute statement probe in unprivileged script",
+          throw semantic_error (_("absolute statement probe in unprivileged script"),
                                 q.base_probe->tok);
         }
 
@@ -6196,11 +6185,14 @@ dwarf_builder::build(systemtap_session & sess,
                 }
             }
 
-          sess.print_warning ("cannot probe .return of " + lex_cast(i_n_r) + " inlined function(s):" + quicklist);
+          sess.print_warning (_F(ngettext("cannot probe .return of %u inlined function %s",
+                                          "cannot probe .return of %u inlined functions %s",
+                                           quicklist.size()), i_n_r, quicklist.c_str()));
           // There will be also a "no matches" semantic error generated.
         }
       if (sess.verbose > 1)
-        clog << "skipped .return probe of " + lex_cast(i_n_r) + " inlined function(s)" << endl;
+        clog << _F(ngettext("skipped .return probe of %u inlined function",
+                            "skipped .return probe of %u inlined functions", i_n_r), i_n_r) << endl;
       if ((sess.verbose > 3) || (sess.verbose > 2 && results_pre == results_post)) // issue details with high verbosity
         {
           for (set<string>::iterator it = q.inlined_non_returnable.begin();
@@ -6257,11 +6249,8 @@ symbol_table::read_symbols(FILE *f, const string& path)
       line++;
       if (ret < 3)
         {
-          cerr << "Symbol table error: Line "
-               << line
-               << " of symbol list from "
-               << path
-               << " is not in correct format: address type name [module]";
+          cerr << _F("Symbol table error: Line %d of symbol list from %s is not in correct format: addess type name [module]",
+                     line, path.c_str());
           // Caller should delete symbol_table object.
           return info_absent;
         }
@@ -6277,8 +6266,8 @@ symbol_table::read_symbols(FILE *f, const string& path)
 
   if (map_by_addr.size() < 1)
     {
-      cerr << "Symbol table error: "
-           << path << " contains no function symbols." << endl;
+      cerr << _F("Symbol table error: %s contains no function symbols.",
+                 path.c_str()) << endl;
       return info_absent;
     }
   return info_present;
@@ -6297,15 +6286,15 @@ symbol_table::read_from_elf_file(const string &path,
   if (!f)
     {
       // nm failures are detected by pclose, not popen.
-      cerr << "Internal error reading symbol table from "
-           << path << " -- " << strerror (errno);
+      cerr << _F("Internal error reading symbol table from %s -- %s",
+                 path.c_str(), strerror(errno));
       return info_absent;
     }
   enum info_status status = read_symbols(f, path);
   if (pclose(f) != 0)
     {
       if (status == info_present && ! sess.suppress_warnings)
-        cerr << "Warning: nm cannot read symbol table from " << path;
+        cerr << _F("Warning: nm cannot read symbol table from %s", path.c_str());
       return info_absent;
     }
   return status;
@@ -6319,8 +6308,8 @@ symbol_table::read_from_text_file(const string& path,
   if (!f)
     {
       if (! sess.suppress_warnings)
-	cerr << "Warning: cannot read symbol table from "
-	     << path << " -- " << strerror (errno);
+        cerr << _F("Warning: cannot read symbol table from %s -- %s",
+                   path.c_str(), strerror(errno));
       return info_absent;
     }
   enum info_status status = read_symbols(f, path);
@@ -6469,11 +6458,8 @@ module_info::get_symtab(dwarf_query *q)
     {
       if (name == TOK_KERNEL && !sess.kernel_symtab_path.empty()
 	  && ! sess.suppress_warnings)
-        cerr << "Warning: reading symbol table from "
-             << elf_path
-             << " -- ignoring "
-             << sess.kernel_symtab_path
-             << endl;
+        cerr << _F("Warning: reading symbol table from %s -- ignoring %s",
+                   elf_path.c_str(), sess.kernel_symtab_path.c_str()) << endl;
       symtab_status = sym_table->get_from_elf();
     }
   else
@@ -6482,8 +6468,8 @@ module_info::get_symtab(dwarf_query *q)
       if (sess.kernel_symtab_path.empty())
         {
           symtab_status = info_absent;
-          cerr << "Error: Cannot find vmlinux."
-               << "  Consider using --kmap instead of --kelf."
+          cerr << _("Error: Cannot find vmlinux."
+                  "  Consider using --kmap instead of --kelf.")
                << endl;;
         }
       else
@@ -7462,7 +7448,7 @@ kprobe_builder::build(systemtap_session & sess,
     {
       // assert guru mode for absolute probes
       if ( has_statement_num && has_absolute && !base->privileged )
-	throw semantic_error ("absolute statement probe in unprivileged script", base->tok);
+	throw semantic_error (_("absolute statement probe in unprivileged script"), base->tok);
 
       finished_results.push_back (new kprobe_derived_probe (base,
 							    location, "",
@@ -7594,9 +7580,8 @@ void hwbkpt_derived_probe_group::enroll (hwbkpt_derived_probe* p, systemtap_sess
 
   if (hwbkpt_probes.size() >= max_hwbkpt_probes_by_arch)
     if (! s.suppress_warnings)
-      s.print_warning ("Too many hardware breakpoint probes requested for " + s.architecture
-                       + "(" + lex_cast(hwbkpt_probes.size()) +
-                       " vs. " + lex_cast(max_hwbkpt_probes_by_arch) + ")");
+      s.print_warning (_F("Too many hardware breakpoint probes requested for %s (%zu vs. %u)",
+                          s.architecture.c_str(), hwbkpt_probes.size(), max_hwbkpt_probes_by_arch));
 }
 
 void
@@ -7779,10 +7764,10 @@ hwbkpt_builder::build(systemtap_session & sess,
   bool has_addr, has_symbol_str, has_write, has_rw, has_len;
 
   if (! (sess.kernel_config["CONFIG_PERF_EVENTS"] == string("y")))
-      throw semantic_error ("CONFIG_PERF_EVENTS not available on this kernel",
+      throw semantic_error (_("CONFIG_PERF_EVENTS not available on this kernel"),
                             location->components[0]->tok);
   if (! (sess.kernel_config["CONFIG_HAVE_HW_BREAKPOINT"] == string("y")))
-      throw semantic_error ("CONFIG_HAVE_HW_BREAKPOINT not available on this kernel",
+      throw semantic_error (_("CONFIG_HAVE_HW_BREAKPOINT not available on this kernel"),
                             location->components[0]->tok);
 
   has_addr = get_param (parameters, TOK_HWBKPT, hwbkpt_address);
@@ -7889,8 +7874,8 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 
       // We hope that this value ends up not being referenced after all, so it
       // can be optimized out quietly.
-      throw semantic_error("unable to find tracepoint variable '" + e->name
-                           + "' (alternatives:" + alternatives.str () + ")", e->tok);
+      throw semantic_error(_F("unable to find tracepoint variable '%s' (alternatives: %s)",
+                              e->name.c_str(), alternatives.str().c_str()), e->tok);
       // NB: we can have multiple errors, since a target variable
       // may be expanded in several different contexts:
       //     trace ("*") { $foo->bar }
@@ -7903,8 +7888,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   // we can only write to dereferenced fields, and only if guru mode is on
   bool lvalue = is_active_lvalue(e);
   if (lvalue && (!dw.sess.guru_mode || e->components.empty()))
-    throw semantic_error("write to tracepoint variable '" + e->name
-                         + "' not permitted", e->tok);
+    throw semantic_error(_F("write to tracepoint variable '%s' not permitted", e->name.c_str()), e->tok);
 
   // XXX: if a struct/union arg is passed by value, then writing to its fields
   // is also meaningless until you dereference past a pointer member.  It's
@@ -7913,7 +7897,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
   if (e->components.empty())
     {
       if (e->addressof)
-        throw semantic_error("cannot take address of tracepoint variable", e->tok);
+        throw semantic_error(_("cannot take address of tracepoint variable"), e->tok);
 
       // Just grab the value from the probe locals
       symbol* sym = new symbol;
@@ -7931,7 +7915,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       if (e->components.back().type == target_symbol::comp_pretty_print)
         {
           if (lvalue)
-            throw semantic_error("cannot write to pretty-printed variable", e->tok);
+            throw semantic_error(_("cannot write to pretty-printed variable"), e->tok);
 
           dwarf_pretty_print dpp(dw, &arg->type_die, e2, arg->isptr, false, *e);
           dpp.expand()->visit (this);
@@ -8034,10 +8018,10 @@ void
 tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 {
   if (e->addressof)
-    throw semantic_error("cannot take address of context variable", e->tok);
+    throw semantic_error(_("cannot take address of context variable"), e->tok);
 
   if (is_active_lvalue (e))
-    throw semantic_error("write to tracepoint '" + e->name + "' not permitted", e->tok);
+    throw semantic_error(_F("write to tracepoint '%s' not permitted", e->name.c_str()), e->tok);
 
   if (e->name == "$$name")
     {
@@ -8079,7 +8063,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
               if (dw.sess.verbose>2)
                 for (semantic_error *c = tsym->saved_conversion_error;
                      c != 0; c = c->chain)
-                  clog << "variable location problem: " << c->what() << endl;
+                  clog << _("variable location problem: ") << c->what() << endl;
               pf->raw_components += "=?";
               continue;
             }
@@ -8173,8 +8157,7 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
       }
 
   if (sess.verbose > 2)
-    clog << "tracepoint-based " << name << " tracepoint='" << tracepoint_name
-	 << "'" << endl;
+    clog << _F("tracepoint-based %s tracepoint='%s'", name.c_str(), tracepoint_name.c_str()) << endl;
 }
 
 
@@ -8244,16 +8227,14 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
           // read the type of this parameter
           if (!dwarf_attr_die (&arg, DW_AT_type, &tparg.type_die)
               || !dwarf_type_name(&tparg.type_die, tparg.c_type))
-            throw semantic_error ("cannot get type of tracepoint '"
-                                  + tracepoint_name + "' parameter '"
-                                  + tparg.name + "'");
+            throw semantic_error (_F("cannot get type of tracepoint '%s' parameter '%s'",
+                                     tracepoint_name.c_str(), tparg.name.c_str()));
 
           tparg.usable = resolve_tracepoint_arg_type(tparg);
           args.push_back(tparg);
           if (sess.verbose > 4)
-            clog << "found parameter for tracepoint '" << tracepoint_name
-                 << "': type:'" << tparg.c_type
-                 << "' name:'" << tparg.name << "'" << endl;
+            clog << _F("found parameter for tracepoint '%s': type:'%s' name:'%s'",
+                       tracepoint_name.c_str(), tparg.c_type.c_str(), tparg.name.c_str()) << endl;
         }
     while (dwarf_siblingof(&arg, &arg) == 0);
 }
@@ -8574,7 +8555,7 @@ public:
   void build_no_more (systemtap_session& s)
   {
     if (dw && s.verbose > 3)
-      clog << "tracepoint_builder releasing dwflpp" << endl;
+      clog << _("tracepoint_builder releasing dwflpp") << endl;
     delete dw;
     dw = NULL;
 
@@ -8594,8 +8575,7 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
 {
   if (s.verbose > 2)
     {
-      clog << "Pass 2: getting a tracequery for "
-           << headers.size() << " headers:" << endl;
+      clog << _F("Pass 2: getting a tracequery for %zu headers: ", headers.size()) << endl;
       for (size_t i = 0; i < headers.size(); ++i)
         clog << "  " << headers[i] << endl;
     }
@@ -8611,7 +8591,7 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
           if (fd != -1)
             {
               if (s.verbose > 2)
-                clog << "Pass 2: using cached " << tracequery_path << endl;
+                clog << _F("Pass 2: using cached %s", tracequery_path.c_str()) << endl;
               close(fd);
               return tracequery_path;
             }
@@ -8677,7 +8657,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
               if (name) 
                 {
                   if (s.verbose > 2)
-                    clog << "Located kernel source tree (DW_AT_comp_dir) at '" << name << "'" << endl;
+                    clog << _F("Located kernel source tree (DW_AT_comp_dir) at '%s'", name) << endl;
 
                   s.kernel_source_tree = name;
                   break; // skip others; modern Kbuild uses same comp_dir for them all
@@ -8709,7 +8689,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
     {
       string glob_str = globs[z];
       if (s.verbose > 3)
-        clog << "Checking tracepoint glob " << glob_str << endl;
+        clog << _("Checking tracepoint glob ") << glob_str << endl;
 
       glob(glob_str.c_str(), 0, NULL, &trace_glob);
       for (unsigned i = 0; i < trace_glob.gl_pathc; ++i)

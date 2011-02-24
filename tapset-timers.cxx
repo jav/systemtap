@@ -60,13 +60,13 @@ timer_derived_probe::timer_derived_probe (probe* p, probe_point* l,
   derived_probe (p, l), interval (i), randomize (r), time_is_msecs(ms)
 {
   if (interval <= 0 || interval > 1000000) // make i and r fit into plain ints
-    throw semantic_error ("invalid interval for jiffies timer");
+    throw semantic_error (_("invalid interval for jiffies timer"));
   // randomize = 0 means no randomization
   if (randomize < 0 || randomize > interval)
-    throw semantic_error ("invalid randomize for jiffies timer");
+    throw semantic_error (_("invalid randomize for jiffies timer"));
 
   if (locations.size() != 1)
-    throw semantic_error ("expect single probe point");
+    throw semantic_error (_("expect single probe point"));
   // so we don't have to loop over them in the other functions
 }
 
@@ -194,15 +194,13 @@ struct hrtimer_derived_probe: public derived_probe
     derived_probe (p, l), interval (i), randomize (r)
   {
     if ((i < min_ns_interval) || (i > max_ns_interval))
-      throw semantic_error(string("interval value out of range (")
-                           + lex_cast(scale < min_ns_interval
-                                              ? min_ns_interval/scale : 1)
-                           + ","
-                           + lex_cast(max_ns_interval/scale) + ")");
+      throw semantic_error(_F("interval value out of range (%s, %s)",
+                          (lex_cast(scale < min_ns_interval ? min_ns_interval/scale : 1).c_str()),
+                           lex_cast(max_ns_interval/scale).c_str()));
 
     // randomize = 0 means no randomization
     if ((r < 0) || (r > i))
-      throw semantic_error("randomization value out of range");
+      throw semantic_error(_("randomization value out of range"));
   }
 
   void join_group (systemtap_session& s);
@@ -550,7 +548,7 @@ timer_builder::build(systemtap_session & sess,
   else if (get_param(parameters, "hz", period))
     {
       if (period <= 0)
-        throw semantic_error ("frequency must be greater than 0");
+        throw semantic_error (_("frequency must be greater than 0"));
       period = (1000000000 + period - 1)/period;
     }
   else if (get_param(parameters, "s", period) ||
@@ -580,7 +578,7 @@ timer_builder::build(systemtap_session & sess,
       // ok
     }
   else
-    throw semantic_error ("unrecognized timer variant");
+    throw semantic_error (_("unrecognized timer variant"));
 
   // Redirect wallclock-time based probes to hrtimer code on recent
   // enough kernels.
