@@ -15,6 +15,11 @@
 
 #include <string>
 
+extern "C" {
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+}
+
 using namespace std;
 using namespace __gnu_cxx;
 
@@ -213,7 +218,7 @@ perf_builder::build(systemtap_session & sess,
                          parameters.find(TOK_SAMPLE)->second->tok);
 
   if (sess.verbose > 1)
-    clog << _F("perf probe type=%ld config=%ld period=%ld", type, config, period) << endl;
+    clog << _F("perf probe type=%" PRId64 " config=%" PRId64 " period=%" PRId64, type, config, period) << endl;
 
   finished_results.push_back
     (new perf_derived_probe(base, location, type, config, period));
