@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-02-24 16:32-0500\n"
+"POT-Creation-Date: 2011-02-25 14:28-0500\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Przemysław Pawełczyk <przemyslaw@pawelczyk.it>\n"
 "Language-Team: Polish\n"
@@ -148,6 +148,425 @@ msgstr ""
 
 #: coveragedb.cxx:159 coveragedb.cxx:175
 msgid "insert or ignore into counts values ('"
+msgstr ""
+
+#: dwflpp.cxx:127
+msgid "cannot find "
+msgstr ""
+
+#: dwflpp.cxx:144 session.cxx:1458
+msgid "WARNING: "
+msgstr "UWAGA: "
+
+#: dwflpp.cxx:235
+#, c-format
+msgid "pattern '%s' matches module '%s'\n"
+msgstr ""
+
+#: dwflpp.cxx:265
+#, c-format
+msgid "pattern '%s' matches function '%s'\n"
+msgstr ""
+
+#: dwflpp.cxx:321 dwflpp.cxx:347
+#, c-format
+msgid "missing %s kernel/module debuginfo under '%s'"
+msgstr ""
+
+#: dwflpp.cxx:364
+msgid "missing process "
+msgstr ""
+
+#: dwflpp.cxx:569
+#, c-format
+msgid "die parent cache %s:%s size %zu"
+msgstr ""
+
+#: dwflpp.cxx:785
+#, c-format
+msgid "global alias cache %s:%s size %zu"
+msgstr ""
+
+#: dwflpp.cxx:848
+#, c-format
+msgid "function cache %s:%s size %zu"
+msgstr ""
+
+#: dwflpp.cxx:861
+#, c-format
+msgid "function cache %s:%s hit %s"
+msgstr ""
+
+#: dwflpp.cxx:883 dwflpp.cxx:901
+#, c-format
+msgid "function cache %s:%s match %s vs %s"
+msgstr ""
+
+#: dwflpp.cxx:935
+#, c-format
+msgid "module function cache %s size %zu"
+msgstr ""
+
+#: dwflpp.cxx:949
+#, c-format
+msgid "module function cache %s hit %s"
+msgstr ""
+
+#: dwflpp.cxx:1082
+#, c-format
+msgid "alternative line %d rejected: nsrcs=%zu"
+msgstr ""
+
+#: dwflpp.cxx:1099
+#, c-format
+msgid "alternative line %d accepted: fn=%s"
+msgstr ""
+
+#: dwflpp.cxx:1111
+#, c-format
+msgid "alternative line %d accepted: ifn=%s"
+msgstr ""
+
+#: dwflpp.cxx:1117
+#, c-format
+msgid "alternative line %d rejected: leaves selected fns"
+msgstr ""
+
+#: dwflpp.cxx:1183
+msgid "Invalid line range ("
+msgstr ""
+
+#: dwflpp.cxx:1185
+msgid ", the end line number "
+msgstr ""
+
+#: dwflpp.cxx:1257
+#, c-format
+msgid "multiple addresses for %s:%d"
+msgstr ""
+
+#. TRANSLATORS: Here we are trying to advise what source file
+#. TRANSLATORS: to attempt.
+#: dwflpp.cxx:1262
+msgid " (try "
+msgstr ""
+
+#: dwflpp.cxx:1266
+msgid " or "
+msgstr ""
+
+#: dwflpp.cxx:1338
+#, c-format
+msgid ""
+"label '%s' at address %s (dieoffset: %s) is not contained by its scope "
+"'%s' (dieoffset: %s) -- bad debuginfo?"
+msgstr ""
+
+#: dwflpp.cxx:1393
+#, c-format
+msgid "selected source file '%s'\n"
+msgstr ""
+
+#: dwflpp.cxx:1463
+#, c-format
+msgid "missing entrypc dwarf line record for function '%s'\n"
+msgstr ""
+
+#: dwflpp.cxx:1473
+#, c-format
+msgid "null entrypc dwarf line record for function '%s'\n"
+msgstr ""
+
+#: dwflpp.cxx:1481
+#, c-format
+msgid "prologue searching function '%s' 0x%#<PRIx64>-0x%#<PRIx64>@%s:%d\n"
+msgstr ""
+
+#: dwflpp.cxx:1506
+#, c-format
+msgid "checking line record 0x%#<PRIx64>@%s:%d\n"
+msgstr ""
+
+#: dwflpp.cxx:1523
+#, c-format
+msgid "prologue found function '%s'"
+msgstr ""
+
+#. TRANSLATORS: Here we're adding some classification datum
+#: dwflpp.cxx:1526
+msgid " (naked)"
+msgstr ""
+
+#. TRANSLATORS: Here we're adding some classification datum
+#: dwflpp.cxx:1528
+msgid " (tail-call?)"
+msgstr ""
+
+#: dwflpp.cxx:1592
+#, c-format
+msgid ", ignored %s more"
+msgstr ""
+
+#: dwflpp.cxx:1601
+msgid " (skip comdat)"
+msgstr ""
+
+#: dwflpp.cxx:1606
+#, c-format
+msgid "entry-pc lookup (%s dieoffset: %s) = 0x%#<PRIx64> (rc %d"
+msgstr ""
+
+#: dwflpp.cxx:1722
+msgid "emit_address internal error, no dwfl"
+msgstr ""
+
+#: dwflpp.cxx:1728
+#, c-format
+msgid ""
+"emit_address internal error, dwfl_adddrmodule failed, address 0x%#<PRIx64>"
+msgstr ""
+
+#: dwflpp.cxx:1747
+#, c-format
+msgid ""
+"emit dwarf addr 0x%#<PRIx64> => module %s section %s relocaddr 0x%#<PRIx64>"
+msgstr ""
+
+#: dwflpp.cxx:1852
+msgid " in "
+msgstr ""
+
+#: dwflpp.cxx:1855
+msgid " (alternatives:"
+msgstr ""
+
+#: dwflpp.cxx:1851
+#, c-format
+msgid "unable to find local '%s' near pc %s %s %s %s (%s)"
+msgstr ""
+
+#: dwflpp.cxx:1886
+#, c-format
+msgid "unable to get die scopes for '%s' in an inlined subroutine"
+msgstr ""
+
+#: dwflpp.cxx:1952
+#, c-format
+msgid "not accessible at this address (%s, dieoffset: %s)"
+msgstr ""
+
+#: dwflpp.cxx:1958
+#, c-format
+msgid "dwarf_getlocation_addr failed, %s"
+msgstr ""
+
+#: dwflpp.cxx:1981
+#, c-format
+msgid " Error: %s isn't a struct/class/union"
+msgstr ""
+
+#: dwflpp.cxx:1991
+#, c-format
+msgid "%s is empty"
+msgstr ""
+
+#: dwflpp.cxx:2023
+#, c-format
+msgid ""
+"\n"
+" Error in obtaining type attribute for anonymous member at %s:%d"
+msgstr ""
+
+#: dwflpp.cxx:2097
+#, c-format
+msgid "no location for field '%s':%s"
+msgstr ""
+
+#: dwflpp.cxx:2108 loc2c-test.c:222 loc2c-test.c:235 loc2c-test.c:242
+#, c-format
+msgid "cannot get type of field: %s"
+msgstr ""
+
+#: dwflpp.cxx:2154
+#, c-format
+msgid "invalid access '%s' vs. %s"
+msgstr ""
+
+#: dwflpp.cxx:2182
+#, c-format
+msgid "invalid access '%s' for array type"
+msgstr ""
+
+#: dwflpp.cxx:2194
+#, c-format
+msgid "invalid access '%s' for %s"
+msgstr ""
+
+#: dwflpp.cxx:2201
+#, c-format
+msgid "unresolved %s"
+msgstr ""
+
+#: dwflpp.cxx:2226
+#, c-format
+msgid "unable to find member '%s' for %s%s%s"
+msgstr ""
+
+#: dwflpp.cxx:2243
+#, c-format
+msgid "invalid acces '%s' vs. %s"
+msgstr ""
+
+#: dwflpp.cxx:2248 loc2c-test.c:210
+#, c-format
+msgid "cannot find type: %s"
+msgstr ""
+
+#: dwflpp.cxx:2252
+#, c-format
+msgid "%s: unexpected type tag %s"
+msgstr ""
+
+#: dwflpp.cxx:2272
+#, c-format
+msgid "cannot get type of pointee: %s"
+msgstr ""
+
+#: dwflpp.cxx:2301
+msgid "cannot write to member address"
+msgstr ""
+
+#: dwflpp.cxx:2304
+msgid "cannot take address of bit-field"
+msgstr ""
+
+#: dwflpp.cxx:2318
+#, c-format
+msgid "unsupported type tag %s for %s"
+msgstr ""
+
+#: dwflpp.cxx:2325
+#, c-format
+msgid "'%s' is being accessed instead of a member"
+msgstr ""
+
+#: dwflpp.cxx:2341
+#, c-format
+msgid "unsupported type (mystery ecoding %s for %s"
+msgstr ""
+
+#: dwflpp.cxx:2350
+#, c-format
+msgid "unsupported type (encoding %s) for %s"
+msgstr ""
+
+#: dwflpp.cxx:2373
+msgid "cannot write to array address"
+msgstr ""
+
+#: dwflpp.cxx:2376
+msgid "cannot write to reference"
+msgstr ""
+
+#: dwflpp.cxx:2449
+#, c-format
+msgid "finding symtable address for %s\n"
+msgstr ""
+
+#: dwflpp.cxx:2453
+msgid "Getting symbols"
+msgstr ""
+
+#: dwflpp.cxx:2468
+#, c-format
+msgid "found %s @0x%#<PRIx64>\n"
+msgstr ""
+
+#: dwflpp.cxx:2488
+#, c-format
+msgid ""
+"finding location for local '%s' near address 0x%#<PRIx64>, module bias 0x"
+"%#<PRIx64>\n"
+msgstr ""
+
+#: dwflpp.cxx:2519
+#, c-format
+msgid "failed to retrieve location attribute for local '%s' (dieoffset: %s)"
+msgstr ""
+
+#: dwflpp.cxx:2529 dwflpp.cxx:2563
+#, c-format
+msgid "failed to retrieve type attribute for local '%s'"
+msgstr ""
+
+#: dwflpp.cxx:2578
+#, c-format
+msgid "literal_stmt_for_return: finding return value for %s (%s)\n"
+msgstr ""
+
+#: dwflpp.cxx:2591
+#, c-format
+msgid "failed to retrieve return value location for %s (%s)"
+msgstr ""
+
+#: dwflpp.cxx:2598
+#, c-format
+msgid "function %s (%s) has no return value"
+msgstr ""
+
+#: dwflpp.cxx:2613 dwflpp.cxx:2644
+#, c-format
+msgid "failed to retrieve return value type attribute for %s (%s)"
+msgstr ""
+
+#: dwflpp.cxx:2660
+#, c-format
+msgid "literal_stmt_for_pointer: finding value for %s (%s)\n"
+msgstr ""
+
+#: dwflpp.cxx:2778
+msgid " skipping - init/exit"
+msgstr ""
+
+#: dwflpp.cxx:2786
+msgid " skipping - __kprobes"
+msgstr ""
+
+#: dwflpp.cxx:2801
+msgid " guru mode enabled - ignoring blacklist"
+msgstr ""
+
+#: dwflpp.cxx:2806
+msgid " skipping - blacklisted"
+msgstr ""
+
+#: dwflpp.cxx:2945
+msgid "blacklist regexps:"
+msgstr ""
+
+#: dwflpp.cxx:2953
+msgid "blacklist_func regcomp failed"
+msgstr ""
+
+#: dwflpp.cxx:2955
+msgid "blacklist_func_ret regcomp failed"
+msgstr ""
+
+#: dwflpp.cxx:2957
+msgid "blacklist_file regcomp failed"
+msgstr ""
+
+#: dwflpp.cxx:2959
+msgid "blacklist_section regcomp failed"
+msgstr ""
+
+#: dwflpp.cxx:3145
+msgid "not found cfa"
+msgstr ""
+
+#: dwflpp.cxx:3153
+#, c-format
+msgid "found cfa, info: %d [start: 0x%#<PRIx64>, end: 0x%#<PRIx64>, nops: %zu"
 msgstr ""
 
 #: hash.cxx:131
@@ -422,19 +841,9 @@ msgstr ""
 msgid "field %s vs base type %s"
 msgstr ""
 
-#: loc2c-test.c:210
-#, c-format
-msgid "cannot find type: %s"
-msgstr ""
-
 #: loc2c-test.c:214
 #, c-format
 msgid "%s: unexpected type tag %#x"
-msgstr ""
-
-#: loc2c-test.c:222 loc2c-test.c:235 loc2c-test.c:242
-#, c-format
-msgid "cannot get type of field: %s"
 msgstr ""
 
 #: loc2c-test.c:257
@@ -1459,11 +1868,7 @@ msgstr ""
 msgid "source: "
 msgstr ""
 
-#: session.cxx:1458
-msgid "WARNING: "
-msgstr "UWAGA: "
-
-#: tapset-itrace.cxx:79 tapsets.cxx:6120 tapset-utrace.cxx:127
+#: tapset-itrace.cxx:79 tapsets.cxx:6125 tapset-utrace.cxx:127
 msgid "process probes not available without kernel CONFIG_UTRACE"
 msgstr ""
 
@@ -1508,22 +1913,22 @@ msgstr ""
 msgid " cannot be opened: "
 msgstr ""
 
-#: tapset-perfmon.cxx:195
+#: tapset-perfmon.cxx:200
 msgid ""
 "perf probes not available without exported perf_event_create_kernel_counter"
 msgstr ""
 
-#: tapset-perfmon.cxx:197
+#: tapset-perfmon.cxx:202
 msgid "perf probes not available without CONFIG_PERF_EVENTS"
 msgstr ""
 
-#: tapset-perfmon.cxx:212
+#: tapset-perfmon.cxx:217
 msgid "invalid perf sample period "
 msgstr ""
 
-#: tapset-perfmon.cxx:216
+#: tapset-perfmon.cxx:221
 #, c-format
-msgid "perf probe type=%ld config=%ld period=%ld"
+msgid "perf probe type=%<PRId64> config=%<PRId64> period=%<PRId64>"
 msgstr ""
 
 #: tapset-procfs.cxx:147
@@ -1580,7 +1985,7 @@ msgstr ""
 msgid "need read/write component"
 msgstr ""
 
-#: tapsets.cxx:861
+#: tapsets.cxx:862
 #, c-format
 msgid ""
 "Error: Pattern '%s' matches every single instruction address in the symbol "
@@ -1588,118 +1993,118 @@ msgid ""
 "some of which aren't even functions.\n"
 msgstr ""
 
-#: tapsets.cxx:895
+#: tapsets.cxx:896
 #, c-format
 msgid "Warning: address %#<PRIx64> out of range for module %s"
 msgstr ""
 
-#: tapsets.cxx:906
+#: tapsets.cxx:907
 #, c-format
 msgid ""
 "Warning: address %#<PRIx64> maps to no known compilation unit in module %s"
 msgstr ""
 
-#: tapsets.cxx:1016
+#: tapsets.cxx:1017
 #, c-format
 msgid "parse '%s'"
 msgstr ""
 
-#: tapsets.cxx:1057
+#: tapsets.cxx:1058
 #, c-format
 msgid "malformed specification '%s'"
 msgstr ""
 
-#: tapsets.cxx:1086
+#: tapsets.cxx:1087
 msgid "probe "
 msgstr ""
 
-#: tapsets.cxx:1088
+#: tapsets.cxx:1089
 msgid " kernel"
 msgstr ""
 
-#: tapsets.cxx:1090
+#: tapsets.cxx:1091
 msgid " module="
 msgstr ""
 
-#: tapsets.cxx:1092
+#: tapsets.cxx:1093
 msgid " process="
 msgstr ""
 
-#: tapsets.cxx:1306
+#: tapsets.cxx:1307
 #, c-format
 msgid "address 0x%#<PRIx64> does not match the beginning of a statement"
 msgstr ""
 
-#: tapsets.cxx:1309
+#: tapsets.cxx:1310
 #, c-format
 msgid " (try 0x%#<PRIx64>)"
 msgstr ""
 
-#: tapsets.cxx:1311
+#: tapsets.cxx:1312
 #, c-format
 msgid " (no line info found for '%s', in module '%s')"
 msgstr ""
 
-#: tapsets.cxx:1365
+#: tapsets.cxx:1366
 #, c-format
 msgid "querying entrypc %#<PRIx64> of instance of inline '%s'\n"
 msgstr ""
 
-#: tapsets.cxx:1446
+#: tapsets.cxx:1447
 msgid "function DIE lands on srcfile\n"
 msgstr ""
 
-#: tapsets.cxx:1467
+#: tapsets.cxx:1468
 msgid "inline instance DIE lands on srcfile\n"
 msgstr ""
 
-#: tapsets.cxx:1508
+#: tapsets.cxx:1509
 #, c-format
 msgid "selected inline instance of %s\n"
 msgstr ""
 
-#: tapsets.cxx:1564
+#: tapsets.cxx:1565
 #, c-format
 msgid "checking instances of inline %s\n"
 msgstr ""
 
-#: tapsets.cxx:1574
+#: tapsets.cxx:1575
 #, c-format
 msgid "selected function %s\n"
 msgstr ""
 
-#: tapsets.cxx:1612
+#: tapsets.cxx:1613
 #, c-format
 msgid "focused on CU '%s', in module '%s'\n"
 msgstr ""
 
-#: tapsets.cxx:1653
+#: tapsets.cxx:1654
 msgid ""
 "For probing a particular line, use a .statement() probe, not .function()"
 msgstr ""
 
-#: tapsets.cxx:1810
+#: tapsets.cxx:1811
 #, c-format
 msgid "ELF machine %s|%s (code %d) mismatch with target %s in '%s'"
 msgstr ""
 
-#: tapsets.cxx:1817
+#: tapsets.cxx:1818
 #, c-format
 msgid ""
 "focused on module '%s' = [0x%#<PRIx64>, -0x%#<PRIx64>, bias 0x%#<PRIx64> "
 "file %s ELF machine %s|%s (code %d)\n"
 msgstr ""
 
-#: tapsets.cxx:1906
+#: tapsets.cxx:1907
 #, c-format
 msgid "focused on module '%s'\n"
 msgstr ""
 
-#: tapsets.cxx:1948
+#: tapsets.cxx:1949
 msgid "deleting module_cache"
 msgstr ""
 
-#: tapsets.cxx:2050
+#: tapsets.cxx:2051
 #, c-format
 msgid ""
 "Only the following assign operator is impletmented on target variables: %s"
@@ -1709,214 +2114,214 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: tapsets.cxx:2243
+#: tapsets.cxx:2244
 msgid "cannot take address of pretty-printed variable"
 msgstr ""
 
-#: tapsets.cxx:2247
+#: tapsets.cxx:2248
 msgid "invalid target_symbol for pretty-print"
 msgstr ""
 
-#: tapsets.cxx:3029
+#: tapsets.cxx:3030
 msgid "unknown type to save in kretprobe"
 msgstr ""
 
-#: tapsets.cxx:3179 tapsets.cxx:8066
+#: tapsets.cxx:3180 tapsets.cxx:8070
 msgid "variable location problem: "
 msgstr ""
 
-#: tapsets.cxx:3213
+#: tapsets.cxx:3214
 msgid "write to target variable not permitted"
 msgstr ""
 
-#: tapsets.cxx:3225
+#: tapsets.cxx:3226
 msgid "write to target variable not permitted in .return probes"
 msgstr ""
 
-#: tapsets.cxx:3234
+#: tapsets.cxx:3235
 msgid "cannot write to context variable"
 msgstr ""
 
-#: tapsets.cxx:3237 tapsets.cxx:4816 tapsets.cxx:8021
+#: tapsets.cxx:3238 tapsets.cxx:4821 tapsets.cxx:8025
 msgid "cannot take address of context variable"
 msgstr ""
 
-#: tapsets.cxx:3249 tapsets.cxx:3509 tapsets.cxx:7918
+#: tapsets.cxx:3250 tapsets.cxx:3510 tapsets.cxx:7922
 msgid "cannot write to pretty-printed variable"
 msgstr ""
 
 #. TRANSLATORS: Here we're using a cached module.
-#: tapsets.cxx:3629
+#: tapsets.cxx:3630
 msgid "Pass 2: using cached "
 msgstr ""
 
-#: tapsets.cxx:3652
+#: tapsets.cxx:3653
 msgid "write to typecast value not permitted"
 msgstr ""
 
-#: tapsets.cxx:3792
+#: tapsets.cxx:3793
 msgid "missing relocation base against"
 msgstr ""
 
-#: tapsets.cxx:3794
+#: tapsets.cxx:3795
 msgid "inconsistent relocation address"
 msgstr ""
 
-#: tapsets.cxx:3804
+#: tapsets.cxx:3805
 #, c-format
 msgid "maxactive value out of range [0,%s]"
 msgstr ""
 
-#: tapsets.cxx:3935
+#: tapsets.cxx:3936
 #, c-format
 msgid "saveargs: examining '%s' (dieoffset: %#<PRIx64>)\n"
 msgstr ""
 
-#: tapsets.cxx:3947
+#: tapsets.cxx:3948
 #, c-format
 msgid ""
 "saveargs: failed to retrieve type name for return value (dieoffset: %s)\n"
 msgstr ""
 
-#: tapsets.cxx:3975
+#: tapsets.cxx:3976
 #, c-format
 msgid "saveargs: failed to retrieve name for local (dieoffset: %s)\n"
 msgstr ""
 
-#: tapsets.cxx:3981
+#: tapsets.cxx:3982
 #, c-format
 msgid "saveargs: finding location for local '%s' (dieoffset: %s)\n"
 msgstr ""
 
-#: tapsets.cxx:3996
+#: tapsets.cxx:3997
 #, c-format
 msgid ""
 "saveargs: failed to resolve the location for local '%s' (dieoffset: %s)\n"
 msgstr ""
 
-#: tapsets.cxx:4004
+#: tapsets.cxx:4005
 #, c-format
 msgid ""
 "saveargs: local '%s' (dieoffset: %s) is not available at this address (%s)\n"
 msgstr ""
 
-#: tapsets.cxx:4017
+#: tapsets.cxx:4018
 #, c-format
 msgid "saveargs: failed to retrieve type name for local '%s' (dieoffset: %s)\n"
 msgstr ""
 
-#: tapsets.cxx:5130
+#: tapsets.cxx:5135
 #, c-format
 msgid "Downgrading SDT_V2 probe argument to dwarf, can't parse '%s'"
 msgstr ""
 
 #. TRANSLATORS: We're mapping the opperand to a new expression*.
-#: tapsets.cxx:5141
+#: tapsets.cxx:5146
 #, c-format
 msgid "mapped asm operand %s to "
 msgstr ""
 
-#: tapsets.cxx:5146 tapsets.cxx:5276
+#: tapsets.cxx:5151 tapsets.cxx:5281
 msgid "cannot take address of sdt variable"
 msgstr ""
 
-#: tapsets.cxx:5201 tapsets.cxx:5211
+#: tapsets.cxx:5206 tapsets.cxx:5216
 msgid "cannot take address of sdt context variable"
 msgstr ""
 
-#: tapsets.cxx:5229
+#: tapsets.cxx:5234
 msgid "invalid variable, must be of the form $argN"
 msgstr ""
 
-#: tapsets.cxx:5231
+#: tapsets.cxx:5236
 msgid "invalid argument number"
 msgstr ""
 
 #. TRANSLATORS: Describing what probe type (kprobe or uprobe) the probe
 #. TRANSLATORS: is matched to.
-#: tapsets.cxx:5386
+#: tapsets.cxx:5391
 #, c-format
 msgid "matched probe_name %s probe type "
 msgstr ""
 
-#: tapsets.cxx:5538
+#: tapsets.cxx:5543
 #, c-format
 msgid "got .probes elf scn_addr@0x%zu, size: %zu"
 msgstr ""
 
-#: tapsets.cxx:5638 tapsets.cxx:5702
+#: tapsets.cxx:5643 tapsets.cxx:5707
 msgid " (provider "
 msgstr ""
 
-#: tapsets.cxx:5638
+#: tapsets.cxx:5643
 #, c-format
 msgid " saw .note.stapsdt %s%s "
 msgstr ""
 
-#: tapsets.cxx:5659
+#: tapsets.cxx:5664
 #, c-format
 msgid "got unknown probe_type : 0x%x"
 msgstr ""
 
-#: tapsets.cxx:5702
+#: tapsets.cxx:5707
 msgid "saw .probes "
 msgstr ""
 
-#: tapsets.cxx:5720
+#: tapsets.cxx:5725
 #, c-format
 msgid "looking for semaphore symbol %s "
 msgstr ""
 
-#: tapsets.cxx:5736
+#: tapsets.cxx:5741
 msgid ", found at 0x"
 msgstr ""
 
-#: tapsets.cxx:5741
+#: tapsets.cxx:5746
 msgid ", not found"
 msgstr ""
 
-#: tapsets.cxx:5868
+#: tapsets.cxx:5873
 msgid "probe_type == uprobe1, use statement addr: 0x"
 msgstr ""
 
-#: tapsets.cxx:5872
+#: tapsets.cxx:5877
 msgid "probe_type == uprobe2, use statement addr: 0x"
 msgstr ""
 
-#: tapsets.cxx:5876
+#: tapsets.cxx:5881
 msgid "probe_type == uprobe3, use statement addr: 0x"
 msgstr ""
 
-#: tapsets.cxx:5886
+#: tapsets.cxx:5891
 #, c-format
 msgid "probe_type == use_uprobe_no_dwarf, use label name: _stapprobe1_%s"
 msgstr ""
 
-#: tapsets.cxx:5971
+#: tapsets.cxx:5976
 #, c-format
 msgid "glob %s error (%s)"
 msgstr ""
 
-#: tapsets.cxx:5992
+#: tapsets.cxx:5997
 #, c-format
 msgid "Expanded process(\"%s\" to process(\"%s\")"
 msgstr ""
 
-#: tapsets.cxx:6082
+#: tapsets.cxx:6087
 #, c-format
 msgid "Expanded process(\"%s\") to process(\"%s\")"
 msgstr ""
 
-#: tapsets.cxx:6128
+#: tapsets.cxx:6133
 #, c-format
 msgid "dwarf_builder::build for %s"
 msgstr ""
 
-#: tapsets.cxx:6148 tapsets.cxx:7451
+#: tapsets.cxx:6153 tapsets.cxx:7455
 msgid "absolute statement probe in unprivileged script"
 msgstr ""
 
-#: tapsets.cxx:6188
+#: tapsets.cxx:6193
 #, c-format
 msgid "cannot probe .return of %u inlined function %s"
 msgid_plural "cannot probe .return of %u inlined functions %s"
@@ -1924,7 +2329,7 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: tapsets.cxx:6194
+#: tapsets.cxx:6199
 #, c-format
 msgid "skipped .return probe of %u inlined function"
 msgid_plural "skipped .return probe of %u inlined functions"
@@ -1932,109 +2337,109 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: tapsets.cxx:6252
+#: tapsets.cxx:6257
 #, c-format
 msgid ""
 "Symbol table error: Line %d of symbol list from %s is not in correct format: "
 "addess type name [module]"
 msgstr ""
 
-#: tapsets.cxx:6269
+#: tapsets.cxx:6274
 #, c-format
 msgid "Symbol table error: %s contains no function symbols."
 msgstr ""
 
-#: tapsets.cxx:6289
+#: tapsets.cxx:6294
 #, c-format
 msgid "Internal error reading symbol table from %s -- %s"
 msgstr ""
 
-#: tapsets.cxx:6297
+#: tapsets.cxx:6302
 #, c-format
 msgid "Warning: nm cannot read symbol table from %s"
 msgstr ""
 
-#: tapsets.cxx:6311
+#: tapsets.cxx:6316
 #, c-format
 msgid "Warning: cannot read symbol table from %s -- %s"
 msgstr ""
 
-#: tapsets.cxx:6461
+#: tapsets.cxx:6466
 #, c-format
 msgid "Warning: reading symbol table from %s -- ignoring %s"
 msgstr ""
 
-#: tapsets.cxx:6471
+#: tapsets.cxx:6476
 msgid "Error: Cannot find vmlinux.  Consider using --kmap instead of --kelf."
 msgstr ""
 
-#: tapsets.cxx:7583
+#: tapsets.cxx:7587
 #, c-format
 msgid "Too many hardware breakpoint probes requested for %s (%zu vs. %u)"
 msgstr ""
 
-#: tapsets.cxx:7767
+#: tapsets.cxx:7771
 msgid "CONFIG_PERF_EVENTS not available on this kernel"
 msgstr ""
 
-#: tapsets.cxx:7770
+#: tapsets.cxx:7774
 msgid "CONFIG_HAVE_HW_BREAKPOINT not available on this kernel"
 msgstr ""
 
-#: tapsets.cxx:7877
+#: tapsets.cxx:7881
 #, c-format
 msgid "unable to find tracepoint variable '%s' (alternatives: %s)"
 msgstr ""
 
-#: tapsets.cxx:7891
+#: tapsets.cxx:7895
 #, c-format
 msgid "write to tracepoint variable '%s' not permitted"
 msgstr ""
 
-#: tapsets.cxx:7900
+#: tapsets.cxx:7904
 msgid "cannot take address of tracepoint variable"
 msgstr ""
 
-#: tapsets.cxx:8024
+#: tapsets.cxx:8028
 #, c-format
 msgid "write to tracepoint '%s' not permitted"
 msgstr ""
 
-#: tapsets.cxx:8160
+#: tapsets.cxx:8164
 #, c-format
 msgid "tracepoint-based %s tracepoint='%s'"
 msgstr ""
 
-#: tapsets.cxx:8230
+#: tapsets.cxx:8234
 #, c-format
 msgid "cannot get type of tracepoint '%s' parameter '%s'"
 msgstr ""
 
-#: tapsets.cxx:8236
+#: tapsets.cxx:8240
 #, c-format
 msgid "found parameter for tracepoint '%s': type:'%s' name:'%s'"
 msgstr ""
 
-#: tapsets.cxx:8558
+#: tapsets.cxx:8562
 msgid "tracepoint_builder releasing dwflpp"
 msgstr ""
 
-#: tapsets.cxx:8578
+#: tapsets.cxx:8582
 #, c-format
 msgid "Pass 2: getting a tracequery for %zu headers: "
 msgstr ""
 
-#: tapsets.cxx:8594
+#: tapsets.cxx:8598
 #, c-format
 msgid "Pass 2: using cached %s"
 msgstr ""
 
-#: tapsets.cxx:8660
+#: tapsets.cxx:8664
 #, c-format
 msgid "Located kernel source tree (DW_AT_comp_dir) at '%s'"
 msgstr ""
 
-#: tapsets.cxx:8692
+#: tapsets.cxx:8696
 msgid "Checking tracepoint glob "
 msgstr ""
 
