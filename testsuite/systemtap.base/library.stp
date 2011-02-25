@@ -1,0 +1,12 @@
+probe process (@1).library(@2).statement("bar@sdt_misc.c+9") {printf ("bar %d\n",$i)}
+probe process (@1).library(@2).statement("baz@sdt_misc.c+1") {printf ("baz %d %s\n",$i,user_string($s))}
+probe process (@1).library(@2).statement("buz@sdt_misc.c+1") {printf ("buz %d\n",$parm)}
+
+probe process (@1).library(@2).function("bar") {printf ("bar begin\n")}
+probe process (@1).library(@2).function("baz") {printf ("baz begin\n")}
+probe process (@1).library(@2).function("buz") {printf ("buz begin\n")}
+
+probe process (@1).library(@2).function("bar").return {printf ("bar end\n")}
+probe process (@1).library(@2).function("baz").return {printf ("baz end\n")}
+probe process (@1).library(@2).function("buz").return {printf ("buz end\n")}
+

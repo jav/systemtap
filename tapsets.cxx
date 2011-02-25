@@ -389,6 +389,7 @@ struct dwarf_derived_probe: public derived_probe
   bool has_maxactive;
   bool has_library;
   long maxactive_val;
+  // dwarf_derived_probe_group::emit_module_decls uses this to emit sdt kprobe definition
   string user_path;
   string user_lib;
   bool access_vars;
@@ -4138,6 +4139,10 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
 
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw,
 					   true/*bind_unprivileged*/);
+  register_function_and_statement_variants(root->bind_str(TOK_PROCESS)
+                                           ->bind_str(TOK_LIBRARY), dw,
+					   true/*bind_unprivileged*/);
+
   root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind_unprivileged()
     ->bind(dw);
@@ -6709,13 +6714,12 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
             }
 	  else if (p->section != ".absolute") // ET_DYN
             {
-	      if (p->has_library && p->sdt_semaphore_addr != 0)
-		s.op->line() << " .procname=\"" << p->path << "\", ";
+	      if (p->has_library)
+	        s.op->line() << " .procname=\"" << p->path << "\", ";
               s.op->line() << " .mmap_callback=&stap_uprobe_mmap_found, ";
               s.op->line() << " .munmap_callback=&stap_uprobe_munmap_found, ";
               s.op->line() << " .callback=&stap_uprobe_process_munmap,";
             }
-
           s.op->line() << " },";
           if (p->module != "")
             s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
