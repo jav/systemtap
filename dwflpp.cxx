@@ -2240,7 +2240,7 @@ dwflpp::translate_components(struct obstack *pool,
 
         case DW_TAG_enumeration_type:
         case DW_TAG_base_type:
-          throw semantic_error (_F("invalid acces '%s' vs. %s", lex_cast(c).c_str(),
+          throw semantic_error (_F("invalid access '%s' vs. %s", lex_cast(c).c_str(),
                                    dwarf_type_name(typedie).c_str()), c.tok);
           break;
 

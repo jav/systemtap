@@ -2048,8 +2048,8 @@ var_expanding_visitor::rewrite_lvalue(const token* tok, const std::string& eop,
 	  ops.resize(ops.size() - 1);	// chop off the last ','
 
 	  // Throw the error.
-	  throw semantic_error (_F(ngettext("Only the following assign operator is impletmented on target variables: %s",
-                                            "Only the following assign operators are impletmented on target variables: %s",
+	  throw semantic_error (_F(ngettext("Only the following assign operator is implemented on target variables: %s",
+                                            "Only the following assign operators are implemented on target variables: %s",
                                            valid_ops_size), ops.c_str()), tok);
 
 	}
@@ -5142,7 +5142,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
       assert (argexpr != 0);
 
       if (session.verbose > 2)
-        //TRANSLATORS: We're mapping the opperand to a new expression*.
+        //TRANSLATORS: We're mapping the operand to a new expression*.
         clog << _F("mapped asm operand %s to ", asmarg.c_str()) << *argexpr << endl;
 
       if (e->components.empty()) // We have a scalar
@@ -6254,7 +6254,7 @@ symbol_table::read_symbols(FILE *f, const string& path)
       line++;
       if (ret < 3)
         {
-          cerr << _F("Symbol table error: Line %d of symbol list from %s is not in correct format: addess type name [module]",
+          cerr << _F("Symbol table error: Line %d of symbol list from %s is not in correct format: address type name [module]",
                      line, path.c_str());
           // Caller should delete symbol_table object.
           return info_absent;

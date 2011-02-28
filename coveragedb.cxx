@@ -156,7 +156,7 @@ void sql_stmt(sqlite3 *db, const char* stmt)
 void enter_element(sqlite3 *db, coverage_element &x)
 {
   ostringstream command;
-  command << _("insert or ignore into counts values ('")
+  command << "insert or ignore into counts values ('"
           << x.file << "', '"
           << x.line << "', '"
           << x.col  << "', '"
@@ -172,7 +172,7 @@ void increment_element(sqlite3 *db, coverage_element &x)
 {
   ostringstream command;
   // make sure value in table
-  command << _("insert or ignore into counts values ('")
+  command << "insert or ignore into counts values ('"
           << x.file << "', '"
           << x.line << "', '"
           << x.col  << "', '"
