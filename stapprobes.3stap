@@ -111,6 +111,7 @@ process.mark \fI(backup)\fP		timer
 		perf
 		procfs
 		kernel.statement.absolute
+		kernel.data
 		kprobe.function
 		process.statement.absolute
 		process.begin, .end, .error
