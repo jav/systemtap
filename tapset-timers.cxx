@@ -60,13 +60,15 @@ timer_derived_probe::timer_derived_probe (probe* p, probe_point* l,
   derived_probe (p, l), interval (i), randomize (r), time_is_msecs(ms)
 {
   if (interval <= 0 || interval > 1000000) // make i and r fit into plain ints
+    //TRANSLATORS: 'timer' is the name of a probe point
     throw semantic_error (_("invalid interval for jiffies timer"));
   // randomize = 0 means no randomization
   if (randomize < 0 || randomize > interval)
+    //TRANSLATORS: 'randomize' is a key word
     throw semantic_error (_("invalid randomize for jiffies timer"));
 
   if (locations.size() != 1)
-    throw semantic_error (_("expect single probe point"));
+    throw semantic_error (_("only expect one probe point"));
   // so we don't have to loop over them in the other functions
 }
 

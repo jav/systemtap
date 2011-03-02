@@ -3650,7 +3650,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 {
   bool lvalue = is_active_lvalue(e);
   if (lvalue && !s.guru_mode)
-    throw semantic_error(_("write to typecast value not permitted"), e->tok);
+    throw semantic_error(_("write to @cast context variable not permitted"), e->tok);
 
   if (e->module.empty())
     e->module = "kernel"; // "*" may also be reasonable to search all kernel modules
@@ -3790,7 +3790,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     {
       // Assert kernel relocation invariants
       if (section == "" && dwfl_addr != addr) // addr should be absolute
-        throw semantic_error (_("missing relocation base against"), tok);
+        throw semantic_error (_("missing relocation basis"), tok);
       if (section != "" && dwfl_addr == addr) // addr should be an offset
         throw semantic_error (_("inconsistent relocation address"), tok);
     }
@@ -5540,8 +5540,8 @@ sdt_query::init_probe_scn()
       probe_scn_addr = shdr->sh_addr;
       assert (pdata != NULL);
       if (sess.verbose > 4)
-        clog << _F("got .probes elf scn_addr@0x%zu, size: %zu",
-                   probe_scn_addr, pdata->d_size) << endl;
+        clog << "got .probes elf scn_addr@0x" << probe_scn_addr << ", size: "
+             << pdata->d_size << endl;
       probe_loc = probe_section;
       return true;
     }
@@ -5994,7 +5994,7 @@ dwarf_builder::build(systemtap_session & sess,
                   if (cf) globbed = cf;
 
                   if (sess.verbose > 1)
-                    clog << _F("Expanded process(\"%s\" to process(\"%s\")",
+                    clog << _F("Expanded process(\"%s\") to process(\"%s\")",
                                module_name.c_str(), globbed) << endl;
                   // synthesize a new probe_point, with the glob-expanded string
                   probe_point *pp = new probe_point (*location);
@@ -8161,7 +8161,7 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
       }
 
   if (sess.verbose > 2)
-    clog << _F("tracepoint-based %s tracepoint='%s'", name.c_str(), tracepoint_name.c_str()) << endl;
+    clog << "tracepoint-based " << name << " tracepoint='" << tracepoint_name << "'" << endl;
 }
 
 
@@ -8231,8 +8231,8 @@ tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
           // read the type of this parameter
           if (!dwarf_attr_die (&arg, DW_AT_type, &tparg.type_die)
               || !dwarf_type_name(&tparg.type_die, tparg.c_type))
-            throw semantic_error (_F("cannot get type of tracepoint '%s' parameter '%s'",
-                                     tracepoint_name.c_str(), tparg.name.c_str()));
+            throw semantic_error (_F("cannot get type of parameter '%s' of tracepoint '%s'",
+                                     tparg.name.c_str(), tracepoint_name.c_str()));
 
           tparg.usable = resolve_tracepoint_arg_type(tparg);
           args.push_back(tparg);
@@ -8579,7 +8579,7 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
 {
   if (s.verbose > 2)
     {
-      clog << _F("Pass 2: getting a tracequery for %zu headers: ", headers.size()) << endl;
+      clog << _F("Pass 2: getting a tracepoint query for %zu headers: ", headers.size()) << endl;
       for (size_t i = 0; i < headers.size(); ++i)
         clog << "  " << headers[i] << endl;
     }

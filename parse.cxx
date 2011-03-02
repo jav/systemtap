@@ -274,7 +274,7 @@ parser::print_error  (const parse_error &pe)
 	  session.print_error_source (cerr, align_parse_error, t);
 	}
       else
-        cerr << _("\tsaw: ") << input_name << _(" EOF") << endl;
+        cerr << _("\tsaw: ") << input_name << " EOF" << endl;
     }
 
   // XXX: make it possible to print the last input line,
@@ -468,7 +468,7 @@ bool eval_pp_conditional (systemtap_session& s,
 	  return eval_comparison (lhs, op, rhs);
 	}
       else
-	throw parse_error (_("expected string, number literal or other CONFIG_... as right value"), r);
+	throw parse_error (_("expected string, number literal or other CONFIG_... as right side operand"), r);
     }
   else if (l->type == tok_string && r->type == tok_string)
     {
@@ -519,6 +519,7 @@ parser::scan_pp (bool wildcard)
             {
               t = pp_state.back().first;
               pp_state.pop_back(); // so skip_some doesn't keep trying to close this
+              //TRANSLATORS: 'conditional' meaning 'conditional preprocessing'
               throw parse_error (_("incomplete conditional at end of file"), t);
             }
           return t;
@@ -682,7 +683,7 @@ parser::expect_known (token_type tt, string const & expected)
 {
   const token *t = next();
   if (! (t && t->type == tt && t->content == expected))
-    throw parse_error (_("expected '") + expected + "'");
+    throw parse_error (_F("expected '%s'", expected.c_str()));
   return t;
 }
 
@@ -2997,7 +2998,7 @@ parser::parse_target_symbol_components (target_symbol* e)
     }
 
   if (pprint && (peek_op ("->") || peek_op("[")))
-    throw parse_error(_("can't dereference after pretty-printing"));
+    throw parse_error(_("-> and [ are not accepted for a pretty-printing variable"));
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

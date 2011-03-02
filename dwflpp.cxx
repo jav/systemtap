@@ -361,12 +361,9 @@ dwflpp::setup_user(const vector<string>& modules, bool debuginfo_needed)
   vector<string>::const_iterator it = modules.begin();
   dwfl_ptr = setup_dwfl_user(it, modules.end(), debuginfo_needed);
   if (debuginfo_needed && it != modules.end())
-    dwfl_assert (string(_("missing process ")) +
-		 *it +
-		 string(" ") +
-		 sess.architecture +
-		 string(" debuginfo"),
-		 dwfl_ptr.get()->dwfl);
+    dwfl_assert (string(_F("missing process %s %s debuginfo",
+                           (*it).c_str(), sess.architecture.c_str())),
+                           dwfl_ptr.get()->dwfl);
 }
 
 void
@@ -1114,6 +1111,7 @@ dwflpp::has_single_line_record (dwarf_query * q, char const * srcfile, int linen
       }
 
     if (sess.verbose>4)
+      //TRANSLATORS:  given line number leaves (is beyond) given function.
       clog << _F("alternative line %d rejected: leaves selected fns", lineno) << endl;
     return false;
 }
@@ -1478,7 +1476,7 @@ dwflpp::resolve_prologue_endings (func_info_map_t & funcs)
         }
 
       if (sess.verbose>2)
-        clog << _F("prologue searching function '%s' 0x%#" PRIx64 "-0x%#" PRIx64 
+        clog << _F("searching for prologue of function '%s' 0x%#" PRIx64 "-0x%#" PRIx64 
                    "@%s:%d\n", it->name.c_str(), entrypc, highpc, it->decl_file,
                    it->decl_line);
 
@@ -1522,9 +1520,9 @@ dwflpp::resolve_prologue_endings (func_info_map_t & funcs)
                 {
                   clog << _F("prologue found function '%s'", it->name.c_str());
                   // Add a little classification datum
-                  //TRANSLATORS: Here we're adding some classification datum
+                  //TRANSLATORS: Here we're adding some classification datum (ie Prologue Free)
                   if (postprologue_srcline_idx == entrypc_srcline_idx) clog << _(" (naked)");
-                  //TRANSLATORS: Here we're adding some classification datum
+                  //TRANSLATORS: Here we're adding some classification datum (ie Prologue Free)
                   if (ranoff_end) clog << _(" (tail-call?)");
                   clog << " = 0x" << hex << postprologue_addr << dec << "\n";
                 }
@@ -2151,7 +2149,7 @@ dwflpp::translate_components(struct obstack *pool,
         case DW_TAG_pointer_type:
           /* A pointer with no type is a void* -- can't dereference it. */
           if (!dwarf_hasattr_integrate (typedie, DW_AT_type))
-            throw semantic_error (_F("invalid access '%s' vs. %s", lex_cast(c).c_str(),
+            throw semantic_error (_F("invalid access '%s' vs '%s'", lex_cast(c).c_str(),
                                      dwarf_type_name(typedie).c_str()), c.tok);
 
           if (pool)

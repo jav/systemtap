@@ -41,6 +41,8 @@ extern "C" {
 #include <unistd.h>
 #include <regex.h>
 #include <stdarg.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 }
 
 #if ENABLE_NLS
@@ -286,7 +288,7 @@ getmemusage ()
   ifstream statm("/proc/self/statm");
   statm >> pages;
   kb = pages * sz / 1024;
-  oss << _("using ") << kb << "virt/";
+  oss << _F("using %" PRId64 " virt/", kb);
   statm >> pages;
   kb = pages * sz / 1024;
   oss << kb << "res/";
