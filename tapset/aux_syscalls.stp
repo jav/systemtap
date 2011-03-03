@@ -732,22 +732,63 @@ function _msync_flag_str(f) {
 	return substr(bs,0,strlen(bs)-1)
 }
 
+function _internal_wait_opt_str(f,bit_num,bit_str) {
+  retval=""
+  if (f & %{ WNOHANG %})
+    {
+      f&=%{ ~WNOHANG %}
+      retval=retval."|WNOHANG"
+    }
+  if (f & bit_num)
+    {
+      f&=~bit_num
+      retval=retval."|".bit_str
+    }
+  if (f & %{ WEXITED %})
+    {
+      f&=%{ ~WEXITED %}
+      retval=retval."|WEXITED"
+    }
+  if (f & %{ WCONTINUED %})
+    {
+      f&=%{ ~WCONTINUED %}
+      retval=retval."|WCONTINUED"
+    }
+  if (f & %{ WNOWAIT %})
+    {
+      f&=%{ ~WNOWAIT %}
+      retval=retval."|WNOWAIT"
+    }
+  if (f & %{ __WNOTHREAD %})
+    {
+      f&=%{ ~__WNOTHREAD %}
+      retval=retval."|__WNOTHREAD"
+    }
+  if (f & %{ __WALL %})
+    {
+      f&=%{ ~__WALL %}
+      retval=retval."|__WALL"
+    }
+  if (f & %{ __WCLONE %})
+    {
+      f&=%{ ~__WCLONE %}
+      retval=retval."|__WCLONE"
+    }
+  if (f != 0)
+    retval=retval.sprintf ("|0x%x", f)
+  else if (retval == "")
+    return "0"
+  return substr(retval,1,strlen(retval)-1)
+}
+
 /* `man wait4` for more information */
 function _wait4_opt_str(f) {
-   if(f & 8) bs="WCONTINUED|".bs
-   if(f & 2) bs="WUNTRACED|".bs
-   if(f & 1) bs="WNOHANG|".bs
-   return substr(bs,0,strlen(bs)-1)
+   return _internal_wait_opt_str(f,%{ WUNTRACED %},"WUNTRACED")
 }
 
 /* `man waitid` for more information */
 function _waitid_opt_str(f) {
-   if(f & 0x01000000) bs="WNOWAIT|".bs
-   if(f & 8) bs="WCONTINUED|".bs
-   if(f & 4) bs="WEXITED|".bs
-   if(f & 2) bs="WSTOPPED|".bs
-   if(f & 1) bs="WNOHANG|".bs
-   return substr(bs,0,strlen(bs)-1)
+   return _internal_wait_opt_str(f,%{ WSTOPPED %},"WSTOPPED")
 }
 
 /* `man sendmsg` for more information */

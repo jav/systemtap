@@ -3469,12 +3469,12 @@ probe syscall.wait4 = kernel.function("sys_wait4").call
 	name = "wait4"
 	pid = (@defined($upid) ? $upid : $pid)
 	status_uaddr = $stat_addr
-	options = $options
-	options_str = _wait4_opt_str($options)
+	options = $options & 0xffffffff
+	options_str = _wait4_opt_str(options)
 	rusage_uaddr = $ru
 	argstr = sprintf("%d, %p, %s, %p",
 		(@defined($upid) ? $upid : $pid),
-		$stat_addr, _wait4_opt_str($options), $ru)
+		$stat_addr, options_str, $ru)
 }
 probe syscall.wait4.return = kernel.function("sys_wait4").return
 {
@@ -3521,8 +3521,8 @@ probe syscall.waitpid = kernel.function("sys_wait4").call
 	name = "waitpid"
 	pid = $pid
 	status_uaddr = $stat_addr
-	options = $options
-	options_str = _wait4_opt_str($options)
+	options = $options & 0xffffffff
+	options_str = _wait4_opt_str(options)
 	rusage_uaddr = $ru
 	argstr = sprintf("%d, %p, %s, %p", $pid, $stat_addr,
 		options_str, $ru)

@@ -4114,8 +4114,8 @@ probe nd_syscall.wait4 = kprobe.function("sys_wait4") ?
 	name = "wait4"
 	// pid = (@defined($upid) ? $upid : $pid)
 	// status_uaddr = $stat_addr
-	// options = $options
-	// options_str = _wait4_opt_str($options)
+	// options = $options & 0xffffffff
+	// options_str = _wait4_opt_str(options)
 	// rusage_uaddr = $ru
 	// argstr = sprintf("%d, %p, %s, %p",
 	// 		(@defined($upid) ? $upid : $pid),
@@ -4123,7 +4123,7 @@ probe nd_syscall.wait4 = kprobe.function("sys_wait4") ?
 	asmlinkage()
 	pid = int_arg(1)
 	status_uaddr = pointer_arg(2)
-	options = int_arg(3)
+	options = int_arg(3) & 0xffffffff
 	options_str = _wait4_opt_str(options)
 	rusage_uaddr = pointer_arg(4)
 	argstr = sprintf("%d, %p, %s, %p", pid, status_uaddr, _wait4_opt_str(options), rusage_uaddr)
@@ -4186,8 +4186,8 @@ probe nd_syscall.waitpid = kprobe.function("sys_wait4") ?
 	name = "waitpid"
 	pid = $pid
 	status_uaddr = $stat_addr
-	options = $options
-	options_str = _wait4_opt_str($options)
+	options = $options & 0xffffffff
+	options_str = _wait4_opt_str(options)
 	rusage_uaddr = $ru
 	argstr = sprintf("%d, %p, %s, %p", $pid, $stat_addr,
 				options_str, $ru)
