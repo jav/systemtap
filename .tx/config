@@ -2,6 +2,8 @@
 host = https://www.transifex.net
 
 [systemtap.systemtappot]
-file_filter = translations/systemtap.systemtappot/<lang>.po
+file_filter = po/<lang>.po
+source_file = po/systemtap.pot
 source_lang = en
+trans.pl = po/pl.po
 
