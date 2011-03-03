@@ -1,0 +1,7 @@
+[main]
+host = https://www.transifex.net
+
+[systemtap.systemtappot]
+file_filter = translations/systemtap.systemtappot/<lang>.po
+source_lang = en
+
