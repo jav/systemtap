@@ -69,10 +69,10 @@ bin_PROGRAMS = $(am__EXEEXT_1)
 @BUILD_TRANSLATOR_TRUE@noinst_PROGRAMS = loc2c-test$(EXEEXT)
 @BUILD_PCP_TRUE@am__append_25 = pcp
 subdir = .
-DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
-	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(top_srcdir)/configure $(am__configure_deps) \
-	$(srcdir)/config.in $(top_srcdir)/includes/sys/sdt-config.h.in \
+DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
+	$(srcdir)/Makefile.am $(top_srcdir)/configure \
+	$(am__configure_deps) $(srcdir)/config.in \
+	$(top_srcdir)/includes/sys/sdt-config.h.in \
 	$(srcdir)/stappaths.7.in $(top_srcdir)/initscript/systemtap.in \
 	$(top_srcdir)/initscript/stap-server.in $(srcdir)/run-stap.in \
 	$(srcdir)/dtrace.in ABOUT-NLS depcomp \
