@@ -743,7 +743,7 @@ make_typequery(systemtap_session& s, string& module)
       if (regexp_match(header, "^[a-zA-Z0-9/_.+-]+$", matches))
         {
           if (! s.suppress_warnings)
-            cerr << _F("Warning: skepping malformed @cast header \"%s\"",
+            cerr << _F("Warning: skipping malformed @cast header \"%s\"",
                         header.c_str()) << endl;
         }
       else

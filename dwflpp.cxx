@@ -1723,7 +1723,7 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
   if (! mod)
     {
       ostringstream msg;
-      msg << _F("emit_address internal error, dwfl_adddrmodule failed, "
+      msg << _F("emit_address internal error, dwfl_addrmodule failed, "
                 "address 0x%#" PRIx64 , address);
       const char *err = dwfl_errmsg(0);
       if (err)
@@ -2336,7 +2336,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
         if (encoding < 0)
           {
             // clog << "bad type1 " << encoding << " diestr" << endl;
-            throw semantic_error (_F("unsupported type (mystery ecoding %s for %s", lex_cast(encoding).c_str(),
+            throw semantic_error (_F("unsupported type (mystery encoding %s for %s", lex_cast(encoding).c_str(),
                                      dwarf_type_name(typedie).c_str()), e->tok);
           }
 
