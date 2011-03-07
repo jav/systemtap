@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-03-04 09:53-0500\n"
+"POT-Creation-Date: 2011-03-07 18:52-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -322,7 +322,7 @@ msgstr ""
 #: dwflpp.cxx:1726
 #, c-format
 msgid ""
-"emit_address internal error, dwfl_adddrmodule failed, address 0x%#<PRIx64>"
+"emit_address internal error, dwfl_addrmodule failed, address 0x%#<PRIx64>"
 msgstr ""
 
 #: dwflpp.cxx:1745
@@ -335,7 +335,7 @@ msgstr ""
 msgid " in "
 msgstr ""
 
-#: dwflpp.cxx:1853 elaborate.cxx:578
+#: dwflpp.cxx:1853
 msgid " (alternatives:"
 msgstr ""
 
@@ -566,61 +566,6 @@ msgstr ""
 #: dwflpp.cxx:3151
 #, c-format
 msgid "found cfa, info: %d [start: 0x%#<PRIx64>, end: 0x%#<PRIx64>, nops: %zu"
-msgstr ""
-
-#: elaborate.cxx:142 elaborate.cxx:157
-msgid "derived_probe with no locations"
-msgid_plural "derived_probe with no locations"
-msgstr[0] ""
-msgstr[1] ""
-
-#: elaborate.cxx:199
-msgid "unprivileged users: authorized"
-msgstr ""
-
-#: elaborate.cxx:205
-msgid "unprivileged users: authorized for process owner"
-msgstr ""
-
-#: elaborate.cxx:357
-msgid "invalid use of wildcard probe point component"
-msgstr ""
-
-#: elaborate.cxx:412
-#, c-format
-msgid "probe point truncated at position %s (follow: %s)"
-msgstr ""
-
-#: elaborate.cxx:419
-msgid "probe point is not allowed for unprivileged users"
-msgstr ""
-
-#: elaborate.cxx:496
-#, c-format
-msgid "probe point mismatch at position %s (alternatives: %s)"
-msgstr ""
-
-#: elaborate.cxx:517
-#, c-format
-msgid "wildcard '%s' matched '%s'"
-msgstr ""
-
-#: elaborate.cxx:563
-msgid " (alternatives: "
-msgstr ""
-
-#: elaborate.cxx:561
-#, c-format
-msgid "probe point mismatch at position %s %s didn't find any wildcard matches"
-msgstr ""
-
-#: elaborate.cxx:577
-#, c-format
-msgid "probe point mismatch at position %s %s"
-msgstr ""
-
-#: elaborate.cxx:611
-msgid "inappropriate"
 msgstr ""
 
 #: hash.cxx:131
@@ -1813,7 +1758,7 @@ msgid ""
 "expected"
 msgstr ""
 
-#: tapset-mark.cxx:449 translate.cxx:1976
+#: tapset-mark.cxx:449 translate.cxx:1973
 msgid "cannot expand unknown type"
 msgstr ""
 
@@ -2510,330 +2455,326 @@ msgstr ""
 msgid "array key is neither string nor long"
 msgstr ""
 
-#: translate.cxx:1905
-msgid "SYSTEMTAP ERROR: Memory fence corrupted before allocated memory\n"
-msgstr ""
-
-#: translate.cxx:2010
+#: translate.cxx:2007
 msgid "unsupported c_expression token type"
 msgstr ""
 
-#: translate.cxx:2041
+#: translate.cxx:2038
 msgid "unknown lvalue type in assignment"
 msgstr ""
 
-#: translate.cxx:2061 translate.cxx:2081
+#: translate.cxx:2058 translate.cxx:2078
 msgid " type unsupported"
 msgstr ""
 
-#: translate.cxx:2110
+#: translate.cxx:2107
 msgid "post assignment on strings not supported"
 msgstr ""
 
-#: translate.cxx:2124
+#: translate.cxx:2121
 #, c-format
 msgid "string assignment operator %s unsupported"
 msgstr ""
 
-#: translate.cxx:2156
+#: translate.cxx:2153
 msgid "unknown macop for assignment"
 msgstr ""
 
-#: translate.cxx:2161
+#: translate.cxx:2158
 msgid "invalid post-mode operator"
 msgstr ""
 
-#: translate.cxx:2197
+#: translate.cxx:2194
 msgid "assignment type not yet implemented"
 msgstr ""
 
-#: translate.cxx:2284
+#: translate.cxx:2281
 msgid "unresolved symbol"
 msgstr ""
 
-#: translate.cxx:2286
+#: translate.cxx:2283
 msgid "unresolved symbol: "
 msgstr ""
 
-#: translate.cxx:2325
+#: translate.cxx:2322
 msgid "attempt to use scalar where map expected"
 msgstr ""
 
-#: translate.cxx:2562 translate.cxx:3563 translate.cxx:3583
+#: translate.cxx:2559 translate.cxx:3560 translate.cxx:3580
 msgid "expected numeric type"
 msgstr ""
 
-#: translate.cxx:2707 translate.cxx:3953
+#: translate.cxx:2704 translate.cxx:3950
 msgid "Invalid indexing of histogram"
 msgstr ""
 
-#: translate.cxx:2969
+#: translate.cxx:2966
 msgid "cannot 'return' from probe"
 msgstr ""
 
-#: translate.cxx:2972
+#: translate.cxx:2969
 msgid "return type mismatch"
 msgstr ""
 
-#: translate.cxx:2985
+#: translate.cxx:2982
 msgid "cannot 'next' from function"
 msgstr ""
 
-#: translate.cxx:3009
+#: translate.cxx:3006
 msgid "invalid operand of delete expression"
 msgstr ""
 
-#: translate.cxx:3049
+#: translate.cxx:3046
 msgid "Cannot delete unknown expression type"
 msgstr ""
 
-#: translate.cxx:3076 translate.cxx:3099
+#: translate.cxx:3073 translate.cxx:3096
 msgid "cannot delete histogram bucket entries\n"
 msgstr ""
 
-#: translate.cxx:3125
+#: translate.cxx:3122
 msgid "cannot 'break' outside loop"
 msgstr ""
 
-#: translate.cxx:3136
+#: translate.cxx:3133
 msgid "cannot 'continue' outside loop"
 msgstr ""
 
-#: translate.cxx:3210
+#: translate.cxx:3207
 msgid "expected numeric or string type"
 msgstr ""
 
-#: translate.cxx:3222 translate.cxx:3295 translate.cxx:3324 translate.cxx:3340
-#: translate.cxx:3443
+#: translate.cxx:3219 translate.cxx:3292 translate.cxx:3321 translate.cxx:3337
+#: translate.cxx:3440
 msgid "expected numeric types"
 msgstr ""
 
-#: translate.cxx:3286
+#: translate.cxx:3283
 msgid "operator not yet implemented"
 msgstr ""
 
-#: translate.cxx:3431 translate.cxx:3477
+#: translate.cxx:3428 translate.cxx:3474
 msgid "expected string types"
 msgstr ""
 
-#: translate.cxx:3452
+#: translate.cxx:3449
 msgid "unexpected type"
 msgstr ""
 
-#: translate.cxx:3472
+#: translate.cxx:3469
 msgid "unexpected concatenation operator"
 msgstr ""
 
-#: translate.cxx:3495
+#: translate.cxx:3492
 msgid "expected numeric condition"
 msgstr ""
 
-#: translate.cxx:3500
+#: translate.cxx:3497
 msgid "expected matching types"
 msgstr ""
 
-#: translate.cxx:3526
+#: translate.cxx:3523
 msgid "non-number <<< expression"
 msgstr ""
 
-#: translate.cxx:3529
+#: translate.cxx:3526
 msgid "non-stats left operand to <<< expression"
 msgstr ""
 
-#: translate.cxx:3532
+#: translate.cxx:3529
 msgid "non-number right operand to <<< expression"
 msgstr ""
 
-#: translate.cxx:3538 translate.cxx:3541
+#: translate.cxx:3535 translate.cxx:3538
 msgid "type mismatch"
 msgstr ""
 
-#: translate.cxx:3597
+#: translate.cxx:3594
 msgid "invalid reference to array"
 msgstr ""
 
-#: translate.cxx:3692
+#: translate.cxx:3689
 msgid "need rvalue for assignment"
 msgstr ""
 
-#: translate.cxx:3703
+#: translate.cxx:3700
 msgid "unexpected reference to array"
 msgstr ""
 
-#: translate.cxx:3722
+#: translate.cxx:3719
 msgid "cannot translate general target-symbol expression"
 msgstr ""
 
-#: translate.cxx:3729
+#: translate.cxx:3726
 msgid "cannot translate general @cast expression"
 msgstr ""
 
-#: translate.cxx:3736
+#: translate.cxx:3733
 msgid "cannot translate general @defined expression"
 msgstr ""
 
-#: translate.cxx:3743
+#: translate.cxx:3740
 msgid "cannot translate general @entry expression"
 msgstr ""
 
-#: translate.cxx:3794
+#: translate.cxx:3791
 msgid "invalid array reference"
 msgstr ""
 
-#: translate.cxx:3799
+#: translate.cxx:3796
 msgid "array index type mismatch"
 msgstr ""
 
-#: translate.cxx:3843
+#: translate.cxx:3840
 msgid "expected arrayindex expression"
 msgstr ""
 
-#: translate.cxx:3855
+#: translate.cxx:3852
 msgid "unexpected aggregate of non-statistic"
 msgstr ""
 
-#: translate.cxx:3871
+#: translate.cxx:3868
 msgid "unexpected aggregate of non-arrayindex"
 msgstr ""
 
-#: translate.cxx:3989
+#: translate.cxx:3986
 msgid "statistic-valued array in rvalue context"
 msgstr ""
 
-#: translate.cxx:4081 translate.cxx:4172
+#: translate.cxx:4078 translate.cxx:4169
 msgid "cannot assign to histogram buckets"
 msgstr ""
 
-#: translate.cxx:4101
+#: translate.cxx:4098
 msgid "unexpected reference to scalar"
 msgstr ""
 
-#: translate.cxx:4201
+#: translate.cxx:4198
 msgid "invalid length argument list"
 msgstr ""
 
-#: translate.cxx:4217 translate.cxx:4237
+#: translate.cxx:4214 translate.cxx:4234
 msgid "function argument type mismatch"
 msgstr ""
 
-#: translate.cxx:4288
+#: translate.cxx:4285
 msgid "unknown type of arg to print operator"
 msgstr ""
 
-#: translate.cxx:4353
+#: translate.cxx:4350
 #, c-format
 msgid "additional argument to print"
 msgid_plural "too many arguments to print (%zu)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: translate.cxx:4399
+#: translate.cxx:4396
 msgid "cannot print unknown expression type"
 msgstr ""
 
-#: translate.cxx:4401
+#: translate.cxx:4398
 msgid "cannot print a raw stats object"
 msgstr ""
 
-#: translate.cxx:4897
+#: translate.cxx:4894
 #, c-format
 msgid "Getting symbol table for %s"
 msgstr ""
 
-#: translate.cxx:4949
+#: translate.cxx:4946
 msgid "unexpected build-id reloc section "
 msgstr ""
 
-#: translate.cxx:4957
+#: translate.cxx:4954
 #, c-format
 msgid "Found build-id in %s, length %d, start at 0x%#<PRIx64>"
 msgstr ""
 
-#: translate.cxx:5010
+#: translate.cxx:5007
 #, c-format
 msgid "Found kernel _stext extra offset 0x%#<PRIx64>"
 msgstr ""
 
-#: translate.cxx:5191
+#: translate.cxx:5188
 #, c-format
 msgid "skipping module %s eh_frame_hdr table (too big: %s > %s)"
 msgstr ""
 
-#: translate.cxx:5255
+#: translate.cxx:5252
 #, c-format
 msgid "skipping module %s, section %s debug_frame_hdr table (too big: %s > %s)"
 msgstr ""
 
-#: translate.cxx:5447
+#: translate.cxx:5444
 msgid "/usr/bin/ldd may not be safe to run on untrustworthy executables"
 msgstr ""
 
-#: translate.cxx:5459
+#: translate.cxx:5456
 #, c-format
 msgid "Running '%s'"
 msgstr ""
 
-#: translate.cxx:5463
+#: translate.cxx:5460
 #, c-format
 msgid " failed: %s"
 msgstr ""
 
-#: translate.cxx:5491
+#: translate.cxx:5488
 #, c-format
 msgid "Added -d '%s"
 msgstr ""
 
-#: translate.cxx:5493
+#: translate.cxx:5490
 #, c-format
 msgid "' due to '%s'"
 msgstr ""
 
-#: translate.cxx:5547
+#: translate.cxx:5544
 msgid "Searching for vdso candidates: "
 msgstr ""
 
-#: translate.cxx:5557
+#: translate.cxx:5554
 msgid "vdso candidate: "
 msgstr ""
 
-#: translate.cxx:5677
+#: translate.cxx:5674
 msgid "missing unwind/symbol data for module '"
 msgstr ""
 
-#: translate.cxx:5700
+#: translate.cxx:5697
 #, c-format
 msgid "identified max-nested function: %s (%d)"
 msgstr ""
 
-#: translate.cxx:5711
+#: translate.cxx:5708
 #, c-format
 msgid "identified recursive function: %s"
 msgstr ""
 
-#: translate.cxx:5752
+#: translate.cxx:5749
 #, c-format
 msgid "ignoring extra parts of compat version: %s"
 msgstr ""
 
-#: translate.cxx:5756
+#: translate.cxx:5753
 #, c-format
 msgid "parse error in compatibility version: %s"
 msgstr ""
 
-#: translate.cxx:5759
+#: translate.cxx:5756
 #, c-format
 msgid "compatibility version out of range: %s"
 msgstr ""
 
-#: translate.cxx:5779
+#: translate.cxx:5776
 msgid " recursive"
 msgstr ""
 
-#: translate.cxx:5779
+#: translate.cxx:5776
 msgid " non-recursive"
 msgstr ""
 
-#: translate.cxx:5778
+#: translate.cxx:5775
 #, c-format
 msgid "function recursion-analysis: max-nesting %d %s"
 msgstr ""
@@ -2860,54 +2801,54 @@ msgstr ""
 msgid "Unable to retrieve group list"
 msgstr ""
 
-#: util.cxx:289
+#: util.cxx:293
 #, c-format
-msgid "using %ld virt/"
+msgid "using %ldvirt/%ldres/%ldshr kb, "
 msgstr ""
 
-#: util.cxx:418
+#: util.cxx:416
 msgid "cmdstr_join called with an empty command!"
 msgstr ""
 
-#: util.cxx:466
+#: util.cxx:464
 msgid "Spawn waitpid call on unmanaged pid "
 msgstr ""
 
-#: util.cxx:473
+#: util.cxx:471
 #, c-format
 msgid "Spawn waitpid result (0x%x): %d"
 msgstr ""
 
-#: util.cxx:478
+#: util.cxx:476
 #, c-format
 msgid "Spawn waitpid error (%d): %s"
 msgstr ""
 
-#: util.cxx:521
+#: util.cxx:519
 msgid "Running"
 msgstr ""
 
-#: util.cxx:535
+#: util.cxx:533
 #, c-format
 msgid "Spawn error (%d): %s"
 msgstr ""
 
-#: util.cxx:664
+#: util.cxx:662
 #, c-format
 msgid "regcomp %s (%s) error rc= %d"
 msgstr ""
 
-#: util.cxx:676
+#: util.cxx:674
 #, c-format
 msgid "ERROR: Safety pattern mismatch for %s ('%s' vs. '%s') rc=%d"
 msgstr ""
 
-#: util.cxx:694
+#: util.cxx:692
 #, c-format
 msgid "regcomp %s error rc=%d"
 msgstr ""
 
-#: util.cxx:767
+#: util.cxx:765
 #, c-format
 msgid "autosprintf/vasprintf error %s"
 msgstr ""

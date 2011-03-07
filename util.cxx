@@ -281,18 +281,16 @@ getmemusage ()
 {
   static long sz = sysconf(_SC_PAGESIZE);
 
-  long pages, kb;
+  long pages;
   ostringstream oss;
   ifstream statm("/proc/self/statm");
   statm >> pages;
-  kb = pages * sz / 1024;
-  oss << _F("using %ld virt/", kb);
+  long kb1 = pages * sz / 1024;
   statm >> pages;
-  kb = pages * sz / 1024;
-  oss << kb << "res/";
+  long kb2 = pages * sz / 1024;
   statm >> pages;
-  kb = pages * sz / 1024;
-  oss << kb << "shr kb, ";
+  long kb3 = pages * sz / 1024;
+  oss << _F("using %ldvirt/%ldres/%ldshr kb, ", kb1, kb2, kb3);
   return oss.str();
 }
 
