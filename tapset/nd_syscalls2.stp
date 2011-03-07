@@ -4132,6 +4132,15 @@ probe nd_syscall.wait4 = kprobe.function("sys_wait4") ?
 probe nd_syscall.wait4.return = kprobe.function("sys_wait4").return ?
 {
 	name = "wait4"
+
+	status_uaddr = pointer_arg(2)
+	if (returnval () <= 0)
+		status_str = "N/A"
+	else if (status_uaddr == 0)
+		status_str = "NULL"
+	else
+		status_str = _wait_status_str(user_int(status_uaddr))
+
 	retstr = returnstr(1)
 }
 

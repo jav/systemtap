@@ -3479,6 +3479,14 @@ probe syscall.wait4 = kernel.function("sys_wait4").call
 probe syscall.wait4.return = kernel.function("sys_wait4").return
 {
 	name = "wait4"
+
+	if (returnval () <= 0)
+		status_str = "N/A"
+	else if ($stat_addr == 0)
+		status_str = "NULL"
+	else
+		status_str = _wait_status_str(user_int($stat_addr))
+
 	retstr = return_str(1, $return)
 }
 # waitid _____________________________________________________

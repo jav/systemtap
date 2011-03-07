@@ -791,6 +791,84 @@ function _waitid_opt_str(f) {
    return _internal_wait_opt_str(f,%{ WSTOPPED %},"WSTOPPED")
 }
 
+function WIFEXITED(f) {
+  return (f & 0x7f) == 0
+}
+
+function WEXITSTATUS(f) {
+  return (f & 0xff00) >> 8
+}
+
+function WIFSIGNALED(f) {
+  return (f & 0x7f) != 0 && (f & 0x7f) != 0x7f
+}
+
+function WCOREDUMP(f) {
+  return f & 0x80
+}
+
+function WTERMSIG(f) {
+  return f & 0x7f
+}
+
+function WIFSTOPPED(f) {
+  return (f & 0xff) == 0x7f
+}
+
+function WSTOPSIG(f) {
+  return (f & 0xff00) >> 8
+}
+
+function WIFCONTINUED(f) {
+  return f == 0xffff
+}
+
+function _ptrace_event_name(f)
+{
+  if (f == %{ PTRACE_EVENT_FORK %})
+    return "PTRACE_EVENT_FORK"
+  if (f == %{ PTRACE_EVENT_VFORK %})
+    return "PTRACE_EVENT_VFORK"
+  if (f == %{ PTRACE_EVENT_CLONE %})
+    return "PTRACE_EVENT_CLONE"
+  if (f == %{ PTRACE_EVENT_EXEC %})
+    return "PTRACE_EVENT_EXEC"
+  if (f == %{ PTRACE_EVENT_VFORK_DONE %})
+    return "PTRACE_EVENT_VFORK_DONE"
+  if (f == %{ PTRACE_EVENT_EXIT %})
+    return "PTRACE_EVENT_EXIT"
+  return ""
+}
+
+/* `man 2 wait` for more information */
+function _wait_status_str(f) {
+  if ((f >> 16) != 0)
+    tail = sprintf (" | 0x%x", f & ~0xffff)
+  else
+    tail = ""
+
+  if (WIFEXITED(f))
+    return sprintf ("WEXITSTATUS=%d", WEXITSTATUS(f)).tail
+  if (WIFSIGNALED(f)) {
+      if (WCOREDUMP(f))
+        return "WCOREDUMP".tail
+      return sprintf ("WTERMSIG=%s", _signal_name(WTERMSIG(f))).tail
+    }
+  if (WIFSTOPPED(f))
+    {
+      if (WSTOPSIG(f) == %{ SIGTRAP %})
+	{
+	  event = _ptrace_event_name (f >> 16)
+	  if (event != "")
+	    tail = " | ".event." << 8"
+	}
+      return sprintf ("WSTOPSIG=%s", _signal_name(WSTOPSIG(f))).tail
+    }
+  if (WIFCONTINUED(f))
+    return "WIFCONTINUED".tail
+  return sprintf ("?=0x%x", f)
+}
+
 /* `man sendmsg` for more information */
 function _sendflags_str(f) {
    if(f & 0x0001) bs="MSG_OOB|".bs

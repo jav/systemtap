@@ -1375,7 +1375,7 @@ probe nd_syscall.wait4
 }
 probe nd_syscall.wait4.return
 {
-	printf("%s, %s\n", name, retstr)
+	printf("%s, %s, %s\n", name, retstr, status_str)
 }
 
 probe nd_syscall.waitid

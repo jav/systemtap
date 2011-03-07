@@ -1372,7 +1372,7 @@ probe syscall.wait4
 }
 probe syscall.wait4.return
 {
-	printf("%s, %s\n", name, retstr)
+	printf("%s, %s, %s\n", name, retstr, status_str)
 }
 
 probe syscall.waitid
