@@ -57,7 +57,7 @@ bin_PROGRAMS = $(am__EXEEXT_1)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_15 = $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_16 = $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_17 = -lssl3 -lnss3 -lnspr4 -lplc4
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_18 = install-scripts
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_18 = install-scripts
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_19 = -Iinclude-elfutils
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_20 = -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
@@ -69,10 +69,10 @@ bin_PROGRAMS = $(am__EXEEXT_1)
 @BUILD_TRANSLATOR_TRUE@noinst_PROGRAMS = loc2c-test$(EXEEXT)
 @BUILD_PCP_TRUE@am__append_25 = pcp
 subdir = .
-DIST_COMMON = INSTALL NEWS README AUTHORS ChangeLog \
-	$(srcdir)/Makefile.in $(srcdir)/Makefile.am \
-	$(top_srcdir)/configure $(am__configure_deps) \
-	$(srcdir)/config.in $(top_srcdir)/includes/sys/sdt-config.h.in \
+DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
+	$(srcdir)/Makefile.am $(top_srcdir)/configure \
+	$(am__configure_deps) $(srcdir)/config.in \
+	$(top_srcdir)/includes/sys/sdt-config.h.in \
 	$(srcdir)/stappaths.7.in $(top_srcdir)/initscript/systemtap.in \
 	$(top_srcdir)/initscript/stap-server.in $(srcdir)/run-stap.in \
 	$(srcdir)/dtrace.in ABOUT-NLS depcomp \
@@ -301,8 +301,6 @@ PIECFLAGS = @PIECFLAGS@
 PIECXXFLAGS = @PIECXXFLAGS@
 PIELDFLAGS = @PIELDFLAGS@
 PKG_CONFIG = @PKG_CONFIG@
-PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
-PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSUB = @POSUB@
 PUBLICAN_BRAND = @PUBLICAN_BRAND@
 RANLIB = @RANLIB@
@@ -1697,7 +1695,6 @@ maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
-@BUILD_CRASHMOD_FALSE@@BUILD_ELFUTILS_FALSE@@BUILD_SERVER_FALSE@install-exec-local:
 @BUILD_CRASHMOD_FALSE@@BUILD_ELFUTILS_FALSE@@HAVE_NSS_FALSE@install-exec-local:
 @BUILD_CRASHMOD_FALSE@@BUILD_TRANSLATOR_FALSE@install-exec-local:
 clean: clean-recursive
@@ -1834,15 +1831,15 @@ cscope:
 	(echo -q ; git ls-files '*.cxx' '*.c' '*.h' | grep -v '^testsuite' ) > cscope.files && \
 	cscope -b -q
 
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@install-exec-local: install-scripts
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@install-exec-local: install-scripts
 # scripts must be installed before this rule is run
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@install-scripts: install-binSCRIPTS install-pkglibexecSCRIPTS
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	for f in $(bin_SCRIPTS); do \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(bindir)/$$f; \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	done
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	for f in $(pkglibexec_SCRIPTS); do \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "/INSTALL-HOOK/d;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)/,;s,localstatedir=.*,localstatedir=$(localstatedir),;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	done
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@install-scripts: install-binSCRIPTS install-pkglibexecSCRIPTS
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	for f in $(bin_SCRIPTS); do \
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(bindir)/$$f; \
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	done
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	for f in $(pkglibexec_SCRIPTS); do \
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	   sed -i -e "/INSTALL-HOOK/d;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)/,;s,localstatedir=.*,localstatedir=$(localstatedir),;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@stamp-elfutils: config.status
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all bin_PROGRAMS=
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@	for dir in libelf libebl libdw libdwfl backends; do \

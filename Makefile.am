@@ -120,7 +120,6 @@ stap_LDADD += -lssl3 -lnss3 -lnspr4 -lplc4
 stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
 stap_sign_module_LDFLAGS = $(AM_LDFLAGS)
 
-if BUILD_SERVER
 install-exec-local: install-scripts
 
 PHONIES += install-scripts
@@ -132,7 +131,6 @@ install-scripts: install-binSCRIPTS install-pkglibexecSCRIPTS
 	for f in $(pkglibexec_SCRIPTS); do \
 	   sed -i -e "/INSTALL-HOOK/d;s,sysconfdir=.*,sysconfdir=$(sysconfdir),;s,pkglibexecdir=.*,pkglibexecdir=$(pkglibexecdir)/,;s,localstatedir=.*,localstatedir=$(localstatedir),;s,\$${PKGLIBEXECDIR},$(pkglibexecdir)/," $(DESTDIR)$(pkglibexecdir)/$$f; \
 	done
-endif
 endif
 
 if BUILD_ELFUTILS
