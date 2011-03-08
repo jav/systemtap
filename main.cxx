@@ -350,9 +350,10 @@ int parse_kernel_exports (systemtap_session &s)
         s.kernel_exports.insert (tokens[1]);
     }
   if (s.verbose > 2)
-    clog << _F("Parsed kernel \"%s\", ", kernel_exports_file.c_str())
-         << _F(ngettext("which contained one vmlinux export", "which contained %zu vmlinux exports",
-                s.kernel_exports.size()), s.kernel_exports.size()) << endl;
+    clog << _F(ngettext("Parsed kernel %s, which contained one vmlinux export",
+                        "Parsed kernel %s, which contained %zu vmlinux exports",
+                         s.kernel_exports.size()), kernel_exports_file.c_str(),
+                         s.kernel_exports.size()) << endl;
 
   kef.close();
   return 0;
@@ -615,7 +616,7 @@ passes_0_4 (systemtap_session &s)
 
           unsigned next_s_library_files = s.library_files.size();
           if (s.verbose>1 && globbuf.gl_pathc > 0)
-            // search a directory, report a number of found  with number of processed 
+            //TRANSLATORS: Searching through directories, 'processed' means 'examined so far'
             clog << _F("Searched: \" %s \", found: %zu, processed: %u",
                        dir.c_str(), globbuf.gl_pathc,
                        (next_s_library_files-prev_s_library_files)) << endl;

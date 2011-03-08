@@ -269,7 +269,7 @@ compile_pass (systemtap_session& s)
   rc = stat(module_dir_makefile.c_str(), &st);
   if (rc != 0)
     {
-        clog << _F("Checking \" %s \" failed: %s\nEnsure kernel development headers & makefiles are installed.",
+        clog << _F("Checking \" %s \" failed with error: %s\nEnsure kernel development headers & makefiles are installed.",
                    module_dir_makefile.c_str(), strerror(errno)) << endl;
 	s.set_try_server ();
 	return rc;
@@ -405,7 +405,7 @@ make_uprobes (systemtap_session& s)
   make_cmd.push_back(uprobes_home);
   int rc = run_make_cmd(s, make_cmd);
   if (s.verbose > 1)
-    clog << _("uprobes rebuild rc=") << rc << endl;
+    clog << _("uprobes rebuild exit code: ") << rc << endl;
   if (rc)
     s.set_try_server ();
   return rc;
@@ -743,8 +743,8 @@ make_typequery(systemtap_session& s, string& module)
       if (regexp_match(header, "^[a-zA-Z0-9/_.+-]+$", matches))
         {
           if (! s.suppress_warnings)
-            cerr << _("Warning: skipping malformed @cast header \"")
-                 << header << "\"" << endl;
+            cerr << _F("Warning: skipping malformed @cast header \"%s\"",
+                        header.c_str()) << endl;
         }
       else
         headers.push_back(header);

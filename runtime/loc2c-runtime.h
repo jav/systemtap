@@ -584,46 +584,18 @@ extern void __store_deref_bad(void);
    })
 
 #elif defined __powerpc__ || defined __powerpc64__
-#if defined __powerpc64__
-#define STP_PPC_LONG	".llong "
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15)
+#define __stp_get_user_size(x, ptr, size, retval)		\
+		__get_user_size(x, ptr, size, retval)
+#define __stp_put_user_size(x, ptr, size, retval)		\
+		__put_user_size(x, ptr, size, retval)
 #else
-#define STP_PPC_LONG	".long "
+#define __stp_get_user_size(x, ptr, size, retval)		\
+		__get_user_size(x, ptr, size, retval, -EFAULT)
+#define __stp_put_user_size(x, ptr, size, retval)		\
+		__put_user_size(x, ptr, size, retval, -EFAULT)
 #endif
-
-#define __stp_get_user_asm(x, addr, err, op)			\
-	 __asm__ __volatile__(					\
-		"1:     "op" %1,0(%2)   # get_user\n"		\
-		"2:\n"						\
-		".section .fixup,\"ax\"\n"			\
-		"3:     li %0,%3\n"				\
-		"       li %1,0\n"				\
-		"       b 2b\n"					\
-		".previous\n"					\
-		".section __ex_table,\"a\"\n"			\
-		"       .balign %5\n"				\
-		STP_PPC_LONG "1b,3b\n"				\
-		".previous"					\
-		: "=r" (err), "=r" (x)				\
-		: "b" (addr), "i" (-EFAULT), "0" (err),		\
-		  "i"(sizeof(unsigned long)))
-
-
-#define __stp_put_user_asm(x, addr, err, op)                        \
-        __asm__ __volatile__(                                   \
-                "1:     " op " %1,0(%2) # put_user\n"           \
-                "2:\n"                                          \
-                ".section .fixup,\"ax\"\n"                      \
-                "3:     li %0,%3\n"                             \
-                "       b 2b\n"                                 \
-                ".previous\n"                                   \
-                ".section __ex_table,\"a\"\n"                   \
-                "       .balign %5\n"				\
-                STP_PPC_LONG "1b,3b\n"				\
-                ".previous"                                     \
-                : "=r" (err)                                    \
-                : "r" (x), "b" (addr), "i" (-EFAULT), "0" (err),\
-		  "i"(sizeof(unsigned long)))
-
 
 #define deref(size, addr)						      \
   ({									      \
@@ -634,10 +606,10 @@ extern void __store_deref_bad(void);
     else                                                                      \
       switch (size)                                                           \
         {                                                                     \
-        case 1: __stp_get_user_asm(_v,addr,_bad,"lbz"); break;                \
-        case 2: __stp_get_user_asm(_v,addr,_bad,"lhz"); break;                \
-        case 4: __stp_get_user_asm(_v,addr,_bad,"lwz"); break;                \
-        case 8: __stp_get_user_asm(_v,addr,_bad,"ld"); break;                 \
+	case 1: __stp_get_user_size(_v, addr, 1, _bad); break;                \
+	case 2: __stp_get_user_size(_v, addr, 2, _bad); break;                \
+	case 4: __stp_get_user_size(_v, addr, 4, _bad); break;                \
+	case 8: __stp_get_user_size(_v, addr, 8, _bad); break;                \
         default: _v = __get_user_bad();                                       \
         }                                                                     \
     if (_bad)								      \
@@ -653,14 +625,14 @@ extern void __store_deref_bad(void);
     else                                                                      \
       switch (size)                                                           \
         {                                                                     \
-        case 1: __stp_put_user_asm(((u8)(value)),addr,_bad,"stb"); break;     \
-        case 2: __stp_put_user_asm(((u16)(value)),addr,_bad,"sth"); break;    \
-        case 4: __stp_put_user_asm(((u32)(value)),addr,_bad,"stw"); break;    \
-        case 8: __stp_put_user_asm(((u64)(value)),addr,_bad, "std"); break;   \
+	case 1: __stp_put_user_size(((u8)(value)), addr, 1, _bad); break;     \
+	case 2: __stp_put_user_size(((u16)(value)), addr, 2, _bad); break;    \
+	case 4: __stp_put_user_size(((u32)(value)), addr, 4, _bad); break;    \
+	case 8: __stp_put_user_size(((u64)(value)), addr, 8, _bad); break;    \
         default: __put_user_bad();                                            \
         }                                                                     \
     if (_bad)								      \
-      STORE_DEREF_FAULT(addr);							      \
+      STORE_DEREF_FAULT(addr);						      \
   })
 
 #elif defined (__arm__)

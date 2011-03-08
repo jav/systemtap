@@ -3,7 +3,6 @@ buildrun.cxx
 buildrun.h
 cache.cxx
 cache.h
-config.h
 coveragedb.cxx
 coveragedb.h
 csclient.cxx
@@ -14,12 +13,10 @@ dwflpp.cxx
 dwflpp.h
 elaborate.cxx
 elaborate.h
-git_version.h
 hash.cxx
 hash.h
 loc2c.c
 loc2c.h
-loc2c-test.c
 main.cxx
 mdfour.c
 mdfour.h
@@ -34,7 +31,6 @@ remote.h
 rpm_finder.cxx
 rpm_finder.h
 runtime/staprun/common.c
-runtime/staprun/config.h
 runtime/staprun/ctl.c
 runtime/staprun/mainloop.c
 runtime/staprun/modverify.c
