@@ -10,6 +10,11 @@
 #define REMOTE_H
 
 #include <string>
+#include <vector>
+
+extern "C" {
+#include <poll.h>
+}
 
 #include "session.h"
 
@@ -17,6 +22,9 @@ class remote {
   private:
     virtual int start() = 0;
     virtual int finish() = 0;
+
+    virtual void prepare_poll(std::vector<pollfd>& fds) {}
+    virtual void handle_poll(std::vector<pollfd>& fds) {}
 
   protected:
     systemtap_session* s;

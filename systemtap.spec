@@ -419,6 +419,7 @@ exit 0
 %files runtime -f %{name}.lang
 %defattr(-,root,root)
 %attr(4110,root,stapusr) %{_bindir}/staprun
+%{_bindir}/stapsh
 %{_bindir}/stap-merge
 %{_bindir}/stap-report
 %{_libexecdir}/%{name}/stapio

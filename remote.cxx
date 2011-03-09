@@ -7,9 +7,13 @@
 // later version.
 
 extern "C" {
-#include <sys/utsname.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 }
 
+#include <cstdio>
 #include <stdexcept>
 #include <sstream>
 #include <string>
@@ -94,6 +98,340 @@ class direct : public remote {
     virtual ~direct() {}
 };
 
+
+class stapsh : public remote {
+  private:
+    int interrupts_sent;
+    int fdin, fdout;
+    FILE *IN, *OUT;
+
+    virtual void prepare_poll(vector<pollfd>& fds)
+      {
+        if (fdout >= 0 && OUT)
+          {
+            pollfd p = { fdout, POLLIN };
+            fds.push_back(p);
+          }
+
+        // need to send a signal?
+        if (fdin >= 0 && IN && interrupts_sent < pending_interrupts)
+          {
+            pollfd p = { fdin, POLLOUT };
+            fds.push_back(p);
+          }
+      }
+
+    virtual void handle_poll(vector<pollfd>& fds)
+      {
+        for (unsigned i=0; i < fds.size(); ++i)
+          if (fds[i].revents)
+            {
+              if (fdout >= 0 && OUT && fds[i].fd == fdout)
+                {
+                  if (fds[i].revents & POLLIN)
+                    {
+                      // XXX should we do line-buffering?
+                      char buf[4096];
+                      size_t rc = fread(buf, 1, sizeof(buf), OUT);
+                      if (rc > 0)
+                        {
+                          cout.write(buf, rc);
+                          continue;
+                        }
+                    }
+                  close();
+                }
+
+              // need to send a signal?
+              if (fdin >= 0 && IN && fds[i].fd == fdin &&
+                  interrupts_sent < pending_interrupts)
+                {
+                  if (fds[i].revents & POLLOUT)
+                    {
+                      ostringstream cmd;
+                      cmd << "signal " << SIGINT << "\n";
+                      if (send_command(cmd.str()) == 0)
+                        {
+                          ++interrupts_sent;
+                          continue;
+                        }
+                    }
+                  close();
+                }
+            }
+      }
+
+    int send_command(const string& cmd)
+      {
+        if (!IN)
+          return 2;
+        if (fputs(cmd.c_str(), IN) < 0 ||
+            fflush(IN) != 0)
+          return 1;
+        return 0;
+      }
+
+    int send_file(const string& filename, const string& dest)
+      {
+        int rc = 0;
+        FILE* f = fopen(filename.c_str(), "r");
+        if (!f)
+          return 1;
+
+        struct stat fs;
+        rc = fstat(fileno(f), &fs);
+        if (!rc)
+          {
+            ostringstream cmd;
+            cmd << "file " << fs.st_size << " " << dest << "\n";
+            rc = send_command(cmd.str());
+          }
+
+        off_t i = 0;
+        while (!rc && i < fs.st_size)
+          {
+            char buf[4096];
+            size_t r = sizeof(buf);
+            if (fs.st_size - i < (off_t)r)
+              r = fs.st_size - i;
+            r = fread(buf, 1, r, f);
+            if (r == 0)
+              rc = 1;
+            else
+              {
+                size_t w = fwrite(buf, 1, r, IN);
+                if (w != r)
+                  rc = 1;
+                else
+                  i += w;
+              }
+          }
+        if (!rc)
+          rc = fflush(IN);
+
+        fclose(f);
+        return rc;
+      }
+
+    int send_arg(const string& arg)
+      {
+        ostringstream cmd;
+        cmd << "arg " << arg.size() << "\n";
+        int rc = send_command(cmd.str());
+        if (!rc)
+          {
+            size_t w = fwrite(arg.c_str(), 1, arg.size(), IN);
+            if (w != arg.size())
+              rc = 1;
+          }
+        if (!rc)
+          rc = fflush(IN);
+        return rc;
+      }
+
+  protected:
+    stapsh(systemtap_session& s)
+      : remote(s), interrupts_sent(0),
+        fdin(-1), fdout(-1), IN(0), OUT(0)
+      {}
+
+    virtual int start()
+      {
+        int rc = 0;
+
+        string localmodule = s->tmpdir + "/" + s->module_name + ".ko";
+        string remotemodule = s->module_name + ".ko";
+        if ((rc = send_file(localmodule, remotemodule)))
+          return rc;
+
+        // XXX upload module.sig [and uprobes, uprobes.sig]
+
+        // Send the staprun args
+        // NB: The remote is left to decide its own staprun path
+        vector<string> cmd = make_run_command(*s, remotemodule);
+        for (unsigned i = 1; i < cmd.size(); ++i)
+          if ((rc = send_arg(cmd[i])))
+            return rc;
+
+        rc = send_command("run\n");
+
+        if (!rc)
+          {
+            long flags = fcntl(fdout, F_GETFL) | O_NONBLOCK;
+            fcntl(fdout, F_SETFL, flags);
+          }
+
+        return rc;
+      }
+
+    void close()
+      {
+        if (IN) fclose(IN);
+        if (OUT) fclose(OUT);
+        IN = OUT = NULL;
+        fdin = fdout = -1;
+      }
+
+    virtual int finish()
+      {
+        close();
+        return 0;
+      }
+
+    void set_child_fds(int in, int out)
+      {
+        if (fdin >= 0 || fdout >= 0 || IN || OUT)
+          throw runtime_error("stapsh file descriptors already set!");
+
+        fdin = in;
+        fdout = out;
+        IN = fdopen(fdin, "w");
+        OUT = fdopen(fdout, "r");
+        if (!IN || !OUT)
+          throw runtime_error("invalid file descriptors for stapsh!");
+
+        if (send_command("stap " VERSION "\n"))
+          throw runtime_error("error sending hello to stapsh!");
+
+        char reply[1024];
+        if (!fgets(reply, sizeof(reply), OUT))
+          throw runtime_error("error receiving hello from stapsh!");
+
+        // stapsh VERSION MACHINE RELEASE
+        vector<string> uname;
+        tokenize(reply, uname, " \t\r\n");
+        if (uname.size() != 4 || uname[0] != "stapsh")
+          throw runtime_error("failed to get uname from stapsh");
+        // XXX check VERSION compatibility
+
+        this->s = s->clone(uname[2], uname[3]);
+      }
+
+  public:
+    virtual ~stapsh() { close(); }
+};
+
+
+class direct_stapsh : public stapsh {
+  private:
+    pid_t child;
+
+    direct_stapsh(systemtap_session& s)
+      : stapsh(s), child(0)
+      {
+        int in, out;
+        vector<string> cmd;
+        cmd.push_back(BINDIR "/stapsh");
+        child = stap_spawn_piped(s.verbose, cmd, &in, &out);
+        if (child <= 0)
+          throw runtime_error("error launching stapsh!");
+
+        try
+          {
+            set_child_fds(in, out);
+          }
+        catch (runtime_error&)
+          {
+            finish();
+            throw;
+          }
+      }
+
+    virtual int finish()
+      {
+        int rc = stapsh::finish();
+        if (child <= 0)
+          return rc;
+
+        int rc2 = stap_waitpid(s->verbose, child);
+        child = 0;
+        return rc ?: rc2;
+      }
+
+  public:
+    friend class remote;
+
+    virtual ~direct_stapsh() {}
+};
+
+
+#if 1 // stapsh-based ssh_remote
+class ssh_remote : public stapsh {
+  private:
+    pid_t child;
+
+    ssh_remote(systemtap_session& s, const string& host)
+      : stapsh(s), child(0)
+      {
+        init(host);
+      }
+
+    ssh_remote(systemtap_session& s, const uri_decoder& ud)
+      : stapsh(s), child(0)
+      {
+        if (!ud.has_authority || ud.authority.empty())
+          throw runtime_error("ssh target requires a hostname");
+        if (!ud.path.empty() && ud.path != "/")
+          throw runtime_error("ssh target URI doesn't support a /path");
+        if (ud.has_query)
+          throw runtime_error("ssh target URI doesn't support a ?query");
+        if (ud.has_fragment)
+          throw runtime_error("ssh target URI doesn't support a #fragment");
+
+        init(ud.authority);
+      }
+
+    void init(const string& host)
+      {
+        // mask signals while we spawn, so we can manually send even tty
+        // signals *through* ssh rather than to ssh itself
+        sigset_t mask, oldmask;
+        sigemptyset (&mask);
+        sigaddset (&mask, SIGHUP);
+        sigaddset (&mask, SIGPIPE);
+        sigaddset (&mask, SIGINT);
+        sigaddset (&mask, SIGTERM);
+        sigprocmask (SIG_BLOCK, &mask, &oldmask);
+
+        int in, out;
+        vector<string> cmd;
+        cmd.push_back("ssh");
+        cmd.push_back("-q");
+        cmd.push_back(host);
+        cmd.push_back("stapsh"); // NB: relies on remote $PATH
+        child = stap_spawn_piped(s->verbose, cmd, &in, &out);
+        sigprocmask (SIG_SETMASK, &oldmask, NULL); // back to normal signals
+        if (child <= 0)
+          throw runtime_error("error launching stapsh!");
+
+        try
+          {
+            set_child_fds(in, out);
+          }
+        catch (runtime_error&)
+          {
+            finish();
+            throw;
+          }
+      }
+
+    int finish()
+      {
+        int rc = stapsh::finish();
+        if (child <= 0)
+          return rc;
+
+        int rc2 = stap_waitpid(s->verbose, child);
+        child = 0;
+        return rc ?: rc2;
+      }
+
+  public:
+    friend class remote;
+
+    virtual ~ssh_remote() { }
+};
+#else // !stapsh-based ssh_remote
 class ssh_remote : public remote {
     // NB: ssh commands use a tty (-t) so signals are passed along to the remote
   private:
@@ -310,6 +648,7 @@ class ssh_remote : public remote {
         close_control_master();
       }
 };
+#endif
 
 
 remote*
@@ -319,6 +658,8 @@ remote::create(systemtap_session& s, const string& uri)
     {
       if (uri == "direct")
         return new direct(s);
+      else if (uri == "stapsh")
+        return new direct_stapsh(s);
       else if (uri.find(':') != string::npos)
         {
           const uri_decoder ud(uri);
@@ -355,6 +696,33 @@ remote::run(const vector<remote*>& remotes)
       if (!ret)
         ret = rc;
     }
+
+  // mask signals while we're preparing to poll
+  sigset_t mask, oldmask;
+  sigemptyset (&mask);
+  sigaddset (&mask, SIGHUP);
+  sigaddset (&mask, SIGPIPE);
+  sigaddset (&mask, SIGINT);
+  sigaddset (&mask, SIGTERM);
+  sigprocmask (SIG_BLOCK, &mask, &oldmask);
+
+  for (;;) // polling loop for remotes that have fds to watch
+    {
+      vector<pollfd> fds;
+      for (unsigned i = 0; i < remotes.size(); ++i)
+	remotes[i]->prepare_poll (fds);
+      if (fds.empty())
+	break;
+
+      rc = ppoll (&fds[0], fds.size(), NULL, &oldmask);
+      if (rc < 0 && errno != EINTR)
+	break;
+
+      for (unsigned i = 0; i < remotes.size(); ++i)
+	remotes[i]->handle_poll (fds);
+    }
+
+  sigprocmask (SIG_SETMASK, &oldmask, NULL);
 
   for (unsigned i = 0; i < remotes.size(); ++i)
     {

@@ -9,7 +9,7 @@ AM_CPPFLAGS += -DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADI
 AM_CFLAGS += @PIECFLAGS@
 AM_LDFLAGS = @PIELDFLAGS@
 
-bin_PROGRAMS = staprun stap-merge
+bin_PROGRAMS = staprun stap-merge stapsh
 pkglibexec_PROGRAMS = stapio
 
 staprun_SOURCES = staprun.c staprun_funcs.c ctl.c common.c
@@ -31,6 +31,11 @@ stap_merge_SOURCES = stap_merge.c
 stap_merge_CFLAGS = $(AM_CFLAGS)
 stap_merge_LDFLAGS = $(AM_LDFLAGS)
 stap_merge_LDADD =
+
+stapsh_SOURCES = stapsh.c
+stapsh_CFLAGS = $(AM_CFLAGS)
+stapsh_LDFLAGS = $(AM_LDFLAGS)
+stapsh_LDADD =
 
 
 # Why the "id -u" condition?  This way, an unprivileged user can run

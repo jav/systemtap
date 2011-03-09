@@ -34,7 +34,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = staprun$(EXEEXT) stap-merge$(EXEEXT)
+bin_PROGRAMS = staprun$(EXEEXT) stap-merge$(EXEEXT) stapsh$(EXEEXT)
 pkglibexec_PROGRAMS = stapio$(EXEEXT)
 @HAVE_NSS_TRUE@am__append_1 = modverify.c ../../nsscommon.c
 @HAVE_NSS_TRUE@am__append_2 = $(nss_CFLAGS)
@@ -78,6 +78,11 @@ am__DEPENDENCIES_1 =
 staprun_DEPENDENCIES = $(am__DEPENDENCIES_2)
 staprun_LINK = $(CCLD) $(staprun_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
+am_stapsh_OBJECTS = stapsh-stapsh.$(OBJEXT)
+stapsh_OBJECTS = $(am_stapsh_OBJECTS)
+stapsh_DEPENDENCIES =
+stapsh_LINK = $(CCLD) $(stapsh_CFLAGS) $(CFLAGS) $(stapsh_LDFLAGS) \
+	$(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/../../depcomp
 am__depfiles_maybe = depfiles
@@ -101,7 +106,8 @@ am__v_CCLD_0 = @echo "  CCLD  " $@;
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(stap_merge_SOURCES) $(stapio_SOURCES) $(staprun_SOURCES)
+SOURCES = $(stap_merge_SOURCES) $(stapio_SOURCES) $(staprun_SOURCES) \
+	$(stapsh_SOURCES)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -236,6 +242,10 @@ stap_merge_SOURCES = stap_merge.c
 stap_merge_CFLAGS = $(AM_CFLAGS)
 stap_merge_LDFLAGS = $(AM_LDFLAGS)
 stap_merge_LDADD = 
+stapsh_SOURCES = stapsh.c
+stapsh_CFLAGS = $(AM_CFLAGS)
+stapsh_LDFLAGS = $(AM_LDFLAGS)
+stapsh_LDADD = 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -377,6 +387,9 @@ stapio$(EXEEXT): $(stapio_OBJECTS) $(stapio_DEPENDENCIES)
 staprun$(EXEEXT): $(staprun_OBJECTS) $(staprun_DEPENDENCIES) 
 	@rm -f staprun$(EXEEXT)
 	$(AM_V_CCLD)$(staprun_LINK) $(staprun_OBJECTS) $(staprun_LDADD) $(LIBS)
+stapsh$(EXEEXT): $(stapsh_OBJECTS) $(stapsh_DEPENDENCIES) 
+	@rm -f stapsh$(EXEEXT)
+	$(AM_V_CCLD)$(stapsh_LINK) $(stapsh_OBJECTS) $(stapsh_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -397,6 +410,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-nsscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-staprun.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-staprun_funcs.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stapsh-stapsh.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -525,6 +539,22 @@ staprun-nsscommon.obj: ../../nsscommon.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../nsscommon.c' object='staprun-nsscommon.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CFLAGS) $(CFLAGS) -c -o staprun-nsscommon.obj `if test -f '../../nsscommon.c'; then $(CYGPATH_W) '../../nsscommon.c'; else $(CYGPATH_W) '$(srcdir)/../../nsscommon.c'; fi`
+
+stapsh-stapsh.o: stapsh.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stapsh_CFLAGS) $(CFLAGS) -MT stapsh-stapsh.o -MD -MP -MF $(DEPDIR)/stapsh-stapsh.Tpo -c -o stapsh-stapsh.o `test -f 'stapsh.c' || echo '$(srcdir)/'`stapsh.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapsh-stapsh.Tpo $(DEPDIR)/stapsh-stapsh.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stapsh.c' object='stapsh-stapsh.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stapsh_CFLAGS) $(CFLAGS) -c -o stapsh-stapsh.o `test -f 'stapsh.c' || echo '$(srcdir)/'`stapsh.c
+
+stapsh-stapsh.obj: stapsh.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stapsh_CFLAGS) $(CFLAGS) -MT stapsh-stapsh.obj -MD -MP -MF $(DEPDIR)/stapsh-stapsh.Tpo -c -o stapsh-stapsh.obj `if test -f 'stapsh.c'; then $(CYGPATH_W) 'stapsh.c'; else $(CYGPATH_W) '$(srcdir)/stapsh.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stapsh-stapsh.Tpo $(DEPDIR)/stapsh-stapsh.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='stapsh.c' object='stapsh-stapsh.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stapsh_CFLAGS) $(CFLAGS) -c -o stapsh-stapsh.obj `if test -f 'stapsh.c'; then $(CYGPATH_W) 'stapsh.c'; else $(CYGPATH_W) '$(srcdir)/stapsh.c'; fi`
 install-man8: $(man_MANS)
 	@$(NORMAL_INSTALL)
 	test -z "$(man8dir)" || $(MKDIR_P) "$(DESTDIR)$(man8dir)"

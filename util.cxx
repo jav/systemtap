@@ -547,16 +547,18 @@ stap_spawn(int verbose, const vector<string>& args)
 
 pid_t
 stap_spawn_piped(int verbose, const vector<string>& args,
-                 int *child_out, int* child_err)
+                 int *child_in, int *child_out, int* child_err)
 {
   pid_t pid = -1;
-  int outfd[2], errfd[2];
+  int infd[2], outfd[2], errfd[2];
   posix_spawn_file_actions_t fa;
   if (posix_spawn_file_actions_init(&fa) != 0)
     return -1;
 
-  if (child_out && pipe_child_fd(&fa, outfd, 1) != 0)
+  if (child_in && pipe_child_fd(&fa, infd, 0) != 0)
     goto cleanup_fa;
+  if (child_out && pipe_child_fd(&fa, outfd, 1) != 0)
+    goto cleanup_in;
   if (child_err && pipe_child_fd(&fa, errfd, 2) != 0)
     goto cleanup_out;
 
@@ -579,6 +581,16 @@ cleanup_out:
       else
         close(outfd[0]);
       close(outfd[1]);
+    }
+
+cleanup_in:
+  if (child_in)
+    {
+      if (pid > 0)
+        *child_in = infd[1];
+      else
+        close(infd[1]);
+      close(infd[0]);
     }
 
 cleanup_fa:
@@ -618,7 +630,7 @@ int
 stap_system_read(int verbose, const vector<string>& args, ostream& out)
 {
   int child_fd = -1;
-  pid_t child = stap_spawn_piped(verbose, args, &child_fd);
+  pid_t child = stap_spawn_piped(verbose, args, NULL, &child_fd);
   if (child > 0)
     {
       // read everything from the child
