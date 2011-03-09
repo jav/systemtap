@@ -491,7 +491,7 @@ if {[regexp {^.*port=([^ ]*).*} $our_servers(0) match port_num]} {
     fail $test
 }
 set test "Compile module using server"
-set failed 0
+set failed 1
 set module_name ""
 set cmd [concat stap -p4 --unprivileged $srcdir/systemtap.server/hello.stp --use-server=$host_name:$port_num]
 send_log "executing: $cmd\n"
@@ -500,12 +500,12 @@ expect {
     -timeout 150
     -re {^stap_[0-9]*\.ko\r\n} {
 	set module_name [string trim "$expect_out(0,string)" \r\n]
+	set failed 0
     }
     -re {^.*\r\n} { exp_continue }
     timeout { 
 	exec kill -INT -[exp_pid]
 	wait
-	set failed 1
     }
 }
 catch close
@@ -517,6 +517,8 @@ send_log "'$module_name'\n"
 # Make sure that the module was returned
 set no_module 0
 set test "Module was created"
+catch {exec /bin/ls $module_name $module_name.sgn} result
+send_log "$result\n"
 if {[file exists $module_name]} {
     pass "$test"
 } else {
