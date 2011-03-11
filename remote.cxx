@@ -241,7 +241,20 @@ class stapsh : public remote {
         if ((rc = send_file(localmodule, remotemodule)))
           return rc;
 
-        // XXX upload module.sig [and uprobes, uprobes.sig]
+        if (file_exists(localmodule + ".sgn") &&
+            (rc = send_file(localmodule + ".sgn", remotemodule + ".sgn")))
+          return rc;
+
+        if (!s->uprobes_path.empty())
+          {
+            string remoteuprobes = basename(s->uprobes_path.c_str());
+            if ((rc = send_file(s->uprobes_path, remoteuprobes)))
+              return rc;
+
+            if (file_exists(s->uprobes_path + ".sgn") &&
+                (rc = send_file(s->uprobes_path + ".sgn", remoteuprobes + ".sgn")))
+              return rc;
+          }
 
         return rc;
       }
