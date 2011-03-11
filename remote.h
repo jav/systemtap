@@ -20,6 +20,7 @@ extern "C" {
 
 class remote {
   private:
+    virtual int prepare() { return 0; }
     virtual int start() = 0;
     virtual int finish() = 0;
 

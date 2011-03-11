@@ -232,7 +232,7 @@ class stapsh : public remote {
         fdin(-1), fdout(-1), IN(0), OUT(0)
       {}
 
-    virtual int start()
+    virtual int prepare()
       {
         int rc = 0;
 
@@ -243,15 +243,20 @@ class stapsh : public remote {
 
         // XXX upload module.sig [and uprobes, uprobes.sig]
 
+        return rc;
+      }
+
+    virtual int start()
+      {
         // Send the staprun args
         // NB: The remote is left to decide its own staprun path
         ostringstream run("run", ios::out | ios::ate);
-        vector<string> cmd = make_run_command(*s, remotemodule);
+        vector<string> cmd = make_run_command(*s, s->module_name + ".ko");
         for (unsigned i = 1; i < cmd.size(); ++i)
           run << ' ' << qpencode(cmd[i]);
         run << '\n';
 
-        rc = send_command(run.str());
+        int rc = send_command(run.str());
 
         if (!rc)
           {
@@ -687,6 +692,13 @@ remote::run(const vector<remote*>& remotes)
 {
   // NB: the first failure "wins"
   int ret = 0, rc = 0;
+
+  for (unsigned i = 0; i < remotes.size() && !pending_interrupts; ++i)
+    {
+      rc = remotes[i]->prepare();
+      if (rc)
+        return rc;
+    }
 
   for (unsigned i = 0; i < remotes.size() && !pending_interrupts; ++i)
     {
