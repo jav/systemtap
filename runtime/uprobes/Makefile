@@ -28,14 +28,14 @@ default:
 			fi; \
 			certfile=$$stap_dir/ssl/server/stap.cert; \
 			if ! test -f $$certfile; then \
-				$(LIBEXECDIR)/stap-gen-cert; \
+				$(LIBEXECDIR)/stap-gen-cert > /dev/null; \
 			fi; \
 			if test `id -u` = 0; then \
-				$(LIBEXECDIR)/stap-authorize-cert $$certfile $(CERTDB); \
+				$(LIBEXECDIR)/stap-authorize-cert $$certfile $(CERTDB) > /dev/null; \
 			fi; \
 			for f in *.ko; do \
 				if test ! -e $$f.sgn -o $$f.sgn -ot $$f; then \
-					$(LIBEXECDIR)/stap-sign-module $$f; \
+					$(LIBEXECDIR)/stap-sign-module $$f > /dev/null; \
 				fi \
 			done \
 		fi \
