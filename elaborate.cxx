@@ -19,6 +19,8 @@
 extern "C" {
 #include <sys/utsname.h>
 #include <fnmatch.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 }
 
 #include <algorithm>
@@ -138,10 +140,10 @@ derived_probe::derived_locations ()
 probe_point*
 derived_probe::sole_location () const
 {
-  if (locations.size() == 0)
-    throw semantic_error ("derived_probe with no locations", this->tok);
-  else if (locations.size() > 1)
-    throw semantic_error ("derived_probe with too many locations", this->tok);
+  if (locations.size() == 0 || locations.size() > 1)
+    throw semantic_error (ngettext("derived_probe with no locations",
+                                   "derived_probe with no locations",
+                                   locations.size()), this->tok);
   else
     return locations[0];
 }
@@ -153,10 +155,10 @@ derived_probe::script_location () const
   const probe* p = almost_basest();
   const probe_alias *a = p->get_alias();
   const vector<probe_point*>& locs = a ? a->alias_names : p->locations;
-  if (locs.size() == 0)
-    throw semantic_error ("derived_probe with no locations", this->tok);
-  else if (locs.size() > 1)
-    throw semantic_error ("derived_probe with too many locations", this->tok);
+  if (locs.size() == 0 || locs.size() > 1)
+    throw semantic_error (ngettext("derived_probe with no locations",
+                                   "derived_probe with too many locations",
+                                   locs.size()), this->tok);
   else
     return locs[0];
 }
@@ -196,13 +198,13 @@ derived_probe::emit_process_owner_assertion (translator_output* o)
 void
 derived_probe::print_dupe_stamp_unprivileged(ostream& o)
 {
-  o << "unprivileged users: authorized" << endl;
+  o << _("unprivileged users: authorized") << endl;
 }
 
 void
 derived_probe::print_dupe_stamp_unprivileged_process_owner(ostream& o)
 {
-  o << "unprivileged users: authorized for process owner" << endl;
+  o << _("unprivileged users: authorized for process owner") << endl;
 }
 
 // ------------------------------------------------------------------------
@@ -354,7 +356,7 @@ match_node *
 match_node::bind(match_key const & k)
 {
   if (k.name == "*")
-    throw semantic_error("invalid use of wildcard probe point component");
+    throw semantic_error(_("invalid use of wildcard probe point component"));
 
   map<match_key, match_node *>::const_iterator i = sub.find(k);
   if (i != sub.end())
@@ -409,15 +411,15 @@ match_node::find_and_build (systemtap_session& s,
           for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
             alternatives += string(" ") + i->first.str();
 
-          throw semantic_error (string("probe point truncated at position ") +
-                                lex_cast (pos) +
-                                " (follow:" + alternatives + ")", loc->components.back()->tok);
+          throw semantic_error (_F("probe point truncated at position %s (follow: %s)",
+                                   lex_cast(pos).c_str(), alternatives.c_str()),
+                                   loc->components.back()->tok);
         }
 
       if (s.unprivileged && ! unprivileged_ok)
 	{
-	  throw semantic_error (string("probe point is not allowed for unprivileged users"),
-				loc->components.back()->tok);
+          throw semantic_error (_("probe point is not allowed for unprivileged users"),
+                                loc->components.back()->tok);
 	}
 
       map<string, literal *> param_map;
@@ -493,11 +495,8 @@ match_node::find_and_build (systemtap_session& s,
           for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
             alternatives += string(" ") + i->first.str();
 
-          throw semantic_error(string("probe point mismatch at position ") +
-                               lex_cast (pos) +
-                               " (alternatives:" + alternatives + ")" +
-                               " didn't find any wildcard matches",
-                               comp->tok);
+          throw semantic_error(_F("probe point mismatch at position %s (alternatives: %s)",
+                                  lex_cast(pos).c_str(), alternatives.c_str()), comp->tok);
         }
     }
   else if (isglob(loc->components[pos]->functor)) // wildcard?
@@ -517,8 +516,9 @@ match_node::find_and_build (systemtap_session& s,
 	  if (match.globmatch(subkey))
 	    {
 	      if (s.verbose > 2)
-		clog << "wildcard '" << loc->components[pos]->functor
-		     << "' matched '" << subkey.name << "'" << endl;
+                clog << _F("wildcard '%s' matched '%s'",
+                           loc->components[pos]->functor.c_str(),
+                           subkey.name.c_str()) << endl;
 
 	      // When we have a wildcard, we need to create a copy of
 	      // the probe point.  Then we'll create a copy of the
@@ -560,12 +560,10 @@ match_node::find_and_build (systemtap_session& s,
           for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
             alternatives += string(" ") + i->first.str();
 
-	  throw semantic_error(string("probe point mismatch at position ") +
-			       lex_cast (pos) +
-			       (alternatives == "" ? "" :
-			        (" (alternatives:" + alternatives + ")")) +
-			       " didn't find any wildcard matches",
-                               loc->components[pos]->tok);
+          throw semantic_error(_F("probe point mismatch at position %s %s didn't find any wildcard matches",
+                                  lex_cast(pos).c_str(),
+                                  (alternatives == "" ? "" : _(" (alternatives: ") +
+                                  alternatives + ")").c_str()), loc->components[pos]->tok);
 	}
     }
   else
@@ -578,11 +576,9 @@ match_node::find_and_build (systemtap_session& s,
           for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
             alternatives += string(" ") + i->first.str();
 
-	  throw semantic_error(string("probe point mismatch at position ") +
-                                lex_cast (pos) +
-                                (alternatives == "" ? "" :
-                                 (" (alternatives:" + alternatives + ")")),
-                                loc->components[pos]->tok);
+          throw semantic_error(_F("probe point mismatch at position %s %s", lex_cast(pos).c_str(),
+                                  (alternatives == "" ? "" : (_(" (alternatives:") + alternatives +
+                                  ")").c_str())), loc->components[pos]->tok);
         }
 
       match_node* subnode = i->second;
@@ -614,7 +610,7 @@ struct alias_derived_probe: public derived_probe
   alias_derived_probe (probe* base, probe_point *l, const probe_alias *a):
     derived_probe (base, l), alias(a) {}
 
-  void upchuck () { throw semantic_error ("inappropriate", this->tok); }
+  void upchuck () { throw semantic_error (_("inappropriate"), this->tok); }
 
   // Alias probes are immediately expanded to other derived_probe
   // types, and are not themselves emitted or listed in
@@ -652,7 +648,8 @@ alias_expansion_builder::build(systemtap_session & sess,
   // Don't build the alias expansion if infinite recursion is detected.
   if (checkForRecursiveExpansion (use)) {
     stringstream msg;
-    msg << "Recursive loop in alias expansion of " << *location  << " at " << location->components.front()->tok->location;
+    msg << _F("Recursive loop in alias expansion of %s at %s",
+              lex_cast(*location).c_str(), lex_cast(location->components.front()->tok->location).c_str());
     // semantic_errors thrown here are ignored.
     sess.print_error (semantic_error (msg.str()));
     return;
@@ -740,7 +737,7 @@ recursion_guard
   recursion_guard(unsigned & i) : i(i)
     {
       if (i > max_recursion)
-	throw semantic_error("recursion limit reached");
+	throw semantic_error(_("recursion limit reached"));
       ++i;
     }
   ~recursion_guard()
@@ -788,7 +785,7 @@ derive_probes (systemtap_session& s,
 
           if (! (loc->optional||optional) && // something required, but
               num_atbegin == num_atend) // nothing new derived!
-            throw semantic_error ("no match");
+            throw semantic_error (_("no match"));
 
           if (loc->sufficient && (num_atend > num_atbegin))
             {
@@ -815,7 +812,7 @@ derive_probes (systemtap_session& s,
               semantic_error* er = new semantic_error (e); // copy it
               stringstream msg;
               msg << e.msg2;
-              msg << " while resolving probe point " << *loc;
+              msg << _(" while resolving probe point ") << *loc;
               er->msg2 = msg.str();
               s.print_error (* er);
               delete er;
@@ -862,7 +859,7 @@ struct symbol_fetcher
 
   void throwone (const token* t)
   {
-    throw semantic_error ("Expecting symbol or array index expression", t);
+    throw semantic_error (_("Expecting symbol or array index expression"), t);
   }
 };
 
@@ -915,7 +912,7 @@ struct mutated_var_collector
 	if (e->base->is_symbol (sym))
 	  mutated_vars->insert (sym->referent);
 	else
-	  throw semantic_error("Assignment to read-only histogram bucket", e->tok);
+	  throw semantic_error(_("Assignment to read-only histogram bucket"), e->tok);
       }
     traversing_visitor::visit_arrayindex (e);
   }
@@ -947,8 +944,8 @@ struct no_var_mutation_during_iteration_check
 		vardecl *v = vars_being_iterated[i];
 		if (v == vd)
 		  {
-		    string err = ("variable '" + v->name +
-				  "' modified during 'foreach' iteration");
+                    string err = _F("variable '%s' modified during 'foreach' iteration",
+                                    v->name.c_str());
 		    session.print_error (semantic_error (err, e->tok));
 		  }
 	      }
@@ -969,8 +966,8 @@ struct no_var_mutation_during_iteration_check
 	    vardecl *m = vars_being_iterated[j];
 	    if (i->second->find (m) != i->second->end())
 	      {
-		string err = ("function call modifies var '" + m->name +
-			      "' during 'foreach' iteration");
+                string err = _F("function call modifies var '%s' during 'foreach' iteration",
+                                m->name.c_str());
 		session.print_error (semantic_error (err, e->tok));
 	      }
 	  }
@@ -1057,8 +1054,7 @@ struct stat_decl_collector
 	    else
 	      {
 		// FIXME: Support multiple co-declared histogram types
-		semantic_error se("multiple histogram types declared on '" + sym->name + "'",
-				  e->tok);
+		semantic_error se(_F("multiple histogram types declared on '%s'", sym->name.c_str()), e->tok);
 		session.print_error (se);
 	      }
 	  }
@@ -1086,7 +1082,7 @@ semantic_pass_stats (systemtap_session & sess)
 
 	  if (sess.stat_decls.find(v->name) == sess.stat_decls.end())
 	    {
-	      semantic_error se("unable to infer statistic parameters for global '" + v->name + "'");
+              semantic_error se(_F("unable to infer statistic parameters for global '%s'", v->name.c_str()));
 	      sess.print_error (se);
 	    }
 	}
@@ -1167,12 +1163,12 @@ semantic_pass_conditions (systemtap_session & sess)
 
           if (! vut.written.empty())
             {
-              string err = ("probe condition must not modify any variables");
+              string err = (_("probe condition must not modify any variables"));
               sess.print_error (semantic_error (err, e->tok));
             }
           else if (vut.embedded_seen)
             {
-              sess.print_error (semantic_error ("probe condition must not include impure embedded-C", e->tok));
+              sess.print_error (semantic_error (_("probe condition must not include impure embedded-C"), e->tok));
             }
 
           // Add the condition expression to the front of the
@@ -1226,8 +1222,8 @@ public:
       {
 	enable_vma_tracker(session);
 	if (session.verbose > 2)
-	  clog << "Turning on task_finder vma_tracker, pragma:vma found in "
-	       << current_function->name << endl;
+          clog << _F("Turning on task_finder vma_tracker, pragma:vma found in %s",
+                     current_function->name.c_str()) << endl;
       }
   }
 };
@@ -1353,12 +1349,12 @@ semantic_pass_symbols (systemtap_session& s)
   if(s.systemtap_v_check){ 
     for(unsigned i=0;i<s.globals.size();i++){
       if(s.globals[i]->systemtap_v_conditional)
-        s.print_warning("This global uses tapset constructs that are dependent on systemtap version", s.globals[i]->tok);
+        s.print_warning(_("This global uses tapset constructs that are dependent on systemtap version"), s.globals[i]->tok);
     }
 
     for(map<string, functiondecl*>::const_iterator i=s.functions.begin();i != s.functions.end();++i){
       if(i->second->systemtap_v_conditional)
-        s.print_warning("This function uses tapset constructs that are dependent on systemtap version", i->second->tok);
+        s.print_warning(_("This function uses tapset constructs that are dependent on systemtap version"), i->second->tok);
     }
 
     for(unsigned i=0;i<s.probes.size();i++){
@@ -1366,9 +1362,9 @@ semantic_pass_symbols (systemtap_session& s)
       s.probes[i]->collect_derivation_chain(sysvc);
       for(unsigned j=0;j<sysvc.size();j++){
         if(sysvc[j]->systemtap_v_conditional)
-          s.print_warning("This probe uses tapset constructs that are dependent on systemtap version", sysvc[j]->tok);
+          s.print_warning(_("This probe uses tapset constructs that are dependent on systemtap version"), sysvc[j]->tok);
         if(sysvc[j]->get_alias() && sysvc[j]->get_alias()->systemtap_v_conditional)
-          s.print_warning("This alias uses tapset constructs that are dependent on systemtap version", sysvc[j]->get_alias()->tok);
+          s.print_warning(_("This alias uses tapset constructs that are dependent on systemtap version"), sysvc[j]->get_alias()->tok);
       }
     }
   }
@@ -1649,7 +1645,7 @@ semantic_pass (systemtap_session& s)
       if (rc == 0) embeddedcode_info_pass (s);
 
       if (s.num_errors() == 0 && s.probes.size() == 0 && !s.listing_mode)
-        throw semantic_error ("no probes found");
+        throw semantic_error (_("no probes found"));
     }
   catch (const semantic_error& e)
     {
@@ -1712,9 +1708,8 @@ symresolution_info::visit_foreach_loop (foreach_loop* e)
 	  else
 	    {
 	      stringstream msg;
-	      msg << "unresolved arity-" << e->indexes.size()
-		  << " global array " << array->name
-		  << ", missing global declaration? ";
+              msg << _F("unresolved arity-%zu global array %s, missing global declaration?",
+                        e->indexes.size(), array->name.c_str());
 	      throw semantic_error (msg.str(), e->tok);
 	    }
 	}
@@ -1763,7 +1758,7 @@ delete_statement_symresolution_info:
     if (d)
       e->referent = d;
     else
-      throw semantic_error ("unresolved array in delete statement", e->tok);
+      throw semantic_error (_("unresolved array in delete statement"), e->tok);
   }
 };
 
@@ -1797,7 +1792,7 @@ symresolution_info::visit_symbol (symbol* e)
         current_probe->locals.push_back (v);
       else
         // must be probe-condition expression
-        throw semantic_error ("probe condition must not reference undeclared global", e->tok);
+        throw semantic_error (_("probe condition must not reference undeclared global"), e->tok);
       e->referent = v;
     }
 }
@@ -1824,9 +1819,8 @@ symresolution_info::visit_arrayindex (arrayindex* e)
       else
 	{
 	  stringstream msg;
-	  msg << "unresolved arity-" << e->indexes.size()
-	      << " global array " << array->name
-	      << ", missing global declaration? ";
+          msg << _F("unresolved arity-%zu global array %s, missing global declaration?",
+                    e->indexes.size(), array->name.c_str());
 	  throw semantic_error (msg.str(), e->tok);
 	}
     }
@@ -1846,7 +1840,7 @@ symresolution_info::visit_functioncall (functioncall* e)
   if (! (current_function || current_probe))
     {
       // must be probe-condition expression
-      throw semantic_error ("probe condition must not reference function", e->tok);
+      throw semantic_error (_("probe condition must not reference function"), e->tok);
     }
 
   for (unsigned i=0; i<e->args.size(); i++)
@@ -1861,8 +1855,7 @@ symresolution_info::visit_functioncall (functioncall* e)
   else
     {
       stringstream msg;
-      msg << "unresolved arity-" << e->args.size()
-          << " function";
+      msg << _F("unresolved arity-%zu function", e->args.size());
       throw semantic_error (msg.str(), e->tok);
     }
 }
@@ -1909,8 +1902,8 @@ symresolution_info::find_var (const string& name, int arity, const token* tok)
             // clog << "resolved " << *tok << " to global " << *v->tok << endl;
             if (v->tok->location.file != tok->location.file)
               {
-                session.print_warning ("cross-file global variable reference to " + lex_cast (*v->tok) + " from",
-                                       tok);
+                session.print_warning (_F("cross-file global variable reference to %s from",
+                                          lex_cast(*v->tok).c_str()), tok);
               }
           }
 	return session.globals[i];
@@ -1963,8 +1956,8 @@ symresolution_info::find_function (const string& name, unsigned arity)
           {
             // put library into the queue if not already there
             if (0) // session.verbose_resolution
-              cerr << "      function " << name << " "
-                   << "is defined from " << f->name << endl;
+              cerr << _F("      function %s is defined from %s",
+                         name.c_str(), f->name.c_str()) << endl;
 
             if (find (session.files.begin(), session.files.end(), f)
                 == session.files.end())
@@ -2003,10 +1996,9 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
         {
           if (fd->tok->location.file->name == s.user_file->name && // !tapset
               ! s.suppress_warnings && ! fd->synthetic)
-	    s.print_warning ("eliding unused function '" + fd->name + "'", fd->tok);
+            s.print_warning (_F("Eliding unused function '%s'", fd->name.c_str()), fd->tok);
           else if (s.verbose>2)
-            clog << "Eliding unused function " << fd->name
-                 << endl;
+            clog << _F("Eliding unused function '%s'", fd->name.c_str()) << endl;
           // s.functions.erase (it); // NB: can't, since we're already iterating upon it
           new_unused_functions.push_back (fd);
           relaxed_p = false;
@@ -2062,10 +2054,10 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
           {
             if (l->tok->location.file->name == s.user_file->name && // !tapset
                 ! s.suppress_warnings)
-	      s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
+              s.print_warning (_F("Eliding unused variable '%s'", l->name.c_str()), l->tok);
             else if (s.verbose>2)
-              clog << "Eliding unused local variable "
-                   << l->name << " in " << s.probes[i]->name << endl;
+              clog << _F("Eliding unused local variable %s in %s",
+                         l->name.c_str(), s.probes[i]->name.c_str()) << endl;
 	    if (s.tapset_compile_coverage) {
 	      s.probes[i]->unused_locals.push_back
 		      (s.probes[i]->locals[j]);
@@ -2088,8 +2080,9 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
 		      if (l->name != (*it)->name)
 			o << " " <<  (*it)->name;
 
-		    s.print_warning ("never-assigned local variable '" + l->name + "' " +
-                                     (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
+                    s.print_warning (_F("never-assigned local variable '%s' %s",
+                                     l->name.c_str(), (o.str() == "" ? "" :
+                                     (_("(alternatives:") + o.str() + ")")).c_str()), l->tok);
 		  }
             j++;
           }
@@ -2106,11 +2099,10 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
             {
               if (l->tok->location.file->name == s.user_file->name && // !tapset
                   ! s.suppress_warnings)
-                s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
+                s.print_warning (_F("Eliding unused variable '%s'", l->name.c_str()), l->tok);
               else if (s.verbose>2)
-                clog << "Eliding unused local variable "
-                     << l->name << " in function " << fd->name
-                     << endl;
+                clog << _F("Eliding unused local variable %s in function %s",
+                           l->name.c_str(), fd->name.c_str()) << endl;
               if (s.tapset_compile_coverage) {
                 fd->unused_locals.push_back (fd->locals[j]);
               }
@@ -2136,8 +2128,9 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
                       if (l->name != (*it)->name)
                         o << " " << (*it)->name;
 
-                    s.print_warning ("never-assigned local variable '" + l->name + "' " +
-                                     (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
+                    s.print_warning (_F("never-assigned local variable '%s' %s",
+                                        l->name.c_str(), (o.str() == "" ? "" :
+                                        (_("(alternatives:") + o.str() + ")")).c_str()), l->tok);
                   }
 
               j++;
@@ -2152,10 +2145,9 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
         {
           if (l->tok->location.file->name == s.user_file->name && // !tapset
               ! s.suppress_warnings)
-            s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
+            s.print_warning (_F("Eliding unused variable '%s'", l->name.c_str()), l->tok);
           else if (s.verbose>2)
-            clog << "Eliding unused global variable "
-                 << l->name << endl;
+            clog << _F("Eliding unused global variable %s", l->name.c_str()) << endl;
 	  if (s.tapset_compile_coverage) {
 	    s.unused_globals.push_back(s.globals[i]);
 	  }
@@ -2174,8 +2166,8 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
                   if (l->name != (*it)->name)
                     o << " " << (*it)->name;
 
-                s.print_warning ("never-assigned global variable '" + l->name + "' " +
-                                 (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
+                s.print_warning (_F("never assigned global variable '%s' %s", l->name.c_str(),
+                                   (o.str() == "" ? "" : (_("(alternatives:") + o.str() + ")")).c_str()), l->tok);
               }
 
           i++;
@@ -2242,8 +2234,8 @@ dead_assignment_remover::visit_assignment (assignment* e)
               else
               */
               if (session.verbose>2)
-                clog << "Eliding assignment to " << leftvar->name
-                     << " at " << *e->tok << endl;
+                clog << _F("Eliding assignment to %s at %s",
+                           leftvar->name.c_str(), lex_cast(*e->tok).c_str()) << endl;
 
               provide (e->right); // goodbye assignment*
               relaxed_p = false;
@@ -2265,8 +2257,8 @@ dead_assignment_remover::visit_try_block (try_block *s)
       if (vut.read.find(errvar) == vut.read.end()) // never read?
         {
           if (session.verbose>2)
-            clog << "Eliding unused error string catcher " << errvar->name
-                 << " at " << *s->tok << endl;
+            clog << _F("Eliding unused error string catcher %s at %s",
+                      errvar->name.c_str(), lex_cast(*s->tok).c_str()) << endl;
           s->catch_error_var = 0;
         }
     }
@@ -2330,7 +2322,7 @@ dead_stmtexpr_remover::visit_null_statement (null_statement *s)
 {
   // easy!
   if (session.verbose>2)
-    clog << "Eliding side-effect-free null statement " << *s->tok << endl;
+    clog << _("Eliding side-effect-free null statement ") << *s->tok << endl;
   s = 0;
   provide (s);
 }
@@ -2350,7 +2342,7 @@ dead_stmtexpr_remover::visit_block (block *s)
           if (b)
             {
               if (session.verbose>2)
-                clog << "Flattening nested block " << *b->tok << endl;
+                clog << _("Flattening nested block ") << *b->tok << endl;
               new_stmts.insert(new_stmts.end(),
                   b->statements.begin(), b->statements.end());
               relaxed_p = false;
@@ -2362,13 +2354,13 @@ dead_stmtexpr_remover::visit_block (block *s)
   if (new_stmts.size() == 0)
     {
       if (session.verbose>2)
-        clog << "Eliding side-effect-free empty block " << *s->tok << endl;
+        clog << _("Eliding side-effect-free empty block ") << *s->tok << endl;
       s = 0;
     }
   else if (new_stmts.size() == 1)
     {
       if (session.verbose>2)
-        clog << "Eliding side-effect-free singleton block " << *s->tok << endl;
+        clog << _("Eliding side-effect-free singleton block ") << *s->tok << endl;
       provide (new_stmts[0]);
       return;
     }
@@ -2386,7 +2378,7 @@ dead_stmtexpr_remover::visit_try_block (try_block *s)
   if (s->try_block == 0)
     {
       if (session.verbose>2)
-        clog << "Eliding empty try {} block " << *s->tok << endl;
+        clog << _("Eliding empty try {} block ") << *s->tok << endl;
       s = 0;
     }
   provide (s);
@@ -2410,7 +2402,7 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
           if (vct.side_effect_free ())
             {
               if (session.verbose>2)
-                clog << "Eliding side-effect-free if statement "
+                clog << _("Eliding side-effect-free if statement ")
                      << *s->tok << endl;
               s = 0; // yeah, baby
             }
@@ -2418,7 +2410,7 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
             {
               // We can still turn it into a simple expr_statement though...
               if (session.verbose>2)
-                clog << "Creating simple evaluation from if statement "
+                clog << _("Creating simple evaluation from if statement ")
                      << *s->tok << endl;
               expr_statement *es = new expr_statement;
               es->value = s->condition;
@@ -2432,7 +2424,7 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
           // For an else without a then, we can invert the condition logic to
           // avoid having a null statement in the thenblock
           if (session.verbose>2)
-            clog << "Inverting the condition of if statement "
+            clog << _("Inverting the condition of if statement ")
                  << *s->tok << endl;
           unary_expression *ue = new unary_expression;
           ue->operand = s->condition;
@@ -2456,7 +2448,7 @@ dead_stmtexpr_remover::visit_foreach_loop (foreach_loop *s)
       // XXX what if s->limit has side effects?
       // XXX what about s->indexes or s->value used outside the loop?
       if (session.verbose>2)
-        clog << "Eliding side-effect-free foreach statement " << *s->tok << endl;
+        clog << _("Eliding side-effect-free foreach statement ") << *s->tok << endl;
       s = 0; // yeah, baby
     }
   provide (s);
@@ -2478,7 +2470,7 @@ dead_stmtexpr_remover::visit_for_loop (for_loop *s)
       if (vct.side_effect_free ())
         {
           if (session.verbose>2)
-            clog << "Eliding side-effect-free for statement " << *s->tok << endl;
+            clog << _("Eliding side-effect-free for statement ") << *s->tok << endl;
           s = 0; // yeah, baby
         }
       else
@@ -2520,7 +2512,7 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
       else
       */
       if (session.verbose>2)
-        clog << "Eliding side-effect-free expression "
+        clog << _("Eliding side-effect-free expression ")
              << *s->tok << endl;
 
       // NB: this 0 pointer is invalid to leave around for any length of
@@ -2558,7 +2550,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
         {
           if (! s.suppress_warnings
               && ! s.timing) // PR10070
-            s.print_warning ("side-effect-free probe '" + p->name + "'", p->tok);
+            s.print_warning (_F("side-effect-free probe '%s'", p->name.c_str()), p->tok);
 
           p->body = new null_statement(p->tok);
 
@@ -2582,7 +2574,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       if (fn->body == 0)
         {
           if (! s.suppress_warnings)
-            s.print_warning ("side-effect-free function '" + fn->name + "'", fn->tok);
+            s.print_warning (_F("side-effect-free function '%s'", fn->name.c_str()), fn->tok);
 
           fn->body = new null_statement(fn->tok);
 
@@ -2702,7 +2694,7 @@ void_statement_reducer::visit_logical_or_expr (logical_or_expr* e)
   // "if (!a) b", so let's do that instead.
 
   if (session.verbose>2)
-    clog << "Creating if statement from unused logical-or "
+    clog << _("Creating if statement from unused logical-or ")
          << *e->tok << endl;
 
   if_statement *is = new if_statement;
@@ -2733,7 +2725,7 @@ void_statement_reducer::visit_logical_and_expr (logical_and_expr* e)
   // "if (a) b", so let's do that instead.
 
   if (session.verbose>2)
-    clog << "Creating if statement from unused logical-and "
+    clog << _("Creating if statement from unused logical-and ")
          << *e->tok << endl;
 
   if_statement *is = new if_statement;
@@ -2759,7 +2751,7 @@ void_statement_reducer::visit_ternary_expression (ternary_expression* e)
   // "if (a) b else c", so let's do that instead.
 
   if (session.verbose>2)
-    clog << "Creating if statement from unused ternary expression "
+    clog << _("Creating if statement from unused ternary expression ")
          << *e->tok << endl;
 
   if_statement *is = new if_statement;
@@ -2789,7 +2781,7 @@ void_statement_reducer::visit_binary_expression (binary_expression* e)
   // evaluate the operands as sequential statements in a block.
 
   if (session.verbose>2)
-    clog << "Eliding unused binary " << *e->tok << endl;
+    clog << _("Eliding unused binary ") << *e->tok << endl;
 
   block *b = new block;
   b->tok = e->tok;
@@ -2817,7 +2809,7 @@ void_statement_reducer::visit_unary_expression (unary_expression* e)
   // evaluate the operand directly
 
   if (session.verbose>2)
-    clog << "Eliding unused unary " << *e->tok << endl;
+    clog << _("Eliding unused unary ") << *e->tok << endl;
 
   relaxed_p = false;
   e->operand->visit(this);
@@ -2858,7 +2850,7 @@ void_statement_reducer::visit_functioncall (functioncall* e)
     }
 
   if (session.verbose>2)
-    clog << "Eliding side-effect-free function call " << *e->tok << endl;
+    clog << _("Eliding side-effect-free function call ") << *e->tok << endl;
 
   block *b = new block;
   b->tok = e->tok;
@@ -2890,7 +2882,7 @@ void_statement_reducer::visit_print_format (print_format* e)
     }
 
   if (session.verbose>2)
-    clog << "Eliding unused print " << *e->tok << endl;
+    clog << _("Eliding unused print ") << *e->tok << endl;
 
   block *b = new block;
   b->tok = e->tok;
@@ -2937,7 +2929,7 @@ void_statement_reducer::visit_target_symbol (target_symbol* e)
     }
 
   if (session.verbose>2)
-    clog << "Eliding unused target symbol " << *e->tok << endl;
+    clog << _("Eliding unused target symbol ") << *e->tok << endl;
 
   b->visit(this);
   relaxed_p = false;
@@ -2971,7 +2963,7 @@ void_statement_reducer::visit_cast_op (cast_op* e)
     }
 
   if (session.verbose>2)
-    clog << "Eliding unused typecast " << *e->tok << endl;
+    clog << _("Eliding unused typecast ") << *e->tok << endl;
 
   b->visit(this);
   relaxed_p = false;
@@ -2988,7 +2980,7 @@ void_statement_reducer::visit_defined_op (defined_op* e)
   // side-effect-free.
 
   if (session.verbose>2)
-    clog << "Eliding unused check " << *e->tok << endl;
+    clog << _("Eliding unused check ") << *e->tok << endl;
 
   relaxed_p = false;
   e = 0;
@@ -3097,7 +3089,8 @@ const_folder::visit_if_statement (if_statement* s)
   else
     {
       if (session.verbose>2)
-        clog << "Collapsing constant-" << cond->value << " if-statement " << *s->tok << endl;
+        clog << _F("Collapsing constant-%" PRIi64 " if-statement %s",
+                   cond->value, lex_cast(*s->tok).c_str()) << endl;
       relaxed_p = false;
 
       statement* n = cond->value ? s->thenblock : s->elseblock;
@@ -3122,7 +3115,7 @@ const_folder::visit_for_loop (for_loop* s)
   else
     {
       if (session.verbose>2)
-        clog << "Collapsing constantly-false for-loop " << *s->tok << endl;
+        clog << _("Collapsing constantly-false for-loop ") << *s->tok << endl;
       relaxed_p = false;
 
       if (s->init)
@@ -3148,7 +3141,7 @@ const_folder::visit_foreach_loop (foreach_loop* s)
   else
     {
       if (session.verbose>2)
-        clog << "Collapsing constantly-limited foreach-loop " << *s->tok << endl;
+        clog << _("Collapsing constantly-limited foreach-loop ") << *s->tok << endl;
       relaxed_p = false;
 
       provide (new null_statement (s->tok));
@@ -3195,7 +3188,7 @@ const_folder::visit_binary_expression (binary_expression* e)
         value = (left->value == LLONG_MIN && right->value == -1) ? 0 :
                 left->value % right->value;
       else
-        throw semantic_error ("unsupported binary operator " + e->op);
+        throw semantic_error (_("unsupported binary operator ") + e->op);
     }
 
   else if ((left && ((left->value == 0 && (e->op == "*" || e->op == "&" ||
@@ -3235,7 +3228,7 @@ const_folder::visit_binary_expression (binary_expression* e)
                       (right->value <= 0 && (e->op == ">>" || e->op == "<<")))))
     {
       if (session.verbose>2)
-        clog << "Collapsing constant-identity binary operator " << *e->tok << endl;
+        clog << _("Collapsing constant-identity binary operator ") << *e->tok << endl;
       relaxed_p = false;
 
       provide (left ? e->right : e->left);
@@ -3249,7 +3242,8 @@ const_folder::visit_binary_expression (binary_expression* e)
     }
 
   if (session.verbose>2)
-    clog << "Collapsing constant-" << value << " binary operator " << *e->tok << endl;
+    clog << _F("Collapsing constant-%" PRIi64 " binary operator %s",
+               value, lex_cast(*e->tok).c_str()) << endl;
   relaxed_p = false;
 
   literal_number* n = new literal_number(value);
@@ -3266,7 +3260,7 @@ const_folder::visit_unary_expression (unary_expression* e)
   else
     {
       if (session.verbose>2)
-        clog << "Collapsing constant unary " << *e->tok << endl;
+        clog << _("Collapsing constant unary ") << *e->tok << endl;
       relaxed_p = false;
 
       literal_number* n = new literal_number (*operand);
@@ -3280,7 +3274,7 @@ const_folder::visit_unary_expression (unary_expression* e)
       else if (e->op == "~")
         n->value = ~n->value;
       else
-        throw semantic_error ("unsupported unary operator " + e->op);
+        throw semantic_error (_("unsupported unary operator ") + e->op);
       n->visit (this);
     }
 }
@@ -3324,7 +3318,7 @@ const_folder::visit_logical_or_expr (logical_or_expr* e)
     }
 
   if (session.verbose>2)
-    clog << "Collapsing constant logical-OR " << *e->tok << endl;
+    clog << _("Collapsing constant logical-OR ") << *e->tok << endl;
   relaxed_p = false;
 
   literal_number* n = new literal_number(value);
@@ -3371,7 +3365,7 @@ const_folder::visit_logical_and_expr (logical_and_expr* e)
     }
 
   if (session.verbose>2)
-    clog << "Collapsing constant logical-AND " << *e->tok << endl;
+    clog << _("Collapsing constant logical-AND ") << *e->tok << endl;
   relaxed_p = false;
 
   literal_number* n = new literal_number(value);
@@ -3414,7 +3408,7 @@ const_folder::visit_comparison (comparison* e)
       else
         {
           if (session.verbose>2)
-            clog << "Collapsing constant-boundary comparison " << *e->tok << endl;
+            clog << _("Collapsing constant-boundary comparison ") << *e->tok << endl;
           relaxed_p = false;
 
           // ops <= and >= are true, < and > are false
@@ -3432,7 +3426,7 @@ const_folder::visit_comparison (comparison* e)
     }
 
   if (session.verbose>2)
-    clog << "Collapsing constant comparison " << *e->tok << endl;
+    clog << _("Collapsing constant comparison ") << *e->tok << endl;
   relaxed_p = false;
 
   int64_t value;
@@ -3449,7 +3443,7 @@ const_folder::visit_comparison (comparison* e)
   else if (e->op == ">=")
     value = comp >= 0;
   else
-    throw semantic_error ("unsupported comparison operator " + e->op);
+    throw semantic_error (_("unsupported comparison operator ") + e->op);
 
   literal_number* n = new literal_number(value);
   n->tok = e->tok;
@@ -3465,7 +3459,7 @@ const_folder::visit_concatenation (concatenation* e)
   if (left && right)
     {
       if (session.verbose>2)
-        clog << "Collapsing constant concatenation " << *e->tok << endl;
+        clog << _("Collapsing constant concatenation ") << *e->tok << endl;
       relaxed_p = false;
 
       literal_string* n = new literal_string (*left);
@@ -3477,7 +3471,7 @@ const_folder::visit_concatenation (concatenation* e)
            (right && right->value.empty()))
     {
       if (session.verbose>2)
-        clog << "Collapsing identity concatenation " << *e->tok << endl;
+        clog << _("Collapsing identity concatenation ") << *e->tok << endl;
       relaxed_p = false;
       provide(left ? e->right : e->left);
     }
@@ -3498,7 +3492,8 @@ const_folder::visit_ternary_expression (ternary_expression* e)
   else
     {
       if (session.verbose>2)
-        clog << "Collapsing constant-" << cond->value << " ternary " << *e->tok << endl;
+        clog << _F("Collapsing constant-%" PRIi64 " ternary %s",
+                   cond->value, lex_cast(*e->tok).c_str()) << endl;
       relaxed_p = false;
 
       expression* n = cond->value ? e->truevalue : e->falsevalue;
@@ -3512,7 +3507,7 @@ const_folder::visit_defined_op (defined_op* e)
   // If a @defined makes it this far, then it is, de facto, undefined.
 
   if (session.verbose>2)
-    clog << "Collapsing untouched @defined check " << *e->tok << endl;
+    clog << _("Collapsing untouched @defined check ") << *e->tok << endl;
   relaxed_p = false;
 
   literal_number* n = new literal_number (0);
@@ -3532,10 +3527,10 @@ const_folder::visit_target_symbol (target_symbol* e)
       ln_zero->tok = e->tok;
       provide (ln_zero);
       if (!session.suppress_warnings)
-        session.print_warning ("Bad $context variable being substituted with literal 0",
+        session.print_warning (_("Bad $context variable being substituted with literal 0"),
                                e->tok);
       else if (session.verbose > 2)
-        clog << "Bad $context variable being substituted with literal 0, "
+        clog << _("Bad $context variable being substituted with literal 0, ")
              << *e->tok << endl;
       relaxed_p = false;
     }
@@ -3580,10 +3575,8 @@ duplicate_function_remover::visit_functioncall (functioncall *e)
   if (duplicate_function_map.count(e->referent) != 0)
     {
       if (s.verbose>2)
-	  clog << "Changing " << e->referent->name
-	       << " reference to "
-	       << duplicate_function_map[e->referent]->name
-	       << " reference\n";
+          clog << _F("Changing %s reference to %s reference\n",
+                     e->referent->name.c_str(), duplicate_function_map[e->referent]->name.c_str());
       e->tok = duplicate_function_map[e->referent]->tok;
       e->function = duplicate_function_map[e->referent]->name;
       e->referent = duplicate_function_map[e->referent];
@@ -3994,7 +3987,7 @@ typeresolution_info::visit_assignment (assignment *e)
 
     }
   else
-    throw semantic_error ("unsupported assignment operator " + e->op);
+    throw semantic_error (_("unsupported assignment operator ") + e->op);
 }
 
 
@@ -4171,7 +4164,7 @@ typeresolution_info::visit_target_symbol (target_symbol* e)
 
   if (session.verbose > 2)
     {
-      clog << "Resolution problem with ";
+      clog << _("Resolution problem with ");
       if (current_function)
         {
           clog << "function " << current_function->name << endl;
@@ -4185,27 +4178,28 @@ typeresolution_info::visit_target_symbol (target_symbol* e)
           clog << endl;
         }
       else
-        clog << "other" << endl;
+        //TRANSLATORS: simply saying not an issue with a probe or function
+        clog << _("other") << endl;
     }
 
   if (e->saved_conversion_error)
     throw (* (e->saved_conversion_error));
   else
-    throw semantic_error("unresolved target-symbol expression", e->tok);
+    throw semantic_error(_("unresolved target-symbol expression"), e->tok);
 }
 
 
 void
 typeresolution_info::visit_defined_op (defined_op* e)
 {
-  throw semantic_error("unexpected @defined", e->tok);
+  throw semantic_error(_("unexpected @defined"), e->tok);
 }
 
 
 void
 typeresolution_info::visit_entry_op (entry_op* e)
 {
-  throw semantic_error("@entry is only valid in .return probes", e->tok);
+  throw semantic_error(_("@entry is only valid in .return probes"), e->tok);
 }
 
 
@@ -4217,7 +4211,8 @@ typeresolution_info::visit_cast_op (cast_op* e)
   if (e->saved_conversion_error)
     throw (* (e->saved_conversion_error));
   else
-    throw semantic_error("type definition '" + e->type_name + "' not found", e->tok);
+    throw semantic_error(_F("type definition '%s' not found",
+                            e->type_name.c_str()), e->tok);
 }
 
 
@@ -4377,7 +4372,7 @@ typeresolution_info::visit_embeddedcode (embeddedcode* s)
   if (!session.need_uprobes && s->code.find("/* pragma:uprobes */") != string::npos)
     {
       if (session.verbose > 2)
-        clog << "Activating uprobes support because /* pragma:uprobes */ seen." << endl;
+        clog << _("Activating uprobes support because /* pragma:uprobes */ seen.") << endl;
       session.need_uprobes = true;
     }
 }
@@ -4518,7 +4513,7 @@ struct delete_statement_typeresolution_info:
 {
   typeresolution_info *parent;
   delete_statement_typeresolution_info (typeresolution_info *p):
-    throwing_visitor ("invalid operand of delete expression"),
+    throwing_visitor (_("invalid operand of delete expression")),
     parent (p)
   {}
 
@@ -4634,7 +4629,7 @@ typeresolution_info::visit_print_format (print_format* e)
       for (size_t i = 0; i < e->components.size(); ++i)
 	{
 	  if (e->components[i].type == print_format::conv_unspecified)
-	    throw semantic_error ("Unspecified conversion in print operator format string",
+	    throw semantic_error (_("Unspecified conversion in print operator format string"),
 				  e->tok);
 	  else if (e->components[i].type == print_format::conv_literal)
 	    continue;
@@ -4650,7 +4645,7 @@ typeresolution_info::visit_print_format (print_format* e)
       // of args agree.
 
       if (expected_num_args != e->args.size())
-	throw semantic_error ("Wrong number of args to formatted print operator",
+	throw semantic_error (_("Wrong number of args to formatted print operator"),
 			      e->tok);
 
       // Then we check that the types of the conversions match the types
@@ -4787,7 +4782,7 @@ typeresolution_info::check_local (vardecl* v)
       num_still_unresolved ++;
       if (assert_resolvability)
         session.print_error
-          (semantic_error ("array locals not supported, missing global declaration? ", v->tok));
+          (semantic_error (_("array locals not supported, missing global declaration? "), v->tok));
     }
 
   if (v->type == pe_unknown)
@@ -4797,7 +4792,7 @@ typeresolution_info::check_local (vardecl* v)
       num_still_unresolved ++;
       if (assert_resolvability)
         session.print_error
-          (semantic_error ("stat locals not supported, missing global declaration? ", v->tok));
+          (semantic_error (_("stat locals not supported, missing global declaration? "), v->tok));
     }
   else if (!(v->type == pe_long || v->type == pe_string))
     invalid (v->tok, v->type);
@@ -4812,7 +4807,7 @@ typeresolution_info::unresolved (const token* tok)
   if (assert_resolvability)
     {
       stringstream msg;
-      msg << "unresolved type ";
+      msg << _("unresolved type ");
       session.print_error (semantic_error (msg.str(), tok));
     }
 }
@@ -4827,9 +4822,9 @@ typeresolution_info::invalid (const token* tok, exp_type pe)
     {
       stringstream msg;
       if (tok && tok->type == tok_operator)
-        msg << "invalid operator";
+        msg << _("invalid operator");
       else
-        msg << "invalid type " << pe;
+        msg << _("invalid type ") << pe;
       session.print_error (semantic_error (msg.str(), tok));
     }
 }
@@ -4862,7 +4857,8 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 	}
       if (!tok_resolved)
 	{
-	  msg << "type mismatch (" << t1 << " vs. " << t2 << ")";
+          msg << _F("type mismatch ( %s vs. %s )",
+                    lex_cast(t1).c_str(), lex_cast(t2).c_str());
 	}
       else
 	{
@@ -4875,13 +4871,14 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 		  break;
 		}
 	    }
-	  msg << "type mismatch (" << t1 << " vs. " << t2 << ")";
+          msg << _F("type mismatch ( %s vs. %s )",
+                    lex_cast(t1).c_str(), lex_cast(t2).c_str());
 	  if (!tok_printed)
 	    {
 	      //error for possible mismatch in the earlier resolved token
 	      printed_toks.push_back (resolved_toks[i]);
 	      stringstream type_msg;
-	      type_msg << "type was first inferred here (" << t2 << ")";
+              type_msg << _F("type was first inferred here ( %s )", lex_cast(t2).c_str());
 	      err1 = new semantic_error (type_msg.str(), resolved_toks[i]);
 	    }
 	}
