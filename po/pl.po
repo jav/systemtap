@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-03-07 18:52-0500\n"
+"POT-Creation-Date: 2011-03-11 15:48-0500\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Przemysław Pawełczyk <przemyslaw@pawelczyk.it>\n"
 "Language-Team: Polish\n"
@@ -336,7 +336,7 @@ msgstr ""
 msgid " in "
 msgstr ""
 
-#: dwflpp.cxx:1853
+#: dwflpp.cxx:1853 elaborate.cxx:580
 msgid " (alternatives:"
 msgstr ""
 
@@ -567,6 +567,479 @@ msgstr ""
 #: dwflpp.cxx:3151
 #, c-format
 msgid "found cfa, info: %d [start: 0x%#<PRIx64>, end: 0x%#<PRIx64>, nops: %zu"
+msgstr ""
+
+#: elaborate.cxx:144 elaborate.cxx:159
+msgid "derived_probe with no locations"
+msgid_plural "derived_probe with no locations"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: elaborate.cxx:201
+msgid "unprivileged users: authorized"
+msgstr ""
+
+#: elaborate.cxx:207
+msgid "unprivileged users: authorized for process owner"
+msgstr ""
+
+#: elaborate.cxx:359
+msgid "invalid use of wildcard probe point component"
+msgstr ""
+
+#: elaborate.cxx:414
+#, c-format
+msgid "probe point truncated at position %s (follow: %s)"
+msgstr ""
+
+#: elaborate.cxx:421
+msgid "probe point is not allowed for unprivileged users"
+msgstr ""
+
+#: elaborate.cxx:498
+#, c-format
+msgid "probe point mismatch at position %s (alternatives: %s)"
+msgstr ""
+
+#: elaborate.cxx:519
+#, c-format
+msgid "wildcard '%s' matched '%s'"
+msgstr ""
+
+#: elaborate.cxx:565
+msgid " (alternatives: "
+msgstr ""
+
+#: elaborate.cxx:563
+#, c-format
+msgid "probe point mismatch at position %s %s didn't find any wildcard matches"
+msgstr ""
+
+#: elaborate.cxx:579
+#, c-format
+msgid "probe point mismatch at position %s %s"
+msgstr ""
+
+#: elaborate.cxx:613
+msgid "inappropriate"
+msgstr ""
+
+#: elaborate.cxx:651
+#, c-format
+msgid "Recursive loop in alias expansion of %s at %s"
+msgstr ""
+
+#: elaborate.cxx:740
+msgid "recursion limit reached"
+msgstr ""
+
+#: elaborate.cxx:788
+msgid "no match"
+msgstr ""
+
+#: elaborate.cxx:815
+msgid " while resolving probe point "
+msgstr ""
+
+#: elaborate.cxx:862
+msgid "Expecting symbol or array index expression"
+msgstr ""
+
+#: elaborate.cxx:915
+msgid "Assignment to read-only histogram bucket"
+msgstr ""
+
+#: elaborate.cxx:947
+#, c-format
+msgid "variable '%s' modified during 'foreach' iteration"
+msgstr ""
+
+#: elaborate.cxx:969
+#, c-format
+msgid "function call modifies var '%s' during 'foreach' iteration"
+msgstr ""
+
+#: elaborate.cxx:1057
+#, c-format
+msgid "multiple histogram types declared on '%s'"
+msgstr ""
+
+#: elaborate.cxx:1085
+#, c-format
+msgid "unable to infer statistic parameters for global '%s'"
+msgstr ""
+
+#: elaborate.cxx:1166
+msgid "probe condition must not modify any variables"
+msgstr ""
+
+#: elaborate.cxx:1171
+msgid "probe condition must not include impure embedded-C"
+msgstr ""
+
+#: elaborate.cxx:1225
+#, c-format
+msgid "Turning on task_finder vma_tracker, pragma:vma found in %s"
+msgstr ""
+
+#: elaborate.cxx:1352
+msgid ""
+"This global uses tapset constructs that are dependent on systemtap version"
+msgstr ""
+
+#: elaborate.cxx:1357
+msgid ""
+"This function uses tapset constructs that are dependent on systemtap version"
+msgstr ""
+
+#: elaborate.cxx:1365
+msgid ""
+"This probe uses tapset constructs that are dependent on systemtap version"
+msgstr ""
+
+#: elaborate.cxx:1367
+msgid ""
+"This alias uses tapset constructs that are dependent on systemtap version"
+msgstr ""
+
+#: elaborate.cxx:1648
+msgid "no probes found"
+msgstr ""
+
+#: elaborate.cxx:1711 elaborate.cxx:1822
+#, c-format
+msgid "unresolved arity-%zu global array %s, missing global declaration?"
+msgstr ""
+
+#: elaborate.cxx:1761
+msgid "unresolved array in delete statement"
+msgstr ""
+
+#: elaborate.cxx:1795
+msgid "probe condition must not reference undeclared global"
+msgstr ""
+
+#: elaborate.cxx:1843
+msgid "probe condition must not reference function"
+msgstr ""
+
+#: elaborate.cxx:1858
+#, c-format
+msgid "unresolved arity-%zu function"
+msgstr ""
+
+#: elaborate.cxx:1905
+#, c-format
+msgid "cross-file global variable reference to %s from"
+msgstr ""
+
+#: elaborate.cxx:1959
+#, c-format
+msgid "      function %s is defined from %s"
+msgstr ""
+
+#: elaborate.cxx:1999 elaborate.cxx:2001
+#, c-format
+msgid "Eliding unused function '%s'"
+msgstr ""
+
+#: elaborate.cxx:2057 elaborate.cxx:2102 elaborate.cxx:2148
+#, c-format
+msgid "Eliding unused variable '%s'"
+msgstr ""
+
+#: elaborate.cxx:2059
+#, c-format
+msgid "Eliding unused local variable %s in %s"
+msgstr ""
+
+#: elaborate.cxx:2085 elaborate.cxx:2133 elaborate.cxx:2170
+msgid "(alternatives:"
+msgstr ""
+
+#: elaborate.cxx:2083 elaborate.cxx:2131
+#, c-format
+msgid "never-assigned local variable '%s' %s"
+msgstr ""
+
+#: elaborate.cxx:2104
+#, c-format
+msgid "Eliding unused local variable %s in function %s"
+msgstr ""
+
+#: elaborate.cxx:2150
+#, c-format
+msgid "Eliding unused global variable %s"
+msgstr ""
+
+#: elaborate.cxx:2169
+#, c-format
+msgid "never assigned global variable '%s' %s"
+msgstr ""
+
+#: elaborate.cxx:2237
+#, c-format
+msgid "Eliding assignment to %s at %s"
+msgstr ""
+
+#: elaborate.cxx:2260
+#, c-format
+msgid "Eliding unused error string catcher %s at %s"
+msgstr ""
+
+#: elaborate.cxx:2325
+msgid "Eliding side-effect-free null statement "
+msgstr ""
+
+#: elaborate.cxx:2345
+msgid "Flattening nested block "
+msgstr ""
+
+#: elaborate.cxx:2357
+msgid "Eliding side-effect-free empty block "
+msgstr ""
+
+#: elaborate.cxx:2363
+msgid "Eliding side-effect-free singleton block "
+msgstr ""
+
+#: elaborate.cxx:2381
+msgid "Eliding empty try {} block "
+msgstr ""
+
+#: elaborate.cxx:2405
+msgid "Eliding side-effect-free if statement "
+msgstr ""
+
+#: elaborate.cxx:2413
+msgid "Creating simple evaluation from if statement "
+msgstr ""
+
+#: elaborate.cxx:2427
+msgid "Inverting the condition of if statement "
+msgstr ""
+
+#: elaborate.cxx:2451
+msgid "Eliding side-effect-free foreach statement "
+msgstr ""
+
+#: elaborate.cxx:2473
+msgid "Eliding side-effect-free for statement "
+msgstr ""
+
+#: elaborate.cxx:2515
+msgid "Eliding side-effect-free expression "
+msgstr ""
+
+#: elaborate.cxx:2553
+#, c-format
+msgid "side-effect-free probe '%s'"
+msgstr ""
+
+#: elaborate.cxx:2577
+#, c-format
+msgid "side-effect-free function '%s'"
+msgstr ""
+
+#: elaborate.cxx:2697
+msgid "Creating if statement from unused logical-or "
+msgstr ""
+
+#: elaborate.cxx:2728
+msgid "Creating if statement from unused logical-and "
+msgstr ""
+
+#: elaborate.cxx:2754
+msgid "Creating if statement from unused ternary expression "
+msgstr ""
+
+#: elaborate.cxx:2784
+msgid "Eliding unused binary "
+msgstr ""
+
+#: elaborate.cxx:2812
+msgid "Eliding unused unary "
+msgstr ""
+
+#: elaborate.cxx:2853
+msgid "Eliding side-effect-free function call "
+msgstr ""
+
+#: elaborate.cxx:2885
+msgid "Eliding unused print "
+msgstr ""
+
+#: elaborate.cxx:2932
+msgid "Eliding unused target symbol "
+msgstr ""
+
+#: elaborate.cxx:2966
+msgid "Eliding unused typecast "
+msgstr ""
+
+#: elaborate.cxx:2983
+msgid "Eliding unused check "
+msgstr ""
+
+#: elaborate.cxx:3092
+#, c-format
+msgid "Collapsing constant-%<PRIi64> if-statement %s"
+msgstr ""
+
+#: elaborate.cxx:3118
+msgid "Collapsing constantly-false for-loop "
+msgstr ""
+
+#: elaborate.cxx:3144
+msgid "Collapsing constantly-limited foreach-loop "
+msgstr ""
+
+#: elaborate.cxx:3191
+msgid "unsupported binary operator "
+msgstr ""
+
+#: elaborate.cxx:3231
+msgid "Collapsing constant-identity binary operator "
+msgstr ""
+
+#: elaborate.cxx:3245
+#, c-format
+msgid "Collapsing constant-%<PRIi64> binary operator %s"
+msgstr ""
+
+#: elaborate.cxx:3263
+msgid "Collapsing constant unary "
+msgstr ""
+
+#: elaborate.cxx:3277
+msgid "unsupported unary operator "
+msgstr ""
+
+#: elaborate.cxx:3321
+msgid "Collapsing constant logical-OR "
+msgstr ""
+
+#: elaborate.cxx:3368
+msgid "Collapsing constant logical-AND "
+msgstr ""
+
+#: elaborate.cxx:3411
+msgid "Collapsing constant-boundary comparison "
+msgstr ""
+
+#: elaborate.cxx:3429
+msgid "Collapsing constant comparison "
+msgstr ""
+
+#: elaborate.cxx:3446
+msgid "unsupported comparison operator "
+msgstr ""
+
+#: elaborate.cxx:3462
+msgid "Collapsing constant concatenation "
+msgstr ""
+
+#: elaborate.cxx:3474
+msgid "Collapsing identity concatenation "
+msgstr ""
+
+#: elaborate.cxx:3495
+#, c-format
+msgid "Collapsing constant-%<PRIi64> ternary %s"
+msgstr ""
+
+#: elaborate.cxx:3510
+msgid "Collapsing untouched @defined check "
+msgstr ""
+
+#: elaborate.cxx:3530
+msgid "Bad $context variable being substituted with literal 0"
+msgstr ""
+
+#: elaborate.cxx:3533
+msgid "Bad $context variable being substituted with literal 0, "
+msgstr ""
+
+#: elaborate.cxx:3578
+#, c-format
+msgid "Changing %s reference to %s reference\n"
+msgstr ""
+
+#: elaborate.cxx:3990
+msgid "unsupported assignment operator "
+msgstr ""
+
+#: elaborate.cxx:4167
+msgid "Resolution problem with "
+msgstr ""
+
+#. TRANSLATORS: simply saying not an issue with a probe or function
+#: elaborate.cxx:4182
+msgid "other"
+msgstr ""
+
+#: elaborate.cxx:4188
+msgid "unresolved target-symbol expression"
+msgstr ""
+
+#: elaborate.cxx:4195
+msgid "unexpected @defined"
+msgstr ""
+
+#: elaborate.cxx:4202
+msgid "@entry is only valid in .return probes"
+msgstr ""
+
+#: elaborate.cxx:4214
+#, c-format
+msgid "type definition '%s' not found"
+msgstr ""
+
+#: elaborate.cxx:4375
+msgid "Activating uprobes support because /* pragma:uprobes */ seen."
+msgstr ""
+
+#: elaborate.cxx:4516 translate.cxx:3007
+msgid "invalid operand of delete expression"
+msgstr ""
+
+#: elaborate.cxx:4632
+msgid "Unspecified conversion in print operator format string"
+msgstr ""
+
+#: elaborate.cxx:4648
+msgid "Wrong number of args to formatted print operator"
+msgstr ""
+
+#: elaborate.cxx:4785
+msgid "array locals not supported, missing global declaration? "
+msgstr ""
+
+#: elaborate.cxx:4795
+msgid "stat locals not supported, missing global declaration? "
+msgstr ""
+
+#: elaborate.cxx:4810
+msgid "unresolved type "
+msgstr ""
+
+#: elaborate.cxx:4825
+msgid "invalid operator"
+msgstr ""
+
+#: elaborate.cxx:4827
+msgid "invalid type "
+msgstr ""
+
+#: elaborate.cxx:4860 elaborate.cxx:4874
+#, c-format
+msgid "type mismatch ( %s vs. %s )"
+msgstr ""
+
+#: elaborate.cxx:4881
+#, c-format
+msgid "type was first inferred here ( %s )"
 msgstr ""
 
 #: hash.cxx:131
@@ -1761,7 +2234,7 @@ msgid ""
 "expected"
 msgstr ""
 
-#: tapset-mark.cxx:449 translate.cxx:1973
+#: tapset-mark.cxx:449 translate.cxx:1974
 msgid "cannot expand unknown type"
 msgstr ""
 
@@ -2365,309 +2838,305 @@ msgstr ""
 msgid "process pid must be greater than 1"
 msgstr ""
 
-#: translate.cxx:425
+#: translate.cxx:426
 #, c-format
 msgid "unsupported stats type for %s"
 msgstr ""
 
-#: translate.cxx:433
+#: translate.cxx:434
 #, c-format
 msgid "unsupported initializer for %s"
 msgstr ""
 
-#: translate.cxx:447
+#: translate.cxx:448
 #, c-format
 msgid "unsupported deallocator for %s"
 msgstr ""
 
-#: translate.cxx:577
+#: translate.cxx:578
 msgid "unknown type of map"
 msgstr ""
 
-#: translate.cxx:592
+#: translate.cxx:593
 msgid "index type mismatch"
 msgstr ""
 
-#: translate.cxx:608
+#: translate.cxx:609
 msgid "aggregating non-parallel map type"
 msgstr ""
 
-#: translate.cxx:616
+#: translate.cxx:617
 msgid "fetching aggregate of non-parallel map type"
 msgstr ""
 
-#: translate.cxx:634
+#: translate.cxx:635
 msgid "checking existence of an unsupported map type"
 msgstr ""
 
-#: translate.cxx:647
+#: translate.cxx:648
 msgid "getting a value from an unsupported map type"
 msgstr ""
 
-#: translate.cxx:658
+#: translate.cxx:659
 msgid "adding a value of an unsupported map type"
 msgstr ""
 
-#: translate.cxx:679
+#: translate.cxx:680
 msgid "setting a value of an unsupported map type"
 msgstr ""
 
-#: translate.cxx:767
+#: translate.cxx:768
 msgid "iterating over unknown reference type"
 msgstr ""
 
-#: translate.cxx:780
+#: translate.cxx:781
 msgid "inconsistent iterator type in itervar::start()"
 msgstr ""
 
-#: translate.cxx:791
+#: translate.cxx:792
 msgid "inconsistent iterator type in itervar::next()"
 msgstr ""
 
-#: translate.cxx:816
+#: translate.cxx:817
 msgid "illegal key type"
 msgstr ""
 
-#: translate.cxx:823
+#: translate.cxx:824
 msgid "inconsistent iterator value in itervar::get_value()"
 msgstr ""
 
-#: translate.cxx:835
+#: translate.cxx:836
 msgid "illegal value type"
 msgstr ""
 
-#: translate.cxx:1556 translate.cxx:1711
+#: translate.cxx:1557 translate.cxx:1712
 msgid "array locals not supported, missing global declaration?"
 msgstr ""
 
-#: translate.cxx:1645
+#: translate.cxx:1646
 #, c-format
 msgid "%s elided, duplicates %s"
 msgstr ""
 
-#: translate.cxx:1720
+#: translate.cxx:1721
 msgid "unsupported local variable type"
 msgstr ""
 
-#: translate.cxx:1816
+#: translate.cxx:1817
 msgid "nothing"
 msgstr ""
 
-#: translate.cxx:1864 translate.cxx:1894
+#: translate.cxx:1865 translate.cxx:1895
 msgid "array type is neither string nor long"
 msgstr ""
 
-#: translate.cxx:1879
+#: translate.cxx:1880
 msgid "array key is neither string nor long"
 msgstr ""
 
-#: translate.cxx:2007
+#: translate.cxx:2008
 msgid "unsupported c_expression token type"
 msgstr ""
 
-#: translate.cxx:2038
+#: translate.cxx:2039
 msgid "unknown lvalue type in assignment"
 msgstr ""
 
-#: translate.cxx:2058 translate.cxx:2078
+#: translate.cxx:2059 translate.cxx:2079
 msgid " type unsupported"
 msgstr ""
 
-#: translate.cxx:2107
+#: translate.cxx:2108
 msgid "post assignment on strings not supported"
 msgstr ""
 
-#: translate.cxx:2121
+#: translate.cxx:2122
 #, c-format
 msgid "string assignment operator %s unsupported"
 msgstr ""
 
-#: translate.cxx:2153
+#: translate.cxx:2154
 msgid "unknown macop for assignment"
 msgstr ""
 
-#: translate.cxx:2158
+#: translate.cxx:2159
 msgid "invalid post-mode operator"
 msgstr ""
 
-#: translate.cxx:2194
+#: translate.cxx:2195
 msgid "assignment type not yet implemented"
 msgstr ""
 
-#: translate.cxx:2281
+#: translate.cxx:2282
 msgid "unresolved symbol"
 msgstr ""
 
-#: translate.cxx:2283
+#: translate.cxx:2284
 msgid "unresolved symbol: "
 msgstr ""
 
-#: translate.cxx:2322
+#: translate.cxx:2323
 msgid "attempt to use scalar where map expected"
 msgstr ""
 
-#: translate.cxx:2559 translate.cxx:3560 translate.cxx:3580
+#: translate.cxx:2560 translate.cxx:3561 translate.cxx:3581
 msgid "expected numeric type"
 msgstr ""
 
-#: translate.cxx:2704 translate.cxx:3950
+#: translate.cxx:2705 translate.cxx:3951
 msgid "Invalid indexing of histogram"
 msgstr ""
 
-#: translate.cxx:2966
+#: translate.cxx:2967
 msgid "cannot 'return' from probe"
 msgstr ""
 
-#: translate.cxx:2969
+#: translate.cxx:2970
 msgid "return type mismatch"
 msgstr ""
 
-#: translate.cxx:2982
+#: translate.cxx:2983
 msgid "cannot 'next' from function"
 msgstr ""
 
-#: translate.cxx:3006
-msgid "invalid operand of delete expression"
-msgstr ""
-
-#: translate.cxx:3046
+#: translate.cxx:3047
 msgid "Cannot delete unknown expression type"
 msgstr ""
 
-#: translate.cxx:3073 translate.cxx:3096
+#: translate.cxx:3074 translate.cxx:3097
 msgid "cannot delete histogram bucket entries\n"
 msgstr ""
 
-#: translate.cxx:3122
+#: translate.cxx:3123
 msgid "cannot 'break' outside loop"
 msgstr ""
 
-#: translate.cxx:3133
+#: translate.cxx:3134
 msgid "cannot 'continue' outside loop"
 msgstr ""
 
-#: translate.cxx:3207
+#: translate.cxx:3208
 msgid "expected numeric or string type"
 msgstr ""
 
-#: translate.cxx:3219 translate.cxx:3292 translate.cxx:3321 translate.cxx:3337
-#: translate.cxx:3440
+#: translate.cxx:3220 translate.cxx:3293 translate.cxx:3322 translate.cxx:3338
+#: translate.cxx:3441
 msgid "expected numeric types"
 msgstr ""
 
-#: translate.cxx:3283
+#: translate.cxx:3284
 msgid "operator not yet implemented"
 msgstr ""
 
-#: translate.cxx:3428 translate.cxx:3474
+#: translate.cxx:3429 translate.cxx:3475
 msgid "expected string types"
 msgstr ""
 
-#: translate.cxx:3449
+#: translate.cxx:3450
 msgid "unexpected type"
 msgstr ""
 
-#: translate.cxx:3469
+#: translate.cxx:3470
 msgid "unexpected concatenation operator"
 msgstr ""
 
-#: translate.cxx:3492
+#: translate.cxx:3493
 msgid "expected numeric condition"
 msgstr ""
 
-#: translate.cxx:3497
+#: translate.cxx:3498
 msgid "expected matching types"
 msgstr ""
 
-#: translate.cxx:3523
+#: translate.cxx:3524
 msgid "non-number <<< expression"
 msgstr ""
 
-#: translate.cxx:3526
+#: translate.cxx:3527
 msgid "non-stats left operand to <<< expression"
 msgstr ""
 
-#: translate.cxx:3529
+#: translate.cxx:3530
 msgid "non-number right operand to <<< expression"
 msgstr ""
 
-#: translate.cxx:3535 translate.cxx:3538
+#: translate.cxx:3536 translate.cxx:3539
 msgid "type mismatch"
 msgstr ""
 
-#: translate.cxx:3594
+#: translate.cxx:3595
 msgid "invalid reference to array"
 msgstr ""
 
-#: translate.cxx:3689
+#: translate.cxx:3690
 msgid "need rvalue for assignment"
 msgstr ""
 
-#: translate.cxx:3700
+#: translate.cxx:3701
 msgid "unexpected reference to array"
 msgstr ""
 
-#: translate.cxx:3719
+#: translate.cxx:3720
 msgid "cannot translate general target-symbol expression"
 msgstr ""
 
-#: translate.cxx:3726
+#: translate.cxx:3727
 msgid "cannot translate general @cast expression"
 msgstr ""
 
-#: translate.cxx:3733
+#: translate.cxx:3734
 msgid "cannot translate general @defined expression"
 msgstr ""
 
-#: translate.cxx:3740
+#: translate.cxx:3741
 msgid "cannot translate general @entry expression"
 msgstr ""
 
-#: translate.cxx:3791
+#: translate.cxx:3792
 msgid "invalid array reference"
 msgstr ""
 
-#: translate.cxx:3796
+#: translate.cxx:3797
 msgid "array index type mismatch"
 msgstr ""
 
-#: translate.cxx:3840
+#: translate.cxx:3841
 msgid "expected arrayindex expression"
 msgstr ""
 
-#: translate.cxx:3852
+#: translate.cxx:3853
 msgid "unexpected aggregate of non-statistic"
 msgstr ""
 
-#: translate.cxx:3868
+#: translate.cxx:3869
 msgid "unexpected aggregate of non-arrayindex"
 msgstr ""
 
-#: translate.cxx:3986
+#: translate.cxx:3987
 msgid "statistic-valued array in rvalue context"
 msgstr ""
 
-#: translate.cxx:4078 translate.cxx:4169
+#: translate.cxx:4079 translate.cxx:4170
 msgid "cannot assign to histogram buckets"
 msgstr ""
 
-#: translate.cxx:4098
+#: translate.cxx:4099
 msgid "unexpected reference to scalar"
 msgstr ""
 
-#: translate.cxx:4198
+#: translate.cxx:4199
 msgid "invalid length argument list"
 msgstr ""
 
-#: translate.cxx:4214 translate.cxx:4234
+#: translate.cxx:4215 translate.cxx:4235
 msgid "function argument type mismatch"
 msgstr ""
 
-#: translate.cxx:4285
+#: translate.cxx:4286
 msgid "unknown type of arg to print operator"
 msgstr ""
 
-#: translate.cxx:4350
+#: translate.cxx:4351
 #, c-format
 msgid "additional argument to print"
 msgid_plural "too many arguments to print (%zu)"
@@ -2675,113 +3144,437 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: translate.cxx:4396
+#: translate.cxx:4397
 msgid "cannot print unknown expression type"
 msgstr ""
 
-#: translate.cxx:4398
+#: translate.cxx:4399
 msgid "cannot print a raw stats object"
 msgstr ""
 
-#: translate.cxx:4894
+#: translate.cxx:4895
 #, c-format
 msgid "Getting symbol table for %s"
 msgstr ""
 
-#: translate.cxx:4946
+#: translate.cxx:4947
 msgid "unexpected build-id reloc section "
 msgstr ""
 
-#: translate.cxx:4954
+#: translate.cxx:4955
 #, c-format
 msgid "Found build-id in %s, length %d, start at 0x%#<PRIx64>"
 msgstr ""
 
-#: translate.cxx:5007
+#: translate.cxx:5008
 #, c-format
 msgid "Found kernel _stext extra offset 0x%#<PRIx64>"
 msgstr ""
 
-#: translate.cxx:5188
+#: translate.cxx:5189
 #, c-format
 msgid "skipping module %s eh_frame_hdr table (too big: %s > %s)"
 msgstr ""
 
-#: translate.cxx:5252
+#: translate.cxx:5253
 #, c-format
 msgid "skipping module %s, section %s debug_frame_hdr table (too big: %s > %s)"
 msgstr ""
 
-#: translate.cxx:5444
+#: translate.cxx:5445
 msgid "/usr/bin/ldd may not be safe to run on untrustworthy executables"
 msgstr ""
 
-#: translate.cxx:5456
+#: translate.cxx:5457
 #, c-format
 msgid "Running '%s'"
 msgstr ""
 
-#: translate.cxx:5460
+#: translate.cxx:5461
 #, c-format
 msgid " failed: %s"
 msgstr ""
 
-#: translate.cxx:5488
+#: translate.cxx:5489
 #, c-format
 msgid "Added -d '%s"
 msgstr ""
 
-#: translate.cxx:5490
+#: translate.cxx:5491
 #, c-format
 msgid "' due to '%s'"
 msgstr ""
 
-#: translate.cxx:5544
+#: translate.cxx:5545
 msgid "Searching for vdso candidates: "
 msgstr ""
 
-#: translate.cxx:5554
+#: translate.cxx:5555
 msgid "vdso candidate: "
 msgstr ""
 
-#: translate.cxx:5674
+#: translate.cxx:5675
 msgid "missing unwind/symbol data for module '"
 msgstr ""
 
-#: translate.cxx:5697
+#: translate.cxx:5698
 #, c-format
 msgid "identified max-nested function: %s (%d)"
 msgstr ""
 
-#: translate.cxx:5708
+#: translate.cxx:5709
 #, c-format
 msgid "identified recursive function: %s"
 msgstr ""
 
-#: translate.cxx:5749
+#: translate.cxx:5725
+#, c-format
+msgid "KERN_ERR \"ctl_send (type=%d len=%d) failed: %d\n"
+msgstr ""
+
+#: translate.cxx:5730
+#, c-format
+msgid ""
+"SYSTEMTAP ERROR: Memory fence corrupted before allocated memory \n"
+"at addr %p. (Allocation starts at %p)"
+msgstr ""
+
+#: translate.cxx:5734
+#, c-format
+msgid ""
+"SYSTEMTAP ERROR: Memory fence corrupted after allocated memory \n"
+"at addr %p. (Allocation ends at %p)"
+msgstr ""
+
+#: translate.cxx:5737
+#, c-format
+msgid "SYSTEMTAP ERROR: Free of unallocated memory %p type=%s\n"
+msgstr ""
+
+#: translate.cxx:5740 translate.cxx:5750
+#, c-format
+msgid "SYSTEMTAP ERROR: Memory at %p corrupted!!\n"
+msgstr ""
+
+#: translate.cxx:5742
+#, c-format
+msgid "SYSTEMTAP ERROR: Memory allocated with %s and freed with %s\n"
+msgstr ""
+
+#: translate.cxx:5745 translate.cxx:5760
+#, c-format
+msgid ""
+"SYSTEMTAP ERROR: Attempted to free memory at addr %p len=%d with unknown "
+"allocation type.\n"
+msgstr ""
+
+#: translate.cxx:5748
+#, c-format
+msgid "SYSTEMTAP ERROR: Couldn't validate memory %p\n"
+msgstr ""
+
+#: translate.cxx:5752
+#, c-format
+msgid ""
+"SYSTEMTAP ERROR: Attempted to validate memory at addr %p len=%d with unknown "
+"allocation type.\n"
+msgstr ""
+
+#: translate.cxx:5755
+#, c-format
+msgid "SYSTEMTAP ERROR: Memory %p len=%d allocation type: %s. Not freed.\n"
+msgstr ""
+
+#: translate.cxx:5758
+#, c-format
+msgid "SYSTEMTAP ERROR: Memory at %p len=%d corrupted!!\n"
+msgstr ""
+
+#: translate.cxx:5765
+#, c-format
+msgid ""
+"KERN_ERR \"%s:%d: Unable to allocate memory\n"
+"\""
+msgstr ""
+
+#: translate.cxx:5767
+#, c-format
+msgid ""
+"KERN_ERR \"utrace_attach returns %ld\n"
+"\""
+msgstr ""
+
+#: translate.cxx:5769
+#, c-format
+msgid ""
+"KERN_ERR \"utrace_attach returns %d\n"
+"\""
+msgstr ""
+
+#: translate.cxx:5771
+#, c-format
+msgid ""
+"KERN_ERR \"utrace_control(%d) returns %d\n"
+"\""
+msgstr ""
+
+#: translate.cxx:5773
+msgid ""
+"KERN_ERR \"usr_itrace_init: Invalid task\n"
+"\""
+msgstr ""
+
+#: translate.cxx:5775
+#, c-format
+msgid ""
+"KERN_INFO \"usr_itrace_init: completed for tid = %d\n"
+"\""
+msgstr ""
+
+#: translate.cxx:5777
+#, c-format
+msgid ""
+"KERN_ERR \"utrace_control(UTRACE_DETACH) returns %d\n"
+"\""
+msgstr ""
+
+#: translate.cxx:5779
+msgid ""
+"KERN_INFO \"cleanup_usr_itrace called\n"
+"\""
+msgstr ""
+
+#: translate.cxx:5781
+#, c-format
+msgid ""
+"KERN_ERR \"get_instr failed: %s\n"
+"\""
+msgstr ""
+
+#: translate.cxx:5785 translate.cxx:5789
+msgid "SYSTEMTAP ERROR: uprobe_get_return returned 0\n"
+msgstr ""
+
+#: translate.cxx:5793
+#, c-format
+msgid "KERN_ERR \"it took %d polling loops to quit.\n"
+msgstr ""
+
+#: translate.cxx:5798
+#, c-format
+msgid "KERN_NOTICE \"vma (pid: %d, vm_start: 0x%lx) present?\n"
+msgstr ""
+
+#: translate.cxx:5802
+#, c-format
+msgid "KERN_WARNING \"log buffer size exceeds free memory(%luMB)\n"
+msgstr ""
+
+#: translate.cxx:5807 translate.cxx:5907
+#, c-format
+msgid ""
+"KERN_ERR \"In %d-bit apps, uprobes does not currently support probing "
+"instructions whose first byte is 0x%2.2x\n"
+msgstr ""
+
+#: translate.cxx:5811 translate.cxx:5892 translate.cxx:5911
+#, c-format
+msgid ""
+"KERN_ERR \"uprobes does not currently support probing instructions with the "
+"2-byte opcode 0x0f 0x%2.2x\n"
+msgstr ""
+
+#: translate.cxx:5814 translate.cxx:5895 translate.cxx:5914
+#, c-format
+msgid ""
+"KERN_ERR \"uprobes does not currently support probing instructions whose "
+"first byte is 0x%2.2x with a prefix 0x%2.2x\n"
+msgstr ""
+
+#: translate.cxx:5818
+msgid "KERN_INFO \"Munging rip-relative insn:"
+msgstr ""
+
+#: translate.cxx:5820 translate.cxx:5920
+#, c-format
+msgid "KERN_INFO \"Target address = %#lx\n"
+msgstr ""
+
+#: translate.cxx:5822 translate.cxx:5922
+#, c-format
+msgid ""
+"KERN_ERR \"uprobes: Failed to adjust return address after single-stepping "
+"call instruction; pid=%d, rsp=%#lx\n"
+msgstr ""
+
+#: translate.cxx:5826
+#, c-format
+msgid ""
+"KERN_ERR \"uretprobe_entry_handler: return address partially clobbered -- "
+"pid=%d, %%rsp=%#lx, %%rip=%#lx\n"
+msgstr ""
+
+#: translate.cxx:5832
+msgid "Attempt to register uprobe at an unaligned address\n"
+msgstr ""
+
+#: translate.cxx:5836
+#, c-format
+msgid "KERN_ERR \"Can't place uprobe at pid %d vaddr %#lx: %s\n"
+msgstr ""
+
+#: translate.cxx:5838
+#, c-format
+msgid ""
+"KERN_ERR \"Error removing uprobe at pid %d vaddr %#lx: can't restore "
+"original instruction\n"
+msgstr ""
+
+#: translate.cxx:5841
+#, c-format
+msgid "uprobes: utrace_attach failed, returned %ld\n"
+msgstr ""
+
+#: translate.cxx:5843
+#, c-format
+msgid ""
+"KERN_ERR \"Uprobes failed to allocate a vma for pid/tgid %d/%d for single-"
+"stepping out of line.\n"
+msgstr ""
+
+#: translate.cxx:5846
+#, c-format
+msgid "KERN_ERR \"Failed to tag uprobes SSOL vma: pid/tgid=%d/%d, vaddr=%#lx\n"
+msgstr ""
+
+#: translate.cxx:5849
+#, c-format
+msgid "KERN_ERR \"Failed to copy instruction at %#lx to SSOL area (%#lx)\n"
+msgstr ""
+
+#: translate.cxx:5852
+#, c-format
+msgid ""
+"Failed to temporarily restore original instruction for single-stepping: pid/"
+"tgid=%d/%d, vaddr=%#lx\n"
+msgstr ""
+
+#: translate.cxx:5856
+#, c-format
+msgid "Couldn't restore bp: pid/tgid=%d/%d, addr=%#lx\n"
+msgstr ""
+
+#: translate.cxx:5858
+#, c-format
+msgid "KERN_WARNING \"Task died during uretprobe return: pid/tgid = %d/%d\n"
+msgstr ""
+
+#: translate.cxx:5861
+#, c-format
+msgid ""
+"KERN_WARNING \"Task died at uprobe probepoint:  pid/tgid = %d/%d, probepoint "
+"= %#lx\n"
+msgstr ""
+
+#: translate.cxx:5864
+#, c-format
+msgid ""
+"KERN_ERR \"uprobes: Child %d failed to inherit parent %d's SSOL vma at %p.  "
+"Error = %d\n"
+msgstr ""
+
+#: translate.cxx:5867
+#, c-format
+msgid ""
+"KERN_ERR \"uprobes: Parent %d's SSOL vma is no longer valid.  Error = %d\n"
+msgstr ""
+
+#: translate.cxx:5870
+#, c-format
+msgid ""
+"KERN_ERR \"Pid %d forked %d; failed to remove  probepoint at %#lx in child\n"
+msgstr ""
+
+#: translate.cxx:5873
+#, c-format
+msgid ""
+"KERN_ERR \"No uretprobe instance with original return address! pid/tgid=%d/%d"
+msgstr ""
+
+#: translate.cxx:5876
+#, c-format
+msgid ""
+"KERN_ERR \"uretprobes disabled for pid %d: cannot set uretprobe trampoline "
+"at %p\n"
+msgstr ""
+
+#: translate.cxx:5879
+#, c-format
+msgid ""
+"KERN_ERR \"Original return address for trampoline not found at 0x%lx pid/"
+"tgid=%d/%d\n"
+msgstr ""
+
+#: translate.cxx:5884
+msgid "KERN_WARNING \"Attempt to register uprobe at an unaligned addr\n"
+msgstr ""
+
+#: translate.cxx:5889
+#, c-format
+msgid ""
+"KERN_ERR \"uprobes does not currently support probing instructions whose "
+"first byte is 0x%2.2x\n"
+msgstr ""
+
+#: translate.cxx:5898
+#, c-format
+msgid ""
+"KERN_ERR \"uprobes: Failed to adjust return address after single-stepping "
+"call instruction; pid=%d, esp=%#lx\n"
+msgstr ""
+
+#: translate.cxx:5901
+#, c-format
+msgid ""
+"KERN_ERR \"uretprobe_entry_handler: return address partially clobbered -- "
+"pid=%d, %%esp=%#lx, %%eip=%#lx\n"
+msgstr ""
+
+#: translate.cxx:5918
+msgid "KERN_INFO \"Munged rip-relative insn: "
+msgstr ""
+
+#: translate.cxx:5925
+#, c-format
+msgid ""
+"KERN_ERR \"uretprobe_entry_handler: return address partially clobbered -- "
+"pid=%d, %%sp=%#lx, %%ip=%#lx\n"
+msgstr ""
+
+#: translate.cxx:5960
 #, c-format
 msgid "ignoring extra parts of compat version: %s"
 msgstr ""
 
-#: translate.cxx:5753
+#: translate.cxx:5964
 #, c-format
 msgid "parse error in compatibility version: %s"
 msgstr ""
 
-#: translate.cxx:5756
+#: translate.cxx:5967
 #, c-format
 msgid "compatibility version out of range: %s"
 msgstr ""
 
-#: translate.cxx:5776
+#: translate.cxx:5987
 msgid " recursive"
 msgstr ""
 
-#: translate.cxx:5776
+#: translate.cxx:5987
 msgid " non-recursive"
 msgstr ""
 
-#: translate.cxx:5775
+#: translate.cxx:5986
 #, c-format
 msgid "function recursion-analysis: max-nesting %d %s"
 msgstr ""
