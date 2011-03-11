@@ -14,6 +14,7 @@ extern "C" {
 }
 
 #include <cstdio>
+#include <iomanip>
 #include <stdexcept>
 #include <sstream>
 #include <string>
@@ -213,20 +214,16 @@ class stapsh : public remote {
         return rc;
       }
 
-    int send_arg(const string& arg)
+    static string qpencode(const string& str)
       {
-        ostringstream cmd;
-        cmd << "arg " << arg.size() << "\n";
-        int rc = send_command(cmd.str());
-        if (!rc)
-          {
-            size_t w = fwrite(arg.c_str(), 1, arg.size(), IN);
-            if (w != arg.size())
-              rc = 1;
-          }
-        if (!rc)
-          rc = fflush(IN);
-        return rc;
+        ostringstream o;
+        o << setfill('0') << hex;
+        for (const char* s = str.c_str(); *s; ++s)
+          if (*s >= 33 && *s <= 126 && *s != 61)
+            o << *s;
+          else
+            o << '=' << setw(2) << (unsigned)(unsigned char) *s;
+        return o.str();
       }
 
   protected:
@@ -248,12 +245,13 @@ class stapsh : public remote {
 
         // Send the staprun args
         // NB: The remote is left to decide its own staprun path
+        ostringstream run("run", ios::out | ios::ate);
         vector<string> cmd = make_run_command(*s, remotemodule);
         for (unsigned i = 1; i < cmd.size(); ++i)
-          if ((rc = send_arg(cmd[i])))
-            return rc;
+          run << ' ' << qpencode(cmd[i]);
+        run << '\n';
 
-        rc = send_command("run\n");
+        rc = send_command(run.str());
 
         if (!rc)
           {

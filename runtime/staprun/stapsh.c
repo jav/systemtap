@@ -25,18 +25,14 @@
 //            only, and limited to roughly "[a-z0-9][a-z0-9._]*".  The DATA is
 //            read as raw bytes following the command's newline.
 //
-//   command: arg SIZE
-//            DATA
+//   command: run ARG1 ARG2 ...
 //     reply: (none)
-//      desc: Push an argument of SIZE bytes for staprun.  Note that while it
-//            is read as binary data, any embedded NIL will truncate the
+//      desc: Start staprun with the given quoted-printable arguments.  When
+//            the child exits, stapsh will clean up and then exit with the same
+//            return code.  Note that whitespace has significance in stapsh
+//            command parsing, all tabs, spaces, and newlines must be escaped
+//            in the arguments.  Any embedded NIL (=00) will truncate the
 //            argument in the actual command invocation.
-//
-//   command: run
-//     reply: (none)
-//      desc: Start staprun with the previously pushed arguments.  When the
-//            child exits, stapsh will clean up and then exit with the same
-//            return code.
 //
 //   command: signal NUM
 //     reply: (none)
@@ -49,6 +45,7 @@
 #include "config.h"
 
 #include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <spawn.h>
 #include <stdio.h>
@@ -64,7 +61,6 @@
 
 #define STAPSH_TOK_DELIM " \t\r\n"
 #define STAPSH_MAX_FILE_SIZE 32000000 // XXX should be cumulative?
-#define STAPSH_MAX_ARG_SIZE 1024  // XXX should be cumulative?
 #define STAPSH_MAX_ARGS 256
 
 
@@ -76,7 +72,6 @@ struct stapsh_handler {
 
 static int do_hello(void);
 static int do_file(void);
-static int do_arg(void);
 static int do_run(void);
 static int do_signal(void);
 
@@ -84,15 +79,11 @@ static int do_signal(void);
 static const struct stapsh_handler commands[] = {
       { "stap", do_hello },
       { "file", do_file },
-      { "arg", do_arg },
       { "run", do_run },
       { "signal", do_signal },
 };
 
 static char tmpdir[FILENAME_MAX] = "";
-
-static const char* staprun_args[STAPSH_MAX_ARGS + 1] = { BINDIR "/staprun", 0 };
-static unsigned staprun_nargs = 1;
 
 static pid_t staprun_pid = -1;
 
@@ -145,6 +136,44 @@ setup_signals (void)
     sigaddset (&sa.sa_mask, signals[i]);
   for (i = 0; i < sizeof(signals) / sizeof(*signals); ++i)
     sigaction (signals[i], &sa, NULL);
+}
+
+
+// Decode a quoted-printable string in-place
+static int
+qpdecode(char* s)
+{
+  char* o = s;
+  while (*s)
+    if (*s != '=')
+      *o++ = *s++;
+    else
+      {
+        if (s[1] == '\r' || s[1] == '\n')
+          s += 2;
+        else if (s[1] == '\r' && s[2] == '\n')
+          s += 3;
+        else if (!s[1] || !s[2])
+          {
+            fprintf(stderr, "truncated quoted-printable escape\n");
+            return 1;
+          }
+        else
+          {
+            errno = 0;
+            char *end = 0, hex[] = { s[1], s[2], 0 };
+            unsigned char c = strtol(hex, &end, 16);
+            if (errno || end != hex + 2)
+              {
+                fprintf(stderr, "invalid quoted-printable escape =%s\n", hex);
+                return 1;
+              }
+            *o++ = c;
+            s += 3;
+          }
+      }
+  *o = '\0';
+  return 0;
 }
 
 
@@ -235,56 +264,27 @@ do_file()
 }
 
 static int
-do_arg()
-{
-  if (staprun_pid > 0)
-    return 1;
-
-  if (staprun_nargs + 1 > STAPSH_MAX_ARGS)
-    {
-      fprintf(stderr, "too many args\n");
-      return 1;
-    }
-
-  int size = -1;
-  char* arg = strtok(NULL, STAPSH_TOK_DELIM);
-  if (arg)
-    size = atoi(arg);
-  if (size <= 0 || size > STAPSH_MAX_ARG_SIZE)
-    {
-      fprintf(stderr, "bad arg size %d\n", size);
-      return 1;
-    }
-
-  arg = malloc(size);
-  if (!arg)
-    {
-      fprintf(stderr, "out of memory");
-      return 1;
-    }
-  char* argp = arg;
-  while (arg + size > argp)
-    {
-      size_t r = (arg + size) - argp;
-      r = fread(argp, 1, r, stdin);
-      if (!r)
-        {
-          fprintf(stderr, "error reading arg data\n");
-          free(arg);
-          return 1;
-        }
-      size -= r;
-      argp += r;
-    }
-  staprun_args[staprun_nargs++] = arg;
-  return 0;
-}
-
-static int
 do_run()
 {
   if (staprun_pid > 0)
     return 1;
+
+  char staprun[] = BINDIR "/staprun";
+  char* args[STAPSH_MAX_ARGS + 1] = { staprun, 0 };
+  unsigned nargs = 1;
+
+  char* arg;
+  while ((arg = strtok(NULL, STAPSH_TOK_DELIM)))
+    {
+      if (nargs + 1 > STAPSH_MAX_ARGS)
+        {
+          fprintf(stderr, "too many args\n");
+          return 1;
+        }
+      if (qpdecode(arg) != 0)
+        return 1;
+      args[nargs++] = arg;
+    }
 
   int ret = 0;
   posix_spawn_file_actions_t fa;
@@ -297,8 +297,7 @@ do_run()
   else
     {
       pid_t pid;
-      ret = posix_spawn(&pid, staprun_args[0], &fa, NULL,
-                        (char* const*)staprun_args, environ);
+      ret = posix_spawn(&pid, args[0], &fa, NULL, args, environ);
       if (ret == 0)
         staprun_pid = pid;
       else
