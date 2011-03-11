@@ -149,9 +149,7 @@ class stapsh : public remote {
                 {
                   if (fds[i].revents & POLLOUT)
                     {
-                      ostringstream cmd;
-                      cmd << "signal " << SIGINT << "\n";
-                      if (send_command(cmd.str()) == 0)
+                      if (send_command("quit\n") == 0)
                         {
                           ++interrupts_sent;
                           continue;

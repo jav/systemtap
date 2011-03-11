@@ -34,9 +34,9 @@
 //            in the arguments.  Any embedded NIL (=00) will truncate the
 //            argument in the actual command invocation.
 //
-//   command: signal NUM
+//   command: quit
 //     reply: (none)
-//      desc: Send signal NUM to the child process.
+//      desc: Signal the child process to quit, then cleanup and exit.
 //
 // If stapsh reaches EOF on its standard input, it will send SIGHUP to the
 // child process, wait for completion, then cleanup and exit normally.
@@ -73,14 +73,17 @@ struct stapsh_handler {
 static int do_hello(void);
 static int do_file(void);
 static int do_run(void);
-static int do_signal(void);
+static int do_quit(void);
 
+static const int signals[] = {
+    SIGHUP, SIGPIPE, SIGINT, SIGTERM, SIGCHLD
+};
 
 static const struct stapsh_handler commands[] = {
       { "stap", do_hello },
       { "file", do_file },
       { "run", do_run },
-      { "signal", do_signal },
+      { "quit", do_quit },
 };
 
 static char tmpdir[FILENAME_MAX] = "";
@@ -91,6 +94,15 @@ static pid_t staprun_pid = -1;
 static void __attribute__ ((noreturn))
 cleanup(int status)
 {
+  // Mask signals, so if called from non-signal context, we
+  // won't get a reentry (especially for SIGCHLD).
+  unsigned i;
+  sigset_t mask;
+  sigemptyset (&mask);
+  for (i = 0; i < sizeof(signals) / sizeof(*signals); ++i)
+    sigaddset (&mask, signals[i]);
+  sigprocmask(SIG_BLOCK, &mask, 0);
+
   if (staprun_pid > 0)
     {
       int rc, ret;
@@ -127,7 +139,6 @@ handle_signal(int sig __attribute__ ((unused)))
 static void
 setup_signals (void)
 {
-  static int signals[] = { SIGHUP, SIGPIPE, SIGINT, SIGTERM, SIGCHLD };
   unsigned i;
   struct sigaction sa;
   sa.sa_handler = handle_signal;
@@ -309,20 +320,9 @@ do_run()
 }
 
 static int
-do_signal()
+do_quit()
 {
-  if (staprun_pid <= 0)
-    return 1;
-
-  char* arg = strtok(NULL, STAPSH_TOK_DELIM);
-  if (!arg)
-    {
-      fprintf(stderr, "missing signal number\n");
-      return 1;
-    }
-
-  int sig = atoi(arg);
-  return kill(staprun_pid, sig);
+  cleanup(0);
 }
 
 int
