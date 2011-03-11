@@ -1,0 +1,76 @@
+global jmp_buf, jmp_target, jmp_backtrace
+
+function callers:string()
+{
+  bt = ubacktrace();
+  // Skip the first caller, which is setjmp or longjmp itself.
+  callers = "";
+  token = tokenize(bt, " ");
+  while ((token = tokenize("", " ")) != "")
+    callers = callers . " " . token;
+  return callers;
+}
+
+function nth_caller:long(n, bt)
+{
+  token = tokenize(bt, " ");
+  while (n-- > 0)
+    token = tokenize("", " ");
+  return strtol(token, 16);
+}
+
+global started = 0
+probe process(@1).function("main")
+{
+  started = 1;
+}
+
+probe process("/lib*/libc.so.*").mark("setjmp")
+{
+  if (!started) next;
+
+  jmp_buf[tid()] = $arg1;
+  jmp_target[tid()] = $arg3;
+  bt = jmp_backtrace[tid()] = callers();
+  for (i = 0; i < 5; ++i)
+    if (usymname(nth_caller(i, bt)) == "setter")
+      next;
+  printf("setjmp backtrace doesn't include setter:\n");
+  print_ubacktrace();
+}
+
+function check_jmp(buf, target)
+{
+  if (jmp_buf[tid()] != buf)
+    printf("longjmp env %p, expected %p\n", buf, jmp_buf[tid()]);
+  if (jmp_target[tid()] != target)
+    printf("longjmp target %p, expected %p\n", target, jmp_target[tid()]);
+}
+
+probe process("/lib*/libc.so.*").mark("longjmp")
+{
+  if (!started) next;
+
+  check_jmp($arg1, $arg3);
+  bt = callers();
+  if (bt == jmp_backtrace[tid()])
+    printf("longjmp backtrace matches setjmp backtrace!\n");
+  for (i = 0; i < 5; ++i)
+    if (usymname(nth_caller(i, bt)) == "jumper")
+      next;
+  printf("longjmp backtrace doesn't include jumper:\n");
+  print_ubacktrace();
+}
+
+probe process("/lib*/libc.so.*").mark("longjmp_target")
+{
+  if (!started) next;
+
+  check_jmp($arg1, $arg3);
+  bt = callers();
+  if (bt != jmp_backtrace[tid()])
+    printf("longjmp_target backtrace does not match setjmp:\n\t%s\nvs\t%s",
+	   sprint_ustack(jmp_backtrace[tid()]), sprint_ustack(bt));
+
+  printf("hit longjmp_target\n");
+}

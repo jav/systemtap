@@ -4,94 +4,115 @@ set testsrc  "$testpath/usymbols.c"
 set testsrclib  "$testpath/usymbols_lib.c"
 set testlibdir "[pwd]"
 set testflags "additional_flags=-g additional_flags=-O"
-set testlibflags "testflags additional_flags=-fPIC additional_flags=-shared"
 
 # Only run on make installcheck and utrace present.
 if {! [installtest_p]} { untested "$test"; return }
 if {! [utrace_p]} { untested "$test"; return }
 if {! [uprobes_p]} { untested "$test"; return }
 
-# Test 32-on-64 when available
-set arches [list "default"]
+# Force 64-bit (when necessary) to be sure of what we're testing.
+switch -regexp $::tcl_platform(machine) {
+    {^(x86_64|ppc64|s390x)$} { set arches [list "-m64"] }
+    default { set arches [list "default"] }
+}
+
+# Test 32-on-64 when available.  
 switch -regexp $::tcl_platform(machine) {
     {^(x86_64|ppc64)$} { lappend arches "-m32" }
     {^s390x$} { lappend arches "-m31" }
 }
 
-foreach arch $arches {
-
-verbose "testing usymbols $arch"
-
-set testexename "usymbols"
-set testlibname "usymbols"
-set maintestflags "$testflags additional_flags=-L$testlibdir additional_flags=-Wl,-rpath,$testlibdir"
-if {$arch != "default"} {
-  set testexename "${testexename}${arch}"
-  set testlibname "${testlibname}${arch}"
-  set maintestflags "$maintestflags additional_flags=-l$testlibname additional_flags=$arch"
-  set testlibflags "$testlibflags additional_flags=$arch"
-} else {
-  set maintestflags "$maintestflags additional_flags=-l$testlibname"
-}
-
-# Compile our test program and library.
-set testso "$testlibdir/lib${testlibname}.so"
-set res [target_compile $testsrclib $testso executable $testlibflags]
-if { $res != "" } {
-    verbose "target_compile for $testso failed: $res" 2
-    fail "unable to compile $testsrclib $arch"
-    return
-}
-set testexe  "[pwd]/${testexename}"
-set res [target_compile $testsrc $testexe executable $maintestflags]
-if { $res != "" } {
-    verbose "target_compile failed: $res" 2
-    fail "unable to compile $testsrc $arch"
-    return
-}
-
-# We need the execname() trick to work around (the workaround of) PR6964
-# otherwise we get also the rt_sigactions of stapio. Get the handler
-# (comes from the executable or the library).
+# We need the execname() trick to work around (the workaround of)
+# PR6964 otherwise we get also the rt_sigactions of stapio. Get
+# the handler (comes from the executable or the library).
+#
+# We have to use @cast() on act_uaddr since syscall wrappers on
+# ppc64/s390x systems turn the 'struct sigaction' into a 'long int'.
 set testscript {
-    probe syscall.rt_sigaction, syscall.rt_sigaction32? {
+    probe syscall.rt_sigaction {
       if (pid() == target() && execname() == "%s") {
-	  handler = user_long(&$act->sa_handler); // Note user address.
-	  printf("handler: %%s (%%s)\n", usymname(handler), umodname(handler));
+	// Note user address.
+	handler = user_long(&@cast(act_uaddr, "struct sigaction")->sa_handler);
+	printf("handler: %%s (%%s)\n", usymname(handler), umodname(handler));
+      }
+    }
+    probe syscall.rt_sigaction32 ? {
+      if (pid() == target() && execname() == "%s") {
+	// Note user address.
+	handler = user_long(&@cast(act_uaddr, "struct sigaction32")->sa_handler);
+	printf("handler: %%s (%%s)\n", usymname(handler), umodname(handler));
       }
     }
 }
 
-set output "handler: main_handler ([pwd]/$testexename)
-handler: lib_handler ([pwd]/lib${testlibname}.so)"
+foreach arch $arches {
+    verbose "testing usymbols $arch"
 
-# Used to need to run stap with both the exe and the libraries used as -d args.
-# Now use --ldd to pick up both exe and the library we just linked in.
-set script [format $testscript $testexename]
-send_log "script: $script\n"
-set cmd [concat stap -w -d $testexe --ldd -c $testexe -e {$script}]
-send_log "cmd: $cmd\n"
-catch {eval exec $cmd} res
-send_log "cmd output: $res\n"
-
-set n 0
-set m [llength [split $output "\n"]]
-set expected [split $output "\n"]
-foreach line [split $res "\n"] {
-    if {![string equal $line [lindex $expected $n]]} {
-      fail "usymbols $arch"
-      send_log "line [expr $n + 1]: expected \"[lindex $expected $n]\", "
-      send_log "Got \"$line\"\n"
-      return
+    set testexename "usymbols"
+    set testlibname "usymbols"
+    set maintestflags "$testflags additional_flags=-L$testlibdir additional_flags=-Wl,-rpath,$testlibdir"
+    set testlibflags "testflags additional_flags=-fPIC additional_flags=-shared"
+    if {$arch != "default"} {
+	set testexename "${testexename}${arch}"
+	set testlibname "${testlibname}${arch}"
+	set maintestflags "$maintestflags additional_flags=-l$testlibname additional_flags=$arch"
+	set testlibflags "$testlibflags additional_flags=$arch"
+    } else {
+	set maintestflags "$maintestflags additional_flags=-l$testlibname"
     }
-    incr n
-}
-if { $n != $m } {
-  fail "usymbols $arch"
-  send_log "Got \"$n\" lines, expected \"$m\" lines\n"
-} else {
-  pass "usymbols $arch"
-}
-exec rm -f $testexe $testso
 
+    # Compile our test program and library.
+    set testso "$testlibdir/lib${testlibname}.so"
+    set res [target_compile $testsrclib $testso executable $testlibflags]
+    if { $res != "" } {
+	verbose "target_compile for $testso failed: $res" 2
+	fail "unable to compile $testsrclib $arch"
+	return
+    }
+    set testexe  "[pwd]/${testexename}"
+    set res [target_compile $testsrc $testexe executable $maintestflags]
+    if { $res != "" } {
+	verbose "target_compile failed: $res" 2
+	fail "unable to compile $testsrc $arch"
+	return
+    }
+
+    # Originally the output string used 'pwd' to get the full path to
+    # the testexename/testlibname.  However, if the test directory has
+    # a long path, the start of the path gets truncated in systemtap
+    # output, so the test was failing.  Now we just check for a path
+    # ending in the correct filename.
+    set output "handler: main_handler (.+/${testexename})
+handler: lib_handler (.+/lib${testlibname}.so)"
+
+    # Used to need to run stap with both the exe and the libraries
+    # used as -d args.  Now use --ldd to pick up both exe and the
+    # library we just linked in.
+    set script [format $testscript $testexename $testexename]
+    send_log "script: $script\n"
+    set cmd [concat stap -w -d $testexe --ldd -c $testexe -e {$script}]
+    send_log "cmd: $cmd\n"
+    catch {eval exec $cmd} res
+    send_log "cmd output: $res\n"
+
+    set n 0
+    set m [llength [split $output "\n"]]
+    set expected [split $output "\n"]
+    set nfails 0
+    foreach line [split $res "\n"] {
+	if {![regexp [lindex $expected $n] $line]} {
+	    fail "usymbols $arch"
+	    send_log "line [expr $n + 1]: expected \"[lindex $expected $n]\", "
+	    send_log "Got \"$line\"\n"
+	    incr nfails
+        }
+        incr n
+    }
+    if { $n != $m } {
+	fail "usymbols $arch"
+	send_log "Got \"$n\" lines, expected \"$m\" lines\n"
+    } elseif { $nfails == 0 } {
+	pass "usymbols $arch"
+	exec rm -f $testexe $testso
+    }
 }
