@@ -502,7 +502,7 @@ make_run_command (systemtap_session& s, const string& module)
     {
       staprun_cmd.push_back("-u");
       if (!s.uprobes_path.empty())
-        staprun_cmd.push_back(s.uprobes_path);
+        staprun_cmd.back().append(s.uprobes_path);
     }
 
   if (s.load_only)
