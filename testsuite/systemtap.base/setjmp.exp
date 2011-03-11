@@ -1,0 +1,58 @@
+set test "setjmp"
+set ::result_string {hit longjmp_target}
+
+foreach variant [list "" "-DSIGJMP" "-DUNDERJMP"] {
+    foreach flags [list "" "-D_FORTIFY_SOURCE=2"] {
+
+	set this_test "$test $variant $flags"
+
+	set testprog "setjmp.exe${variant}${flags}"
+	set test_flags ""
+	foreach arg [list "-g" "$flags"] {
+	    set test_flags "$test_flags additional_flags=$arg "
+	}
+
+	set res [target_compile $srcdir/$subdir/$test.c $testprog executable \
+		     "$test_flags"]
+	if {$res != ""} {
+	    verbose "target_compile failed: $res" 2
+	    fail "compiling $test.c $variant $flags"
+	    untested $this_test
+	    continue
+	} else {
+	    pass "compiling $test.c $variant $flags"
+	}
+
+	if {[catch \
+		 {exec stap -l "process(\"/lib*/libc.so.*\").mark(\"*jmp*\")" \
+		      2>@1} res opt]} {
+	    set details [dict get $opt -errorcode]
+	    if {[lindex $details 0] eq "CHILDSTATUS"} {
+		set status [lindex $details 2]
+		if {$status == 1} {
+		    verbose -log "stap -l check found no libc probes" 1
+		    untested $this_test
+		    continue
+		}
+	    }
+	    verbose -log "stap -l failed: $res"
+	    fail "stap -l check for libc probes"
+	    untested $this_test
+	    continue
+	} else {
+	    verbose -log "stap -l yields: $res"
+	    if {$res == ""} {
+		verbose -log "stap -l check found no libc probes" 1
+		untested $this_test
+		continue
+	    }
+	}
+
+	if {[installtest_p] && [utrace_p] && [uprobes_p]} {
+	    stap_run3 $this_test -w --ldd $srcdir/$subdir/$test.stp \
+		$testprog ./$testprog -c ./$testprog
+	} else {
+	    untested $this_test
+	}
+    }
+}
