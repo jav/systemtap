@@ -20,13 +20,13 @@
 //
 //   command: file SIZE NAME
 //            DATA
-//     reply: (none)
+//     reply: OK / error message
 //      desc: Create a file of SIZE bytes, called NAME.  The NAME is a basename
 //            only, and limited to roughly "[a-z0-9][a-z0-9._]*".  The DATA is
 //            read as raw bytes following the command's newline.
 //
 //   command: run ARG1 ARG2 ...
-//     reply: (none)
+//     reply: OK / error message
 //      desc: Start staprun with the given quoted-printable arguments.  When
 //            the child exits, stapsh will clean up and then exit with the same
 //            return code.  Note that whitespace has significance in stapsh
@@ -207,7 +207,7 @@ qpdecode(char* s)
           s += 3;
         else if (!s[1] || !s[2])
           {
-            fprintf(stderr, "truncated quoted-printable escape\n");
+            dbug(2, "truncated quoted-printable escape \"%s\"\n", s);
             return 1;
           }
         else
@@ -217,7 +217,7 @@ qpdecode(char* s)
             unsigned char c = strtol(hex, &end, 16);
             if (errno || end != hex + 2)
               {
-                fprintf(stderr, "invalid quoted-printable escape =%s\n", hex);
+                dbug(2, "invalid quoted-printable escape \"=%s\"\n", hex);
                 return 1;
               }
             *o++ = c;
@@ -226,6 +226,22 @@ qpdecode(char* s)
       }
   *o = '\0';
   return 0;
+}
+
+
+// Send a reply back to the client on stdout
+static int __attribute__ ((format (printf, 1, 2)))
+reply(const char* format, ...)
+{
+  va_list args, dbug_args;
+  va_start (args, format);
+  va_copy (dbug_args, args);
+  vdbug (1, format, dbug_args);
+  int ret = vprintf (format, args);
+  fflush (stdout);
+  va_end (dbug_args);
+  va_end (args);
+  return ret;
 }
 
 
@@ -241,9 +257,7 @@ do_hello()
   if (uname(&uts))
     return 1;
 
-  printf("stapsh %s %s %s\n", VERSION, uts.machine, uts.release);
-  fflush(stdout);
-
+  reply ("stapsh %s %s %s\n", VERSION, uts.machine, uts.release);
   return 0;
 }
 
@@ -259,31 +273,19 @@ do_file()
   if (arg)
     size = atoi(arg);
   if (size <= 0 || size > STAPSH_MAX_FILE_SIZE)
-    {
-      fprintf(stderr, "bad file size %d\n", size);
-      return 1;
-    }
+    return reply ("ERROR: bad file size %d\n", size);
 
   const char* name = strtok(NULL, STAPSH_TOK_DELIM);
   if (!name)
-    {
-      fprintf(stderr, "missing file name\n");
-      return 1;
-    }
+    return reply ("ERROR: missing file name\n");
   for (arg = name; *arg; ++arg)
     if (!isalnum(*arg) &&
         !(arg > name && (*arg == '.' || *arg == '_')))
-      {
-        fprintf(stderr, "bad character in file name '%c'\n", *arg);
-        return 1;
-      }
+      return reply ("ERROR: bad character '%c' in file name\n", *arg);
 
   FILE* f = fopen(name, "w");
   if (!f)
-    {
-      fprintf(stderr, "can't open file for writing\n");
-      return 1;
-    }
+    return reply ("ERROR: can't open file \"%s\" for writing\n", name);
   while (size > 0 && ret == 0)
     {
       char buf[1024];
@@ -291,30 +293,30 @@ do_file()
       if ((size_t)size < sizeof(buf))
 	r = size;
       r = fread(buf, 1, r, stdin);
-      if (!r)
+      if (!r && feof(stdin))
+        ret = reply ("ERROR: reached EOF while reading file data\n");
+      else if (!r)
+        ret = reply ("ERROR: unable to read file data\n");
+      else
         {
-          fprintf(stderr, "error reading file data\n");
-          ret = 1;
-          break;
-        }
-      size -= r;
+          size -= r;
 
-      const char* bufp = buf;
-      while (bufp < buf + r)
-        {
-          size_t w = (buf + r) - bufp;
-          w = fwrite(bufp, 1, w, f);
-          if (!w)
+          const char* bufp = buf;
+          while (bufp < buf + r && ret == 0)
             {
-              fprintf(stderr, "error writing file data\n");
-              ret = 1;
-              break;
+              size_t w = (buf + r) - bufp;
+              w = fwrite(bufp, 1, w, f);
+              if (!w)
+                ret = reply ("ERROR: unable to write file data\n");
+              else
+                bufp += w;
             }
-          bufp += w;
         }
     }
   fclose(f);
 
+  if (ret == 0)
+    reply ("OK\n");
   return ret;
 }
 
@@ -332,23 +334,20 @@ do_run()
   while ((arg = strtok(NULL, STAPSH_TOK_DELIM)))
     {
       if (nargs + 1 > STAPSH_MAX_ARGS)
-        {
-          fprintf(stderr, "too many args\n");
-          return 1;
-        }
+        return reply ("ERROR: too many arguments\n");
       if (qpdecode(arg) != 0)
-        return 1;
+        return reply ("ERROR: invalid encoding in argument \"%s\"\n", arg);
       args[nargs++] = arg;
     }
 
   int ret = 0;
   posix_spawn_file_actions_t fa;
   if (posix_spawn_file_actions_init(&fa) != 0)
-    return 1;
+    return reply ("ERROR: can't initialize posix_spawn actions\n");
 
   // no stdin for staprun
   if (posix_spawn_file_actions_addopen(&fa, 0, "/dev/null", O_RDONLY, 0) != 0)
-    ret = 1;
+    ret = reply ("ERROR: can't set posix_spawn actions\n");
   else
     {
       pid_t pid;
@@ -356,10 +355,13 @@ do_run()
       if (ret == 0)
         staprun_pid = pid;
       else
-        fprintf(stderr, "error launching staprun\n");
+        reply("ERROR: can't launch staprun\n");
     }
 
   posix_spawn_file_actions_destroy(&fa);
+
+  if (ret == 0)
+    reply ("OK\n");
   return ret;
 }
 

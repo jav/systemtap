@@ -160,6 +160,14 @@ class stapsh : public remote {
             }
       }
 
+    string get_reply()
+      {
+        char reply[4096];
+        if (!fgets(reply, sizeof(reply), OUT))
+          reply[0] = '\0';
+        return reply;
+      }
+
     int send_command(const string& cmd)
       {
         if (!IN)
@@ -209,6 +217,23 @@ class stapsh : public remote {
           rc = fflush(IN);
 
         fclose(f);
+
+        if (!rc)
+          {
+            string reply = get_reply();
+            if (reply != "OK\n")
+              {
+                rc = 1;
+                if (s->verbose > 1)
+                  {
+                    if (reply.empty())
+                      clog << "stapsh file ERROR: no reply" << endl;
+                    else
+                      clog << "stapsh file " << reply;
+                  }
+              }
+          }
+
         return rc;
       }
 
@@ -271,6 +296,22 @@ class stapsh : public remote {
 
         if (!rc)
           {
+            string reply = get_reply();
+            if (reply != "OK\n")
+              {
+                rc = 1;
+                if (s->verbose > 1)
+                  {
+                    if (reply.empty())
+                      clog << "stapsh run ERROR: no reply" << endl;
+                    else
+                      clog << "stapsh run " << reply;
+                  }
+              }
+          }
+
+        if (!rc)
+          {
             long flags = fcntl(fdout, F_GETFL) | O_NONBLOCK;
             fcntl(fdout, F_SETFL, flags);
           }
@@ -307,8 +348,8 @@ class stapsh : public remote {
         if (send_command("stap " VERSION "\n"))
           throw runtime_error("error sending hello to stapsh!");
 
-        char reply[1024];
-        if (!fgets(reply, sizeof(reply), OUT))
+        string reply = get_reply();
+        if (reply.empty())
           throw runtime_error("error receiving hello from stapsh!");
 
         // stapsh VERSION MACHINE RELEASE
