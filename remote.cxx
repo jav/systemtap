@@ -336,6 +336,10 @@ class direct_stapsh : public stapsh {
         int in, out;
         vector<string> cmd;
         cmd.push_back(BINDIR "/stapsh");
+        if (s.perpass_verbose[4] > 1)
+          cmd.push_back("-v");
+        if (s.perpass_verbose[4] > 2)
+          cmd.push_back("-v");
         child = stap_spawn_piped(s.verbose, cmd, &in, &out);
         if (child <= 0)
           throw runtime_error("error launching stapsh!");
@@ -413,6 +417,10 @@ class ssh_remote : public stapsh {
         cmd.push_back("-q");
         cmd.push_back(host);
         cmd.push_back("stapsh"); // NB: relies on remote $PATH
+        if (s->perpass_verbose[4] > 1)
+          cmd.push_back("-v");
+        if (s->perpass_verbose[4] > 2)
+          cmd.push_back("-v");
         child = stap_spawn_piped(s->verbose, cmd, &in, &out);
         sigprocmask (SIG_SETMASK, &oldmask, NULL); // back to normal signals
         if (child <= 0)
@@ -706,6 +714,7 @@ remote::run(const vector<remote*>& remotes)
 
   for (unsigned i = 0; i < remotes.size() && !pending_interrupts; ++i)
     {
+      remotes[i]->s->verbose = remotes[i]->s->perpass_verbose[4];
       rc = remotes[i]->prepare();
       if (rc)
         return rc;

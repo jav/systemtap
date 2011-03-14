@@ -49,6 +49,7 @@
 #include <fcntl.h>
 #include <spawn.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -85,10 +86,22 @@ static const struct stapsh_handler commands[] = {
       { "run", do_run },
       { "quit", do_quit },
 };
+static const unsigned ncommands = sizeof(commands) / sizeof(*commands);
 
 static char tmpdir[FILENAME_MAX] = "";
 
 static pid_t staprun_pid = -1;
+
+static unsigned verbose = 0;
+
+#define dbug(level, format, args...) ( (verbose < level) ? 0 : \
+  fprintf (stderr, "stapsh:%s:%d " format, __FUNCTION__, __LINE__, ## args) )
+
+#define vdbug(level, format, args) ( (verbose < level) ? 0 : \
+  fprintf (stderr, "stapsh:%s:%d ", __FUNCTION__, __LINE__) + \
+  vfprintf (stderr, format, args) )
+
+#define die(format, args...) ({ dbug(1, format, ## args); cleanup(2); })
 
 
 static void __attribute__ ((noreturn))
@@ -149,6 +162,34 @@ setup_signals (void)
     sigaction (signals[i], &sa, NULL);
 }
 
+static void __attribute__ ((noreturn))
+usage (char *prog, int status)
+{
+  fprintf (stderr, "%s [-v]\n", prog);
+  exit (status);
+}
+
+static void
+parse_args(int argc, char* const argv[])
+{
+  int c;
+  while ((c = getopt (argc, argv, "v")) != -1)
+    switch (c)
+      {
+      case 'v':
+        ++verbose;
+        break;
+      case '?':
+      default:
+        usage (argv[0], 2);
+      }
+  if (optind < argc)
+    {
+      fprintf (stderr, "%s: invalid extraneous arguments\n", argv[0]);
+      usage (argv[0], 2);
+    }
+}
+
 
 // Decode a quoted-printable string in-place
 static int
@@ -191,6 +232,9 @@ qpdecode(char* s)
 static int
 do_hello()
 {
+  if (staprun_pid > 0)
+    return 1;
+
   // XXX check caller's version compatibility
 
   struct utsname uts;
@@ -326,47 +370,37 @@ do_quit()
 }
 
 int
-main(int argc __attribute__ ((unused)),
-     const char* const argv[] __attribute__ ((unused)))
+main(int argc, char* const argv[])
 {
+  parse_args(argc, argv);
+
   setup_signals();
 
   umask(0077);
   snprintf(tmpdir, sizeof(tmpdir), "%s/stapsh.XXXXXX",
            getenv("TMPDIR") ?: "/tmp");
   if (!mkdtemp(tmpdir))
-    {
-      fprintf(stderr, "no tmpdir\n");
-      return 2;
-    }
+    die ("Can't make a temporary working directory!\n");
   if (chdir(tmpdir))
-    {
-      fprintf(stderr, "bad tmpdir\n");
-      cleanup(2);
-    }
+    die ("Can't change to temporary working directory \"%s\"!\n", tmpdir);
 
-  char command[1024];
+  char command[4096];
   while (fgets(command, sizeof(command), stdin))
     {
+      dbug(1, "command: %s", command);
       int rc = -1;
       unsigned i;
       const char* arg = strtok(command, STAPSH_TOK_DELIM) ?: "(null)";
-      for (i = 0; i < sizeof(commands) / sizeof(*commands); ++i)
+      for (i = 0; i < ncommands; ++i)
         if (strcmp(arg, commands[i].name) == 0)
           {
             rc = commands[i].fn();
             if (rc)
-              {
-                fprintf(stderr, "failed %s, rc=%d\n", arg, rc);
-                //cleanup(rc);
-              }
+              dbug(2, "failed command %s, rc=%d\n", arg, rc);
             break;
           }
-      if (rc < 0)
-        {
-          fprintf(stderr, "bad command %s\n", arg);
-          //cleanup(1);
-        }
+      if (i >= ncommands)
+        dbug(2, "invalid command %s\n", arg);
     }
 
   cleanup(0);
