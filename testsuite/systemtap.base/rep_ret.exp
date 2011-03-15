@@ -2,10 +2,9 @@ set test "rep_ret"
 
 # This test is only for i386 and x86_64
 # Test 32-on-64 when available
-set arches [list "-default"]
 switch -regexp $::tcl_platform(machine) {
-    {^i\d86$} {}
-    {^x86_64$} { lappend arches "-m32" }
+    {^i\d86$} { set arches [list "-default"] }
+    {^x86_64$} { set arches [list "-m64" "-m32"]}
     default { unsupported "$test"; return }
 }
 
