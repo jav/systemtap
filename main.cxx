@@ -915,7 +915,7 @@ passes_0_4_again_with_server (systemtap_session &s)
   remove_temp_dir (s);
 
   // Try to compile again, using the server
-  clog << "Attempting compilation using a compile server"
+  clog << _("Attempting compilation using a compile server")
        << endl;
   int rc = passes_0_4 (s);
   return rc;
