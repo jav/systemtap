@@ -494,10 +494,6 @@ passes_0_4 (systemtap_session &s)
   // directory.
   s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
 
-  // Set up our handler to catch routine signals, to allow clean
-  // and reasonably timely exit.
-  setup_signals(&handle_interrupt);
-
   PROBE1(stap, pass0__end, &s);
 
   struct tms tms_before;
@@ -930,6 +926,10 @@ main (int argc, char * const argv [])
   setlocale (LC_ALL, "");
   bindtextdomain (PACKAGE, LOCALEDIR);
   textdomain (PACKAGE);
+
+  // Set up our handler to catch routine signals, to allow clean
+  // and reasonably timely exit.
+  setup_signals(&handle_interrupt);
 
   // Process the command line.
   int rc = s.parse_cmdline (argc, argv);
