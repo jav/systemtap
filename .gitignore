@@ -37,3 +37,4 @@ include-elfutils
 lib-elfutils
 stamp-elfutils
 dtrace
+stappaths.7
