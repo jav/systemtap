@@ -144,8 +144,9 @@ cleanup(int status)
 }
 
 static void
-handle_signal(int sig __attribute__ ((unused)))
+handle_signal(int sig)
 {
+  dbug(1, "received signal %d: %s\n", sig, strsignal(sig));
   cleanup(0);
 }
 
