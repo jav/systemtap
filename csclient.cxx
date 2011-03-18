@@ -1166,7 +1166,8 @@ compile_server_client::compile_using_server (
 	      nssError ();
 	    }
 	}
- 
+
+      SSL_ClearSessionCache();
       NSS_Shutdown();
 
       if (rc == SECSuccess)
@@ -3140,3 +3141,5 @@ merge_server_info (
     merge_server_info (*i, target);
 }
 #endif
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
