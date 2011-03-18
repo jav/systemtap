@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-03-15 21:57-0400\n"
+"POT-Creation-Date: 2011-03-18 09:02-0400\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Przemysław Pawełczyk <przemyslaw@pawelczyk.it>\n"
 "Language-Team: Polish\n"
@@ -145,6 +145,366 @@ msgstr ""
 
 #: coveragedb.cxx:110 coveragedb.cxx:133 coveragedb.cxx:151
 msgid "Error in statement: "
+msgstr ""
+
+#: csclient.cxx:65
+#, c-format
+msgid ""
+"WARNING: The domain name, \\%s, does not match the DNS name(s) on the server "
+"certificate:\n"
+msgstr ""
+
+#: csclient.cxx:66
+#, c-format
+msgid "could not find input file %s\n"
+msgstr ""
+
+#: csclient.cxx:67
+#, c-format
+msgid "could not open input file %s\n"
+msgstr ""
+
+#: csclient.cxx:68
+#, c-format
+msgid "Unable to open output file %s\n"
+msgstr ""
+
+#: csclient.cxx:69
+#, c-format
+msgid "could not write to %s\n"
+msgstr ""
+
+#: csclient.cxx:273
+#, c-format
+msgid "Unable to find alt name extension on the server certificate\n"
+msgstr ""
+
+#: csclient.cxx:282 csclient.cxx:479
+#, c-format
+msgid "Out of memory\n"
+msgstr ""
+
+#: csclient.cxx:290
+#, c-format
+msgid "Unable to decode alt name extension on server certificate\n"
+msgstr ""
+
+#: csclient.cxx:613
+#, c-format
+msgid "Unable to resolve server host name"
+msgstr ""
+
+#: csclient.cxx:619
+#, c-format
+msgid "Unable to resolve server host address"
+msgstr ""
+
+#: csclient.cxx:672
+msgid "Using a compile server"
+msgstr ""
+
+#: csclient.cxx:720
+msgid "Passes: via server "
+msgstr ""
+
+#: csclient.cxx:776
+msgid "ERROR: cannot create temporary directory (\""
+msgstr ""
+
+#: csclient.cxx:801
+msgid "ERROR: cannot create temporary directory "
+msgstr ""
+
+#: csclient.cxx:1043
+msgid "Unable to find a server"
+msgstr ""
+
+#: csclient.cxx:1123
+msgid "Error initializing NSS"
+msgstr ""
+
+#: csclient.cxx:1141
+#, c-format
+msgid ""
+"Attempting SSL connection with %s\n"
+"  using certificates from the database in %s\n"
+msgstr ""
+
+#: csclient.cxx:1171
+msgid "  Unable to connect: "
+msgstr ""
+
+#: csclient.cxx:1183
+msgid "Unable to connect to a server"
+msgstr ""
+
+#: csclient.cxx:1205
+#, c-format
+msgid "Unable to unzip the server response '%s'\n"
+msgstr ""
+
+#: csclient.cxx:1213 csclient.cxx:1230 csclient.cxx:1290 csclient.cxx:1901
+#, c-format
+msgid "Searching \"%s\"\n"
+msgstr ""
+
+#: csclient.cxx:1219
+msgid "Incorrect number of files in server response"
+msgstr ""
+
+#: csclient.cxx:1226 csclient.cxx:1303 csclient.cxx:1909
+msgid "  found "
+msgstr ""
+
+#: csclient.cxx:1243
+#, c-format
+msgid "  found %s -- linking from %s"
+msgstr ""
+
+#: csclient.cxx:1247
+#, c-format
+msgid "Unable to link '%s' to '%s':%s\n"
+msgstr ""
+
+#: csclient.cxx:1297
+msgid "Incorrect number of modules in server response"
+msgstr ""
+
+#: csclient.cxx:1327
+msgid "No module was returned by the server"
+msgstr ""
+
+#: csclient.cxx:1354 csclient.cxx:1422
+#, c-format
+msgid "Unable to open file '%s' for reading: "
+msgstr ""
+
+#: csclient.cxx:1363
+#, c-format
+msgid "Unable to read from file '%s': "
+msgstr ""
+
+#: csclient.cxx:1374 csclient.cxx:1408 csclient.cxx:1446
+msgid "unknown error"
+msgstr ""
+
+#: csclient.cxx:1388
+#, c-format
+msgid "Unable to open file '%s' for writing: "
+msgstr ""
+
+#: csclient.cxx:1397
+#, c-format
+msgid "Unable to write to file '%s': "
+msgstr ""
+
+#: csclient.cxx:1557
+#, c-format
+msgid "Warning: unsupported compile server property: %s"
+msgstr ""
+
+#: csclient.cxx:1606
+#, c-format
+msgid "Systemtap Compile Server Status for '%s'"
+msgstr ""
+
+#: csclient.cxx:1621
+msgid "No servers found"
+msgstr ""
+
+#: csclient.cxx:1659
+msgid "Only root can specify 'signer' on --trust-servers"
+msgstr ""
+
+#: csclient.cxx:1671
+msgid "Only root can specify 'all-users' on --trust-servers"
+msgstr ""
+
+#: csclient.cxx:1680
+msgid "Warning: Unrecognized server trust specification: "
+msgstr ""
+
+#: csclient.cxx:1697
+msgid "No servers identified for trust"
+msgstr ""
+
+#: csclient.cxx:1725
+msgid "Revoking trust "
+msgstr ""
+
+#: csclient.cxx:1727
+msgid "Adding trust "
+msgstr ""
+
+#: csclient.cxx:1732
+msgid "Revoke trust "
+msgstr ""
+
+#: csclient.cxx:1734
+msgid "Add trust "
+msgstr ""
+
+#: csclient.cxx:1736
+#, c-format
+msgid "in the following servers %s"
+msgstr ""
+
+#: csclient.cxx:1751
+msgid "Server trust unchanged"
+msgstr ""
+
+#: csclient.cxx:1793
+msgid "as a module signer for all users"
+msgstr ""
+
+#: csclient.cxx:1796
+msgid "as an SSL peer"
+msgstr ""
+
+#: csclient.cxx:1798
+msgid " for all users"
+msgstr ""
+
+#: csclient.cxx:1800
+msgid " for the current user"
+msgstr ""
+
+#: csclient.cxx:1809
+msgid " is already "
+msgstr ""
+
+#: csclient.cxx:1811
+msgid "untrusted "
+msgstr ""
+
+#: csclient.cxx:1813
+msgid "trusted "
+msgstr ""
+
+#: csclient.cxx:1833
+#, c-format
+msgid "Unable to find or create the client certificate database directory %s: "
+msgstr ""
+
+#: csclient.cxx:1848 csclient.cxx:1958 csclient.cxx:2410
+#, c-format
+msgid "Error initializing NSS for %s"
+msgstr ""
+
+#: csclient.cxx:1888
+#, c-format
+msgid "Unable to connect to %s"
+msgstr ""
+
+#: csclient.cxx:1913
+#, c-format
+msgid "Warning: Unable to change permissions on %s: "
+msgstr ""
+
+#: csclient.cxx:1932
+#, c-format
+msgid "Certificate database '%s' does not exist"
+msgstr ""
+
+#: csclient.cxx:1968 csclient.cxx:2444
+msgid "Out of memory:"
+msgstr ""
+
+#: csclient.cxx:2010
+#, c-format
+msgid "Unable to query certificate database %s: "
+msgstr ""
+
+#: csclient.cxx:2056
+#, c-format
+msgid "Unable to remove certificate from %s: "
+msgstr ""
+
+#: csclient.cxx:2216 csclient.cxx:2254
+#, c-format
+msgid "Invalid port number specified: %s"
+msgstr ""
+
+#: csclient.cxx:2235
+#, c-format
+msgid "No server matching %s found"
+msgstr ""
+
+#: csclient.cxx:2316
+msgid "Unable to determine server trust as an SSL peer"
+msgstr ""
+
+#: csclient.cxx:2362
+msgid "Unable to determine server trust as a module signer"
+msgstr ""
+
+#: csclient.cxx:2392
+#, c-format
+msgid "Certificate database '%s' does not exist."
+msgstr ""
+
+#: csclient.cxx:2434
+msgid "Unable to query client certificate database: "
+msgstr ""
+
+#: csclient.cxx:2466
+msgid "Unable to find alt name extension on server certificate: "
+msgstr ""
+
+#: csclient.cxx:2476
+msgid "Unable to decode alt name extension on server certificate: "
+msgstr ""
+
+#: csclient.cxx:2568
+msgid "Unable to detect server compatibility"
+msgstr ""
+
+#: csclient.cxx:2752
+#, c-format
+msgid "Failed to resolve service '%s' of type '%s' in domain '%s': %s"
+msgstr ""
+
+#: csclient.cxx:2806
+#, c-format
+msgid "Avahi browse failed: %s"
+msgstr ""
+
+#: csclient.cxx:2819
+#, c-format
+msgid "Failed to resolve service '%s': %s"
+msgstr ""
+
+#: csclient.cxx:2840
+#, c-format
+msgid "Avahi Server connection failure: %s"
+msgstr ""
+
+#: csclient.cxx:2886
+msgid "Failed to create Avahi simple poll object"
+msgstr ""
+
+#: csclient.cxx:2902
+#, c-format
+msgid "Failed to create Avahi client: %s"
+msgstr ""
+
+#: csclient.cxx:2914
+#, c-format
+msgid "Failed to create Avahi service browser: %s"
+msgstr ""
+
+#: csclient.cxx:2961
+msgid "Unable to detect online servers"
+msgstr ""
+
+#: dwarf_wrappers.cxx:25
+#, c-format
+msgid "libdwfl failure (%s): "
+msgstr ""
+
+#: dwarf_wrappers.cxx:37
+#, c-format
+msgid "libdw failure (%s): "
 msgstr ""
 
 #: dwflpp.cxx:127
@@ -1364,51 +1724,51 @@ msgstr ""
 msgid "Session arch: %s release: %s"
 msgstr ""
 
-#: main.cxx:593
+#: main.cxx:589
 #, c-format
 msgid ""
 "usage error: tapset file '%s' cannot be run directly as a session script."
 msgstr ""
 
 #. TRANSLATORS: Searching through directories, 'processed' means 'examined so far'
-#: main.cxx:620
+#: main.cxx:616
 #, c-format
 msgid "Searched: \" %s \", found: %zu, processed: %u"
 msgstr ""
 
-#: main.cxx:632
+#: main.cxx:628
 msgid "# parse tree dump"
 msgstr ""
 
-#: main.cxx:669
+#: main.cxx:665
 msgid "Pass 1: parse failed.  Try again with another '--vp 1' option."
 msgstr ""
 
-#: main.cxx:702
+#: main.cxx:698
 msgid "Pass 2: analysis failed.  Try again with another '--vp 01' option."
 msgstr ""
 
-#: main.cxx:773
+#: main.cxx:769
 msgid "Pass 3: translation failed.  Try again with another '--vp 001' option."
 msgstr ""
 
-#: main.cxx:810
+#: main.cxx:806
 msgid "Pass 4: compilation failed.  Try again with another '--vp 0001' option."
 msgstr ""
 
-#: main.cxx:854
+#: main.cxx:850
 msgid "Pass 5: starting run."
 msgstr ""
 
-#: main.cxx:866
+#: main.cxx:862
 msgid "Pass 5: run failed.  Try again with another '--vp 00001' option."
 msgstr ""
 
-#: main.cxx:894
+#: main.cxx:890
 msgid "Coverage database not available without libsqlite3"
 msgstr ""
 
-#: main.cxx:918
+#: main.cxx:914
 msgid "Attempting compilation using a compile server"
 msgstr ""
 
@@ -1769,6 +2129,76 @@ msgstr ""
 
 #: parse.cxx:3001
 msgid "-> and [ are not accepted for a pretty-printing variable"
+msgstr ""
+
+#: remote.cxx:39
+#, c-format
+msgid "string doesn't appear to be a URI: %s"
+msgstr ""
+
+#: remote.cxx:115
+msgid "ssh target requires a hostname"
+msgstr ""
+
+#: remote.cxx:117
+msgid "ssh target URI doesn't support a /path"
+msgstr ""
+
+#: remote.cxx:119
+msgid "ssh target URI doesn't support a ?query"
+msgstr ""
+
+#: remote.cxx:121
+msgid "ssh target URI doesn't support a #fragment"
+msgstr ""
+
+#: remote.cxx:146
+msgid "No tmpdir available for ssh control master"
+msgstr ""
+
+#: remote.cxx:171
+#, c-format
+msgid "failed to create an ssh control master for %s : rc= %d"
+msgstr ""
+
+#: remote.cxx:177
+#, c-format
+msgid "Created ssh control master at %s"
+msgstr ""
+
+#: remote.cxx:191
+#, c-format
+msgid "failed to stop the ssh control master for %s : rc=%d"
+msgstr ""
+
+#: remote.cxx:210
+#, c-format
+msgid "failed to get uname from %s : rc= %d"
+msgstr ""
+
+#: remote.cxx:235
+#, c-format
+msgid "failed to make a tempdir on %s : rc=%d"
+msgstr ""
+
+#: remote.cxx:250
+#, c-format
+msgid "failed to copy the module to %s : rc=%d"
+msgstr ""
+
+#: remote.cxx:264
+#, c-format
+msgid "failed to run the module on %s : ret=%d"
+msgstr ""
+
+#: remote.cxx:292
+#, c-format
+msgid "failed to delete the tempdir on %s : rc=%d"
+msgstr ""
+
+#: remote.cxx:329
+#, c-format
+msgid "unrecognized URI scheme '%s' in remote: %s"
 msgstr ""
 
 #: rpm_finder.cxx:70
@@ -2209,6 +2639,89 @@ msgstr ""
 #. TRANSLATORS:  Here were are printing the source string of the error
 #: session.cxx:1437
 msgid "source: "
+msgstr ""
+
+#: staptree.cxx:161
+msgid "inconsistent arity"
+msgstr ""
+
+#: staptree.cxx:165
+#, c-format
+msgid "inconsistent arity (%s vs %d)"
+msgstr ""
+
+#: staptree.cxx:168
+#, c-format
+msgid "arity %s first inferred here"
+msgstr ""
+
+#: staptree.cxx:203
+msgid "internal error, joining a non-synthetic function"
+msgstr ""
+
+#: staptree.cxx:205
+#, c-format
+msgid "synthetic function '%s' conflicts with an existing function"
+msgstr ""
+
+#: staptree.cxx:251
+#, c-format
+msgid "%s variable '%s' may not be used as array"
+msgstr ""
+
+#: staptree.cxx:254
+#, c-format
+msgid "%s variable '%s' may not be used as a structure"
+msgstr ""
+
+#: staptree.cxx:258
+#, c-format
+msgid "%s variable '%s' may not be pretty-printed"
+msgstr ""
+
+#: staptree.cxx:262
+#, c-format
+msgid "invalid use of %s variable '%s'"
+msgstr ""
+
+#: staptree.cxx:854
+msgid "invalid or missing conversion specifier"
+msgstr ""
+
+#: staptree.cxx:867
+msgid "trailing incomplete print format conversion"
+msgstr ""
+
+#: staptree.cxx:1574 staptree.cxx:1587
+msgid "Expecting symbol or histogram operator"
+msgstr ""
+
+#: staptree.cxx:1576
+msgid "Failed to classify indexable"
+msgstr ""
+
+#: staptree.cxx:1930
+msgid "function may not be used when --unprivileged is specified"
+msgstr ""
+
+#: staptree.cxx:1935
+msgid "function may not be used unless -g is specified"
+msgstr ""
+
+#: staptree.cxx:1964
+msgid "embedded expression may not be used when --unprivileged is specified"
+msgstr ""
+
+#: staptree.cxx:1969
+msgid "embedded expression may not be used unless -g is specified"
+msgstr ""
+
+#: staptree.cxx:2069
+msgid "symbol without referent"
+msgstr ""
+
+#: staptree.cxx:2250
+msgid "invalid element"
 msgstr ""
 
 #: tapset-itrace.cxx:79 tapsets.cxx:6125 tapset-utrace.cxx:127
@@ -3280,106 +3793,110 @@ msgstr ""
 msgid "kernel write fault at 0x%p (%s)"
 msgstr ""
 
-#: translate.cxx:5779
+#: translate.cxx:5787
 #, c-format
 msgid "ignoring extra parts of compat version: %s"
 msgstr ""
 
-#: translate.cxx:5783
+#: translate.cxx:5791
 #, c-format
 msgid "parse error in compatibility version: %s"
 msgstr ""
 
-#: translate.cxx:5786
+#: translate.cxx:5794
 #, c-format
 msgid "compatibility version out of range: %s"
 msgstr ""
 
-#: translate.cxx:5806
+#: translate.cxx:5814
 msgid " recursive"
 msgstr ""
 
-#: translate.cxx:5806
+#: translate.cxx:5814
 msgid " non-recursive"
 msgstr ""
 
-#: translate.cxx:5805
+#: translate.cxx:5813
 #, c-format
 msgid "function recursion-analysis: max-nesting %d %s"
 msgstr ""
 
-#: util.cxx:75
+#: util.cxx:60
 msgid "Unable to determine home directory"
 msgstr ""
 
-#: util.cxx:129
+#: util.cxx:114
 #, c-format
 msgid "Copying %s to %s"
 msgstr ""
 
-#: util.cxx:183
+#: util.cxx:168
 #, c-format
 msgid "Copy failed (\"%s\" to \"%s\"): %s"
 msgstr ""
 
-#: util.cxx:240
+#: util.cxx:225
 msgid "remove returned 0"
 msgstr ""
 
-#: util.cxx:266
+#: util.cxx:251
 msgid "Unable to retrieve group list"
 msgstr ""
 
-#: util.cxx:293
+#: util.cxx:278
 #, c-format
 msgid "using %ldvirt/%ldres/%ldshr kb, "
 msgstr ""
 
-#: util.cxx:416
+#: util.cxx:401
 msgid "cmdstr_join called with an empty command!"
 msgstr ""
 
-#: util.cxx:464
+#: util.cxx:449
 msgid "Spawn waitpid call on unmanaged pid "
 msgstr ""
 
-#: util.cxx:471
+#: util.cxx:456
 #, c-format
 msgid "Spawn waitpid result (0x%x): %d"
 msgstr ""
 
-#: util.cxx:476
+#: util.cxx:461
 #, c-format
 msgid "Spawn waitpid error (%d): %s"
 msgstr ""
 
-#: util.cxx:519
+#: util.cxx:504
 msgid "Running"
 msgstr ""
 
-#: util.cxx:533
+#: util.cxx:518
 #, c-format
 msgid "Spawn error (%d): %s"
 msgstr ""
 
-#: util.cxx:662
+#: util.cxx:647
 #, c-format
 msgid "regcomp %s (%s) error rc= %d"
 msgstr ""
 
-#: util.cxx:674
+#: util.cxx:659
 #, c-format
 msgid "ERROR: Safety pattern mismatch for %s ('%s' vs. '%s') rc=%d"
 msgstr ""
 
-#: util.cxx:692
+#: util.cxx:677
 #, c-format
 msgid "regcomp %s error rc=%d"
 msgstr ""
 
-#: util.cxx:765
+#: util.cxx:750
 #, c-format
 msgid "autosprintf/vasprintf error %s"
+msgstr ""
+
+#: util.h:69 util.h:80 util.h:91 util.h:99 util.h:110 util.h:123
+msgid "bad lexical cast"
 msgstr ""
 
 #~ msgid "(version "

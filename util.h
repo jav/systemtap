@@ -1,3 +1,4 @@
+#include "config.h"
 #include <cstring>
 #include <cerrno>
 #include <string>
@@ -6,9 +7,24 @@
 #include <sstream>
 #include <stdexcept>
 #include <cctype>
+#include <libintl.h>
+#include <locale.h>
 extern "C" {
 #include <stdint.h>
 }
+
+#if ENABLE_NLS
+#define _(string) gettext(string)
+#define _N(string, string_plural, count) \
+        ngettext((string), (string_plural), (count))
+#else
+#define _(string) (string)
+#define _N(string, string_plural, count) \
+        ( (count) == 1 ? (string) : (string_plural) )
+#endif
+#define _F(format, ...) autosprintf(_(format), __VA_ARGS__)
+#define _NF(format, format_plural, count, ...) \
+        autosprintf(_N((format), (format_plural), (count)), __VA_ARGS__)
 
 const char *get_home_directory(void);
 size_t get_file_size(const std::string &path);
@@ -50,7 +66,7 @@ inline std::string lex_cast(IN const & in)
 {
   std::ostringstream ss;
   if (!(ss << in))
-    throw std::runtime_error("bad lexical cast");
+    throw std::runtime_error(_("bad lexical cast"));
   return ss.str();
 }
 
@@ -61,7 +77,7 @@ inline OUT lex_cast(std::string const & in)
   std::istringstream ss(in);
   OUT out;
   if (!(ss >> out && ss.eof()))
-    throw std::runtime_error("bad lexical cast");
+    throw std::runtime_error(_("bad lexical cast"));
   return out;
 }
 
@@ -72,7 +88,7 @@ inline int8_t lex_cast(std::string const & in)
 {
   int16_t out = lex_cast<int16_t>(in);
   if (out < -128 || out > 127)
-    throw std::runtime_error("bad lexical cast");
+    throw std::runtime_error(_("bad lexical cast"));
   return out;
 }
 template <>
@@ -80,7 +96,7 @@ inline uint8_t lex_cast(std::string const & in)
 {
   uint16_t out = lex_cast<uint16_t>(in);
   if (out > 0xff && out < 0xff80) // don't error if it looks sign-extended
-    throw std::runtime_error("bad lexical cast");
+    throw std::runtime_error(_("bad lexical cast"));
   return out;
 }
 
@@ -91,7 +107,7 @@ lex_cast_hex(IN const & in)
 {
   std::ostringstream ss;
   if (!(ss << std::showbase << std::hex << in))
-    throw std::runtime_error("bad lexical cast");
+    throw std::runtime_error(_("bad lexical cast"));
   return ss.str();
 }
 
@@ -104,7 +120,7 @@ lex_cast_qstring(IN const & in)
 {
   std::stringstream ss;
   if (!(ss << in))
-    throw std::runtime_error("bad lexical cast");
+    throw std::runtime_error(_("bad lexical cast"));
   return lex_cast_qstring(ss.str());
 }
 
