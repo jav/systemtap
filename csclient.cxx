@@ -1705,17 +1705,17 @@ manage_server_trust (systemtap_session &s)
   ostringstream trustString;
   if (ssl)
     {
-      trustString << "as an SSL peer";
+      trustString << _("as an SSL peer");
       if (all_users)
-	trustString << " for all users";
+	trustString << _(" for all users");
       else
-	trustString << " for the current user";
+	trustString << _(" for the current user");
     }
   if (signer)
     {
       if (ssl)
-	trustString << " and ";
-      trustString << "as a module signer for all users";
+	trustString << _(" and ");
+      trustString << _("as a module signer for all users");
     }
 
   // Prompt the user to confirm what's about to happen.

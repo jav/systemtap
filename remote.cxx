@@ -166,12 +166,8 @@ class ssh_remote : public remote {
         cmd.push_back("-M");
         int rc = stap_system(s->verbose, cmd);
         if (rc != 0)
-          {
-            ostringstream err;
-            err << _F("failed to create an ssh control master for %s : rc= %d",
-                      host.c_str(), rc);
-            throw runtime_error(err.str());
-          }
+            throw runtime_error(_F("failed to create an ssh control master for %s : rc= %d",
+                                   host.c_str(), rc));
 
         if (s->verbose>1)
           clog << _F("Created ssh control master at %s",
@@ -324,12 +320,8 @@ remote::create(systemtap_session& s, const string& uri)
           if (ud.scheme == "ssh")
             return new ssh_remote(s, ud);
           else
-            {
-              ostringstream msg;
-              msg << _F("unrecognized URI scheme '%s' in remote: %s",
-                        ud.scheme.c_str(), uri.c_str());
-              throw runtime_error(msg.str());
-            }
+              throw runtime_error(_F("unrecognized URI scheme '%s' in remote: %s",
+                                     ud.scheme.c_str(), uri.c_str()));
         }
       else
         // XXX assuming everything else is ssh for now...
