@@ -285,7 +285,7 @@ process_r () {
 	    echo "Missing $version_file_name"
 	    return 1
 	fi
-	SERVER_CMDS+=("RELEASE=\"`quote_for_cmd "$kernel_release"`\"")
+	SERVER_CMDS+=("RELEASE=\"`quote_for_cmd "$1"`\"") # pass the path as-is
 	return 0
     fi
 

@@ -1236,6 +1236,11 @@ void systemtap_session::insert_loaded_modules()
 void
 systemtap_session::setup_kernel_release (const char* kstr) 
 {
+  // Sometimes we may get dupes here... e.g. a server may have a full
+  // -r /path/to/kernel followed by a client's -r kernel.
+  if (kernel_release == kstr)
+    return; // nothing new here...
+
   kernel_release = kernel_build_tree = kernel_source_tree = "";
   if (kstr[0] == '/') // fully specified path
     {

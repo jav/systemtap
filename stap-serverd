@@ -297,7 +297,7 @@ function process_r {
 
     if test "X$release" != "X$uname_r"; then
 	uname_r="$release"
-	stap_options="$stap_options -r $release"
+	stap_options="$stap_options -r \"$1\"" # pass the name/path as-is
     fi
 }
 
