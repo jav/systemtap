@@ -41,7 +41,7 @@ class uri_decoder {
 
       vector<string> matches;
       if (regexp_match(uri, re, matches) != 0)
-        throw runtime_error("string doesn't appear to be a URI: " + uri);
+        throw runtime_error(_F("string doesn't appear to be a URI: %s", uri.c_str()));
 
       scheme = matches[1];
 
@@ -526,13 +526,13 @@ class ssh_remote : public remote {
       : remote(s), child(0)
       {
         if (!ud.has_authority || ud.authority.empty())
-          throw runtime_error("ssh target requires a hostname");
+          throw runtime_error(_("ssh target requires a hostname"));
         if (!ud.path.empty() && ud.path != "/")
-          throw runtime_error("ssh target URI doesn't support a /path");
+          throw runtime_error(_("ssh target URI doesn't support a /path"));
         if (ud.has_query)
-          throw runtime_error("ssh target URI doesn't support a ?query");
+          throw runtime_error(_("ssh target URI doesn't support a ?query"));
         if (ud.has_fragment)
-          throw runtime_error("ssh target URI doesn't support a #fragment");
+          throw runtime_error(_("ssh target URI doesn't support a #fragment"));
 
         host = ud.authority;
         init();
@@ -557,7 +557,7 @@ class ssh_remote : public remote {
         static unsigned index = 0;
 
         if (s->tmpdir.empty()) // sanity check, shouldn't happen
-          throw runtime_error("No tmpdir available for ssh control master");
+          throw runtime_error(_("No tmpdir available for ssh control master"));
 
         ssh_control = s->tmpdir + "/ssh_remote_control_" + lex_cast(++index);
 
@@ -580,16 +580,12 @@ class ssh_remote : public remote {
         cmd.push_back("-M");
         int rc = stap_system(s->verbose, cmd);
         if (rc != 0)
-          {
-            ostringstream err;
-            err << "failed to create an ssh control master for " << host
-                << " : rc=" << rc;
-            throw runtime_error(err.str());
-          }
+            throw runtime_error(_F("failed to create an ssh control master for %s : rc= %d",
+                                   host.c_str(), rc));
 
         if (s->verbose>1)
-          clog << "Created ssh control master at "
-               << lex_cast_qstring(ssh_control) << endl;
+          clog << _F("Created ssh control master at %s",
+                     lex_cast_qstring(ssh_control).c_str()) << endl;
       }
 
     void close_control_master()
@@ -602,8 +598,8 @@ class ssh_remote : public remote {
         cmd.push_back("exit");
         int rc = stap_system(s->verbose, cmd, true, true);
         if (rc != 0)
-          cerr << "failed to stop the ssh control master for " << host
-               << " : rc=" << rc << endl;
+          cerr << _F("failed to stop the ssh control master for %s : rc=%d",
+                     host.c_str(), rc) << endl;
 
         ssh_control.clear();
         scp_args.clear();
@@ -621,8 +617,7 @@ class ssh_remote : public remote {
         if (rc == 0)
           tokenize(out.str(), uname, " \t\r\n");
         if (uname.size() != 2)
-          throw runtime_error("failed to get uname from " + host
-                              + " : rc=" + lex_cast(rc));
+          throw runtime_error(_F("failed to get uname from %s : rc= %d", host.c_str(), rc));
         const string& release = uname[0];
         const string& arch = uname[1];
         // XXX need to deal with command-line vs. implied arch/release
@@ -647,8 +642,8 @@ class ssh_remote : public remote {
             tokenize(out.str(), vout, "\r\n");
           if (vout.size() != 1)
             {
-              cerr << "failed to make a tempdir on " << host
-                   << " : rc=" << rc << endl;
+              cerr << _F("failed to make a tempdir on %s : rc=%d",
+                         host.c_str(), rc) << endl;
               return -1;
             }
           tmpdir = vout[0];
@@ -662,8 +657,8 @@ class ssh_remote : public remote {
           cmd.push_back(host + ":" + tmpmodule);
           rc = stap_system(s->verbose, cmd);
           if (rc != 0)
-            cerr << "failed to copy the module to " << host
-                 << " : rc=" << rc << endl;
+            cerr << _F("failed to copy the module to %s : rc=%d",
+                       host.c_str(), rc) << endl;
         }
 
         // Run the module on the remote.
@@ -676,8 +671,8 @@ class ssh_remote : public remote {
             child = pid;
           else
             {
-              cerr << "failed to run the module on " << host
-                   << " : ret=" << pid << endl;
+              cerr << _F("failed to run the module on %s : ret=%d",
+                         host.c_str(), pid) << endl;
               rc = -1;
             }
         }
@@ -704,8 +699,8 @@ class ssh_remote : public remote {
             cmd.push_back("rm -r " + cmdstr_quoted(tmpdir));
             int rc2 = stap_system(s->verbose, cmd);
             if (rc2 != 0)
-              cerr << "failed to delete the tempdir on " << host
-                   << " : rc=" << rc2 << endl;
+              cerr << _F("failed to delete the tempdir on %s : rc=%d",
+                         host.c_str(), rc2) << endl;
             if (rc == 0)
               rc = rc2;
             tmpdir.clear();
@@ -742,12 +737,8 @@ remote::create(systemtap_session& s, const string& uri)
           if (ud.scheme == "ssh")
             return new ssh_remote(s, ud);
           else
-            {
-              ostringstream msg;
-              msg << "unrecognized URI scheme '" << ud.scheme
-                  << "' in remote: " << uri;
-              throw runtime_error(msg.str());
-            }
+              throw runtime_error(_F("unrecognized URI scheme '%s' in remote: %s",
+                                     ud.scheme.c_str(), uri.c_str()));
         }
       else
         // XXX assuming everything else is ssh for now...

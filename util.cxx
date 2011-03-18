@@ -25,8 +25,6 @@
 #include <fstream>
 #include <cassert>
 #include <ext/stdio_filebuf.h>
-#include <libintl.h>
-#include <locale.h>
 
 extern "C" {
 #include <fcntl.h>
@@ -42,19 +40,6 @@ extern "C" {
 #include <regex.h>
 #include <stdarg.h>
 }
-
-#if ENABLE_NLS
-#define _(string) gettext(string)
-#define _N(string, string_plural, count) \
-        ngettext((string), (string_plural), (count))
-#else
-#define _(string) (string)
-#define _N(string, string_plural, count) \
-        ( (count) == 1 ? (string) : (string_plural) )
-#endif
-#define _F(format, ...) autosprintf(_(format), __VA_ARGS__)
-#define _NF(format, format_plural, count, ...) \
-        autosprintf(_N((format), (format_plural), (count)), __VA_ARGS__)
 
 using namespace std;
 using namespace __gnu_cxx;

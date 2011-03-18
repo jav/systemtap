@@ -49,11 +49,14 @@ function __ip_sock_saddr:long (sock:long)
 /* return the destination IP address for a given sock */
 function __ip_sock_daddr:long (sock:long)
 {
-    return (@defined(@cast(sock, "inet_sock")->inet_daddr)
-	    ? @cast(sock, "inet_sock")->inet_daddr # kernel >= 2.6.33
-	    : (@defined(@cast(sock, "inet_sock")->daddr)
-	       ? @cast(sock, "inet_sock", "kernel")->daddr # kernel >= 2.6.11
-	       : @cast(sock, "inet_sock", "kernel<net/ip.h>")->inet->daddr))
+    return (@defined(@cast(sock, "inet_sock")->sk->__sk_common->skc_daddr)
+	    ? # kernel >= 2.6.38
+	      @cast(sock, "inet_sock")->sk->__sk_common->skc_daddr
+	    : (@defined(@cast(sock, "inet_sock")->inet_daddr)
+	       ? @cast(sock, "inet_sock")->inet_daddr # kernel >= 2.6.33
+	       : (@defined(@cast(sock, "inet_sock")->daddr)
+		  ? @cast(sock, "inet_sock", "kernel")->daddr # kernel >= 2.6.11
+		  : @cast(sock, "inet_sock", "kernel<net/ip.h>")->inet->daddr)))
 }
 
 /* Get the IP header from a sk_buff struct */

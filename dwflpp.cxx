@@ -1332,14 +1332,12 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
                       if (!inner_die_containing_pc(scopes[1], stmt_addr, scope)
                           && !sess.suppress_warnings)
                         {
-                          ostringstream msg;
-                          msg << _F("label '%s' at address %s (dieoffset: %s) is not "
-                                    "contained by its scope '%s' (dieoffset: %s) -- bad"
-                                    " debuginfo?", name, lex_cast_hex(stmt_addr).c_str(),
-                                    lex_cast_hex(dwarf_dieoffset(&die)).c_str(),
-                                    (dwarf_diename(&scope) ?: "<unknown>"),
-                                    lex_cast_hex(dwarf_dieoffset(&scope)).c_str());
-                          sess.print_warning (msg.str());
+                          sess.print_warning(_F("label '%s' at address %s (dieoffset: %s) is not "
+                                                "contained by its scope '%s' (dieoffset: %s) -- bad"
+                                                " debuginfo?", name, lex_cast_hex(stmt_addr).c_str(),
+                                                lex_cast_hex(dwarf_dieoffset(&die)).c_str(),
+                                                (dwarf_diename(&scope) ?: "<unknown>"),
+                                                lex_cast_hex(dwarf_dieoffset(&scope)).c_str()));
                         }
                       callback(function, name, file, dline,
                                &scope, stmt_addr, q);

@@ -79,7 +79,7 @@ static void _stp_exit(void);
 #ifndef STP_PRIVILEGED
 #define assert_is_myproc() do { \
   if (! is_myproc()) { \
-    snprintf (CONTEXT->error_buffer, MAXSTRINGLEN, "myproc-unprivileged tapset function called without is_myproc checking for pid %d (euid %d)", \
+    snprintf (CONTEXT->error_buffer, MAXSTRINGLEN, STAP_MSG_RUNTIME_H_01_, \
              current->tgid, STP_CURRENT_EUID); \
     CONTEXT->last_error = CONTEXT->error_buffer; \
     goto out; \

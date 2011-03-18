@@ -43,6 +43,13 @@ extern "C" {
 // A larger value was recently found in a libxul.so build.
 #define MAX_UNWIND_TABLE_SIZE (6 * 1024 * 1024)
 
+#define STAP_T_01 _("\"Array overflow, check ")
+#define STAP_T_02 _("\"MAXNESTING exceeded\";")
+#define STAP_T_03 _("\"division by 0\";")
+#define STAP_T_04 _("\"MAXACTION exceeded\";")
+#define STAP_T_05 _("\"aggregation overflow in ")
+#define STAP_T_06 _("\"empty aggregate\";")
+#define STAP_T_07 _("\"histogram index out of range\";")
 using namespace std;
 
 struct var;
@@ -657,7 +664,8 @@ struct mapvar
     else
       throw semantic_error(_("adding a value of an unsupported map type"));
 
-    res += "; if (unlikely(rc)) { c->last_error = \"Array overflow, check " +
+    res += "; if (unlikely(rc)) { c->last_error = ";
+    res += STAP_T_01 +
       lex_cast(maxsize > 0 ?
 	  "size limit (" + lex_cast(maxsize) + ")" : "MAXMAPENTRIES")
       + "\"; goto out; }}";
@@ -678,7 +686,8 @@ struct mapvar
     else
       throw semantic_error(_("setting a value of an unsupported map type"));
 
-    res += "; if (unlikely(rc)) { c->last_error = \"Array overflow, check " +
+    res += "; if (unlikely(rc)) { c->last_error = ";
+    res += STAP_T_01 +
       lex_cast(maxsize > 0 ?
 	  "size limit (" + lex_cast(maxsize) + ")" : "MAXMAPENTRIES")
       + "\"; goto out; }}";
@@ -1542,7 +1551,8 @@ c_unparser::emit_function (functiondecl* v)
   // stored in c->locals[c->nesting+1].  See also ::emit_common_header() for more.
 
   o->newline() << "if (unlikely (c->nesting+1 >= MAXNESTING)) {";
-  o->newline(1) << "c->last_error = \"MAXNESTING exceeded\";";
+  o->newline(1) << "c->last_error = ";
+  o->line() << STAP_T_02;
   o->newline() << "return;";
   o->newline(-1) << "} else {";
   o->newline(1) << "c->nesting ++;";
@@ -1663,7 +1673,7 @@ c_unparser::emit_probe (derived_probe* v)
       // probe handler function to the first copy, *by name*.
       v->name = dupe;
 #else
-#error _("Unknown duplicate elimination method")
+#error "Unknown duplicate elimination method"
 #endif
     }
   else // This probe is unique.  Remember it and output it.
@@ -2111,7 +2121,7 @@ c_unparser_assignment::c_assignop(tmpvar & res,
 	  parent->c_strcpy (lval.value(), rval.value());
 	  // no need for second copy
 	  res = rval;
-	}
+        }
       else if (op == ".=")
 	{
 	  parent->c_strcat (lval.value(), rval.value());
@@ -2176,7 +2186,8 @@ c_unparser_assignment::c_assignop(tmpvar & res,
 	      if (macop == "/=" || macop == "%=")
 		{
 		  o->newline() << "if (unlikely(!" << rval << ")) {";
-		  o->newline(1) << "c->last_error = \"division by 0\";";
+		  o->newline(1) << "c->last_error = ";
+                  o->line() << STAP_T_03;
 		  o->newline() << "c->last_stmt = " << lex_cast_qstring(*rvalue->tok) << ";";
 		  o->newline() << "goto out;";
 		  o->newline(-1) << "}";
@@ -2351,7 +2362,8 @@ c_unparser::record_actions (unsigned actions, const token* tok, bool update)
     {
       o->newline() << "c->actionremaining -= " << action_counter << ";";
       o->newline() << "if (unlikely (c->actionremaining <= 0)) {";
-      o->newline(1) << "c->last_error = \"MAXACTION exceeded\";";
+      o->newline(1) << "c->last_error = ";
+      o->line() << STAP_T_04;
 
       // XXX it really ought to be illegal for anything to be missing a token,
       // but until we're sure of that, we need to defend against NULL.
@@ -2762,7 +2774,8 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       if (mv.is_parallel())
 	{
 	  o->newline() << "if (unlikely(NULL == " << mv.calculate_aggregate() << ")) {";
-	  o->newline(1) << "c->last_error = \"aggregation overflow in " << mv << "\";";
+	  o->newline(1) << "c->last_error = ";
+          o->line() << STAP_T_05 << mv << "\";";
 	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*s->tok) << ";";
 	  o->newline() << "goto out;";
 	  o->newline(-1) << "}";
@@ -3270,7 +3283,8 @@ c_unparser::visit_binary_expression (binary_expression* e)
 	}
 
       o->newline() << "if (unlikely(!" << right << ")) {";
-      o->newline(1) << "c->last_error = \"division by 0\";";
+      o->newline(1) << "c->last_error = ";
+      o->line() << STAP_T_03;
       o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
       o->newline() << "goto out;";
       o->newline(-1) << "}";
@@ -4030,13 +4044,15 @@ c_unparser::visit_arrayindex (arrayindex* e)
       // PR 2142+2610: empty aggregates
       o->newline() << "if (unlikely (" << agg.value() << " == NULL)"
                    << " || " <<  agg.value() << "->count == 0) {";
-      o->newline(1) << "c->last_error = \"empty aggregate\";";
+      o->newline(1) << "c->last_error = ";
+      o->line() << STAP_T_06;
       o->newline() << "goto out;";
       o->newline(-1) << "} else {";
       o->newline(1) << "if (" << histogram_index_check(*v, idx[0]) << ")";
       o->newline(1)  << res << " = " << agg << "->histogram[" << idx[0] << "];";
       o->newline(-1) << "else {";
-      o->newline(1)  << "c->last_error = \"histogram index out of range\";";
+      o->newline(1)  << "c->last_error = ";
+      o->line() << STAP_T_07;
       o->newline() << "goto out;";
       o->newline(-1) << "}";
 
@@ -4222,7 +4238,7 @@ c_unparser::visit_functioncall (functioncall* e)
 	  // o->newline() << "c->last_stmt = "
           // << lex_cast_qstring(*e->args[i]->tok) << ";";
 	  c_assign (t.value(), e->args[i],
-		    "function actual argument evaluation");
+		    _("function actual argument evaluation"));
 	}
       tmp.push_back(t);
     }
@@ -4320,7 +4336,8 @@ c_unparser::visit_print_format (print_format* e)
         // PR 2142+2610: empty aggregates
         o->newline() << "if (unlikely (" << agg.value() << " == NULL)"
                      << " || " <<  agg.value() << "->count == 0) {";
-        o->newline(1) << "c->last_error = \"empty aggregate\";";
+        o->newline(1) << "c->last_error = ";
+        o->line() << STAP_T_06;
 	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	o->newline() << "goto out;";
         o->newline(-1) << "} else";
@@ -4596,7 +4613,8 @@ c_unparser::visit_stat_op (stat_op* e)
         {
           o->newline() << "if (unlikely (" << agg.value() << " == NULL)"
                        << " || " <<  agg.value() << "->count == 0) {";
-          o->newline(1) << "c->last_error = \"empty aggregate\";";
+          o->newline(1) << "c->last_error = ";
+          o->line() << STAP_T_06;
           o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
           o->newline() << "goto out;";
           o->newline(-1) << "}";
@@ -5717,6 +5735,17 @@ struct recursion_info: public traversing_visitor
 };
 
 
+void translate_runtime(systemtap_session& s)
+{
+  s.op->newline() << "#define STAP_MSG_RUNTIME_H_01 "
+                  << lex_cast_qstring(_("myproc-unprivileged tapset function called "
+                                        "without is_myproc checking for pid %d (euid %d)"));
+
+  s.op->newline() << "#define STAP_MSG_LOC2C_01 "
+                  << lex_cast_qstring(_("kernel read fault at 0x%p (%s)"));
+  s.op->newline() << "#define STAP_MSG_LOC2C_02 "
+                  << lex_cast_qstring(_("kernel write fault at 0x%p (%s)"));
+}
 int
 prepare_translate_pass (systemtap_session& s)
 {
@@ -5733,6 +5762,7 @@ translate_pass (systemtap_session& s)
   s.op = new translator_output (s.translated_source);
   c_unparser cup (& s);
   s.up = & cup;
+  translate_runtime(s);
 
   try
     {

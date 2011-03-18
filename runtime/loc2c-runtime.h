@@ -69,14 +69,14 @@
 #else
 #define DEREF_FAULT(addr) ({						    \
     snprintf(c->error_buffer, sizeof(c->error_buffer),			    \
-      "kernel read fault at 0x%p (%s)", (void *)(intptr_t)(addr), #addr);   \
+      STAP_MSG_LOC2C_01, (void *)(intptr_t)(addr), #addr);   \
     c->last_error = c->error_buffer;					    \
     goto deref_fault;							    \
     })
 
 #define STORE_DEREF_FAULT(addr) ({					    \
     snprintf(c->error_buffer, sizeof(c->error_buffer),			    \
-      "kernel write fault at 0x%p (%s)", (void *)(intptr_t)(addr), #addr);  \
+      STAP_MSG_LOC2C_02, (void *)(intptr_t)(addr), #addr);  \
     c->last_error = c->error_buffer;					    \
     goto deref_fault;							    \
     })

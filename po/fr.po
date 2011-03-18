@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-03-11 15:48-0500\n"
+"POT-Creation-Date: 2011-03-18 09:02-0400\n"
 "PO-Revision-Date: 2011-03-07 18:14+0000\n"
 "Last-Translator: Adrien Kunysz <adrien@kunysz.be>\n"
 "Language-Team: French\n"
@@ -179,6 +179,387 @@ msgstr ""
 #: coveragedb.cxx:110 coveragedb.cxx:133 coveragedb.cxx:151
 msgid "Error in statement: "
 msgstr "Erreur dans l'expression : "
+
+#: csclient.cxx:65
+#, c-format
+msgid ""
+"WARNING: The domain name, \\%s, does not match the DNS name(s) on the server "
+"certificate:\n"
+msgstr ""
+
+# XXX: assuming the file contains only one signature (as per PR_TRUNCATE)
+#: csclient.cxx:66
+#, fuzzy, c-format
+msgid "could not find input file %s\n"
+msgstr "Ne peut ouvrir le fichier de signature "
+
+# XXX: assuming the file contains only one signature (as per PR_TRUNCATE)
+#: csclient.cxx:67
+#, fuzzy, c-format
+msgid "could not open input file %s\n"
+msgstr "Ne peut ouvrir le fichier de signature "
+
+#: csclient.cxx:68
+#, fuzzy, c-format
+msgid "Unable to open output file %s\n"
+msgstr "Incapable de récupérer la liste des groupes"
+
+#: csclient.cxx:69
+#, c-format
+msgid "could not write to %s\n"
+msgstr ""
+
+#: csclient.cxx:273
+#, c-format
+msgid "Unable to find alt name extension on the server certificate\n"
+msgstr ""
+
+#: csclient.cxx:282 csclient.cxx:479
+#, c-format
+msgid "Out of memory\n"
+msgstr ""
+
+#: csclient.cxx:290
+#, c-format
+msgid "Unable to decode alt name extension on server certificate\n"
+msgstr ""
+
+#: csclient.cxx:613
+#, fuzzy, c-format
+msgid "Unable to resolve server host name"
+msgstr "Incapable de récupérer la liste des groupes"
+
+#: csclient.cxx:619
+#, c-format
+msgid "Unable to resolve server host address"
+msgstr ""
+
+#: csclient.cxx:672
+#, fuzzy
+msgid "Using a compile server"
+msgstr ""
+"              réessayer la compilation avec un serveur de compilation lors "
+"d'une erreur"
+
+#: csclient.cxx:720
+msgid "Passes: via server "
+msgstr ""
+
+#: csclient.cxx:776
+#, fuzzy
+msgid "ERROR: cannot create temporary directory (\""
+msgstr "ERREUR : ne peut créer le répertoire temporaire %s : %s"
+
+#: csclient.cxx:801
+#, fuzzy
+msgid "ERROR: cannot create temporary directory "
+msgstr "ERREUR : ne peut créer le répertoire temporaire %s : %s"
+
+#: csclient.cxx:1043
+#, fuzzy
+msgid "Unable to find a server"
+msgstr "Incapable d'initialiser la bibliothèque nss."
+
+#: csclient.cxx:1123
+msgid "Error initializing NSS"
+msgstr ""
+
+#: csclient.cxx:1141
+#, c-format
+msgid ""
+"Attempting SSL connection with %s\n"
+"  using certificates from the database in %s\n"
+msgstr ""
+
+#: csclient.cxx:1171
+msgid "  Unable to connect: "
+msgstr ""
+
+#: csclient.cxx:1183
+msgid "Unable to connect to a server"
+msgstr ""
+
+#: csclient.cxx:1205
+#, c-format
+msgid "Unable to unzip the server response '%s'\n"
+msgstr ""
+
+#: csclient.cxx:1213 csclient.cxx:1230 csclient.cxx:1290 csclient.cxx:1901
+#, c-format
+msgid "Searching \"%s\"\n"
+msgstr ""
+
+#: csclient.cxx:1219
+msgid "Incorrect number of files in server response"
+msgstr ""
+
+#: csclient.cxx:1226 csclient.cxx:1303 csclient.cxx:1909
+#, fuzzy
+msgid "  found "
+msgstr ", pas trouvé"
+
+#: csclient.cxx:1243
+#, c-format
+msgid "  found %s -- linking from %s"
+msgstr ""
+
+#: csclient.cxx:1247
+#, fuzzy, c-format
+msgid "Unable to link '%s' to '%s':%s\n"
+msgstr "incapable de trouver le membre '%s' pour %s%s%s"
+
+#: csclient.cxx:1297
+msgid "Incorrect number of modules in server response"
+msgstr ""
+
+#: csclient.cxx:1327
+msgid "No module was returned by the server"
+msgstr ""
+
+#: csclient.cxx:1354 csclient.cxx:1422
+#, fuzzy, c-format
+msgid "Unable to open file '%s' for reading: "
+msgstr "Impossible d'obtenir des informations sur "
+
+#: csclient.cxx:1363
+#, fuzzy, c-format
+msgid "Unable to read from file '%s': "
+msgstr "Incapable de récupérer la liste des groupes"
+
+#: csclient.cxx:1374 csclient.cxx:1408 csclient.cxx:1446
+#, fuzzy
+msgid "unknown error"
+msgstr "type de tableau inconnu"
+
+#: csclient.cxx:1388
+#, fuzzy, c-format
+msgid "Unable to open file '%s' for writing: "
+msgstr "Impossible d'obtenir des informations sur "
+
+#: csclient.cxx:1397
+#, fuzzy, c-format
+msgid "Unable to write to file '%s': "
+msgstr "Incapable de récupérer la liste des groupes"
+
+#: csclient.cxx:1557
+#, fuzzy, c-format
+msgid "Warning: unsupported compile server property: %s"
+msgstr "opérateur de comparaison attendu"
+
+#: csclient.cxx:1606
+#, c-format
+msgid "Systemtap Compile Server Status for '%s'"
+msgstr ""
+
+#: csclient.cxx:1621
+#, fuzzy
+msgid "No servers found"
+msgstr ", pas trouvé"
+
+#: csclient.cxx:1659
+msgid "Only root can specify 'signer' on --trust-servers"
+msgstr ""
+
+#: csclient.cxx:1671
+msgid "Only root can specify 'all-users' on --trust-servers"
+msgstr ""
+
+#: csclient.cxx:1680
+msgid "Warning: Unrecognized server trust specification: "
+msgstr ""
+
+#: csclient.cxx:1697
+msgid "No servers identified for trust"
+msgstr ""
+
+#: csclient.cxx:1725
+msgid "Revoking trust "
+msgstr ""
+
+#: csclient.cxx:1727
+msgid "Adding trust "
+msgstr ""
+
+#: csclient.cxx:1732
+msgid "Revoke trust "
+msgstr ""
+
+#: csclient.cxx:1734
+msgid "Add trust "
+msgstr ""
+
+#: csclient.cxx:1736
+#, c-format
+msgid "in the following servers %s"
+msgstr ""
+
+#: csclient.cxx:1751
+msgid "Server trust unchanged"
+msgstr ""
+
+#: csclient.cxx:1793
+msgid "as a module signer for all users"
+msgstr ""
+
+#: csclient.cxx:1796
+msgid "as an SSL peer"
+msgstr ""
+
+#: csclient.cxx:1798
+msgid " for all users"
+msgstr ""
+
+#: csclient.cxx:1800
+msgid " for the current user"
+msgstr ""
+
+#: csclient.cxx:1809
+msgid " is already "
+msgstr ""
+
+#: csclient.cxx:1811
+msgid "untrusted "
+msgstr ""
+
+#: csclient.cxx:1813
+msgid "trusted "
+msgstr ""
+
+#: csclient.cxx:1833
+#, fuzzy, c-format
+msgid "Unable to find or create the client certificate database directory %s: "
+msgstr ""
+"Incapable de déterminer le chemin vers la base de données de certificats."
+
+#: csclient.cxx:1848 csclient.cxx:1958 csclient.cxx:2410
+#, fuzzy, c-format
+msgid "Error initializing NSS for %s"
+msgstr "initiateur non supportée pour %s"
+
+#: csclient.cxx:1888
+#, fuzzy, c-format
+msgid "Unable to connect to %s"
+msgstr "Impossible d'obtenir des informations sur "
+
+#: csclient.cxx:1913
+#, c-format
+msgid "Warning: Unable to change permissions on %s: "
+msgstr ""
+
+#: csclient.cxx:1932
+#, c-format
+msgid "Certificate database '%s' does not exist"
+msgstr ""
+
+#: csclient.cxx:1968 csclient.cxx:2444
+msgid "Out of memory:"
+msgstr ""
+
+#: csclient.cxx:2010
+#, fuzzy, c-format
+msgid "Unable to query certificate database %s: "
+msgstr ""
+"Incapable d'obtenir le mot de passe de la base de données de certificats."
+
+#: csclient.cxx:2056
+#, fuzzy, c-format
+msgid "Unable to remove certificate from %s: "
+msgstr ""
+"Incapable de déterminer le chemin vers la base de données de certificats."
+
+#: csclient.cxx:2216 csclient.cxx:2254
+#, fuzzy, c-format
+msgid "Invalid port number specified: %s"
+msgstr "période d'échantillonnage perf invalide"
+
+#: csclient.cxx:2235
+#, c-format
+msgid "No server matching %s found"
+msgstr ""
+
+#: csclient.cxx:2316
+#, fuzzy
+msgid "Unable to determine server trust as an SSL peer"
+msgstr ""
+"Incapable de déterminer le chemin vers la base de données de certificats."
+
+#: csclient.cxx:2362
+#, fuzzy
+msgid "Unable to determine server trust as a module signer"
+msgstr "Incapable de déterminer le répertoire d'accueil de l'utilisateur"
+
+#: csclient.cxx:2392
+#, c-format
+msgid "Certificate database '%s' does not exist."
+msgstr ""
+
+#: csclient.cxx:2434
+#, fuzzy
+msgid "Unable to query client certificate database: "
+msgstr ""
+"Incapable de déterminer le chemin vers la base de données de certificats."
+
+#: csclient.cxx:2466
+msgid "Unable to find alt name extension on server certificate: "
+msgstr ""
+
+#: csclient.cxx:2476
+msgid "Unable to decode alt name extension on server certificate: "
+msgstr ""
+
+#: csclient.cxx:2568
+#, fuzzy
+msgid "Unable to detect server compatibility"
+msgstr "Incapable de récupérer la liste des groupes"
+
+#: csclient.cxx:2752
+#, c-format
+msgid "Failed to resolve service '%s' of type '%s' in domain '%s': %s"
+msgstr ""
+
+#: csclient.cxx:2806
+#, c-format
+msgid "Avahi browse failed: %s"
+msgstr ""
+
+#: csclient.cxx:2819
+#, c-format
+msgid "Failed to resolve service '%s': %s"
+msgstr ""
+
+#: csclient.cxx:2840
+#, c-format
+msgid "Avahi Server connection failure: %s"
+msgstr ""
+
+#: csclient.cxx:2886
+msgid "Failed to create Avahi simple poll object"
+msgstr ""
+
+#: csclient.cxx:2902
+#, c-format
+msgid "Failed to create Avahi client: %s"
+msgstr ""
+
+#: csclient.cxx:2914
+#, c-format
+msgid "Failed to create Avahi service browser: %s"
+msgstr ""
+
+#: csclient.cxx:2961
+#, fuzzy
+msgid "Unable to detect online servers"
+msgstr "Incapable de déterminer le répertoire d'accueil de l'utilisateur"
+
+#: dwarf_wrappers.cxx:25
+#, c-format
+msgid "libdwfl failure (%s): "
+msgstr ""
+
+#: dwarf_wrappers.cxx:37
+#, c-format
+msgid "libdw failure (%s): "
+msgstr ""
 
 #: dwflpp.cxx:127
 msgid "cannot find "
@@ -1071,7 +1452,7 @@ msgstr "field name %s not found"
 msgid "Activating uprobes support because /* pragma:uprobes */ seen."
 msgstr ""
 
-#: elaborate.cxx:4516 translate.cxx:3007
+#: elaborate.cxx:4516 translate.cxx:3019
 msgid "invalid operand of delete expression"
 msgstr ""
 
@@ -1454,7 +1835,7 @@ msgstr ""
 msgid "Session arch: %s release: %s"
 msgstr "Architecture de la session : %s version : %s"
 
-#: main.cxx:593
+#: main.cxx:589
 #, c-format
 msgid ""
 "usage error: tapset file '%s' cannot be run directly as a session script."
@@ -1463,52 +1844,59 @@ msgstr ""
 "comme script de session"
 
 #. TRANSLATORS: Searching through directories, 'processed' means 'examined so far'
-#: main.cxx:620
+#: main.cxx:616
 #, c-format
 msgid "Searched: \" %s \", found: %zu, processed: %u"
 msgstr "Recherché : \" %s \", trouvé : %zu, parcourus : %u"
 
-#: main.cxx:632
+#: main.cxx:628
 msgid "# parse tree dump"
 msgstr "# image de l'arbre syntaxique"
 
-#: main.cxx:669
+#: main.cxx:665
 msgid "Pass 1: parse failed.  Try again with another '--vp 1' option."
 msgstr ""
 "Passe 1 : échec de l'analyse syntaxique. Essayez encore avec une option '--"
 "vp 1' supplémentaire."
 
-#: main.cxx:702
+#: main.cxx:698
 msgid "Pass 2: analysis failed.  Try again with another '--vp 01' option."
 msgstr ""
 "Passe 2 : échec de l'analyse sémantique. Essayez encore avec une option '--"
 "vp 01' supplémentaire."
 
-#: main.cxx:773
+#: main.cxx:769
 msgid "Pass 3: translation failed.  Try again with another '--vp 001' option."
 msgstr ""
 "Passe 3 : échec de la traduction.Essayez encore avec une option '--vp 001' "
 "supplémentaire."
 
-#: main.cxx:810
+#: main.cxx:806
 msgid "Pass 4: compilation failed.  Try again with another '--vp 0001' option."
 msgstr ""
 "Passe 4 : échec de la compilation. Essayez encore avec une option '--vp "
 "0001' supplémentaire."
 
-#: main.cxx:854
+#: main.cxx:850
 msgid "Pass 5: starting run."
 msgstr "Passe 5 : lancement de l'exécution"
 
-#: main.cxx:866
+#: main.cxx:862
 msgid "Pass 5: run failed.  Try again with another '--vp 00001' option."
 msgstr ""
 "Passe 5 : échec de l'exécution.Essayez encore avec une option '--vp 00001' "
 "supplémentaire."
 
-#: main.cxx:894
+#: main.cxx:890
 msgid "Coverage database not available without libsqlite3"
 msgstr "Base de données de couverture non disponibles sans libsqlite3"
+
+#: main.cxx:914
+#, fuzzy
+msgid "Attempting compilation using a compile server"
+msgstr ""
+"              réessayer la compilation avec un serveur de compilation lors "
+"d'une erreur"
 
 #: modsign.cxx:138
 msgid "Could not obtain information on password file "
@@ -1880,6 +2268,76 @@ msgstr "@cast ou $var attendu"
 
 #: parse.cxx:3001
 msgid "-> and [ are not accepted for a pretty-printing variable"
+msgstr ""
+
+#: remote.cxx:39
+#, c-format
+msgid "string doesn't appear to be a URI: %s"
+msgstr ""
+
+#: remote.cxx:115
+msgid "ssh target requires a hostname"
+msgstr ""
+
+#: remote.cxx:117
+msgid "ssh target URI doesn't support a /path"
+msgstr ""
+
+#: remote.cxx:119
+msgid "ssh target URI doesn't support a ?query"
+msgstr ""
+
+#: remote.cxx:121
+msgid "ssh target URI doesn't support a #fragment"
+msgstr ""
+
+#: remote.cxx:146
+msgid "No tmpdir available for ssh control master"
+msgstr ""
+
+#: remote.cxx:171
+#, c-format
+msgid "failed to create an ssh control master for %s : rc= %d"
+msgstr ""
+
+#: remote.cxx:177
+#, c-format
+msgid "Created ssh control master at %s"
+msgstr ""
+
+#: remote.cxx:191
+#, c-format
+msgid "failed to stop the ssh control master for %s : rc=%d"
+msgstr ""
+
+#: remote.cxx:210
+#, c-format
+msgid "failed to get uname from %s : rc= %d"
+msgstr ""
+
+#: remote.cxx:235
+#, c-format
+msgid "failed to make a tempdir on %s : rc=%d"
+msgstr ""
+
+#: remote.cxx:250
+#, c-format
+msgid "failed to copy the module to %s : rc=%d"
+msgstr ""
+
+#: remote.cxx:264
+#, c-format
+msgid "failed to run the module on %s : ret=%d"
+msgstr ""
+
+#: remote.cxx:292
+#, c-format
+msgid "failed to delete the tempdir on %s : rc=%d"
+msgstr ""
+
+#: remote.cxx:329
+#, c-format
+msgid "unrecognized URI scheme '%s' in remote: %s"
 msgstr ""
 
 #: rpm_finder.cxx:70
@@ -2377,6 +2835,95 @@ msgstr "erreur sémantique : %s"
 msgid "source: "
 msgstr "source : "
 
+#: staptree.cxx:161
+#, fuzzy
+msgid "inconsistent arity"
+msgstr "adresse de relocalisation inconsistente"
+
+#: staptree.cxx:165
+#, fuzzy, c-format
+msgid "inconsistent arity (%s vs %d)"
+msgstr "adresse de relocalisation inconsistente"
+
+#: staptree.cxx:168
+#, c-format
+msgid "arity %s first inferred here"
+msgstr ""
+
+#: staptree.cxx:203
+msgid "internal error, joining a non-synthetic function"
+msgstr ""
+
+#: staptree.cxx:205
+#, c-format
+msgid "synthetic function '%s' conflicts with an existing function"
+msgstr ""
+
+#: staptree.cxx:251
+#, c-format
+msgid "%s variable '%s' may not be used as array"
+msgstr ""
+
+#: staptree.cxx:254
+#, c-format
+msgid "%s variable '%s' may not be used as a structure"
+msgstr ""
+
+#: staptree.cxx:258
+#, c-format
+msgid "%s variable '%s' may not be pretty-printed"
+msgstr ""
+
+#: staptree.cxx:262
+#, fuzzy, c-format
+msgid "invalid use of %s variable '%s'"
+msgstr "type de variable locale non supporté"
+
+#: staptree.cxx:854
+msgid "invalid or missing conversion specifier"
+msgstr ""
+
+#: staptree.cxx:867
+msgid "trailing incomplete print format conversion"
+msgstr ""
+
+#: staptree.cxx:1574 staptree.cxx:1587
+#, fuzzy
+msgid "Expecting symbol or histogram operator"
+msgstr "opérateur de comparaison attendu"
+
+#: staptree.cxx:1576
+msgid "Failed to classify indexable"
+msgstr ""
+
+#: staptree.cxx:1930
+#, fuzzy
+msgid "function may not be used when --unprivileged is specified"
+msgstr "Vous ne pouvez pas spécifier %s quand --unprivileged est spécifié."
+
+#: staptree.cxx:1935
+msgid "function may not be used unless -g is specified"
+msgstr ""
+
+#: staptree.cxx:1964
+#, fuzzy
+msgid "embedded expression may not be used when --unprivileged is specified"
+msgstr "expression enchâssée dans un script non privilégié"
+
+#: staptree.cxx:1969
+#, fuzzy
+msgid "embedded expression may not be used unless -g is specified"
+msgstr "expression enchâssée dans un script non privilégié"
+
+#: staptree.cxx:2069
+msgid "symbol without referent"
+msgstr ""
+
+#: staptree.cxx:2250
+#, fuzzy
+msgid "invalid element"
+msgstr "longueur de liste d'arguments invalide"
+
 #: tapset-itrace.cxx:79 tapsets.cxx:6125 tapset-utrace.cxx:127
 msgid "process probes not available without kernel CONFIG_UTRACE"
 msgstr ""
@@ -2408,7 +2955,7 @@ msgstr ""
 "symbole cible invalide pour un marker : $argN, $name, $format, $$parms ou $"
 "$vars attendu"
 
-#: tapset-mark.cxx:449 translate.cxx:1974
+#: tapset-mark.cxx:449 translate.cxx:1983
 msgid "cannot expand unknown type"
 msgstr "ne peut étender un type inconnu"
 
@@ -3058,820 +3605,550 @@ msgstr ""
 msgid "process pid must be greater than 1"
 msgstr "le pid du processus doit être plus grand que 1"
 
-#: translate.cxx:426
+#: translate.cxx:46
+msgid "\"Array overflow, check "
+msgstr ""
+
+#: translate.cxx:47
+msgid "\"MAXNESTING exceeded\";"
+msgstr ""
+
+#: translate.cxx:48
+msgid "\"division by 0\";"
+msgstr ""
+
+#: translate.cxx:49
+msgid "\"MAXACTION exceeded\";"
+msgstr ""
+
+#: translate.cxx:50
+msgid "\"aggregation overflow in "
+msgstr ""
+
+#: translate.cxx:51
+msgid "\"empty aggregate\";"
+msgstr ""
+
+#: translate.cxx:52
+#, fuzzy
+msgid "\"histogram index out of range\";"
+msgstr "taille de tableau hors limite"
+
+#: translate.cxx:432
 #, c-format
 msgid "unsupported stats type for %s"
 msgstr ""
 
-#: translate.cxx:434
+#: translate.cxx:440
 #, c-format
 msgid "unsupported initializer for %s"
 msgstr "initiateur non supportée pour %s"
 
-#: translate.cxx:448
+#: translate.cxx:454
 #, c-format
 msgid "unsupported deallocator for %s"
 msgstr "déallocateur non supporté pour %s"
 
-#: translate.cxx:578
+#: translate.cxx:584
 msgid "unknown type of map"
 msgstr "type de tableau inconnu"
 
-#: translate.cxx:593
+#: translate.cxx:599
 msgid "index type mismatch"
 msgstr ""
 
-#: translate.cxx:609
+#: translate.cxx:615
 msgid "aggregating non-parallel map type"
 msgstr ""
 
-#: translate.cxx:617
+#: translate.cxx:623
 msgid "fetching aggregate of non-parallel map type"
 msgstr ""
 
-#: translate.cxx:635
+#: translate.cxx:641
 msgid "checking existence of an unsupported map type"
 msgstr ""
 
-#: translate.cxx:648
+#: translate.cxx:654
 msgid "getting a value from an unsupported map type"
 msgstr ""
 
-#: translate.cxx:659
+#: translate.cxx:665
 msgid "adding a value of an unsupported map type"
 msgstr ""
 
-#: translate.cxx:680
+#: translate.cxx:687
 msgid "setting a value of an unsupported map type"
 msgstr ""
 
-#: translate.cxx:768
+#: translate.cxx:776
 msgid "iterating over unknown reference type"
 msgstr ""
 
-#: translate.cxx:781
+#: translate.cxx:789
 msgid "inconsistent iterator type in itervar::start()"
 msgstr ""
 
-#: translate.cxx:792
+#: translate.cxx:800
 msgid "inconsistent iterator type in itervar::next()"
 msgstr ""
 
-#: translate.cxx:817
+#: translate.cxx:825
 msgid "illegal key type"
 msgstr ""
 
-#: translate.cxx:824
+#: translate.cxx:832
 msgid "inconsistent iterator value in itervar::get_value()"
 msgstr ""
 
-#: translate.cxx:836
+#: translate.cxx:844
 msgid "illegal value type"
 msgstr ""
 
-#: translate.cxx:1557 translate.cxx:1712
+#: translate.cxx:1566 translate.cxx:1721
 msgid "array locals not supported, missing global declaration?"
 msgstr ""
 
-#: translate.cxx:1646
+#: translate.cxx:1655
 #, c-format
 msgid "%s elided, duplicates %s"
 msgstr ""
 
-#: translate.cxx:1721
+#: translate.cxx:1730
 msgid "unsupported local variable type"
 msgstr "type de variable locale non supporté"
 
-#: translate.cxx:1817
+#: translate.cxx:1826
 msgid "nothing"
 msgstr "rien"
 
-#: translate.cxx:1865 translate.cxx:1895
+#: translate.cxx:1874 translate.cxx:1904
 msgid "array type is neither string nor long"
 msgstr "le type du tableau n'est ni une chaîne de caractères, ni un long"
 
-#: translate.cxx:1880
+#: translate.cxx:1889
 msgid "array key is neither string nor long"
 msgstr ""
 "le type de la clé du tableau n'est ni une chaîne de caractères, ni un long"
 
-#: translate.cxx:2008
+#: translate.cxx:2017
 msgid "unsupported c_expression token type"
 msgstr ""
 
-#: translate.cxx:2039
+#: translate.cxx:2048
 msgid "unknown lvalue type in assignment"
 msgstr ""
 
-#: translate.cxx:2059 translate.cxx:2079
+#: translate.cxx:2068 translate.cxx:2088
 msgid " type unsupported"
 msgstr ""
 
-#: translate.cxx:2108
+#: translate.cxx:2117
 msgid "post assignment on strings not supported"
 msgstr ""
 
-#: translate.cxx:2122
+#: translate.cxx:2131
 #, c-format
 msgid "string assignment operator %s unsupported"
 msgstr ""
 
-#: translate.cxx:2154
+#: translate.cxx:2163
 msgid "unknown macop for assignment"
 msgstr ""
 
-#: translate.cxx:2159
+#: translate.cxx:2168
 msgid "invalid post-mode operator"
 msgstr ""
 
-#: translate.cxx:2195
+#: translate.cxx:2205
 msgid "assignment type not yet implemented"
 msgstr ""
 
-#: translate.cxx:2282
+#: translate.cxx:2292
 msgid "unresolved symbol"
 msgstr "symbole non résolu"
 
-#: translate.cxx:2284
+#: translate.cxx:2294
 msgid "unresolved symbol: "
 msgstr "symbole non résolu : "
 
-#: translate.cxx:2323
+#: translate.cxx:2333
 msgid "attempt to use scalar where map expected"
 msgstr ""
 
-#: translate.cxx:2560 translate.cxx:3561 translate.cxx:3581
+#: translate.cxx:2571 translate.cxx:3574 translate.cxx:3594
 msgid "expected numeric type"
 msgstr "type numérique attendu"
 
-#: translate.cxx:2705 translate.cxx:3951
+#: translate.cxx:2716 translate.cxx:3964
 msgid "Invalid indexing of histogram"
 msgstr ""
 
-#: translate.cxx:2967
+#: translate.cxx:2979
 msgid "cannot 'return' from probe"
 msgstr ""
 
-#: translate.cxx:2970
+#: translate.cxx:2982
 msgid "return type mismatch"
 msgstr ""
 
-#: translate.cxx:2983
+#: translate.cxx:2995
 msgid "cannot 'next' from function"
 msgstr ""
 
-#: translate.cxx:3047
+#: translate.cxx:3059
 msgid "Cannot delete unknown expression type"
 msgstr ""
 
-#: translate.cxx:3074 translate.cxx:3097
+#: translate.cxx:3086 translate.cxx:3109
 msgid "cannot delete histogram bucket entries\n"
 msgstr ""
 
-#: translate.cxx:3123
+#: translate.cxx:3135
 msgid "cannot 'break' outside loop"
 msgstr ""
 
-#: translate.cxx:3134
+#: translate.cxx:3146
 msgid "cannot 'continue' outside loop"
 msgstr ""
 
-#: translate.cxx:3208
+#: translate.cxx:3220
 msgid "expected numeric or string type"
 msgstr "type numérique ou chaîne de caractère attendu"
 
-#: translate.cxx:3220 translate.cxx:3293 translate.cxx:3322 translate.cxx:3338
-#: translate.cxx:3441
+#: translate.cxx:3232 translate.cxx:3306 translate.cxx:3335 translate.cxx:3351
+#: translate.cxx:3454
 msgid "expected numeric types"
 msgstr "type numérique attendu"
 
-#: translate.cxx:3284
+#: translate.cxx:3297
 msgid "operator not yet implemented"
 msgstr ""
 
-#: translate.cxx:3429 translate.cxx:3475
+#: translate.cxx:3442 translate.cxx:3488
 msgid "expected string types"
 msgstr "chaîne de caractère attendue"
 
-#: translate.cxx:3450
+#: translate.cxx:3463
 msgid "unexpected type"
 msgstr "type inattendu : "
 
-#: translate.cxx:3470
+#: translate.cxx:3483
 msgid "unexpected concatenation operator"
 msgstr "opérateur de concaténation inattendu"
 
-#: translate.cxx:3493
+#: translate.cxx:3506
 msgid "expected numeric condition"
 msgstr "condition numérique attendue"
 
-#: translate.cxx:3498
+#: translate.cxx:3511
 msgid "expected matching types"
 msgstr ""
 
-#: translate.cxx:3524
+#: translate.cxx:3537
 msgid "non-number <<< expression"
 msgstr ""
 
-#: translate.cxx:3527
+#: translate.cxx:3540
 msgid "non-stats left operand to <<< expression"
 msgstr ""
 
-#: translate.cxx:3530
+#: translate.cxx:3543
 msgid "non-number right operand to <<< expression"
 msgstr ""
 
-#: translate.cxx:3536 translate.cxx:3539
+#: translate.cxx:3549 translate.cxx:3552
 msgid "type mismatch"
 msgstr ""
 
-#: translate.cxx:3595
+#: translate.cxx:3608
 msgid "invalid reference to array"
 msgstr "référence invalide vers le tableau"
 
-#: translate.cxx:3690
+#: translate.cxx:3703
 msgid "need rvalue for assignment"
 msgstr ""
 
-#: translate.cxx:3701
+#: translate.cxx:3714
 msgid "unexpected reference to array"
 msgstr ""
 
-#: translate.cxx:3720
+#: translate.cxx:3733
 msgid "cannot translate general target-symbol expression"
 msgstr ""
 
-#: translate.cxx:3727
+#: translate.cxx:3740
 msgid "cannot translate general @cast expression"
 msgstr ""
 
-#: translate.cxx:3734
+#: translate.cxx:3747
 msgid "cannot translate general @defined expression"
 msgstr ""
 
-#: translate.cxx:3741
+#: translate.cxx:3754
 msgid "cannot translate general @entry expression"
 msgstr ""
 
-#: translate.cxx:3792
+#: translate.cxx:3805
 msgid "invalid array reference"
 msgstr "référence de tableau invalide"
 
-#: translate.cxx:3797
+#: translate.cxx:3810
 msgid "array index type mismatch"
 msgstr ""
 
-#: translate.cxx:3841
+#: translate.cxx:3854
 msgid "expected arrayindex expression"
 msgstr ""
 
-#: translate.cxx:3853
+#: translate.cxx:3866
 msgid "unexpected aggregate of non-statistic"
 msgstr ""
 
-#: translate.cxx:3869
+#: translate.cxx:3882
 msgid "unexpected aggregate of non-arrayindex"
 msgstr ""
 
-#: translate.cxx:3987
+#: translate.cxx:4000
 msgid "statistic-valued array in rvalue context"
 msgstr ""
 
-#: translate.cxx:4079 translate.cxx:4170
+#: translate.cxx:4094 translate.cxx:4185
 msgid "cannot assign to histogram buckets"
 msgstr ""
 
-#: translate.cxx:4099
+#: translate.cxx:4114
 msgid "unexpected reference to scalar"
 msgstr ""
 
-#: translate.cxx:4199
+#: translate.cxx:4214
 msgid "invalid length argument list"
 msgstr "longueur de liste d'arguments invalide"
 
-#: translate.cxx:4215 translate.cxx:4235
+#: translate.cxx:4230 translate.cxx:4250
 msgid "function argument type mismatch"
 msgstr ""
 
-#: translate.cxx:4286
+#: translate.cxx:4241
+msgid "function actual argument evaluation"
+msgstr ""
+
+#: translate.cxx:4301
 msgid "unknown type of arg to print operator"
 msgstr "type inconnu pour un argument de l'opérateur \"print\""
 
-#: translate.cxx:4351
+#: translate.cxx:4367
 #, c-format
 msgid "additional argument to print"
 msgid_plural "too many arguments to print (%zu)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: translate.cxx:4397
+#: translate.cxx:4413
 msgid "cannot print unknown expression type"
 msgstr "ne peut afficher une expressin de type inconnu"
 
-#: translate.cxx:4399
+#: translate.cxx:4415
 msgid "cannot print a raw stats object"
 msgstr ""
 
-#: translate.cxx:4895
+#: translate.cxx:4912
 #, c-format
 msgid "Getting symbol table for %s"
 msgstr "Obtention de la table dess symboles pour %s"
 
-#: translate.cxx:4947
+#: translate.cxx:4964
 msgid "unexpected build-id reloc section "
 msgstr ""
 
-#: translate.cxx:4955
+#: translate.cxx:4972
 #, c-format
 msgid "Found build-id in %s, length %d, start at 0x%#<PRIx64>"
 msgstr ""
 
-#: translate.cxx:5008
+#: translate.cxx:5025
 #, c-format
 msgid "Found kernel _stext extra offset 0x%#<PRIx64>"
 msgstr ""
 
-#: translate.cxx:5189
+#: translate.cxx:5206
 #, c-format
 msgid "skipping module %s eh_frame_hdr table (too big: %s > %s)"
 msgstr ""
 
-#: translate.cxx:5253
+#: translate.cxx:5270
 #, c-format
 msgid "skipping module %s, section %s debug_frame_hdr table (too big: %s > %s)"
 msgstr ""
 
-#: translate.cxx:5445
+#: translate.cxx:5462
 msgid "/usr/bin/ldd may not be safe to run on untrustworthy executables"
 msgstr ""
 
-#: translate.cxx:5457
+#: translate.cxx:5474
 #, c-format
 msgid "Running '%s'"
 msgstr "Exécution de '%s'"
 
-#: translate.cxx:5461
+#: translate.cxx:5478
 #, c-format
 msgid " failed: %s"
 msgstr ""
 
-#: translate.cxx:5489
+#: translate.cxx:5506
 #, c-format
 msgid "Added -d '%s"
 msgstr ""
 
-#: translate.cxx:5491
+#: translate.cxx:5508
 #, c-format
 msgid "' due to '%s'"
 msgstr ""
 
-#: translate.cxx:5545
+#: translate.cxx:5562
 msgid "Searching for vdso candidates: "
 msgstr ""
 
-#: translate.cxx:5555
+#: translate.cxx:5572
 msgid "vdso candidate: "
 msgstr ""
 
-#: translate.cxx:5675
+#: translate.cxx:5692
 msgid "missing unwind/symbol data for module '"
 msgstr ""
 
-#: translate.cxx:5698
+#: translate.cxx:5715
 #, c-format
 msgid "identified max-nested function: %s (%d)"
 msgstr ""
 
-#: translate.cxx:5709
+#: translate.cxx:5726
 #, c-format
 msgid "identified recursive function: %s"
 msgstr ""
 
-#: translate.cxx:5725
-#, c-format
-msgid "KERN_ERR \"ctl_send (type=%d len=%d) failed: %d\n"
-msgstr ""
-
-#: translate.cxx:5730
+#: translate.cxx:5741
 #, c-format
 msgid ""
-"SYSTEMTAP ERROR: Memory fence corrupted before allocated memory \n"
-"at addr %p. (Allocation starts at %p)"
+"myproc-unprivileged tapset function called without is_myproc checking for "
+"pid %d (euid %d)"
 msgstr ""
 
-#: translate.cxx:5734
+#: translate.cxx:5745
 #, c-format
-msgid ""
-"SYSTEMTAP ERROR: Memory fence corrupted after allocated memory \n"
-"at addr %p. (Allocation ends at %p)"
+msgid "kernel read fault at 0x%p (%s)"
 msgstr ""
 
-#: translate.cxx:5737
+#: translate.cxx:5747
 #, c-format
-msgid "SYSTEMTAP ERROR: Free of unallocated memory %p type=%s\n"
+msgid "kernel write fault at 0x%p (%s)"
 msgstr ""
 
-#: translate.cxx:5740 translate.cxx:5750
-#, c-format
-msgid "SYSTEMTAP ERROR: Memory at %p corrupted!!\n"
-msgstr ""
-
-#: translate.cxx:5742
-#, c-format
-msgid "SYSTEMTAP ERROR: Memory allocated with %s and freed with %s\n"
-msgstr ""
-
-#: translate.cxx:5745 translate.cxx:5760
-#, c-format
-msgid ""
-"SYSTEMTAP ERROR: Attempted to free memory at addr %p len=%d with unknown "
-"allocation type.\n"
-msgstr ""
-
-#: translate.cxx:5748
-#, c-format
-msgid "SYSTEMTAP ERROR: Couldn't validate memory %p\n"
-msgstr ""
-
-#: translate.cxx:5752
-#, c-format
-msgid ""
-"SYSTEMTAP ERROR: Attempted to validate memory at addr %p len=%d with unknown "
-"allocation type.\n"
-msgstr ""
-
-#: translate.cxx:5755
-#, c-format
-msgid "SYSTEMTAP ERROR: Memory %p len=%d allocation type: %s. Not freed.\n"
-msgstr ""
-
-#: translate.cxx:5758
-#, c-format
-msgid "SYSTEMTAP ERROR: Memory at %p len=%d corrupted!!\n"
-msgstr ""
-
-#: translate.cxx:5765
-#, c-format
-msgid ""
-"KERN_ERR \"%s:%d: Unable to allocate memory\n"
-"\""
-msgstr ""
-
-#: translate.cxx:5767
-#, c-format
-msgid ""
-"KERN_ERR \"utrace_attach returns %ld\n"
-"\""
-msgstr ""
-
-#: translate.cxx:5769
-#, c-format
-msgid ""
-"KERN_ERR \"utrace_attach returns %d\n"
-"\""
-msgstr ""
-
-#: translate.cxx:5771
-#, c-format
-msgid ""
-"KERN_ERR \"utrace_control(%d) returns %d\n"
-"\""
-msgstr ""
-
-#: translate.cxx:5773
-msgid ""
-"KERN_ERR \"usr_itrace_init: Invalid task\n"
-"\""
-msgstr ""
-
-#: translate.cxx:5775
-#, c-format
-msgid ""
-"KERN_INFO \"usr_itrace_init: completed for tid = %d\n"
-"\""
-msgstr ""
-
-#: translate.cxx:5777
-#, c-format
-msgid ""
-"KERN_ERR \"utrace_control(UTRACE_DETACH) returns %d\n"
-"\""
-msgstr ""
-
-#: translate.cxx:5779
-msgid ""
-"KERN_INFO \"cleanup_usr_itrace called\n"
-"\""
-msgstr ""
-
-#: translate.cxx:5781
-#, c-format
-msgid ""
-"KERN_ERR \"get_instr failed: %s\n"
-"\""
-msgstr ""
-
-#: translate.cxx:5785 translate.cxx:5789
-msgid "SYSTEMTAP ERROR: uprobe_get_return returned 0\n"
-msgstr ""
-
-#: translate.cxx:5793
-#, c-format
-msgid "KERN_ERR \"it took %d polling loops to quit.\n"
-msgstr ""
-
-#: translate.cxx:5798
-#, c-format
-msgid "KERN_NOTICE \"vma (pid: %d, vm_start: 0x%lx) present?\n"
-msgstr ""
-
-#: translate.cxx:5802
-#, c-format
-msgid "KERN_WARNING \"log buffer size exceeds free memory(%luMB)\n"
-msgstr ""
-
-#: translate.cxx:5807 translate.cxx:5907
-#, c-format
-msgid ""
-"KERN_ERR \"In %d-bit apps, uprobes does not currently support probing "
-"instructions whose first byte is 0x%2.2x\n"
-msgstr ""
-
-#: translate.cxx:5811 translate.cxx:5892 translate.cxx:5911
-#, c-format
-msgid ""
-"KERN_ERR \"uprobes does not currently support probing instructions with the "
-"2-byte opcode 0x0f 0x%2.2x\n"
-msgstr ""
-
-#: translate.cxx:5814 translate.cxx:5895 translate.cxx:5914
-#, c-format
-msgid ""
-"KERN_ERR \"uprobes does not currently support probing instructions whose "
-"first byte is 0x%2.2x with a prefix 0x%2.2x\n"
-msgstr ""
-
-#: translate.cxx:5818
-msgid "KERN_INFO \"Munging rip-relative insn:"
-msgstr ""
-
-#: translate.cxx:5820 translate.cxx:5920
-#, c-format
-msgid "KERN_INFO \"Target address = %#lx\n"
-msgstr ""
-
-#: translate.cxx:5822 translate.cxx:5922
-#, c-format
-msgid ""
-"KERN_ERR \"uprobes: Failed to adjust return address after single-stepping "
-"call instruction; pid=%d, rsp=%#lx\n"
-msgstr ""
-
-#: translate.cxx:5826
-#, c-format
-msgid ""
-"KERN_ERR \"uretprobe_entry_handler: return address partially clobbered -- "
-"pid=%d, %%rsp=%#lx, %%rip=%#lx\n"
-msgstr ""
-
-#: translate.cxx:5832
-msgid "Attempt to register uprobe at an unaligned address\n"
-msgstr ""
-
-#: translate.cxx:5836
-#, c-format
-msgid "KERN_ERR \"Can't place uprobe at pid %d vaddr %#lx: %s\n"
-msgstr ""
-
-#: translate.cxx:5838
-#, c-format
-msgid ""
-"KERN_ERR \"Error removing uprobe at pid %d vaddr %#lx: can't restore "
-"original instruction\n"
-msgstr ""
-
-#: translate.cxx:5841
-#, c-format
-msgid "uprobes: utrace_attach failed, returned %ld\n"
-msgstr ""
-
-#: translate.cxx:5843
-#, c-format
-msgid ""
-"KERN_ERR \"Uprobes failed to allocate a vma for pid/tgid %d/%d for single-"
-"stepping out of line.\n"
-msgstr ""
-
-#: translate.cxx:5846
-#, c-format
-msgid "KERN_ERR \"Failed to tag uprobes SSOL vma: pid/tgid=%d/%d, vaddr=%#lx\n"
-msgstr ""
-
-#: translate.cxx:5849
-#, c-format
-msgid "KERN_ERR \"Failed to copy instruction at %#lx to SSOL area (%#lx)\n"
-msgstr ""
-
-#: translate.cxx:5852
-#, c-format
-msgid ""
-"Failed to temporarily restore original instruction for single-stepping: pid/"
-"tgid=%d/%d, vaddr=%#lx\n"
-msgstr ""
-
-#: translate.cxx:5856
-#, c-format
-msgid "Couldn't restore bp: pid/tgid=%d/%d, addr=%#lx\n"
-msgstr ""
-
-#: translate.cxx:5858
-#, c-format
-msgid "KERN_WARNING \"Task died during uretprobe return: pid/tgid = %d/%d\n"
-msgstr ""
-
-#: translate.cxx:5861
-#, c-format
-msgid ""
-"KERN_WARNING \"Task died at uprobe probepoint:  pid/tgid = %d/%d, probepoint "
-"= %#lx\n"
-msgstr ""
-
-#: translate.cxx:5864
-#, c-format
-msgid ""
-"KERN_ERR \"uprobes: Child %d failed to inherit parent %d's SSOL vma at %p.  "
-"Error = %d\n"
-msgstr ""
-
-#: translate.cxx:5867
-#, c-format
-msgid ""
-"KERN_ERR \"uprobes: Parent %d's SSOL vma is no longer valid.  Error = %d\n"
-msgstr ""
-
-#: translate.cxx:5870
-#, c-format
-msgid ""
-"KERN_ERR \"Pid %d forked %d; failed to remove  probepoint at %#lx in child\n"
-msgstr ""
-
-#: translate.cxx:5873
-#, c-format
-msgid ""
-"KERN_ERR \"No uretprobe instance with original return address! pid/tgid=%d/%d"
-msgstr ""
-
-#: translate.cxx:5876
-#, c-format
-msgid ""
-"KERN_ERR \"uretprobes disabled for pid %d: cannot set uretprobe trampoline "
-"at %p\n"
-msgstr ""
-
-#: translate.cxx:5879
-#, c-format
-msgid ""
-"KERN_ERR \"Original return address for trampoline not found at 0x%lx pid/"
-"tgid=%d/%d\n"
-msgstr ""
-
-#: translate.cxx:5884
-msgid "KERN_WARNING \"Attempt to register uprobe at an unaligned addr\n"
-msgstr ""
-
-#: translate.cxx:5889
-#, c-format
-msgid ""
-"KERN_ERR \"uprobes does not currently support probing instructions whose "
-"first byte is 0x%2.2x\n"
-msgstr ""
-
-#: translate.cxx:5898
-#, c-format
-msgid ""
-"KERN_ERR \"uprobes: Failed to adjust return address after single-stepping "
-"call instruction; pid=%d, esp=%#lx\n"
-msgstr ""
-
-#: translate.cxx:5901
-#, c-format
-msgid ""
-"KERN_ERR \"uretprobe_entry_handler: return address partially clobbered -- "
-"pid=%d, %%esp=%#lx, %%eip=%#lx\n"
-msgstr ""
-
-#: translate.cxx:5918
-msgid "KERN_INFO \"Munged rip-relative insn: "
-msgstr ""
-
-#: translate.cxx:5925
-#, c-format
-msgid ""
-"KERN_ERR \"uretprobe_entry_handler: return address partially clobbered -- "
-"pid=%d, %%sp=%#lx, %%ip=%#lx\n"
-msgstr ""
-
-#: translate.cxx:5960
+#: translate.cxx:5787
 #, c-format
 msgid "ignoring extra parts of compat version: %s"
 msgstr ""
 
-#: translate.cxx:5964
+#: translate.cxx:5791
 #, c-format
 msgid "parse error in compatibility version: %s"
 msgstr ""
 
-#: translate.cxx:5967
+#: translate.cxx:5794
 #, c-format
 msgid "compatibility version out of range: %s"
 msgstr ""
 
-#: translate.cxx:5987
+#: translate.cxx:5814
 msgid " recursive"
 msgstr ""
 
-#: translate.cxx:5987
+#: translate.cxx:5814
 msgid " non-recursive"
 msgstr ""
 
-#: translate.cxx:5986
+#: translate.cxx:5813
 #, c-format
 msgid "function recursion-analysis: max-nesting %d %s"
 msgstr ""
 
-#: util.cxx:75
+#: util.cxx:60
 msgid "Unable to determine home directory"
 msgstr "Incapable de déterminer le répertoire d'accueil de l'utilisateur"
 
-#: util.cxx:129
+#: util.cxx:114
 #, c-format
 msgid "Copying %s to %s"
 msgstr "Copie de %s vers %s"
 
-#: util.cxx:183
+#: util.cxx:168
 #, c-format
 msgid "Copy failed (\"%s\" to \"%s\"): %s"
 msgstr "La copie a échoué (\"%s\" vers \"%s\") : %s"
 
-#: util.cxx:240
+#: util.cxx:225
 msgid "remove returned 0"
 msgstr "remove a retourné 0"
 
-#: util.cxx:266
+#: util.cxx:251
 msgid "Unable to retrieve group list"
 msgstr "Incapable de récupérer la liste des groupes"
 
-#: util.cxx:293
+#: util.cxx:278
 #, c-format
 msgid "using %ldvirt/%ldres/%ldshr kb, "
 msgstr ""
 
-#: util.cxx:416
+#: util.cxx:401
 msgid "cmdstr_join called with an empty command!"
 msgstr "cmdstr_join appelé avec une commande vide !"
 
-#: util.cxx:464
+#: util.cxx:449
 msgid "Spawn waitpid call on unmanaged pid "
 msgstr "Appel de waitpid sur un pid non géré "
 
-#: util.cxx:471
+#: util.cxx:456
 #, c-format
 msgid "Spawn waitpid result (0x%x): %d"
 msgstr "Résultat de waitpid (0x%x) : %d"
 
-#: util.cxx:476
+#: util.cxx:461
 #, c-format
 msgid "Spawn waitpid error (%d): %s"
 msgstr "Erreur de waitpid (%d) : %s"
 
-#: util.cxx:519
+#: util.cxx:504
 msgid "Running"
 msgstr "Exécution de"
 
-#: util.cxx:533
+#: util.cxx:518
 #, c-format
 msgid "Spawn error (%d): %s"
 msgstr "Erreur de création de processus (%d) : %s"
 
-#: util.cxx:662
+#: util.cxx:647
 #, c-format
 msgid "regcomp %s (%s) error rc= %d"
 msgstr "erreur de regcomp %s (%s) rc= %d"
 
-#: util.cxx:674
+#: util.cxx:659
 #, c-format
 msgid "ERROR: Safety pattern mismatch for %s ('%s' vs. '%s') rc=%d"
 msgstr "ERREUR : disparité du motif de sûreté pour %s ('%s' vs. '%s') rc=%d"
 
-#: util.cxx:692
+#: util.cxx:677
 #, c-format
 msgid "regcomp %s error rc=%d"
 msgstr "erreur de regcomp %s rc=%d"
 
-#: util.cxx:765
+#: util.cxx:750
 #, c-format
 msgid "autosprintf/vasprintf error %s"
 msgstr "erreur de autosprintf/vasprintf %s"
+
+#: util.h:69 util.h:80 util.h:91 util.h:99 util.h:110 util.h:123
+msgid "bad lexical cast"
+msgstr ""
 
 #~ msgid "   --all-modules"
 #~ msgstr "   --all-modules"
