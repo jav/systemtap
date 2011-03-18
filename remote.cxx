@@ -367,6 +367,8 @@ class stapsh : public remote {
 };
 
 
+// direct_stapsh is meant only for testing, as a way to exercise the stapsh
+// mechanisms without requiring test machines to have actual remote access.
 class direct_stapsh : public stapsh {
   private:
     pid_t child;
@@ -374,6 +376,16 @@ class direct_stapsh : public stapsh {
     direct_stapsh(systemtap_session& s)
       : stapsh(s), child(0)
       {
+        // mask signals while we spawn, so we can simulate manual signals to
+        // the "remote" target, as we must for the real ssh_remote case.
+        sigset_t mask, oldmask;
+        sigemptyset (&mask);
+        sigaddset (&mask, SIGHUP);
+        sigaddset (&mask, SIGPIPE);
+        sigaddset (&mask, SIGINT);
+        sigaddset (&mask, SIGTERM);
+        sigprocmask (SIG_BLOCK, &mask, &oldmask);
+
         int in, out;
         vector<string> cmd;
         cmd.push_back(BINDIR "/stapsh");
@@ -382,6 +394,7 @@ class direct_stapsh : public stapsh {
         if (s.perpass_verbose[4] > 2)
           cmd.push_back("-v");
         child = stap_spawn_piped(s.verbose, cmd, &in, &out);
+        sigprocmask (SIG_SETMASK, &oldmask, NULL); // back to normal signals
         if (child <= 0)
           throw runtime_error("error launching stapsh!");
 
