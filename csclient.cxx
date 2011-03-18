@@ -107,6 +107,15 @@ struct compile_server_info
 
 ostream &operator<< (ostream &s, const compile_server_info &i);
 
+struct compile_server_cache
+{
+  vector<compile_server_info> default_servers;
+  vector<compile_server_info> specified_servers;
+  vector<compile_server_info> trusted_servers;
+  vector<compile_server_info> signing_servers;
+  vector<compile_server_info> online_servers;
+};
+
 // For filtering queries.
 enum compile_server_properties {
   compile_server_all        = 0x1,
@@ -118,6 +127,7 @@ enum compile_server_properties {
 };
 
 // Static functions.
+static compile_server_cache* cscache(systemtap_session& s);
 static void query_server_status (systemtap_session &s, const string &status_string);
 
 static void get_server_info (systemtap_session &s, int pmask, vector<compile_server_info> &servers);
@@ -650,6 +660,14 @@ client_connect (const char *hostName, PRUint32 ip,
   return errCode;
 }
 #endif // HAVE_NSS
+
+static compile_server_cache*
+cscache(systemtap_session& s)
+{
+  if (!s.server_cache)
+    s.server_cache = new compile_server_cache();
+  return s.server_cache;
+}
 
 int
 compile_server_client::passes_0_4 ()
@@ -2137,9 +2155,9 @@ get_default_server_info (
   vector<compile_server_info> &servers
 )
 {
-  // We only need to obtain this once. This is a good thing(tm) since
-  // obtaining this information is expensive.
-  static vector<compile_server_info> default_servers;
+  // We only need to obtain this once per session. This is a good thing(tm)
+  // since obtaining this information is expensive.
+  vector<compile_server_info>& default_servers = cscache(s)->default_servers;
   if (default_servers.empty ())
     {
       // Get the required information.
@@ -2160,9 +2178,9 @@ get_specified_server_info (
   bool no_default
 )
 {
-  // We only need to obtain this once. This is a good thing(tm) since
-  // obtaining this information is expensive.
-  static vector<compile_server_info> specified_servers;
+  // We only need to obtain this once per session. This is a good thing(tm)
+  // since obtaining this information is expensive.
+  vector<compile_server_info>& specified_servers = cscache(s)->specified_servers;
   if (specified_servers.empty ())
     {
       // Maintain an empty entry to indicate that this search has been
@@ -2295,9 +2313,9 @@ get_or_keep_trusted_server_info (
   if (keep && servers.empty ())
     return;
 
-  // We only need to obtain this once. This is a good thing(tm) since
-  // obtaining this information is expensive.
-  static vector<compile_server_info> trusted_servers;
+  // We only need to obtain this once per session. This is a good thing(tm)
+  // since obtaining this information is expensive.
+  vector<compile_server_info>& trusted_servers = cscache(s)->trusted_servers;
   if (trusted_servers.empty ())
     {
       // Maintain an empty entry to indicate that this search has been
@@ -2345,9 +2363,9 @@ get_or_keep_signing_server_info (
   if (keep && servers.empty ())
     return;
 
-  // We only need to obtain this once. This is a good thing(tm) since
-  // obtaining this information is expensive.
-  static vector<compile_server_info> signing_servers;
+  // We only need to obtain this once per session. This is a good thing(tm)
+  // since obtaining this information is expensive.
+  vector<compile_server_info>& signing_servers = cscache(s)->signing_servers;
   if (signing_servers.empty ())
     {
       // Maintain an empty entry to indicate that this search has been
@@ -2870,9 +2888,9 @@ get_or_keep_online_server_info (
   if (keep && servers.empty ())
     return;
 
-  // We only need to obtain this once. This is a good thing(tm) since
-  // obtaining this information is expensive.
-  static vector<compile_server_info> online_servers;
+  // We only need to obtain this once per session. This is a good thing(tm)
+  // since obtaining this information is expensive.
+  vector<compile_server_info>& online_servers = cscache(s)->online_servers;
   if (online_servers.empty ())
     {
       // Maintain an empty entry to indicate that this search has been

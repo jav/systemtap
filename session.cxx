@@ -130,6 +130,7 @@ systemtap_session::systemtap_session ():
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
   client_options = false;
+  server_cache = NULL;
   use_server_on_error = false;
   try_server_status = try_server_unset;
   systemtap_v_check = false;
@@ -284,6 +285,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   compatible = other.compatible;
   unwindsym_ldd = other.unwindsym_ldd;
   client_options = other.client_options;
+  server_cache = NULL;
   use_server_on_error = other.use_server_on_error;
   try_server_status = other.try_server_status;
   systemtap_v_check = other.systemtap_v_check;

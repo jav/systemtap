@@ -68,6 +68,7 @@ struct unparser;
 struct semantic_error;
 struct module_cache;
 struct update_visitor;
+struct compile_server_cache;
 
 // XXX: a generalized form of this descriptor could be associated with
 // a vardecl instead of out here at the systemtap_session level.
@@ -186,6 +187,7 @@ public:
   std::string server_trust_spec;
   std::vector<std::string> server_args;
   std::string winning_server;
+  compile_server_cache* server_cache;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).
