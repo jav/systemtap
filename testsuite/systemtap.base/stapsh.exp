@@ -1,0 +1,12 @@
+# Test that the stapsh mechanism is working
+# - ensure that stapsh is in our process hierarchy
+# - ensure that a signal sent to the stap process is propagated correctly
+
+set test "stapsh"
+set ::result_string {begin
+^ stapio
+^ stapsh
+^ stap
+timer.s(1)
+end}
+stap_run2 $srcdir/$subdir/$test.stp --remote=stapsh

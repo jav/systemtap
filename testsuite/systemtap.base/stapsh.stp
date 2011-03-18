@@ -1,0 +1,39 @@
+global kill_pid
+
+probe begin {
+    println(pp())
+
+    // Print our process chain, should be stapio, stapsh, stap
+    t = task_current()
+    while (t && task_parent(t) != t) {
+        name = task_execname(t)
+        println("^ ", name)
+        if (name == "stap") {
+            // Remember this pid for killing later
+            kill_pid = task_pid(t)
+            break
+        }
+        t = task_parent(t)
+    }
+}
+
+probe timer.s(1) {
+    if (kill_pid) {
+        println(pp())
+
+        // Kill our stap pid, and it should be propagated back
+        // through stapsh to end this script.
+        system(sprint("/bin/kill -INT ", kill_pid))
+        kill_pid = 0
+    }
+}
+
+probe timer.s(10) {
+    println(pp())
+    println("timeout!")
+    exit()
+}
+
+probe end {
+    println(pp())
+}
