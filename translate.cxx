@@ -1673,7 +1673,7 @@ c_unparser::emit_probe (derived_probe* v)
       // probe handler function to the first copy, *by name*.
       v->name = dupe;
 #else
-#error _("Unknown duplicate elimination method")
+#error "Unknown duplicate elimination method"
 #endif
     }
   else // This probe is unique.  Remember it and output it.

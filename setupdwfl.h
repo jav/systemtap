@@ -23,7 +23,7 @@ using std::tr1::shared_ptr;
 #include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
 #else
-#error _("No shared_ptr implementation found; get boost or modern g++")
+#error "No shared_ptr implementation found; get boost or modern g++"
 #endif
 
 extern "C" {

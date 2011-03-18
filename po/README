@@ -37,7 +37,7 @@ the freenode #systemtap channel.
 
 In the most general case, adding a translatable string can be done by simply
 wrapping the string with the _() macro, ie. _("string to translate here").
-The macro _F() has been used for autosprintf, and _N() for ngettext, and _NF()
+The macro _F() has been used for autosprintf, _N() for ngettext, and _NF()
 for a combination of autosprintf and ngettext.  For more information on how to
 use gnu gettext please consult the online manual at 
 http://www.gnu.org/software/gettext/
