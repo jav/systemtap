@@ -42,6 +42,7 @@ runtime/staprun/stap_merge.c
 runtime/staprun/staprun.c
 runtime/staprun/staprun_funcs.c
 runtime/staprun/staprun.h
+runtime/staprun/stapsh.c
 sdt_types.h
 session.cxx
 session.h

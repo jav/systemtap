@@ -227,9 +227,9 @@ class stapsh : public remote {
                 if (s->verbose > 1)
                   {
                     if (reply.empty())
-                      clog << "stapsh file ERROR: no reply" << endl;
+                      clog << _("stapsh file ERROR: no reply") << endl;
                     else
-                      clog << "stapsh file " << reply;
+                      clog << _F("stapsh file replied %s", reply.c_str());
                   }
               }
           }
@@ -303,9 +303,9 @@ class stapsh : public remote {
                 if (s->verbose > 1)
                   {
                     if (reply.empty())
-                      clog << "stapsh run ERROR: no reply" << endl;
+                      clog << _("stapsh run ERROR: no reply") << endl;
                     else
-                      clog << "stapsh run " << reply;
+                      clog << _F("stapsh run replied %s", reply.c_str());
                   }
               }
           }
@@ -336,27 +336,27 @@ class stapsh : public remote {
     void set_child_fds(int in, int out)
       {
         if (fdin >= 0 || fdout >= 0 || IN || OUT)
-          throw runtime_error("stapsh file descriptors already set!");
+          throw runtime_error(_("stapsh file descriptors already set!"));
 
         fdin = in;
         fdout = out;
         IN = fdopen(fdin, "w");
         OUT = fdopen(fdout, "r");
         if (!IN || !OUT)
-          throw runtime_error("invalid file descriptors for stapsh!");
+          throw runtime_error(_("invalid file descriptors for stapsh!"));
 
         if (send_command("stap " VERSION "\n"))
-          throw runtime_error("error sending hello to stapsh!");
+          throw runtime_error(_("error sending hello to stapsh!"));
 
         string reply = get_reply();
         if (reply.empty())
-          throw runtime_error("error receiving hello from stapsh!");
+          throw runtime_error(_("error receiving hello from stapsh!"));
 
         // stapsh VERSION MACHINE RELEASE
         vector<string> uname;
         tokenize(reply, uname, " \t\r\n");
         if (uname.size() != 4 || uname[0] != "stapsh")
-          throw runtime_error("failed to get uname from stapsh");
+          throw runtime_error(_("failed to get uname from stapsh"));
         // XXX check VERSION compatibility
 
         this->s = s->clone(uname[2], uname[3]);
@@ -396,7 +396,7 @@ class direct_stapsh : public stapsh {
         child = stap_spawn_piped(s.verbose, cmd, &in, &out);
         sigprocmask (SIG_SETMASK, &oldmask, NULL); // back to normal signals
         if (child <= 0)
-          throw runtime_error("error launching stapsh!");
+          throw runtime_error(_("error launching stapsh!"));
 
         try
           {
@@ -442,13 +442,13 @@ class ssh_remote : public stapsh {
       : stapsh(s), child(0)
       {
         if (!ud.has_authority || ud.authority.empty())
-          throw runtime_error("ssh target requires a hostname");
+          throw runtime_error(_("ssh target requires a hostname"));
         if (!ud.path.empty() && ud.path != "/")
-          throw runtime_error("ssh target URI doesn't support a /path");
+          throw runtime_error(_("ssh target URI doesn't support a /path"));
         if (ud.has_query)
-          throw runtime_error("ssh target URI doesn't support a ?query");
+          throw runtime_error(_("ssh target URI doesn't support a ?query"));
         if (ud.has_fragment)
-          throw runtime_error("ssh target URI doesn't support a #fragment");
+          throw runtime_error(_("ssh target URI doesn't support a #fragment"));
 
         init(ud.authority);
       }
@@ -478,7 +478,7 @@ class ssh_remote : public stapsh {
         child = stap_spawn_piped(s->verbose, cmd, &in, &out);
         sigprocmask (SIG_SETMASK, &oldmask, NULL); // back to normal signals
         if (child <= 0)
-          throw runtime_error("error launching stapsh!");
+          throw runtime_error(_("error launching stapsh!"));
 
         try
           {
