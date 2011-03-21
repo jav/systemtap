@@ -319,7 +319,7 @@ function check_cert {
 
     # If the certificate does not exist or the certificate
     # is not valid, then generate a new one.
-    if test ! -d "$ssl_db" -o ! -f "$ssl_db/$stap_certfile" -o ! -f "$ssl_db/cert8.db" || \
+    if test ! -d "$ssl_db" -o ! -f "$ssl_db/$stap_certfile" -o ! -f "$ssl_db/cert8.db" -o -f "$ssl_db/pw" || \
        ! certutil -V -n $nss_cert -u V -d "$ssl_db" -e \
                      -b `date +%g%m%d%H%M%S`+0005 >> "$logfile" 2>&1; then
 	# Our certificate does not exist or is not valid.
