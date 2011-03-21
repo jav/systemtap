@@ -104,6 +104,7 @@ nssPasswordCallback (PK11SlotInfo *info __attribute ((unused)), PRBool retry, vo
   static int retries = 0;
   #define PW_MAX 200
   char* password = NULL;
+  char* password_ret = NULL;
   const char *dbname ;
   int infd;
   int isTTY;
@@ -138,14 +139,17 @@ nssPasswordCallback (PK11SlotInfo *info __attribute ((unused)), PRBool retry, vo
   fprintf (stderr, "Password for certificate database in %s: ", dbname);
   fflush (stderr);
   echoOff (infd);
-  fgets (password, PW_MAX, stdin);
+  password_ret = fgets (password, PW_MAX, stdin);
   fprintf( stderr, "\n");
   echoOn(infd);
 
-  /* stomp on the newline */
-  password [strlen (password) - 1] = '\0';
+  if (password_ret)
+    /* stomp on the newline */
+    *strchrnul (password, '\n') = '\0';
+  else
+    PORT_Free (password);
 
-  return password;
+  return password_ret;
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
