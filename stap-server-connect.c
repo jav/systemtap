@@ -3,7 +3,7 @@
   the data into a temporary file, calls the systemtap translator and
   then transmits the resulting file back to the client.
 
-  Copyright (C) 2008-2010 Red Hat Inc.
+  Copyright (C) 2008-2011 Red Hat Inc.
 
   This file is part of systemtap, and is free software.  You can
   redistribute it and/or modify it under the terms of the GNU General Public
@@ -46,7 +46,6 @@
 
 
 /* Global variables */
-static char             *password = NULL;
 static CERTCertificate  *cert = NULL;
 static SECKEYPrivateKey *privKey = NULL;
 static char             *dbdir   = NULL;
@@ -61,7 +60,7 @@ static void
 Usage(const char *progName)
 {
   fprintf(stderr, 
-	  "Usage: %s -p port -d dbdir -n rsa_nickname -w passwordFile\n",
+	  "Usage: %s -p port -d dbdir -n rsa_nickname\n",
 	  progName);
   exit(1);
 }
@@ -85,9 +84,6 @@ exitErr(char *function)
 #endif
   exit(1);
 }
-
-
-
 
 /* Function:  readDataFromSocket()
  *
@@ -179,9 +175,6 @@ setupSSLSocket(PRFileDesc *tcpSocket)
 {
   PRFileDesc *sslSocket;
   SSLKEAType  certKEA;
-#if 0
-  int         certErr = 0;
-#endif
   SECStatus   secStatus;
 
   /* Inport the socket into SSL.  */
@@ -250,12 +243,6 @@ setupSSLSocket(PRFileDesc *tcpSocket)
       goto loser;
     }
 #endif
-  secStatus = SSL_SetPKCS11PinArg(sslSocket, password);
-  if (secStatus != SECSuccess)
-    {
-      errWarn("SSL_SetPKCS11PinArg");
-      goto loser;
-    }
 
   certKEA = NSS_FindCertKEAType(cert);
 
@@ -1001,76 +988,6 @@ server_main(unsigned short port)
     PR_Close(listenSocket);
 }
 
-/* Function: char * myPasswd()
- * 
- * Purpose: This function is our custom password handler that is called by
- * SSL when retreiving private certs and keys from the database. Returns a
- * pointer to a string that with a password for the database. Password pointer
- * should point to dynamically allocated memory that will be freed later.
- */
-static char *
-myPasswd(PK11SlotInfo *info __attribute ((unused)), PRBool retry, void *arg)
-{
-  char * passwd = NULL;
-
-  if (! retry && arg)
-    passwd = PORT_Strdup((char *)arg);
-
-  return passwd;
-}
-
-/* Obtain the certificate and key database password from the given file.  */
-static char *
-getPassword(char *fileName)
-{
-  PRFileDesc *local_file_fd;
-  PRFileInfo  fileInfo;
-  PRInt32     numBytesRead;
-  PRStatus    prStatus;
-  char       *password;
-  PRInt32     i;
-
-  prStatus = PR_GetFileInfo(fileName, &fileInfo);
-  if (prStatus != PR_SUCCESS || fileInfo.type != PR_FILE_FILE || fileInfo.size < 0)
-    {
-      fprintf (stderr, "Password file %s not found\n", fileName);
-      return NULL;
-    }
-
-  local_file_fd = PR_Open(fileName, PR_RDONLY, 0);
-  if (local_file_fd == NULL)
-    {
-      fprintf (stderr, "Could not open password file %s\n", fileName);
-      return NULL;
-    }
-      
-  password = PORT_Alloc(fileInfo.size + 1);
-  if (! password) {
-    errWarn ("PORT_Alloc");
-    return NULL;
-  }
-
-  numBytesRead = PR_Read(local_file_fd, password, fileInfo.size);
-  if (numBytesRead <= 0)
-    {
-      fprintf (stderr, "Error reading password file\n");
-      exitErr ("PR_Read");
-    }
-
-  PR_Close(local_file_fd);
-
-  /* Keep only the first line of data.  */
-  for (i = 0; i < numBytesRead; ++i)
-    {
-      if (password[i] == '\n' || password[i] == '\r' ||
-	  password[i] == '\0')
-	break;
-    }
-  password[i] = '\0';
-
-  return password;
-}
-
 /* Function: int main()
  *
  * Purpose:  Parses command arguments and configures SSL server.
@@ -1081,7 +998,6 @@ main(int argc, char **argv)
 {
   const char *    progName      = NULL;
   const char *    nickName      = NULL;
-  char       *    passwordFile  = NULL;
   unsigned short  port          = 0;
   SECStatus       secStatus;
   PLOptState *    optstate;
@@ -1089,7 +1005,7 @@ main(int argc, char **argv)
 
   progName = PL_strdup(argv[0]);
 
-  optstate = PL_CreateOptState(argc, argv, "d:p:n:w:s:");
+  optstate = PL_CreateOptState(argc, argv, "d:p:n:s:");
   while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK)
     {
       switch(optstate->option)
@@ -1097,23 +1013,20 @@ main(int argc, char **argv)
 	case 'd': dbdir        = PL_strdup(optstate->value); break;
 	case 'n': nickName     = PL_strdup(optstate->value); break;
 	case 'p': port         = PORT_Atoi(optstate->value); break;
-	case 'w': passwordFile = PL_strdup(optstate->value); break;
 	case 's': stapOptions  = PL_strdup(optstate->value); break;
 	default:
 	case '?': Usage(progName);
 	}
     }
 
-  if (nickName == NULL || port == 0 || dbdir == NULL || passwordFile == NULL)
+  if (nickName == NULL || port == 0 || dbdir == NULL)
     Usage(progName);
-
-  password = getPassword (passwordFile);
 
   /* Call the NSPR initialization routines. */
   PR_Init( PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
   /* Set the cert database password callback. */
-  PK11_SetPasswordFunc(myPasswd);
+  PK11_SetPasswordFunc (nssPasswordCallback);
 
   /* Initialize NSS. */
   secStatus = NSS_Init(dbdir);
@@ -1126,11 +1039,11 @@ main(int argc, char **argv)
     exitErr("NSS_SetDomesticPolicy");
 
   /* Get own certificate and private key. */
-  cert = PK11_FindCertFromNickname(nickName, password);
+  cert = PK11_FindCertFromNickname(nickName, NULL);
   if (cert == NULL)
     exitErr("PK11_FindCertFromNickname");
 
-  privKey = PK11_FindKeyByAnyCert(cert, password);
+  privKey = PK11_FindKeyByAnyCert(cert, dbdir); /* dbdir gets passed to nssPasswordCallback */
   if (privKey == NULL)
     exitErr("PK11_FindKeyByAnyCert");
 

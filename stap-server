@@ -44,6 +44,7 @@ LOG_FILE=$stap_localstatedir/log/stap-server/log
 # Default option settings
 # Optional global config file
 OPT_CONFIG_FILE=
+OPT_USE_DB_PASSWORD=
 
 echo_usage () {
   echo $"Usage: $prog {start|stop|restart|condrestart|try-restart|force-reload|status} [options]"
@@ -188,6 +189,10 @@ parse_args () { # arguments
 	test $? = 0 || rc=1
         shift 1
 	;;
+      -P)
+        OPT_USE_DB_PASSWORD="-P"
+        shift 1
+        ;;
       -r)
 	process_r "$2"
 	test $? = 0 || rc=1
@@ -628,7 +633,7 @@ start_server () {
     fi
 
     # Construct the server start command.
-    local server_cmd="$STAP_START_SERVER -r \"`quote_for_cmd "$RELEASE"`\" -a \"`quote_for_cmd "$ARCH"`\""
+    local server_cmd="$STAP_START_SERVER -r \"`quote_for_cmd "$RELEASE"`\" -a \"`quote_for_cmd "$ARCH"`\" $OPT_USE_DB_PASSWORD"
     for b in "${BUILD[@]}"; do
 	server_cmd="$server_cmd -B \"`quote_for_cmd "$b"`\""
     done
@@ -999,7 +1004,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-OPTS=`getopt -s bash -u -o 'a:B:c:iI:n:p:r:R:u:' -- "$@"`
+OPTS=`getopt -s bash -u -o 'a:B:c:iI:n:p:Pr:R:u:' -- "$@"`
 if [ $? -ne 0 ]; then
   echo "Error: Argument parse error: $@" >&2
   echo_usage

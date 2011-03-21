@@ -2,7 +2,7 @@
 
 # Compile server manager for systemtap
 #
-# Copyright (C) 2008-2010 Red Hat Inc.
+# Copyright (C) 2008-2011 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -47,6 +47,7 @@ function initialization {
     B_options=
     I_options=
     R_option=
+    use_db_password=
 
     # Parse the arguments
     parse_options "$@"
@@ -67,7 +68,6 @@ function initialization {
 	ssl_db="$stap_user_ssl_db/server"
     fi
 
-    nss_pw="$ssl_db/pw"
     nss_cert=stap-server
 
     # Ensure that our certificate is valid. Generate a new one if
@@ -187,6 +187,9 @@ function parse_options {
 		    get_arg "$first_token" "$2"
 		    warning "Option '-$first_char $stap_arg' ignored"
 		    ;;
+		P)
+		    use_db_password="-$first_char"
+		    ;;	
 		r)
 		    get_arg "$first_token" "$2"
 		    process_r $stap_arg
@@ -317,11 +320,11 @@ function check_cert {
     # If the certificate does not exist or the certificate
     # is not valid, then generate a new one.
     if test ! -d "$ssl_db" -o ! -f "$ssl_db/$stap_certfile" -o ! -f "$ssl_db/cert8.db" || \
-       ! certutil -V -n $nss_cert -u V -d "$ssl_db" -e -f "$nss_pw" \
+       ! certutil -V -n $nss_cert -u V -d "$ssl_db" -e \
                      -b `date +%g%m%d%H%M%S`+0005 >> "$logfile" 2>&1; then
 	# Our certificate does not exist or is not valid.
 	# Generate a new certificate database.
-	${stap_pkglibexecdir}stap-gen-cert "$ssl_db" >> "$logfile" 2>&1 || exit 1
+	${stap_pkglibexecdir}stap-gen-cert $use_db_password "$ssl_db" >> "$logfile" 2>&1 || exit 1
 
         # Now add the new certificate to the client's database,
         # making it a trusted peer for this user.
@@ -379,8 +382,7 @@ function listen {
         # too much / long computation
         (test $set_ulimits = 1 && ulimit -f 50000 -s 1000 -t 60 -u 20 -v 500000;
          exec ${stap_pkglibexecdir}stap-server-connect \
-	   -p $port -n $nss_cert -d "$ssl_db" -w "$nss_pw" \
-	   -s "$stap_options") &
+	   -p $port -n $nss_cert -d "$ssl_db" -s "$stap_options") &
         stap_server_connect_pid=$!
 	echo "$service_name ready"
         wait $stap_server_connect_pid

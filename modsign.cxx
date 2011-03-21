@@ -3,7 +3,7 @@
   key in the given certificate database and places the signature in the named
   output file.
 
-  Copyright (C) 2009 Red Hat Inc.
+  Copyright (C) 2009-2011 Red Hat Inc.
 
   This file is part of systemtap, and is free software.  You can
   redistribute it and/or modify it under the terms of the GNU General Public
@@ -101,80 +101,6 @@ check_cert_db_path (const string &cert_db_path) {
     }
 
   return 1; // ok
-}
-
-/* Function: char * password_callback()
- * 
- * Purpose: This function is our custom password handler that is called by
- * NSS when retrieving private certs and keys from the database. Returns a
- * pointer to a string that with a password for the database. Password pointer
- * should point to dynamically allocated memory that will be freed later.
- */
-static char *
-password_callback (PK11SlotInfo *info, PRBool retry, void *arg)
-{
-  char *passwd = NULL;
-
-  if (! retry && arg)
-    passwd = PORT_Strdup((char *)arg);
-
-  return passwd;
-}
-
-/* Obtain the certificate and key database password from the given file.  */
-static char *
-get_password (const string &fileName)
-{
-  PRFileDesc *local_file_fd;
-  PRFileInfo fileInfo;
-  PRInt32 numBytesRead;
-  PRStatus prStatus;
-  PRInt32 i;
-  char *password;
-
-  prStatus = PR_GetFileInfo (fileName.c_str(), &fileInfo);
-  if (prStatus != PR_SUCCESS || fileInfo.type != PR_FILE_FILE || fileInfo.size < 0)
-    {
-      cerr << _("Could not obtain information on password file ") << fileName << "." << endl;
-      nssError ();
-      return NULL;
-    }
-
-  local_file_fd = PR_Open (fileName.c_str(), PR_RDONLY, 0);
-  if (local_file_fd == NULL)
-    {
-      cerr << _("Could not open password file ") << fileName << "." << endl;
-      nssError ();
-      return NULL;
-    }
-      
-  password = (char*)PORT_Alloc (fileInfo.size + 1);
-  if (! password)
-    {
-      cerr << "Unable to allocate " << (fileInfo.size + 1) << " bytes." << endl;
-      nssError ();
-      return NULL;
-    }
-
-  numBytesRead = PR_Read (local_file_fd, password, fileInfo.size);
-  if (numBytesRead <= 0)
-    {
-      cerr << _("Error reading password file ") << fileName << "." << endl;
-      nssError ();
-      return 0;
-    }
-
-  PR_Close (local_file_fd);
-
-  /* Keep only the first line of data.  */
-  for (i = 0; i < numBytesRead; ++i)
-    {
-      if (password[i] == '\n' || password[i] == '\r' || password[i] == '\0')
-	break;
-    }
-  password[i] = '\0';
-
-  return password;
 }
 
 static void
@@ -279,7 +205,6 @@ main(int argc, char **argv)
   const char *nickName = "stap-server";
   string module_name;
   string cert_db_path;
-  char *password;
   CERTCertificate *cert;
   SECKEYPrivateKey *privKey;
   SECStatus secStatus;
@@ -317,20 +242,13 @@ main(int argc, char **argv)
   if (! check_cert_db_path (cert_db_path))
     return 1;
 
-  password = get_password (cert_db_path + "/pw");
-  if (! password)
-    {
-      cerr << _("Unable to obtain certificate database password.") << endl;
-      return 1;
-    }
-
   /* Call the NSPR initialization routines. */
   PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
 
   /* Set the cert database password callback. */
-  PK11_SetPasswordFunc (password_callback);
+  PK11_SetPasswordFunc (nssPasswordCallback);
 
-	/* Initialize NSS. */
+  /* Initialize NSS. */
   secStatus = NSS_Init (cert_db_path.c_str());
   if (secStatus != SECSuccess)
     {
@@ -340,7 +258,7 @@ main(int argc, char **argv)
     }
 
   /* Get own certificate and private key. */
-  cert = PK11_FindCertFromNickname (nickName, password);
+  cert = PK11_FindCertFromNickname (nickName, NULL);
   if (cert == NULL)
     {
       cerr << _F("Unable to find certificate with nickname %s in %s.",
@@ -349,10 +267,11 @@ main(int argc, char **argv)
       return 1;
     }
 
-  privKey = PK11_FindKeyByAnyCert (cert, password);
+ /* cert_db_path.c_str () gets passed to nssPasswordCallback */
+  privKey = PK11_FindKeyByAnyCert (cert, (void *)cert_db_path.c_str ());
   if (privKey == NULL)
     {
-      cerr << _F("Unable to obtain private key from the certificate with nickname %s, in %s.",
+      cerr << _F("Unable to obtain private key from the certificate with nickname %s in %s.",
                     nickName, cert_db_path.c_str()) << endl;
       nssError ();
       return 1;
