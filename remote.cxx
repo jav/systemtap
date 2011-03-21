@@ -15,6 +15,7 @@ extern "C" {
 
 #include <cstdio>
 #include <iomanip>
+#include <memory>
 #include <stdexcept>
 #include <sstream>
 #include <string>
@@ -336,21 +337,21 @@ class stapsh : public remote {
     void set_child_fds(int in, int out)
       {
         if (fdin >= 0 || fdout >= 0 || IN || OUT)
-          throw runtime_error(_("stapsh file descriptors already set!"));
+          throw runtime_error(_("stapsh file descriptors already set"));
 
         fdin = in;
         fdout = out;
         IN = fdopen(fdin, "w");
         OUT = fdopen(fdout, "r");
         if (!IN || !OUT)
-          throw runtime_error(_("invalid file descriptors for stapsh!"));
+          throw runtime_error(_("invalid file descriptors for stapsh"));
 
         if (send_command("stap " VERSION "\n"))
-          throw runtime_error(_("error sending hello to stapsh!"));
+          throw runtime_error(_("error sending hello to stapsh"));
 
         string reply = get_reply();
         if (reply.empty())
-          throw runtime_error(_("error receiving hello from stapsh!"));
+          throw runtime_error(_("error receiving hello from stapsh"));
 
         // stapsh VERSION MACHINE RELEASE
         vector<string> uname;
@@ -376,6 +377,14 @@ class direct_stapsh : public stapsh {
     direct_stapsh(systemtap_session& s)
       : stapsh(s), child(0)
       {
+        int in, out;
+        vector<string> cmd;
+        cmd.push_back(BINDIR "/stapsh");
+        if (s.perpass_verbose[4] > 1)
+          cmd.push_back("-v");
+        if (s.perpass_verbose[4] > 2)
+          cmd.push_back("-v");
+
         // mask signals while we spawn, so we can simulate manual signals to
         // the "remote" target, as we must for the real ssh_remote case.
         sigset_t mask, oldmask;
@@ -386,17 +395,13 @@ class direct_stapsh : public stapsh {
         sigaddset (&mask, SIGTERM);
         sigprocmask (SIG_BLOCK, &mask, &oldmask);
 
-        int in, out;
-        vector<string> cmd;
-        cmd.push_back(BINDIR "/stapsh");
-        if (s.perpass_verbose[4] > 1)
-          cmd.push_back("-v");
-        if (s.perpass_verbose[4] > 2)
-          cmd.push_back("-v");
         child = stap_spawn_piped(s.verbose, cmd, &in, &out);
-        sigprocmask (SIG_SETMASK, &oldmask, NULL); // back to normal signals
+
+        // back to normal signals
+        sigprocmask (SIG_SETMASK, &oldmask, NULL);
+
         if (child <= 0)
-          throw runtime_error(_("error launching stapsh!"));
+          throw runtime_error(_("error launching stapsh"));
 
         try
           {
@@ -427,34 +432,31 @@ class direct_stapsh : public stapsh {
 };
 
 
-#if 1 // stapsh-based ssh_remote
+// stapsh-based ssh_remote
 class ssh_remote : public stapsh {
   private:
     pid_t child;
 
-    ssh_remote(systemtap_session& s, const string& host)
-      : stapsh(s), child(0)
-      {
-        init(host);
-      }
+    ssh_remote(systemtap_session& s): stapsh(s), child(0) {}
 
-    ssh_remote(systemtap_session& s, const uri_decoder& ud)
-      : stapsh(s), child(0)
+    int connect(const string& host)
       {
-        if (!ud.has_authority || ud.authority.empty())
-          throw runtime_error(_("ssh target requires a hostname"));
-        if (!ud.path.empty() && ud.path != "/")
-          throw runtime_error(_("ssh target URI doesn't support a /path"));
-        if (ud.has_query)
-          throw runtime_error(_("ssh target URI doesn't support a ?query"));
-        if (ud.has_fragment)
-          throw runtime_error(_("ssh target URI doesn't support a #fragment"));
+        int rc = 0;
+        int in, out;
+        vector<string> cmd;
+        cmd.push_back("ssh");
+        cmd.push_back("-q");
+        cmd.push_back(host);
 
-        init(ud.authority);
-      }
+        // This is crafted so that we get a silent failure with status 127 if
+        // the command is not found.  The combination of -P and $cmd ensures
+        // that we pull the command out of the PATH, not aliases or such.
+        cmd.push_back("cmd=`type -P stapsh || exit 127` && exec \"$cmd\"");
+        if (s->perpass_verbose[4] > 1)
+          cmd.back().append(" -v");
+        if (s->perpass_verbose[4] > 2)
+          cmd.back().append(" -v");
 
-    void init(const string& host)
-      {
         // mask signals while we spawn, so we can manually send even tty
         // signals *through* ssh rather than to ssh itself
         sigset_t mask, oldmask;
@@ -465,20 +467,13 @@ class ssh_remote : public stapsh {
         sigaddset (&mask, SIGTERM);
         sigprocmask (SIG_BLOCK, &mask, &oldmask);
 
-        int in, out;
-        vector<string> cmd;
-        cmd.push_back("ssh");
-        cmd.push_back("-q");
-        cmd.push_back(host);
-        cmd.push_back("stapsh"); // NB: relies on remote $PATH
-        if (s->perpass_verbose[4] > 1)
-          cmd.push_back("-v");
-        if (s->perpass_verbose[4] > 2)
-          cmd.push_back("-v");
         child = stap_spawn_piped(s->verbose, cmd, &in, &out);
-        sigprocmask (SIG_SETMASK, &oldmask, NULL); // back to normal signals
+
+        // back to normal signals
+        sigprocmask (SIG_SETMASK, &oldmask, NULL);
+
         if (child <= 0)
-          throw runtime_error(_("error launching stapsh!"));
+          throw runtime_error(_("error launching stapsh"));
 
         try
           {
@@ -486,9 +481,16 @@ class ssh_remote : public stapsh {
           }
         catch (runtime_error&)
           {
-            finish();
-            throw;
+            // If rc == 127, that's command-not-found, so we let ::create()
+            // try again in legacy mode.  But only do this if there's a single
+            // remote, as the old code didn't handle ttys well with multiple
+            // remotes.  Otherwise, throw up again. *barf*
+            rc = finish();
+            if (rc != 127 || s->remote_uris.size() > 1)
+              throw;
           }
+
+        return rc;
       }
 
     int finish()
@@ -503,42 +505,27 @@ class ssh_remote : public stapsh {
       }
 
   public:
-    friend class remote;
+
+    static remote* create(systemtap_session& s, const string& host);
+    static remote* create(systemtap_session& s, const uri_decoder& ud);
 
     virtual ~ssh_remote() { }
 };
-#else // !stapsh-based ssh_remote
-class ssh_remote : public remote {
-    // NB: ssh commands use a tty (-t) so signals are passed along to the remote
+
+
+// ssh connection without stapsh, for legacy stap installations
+// NB: ssh commands use a tty (-t) so signals are passed along to the remote.
+// It does this by putting the local tty in raw mode, so it only works for tty
+// signals, and only for a single remote at a time.
+class ssh_legacy_remote : public remote {
   private:
     vector<string> ssh_args, scp_args;
     string ssh_control;
     string host, tmpdir;
     pid_t child;
 
-    ssh_remote(systemtap_session& s, const string& host)
+    ssh_legacy_remote(systemtap_session& s, const string& host)
       : remote(s), host(host), child(0)
-      {
-        init();
-      }
-
-    ssh_remote(systemtap_session& s, const uri_decoder& ud)
-      : remote(s), child(0)
-      {
-        if (!ud.has_authority || ud.authority.empty())
-          throw runtime_error(_("ssh target requires a hostname"));
-        if (!ud.path.empty() && ud.path != "/")
-          throw runtime_error(_("ssh target URI doesn't support a /path"));
-        if (ud.has_query)
-          throw runtime_error(_("ssh target URI doesn't support a ?query"));
-        if (ud.has_fragment)
-          throw runtime_error(_("ssh target URI doesn't support a #fragment"));
-
-        host = ud.authority;
-        init();
-      }
-
-    void init()
       {
         open_control_master();
         try
@@ -580,8 +567,8 @@ class ssh_remote : public remote {
         cmd.push_back("-M");
         int rc = stap_system(s->verbose, cmd);
         if (rc != 0)
-            throw runtime_error(_F("failed to create an ssh control master for %s : rc= %d",
-                                   host.c_str(), rc));
+          throw runtime_error(_F("failed to create an ssh control master for %s : rc= %d",
+                                 host.c_str(), rc));
 
         if (s->verbose>1)
           clog << _F("Created ssh control master at %s",
@@ -712,14 +699,43 @@ class ssh_remote : public remote {
       }
 
   public:
-    friend class remote;
+    friend class ssh_remote;
 
-    virtual ~ssh_remote()
+    virtual ~ssh_legacy_remote()
       {
         close_control_master();
       }
 };
-#endif
+
+
+// Try to establish a stapsh connection to the remote, but fallback
+// to the older mechanism if the command is not found.
+remote*
+ssh_remote::create(systemtap_session& s, const string& host)
+{
+  auto_ptr<ssh_remote> p (new ssh_remote(s));
+  int rc = p->connect(host);
+  if (rc == 0)
+    return p.release();
+  else if (rc == 127) // stapsh command not found
+    return new ssh_legacy_remote(s, host); // try legacy instead
+  return NULL;
+}
+
+remote*
+ssh_remote::create(systemtap_session& s, const uri_decoder& ud)
+{
+  if (!ud.has_authority || ud.authority.empty())
+    throw runtime_error(_("ssh target requires a hostname"));
+  if (!ud.path.empty() && ud.path != "/")
+    throw runtime_error(_("ssh target URI doesn't support a /path"));
+  if (ud.has_query)
+    throw runtime_error(_("ssh target URI doesn't support a ?query"));
+  if (ud.has_fragment)
+    throw runtime_error(_("ssh target URI doesn't support a #fragment"));
+
+  return create(s, ud.authority);
+}
 
 
 remote*
@@ -735,18 +751,18 @@ remote::create(systemtap_session& s, const string& uri)
         {
           const uri_decoder ud(uri);
           if (ud.scheme == "ssh")
-            return new ssh_remote(s, ud);
+            return ssh_remote::create(s, ud);
           else
-              throw runtime_error(_F("unrecognized URI scheme '%s' in remote: %s",
-                                     ud.scheme.c_str(), uri.c_str()));
+            throw runtime_error(_F("unrecognized URI scheme '%s' in remote: %s",
+                                   ud.scheme.c_str(), uri.c_str()));
         }
       else
         // XXX assuming everything else is ssh for now...
-        return new ssh_remote(s, uri);
+        return ssh_remote::create(s, uri);
     }
   catch (std::runtime_error& e)
     {
-      cerr << e.what() << endl;
+      cerr << e.what() << " on remote '" << uri << "'" << endl;
       return NULL;
     }
 }
