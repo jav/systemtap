@@ -6,8 +6,11 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+#include "config.h"
+
 extern "C" {
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -766,6 +769,33 @@ remote::create(systemtap_session& s, const string& uri)
       return NULL;
     }
 }
+
+#ifndef HAVE_PPOLL
+// This is a poor-man's ppoll, only used by remote::run below.  It does not
+// provide the same guarantee of atomicity as on systems with a true ppoll.
+//
+// In our use, this would cause trouble if a signal came in any time from the
+// moment we mask signals to prepare pollfds, to the moment we call poll in
+// emulation here.  If there's no data on any of the pollfds, we will be stuck
+// waiting indefinitely.
+//
+// Since this is mainly about responsiveness of CTRL-C cleanup, we'll just
+// throw in a one-second forced timeout to ensure we have a chance to notice
+// there was an interrupt without too much delay.
+static int
+ppoll(struct pollfd *fds, nfds_t nfds,
+      const struct timespec *timeout_ts,
+      const sigset_t *sigmask)
+{
+  sigset_t origmask;
+  int timeout = (timeout_ts == NULL) ? 1000 // don't block forever...
+    : (timeout_ts->tv_sec * 1000 + timeout_ts->tv_nsec / 1000000);
+  sigprocmask(SIG_SETMASK, sigmask, &origmask);
+  int rc = poll(fds, nfds, timeout);
+  sigprocmask(SIG_SETMASK, &origmask, NULL);
+  return rc;
+}
+#endif
 
 int
 remote::run(const vector<remote*>& remotes)

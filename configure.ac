@@ -30,6 +30,7 @@ AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 AM_GNU_GETTEXT(external)
 AM_GNU_GETTEXT_VERSION
+AC_CHECK_FUNCS(ppoll)
 
 dnl Handle the prologues option.
 dnl

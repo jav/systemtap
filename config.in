@@ -65,6 +65,9 @@
 /* Define to 1 if you have the <pcp/pmapi.h> header file. */
 #undef HAVE_PCP_PMAPI_H
 
+/* Define to 1 if you have the `ppoll' function. */
+#undef HAVE_PPOLL
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
