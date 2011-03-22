@@ -1,5 +1,8 @@
 * What's new in version 1.5
 
+- The timestamp tapset includes jiffies() and HZ() for lightweight approximate
+  timekeeping.
+
 - A powerful new command line option --version has been added.
 
 - process.mark now supports $$parms for reading probe parameters.

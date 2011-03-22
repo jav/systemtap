@@ -5,4 +5,6 @@ probe begin {
   println(tz_gmtoff())
   println(tz_name())
   println(tz_ctime(0))
+  println(jiffies())
+  println(HZ())
 }

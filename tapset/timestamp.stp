@@ -11,6 +11,7 @@
 //returned values can then be used to indicate when an event occurred, provide an ordering for events, 
 //or compute the amount of time elapsed between two time stamps.
 // </tapsetdescription>
+
 /**
  * sfunction get_cycles - Processor cycle count
  *
@@ -25,4 +26,28 @@ function get_cycles:long () %{ /* pure */ /* unprivileged */
   THIS->__retvalue = (int64_t) c;
 %}
 
-// likewise jiffies, monotonic_clock ...
+
+/**
+ * sfunction jiffies - Kernel jiffies count
+ *
+ * Description: This function returns the value of the kernel jiffies
+ * variable.  This value is incremented periodically by timer interrupts,
+ * and may wrap around a 32-bit or 64-bit boundary.  See HZ().
+ */
+function jiffies:long () %{ /* pure */ /* unprivileged */
+  THIS->__retvalue = (int64_t) jiffies;
+%}
+
+
+/**
+ * sfunction HZ - Kernel HZ
+ *
+ * Description: This function returns the value of the kernel HZ macro,
+ * which corresponds to the rate of increase of the jiffies value.
+ */
+function HZ:long () %{ /* pure */ /* unprivileged */
+  THIS->__retvalue = (int64_t) HZ;
+%}
+
+
+// likewise monotonic_clock ...
