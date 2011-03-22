@@ -45,6 +45,10 @@ Requires: gcc make
 Requires: systemtap-runtime = %{version}-%{release}
 BuildRequires: nss-tools nss-devel avahi-devel pkgconfig
 
+# Additional requires for things spawned by stap
+Requires: coreutils grep sed unzip zip
+Requires: openssh-clients
+
 %if %{with_bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
 Patch1: elfutils-portability.patch
