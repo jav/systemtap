@@ -27,7 +27,7 @@ default:
 				stap_dir=~/.systemtap; \
 			fi; \
 			certfile=$$stap_dir/ssl/server/stap.cert; \
-			if ! test -f $$certfile; then \
+			if test ! -f $$certfile -o -f $$stap_dir/ssl/server/pw; then \
 				$(LIBEXECDIR)/stap-gen-cert > /dev/null; \
 			fi; \
 			if test `id -u` = 0; then \
