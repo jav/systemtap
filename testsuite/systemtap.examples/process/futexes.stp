@@ -4,12 +4,13 @@
 # into the futex system call.
 
 global FUTEX_WAIT = 0 /*, FUTEX_WAKE = 1 */
+global FUTEX_PRIVATE_FLAG = 128 /* linux 2.6.22+ */
 
 global lock_waits # long-lived stats on (tid,lock) blockage elapsed time
 global process_names # long-lived pid-to-execname mapping
 
 probe syscall.futex.return {  
-  if ($op != FUTEX_WAIT) next # don't care about WAKE event originator
+  if (($op & ~FUTEX_PRIVATE_FLAG) != FUTEX_WAIT) next # don't care about WAKE event originator
   process_names[pid()] = execname()
   elapsed = gettimeofday_us() - @entry(gettimeofday_us())
   lock_waits[pid(), $uaddr] <<< elapsed
