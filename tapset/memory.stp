@@ -154,11 +154,17 @@ probe vm.write_shared = kernel.function("do_wp_page") {
  *  Fires when a write to a shared page requires a page copy.  This is
  *  always preceded by a vm.shared_write.
  */
-probe vm.write_shared_copy = kernel.function("copy_cow_page") ?
+probe vm.write_shared_copy =  kernel.function("cow_user_page") ?,
+      kernel.function("copy_cow_page") ?
 {
     name = "write_shared_copy"
-    address = $address
-    zero = _IS_ZERO_PAGE($from, $address);
+    if (@defined($va)) {
+      address = $va
+      zero = _IS_ZERO_PAGE($src, $va);
+    } else {
+      address = $address
+      zero = _IS_ZERO_PAGE($from, $address);
+    }
 }
 
 
