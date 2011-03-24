@@ -314,6 +314,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/tcp_connections.stp">network/tcp_connections.stp</a> - Track Creation of Incoming TCP Connections<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>The tcp_connections.stp script prints information for each new incoming TCP connection accepted by the computer. The information includes the UID, the command accepting the connection, the PID of the command, the port the connection is on, and the IP address of the originator of the request.<p><font size="-2"><pre># stap tcp_connections.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+<li><a href="network/tcp_init_cwnd.stp">network/tcp_init_cwnd.stp</a> - Increase initial tcp congestion window to 10.<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
+<p>Run the tcp_init_cwnd.stp script in the background to override a kernel&#39;s default tcp cwnd value to 10, which has been found to improve latency for web server type workloads.  The script prints a count of cwnd value changes when it is stopped.<p><font size="-2"><pre># stap -g tcp_init_cwnd.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
 <li><a href="network/tcp_trace.stp">network/tcp_trace.stp</a> - Tcp connection tracing utility.<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACE">TRACE</a> <br>
 <p>This scripts traces a given tcp connection based on the filter parameters given by the user. The indexing is done by the 4 tuples local address, remote address, local port, remote port.<p><font size="-2"><pre># stap tcp_trace.stp 127.0.0.1:*-127.0.0.1:* timeout=1</pre></font></p></li>
@@ -506,6 +509,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/tcp_connections.stp">network/tcp_connections.stp</a> - Track Creation of Incoming TCP Connections<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>The tcp_connections.stp script prints information for each new incoming TCP connection accepted by the computer. The information includes the UID, the command accepting the connection, the PID of the command, the port the connection is on, and the IP address of the originator of the request.<p><font size="-2"><pre># stap tcp_connections.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+<li><a href="network/tcp_init_cwnd.stp">network/tcp_init_cwnd.stp</a> - Increase initial tcp congestion window to 10.<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
+<p>Run the tcp_init_cwnd.stp script in the background to override a kernel&#39;s default tcp cwnd value to 10, which has been found to improve latency for web server type workloads.  The script prints a count of cwnd value changes when it is stopped.<p><font size="-2"><pre># stap -g tcp_init_cwnd.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
 </ul>
 <h3><a name="STATISTICS">STATISTICS</a></h3>
 <ul>
@@ -548,6 +554,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/tcp_connections.stp">network/tcp_connections.stp</a> - Track Creation of Incoming TCP Connections<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>The tcp_connections.stp script prints information for each new incoming TCP connection accepted by the computer. The information includes the UID, the command accepting the connection, the PID of the command, the port the connection is on, and the IP address of the originator of the request.<p><font size="-2"><pre># stap tcp_connections.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+<li><a href="network/tcp_init_cwnd.stp">network/tcp_init_cwnd.stp</a> - Increase initial tcp congestion window to 10.<br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
+<p>Run the tcp_init_cwnd.stp script in the background to override a kernel&#39;s default tcp cwnd value to 10, which has been found to improve latency for web server type workloads.  The script prints a count of cwnd value changes when it is stopped.<p><font size="-2"><pre># stap -g tcp_init_cwnd.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
 </ul>
 <h3><a name="TIME">TIME</a></h3>
 <ul>

@@ -527,6 +527,17 @@ keywords: network tcp socket
   # stap tcp_connections.stp -c "sleep 0.2"
 
 
+network/tcp_init_cwnd.stp - Increase initial tcp congestion window to 10.
+keywords: network tcp socket
+
+  Run the tcp_init_cwnd.stp script in the background to override a
+  kernel's default tcp cwnd value to 10, which has been found to
+  improve latency for web server type workloads.  The script prints a
+  count of cwnd value changes when it is stopped.
+
+  # stap -g tcp_init_cwnd.stp -c "sleep 0.2"
+
+
 network/tcp_trace.stp - Tcp connection tracing utility.
 keywords: network trace
 
