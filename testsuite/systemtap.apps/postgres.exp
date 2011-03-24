@@ -12,7 +12,7 @@ if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
 }
 
 ########## Create /tmp/stap-postgres.stp ########## 
-set postgresrelease "8.4.4"
+set postgresrelease "8.4.7"
 set postgresbuild "[pwd]/postgresql-$postgresrelease/bld"
 set postgresdir "[pwd]/postgresql-$postgresrelease/install/"
 set pgdata "/tmp/stap-postgres"
