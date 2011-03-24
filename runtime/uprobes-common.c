@@ -266,26 +266,53 @@ static int stap_uprobe_process_found (struct stap_task_finder_target *tgt, struc
 }
 
 /* The task_finder_mmap_callback */
-static int stap_uprobe_mmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, char *path, struct dentry *dentry, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags) {
+static int
+stap_uprobe_mmap_found (struct stap_task_finder_target *tgt,
+                        struct task_struct *tsk, char *path,
+                        struct dentry *dentry, unsigned long addr,
+                        unsigned long length, unsigned long offset,
+                        unsigned long vm_flags)
+{
+  int rc = 0;
   const struct stap_uprobe_tf *stf = container_of(tgt, struct stap_uprobe_tf, finder);
   /* 1 - shared libraries' executable segments load from offset 0
-       - ld.so convention offset != 0 is now allowed
-         so stap_uprobe_change_plus can set a semaphore,
-	 i.e. a static extern, in a shared object
-     2 - the shared library we're interested in
-     3 - mapping should be executable or writeable (for semaphore in .so) */
-  if (path == NULL || strcmp (path, stf->pathname)) return 0;
+   *   - ld.so convention offset != 0 is now allowed
+   *     so stap_uprobe_change_plus can set a semaphore,
+   *     i.e. a static extern, in a shared object
+   * 2 - the shared library we're interested in
+   * 3 - mapping should be executable or writeable (for semaphore in .so)
+   *     NB: or both, on kernels that lack noexec mapping
+   */
+  if (path == NULL || strcmp (path, stf->pathname))
+    return 0;
+
+  /* Check executable sections for probes. */
   if (vm_flags & VM_EXEC) {
     #ifdef DEBUG_TASK_FINDER_VMA
-    _stp_dbug (__FUNCTION__,__LINE__, "+mmap R-X pid %d path %s addr %p length %u offset %p stf %p %p path %s\n", tsk->tgid, path, (void *) addr, (unsigned)length, (void*) offset, tgt, stf, stf->pathname);
+    _stp_dbug (__FUNCTION__,__LINE__,
+               "+mmap X pid %d path %s addr %p length %u offset %p stf %p %p path %s\n",
+               tsk->tgid, path, (void *) addr, (unsigned)length, (void*) offset,
+               tgt, stf, stf->pathname);
     #endif
-    return stap_uprobe_change_plus (tsk, addr, length, stf, offset, vm_flags);
-  } else if (vm_flags & VM_WRITE) {
+    rc = stap_uprobe_change_plus (tsk, addr, length, stf, offset, vm_flags);
+  }
+
+  /* Check writeable sections for semaphores.
+   * NB: They may have also been executable for the check above, if we're
+   *     running a kernel that lacks noexec mappings.  So long as there's
+   *     no error (rc == 0), we need to look for semaphores too.
+   */
+  if ((rc == 0) && (vm_flags & VM_WRITE)) {
     #ifdef DEBUG_TASK_FINDER_VMA
-    _stp_dbug (__FUNCTION__,__LINE__, "+mmap RW- pid %d path %s addr %p length %u offset %p stf %p %p path %s\n", tsk->tgid, path, (void *) addr, (unsigned)length, (void*) offset, tgt, stf, stf->pathname);
+    _stp_dbug (__FUNCTION__,__LINE__,
+               "+mmap W pid %d path %s addr %p length %u offset %p stf %p %p path %s\n",
+               tsk->tgid, path, (void *) addr, (unsigned)length, (void*) offset,
+               tgt, stf, stf->pathname);
     #endif
-    return stap_uprobe_change_semaphore_plus (tsk, addr, length, stf);
-  } else return 0;
+    rc = stap_uprobe_change_semaphore_plus (tsk, addr, length, stf);
+  }
+
+  return rc;
 }
 
 /* The task_finder_munmap_callback */
