@@ -494,7 +494,8 @@ systemtap_session::usage (int exitcode)
     << _("              retry compilation using a compile server upon compilation error") << endl
 #endif
     << _("   --remote=HOSTNAME") << endl
-    << _("              run pass 5 on the specified ssh host (EXPERIMENTAL)") << endl
+    << _("              run pass 5 on the specified ssh host.") << endl
+    << _("              may be repeated for targeting multiple hosts.") << endl
   ;
 
   time_t now;

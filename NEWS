@@ -1,5 +1,11 @@
 * What's new in version 1.5
 
+- The "--remote USER@HOST" functionality can now be specified multiple times
+  to fan out on multiple targets.  If the targets have distinct kernel and
+  architecture configurations, stap will automatically build the script
+  appropriately for each one.  This option is also no longer considered
+  experimental.
+
 - The NSS certificate database generated for use by the compile server is now
   generated with no password. Previously, a random password was generated and
   used to access the database. This change should be transparent to most users.
