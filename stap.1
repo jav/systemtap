@@ -1412,7 +1412,11 @@ which is executed with interrupts enabled (such as begin/end probes),
 default (MAXACTION * 10).
 .TP
 MAXMAPENTRIES
-Maximum number of rows in any single global array, default 2048.
+Default maximum number of rows in any single global array, default 2048.
+Individual arrays may be declared with a larger or smaller limit instead:
+.SAMPLE
+global big[10000],little[5]
+.ESAMPLE
 .TP
 MAXERRORS
 Maximum number of soft errors before an exit is triggered, default 0, which
