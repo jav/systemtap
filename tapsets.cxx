@@ -4794,7 +4794,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
 
     need_debug_info = false;
     tokenize(arg_string, arg_tokens, " ");
-    assert(arg_count >= 0 && arg_count <= 10);
+    assert(arg_count >= 0 && arg_count <= 10); // XXX: why assert() ?
   }
 
   systemtap_session& session;
@@ -5132,7 +5132,13 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
     not_matched:
       // The asmarg operand was not recognized.  Back down to dwarf.
       if (! session.suppress_warnings)
-        session.print_warning (_F("Downgrading SDT_V2 probe argument to dwarf, can't parse '%s'", asmarg.c_str()), e->tok);
+        {
+          if (probe_type == UPROBE3_TYPE)
+            session.print_warning (_F("Can't parse SDT_V3 operand '%s'", asmarg.c_str()), e->tok);
+          else // must be *PROBE2; others don't get asm operands
+            session.print_warning (_F("Downgrading SDT_V2 probe argument to dwarf, can't parse '%s'", 
+                                      asmarg.c_str()), e->tok);
+        }
       assert (argexpr == 0);
       need_debug_info = true;
       provide (e);
