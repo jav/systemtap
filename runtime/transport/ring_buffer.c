@@ -62,7 +62,7 @@ struct _stp_relay_data_type {
 	struct timer_list timer;
 	int overwrite_flag;
 };
-static struct _stp_relay_data_type _stp_relay_data = { 0 };
+static struct _stp_relay_data_type _stp_relay_data;
 
 /* _stp_poll_wait is a waitqueue for tasks blocked on
  * _stp_data_poll_trace() */
