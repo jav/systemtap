@@ -1,12 +1,17 @@
 /* -*- linux-c -*- 
  * transport_msgs.h - messages exchanged between module and userspace
  *
- * Copyright (C) Red Hat Inc, 2006-2010
+ * Copyright (C) Red Hat Inc, 2006-2011
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
+ */
+
+/*
+ * NB: consider backward compatibility implications such as PR12612
+ * before changing existing message structures in any way.
  */
 
 #define STP_MODULE_NAME_LEN 128
