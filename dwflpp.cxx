@@ -1013,8 +1013,6 @@ dwflpp::iterate_over_notes (void *object, void (*callback)(void *object, int typ
   if (elf_getshdrstrndx (elf, &shstrndx))
     return elf_errno();
 
-  GElf_Addr base = (GElf_Addr) -1;
-
   Elf_Scn *scn = NULL;
 
   vector<Dwarf_Die> notes;
@@ -1029,9 +1027,6 @@ dwflpp::iterate_over_notes (void *object, void (*callback)(void *object, int typ
 	case SHT_NOTE:
 	  if (!(shdr.sh_flags & SHF_ALLOC))
 	    {
-	      if (base == (GElf_Addr) -1)
-		base = 0;
-
 	      Elf_Data *data = elf_getdata (scn, NULL);
 	      size_t next;
 	      GElf_Nhdr nhdr;
@@ -1046,6 +1041,106 @@ dwflpp::iterate_over_notes (void *object, void (*callback)(void *object, int typ
 	}
     }
   return 0;
+}
+
+
+/* For each entry in the .dynamic section in the current module call 'callback', use
+ * 'data' for the dynamic entry buffer return the entry type and 'object' in case
+ * 'callback' is a method */
+
+void
+dwflpp::iterate_over_libraries (void (*callback)(void *object, int type, const char *arg), base_query *q)
+{
+  std::set<std::string> added;
+  string interpreter;
+
+  assert (this->module_name.length() != 0);
+
+  Dwarf_Addr bias;
+  Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (module, &bias))
+      ?: dwfl_module_getelf (module, &bias));
+  size_t phnum;
+  elf_getphdrnum (elf, &phnum);
+  for (size_t cnt = 0; cnt < phnum; ++cnt)
+    {
+      GElf_Phdr mem;
+      GElf_Phdr *phdr = gelf_getphdr (elf, cnt, &mem);
+      if (phdr->p_type == PT_INTERP)
+        {
+          size_t maxsize;
+          char *filedata = elf_rawfile (elf, &maxsize);
+
+          if (filedata != NULL && phdr->p_offset < maxsize)
+            interpreter = (char*) (filedata + phdr->p_offset);
+          if (! (interpreter.substr (0,8) == "/lib/ld-"
+                 || interpreter.substr (0,10) == "/lib64/ld-")
+                && interpreter.find (".so") != string::npos)
+            throw semantic_error(_F("unsupported interpreter: %s", interpreter.c_str()));
+          break;
+        }
+    }
+
+  if (geteuid() == 0 && !sess.suppress_warnings)
+    sess.print_warning(_("/usr/bin/ldd may not be safe to run on untrustworthy executables"));
+
+  string ldd_command = string("env LD_TRACE_LOADED_OBJECTS=1 LD_WARN=yes LD_BIND_NOW=yes ")
+      + interpreter + " " + this->module_name;
+  if (sess.verbose > 2)
+    clog << "Running '" << ldd_command << "'" << endl;
+
+  FILE *fp = popen (ldd_command.c_str(), "r");
+  if (fp == 0)
+    clog << ldd_command << _F(" failed: %s", strerror(errno)) << endl;
+  else
+    {
+      while (1) // this parsing loop borrowed from add_unwindsym_ldd
+        {
+          char linebuf[256];
+          char *soname = 0;
+          char *shlib = 0;
+          unsigned long int addr = 0;
+
+          char *line = fgets (linebuf, 256, fp);
+          if (line == 0) break; // EOF or error
+
+          // Try soname => shlib (0xaddr)
+          int nf = sscanf (line, "%as => %as (0x%lx)",
+              &soname, &shlib, &addr);
+          if (nf != 3 || shlib[0] != '/')
+            {
+              // Try shlib (0xaddr)
+              nf = sscanf (line, " %as (0x%lx)", &shlib, &addr);
+              if (nf != 2 || shlib[0] != '/')
+                continue; // fewer than expected fields, or bad shlib.
+            }
+
+          if (added.find (shlib) == added.end())
+            {
+              if (sess.verbose > 2)
+                {
+                  clog << _F("Added -d '%s", shlib);
+                  if (nf == 3)
+                    clog << _F("' due to '%s'", soname);
+                  else
+                    clog << "'";
+                  clog << endl;
+                }
+              added.insert (shlib);
+            }
+
+          free (soname);
+          free (shlib);
+        }
+      pclose (fp);
+    }
+
+  for (std::set<std::string>::iterator it = added.begin();
+      it != added.end();
+      it++)
+    {
+      string modname = *it;
+      (callback) (q, 0, modname.c_str());
+    }
 }
 
 

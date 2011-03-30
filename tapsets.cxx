@@ -504,6 +504,9 @@ struct base_query
 			       string const & k, long & v);
   static bool get_number_param(literal_map_t const & params,
 			       string const & k, Dwarf_Addr & v);
+  static void query_library_callback (void *object, int type, const char *data);
+  virtual void query_library (int type, const char *data) = 0;
+
 
   // Extracted parameters.
   bool has_kernel;
@@ -532,13 +535,18 @@ base_query::base_query(dwflpp & dw, literal_map_t const & params):
       string library_name;
       has_process = get_string_param(params, TOK_PROCESS, module_val);
       has_library = get_string_param (params, TOK_LIBRARY, library_name);
-      if (has_library)
-	{
-	  path = find_executable (module_val);
-	  module_val = find_executable (library_name, "LD_LIBRARY_PATH");
-	}
-      else if (has_process)
+      if (has_process)
         module_val = find_executable (module_val);
+      if (has_library)
+        {
+          if (! contains_glob_chars (library_name))
+            {
+              path = module_val;
+              module_val = find_executable (library_name, "LD_LIBRARY_PATH");
+            }
+          else
+            path = library_name;
+        }
     }
 
   assert (has_kernel || has_process || has_module);
@@ -619,6 +627,7 @@ struct dwarf_query : public base_query
   virtual void handle_query_module();
   void query_module_dwarf();
   void query_module_symtab();
+  void query_library (int type, const char *data);
 
   void add_probe_point(string const & funcname,
 		       char const * filename,
@@ -1919,8 +1928,12 @@ query_module (Dwfl_Module *mod,
             q->sess.sym_stext = lookup_symbol_address (mod, "_stext");
         }
 
-      // Finally, search the module for matches of the probe point.
-      q->handle_query_module();
+      if (q->has_library && contains_glob_chars (q->path))
+        // handle .library(GLOB)
+        q->dw.iterate_over_libraries (&q->query_library_callback, q);
+      else
+        // search the module for matches of the probe point.
+        q->handle_query_module();
 
 
       // If we know that there will be no more matches, abort early.
@@ -1933,6 +1946,42 @@ query_module (Dwfl_Module *mod,
     {
       q->sess.print_error (e);
       return DWARF_CB_ABORT;
+    }
+}
+
+
+void
+base_query::query_library_callback (void *q, int type, const char *data)
+{
+  base_query *me = (base_query*)q;
+  me->query_library (type, data);
+}
+
+
+void
+dwarf_query::query_library (int type, const char *library)
+{
+  if (dw.function_name_matches_pattern(library, user_lib))
+    {
+      string library_path = find_executable (library, "LD_LIBRARY_PATH");
+      probe_point* specific_loc = new probe_point(*base_loc);
+      specific_loc->optional = true;
+      vector<probe_point::component*> derived_comps;
+
+      vector<probe_point::component*>::iterator it;
+      for (it = specific_loc->components.begin();
+          it != specific_loc->components.end(); ++it)
+        if ((*it)->functor == TOK_LIBRARY)
+          derived_comps.push_back(new probe_point::component(TOK_LIBRARY,
+              new literal_string(library_path)));
+        else
+          derived_comps.push_back(*it);
+      probe_point* derived_loc = new probe_point(*specific_loc);
+      derived_loc->components = derived_comps;
+      probe *new_base = base_probe->create_alias(derived_loc, specific_loc);
+      derive_probes(sess, new_base, results);
+      if (sess.verbose > 2)
+        clog << _("module=") << library_path;
     }
 }
 
@@ -3453,6 +3502,7 @@ struct dwarf_cast_query : public base_query
     userspace_p(userspace_p), result(result) {}
 
   void handle_query_module();
+  void query_library (int type, const char *data) {};
 };
 
 
@@ -5313,6 +5363,7 @@ struct sdt_query : public base_query
             dwflpp & dw, literal_map_t const & params,
             vector<derived_probe *> & results);
 
+  void query_library (int type, const char *data) {};
   void handle_query_module();
 
 private:
@@ -5960,9 +6011,7 @@ dwarf_builder::build(systemtap_session & sess,
       dw = get_kern_dw(sess, module_name);
     }
   else if (get_param (parameters, TOK_PROCESS, module_name))
-    {
-      string library_name;
-
+      {
       // PR6456  process("/bin/*")  glob handling
       if (contains_glob_chars (module_name))
         {
@@ -6119,11 +6168,9 @@ dwarf_builder::build(systemtap_session & sess,
          script_file.close();
       }
 
-      if (get_param (parameters, TOK_LIBRARY, library_name))
-	{
-	  module_name = find_executable (library_name, "LD_LIBRARY_PATH");
-	  user_lib = module_name;
-	}
+      get_param (parameters, TOK_LIBRARY, user_lib);
+      if (user_lib.length() && ! contains_glob_chars (user_lib))
+        module_name = find_executable (user_lib, "LD_LIBRARY_PATH");
       else
 	module_name = user_path; // canonicalize it
 
@@ -8485,6 +8532,7 @@ struct tracepoint_query : public base_query
   void handle_query_module();
   int handle_query_cu(Dwarf_Die * cudie);
   int handle_query_func(Dwarf_Die * func);
+  void query_library (int type, const char *data) {};
 
   static int tracepoint_query_cu (Dwarf_Die * cudie, void * arg);
   static int tracepoint_query_func (Dwarf_Die * func, base_query * query);

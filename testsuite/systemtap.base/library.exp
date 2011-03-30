@@ -96,3 +96,21 @@ catch {close}; catch {wait}
 
 error_handler [expr {$ok == 9}] "shared $mssg"
 }
+
+set ok 0
+spawn $stap_path -c "/usr/bin/printf %s\\\\n ABCD" -e "probe process(\"/usr/bin/printf\").library(\"*\").function(\"__snprintf_chk\") \{printf(\"at printf begin\\n\")\} probe process(\"/usr/bin/printf\").library(\"*\").function(\"__snprintf_chk\").return \{printf(\"at printf end\\n\")\} probe process(\"/usr/bin/printf\").library(\"*\").statement(\"__snprintf_chk@snprintf_chk.c+2\") \{printf(\"in printf body\\n\")\}"
+
+expect {
+    -timeout 180
+    -re {ABCD} {incr ok; exp_continue }
+    -re {at printf begin} {incr ok; exp_continue }
+    -re {in printf body} {incr ok; exp_continue }
+    -re {at printf end} {incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+catch {close}; catch {wait}
+
+error_handler [expr {$ok == 4}] "printf $mssg"
+

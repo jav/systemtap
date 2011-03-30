@@ -251,6 +251,10 @@ struct dwflpp
 			  void (*callback)(void *object, int type,
 					   const char *data, size_t len));
 
+  void iterate_over_libraries (void (*callback)(void *object,
+      int type, const char *data), base_query *data);
+
+
   GElf_Shdr * get_section(std::string section_name, GElf_Shdr *shdr_mem,
                           Elf **elf_ret=NULL);
 
