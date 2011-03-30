@@ -2180,3 +2180,108 @@ function irqflags_str:string(f:long)
 %{ /* pure */
 	_stp_lookup_or_str(_stp_irq_list, THIS->f, THIS->__retvalue, MAXSTRINGLEN);
 %}
+
+/* PTRACE_SETOPTIONS parser of the DATA parameter. */
+function _ptrace_options_str(f)
+{
+	retval=""
+	if (f & %{ PTRACE_O_TRACESYSGOOD %}) {
+		f&=%{ ~PTRACE_O_TRACESYSGOOD %}
+		retval=retval."|PTRACE_O_TRACESYSGOOD"
+	}
+	if (f & %{ PTRACE_O_TRACEFORK %}) {
+		f&=%{ ~PTRACE_O_TRACEFORK %}
+		retval=retval."|PTRACE_O_TRACEFORK"
+	}
+	if (f & %{ PTRACE_O_TRACEVFORK %}) {
+		f&=%{ ~PTRACE_O_TRACEVFORK %}
+		retval=retval."|PTRACE_O_TRACEVFORK"
+	}
+	if (f & %{ PTRACE_O_TRACECLONE %}) {
+		f&=%{ ~PTRACE_O_TRACECLONE %}
+		retval=retval."|PTRACE_O_TRACECLONE"
+	}
+	if (f & %{ PTRACE_O_TRACEEXEC %}) {
+		f&=%{ ~PTRACE_O_TRACEEXEC %}
+		retval=retval."|PTRACE_O_TRACEEXEC"
+	}
+	if (f & %{ PTRACE_O_TRACEVFORKDONE %}) {
+		f&=%{ ~PTRACE_O_TRACEVFORKDONE %}
+		retval=retval."|PTRACE_O_TRACEVFORKDONE"
+	}
+	if (f & %{ PTRACE_O_TRACEEXIT %}) {
+		f&=%{ ~PTRACE_O_TRACEEXIT %}
+		retval=retval."|PTRACE_O_TRACEEXIT"
+	}
+	if (f != 0)
+		retval=retval.sprintf("|0x%x",f)
+	else if (retval == "")
+		return "0"
+	return substr(retval,1,strlen(retval)-1)
+}
+
+/* ptrace syscall provisioning of argstr. */
+%{
+#ifndef PTRACE_GETREGSET
+# define PTRACE_GETREGSET 0x4204
+#endif
+#ifndef PTRACE_SETREGSET
+# define PTRACE_SETREGSET 0x4205
+#endif
+%}
+function _ptrace_argstr(request, pid, addr, data)
+{
+	retval=_arch_ptrace_argstr(request, pid, addr, data)
+	if (retval != "")
+		return retval
+	if (request == %{ PTRACE_TRACEME %})
+		return "PTRACE_TRACEME"
+	if (request == %{ PTRACE_PEEKTEXT %})
+		return sprintf ("PTRACE_PEEKTEXT, %d, addr=%p", pid, addr)
+	if (request == %{ PTRACE_PEEKDATA %})
+		return sprintf ("PTRACE_PEEKDATA, %d, addr=%p", pid, addr)
+	if (request == %{ PTRACE_PEEKUSR %})
+		return sprintf ("PTRACE_PEEKUSR, %d, addr=%p", pid, addr)
+	if (request == %{ PTRACE_POKETEXT %})
+		return sprintf ("PTRACE_POKETEXT, %d, addr=%p, data=%p", pid, addr, data)
+	if (request == %{ PTRACE_POKEDATA %})
+		return sprintf ("PTRACE_POKEDATA, %d, addr=%p, data=%p", pid, addr, data)
+	if (request == %{ PTRACE_POKEUSR %})
+		return sprintf ("PTRACE_POKEUSR, %d, addr=%p, data=%p", pid, addr, data)
+	if (request == %{ PTRACE_CONT %})
+		return sprintf ("PTRACE_CONT, %d, %s", pid, _signal_name (data))
+	if (request == %{ PTRACE_KILL %})
+		return sprintf ("PTRACE_KILL, %d", pid)
+	if (request == %{ PTRACE_SINGLESTEP %})
+		return sprintf ("PTRACE_SINGLESTEP, %d, %s", pid, _signal_name (data))
+	if (request == %{ PTRACE_ATTACH %})
+		return sprintf ("PTRACE_ATTACH, %d", pid)
+	if (request == %{ PTRACE_DETACH %})
+		return sprintf ("PTRACE_DETACH, %d, %s", pid, _signal_name (data))
+	if (request == %{ PTRACE_SYSCALL %})
+		return sprintf ("PTRACE_SYSCALL, %d, %s", pid, _signal_name (data))
+	if (request == %{ PTRACE_SETOPTIONS %})
+		return sprintf ("PTRACE_SETOPTIONS, %d, %s", pid, _ptrace_options_str (data))
+	if (request == %{ PTRACE_GETEVENTMSG %})
+		return sprintf ("PTRACE_GETEVENTMSG, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GETSIGINFO %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETSIGINFO, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETSIGINFO %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETSIGINFO, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GETREGSET %})
+		// TODO
+		return sprintf ("PTRACE_GETREGSET, %d, addr=%p, data=%p", pid, addr, data)
+	if (request == %{ PTRACE_SETREGSET %})
+		// TODO
+		return sprintf ("PTRACE_SETREGSET, %d, addr=%p, data=%p", pid, addr, data)
+	return sprintf("?=%d, %d, %p, %p", request, pid, addr, data)
+}
+
+/* ptrace.return syscall decoder for PTRACE_GETEVENTMSG. */
+function _ptrace_return_geteventmsg_data(request,data)
+{
+	if (request == %{ PTRACE_GETEVENTMSG %})
+		return user_long(data)
+}

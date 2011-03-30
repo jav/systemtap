@@ -109,4 +109,9 @@ probe begin {
 	print (_struct_old_sigaction32_u(0))
 
 	print (irqflags_str(0))
+
+	print (_ptrace_argstr(0,0,0,0))
+	print (_ptrace_return_geteventmsg_data(0,0))
+	# Implementation is in arch specific files but with compatible API.
+	print (_ptrace_return_arch_prctl_addr(0,0,0))
 }

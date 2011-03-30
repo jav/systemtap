@@ -582,12 +582,16 @@ probe syscall.ptrace = kernel.function("sys_ptrace").call ?
 	pid = $pid
 	addr = $addr
 	data = $data
-	argstr = sprintf("%d, %d, %p, %p", request, pid, addr, data)
+
+	argstr = _ptrace_argstr($request, $pid, $addr, $data)
 }
 probe syscall.ptrace.return = kernel.function("sys_ptrace").return ?
 {
 	name = "ptrace"
 	retstr = return_str(1, $return)
+
+	geteventmsg_data = _ptrace_return_geteventmsg_data($request, $data)
+	arch_prctl_addr = _ptrace_return_arch_prctl_addr($request, $addr, $data)
 }
 
 # pwrite64 ___________________________________________________

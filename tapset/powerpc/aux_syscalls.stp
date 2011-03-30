@@ -1,0 +1,98 @@
+# arch-specific requests of ptrace ___________________________
+#
+%{
+#ifndef PPC_PTRACE_GETHWDBGINFO
+# define PPC_PTRACE_GETHWDBGINFO 0x89
+#endif
+#ifndef PPC_PTRACE_SETHWDEBUG
+# define PPC_PTRACE_SETHWDEBUG 0x88
+#endif
+#ifndef PPC_PTRACE_DELHWDEBUG
+# define PPC_PTRACE_DELHWDEBUG 0x87
+#endif
+%}
+function _arch_ptrace_argstr(request, pid, addr, data)
+{
+	if (request == %{ PTRACE_GETVRREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETVRREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETVRREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETVRREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GETEVRREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETEVRREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETEVRREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETEVRREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GETVSRREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETVSRREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETVSRREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETVSRREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GET_DEBUGREG %})
+		// ADDR is now required by kernel to be 0.
+		return sprintf ("PTRACE_GET_DEBUGREG, %d, (addr=%p), data=%p", pid, addr, data)
+	if (request == %{ PTRACE_SET_DEBUGREG %})
+		// ADDR is now required by kernel to be 0.
+		return sprintf ("PTRACE_SET_DEBUGREG, %d, (addr=%p), data=%p", pid, addr, data)
+	if (request == %{ PTRACE_GETREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GETFPREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETFPREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETFPREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETFPREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GETREGS64 %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETREGS64, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETREGS64 %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETREGS64, %d, data=%p", pid, data)
+	if (request == %{ PPC_PTRACE_GETREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PPC_PTRACE_GETREGS, %d, data=%p", pid, data)
+	if (request == %{ PPC_PTRACE_SETREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PPC_PTRACE_SETREGS, %d, data=%p", pid, data)
+	if (request == %{ PPC_PTRACE_GETFPREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PPC_PTRACE_GETFPREGS, %d, data=%p", pid, data)
+	if (request == %{ PPC_PTRACE_SETFPREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PPC_PTRACE_SETFPREGS, %d, data=%p", pid, data)
+	if (request == %{ PPC_PTRACE_PEEKTEXT_3264 %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PPC_PTRACE_PEEKTEXT_3264, %d, *addr=%p, data=%p", pid, user_long(addr), data)
+	if (request == %{ PPC_PTRACE_PEEKDATA_3264 %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PPC_PTRACE_PEEKDATA_3264, %d, *addr=%p, data=%p", pid, user_long(addr), data)
+	if (request == %{ PPC_PTRACE_POKETEXT_3264 %})
+		return sprintf ("PPC_PTRACE_POKETEXT_3264, %d, *addr=%p, data=%p", pid, user_long(addr), data)
+	if (request == %{ PPC_PTRACE_POKEDATA_3264 %})
+		return sprintf ("PPC_PTRACE_POKEDATA_3264, %d, *addr=%p, data=%p", pid, user_long(addr), data)
+	if (request == %{ PPC_PTRACE_PEEKUSR_3264 %})
+		return sprintf ("PPC_PTRACE_PEEKUSR_3264, %d, addr=%p, data=%p", pid, addr, data)
+	if (request == %{ PPC_PTRACE_POKEUSR_3264 %})
+		return sprintf ("PPC_PTRACE_POKEUSR_3264, %d, addr=%p, data=%p", pid, addr, data)
+	if (request == %{ PTRACE_SINGLEBLOCK %})
+		return sprintf ("PTRACE_SINGLEBLOCK, %d, %s", pid, _signal_name (data))
+	if (request == %{ PPC_PTRACE_GETHWDBGINFO %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PPC_PTRACE_GETHWDBGINFO, %d, data=%p", pid, data)
+	if (request == %{ PPC_PTRACE_SETHWDEBUG %})
+		// TODO: Retrieve *data here
+		return sprintf ("PPC_PTRACE_SETHWDEBUG, %d, data=%p", pid, data)
+	if (request == %{ PPC_PTRACE_DELHWDEBUG %})
+		return sprintf ("PPC_PTRACE_DELHWDEBUG, %d, data=%d", pid, data)
+}
+
+function _ptrace_return_arch_prctl_addr(request, addr, data)
+{
+}
