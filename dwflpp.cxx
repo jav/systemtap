@@ -1044,12 +1044,11 @@ dwflpp::iterate_over_notes (void *object, void (*callback)(void *object, int typ
 }
 
 
-/* For each entry in the .dynamic section in the current module call 'callback', use
- * 'data' for the dynamic entry buffer return the entry type and 'object' in case
- * 'callback' is a method */
+/* For each entry in the .dynamic section in the current module call 'callback'
+ * returning 'object' in case 'callback' is a method */
 
 void
-dwflpp::iterate_over_libraries (void (*callback)(void *object, int type, const char *arg), base_query *q)
+dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg), base_query *q)
 {
   std::set<std::string> added;
   string interpreter;
@@ -1139,7 +1138,7 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, int type, const c
       it++)
     {
       string modname = *it;
-      (callback) (q, 0, modname.c_str());
+      (callback) (q, modname.c_str());
     }
 }
 

@@ -627,7 +627,7 @@ struct dwarf_query : public base_query
   virtual void handle_query_module();
   void query_module_dwarf();
   void query_module_symtab();
-  void query_library (int type, const char *data);
+  void query_library (const char *data);
 
   void add_probe_point(string const & funcname,
 		       char const * filename,
@@ -1951,15 +1951,15 @@ query_module (Dwfl_Module *mod,
 
 
 void
-base_query::query_library_callback (void *q, int type, const char *data)
+base_query::query_library_callback (void *q, const char *data)
 {
   base_query *me = (base_query*)q;
-  me->query_library (type, data);
+  me->query_library (data);
 }
 
 
 void
-dwarf_query::query_library (int type, const char *library)
+dwarf_query::query_library (const char *library)
 {
   if (dw.function_name_matches_pattern(library, user_lib))
     {
@@ -3502,7 +3502,7 @@ struct dwarf_cast_query : public base_query
     userspace_p(userspace_p), result(result) {}
 
   void handle_query_module();
-  void query_library (int type, const char *data) {};
+  void query_library (const char *data) {};
 };
 
 
@@ -5363,7 +5363,7 @@ struct sdt_query : public base_query
             dwflpp & dw, literal_map_t const & params,
             vector<derived_probe *> & results);
 
-  void query_library (int type, const char *data) {};
+  void query_library (const char *data) {};
   void handle_query_module();
 
 private:
@@ -8532,7 +8532,7 @@ struct tracepoint_query : public base_query
   void handle_query_module();
   int handle_query_cu(Dwarf_Die * cudie);
   int handle_query_func(Dwarf_Die * func);
-  void query_library (int type, const char *data) {};
+  void query_library (const char *data) {};
 
   static int tracepoint_query_cu (Dwarf_Die * cudie, void * arg);
   static int tracepoint_query_func (Dwarf_Die * func, base_query * query);
