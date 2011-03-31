@@ -19,12 +19,10 @@
 
 - process.mark now supports $$parms for reading probe parameters.
 
-- A new command line option, --use-server-on-error[=yes|no] is available for
-  stap. 'yes' instructs stap to retry compilation of a script using a
-  compile server if it fails on the local host. If the option is not
-  specified, then the default setting is 'no'. If the option is specified with
-  no argument, then 'yes' is assumed.
-  See See man stap(1) for complete details.
+- A new command line option, --use-server-on-error[=yes|no] is available
+  for stap.  It instructs stap to retry compilation of a script using a
+  compile server if it fails on the local host.  The default setting
+  is 'no'.
 
 - The following deprecated tools have been removed:
       stap-client
@@ -33,7 +31,7 @@
       stap-find-or-start-server
       stap-find-servers
   Use the --use-server, --trust-server and --list-servers options of stap
-  instead. See man stap(1) for complete details.
+  instead.
 
 * What's new in version 1.4, 2011-01-17
 
