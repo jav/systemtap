@@ -504,8 +504,8 @@ struct base_query
 			       string const & k, long & v);
   static bool get_number_param(literal_map_t const & params,
 			       string const & k, Dwarf_Addr & v);
-  static void query_library_callback (void *object, int type, const char *data);
-  virtual void query_library (int type, const char *data) = 0;
+  static void query_library_callback (void *object, const char *data);
+  virtual void query_library (const char *data) = 0;
 
 
   // Extracted parameters.
