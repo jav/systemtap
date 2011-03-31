@@ -1,5 +1,10 @@
 * What's new in version 1.5
 
+- process("...").library("...") probes are now supported.  Wildcards
+  are supported in the library-name part, to refer to any shared
+  library that is required by process-name, which matches the glob
+  pattern and the rest of the probe point.
+
 - The "--remote USER@HOST" functionality can now be specified multiple times
   to fan out on multiple targets.  If the targets have distinct kernel and
   architecture configurations, stap will automatically build the script
