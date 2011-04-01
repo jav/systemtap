@@ -1,5 +1,7 @@
 * What's new in version 1.5
 
+- The new addr() function returns the probe's instruction pointer.
+
 - process("...").library("...") probes are now supported.  Wildcards
   are supported in the library-name part, to refer to any shared
   library that is required by process-name, which matches the glob

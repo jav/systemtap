@@ -340,6 +340,19 @@ function stack_unused:long ()
 %}
 
 /**
+ * sfunction addr - Address of the current probe point.
+ *
+ * Description: Returns the instruction pointer from the current probe's
+ * register state.  Not all probe types have registers though, in which case
+ * zero is returned.  The returned address is suitable for use with functions
+ * like symname() and symdata().
+ */
+function addr:long ()
+%{ /* pure */
+  THIS->__retvalue = (intptr_t)(CONTEXT->regs ? REG_IP(CONTEXT->regs) : 0);
+%}
+
+/**
  * sfunction uaddr - User space address of current running task (EXPERIMENTAL)
  *
  * Description: Returns the address in userspace that the current
