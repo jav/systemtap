@@ -65,15 +65,17 @@ probe syscall.nfsservctl = kernel.function("sys_nfsservctl").call ?,
 {
 	name = "nfsservctl"
 	cmd = $cmd
-%( CONFIG_NFSD == "[ym]" %?
-	argp_uaddr = $arg
-	resp_uaddr = $res
-	argstr = sprintf("%s, %p, %p", _nfsctl_cmd_str($cmd), $arg, $res)
-%:
-	argp_uaddr = $notused
-	resp_uaddr = $notused2
-	argstr = sprintf("/* NI_SYSCALL */ %s, %p, %p", _nfsctl_cmd_str($cmd), $notused, $notused2)
-%)
+	if (@defined($arg) && @defined($res)) {
+		argp_uaddr = $arg
+		resp_uaddr = $res
+		argstr = sprintf("%s, %p, %p", _nfsctl_cmd_str($cmd),
+				 $arg, $res)
+	} else {
+		argp_uaddr = $notused
+		resp_uaddr = $notused2
+		argstr = sprintf("/* NI_SYSCALL */ %s, %p, %p",
+				 _nfsctl_cmd_str($cmd), $notused, $notused2)
+	}
 }
 probe syscall.nfsservctl.return = kernel.function("sys_nfsservctl").return ?,
                                   kernel.function("compat_sys_nfsservctl").return ?
