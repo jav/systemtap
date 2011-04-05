@@ -1,4 +1,8 @@
 set test pthreadprobes
+if {! [installtest_p]} {
+   untested $test
+   return
+}
 
 # compile the testcase
 catch {exec gcc -g -o $test $srcdir/$subdir/$test.c -lpthread -lrt} err
@@ -15,7 +19,7 @@ if {[catch {exec stap $cmd } res2]} {
    # can happen on systems without pthread probes in glibc, so don't complain
    buildok_known_failures $test $res2
    exec rm -f $test
-   exit
+   return
 } else {
    pass "$test"
 }
@@ -28,7 +32,7 @@ if {[catch {exec stap $cmd2 -c ./$test } res3]} {
    send "res = $res3"
    fail $test
    exec rm -f $test
-   exit
+   return
 }
 
 set cond_broadcast_correct 0
