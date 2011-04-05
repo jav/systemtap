@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-04-05 11:25-0400\n"
+"POT-Creation-Date: 2011-04-05 14:25-0400\n"
 "PO-Revision-Date: 2011-02-15 10:51-0500\n"
 "Last-Translator: Frank Ch. Eigler <fche@redhat.com>\n"
 "Language-Team: English\n"
@@ -528,7 +528,7 @@ msgstr ""
 msgid "cannot find "
 msgstr "cannot find type: %s"
 
-#: dwflpp.cxx:144 session.cxx:1466
+#: dwflpp.cxx:144 session.cxx:1462
 msgid "WARNING: "
 msgstr "WARNING: "
 
@@ -2589,412 +2589,242 @@ msgid "enabled features:"
 msgstr "enabled features:"
 
 #: session.cxx:392
-msgid "Usage: stap [options] FILE         Run script in file."
-msgstr "Usage: stap [options] FILE         Run script in file."
-
-#: session.cxx:394
-msgid "   or: stap [options] -            Run script on stdin."
-msgstr "   or: stap [options] -            Run script on stdin."
-
-#: session.cxx:396
-msgid "   or: stap [options] -e SCRIPT    Run given script."
-msgstr "   or: stap [options] -e SCRIPT    Run given script."
-
-#: session.cxx:398
-msgid "   or: stap [options] -l PROBE     List matching probes."
-msgstr "   or: stap [options] -l PROBE     List matching probes."
-
-#: session.cxx:400
+#, c-format
 msgid ""
-"   or: stap [options] -L PROBE     List matching probes and local variables."
+"Usage: stap [options] FILE         Run script in file.\n"
+"   or: stap [options] -            Run script on stdin.\n"
+"   or: stap [options] -e SCRIPT    Run given script.\n"
+"   or: stap [options] -l PROBE     List matching probes.\n"
+"   or: stap [options] -L PROBE     List matching probes and local "
+"variables.\n"
+"\n"
+"Options:\n"
+"   --         end of translator options, script options follow\n"
+"   -h --help  show help\n"
+"   -V --version  show version\n"
+"   -p NUM     stop after pass NUM 1-5, instead of %d\n"
+"              (parse, elaborate, translate, compile, run)\n"
+"   -v         add verbosity to all passes\n"
+"   --vp {N}+  add per-pass verbosity ["
 msgstr ""
-"   or: stap [options] -L PROBE     List matching probes and local variables."
 
-#: session.cxx:403
-msgid "Options:"
-msgstr "Options:"
-
-#: session.cxx:404
-msgid "   --         end of translator options, script options follow"
-msgstr "   --         end of translator options, script options follow"
-
-#: session.cxx:405
-msgid "   -h --help  show help"
-msgstr "   -h --help  show help"
-
-#: session.cxx:406
-#, fuzzy
-msgid "   -V --version  show version"
-msgstr "   -V         show version"
-
-#: session.cxx:407
-msgid "   -p NUM     stop after pass NUM 1-5, instead of "
-msgstr "   -p NUM     stop after pass NUM 1-5, instead of "
-
-#: session.cxx:408
-msgid "              (parse, elaborate, translate, compile, run)"
-msgstr "              (parse, elaborate, translate, compile, run)"
-
-#: session.cxx:409
-msgid "   -v         add verbosity to all passes"
-msgstr "   -v         add verbosity to all passes"
-
-#: session.cxx:410
-msgid "   --vp {N}+  add per-pass verbosity ["
-msgstr "   --vp {N}+  add per-pass verbosity ["
-
-#: session.cxx:415
-msgid "   -k         keep temporary directory"
-msgstr "   -k         keep temporary directory"
-
-#: session.cxx:416 session.cxx:417 session.cxx:418 session.cxx:419
-#: session.cxx:421 session.cxx:422
+#: session.cxx:417 session.cxx:418 session.cxx:419 session.cxx:420
 msgid " [set]"
 msgstr " [set]"
 
-#: session.cxx:416
+#: session.cxx:409
 #, c-format
-msgid "   -u         unoptimized translation %s"
-msgstr "   -u         unoptimized translation %s"
+msgid ""
+"   -k         keep temporary directory\n"
+"   -u         unoptimized translation %s\n"
+"   -w         suppress warnings %s\n"
+"   -W         turn warnings into errors %s\n"
+"   -g         guru mode %s\n"
+"   -P         prologue-searching for function probes %s\n"
+"   -b         bulk (percpu file) mode %s\n"
+"   -s NUM     buffer size in megabytes, instead of %d\n"
+"   -I DIR     look in DIR for additional .stp script files"
+msgstr ""
 
-#: session.cxx:417
-#, c-format
-msgid "   -w         suppress warnings %s"
-msgstr "   -w         suppress warnings %s"
-
-#: session.cxx:418
-#, c-format
-msgid "   -W         turn warnings into errors %s"
-msgstr "   -W         turn warnings into errors %s"
-
-#: session.cxx:419
-#, c-format
-msgid "   -g         guru mode %s"
-msgstr "   -g         guru mode %s"
-
-#: session.cxx:420
-#, c-format
-msgid "   -P         prologue-searching for function probes %s"
-msgstr "   -P         prologue-searching for function probes %s"
-
-#: session.cxx:422
-#, c-format
-msgid "   -b         bulk (percpu file) mode %s"
-msgstr "   -b         bulk (percpu file) mode %s"
-
-#: session.cxx:423
-#, c-format
-msgid "   -s NUM     buffer size in megabytes, instead of %d"
-msgstr "   -s NUM     buffer size in megabytes, instead of %d"
-
-#: session.cxx:424
-msgid "   -I DIR     look in DIR for additional .stp script files"
-msgstr "   -I DIR     look in DIR for additional .stp script files"
-
-#: session.cxx:428 session.cxx:455
+#: session.cxx:424 session.cxx:451
 msgid ", in addition to"
 msgstr ", in addition to"
 
-#: session.cxx:432
-msgid "   -D NM=VAL  emit macro definition into generated C code"
-msgstr "   -D NM=VAL  emit macro definition into generated C code"
-
-#: session.cxx:433
-msgid "   -B NM=VAL  pass option to kbuild make"
-msgstr "   -B NM=VAL  pass option to kbuild make"
-
-#: session.cxx:434
-msgid "   -G VAR=VAL set global variable to value"
-msgstr "   -G VAR=VAL set global variable to value"
-
-#. TRANSLATORS: translating 'runtime' is not advised
-#: session.cxx:436
-msgid "   -R DIR     look in DIR for runtime, instead of"
-msgstr "   -R DIR     look in DIR for runtime, instead of"
-
-#: session.cxx:438
-msgid "   -r DIR     cross-compile to kernel with given build tree; or else"
-msgstr "   -r DIR     cross-compile to kernel with given build tree; or else"
-
-#: session.cxx:439
-msgid ""
-"   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of"
-msgstr ""
-"   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of"
-
-#: session.cxx:441
+#: session.cxx:428
 #, c-format
-msgid "   -a ARCH    cross-compile to given architecture, instead of %s"
-msgstr "   -a ARCH    cross-compile to given architecture, instead of %s"
-
-#: session.cxx:442
-msgid "   -m MODULE  set probe module name, instead of "
-msgstr "   -m MODULE  set probe module name, instead of "
-
-#: session.cxx:444
-#, fuzzy
 msgid ""
+"   -D NM=VAL  emit macro definition into generated C code\n"
+"   -B NM=VAL  pass option to kbuild make\n"
+"   -G VAR=VAL set global variable to value\n"
+"   -R DIR     look in DIR for runtime, instead of\n"
+"              %s\n"
+"   -r DIR     cross-compile to kernel with given build tree; or else\n"
+"   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead "
+"of\n"
+"              %s\n"
+"   -a ARCH    cross-compile to given architecture, instead of %s\n"
+"   -m MODULE  set probe module name, instead of \n"
+"              %s\n"
 "   -o FILE    send script output to file, instead of stdout. This supports\n"
-"              strftime(3) formats for FILE"
+"              strftime(3) formats for FILE\n"
+"   -c CMD     start the probes, run CMD, and exit when it finishes\n"
+"   -x PID     sets target() to PID\n"
+"   -F         run as on-file flight recorder with -o.\n"
+"              run as on-memory flight recorder without -o.\n"
+"   -S size[,n] set maximum of the size and the number of files.\n"
+"   -d OBJECT  add unwind/symbol data for OBJECT file"
 msgstr ""
-"   -o FILE    send script output to file, instead of stdout. This supports"
 
-#: session.cxx:446
-msgid "   -c CMD     start the probes, run CMD, and exit when it finishes"
-msgstr "   -c CMD     start the probes, run CMD, and exit when it finishes"
-
-#: session.cxx:447
-msgid "   -x PID     sets target() to PID"
-msgstr "   -x PID     sets target() to PID"
-
-#: session.cxx:448
-msgid "   -F         run as on-file flight recorder with -o."
-msgstr "   -F         run as on-file flight recorder with -o."
-
-#: session.cxx:449
-msgid "              run as on-memory flight recorder without -o."
-msgstr "              run as on-memory flight recorder without -o."
-
-#: session.cxx:450
-msgid "   -S size[,n] set maximum of the size and the number of files."
-msgstr "   -S size[,n] set maximum of the size and the number of files."
-
-#: session.cxx:451
-msgid "   -d OBJECT  add unwind/symbol data for OBJECT file"
-msgstr "   -d OBJECT  add unwind/symbol data for OBJECT file"
-
-#: session.cxx:462
-#, fuzzy
-msgid "   --ldd      add unwind/symbol data for all referenced object files."
-msgstr "   --ldd      add unwind/symbol data for all referenced OBJECT files."
-
-#: session.cxx:464
-msgid "              add unwind/symbol data for all loaded kernel objects."
-msgstr "              add unwind/symbol data for all loaded kernel objects."
-
-#: session.cxx:465
-msgid "   -t         collect probe timing information"
-msgstr "   -t         collect probe timing information"
-
-#: session.cxx:467
-msgid "   -q         generate information on tapset coverage"
-msgstr "   -q         generate information on tapset coverage"
-
-#: session.cxx:470
-msgid ""
-"              restrict usage to features available to unprivileged users"
-msgstr ""
-"              restrict usage to features available to unprivileged users"
-
-#: session.cxx:479
-msgid ""
-"              suppress incompatible language/tapset changes beyond VERSION,"
-msgstr ""
-"              suppress incompatible language/tapset changes beyond VERSION,"
-
-#: session.cxx:480
+#: session.cxx:458
 #, c-format
-msgid "              instead of %s"
-msgstr "              instead of %s"
-
-#: session.cxx:482
-msgid "              displays warnings where a syntax element may be "
-msgstr "              displays warnings where a syntax element may be "
-
-#: session.cxx:483
-msgid "              version dependent"
-msgstr "              version dependent"
-
-#: session.cxx:484
-msgid "   --skip-badvars"
-msgstr "   --skip-badvars"
-
-#: session.cxx:485
-msgid "              substitute zero for bad context $variables"
-msgstr "              substitute zero for bad context $variables"
-
-#: session.cxx:486
-msgid "   --use-server[=SERVER-SPEC]"
-msgstr "   --use-server[=SERVER-SPEC]"
-
-#: session.cxx:487
-msgid "              specify systemtap compile-servers"
-msgstr "              specify systemtap compile-servers"
-
-#: session.cxx:488
-msgid "   --list-servers[=PROPERTIES]"
-msgstr "   --list-servers[=PROPERTIES]"
-
-#: session.cxx:489
-msgid "              report on the status of the specified compile-servers"
-msgstr "              report on the status of the specified compile-servers"
-
-#: session.cxx:491
-msgid "   --trust-servers[=TRUST-SPEC]"
-msgstr "   --trust-servers[=TRUST-SPEC]"
-
-#: session.cxx:492
-msgid "              add/revoke trust of specified compile-servers"
-msgstr "              add/revoke trust of specified compile-servers"
-
-#: session.cxx:493
-msgid "   --use-server-on-error[=yes/no]"
-msgstr "   --use-server-on-error[=yes/no]"
-
-#: session.cxx:494
 msgid ""
-"              retry compilation using a compile server upon compilation error"
+"   --ldd      add unwind/symbol data for all referenced object files.\n"
+"   --all-modules\n"
+"              add unwind/symbol data for all loaded kernel objects.\n"
+"   -t         collect probe timing information\n"
+"   -q         generate information on tapset coverage\n"
+"   --unprivileged\n"
+"              restrict usage to features available to unprivileged users\n"
+"   --kelf     make do with symbol table from vmlinux\n"
+"   --kmap[=FILE]\n"
+"              make do with symbol table from nm listing\n"
+"   --compatible=VERSION\n"
+"              suppress incompatible language/tapset changes beyond VERSION,\n"
+"              instead of %s\n"
+"   --check-version\n"
+"              displays warnings where a syntax element may be \n"
+"              version dependent\n"
+"   --skip-badvars\n"
+"              substitute zero for bad context $variables\n"
+"   --use-server[=SERVER-SPEC]\n"
+"              specify systemtap compile-servers\n"
+"   --list-servers[=PROPERTIES]\n"
+"              report on the status of the specified compile-servers\n"
+"   --trust-servers[=TRUST-SPEC]\n"
+"              add/revoke trust of specified compile-servers\n"
+"   --use-server-on-error[=yes/no]\n"
+"              retry compilation using a compile server upon compilation "
+"error\n"
+"   --remote=HOSTNAME\n"
+"              run pass 5 on the specified ssh host.\n"
+"              may be repeated for targeting multiple hosts."
 msgstr ""
-"              retry compilation using a compile server upon compilation error"
 
-#: session.cxx:496
-msgid "   --remote=HOSTNAME"
-msgstr "   --remote=HOSTNAME"
-
-#: session.cxx:497
-#, fuzzy
-msgid "              run pass 5 on the specified ssh host."
-msgstr "              run pass 5 on the specified ssh host (EXPERIMENTAL)"
-
-#: session.cxx:498
-msgid "              may be repeated for targeting multiple hosts."
-msgstr ""
-
-#: session.cxx:626
+#: session.cxx:622
 msgid "Invalid pass number (should be 1-5)."
 msgstr "Invalid pass number (should be 1-5)."
 
-#: session.cxx:631
+#: session.cxx:627
 msgid "Listing (-l) mode implies pass 2."
 msgstr "Listing (-l) mode implies pass 2."
 
-#: session.cxx:668 session.cxx:831
+#: session.cxx:664 session.cxx:827
 msgid "Only one script can be given on the command line."
 msgstr "Only one script can be given on the command line."
 
-#: session.cxx:684 session.cxx:812 session.cxx:846
+#: session.cxx:680 session.cxx:808 session.cxx:842
 #, fuzzy, c-format
 msgid "ERROR: %s invalid with %s"
 msgstr "ERROR: -R invalid with --client-options"
 
-#: session.cxx:700 session.cxx:718
+#: session.cxx:696 session.cxx:714
 #, c-format
 msgid "Truncating module name to '%s'"
 msgstr "Truncating module name to '%s'"
 
-#: session.cxx:706
+#: session.cxx:702
 msgid "Module name cannot be empty."
 msgstr "Module name cannot be empty."
 
-#: session.cxx:769
+#: session.cxx:765
 msgid "Invalid buffer size (should be 1-4095)."
 msgstr "Invalid buffer size (should be 1-4095)."
 
-#: session.cxx:782
+#: session.cxx:778
 msgid "Empty CMD string invalid."
 msgstr "Empty CMD string invalid."
 
-#: session.cxx:791
+#: session.cxx:787
 msgid "Invalid target process ID number."
 msgstr "Invalid target process ID number."
 
-#: session.cxx:867
+#: session.cxx:863
 msgid "You can't specify multiple --kmap options."
 msgstr "You can't specify multiple --kmap options."
 
-#: session.cxx:898
+#: session.cxx:894
 msgid "Invalid --vp argument: it takes 1 to 5 digits."
 msgstr "Invalid --vp argument: it takes 1 to 5 digits."
 
-#: session.cxx:943
+#: session.cxx:939
 #, c-format
 msgid "Invalid argument '%s' for --use-server-on-error."
 msgstr ""
 
-#: session.cxx:971 session.cxx:978 session.cxx:985 session.cxx:998
-#: session.cxx:1007 session.cxx:1015
+#: session.cxx:967 session.cxx:974 session.cxx:981 session.cxx:994
+#: session.cxx:1003 session.cxx:1011
 #, fuzzy, c-format
 msgid "ERROR: %s is invalid with %s"
 msgstr "ERROR: -R invalid with --client-options"
 
-#: session.cxx:1029
+#: session.cxx:1025
 #, c-format
 msgid "Unhandled long argument id %d"
 msgstr "Unhandled long argument id %d"
 
-#: session.cxx:1043
+#: session.cxx:1039
 #, c-format
 msgid "Unhandled argument code %d"
 msgstr "Unhandled argument code %d"
 
-#: session.cxx:1085
+#: session.cxx:1081
 msgid "A script must be specified."
 msgstr "A script must be specified."
 
-#: session.cxx:1092
+#: session.cxx:1088
 msgid "WARNING: --client-options is not supported by this version of systemtap"
 msgstr ""
 "WARNING: --client-options is not supported by this version of systemtap"
 
-#: session.cxx:1098
+#: session.cxx:1094
 msgid "WARNING: --trust-servers is not supported by this version of systemtap"
 msgstr "WARNING: --trust-servers is not supported by this version of systemtap"
 
-#: session.cxx:1105
+#: session.cxx:1101
 msgid "Warning: Ignoring --use-server due to the use of -R"
 msgstr "Warning: Ignoring --use-server due to the use of -R"
 
-#: session.cxx:1129
+#: session.cxx:1125
 msgid "Using --unprivileged for member of the group stapusr"
 msgstr "Using --unprivileged for member of the group stapusr"
 
-#: session.cxx:1136
+#: session.cxx:1132
 msgid "Using --use-server for member of the group stapusr"
 msgstr "Using --use-server for member of the group stapusr"
 
-#: session.cxx:1145
+#: session.cxx:1141
 #, c-format
 msgid "You can't specify %s when --unprivileged is specified."
 msgstr "You can't specify %s when --unprivileged is specified."
 
-#: session.cxx:1151 session.cxx:1156 session.cxx:1163
+#: session.cxx:1147 session.cxx:1152 session.cxx:1159
 #, fuzzy, c-format
 msgid "You can't specify %s and %s together."
 msgstr "You can't specify -c and -x options together."
 
-#: session.cxx:1176
+#: session.cxx:1172
 msgid ""
 "WARNING: kernel release/architecture mismatch with host forces last-pass 4."
 msgstr ""
 "WARNING: kernel release/architecture mismatch with host forces last-pass 4."
 
 #. TRANSLATORS: Missing a file
-#: session.cxx:1257
+#: session.cxx:1253
 #, c-format
 msgid "Missing %s"
 msgstr "Missing %s"
 
-#: session.cxx:1279
+#: session.cxx:1275
 #, c-format
 msgid "Located kernel source tree (COPYING) at '%s'"
 msgstr "Located kernel source tree (COPYING) at '%s'"
 
-#: session.cxx:1321
+#: session.cxx:1317
 #, c-format
 msgid "alias component %s contains illegal parameter"
 msgstr "alias component %s contains illegal parameter"
 
-#: session.cxx:1333
+#: session.cxx:1329
 msgid " while registering probe alias "
 msgstr " while registering probe alias "
 
-#: session.cxx:1386
+#: session.cxx:1382
 #, c-format
 msgid "semantic error: %s"
 msgstr "semantic error: %s"
 
 #. TRANSLATORS:  Here were are printing the source string of the error
-#: session.cxx:1445
+#: session.cxx:1441
 msgid "source: "
 msgstr ""
 
@@ -4282,6 +4112,209 @@ msgstr ""
 #: util.h:69 util.h:80 util.h:91 util.h:99 util.h:110 util.h:123
 msgid "bad lexical cast"
 msgstr ""
+
+#~ msgid "Usage: stap [options] FILE         Run script in file."
+#~ msgstr "Usage: stap [options] FILE         Run script in file."
+
+#~ msgid "   or: stap [options] -            Run script on stdin."
+#~ msgstr "   or: stap [options] -            Run script on stdin."
+
+#~ msgid "   or: stap [options] -e SCRIPT    Run given script."
+#~ msgstr "   or: stap [options] -e SCRIPT    Run given script."
+
+#~ msgid "   or: stap [options] -l PROBE     List matching probes."
+#~ msgstr "   or: stap [options] -l PROBE     List matching probes."
+
+#~ msgid ""
+#~ "   or: stap [options] -L PROBE     List matching probes and local "
+#~ "variables."
+#~ msgstr ""
+#~ "   or: stap [options] -L PROBE     List matching probes and local "
+#~ "variables."
+
+#~ msgid "Options:"
+#~ msgstr "Options:"
+
+#~ msgid "   --         end of translator options, script options follow"
+#~ msgstr "   --         end of translator options, script options follow"
+
+#~ msgid "   -h --help  show help"
+#~ msgstr "   -h --help  show help"
+
+#, fuzzy
+#~ msgid "   -V --version  show version"
+#~ msgstr "   -V         show version"
+
+#~ msgid "   -p NUM     stop after pass NUM 1-5, instead of "
+#~ msgstr "   -p NUM     stop after pass NUM 1-5, instead of "
+
+#~ msgid "              (parse, elaborate, translate, compile, run)"
+#~ msgstr "              (parse, elaborate, translate, compile, run)"
+
+#~ msgid "   -v         add verbosity to all passes"
+#~ msgstr "   -v         add verbosity to all passes"
+
+#~ msgid "   --vp {N}+  add per-pass verbosity ["
+#~ msgstr "   --vp {N}+  add per-pass verbosity ["
+
+#~ msgid "   -k         keep temporary directory"
+#~ msgstr "   -k         keep temporary directory"
+
+#~ msgid "   -u         unoptimized translation %s"
+#~ msgstr "   -u         unoptimized translation %s"
+
+#~ msgid "   -w         suppress warnings %s"
+#~ msgstr "   -w         suppress warnings %s"
+
+#~ msgid "   -W         turn warnings into errors %s"
+#~ msgstr "   -W         turn warnings into errors %s"
+
+#~ msgid "   -g         guru mode %s"
+#~ msgstr "   -g         guru mode %s"
+
+#~ msgid "   -P         prologue-searching for function probes %s"
+#~ msgstr "   -P         prologue-searching for function probes %s"
+
+#~ msgid "   -b         bulk (percpu file) mode %s"
+#~ msgstr "   -b         bulk (percpu file) mode %s"
+
+#~ msgid "   -s NUM     buffer size in megabytes, instead of %d"
+#~ msgstr "   -s NUM     buffer size in megabytes, instead of %d"
+
+#~ msgid "   -I DIR     look in DIR for additional .stp script files"
+#~ msgstr "   -I DIR     look in DIR for additional .stp script files"
+
+#~ msgid "   -D NM=VAL  emit macro definition into generated C code"
+#~ msgstr "   -D NM=VAL  emit macro definition into generated C code"
+
+#~ msgid "   -B NM=VAL  pass option to kbuild make"
+#~ msgstr "   -B NM=VAL  pass option to kbuild make"
+
+#~ msgid "   -G VAR=VAL set global variable to value"
+#~ msgstr "   -G VAR=VAL set global variable to value"
+
+#~ msgid "   -R DIR     look in DIR for runtime, instead of"
+#~ msgstr "   -R DIR     look in DIR for runtime, instead of"
+
+#~ msgid "   -r DIR     cross-compile to kernel with given build tree; or else"
+#~ msgstr ""
+#~ "   -r DIR     cross-compile to kernel with given build tree; or else"
+
+#~ msgid ""
+#~ "   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead "
+#~ "of"
+#~ msgstr ""
+#~ "   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead "
+#~ "of"
+
+#~ msgid "   -a ARCH    cross-compile to given architecture, instead of %s"
+#~ msgstr "   -a ARCH    cross-compile to given architecture, instead of %s"
+
+#~ msgid "   -m MODULE  set probe module name, instead of "
+#~ msgstr "   -m MODULE  set probe module name, instead of "
+
+#, fuzzy
+#~ msgid ""
+#~ "   -o FILE    send script output to file, instead of stdout. This "
+#~ "supports\n"
+#~ "              strftime(3) formats for FILE"
+#~ msgstr ""
+#~ "   -o FILE    send script output to file, instead of stdout. This supports"
+
+#~ msgid "   -c CMD     start the probes, run CMD, and exit when it finishes"
+#~ msgstr "   -c CMD     start the probes, run CMD, and exit when it finishes"
+
+#~ msgid "   -x PID     sets target() to PID"
+#~ msgstr "   -x PID     sets target() to PID"
+
+#~ msgid "   -F         run as on-file flight recorder with -o."
+#~ msgstr "   -F         run as on-file flight recorder with -o."
+
+#~ msgid "              run as on-memory flight recorder without -o."
+#~ msgstr "              run as on-memory flight recorder without -o."
+
+#~ msgid "   -S size[,n] set maximum of the size and the number of files."
+#~ msgstr "   -S size[,n] set maximum of the size and the number of files."
+
+#~ msgid "   -d OBJECT  add unwind/symbol data for OBJECT file"
+#~ msgstr "   -d OBJECT  add unwind/symbol data for OBJECT file"
+
+#, fuzzy
+#~ msgid ""
+#~ "   --ldd      add unwind/symbol data for all referenced object files."
+#~ msgstr ""
+#~ "   --ldd      add unwind/symbol data for all referenced OBJECT files."
+
+#~ msgid "              add unwind/symbol data for all loaded kernel objects."
+#~ msgstr "              add unwind/symbol data for all loaded kernel objects."
+
+#~ msgid "   -t         collect probe timing information"
+#~ msgstr "   -t         collect probe timing information"
+
+#~ msgid "   -q         generate information on tapset coverage"
+#~ msgstr "   -q         generate information on tapset coverage"
+
+#~ msgid ""
+#~ "              restrict usage to features available to unprivileged users"
+#~ msgstr ""
+#~ "              restrict usage to features available to unprivileged users"
+
+#~ msgid ""
+#~ "              suppress incompatible language/tapset changes beyond "
+#~ "VERSION,"
+#~ msgstr ""
+#~ "              suppress incompatible language/tapset changes beyond "
+#~ "VERSION,"
+
+#~ msgid "              instead of %s"
+#~ msgstr "              instead of %s"
+
+#~ msgid "              displays warnings where a syntax element may be "
+#~ msgstr "              displays warnings where a syntax element may be "
+
+#~ msgid "              version dependent"
+#~ msgstr "              version dependent"
+
+#~ msgid "   --skip-badvars"
+#~ msgstr "   --skip-badvars"
+
+#~ msgid "              substitute zero for bad context $variables"
+#~ msgstr "              substitute zero for bad context $variables"
+
+#~ msgid "   --use-server[=SERVER-SPEC]"
+#~ msgstr "   --use-server[=SERVER-SPEC]"
+
+#~ msgid "              specify systemtap compile-servers"
+#~ msgstr "              specify systemtap compile-servers"
+
+#~ msgid "   --list-servers[=PROPERTIES]"
+#~ msgstr "   --list-servers[=PROPERTIES]"
+
+#~ msgid "              report on the status of the specified compile-servers"
+#~ msgstr "              report on the status of the specified compile-servers"
+
+#~ msgid "   --trust-servers[=TRUST-SPEC]"
+#~ msgstr "   --trust-servers[=TRUST-SPEC]"
+
+#~ msgid "              add/revoke trust of specified compile-servers"
+#~ msgstr "              add/revoke trust of specified compile-servers"
+
+#~ msgid "   --use-server-on-error[=yes/no]"
+#~ msgstr "   --use-server-on-error[=yes/no]"
+
+#~ msgid ""
+#~ "              retry compilation using a compile server upon compilation "
+#~ "error"
+#~ msgstr ""
+#~ "              retry compilation using a compile server upon compilation "
+#~ "error"
+
+#~ msgid "   --remote=HOSTNAME"
+#~ msgstr "   --remote=HOSTNAME"
+
+#, fuzzy
+#~ msgid "              run pass 5 on the specified ssh host."
+#~ msgstr "              run pass 5 on the specified ssh host (EXPERIMENTAL)"
 
 #~ msgid "You can't specify -g and --unprivileged together."
 #~ msgstr "You can't specify -g and --unprivileged together."
