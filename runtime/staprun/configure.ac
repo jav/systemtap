@@ -39,6 +39,7 @@ AS_IF([test "x$enable_pie" = xyes],[
 ])
 AC_SUBST(PIECFLAGS)
 AC_SUBST(PIELDFLAGS)
+AC_SUBST(LOCALEDIR, "$localedir")
 
 AC_ARG_ENABLE([sdt-probes],
   [AS_HELP_STRING([--disable-sdt-probes],
@@ -52,6 +53,10 @@ PKG_CHECK_MODULES([nss], [nss >= 3], [have_nss=yes], [have_nss=no])
 AM_CONDITIONAL([HAVE_NSS], [test $have_nss = yes])
 AS_IF([test $have_nss = yes], [
   AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
+])
+AC_ARG_ENABLE([nls], [AS_HELP_STRING([--enable-nls], [enable translating program messages])])
+AS_IF([test "x$enable_nls" != xno], [
+AC_DEFINE([ENABLE_NLS], [1], [Define to 1 if program messages should be translated.])
 ])
 
 AC_CONFIG_HEADERS([config.h:config.in])

@@ -160,6 +160,7 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
+LOCALEDIR = @LOCALEDIR@
 LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
@@ -229,7 +230,7 @@ top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -D_GNU_SOURCE -I$(srcdir)/../../includes \
 	-I$(builddir)/../../includes/sys -DBINDIR='"$(bindir)"' \
 	-DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR='"${pkgdatadir}"' \
-	-DPKGLIBDIR='"$(pkglibexecdir)"'
+	-DPKGLIBDIR='"$(pkglibexecdir)"' -DLOCALEDIR='"$(localedir)"'
 AM_CFLAGS = -Wall -Werror -Wunused -W -Wformat=2 \
 	-Wno-format-nonliteral @PIECFLAGS@
 AM_LDFLAGS = @PIELDFLAGS@

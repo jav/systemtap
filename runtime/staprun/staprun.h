@@ -33,9 +33,25 @@
 #include <sys/wait.h>
 #include <sys/statfs.h>
 #include <syslog.h>
+#include <libintl.h>
+#include <locale.h>
 
 /* Include config.h to pick up dependency for --prefix usage. */
 #include "config.h"
+
+/* define gettext options if NLS is set */
+#if ENABLE_NLS
+#define _(string) gettext(string)
+#define _N(string, string_plural, count) \
+        ngettext((string), (string_plural), (count))
+#else
+#define _(string) (string)
+#define _N(string, string_plural, count) \
+        ( (count) == 1 ? (string) : (string_plural) )
+#endif
+#define _F(format, ...) autosprintf(_(format), __VA_ARGS__)
+#define _NF(format, format_plural, count, ...) \
+        autosprintf(_N((format), (format_plural), (count)), __VA_ARGS__)
 
 /* For probes in staprun.c, staprun_funcs.c, mainloop.c and common.c */
 #include "stap-probe.h"

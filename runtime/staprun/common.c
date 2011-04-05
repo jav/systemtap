@@ -78,7 +78,7 @@ int make_outfile_name(char *buf, int max, int fnum, int cpu, time_t t, int bulk)
 		max = PATH_MAX;
 	len = stap_strfloctime(buf, max, outfile_name, t);
 	if (len < 0) {
-		err("Invalid FILE name format\n");
+		err(_("Invalid FILE name format\n"));
 		return -1;
 	}
 	/* special case: for testing we sometimes want to write to /dev/null */
@@ -137,7 +137,7 @@ void parse_args(int argc, char **argv)
 		case 'b':
 			buffer_size = (unsigned)atoi(optarg);
 			if (buffer_size < 1 || buffer_size > 4095) {
-				err("Invalid buffer size '%d' (should be 1-4095).\n", buffer_size);
+				err(_("Invalid buffer size '%d' (should be 1-4095).\n"), buffer_size);
 				usage(argv[0]);
 			}
 			break;
@@ -170,7 +170,7 @@ void parse_args(int argc, char **argv)
 			if (s[0] == ',')
 				fnum_max = (int)strtoul(&s[1], &s, 10);
 			if (s[0] != '\0') {
-				err("Invalid file size option '%s'.\n", optarg);
+				err(_("Invalid file size option '%s'.\n"), optarg);
 				usage(argv[0]);
 			}
 			break;
@@ -183,100 +183,100 @@ void parse_args(int argc, char **argv)
 		int ret;
 		outfile_name = get_abspath(outfile_name);
 		if (outfile_name == NULL) {
-			err("File name is too long.\n");
+			err(_("File name is too long.\n"));
 			usage(argv[0]);
 		}
 		ret = stap_strfloctime(tmp, PATH_MAX - 18, /* = _cpuNNN.SSSSSSSSSS */
 				       outfile_name, time(NULL));
 		if (ret < 0) {
-			err("Filename format is invalid or too long.\n");
+			err(_("Filename format is invalid or too long.\n"));
 			usage(argv[0]);
 		}
 	}
 	if (attach_mod && load_only) {
-		err("You can't specify the '-A' and '-L' options together.\n");
+		err(_("You can't specify the '-A' and '-L' options together.\n"));
 		usage(argv[0]);
 	}
 
 	if (attach_mod && buffer_size) {
-		err("You can't specify the '-A' and '-b' options together.  The '-b'\n"
-		    "buffer size option only has an effect when the module is inserted.\n");
+		err(_("You can't specify the '-A' and '-b' options together.  The '-b'\n"
+		    "buffer size option only has an effect when the module is inserted.\n"));
 		usage(argv[0]);
 	}
 
 	if (attach_mod && target_cmd) {
-		err("You can't specify the '-A' and '-c' options together.  The '-c cmd'\n"
+		err(_("You can't specify the '-A' and '-c' options together.  The '-c cmd'\n"
 		    "option used to start a command only has an effect when the module\n"
-		    "is inserted.\n");
+		    "is inserted.\n"));
 		usage(argv[0]);
 	}
 
 	if (attach_mod && target_pid) {
-		err("You can't specify the '-A' and '-x' options together.  The '-x pid'\n"
-		    "option only has an effect when the module is inserted.\n");
+		err(_("You can't specify the '-A' and '-x' options together.  The '-x pid'\n"
+		    "option only has an effect when the module is inserted.\n"));
 		usage(argv[0]);
 	}
 
 	if (target_cmd && target_pid) {
-		err("You can't specify the '-c' and '-x' options together.\n");
+		err(_("You can't specify the '-c' and '-x' options together.\n"));
 		usage(argv[0]);
 	}
 
 	if (daemon_mode && load_only) {
-		err("You can't specify the '-D' and '-L' options together.\n");
+		err(_("You can't specify the '-D' and '-L' options together.\n"));
 		usage(argv[0]);
 	}
 	if (daemon_mode && delete_mod) {
-		err("You can't specify the '-D' and '-d' options together.\n");
+		err(_("You can't specify the '-D' and '-d' options together.\n"));
 		usage(argv[0]);
 	}
 	if (daemon_mode && target_cmd) {
-		err("You can't specify the '-D' and '-c' options together.\n");
+		err(_("You can't specify the '-D' and '-c' options together.\n"));
 		usage(argv[0]);
 	}
 	if (daemon_mode && outfile_name == NULL) {
-		err("You have to specify output FILE with '-D' option.\n");
+		err(_("You have to specify output FILE with '-D' option.\n"));
 		usage(argv[0]);
 	}
 	if (outfile_name == NULL && fsize_max != 0) {
-		err("You have to specify output FILE with '-S' option.\n");
+		err(_("You have to specify output FILE with '-S' option.\n"));
 		usage(argv[0]);
 	}
 }
 
 void usage(char *prog)
 {
-	err("\n%s [-v] [-w] [-u] [-c cmd ] [-x pid] [-u user] [-A|-L|-d]\n"
-                "\t[-b bufsize] [-o FILE [-D] [-S size[,N]]] MODULE [module-options]\n", prog);
-	err("-v              Increase verbosity.\n");
-	err("-w              Suppress warnings.\n");
-	err("-u              Load uprobes.ko\n");
-	err("-c cmd          Command \'cmd\' will be run and staprun will\n");
-	err("                exit when it does.  The '_stp_target' variable\n");
-	err("                will contain the pid for the command.\n");
-	err("-x pid          Sets the '_stp_target' variable to pid.\n");
-	err("-o FILE         Send output to FILE. This supports strftime(3)\n");
-	err("                formats for FILE.\n");
-	err("-b buffer size  The systemtap module specifies a buffer size.\n");
-	err("                Setting one here will override that value.  The\n");
-	err("                value should be an integer between 1 and 4095 \n");
-	err("                which be assumed to be the buffer size in MB.\n");
-	err("                That value will be per-cpu in bulk mode.\n");
-	err("-L              Load module and start probes, then detach.\n");
-	err("-A              Attach to loaded systemtap module.\n");
-	err("-d              Delete a module.  Only detached or unused modules\n");
-	err("                the user has permission to access will be deleted. Use \"*\"\n");
-	err("                (quoted) to delete all unused modules.\n");
-	err("-D              Run in background. This requires '-o' option.\n");
-	err("-S size[,N]     Switches output file to next file when the size\n");
-	err("                of file reaches the specified size. The value\n");
-	err("                should be an integer greater than 1 which is\n");
-	err("                assumed to be the maximum file size in MB.\n");
-	err("                When the number of output files reaches N, it\n");
-	err("                switches to the first output file. You can omit\n");
-	err("                the second argument.\n\n");
-	err("MODULE can be either a module name or a module path.  If a\n");
-	err("module name is used, it is searched in the following directory:\n");
+	err(_("\n%s [-v] [-w] [-u] [-c cmd ] [-x pid] [-u user] [-A|-L|-d]\n"
+                "\t[-b bufsize] [-o FILE [-D] [-S size[,N]]] MODULE [module-options]\n"), prog);
+	err(_("-v              Increase verbosity.\n"
+	"-w              Suppress warnings.\n"
+	"-u              Load uprobes.ko\n"
+	"-c cmd          Command \'cmd\' will be run and staprun will\n"
+	"                exit when it does.  The '_stp_target' variable\n"
+	"                will contain the pid for the command.\n"
+	"-x pid          Sets the '_stp_target' variable to pid.\n"
+	"-o FILE         Send output to FILE. This supports strftime(3)\n"
+	"                formats for FILE.\n"
+	"-b buffer size  The systemtap module specifies a buffer size.\n"
+	"                Setting one here will override that value.  The\n"
+	"                value should be an integer between 1 and 4095 \n"
+	"                which be assumed to be the buffer size in MB.\n"
+	"                That value will be per-cpu in bulk mode.\n"
+	"-L              Load module and start probes, then detach.\n"
+	"-A              Attach to loaded systemtap module.\n"
+	"-d              Delete a module.  Only detached or unused modules\n"
+	"                the user has permission to access will be deleted. Use \"*\"\n"
+	"                (quoted) to delete all unused modules.\n"
+	"-D              Run in background. This requires '-o' option.\n"
+	"-S size[,N]     Switches output file to next file when the size\n"
+	"                of file reaches the specified size. The value\n"
+	"                should be an integer greater than 1 which is\n"
+	"                assumed to be the maximum file size in MB.\n"
+	"                When the number of output files reaches N, it\n"
+	"                switches to the first output file. You can omit\n"
+	"                the second argument.\n\n"
+	"MODULE can be either a module name or a module path.  If a\n"
+	"module name is used, it is searched in the following directory:\n"));
         {
                 struct utsname utsbuf;
                 int rc = uname (& utsbuf);
@@ -322,7 +322,7 @@ void parse_modpath(const char *inpath)
 			mptr = inpath;
 			modpath = strdup(inpath);
 			if (!modpath) {
-				err("Memory allocation failed. Exiting.\n");
+				err(_("Memory allocation failed. Exiting.\n"));
 				exit(1);
 			}
 		} else {
@@ -338,7 +338,7 @@ void parse_modpath(const char *inpath)
 			/* First, we need to figure out what the
 			 * kernel version. */
 			if (uname(&utsbuf) != 0) {
-				perr("Unable to determine kernel version, uname failed");
+				perr(_("Unable to determine kernel version, uname failed"));
 				exit(-1);
 			}
 
@@ -347,7 +347,7 @@ void parse_modpath(const char *inpath)
 			len = sizeof(MODULE_PATH) + sizeof(utsbuf.release) + strlen(inpath);
 			modpath = malloc(len);
 			if (!modpath) {
-				err("Memory allocation failed. Exiting.\n");
+				err(_("Memory allocation failed. Exiting.\n"));
 				exit(1);
 			}
 			
@@ -366,14 +366,14 @@ void parse_modpath(const char *inpath)
 
 		modpath = strdup(inpath);
 		if (!modpath) {
-			err("Memory allocation failed. Exiting.\n");
+			err(_("Memory allocation failed. Exiting.\n"));
 			exit(1);
 		}
 	}
 
 	modname = strdup(mptr);
 	if (!modname) {
-		err("Memory allocation failed. Exiting.\n");
+		err(_("Memory allocation failed. Exiting.\n"));
 		exit(1);
 	}
 
@@ -386,7 +386,7 @@ void parse_modpath(const char *inpath)
 	 * work, but the module can't be removed (because you end up
 	 * with control characters in the module name). */
 	if (strlen(modname) > MODULE_NAME_LEN) {
-		err("ERROR: Module name ('%s') is too long.\n", modname);
+		err(_("ERROR: Module name ('%s') is too long.\n"), modname);
 		exit(1);
 	}
 }
@@ -477,7 +477,7 @@ int send_request(int type, void *data, int len)
 	PROBE3(stapio, send__ctlmsg, type, data, len);
 	/* Before doing memcpy, make sure 'buf' is big enough. */
 	if ((len + 4) > (int)sizeof(buf)) {
-		_err("exceeded maximum send_request size.\n");
+		_err(_("exceeded maximum send_request size.\n"));
 		return -1;
 	}
 	memcpy(buf, &type, 4);
