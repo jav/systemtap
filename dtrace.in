@@ -19,6 +19,14 @@ import sys
 from subprocess import call
 from tempfile import mkstemp
 
+if "@ENABLE_NLS@":
+    import gettext
+    gettext.bindtextdomain('@PACKAGE@', '@LOCALEDIR@')
+    gettext.textdomain('@PACKAGE@')
+    _ = gettext.gettext
+
+else:
+    _ = ' '
 
 class _provider:
     semaphores_def = "\n"
@@ -143,18 +151,18 @@ class _provider:
 
 
 def usage ():
-    print "Usage " + sys.argv[0] + " [--help] [-h | -G] [-C [-I<Path>]] -s File.d [-o <File>]"
+    print _("Usage ") + sys.argv[0] + " [--help] [-h | -G] [-C [-I<Path>]] -s File.d [-o <File>]"
 
 def help ():
     usage()
-    print "Where -h builds a systemtap header file from the .d file"
-    print "      -C when used with -h, also run cpp preprocessor"
-    print "      -o specifies an explicit output file name,"
-    print "         the default for -G is file.o and -h is file.h"
-    print "      -I when running cpp pass through this -I include Path"
-    print "      -s specifies the name of the .d input file"
-    print "      -G builds a stub file.o from file.d,"
-    print "         which is required by some packages that use dtrace."
+    print _("Where -h builds a systemtap header file from the .d file")
+    print _("      -C when used with -h, also run cpp preprocessor")
+    print _("      -o specifies an explicit output file name,")
+    print _("         the default for -G is file.o and -h is file.h")
+    print _("      -I when running cpp pass through this -I include Path")
+    print _("      -s specifies the name of the .d input file")
+    print _("      -G builds a stub file.o from file.d,")
+    print _("         which is required by some packages that use dtrace.")
     sys.exit(1)
 
 def open_file (arg):

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-04-05 14:25-0400\n"
+"POT-Creation-Date: 2011-04-06 17:04-0400\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Przemysław Pawełczyk <przemyslaw@pawelczyk.it>\n"
 "Language-Team: Polish\n"
@@ -499,6 +499,42 @@ msgstr ""
 
 #: csclient.cxx:2980
 msgid "Unable to detect online servers"
+msgstr ""
+
+#: dtrace:154
+msgid "Usage "
+msgstr ""
+
+#: dtrace:158
+msgid "Where -h builds a systemtap header file from the .d file"
+msgstr ""
+
+#: dtrace:159
+msgid "      -C when used with -h, also run cpp preprocessor"
+msgstr ""
+
+#: dtrace:160
+msgid "      -o specifies an explicit output file name,"
+msgstr ""
+
+#: dtrace:161
+msgid "         the default for -G is file.o and -h is file.h"
+msgstr ""
+
+#: dtrace:162
+msgid "      -I when running cpp pass through this -I include Path"
+msgstr ""
+
+#: dtrace:163
+msgid "      -s specifies the name of the .d input file"
+msgstr ""
+
+#: dtrace:164
+msgid "      -G builds a stub file.o from file.d,"
+msgstr ""
+
+#: dtrace:165
+msgid "         which is required by some packages that use dtrace."
 msgstr ""
 
 #: dwarf_wrappers.cxx:25

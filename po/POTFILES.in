@@ -7,6 +7,7 @@ coveragedb.cxx
 coveragedb.h
 csclient.cxx
 csclient.h
+dtrace
 dwarf_wrappers.cxx
 dwarf_wrappers.h
 dwflpp.cxx
