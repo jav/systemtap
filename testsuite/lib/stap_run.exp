@@ -118,5 +118,10 @@ proc print_system_info {} {
 }
 
 print_system_info
+
 # tests better all be true
-set all_pass_string "(systemtap test success\r\n)+$"
+#
+# BZ692445 was fixed by removing the '$' at the end of
+# all_pass_string. Yet another expect regular expression oddity. The
+# '\r\n' is good enough at finding the EOL.
+set all_pass_string "(systemtap test success\r\n)+"
