@@ -6,6 +6,17 @@
 	.type	main, @function
 main:
 	.cfi_startproc
+#if defined __i386__
+	pushl   %ebp
+	movl    %esp, %ebp
+	movl    $7, -4(%ebp)
+	STAP_PROBE3(provider,memory,-4(%ebp),-8+4(%ebp),-8+3+1(%ebp));
+#elif defined __x86_64__
+	pushq    %rbp		
+	mov     %rsp, %rbp
+	movl    $7, -4(%rbp)
+	STAP_PROBE3(provider,memory,-4(%rbp),-8+4(%rbp),-8+3+1(%rbp));
+#endif
 #if defined __i386__ || defined __x86_64__
 	mov	$0x10203040, %eax
 	STAP_PROBE4(provider,a,%ah,%al,%ax,%eax);

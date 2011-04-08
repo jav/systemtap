@@ -197,3 +197,8 @@ probe process(@1).mark("r15") ?
   if ($arg4 == 0x1f2f3f4f1f2f3f4f) {printf ("PASS: %s\n", $$name)}
   else {printf ("FAIL: %sx (%#x != 0x1f2f3f4f1f2f3f4f)\n", $$name, $arg4)}
 }
+
+probe process(@1).mark("memory") ?
+{ if ($arg1 == 7 && $arg2 == 7 && $arg3 == 7) {printf ("PASS: %s\n", $$name)}
+  else {printf ("FAIL: %s ((%d|%d|%d) != 7)\n", $$name, $arg1, $arg2, $arg3)}
+}

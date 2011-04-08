@@ -5108,21 +5108,29 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
           // invalid register name, fall through
         }
 
-      // test for OFFSET(REGISTER)
+      // test for OFFSET(REGISTER) where OFFSET is +-N+-N+-N
       // NB: Despite PR11821, we can use regnames here, since the parentheses
-      // make things unambiguous.
-      rc = regexp_match (asmarg, string("^([-]?[0-9]*)[(](")+regnames+string(")[)]$"), matches);
+      // make things unambiguous. (Note: gdb/stap-probe.c also parses this)
+      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-]?[0-9]*)([+-]?[0-9]*)[(](")+regnames+string(")[)]$"), matches);
       if (! rc)
         {
-          string dispstr = matches[1];
+          string regname;
           int64_t disp = 0;
-              if (dispstr == "")
-                disp = 0;
-              else
-                try
-                  {
-                    disp = lex_cast<int64_t>(dispstr); // should decode positive/negative hex/decimal
-                  }
+
+          int idx;
+          for (idx = matches.size() - 1; idx > 0; idx--)
+            if (matches[idx].length())
+              {
+                regname = matches[idx];
+                break;
+              }
+
+          for (int i=1; i < idx; i++)
+            if (matches[i].length())
+              try
+                {
+                  disp += lex_cast<int64_t>(matches[i]); // should decode positive/negative hex/decimal
+                }
                 catch (const runtime_error& f) // unparseable offset
                   {
                     goto not_matched; // can't just 'break' out of
@@ -5130,7 +5138,6 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
                                       // value, unfortunately
                   }
 
-              string regname = matches[2];
               if (dwarf_regs.find (regname) != dwarf_regs.end()) // known register
                 {
                   // synthesize user_long(%{fetch_register(R)%} + D)
