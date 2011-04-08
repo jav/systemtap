@@ -1,5 +1,11 @@
 * What's new in version 1.5
 
+- GNU Gettext has now been intergrated with systemtap.  Our translation
+  page can be found at http://www.transifex.net/projects/p/systemtap/ .
+  "make update-po" will generate the necessary files to use translated
+  messages.  Please refer to the po/README file for more info and 
+  please consider contributing to this I18N effort!
+
 - The new addr() function returns the probe's instruction pointer.
 
 - process("...").library("...") probes are now supported.  Wildcards
