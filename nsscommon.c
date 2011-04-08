@@ -136,7 +136,7 @@ nssPasswordCallback (PK11SlotInfo *info __attribute ((unused)), PRBool retry, vo
     }
 
   dbname = (const char *)arg;
-  fprintf (stderr, "Password for certificate database in %s: ", dbname);
+  fprintf (stderr, _("Password for certificate database in %s: "), dbname);
   fflush (stderr);
   echoOff (infd);
   password_ret = fgets (password, PW_MAX, stdin);

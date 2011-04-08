@@ -27,7 +27,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-04-06 17:04-0400\n"
+"POT-Creation-Date: 2011-04-08 09:54-0400\n"
 "PO-Revision-Date: 2011-04-05 16:53-0400\n"
 "Last-Translator: Adrien Kunysz <adrien@kunysz.be>\n"
 "Language-Team: French\n"
@@ -2019,6 +2019,12 @@ msgid ""
 "Unable to obtain private key from the certificate with nickname %s in %s."
 msgstr ""
 "Incapable d'obtenir la clé privée depuis le certificat nommé %s, dans %s."
+
+#: nsscommon.c:139
+#, fuzzy, c-format
+msgid "Password for certificate database in %s: "
+msgstr ""
+"Incapable d'obtenir le mot de passe de la base de données de certificats."
 
 #: parse.cxx:261
 msgid "parse error: "
