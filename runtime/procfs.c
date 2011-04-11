@@ -109,7 +109,7 @@ static int _stp_mkdir_proc_module(void)
 		}
 		
 		_stp_proc_root = proc_mkdir(THIS_MODULE->name, _stp_proc_stap);
-#ifdef AUTOCONF_PROCFS_OWNER
+#ifdef STAPCONF_PROCFS_OWNER
 		if (_stp_proc_root != NULL)
 			_stp_proc_root->owner = THIS_MODULE;
 #endif
@@ -167,7 +167,7 @@ static int _stp_create_procfs(const char *path, int num,
 				    goto err;
 			    }
 			    _stp_pde[_stp_num_pde++] = last_dir;
-#ifdef AUTOCONF_PROCFS_OWNER
+#ifdef STAPCONF_PROCFS_OWNER
 			    last_dir->owner = THIS_MODULE;
 #endif
 			    last_dir->uid = _stp_uid;
@@ -191,7 +191,7 @@ static int _stp_create_procfs(const char *path, int num,
 		_stp_error("Could not create file \"%s\" in path \"%s\"\n", p, path);
 		goto err;
 	}
-#ifdef AUTOCONF_PROCFS_OWNER
+#ifdef STAPCONF_PROCFS_OWNER
 	de->owner = THIS_MODULE;
 #endif
 	de->uid = _stp_uid;
