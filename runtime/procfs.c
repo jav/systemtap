@@ -21,6 +21,10 @@
 #define STP_MAX_PROCFS_FILES 16
 #endif
 
+#ifndef STAPCONF_KERN_PATH_PARENT
+#define kern_path_parent(name, nameidata) path_lookup(name, 0, nameidata)
+#endif
+
 static int _stp_num_pde = 0;
 static struct proc_dir_entry *_stp_pde[STP_MAX_PROCFS_FILES];
 static struct proc_dir_entry *_stp_procfs_files[STP_MAX_PROCFS_FILES];
@@ -55,12 +59,13 @@ static void _stp_rmdir_proc_module(void)
 	}
 
 	if (_stp_proc_stap && _stp_proc_stap->subdir == NULL) {
-		/* Important! Do not attempt removal of /proc/systemtap */
-		/* if in use.  This will put the PDE in deleted state */
-		/* pending usage count dropping to 0. During this time, */
-		/* path_lookup() will still find it and allow new */
-		/* modules to use it, even though it will not show up */
-		/* in directory listings. */
+		/* Important! Do not attempt removal of
+		 * /proc/systemtap if in use.  This will put the PDE
+		 * in deleted state pending usage count dropping to
+		 * 0. During this time, kern_path_parent() will still
+		 * find it and allow new modules to use it, even
+		 * though it will not show up in directory
+		 * listings. */
 
  		if (atomic_read(&_stp_proc_stap->count) == 0) {
 			remove_proc_entry("systemtap", NULL);
@@ -85,12 +90,13 @@ static int _stp_mkdir_proc_module(void)
 			goto done;
 		}
 		
-		/* We use path_lookup() because there is no lookup */
-		/* function for procfs we can call directly.  And */
-		/* proc_mkdir() will always succeed, creating multiple */
-		/* directory entries, all with the same name. */
+		/* We use kern_path_parent() because there is no
+		 * lookup function for procfs we can call directly.
+		 * And proc_mkdir() will always succeed, creating
+		 * multiple directory entries, all with the same
+		 * name. */
 
-		if (path_lookup("/proc/systemtap", 0, &nd)) {
+		if (kern_path_parent("/proc/systemtap", &nd)) {
 			/* doesn't exist, so create it */
 			_stp_proc_stap = proc_mkdir ("systemtap", NULL);
 			if (_stp_proc_stap == NULL) {
