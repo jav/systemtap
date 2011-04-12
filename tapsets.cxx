@@ -5071,23 +5071,21 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
 	      string width_adjust;
 	      switch (ri->second.second)
 		{
-		case QI: width_adjust = ") & 0xff"; break;
-		case QIh: width_adjust = ">>8) & 0xff"; break;
+		case QI: width_adjust = ") & 0xff)"; break;
+		case QIh: width_adjust = ">>8) & 0xff)"; break;
 		case HI:
 		  // preserve 16 bit register signness
-		  width_adjust = ") & (int64_t)0xffff";
-		  if (precision < 0 && sizeof(long) == 8)
+		  width_adjust = ") & 0xffff)";
+		  if (precision < 0)
 		    width_adjust += " << 48 >> 48";
-		  else if (precision < 0 && sizeof(long) == 4)
-		    width_adjust += " << 16 >> 16";
 		  break;
 		case SI:
 		  // preserve 32 bit register signness
-		  width_adjust = ") & (int64_t)0xffffffff";
-		  if (precision < 0 && sizeof(long) == 8)
+		  width_adjust = ") & 0xffffffff)";
+		  if (precision < 0)
 		    width_adjust += " << 32 >> 32";
 		  break;
-		default: width_adjust = ")";
+		default: width_adjust = "))";
 		}
               string type = "";
 	      if (probe_type == uprobe3_type)
@@ -5096,7 +5094,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
 	      type = type + "((";
               get_arg1->tok = e->tok;
               get_arg1->code = string("/* unprivileged */ /* pure */")
-                + string(" (int64_t)") + type
+                + string(" ((int64_t)") + type
                 + (is_user_module (process_name)
                    ? string("u_fetch_register(")
                    : string("k_fetch_register("))
