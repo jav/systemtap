@@ -22,7 +22,8 @@
 #endif
 
 #ifndef STAPCONF_KERN_PATH_PARENT
-#define kern_path_parent(name, nameidata) path_lookup(name, 0, nameidata)
+#define kern_path_parent(name, nameidata) \
+	path_lookup(name, LOOKUP_PARENT, nameidata)
 #endif
 
 static int _stp_num_pde = 0;
@@ -94,9 +95,15 @@ static int _stp_mkdir_proc_module(void)
 		 * lookup function for procfs we can call directly.
 		 * And proc_mkdir() will always succeed, creating
 		 * multiple directory entries, all with the same
-		 * name. */
+		 * name.
+		 *
+		 * Why "/proc/systemtap/foo"?  kern_path_parent() is
+		 * basically the same thing as calling the old
+		 * path_lookup() with flags set to LOOKUP_PARENT,
+		 * which means to look up the parent of the path,
+		 * which in this case is "/proc/systemtap". */
 
-		if (kern_path_parent("/proc/systemtap", &nd)) {
+		if (kern_path_parent("/proc/systemtap/foo", &nd)) {
 			/* doesn't exist, so create it */
 			_stp_proc_stap = proc_mkdir ("systemtap", NULL);
 			if (_stp_proc_stap == NULL) {
