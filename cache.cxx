@@ -387,8 +387,8 @@ cache_ent_info::cache_ent_info(const string& path, bool is_module):
       string source_path = path + ".c";
       string hash_path = path + ".log";
       size = get_file_size(mod_path)
-        + get_file_size(modsgn_path);
-        + get_file_size(source_path);
+        + get_file_size(modsgn_path)
+        + get_file_size(source_path)
         + get_file_size(hash_path);
       weight = get_file_weight(mod_path);
     }
