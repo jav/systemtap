@@ -33,4 +33,5 @@ function _arch_ptrace_argstr(request, pid, addr, data)
 
 function _ptrace_return_arch_prctl_addr(request, addr, data)
 {
+	return 0
 }
