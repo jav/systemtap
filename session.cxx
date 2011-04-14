@@ -1308,7 +1308,7 @@ systemtap_session::register_library_aliases()
               for (unsigned n = 0; n < alias->alias_names.size(); ++n)
                 {
                   probe_point * name = alias->alias_names[n];
-                  match_node * n = pattern_root;
+                  match_node * mn = pattern_root;
                   for (unsigned c = 0; c < name->components.size(); ++c)
                     {
                       probe_point::component * comp = name->components[c];
@@ -1316,9 +1316,9 @@ systemtap_session::register_library_aliases()
                       if (comp->arg)
                         throw semantic_error(_F("alias component %s contains illegal parameter",
                                                 comp->functor.c_str()));
-                      n = n->bind(comp->functor);
+                      mn = mn->bind(comp->functor);
                     }
-                  n->bind(new alias_expansion_builder(alias));
+                  mn->bind(new alias_expansion_builder(alias));
                 }
             }
           catch (const semantic_error& e)
