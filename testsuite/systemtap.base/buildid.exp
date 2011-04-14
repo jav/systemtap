@@ -1,6 +1,8 @@
 set test "buildid"
 
 if {![installtest_p]} { untested $test; return }
+# process probes need utrace
+if {![utrace_p]} { untested "$test"; return }
 
 proc cleanup_handler { verbose } {
     if { $verbose == 0 } {

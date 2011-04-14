@@ -30,7 +30,7 @@ Makenull (s)
 static inline int  
 Getelement ()
 {
-  int temp;
+  int temp = 0;
   if (freelist > 0)
     {
       temp = freelist;
