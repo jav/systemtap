@@ -1,8 +1,7 @@
 set test "buildid"
 
 if {![installtest_p]} { untested $test; return }
-# process probes need utrace
-if {![utrace_p]} { untested "$test"; return }
+if {![uprobes_p]} { untested "$test (uprobes)"; return }
 
 proc cleanup_handler { verbose } {
     if { $verbose == 0 } {
@@ -48,7 +47,7 @@ expect {
     eof { }
 }
 catch {close}; catch {wait}
-error_handler [expr $ok==1] "nonshared build id ok ($ok)"
+if { [error_handler [expr $ok==1] "nonshared build id ok ($ok)"] } { return }
 
 # now alter the build id using objcopy
 
@@ -94,7 +93,7 @@ expect {
     eof { }
 }
 catch {close}; catch {wait}
-error_handler [expr $ok==1] "shared build id ok ($ok)"
+if { [error_handler [expr $ok==1] "shared build id ok ($ok)"] } { return }
 
 # now alter the build id using objcopy
 

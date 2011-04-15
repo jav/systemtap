@@ -4,9 +4,19 @@ probe begin
 	printf("%d\n%d begat %d\n", stp_pid, stp_pid, target())
 }
 
-probe syscall.nanosleep, syscall.compat_nanosleep ?
+# Why is the @cast() necessary?  Why not just do '$rqtp->tv_sec'?  On
+# s390x and ppc64, because of syscall wrappers, $rqtp gets turned into
+# a long.
+probe syscall.nanosleep
 {
-	if (target_set_pid(pid()) && $rqtp->tv_sec == $1)
+	if (target_set_pid(pid())
+	    && @cast($rqtp, "struct timespec")->tv_sec == $1)
+		target_set_report()
+}
+probe syscall.compat_nanosleep ?
+{
+	if (target_set_pid(pid())
+	    && @cast($rqtp, "struct compat_timespec")->tv_sec == $1)
 		target_set_report()
 }
 
