@@ -321,6 +321,8 @@ module(MPATTERN).function(PATTERN).return
 .br
 module(MPATTERN).function(PATTERN).inline
 .br
+module(MPATTERN).function(PATTERN).label(LPATTERN)
+.br
 .br
 kernel.statement(PATTERN)
 .br

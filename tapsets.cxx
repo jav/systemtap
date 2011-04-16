@@ -4187,6 +4187,9 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind(TOK_KERNEL)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind(dw);
 
+  root->bind_str(TOK_MODULE)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
+    ->bind(dw);
+
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw,
 					   true/*bind_unprivileged*/);
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS)
