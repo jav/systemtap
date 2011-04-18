@@ -262,7 +262,8 @@ __extension__ extern unsigned long long __sdt_unsp;
    variadic macro support may vary with compiler options, you must
    pre-#define SDT_USE_VARIADIC to enable this type of probe.
 
-   The trick to count __VA_ARGS__ was inspired by this post:
+   The trick to count __VA_ARGS__ was inspired by this post by
+   Laurent Deniau <laurent.deniau@cern.ch>:
        http://groups.google.com/group/comp.std.c/msg/346fc464319b1ee5
 
    Note that our _SDT_NARG is called with an extra 0 arg that's not
