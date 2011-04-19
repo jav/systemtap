@@ -6848,8 +6848,14 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->probe");
   s.op->newline() << "c->ri = inst;";
-  s.op->newline() << "if (sup->spec_index < 0 ||"
-                  << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
+  s.op->newline() << "if (sup->spec_index < 0 || " // XXX: should not happen
+                  << "sup->spec_index >= " << probes.size() << ") {";
+  s.op->newline(1) << "_stp_error (\"bad spec_index %d (max " << probes.size()
+		   << ")\", sup->spec_index);";
+  s.op->newline() << "atomic_dec (&c->busy);";
+  s.op->newline() << "goto probe_epilogue;";
+  s.op->newline(-1) << "}";
+
   // XXX: kretprobes saves "c->pi = inst;" too
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
