@@ -1378,6 +1378,8 @@ c_unparser::emit_module_exit ()
   o->newline(1) << "int holdon;";
   o->newline() << "int i=0, j=0;"; // for derived_probe_group use
   o->newline() << "int cpu;";
+  o->newline() << "unsigned long hold_start;";
+  o->newline() << "int hold_index;";
 
   o->newline() << "(void) i;";
   o->newline() << "(void) j;";
@@ -1415,14 +1417,23 @@ c_unparser::emit_module_exit ()
   // NB: systemtap_module_exit is assumed to be called from ordinary
   // user context, say during module unload.  Among other things, this
   // means we can sleep a while.
+  o->newline() << "hold_start = jiffies;";
+  o->newline() << "hold_index = -1;";
   o->newline() << "do {";
   o->newline(1) << "int i;";
   o->newline() << "holdon = 0;";
   o->newline() << "for (i=0; i < NR_CPUS; i++)";
   o->newline(1) << "if (cpu_possible (i) && "
 		<< "contexts[i] != NULL && "
-                << "atomic_read (& contexts[i]->busy)) "
-                << "holdon = 1;";
+                << "atomic_read (& contexts[i]->busy)) {";
+  o->newline(1) << "holdon = 1;";
+  // just in case things are really stuck, let's print some diagnostics
+  o->newline() << "if (time_after(jiffies, hold_start + HZ) "; // > 1 second
+  o->line() << "&& (i > hold_index)) {"; // not already printed
+  o->newline(1) << "hold_index = i;";
+  o->newline() << "printk(KERN_ERR \"%s context[%d] stuck: %s\\n\", THIS_MODULE->name, i, contexts[i]->probe_point);";
+  o->newline(-1) << "}";
+  o->newline(-1) << "}";
   // NB: we run at least one of these during the shutdown sequence:
   o->newline () << "yield ();"; // aka schedule() and then some
   o->newline(-2) << "} while (holdon);";
