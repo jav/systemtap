@@ -202,7 +202,8 @@ start with FILE_ (FILE_cpu with \-F) followed by the cpu number.
 This supports strftime(3) formats for FILE.
 .TP
 .BI \-c " CMD"
-Start the probes, run CMD, and exit when CMD finishes.
+Start the probes, run CMD, and exit when CMD finishes.  This also has the
+effect of setting target() to the pid of the command ran.
 .TP
 .BI \-x " PID"
 Sets target() to PID. This allows scripts to be written that filter on

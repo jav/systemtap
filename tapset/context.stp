@@ -272,6 +272,7 @@ function is_return:long ()
  *
  * -x <pid>
  * target() returns the pid specified by -x
+ *
  * -c <command>
  * target() returns the pid for the executed command specified by -c
  */
