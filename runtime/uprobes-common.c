@@ -286,8 +286,8 @@ stap_uprobe_mmap_found (struct stap_task_finder_target *tgt,
   if (path == NULL || strcmp (path, stf->pathname))
     return 0;
 
-  /* Check executable sections for probes. */
-  if (vm_flags & VM_EXEC) {
+  /* Check non-writable, executable sections for probes. */
+  if ((vm_flags & VM_EXEC) && !(vm_flags & VM_WRITE)) {
     #ifdef DEBUG_TASK_FINDER_VMA
     _stp_dbug (__FUNCTION__,__LINE__,
                "+mmap X pid %d path %s addr %p length %u offset %p stf %p %p path %s\n",
