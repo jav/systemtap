@@ -350,7 +350,7 @@ systemtap_session::clone(const string& arch, const string& release)
 void
 systemtap_session::version ()
 {
-  clog << _F("Systemtap translator/driver (version %s /%s %s)\n"
+  clog << _F("Systemtap translator/driver (version %s/%s %s)\n"
              "Copyright (C) 2005-2011 Red Hat, Inc. and others\n"
              "This is free software; see the source for copying conditions.",
              VERSION, dwfl_version(NULL), GIT_MESSAGE) << endl;
