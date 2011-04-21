@@ -14,6 +14,10 @@ set test_flags "additional_flags=-g"
 set test_flags "$test_flags additional_flags=-O2"
 set test_flags "$test_flags [sdt_includes]"
 set test_flags "$test_flags compiler=g++"
+# ppc64 needs a more restrictive constraint for the probe args
+if {[regexp "^(x86_64|i.86)$" $::tcl_platform(machine)] == 0} {
+set test_flags "$test_flags additional_flags=-DSTAP_SDT_ARG_CONSTRAINT=nr"
+}
 
 set res [target_compile $srcdir/$subdir/$test.cxx $test.exe executable "$test_flags"]
 if { $res != "" } {

@@ -45,9 +45,14 @@
 # define _SDT_ASM_STRING_1(x)		_SDT_ASM_1(.asciz #x)
 
 # define _SDT_ARGFMT(no)		%n[_SDT_S##no]@_SDT_ARGTMPL(_SDT_A##no)
+# ifndef STAP_SDT_ARG_CONSTRAINT
+# define STAP_SDT_ARG_CONSTRAINT        nor
+# endif
+# define _SDT_STRINGIFY(x)              #x
+# define _SDT_ARG_CONSTRAINT_STRING(x)  _SDT_STRINGIFY(x)
 # define _SDT_ARG(n, x)			\
   [_SDT_S##n] "n" ((_SDT_ARGSIGNED (x) ? 1 : -1) * (int) _SDT_ARGSIZE (x)), \
-  [_SDT_A##n] "nor" (_SDT_ARGVAL (x))
+  [_SDT_A##n] _SDT_ARG_CONSTRAINT_STRING (STAP_SDT_ARG_CONSTRAINT) (_SDT_ARGVAL (x))
 #endif
 #define _SDT_ASM_STRING(x)		_SDT_ASM_STRING_1(x)
 

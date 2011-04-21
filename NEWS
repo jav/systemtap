@@ -1,5 +1,10 @@
 * What's new in version 1.5
 
+- Compiler optimization may sometimes result in systemtap not being able to
+  access a user-space probe argument.  Compiling the application with
+  -DSTAP_SDT_ARG_CONSTRAINT=nr will force the argument to be an immediate or
+  register value which should enable systemtap to access the argument.
+
 - GNU Gettext has now been intergrated with systemtap.  Our translation
   page can be found at http://www.transifex.net/projects/p/systemtap/ .
   "make update-po" will generate the necessary files to use translated
