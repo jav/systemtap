@@ -108,6 +108,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 error_handler [expr $ok==1] "shared build id !ok ($ok)"
 
 cleanup_handler $verbose

@@ -205,8 +205,17 @@ proc start_server {} {
     exec rm -fr $env(SYSTEMTAP_DIR)/ssl
 
     # Try to start the server.
-    set server_pid [exec env STAP_PR11197_OVERRIDE=1 env SYSTEMTAP_STAP=[exec which stap] stap-start-server --log=$logfile]
-    if { "$server_pid" == "" } then {
+    set status 0
+    if {[catch {exec env STAP_PR11197_OVERRIDE=1 \
+		    env SYSTEMTAP_STAP=[exec which stap] stap-start-server \
+		    --log=$logfile} server_pid options]} {
+	set details [dict get $options -errorcode]
+	if {[lindex $details 0] eq "CHILDSTATUS"} {
+	    set status [lindex $details 2]
+	}
+    }
+    verbose -log "output: $server_pid"
+    if { "$server_pid" == "" || $status != 0 } then {
 	verbose -log "Cannot start a systemtap server"
 	set server_pid 0
 	return 0
