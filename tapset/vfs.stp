@@ -20,10 +20,15 @@
 global __devnames
 function __find_bdevname:string(dev:long, bdev:long)
 {
+	/* bdevname() can't do anything without an actual bdev, so let's just
+	 * return the same result early without wasting space in __devnames.  */
+	if (bdev == 0)
+		return "N/A"
+
 	if (dev in __devnames)
 		return __devnames[dev]
-	else
-		return __devnames[dev] = bdevname(bdev)
+
+	return __devnames[dev] = bdevname(bdev)
 }
 
 /* deprecated */
