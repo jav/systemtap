@@ -25,10 +25,9 @@ foreach variant [list "" "-DSIGJMP" "-DUNDERJMP"] {
 
 	if {[catch \
 		 {exec stap -l "process(\"/lib*/libc.so.*\").mark(\"*jmp*\")" \
-		      2>@1} res opt]} {
-	    set details [dict get $opt -errorcode]
-	    if {[lindex $details 0] eq "CHILDSTATUS"} {
-		set status [lindex $details 2]
+		      2>@1} res]} {
+	    if {[lindex $::errorCode 0] eq "CHILDSTATUS"} {
+		set status [lindex $::errorCode 2]
 		if {$status == 1} {
 		    verbose -log "stap -l check found no libc probes" 1
 		    untested $this_test

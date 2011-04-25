@@ -208,10 +208,9 @@ proc start_server {} {
     set status 0
     if {[catch {exec env STAP_PR11197_OVERRIDE=1 \
 		    env SYSTEMTAP_STAP=[exec which stap] stap-start-server \
-		    --log=$logfile} server_pid options]} {
-	set details [dict get $options -errorcode]
-	if {[lindex $details 0] eq "CHILDSTATUS"} {
-	    set status [lindex $details 2]
+		    --log=$logfile} server_pid]} {
+	if {[lindex $::errorCode 0] eq "CHILDSTATUS"} {
+	    set status [lindex $::errorCode 2]
 	}
     }
     verbose -log "output: $server_pid"
