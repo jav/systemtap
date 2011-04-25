@@ -799,7 +799,7 @@ probe vfs.readv = kernel.function("vfs_readv")
 	vlen = $vlen
 	bytes_to_read = _get_fopv_size($vec, $vlen)
 
-	name = "vfs.read"
+	name = "vfs.readv"
 	argstr = sprintf("%d, %d, %p", bytes_to_read, $pos, $vec)
 }
 
