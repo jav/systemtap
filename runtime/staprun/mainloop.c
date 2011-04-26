@@ -58,19 +58,21 @@ static void chld_proc(int signum)
   int chld_stat = 0;
   dbug(2, "chld_proc %d (%s)\n", signum, strsignal(signum));
   pid_t pid = waitpid(-1, &chld_stat, WNOHANG);
-  if (pid != target_pid){
+  if (pid != target_pid) {
     return;
   }
 
-  if (chld_stat) { 
-    // our child exited with a non-zero status 
-    if(WIFSIGNALED(chld_stat)){
-      dbug(0, "Warning: child process exited with signal: %d (%s)\n", WTERMSIG(chld_stat), strsignal(WTERMSIG(chld_stat)));
+  if (chld_stat) {
+    // our child exited with a non-zero status
+    if (WIFSIGNALED(chld_stat)) {
+      err("Warning: child process exited with signal %d (%s)\n",
+          WTERMSIG(chld_stat), strsignal(WTERMSIG(chld_stat)));
       target_pid_failed_p = 1;
     }
-    if(WIFEXITED(chld_stat) && WEXITSTATUS(chld_stat)){
-        dbug(0, "Warning: child process exited with status: %d\n", WEXITSTATUS(chld_stat));
-        target_pid_failed_p = 1;
+    if (WIFEXITED(chld_stat) && WEXITSTATUS(chld_stat)) {
+      err("Warning: child process exited with status %d\n",
+          WEXITSTATUS(chld_stat));
+      target_pid_failed_p = 1;
     }
   }
 
