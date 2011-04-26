@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-04-20 13:12-0400\n"
+"POT-Creation-Date: 2011-04-26 14:25-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2452,36 +2452,46 @@ msgstr ""
 msgid "Couldn't open control channel '%s'"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:107
+#: runtime/staprun/mainloop.c:68
+#, c-format
+msgid "Warning: child process exited with signal %d (%s)\n"
+msgstr ""
+
+#: runtime/staprun/mainloop.c:73
+#, c-format
+msgid "Warning: child process exited with status %d\n"
+msgstr ""
+
+#: runtime/staprun/mainloop.c:124
 msgid "failed to create thread"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:187
+#: runtime/staprun/mainloop.c:204
 msgid "wordexp: syntax error (unmatched quotes?) in -c COMMAND\n"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:190
+#: runtime/staprun/mainloop.c:207
 #, c-format
 msgid "wordexp: parsing error (%d)\n"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:298 runtime/staprun/mainloop.c:304
+#: runtime/staprun/mainloop.c:315 runtime/staprun/mainloop.c:321
 msgid "Couldn't read bufsize"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:324
+#: runtime/staprun/mainloop.c:341
 msgid "Failed to initialize control channel.\n"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:359
+#: runtime/staprun/mainloop.c:376
 msgid "Failed to daemonize stapio\n"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:374
+#: runtime/staprun/mainloop.c:391
 msgid "Failed to open /dev/null\n"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:425
+#: runtime/staprun/mainloop.c:442
 #, c-format
 msgid ""
 "\n"
@@ -2489,29 +2499,29 @@ msgid ""
 "To reconnect, type \"staprun -A %s\"\n"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:534
+#: runtime/staprun/mainloop.c:555
 #, c-format
 msgid "Unexpected EOF in read (nb=%ld)"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:549
+#: runtime/staprun/mainloop.c:570
 #, c-format
 msgid "write error (nb=%ld)"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:555
+#: runtime/staprun/mainloop.c:576
 msgid "WARNING:"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:582
+#: runtime/staprun/mainloop.c:603
 msgid "WARNING deduplication table full\n"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:648
+#: runtime/staprun/mainloop.c:669
 msgid "ptrace detach"
 msgstr ""
 
-#: runtime/staprun/mainloop.c:681
+#: runtime/staprun/mainloop.c:702
 #, c-format
 msgid "WARNING: ignored message of type %d\n"
 msgstr ""

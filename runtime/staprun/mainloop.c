@@ -65,12 +65,12 @@ static void chld_proc(int signum)
   if (chld_stat) {
     // our child exited with a non-zero status
     if (WIFSIGNALED(chld_stat)) {
-      err("Warning: child process exited with signal %d (%s)\n",
+      err(_("Warning: child process exited with signal %d (%s)\n"),
           WTERMSIG(chld_stat), strsignal(WTERMSIG(chld_stat)));
       target_pid_failed_p = 1;
     }
     if (WIFEXITED(chld_stat) && WEXITSTATUS(chld_stat)) {
-      err("Warning: child process exited with status %d\n",
+      err(_("Warning: child process exited with status %d\n"),
           WEXITSTATUS(chld_stat));
       target_pid_failed_p = 1;
     }
