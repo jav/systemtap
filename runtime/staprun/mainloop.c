@@ -24,6 +24,7 @@
 int ncpus;
 static int use_old_transport = 0;
 static int pending_interrupts = 0;
+static int target_pid_failed_p = 0;
 
 //enum _stp_sig_type { sig_none, sig_done, sig_detach };
 //static enum _stp_sig_type got_signal = sig_none;
@@ -54,12 +55,26 @@ static void *signal_thread(void *arg)
 static void chld_proc(int signum)
 {
   int32_t rc, btype = STP_EXIT;
+  int chld_stat = 0;
   dbug(2, "chld_proc %d (%s)\n", signum, strsignal(signum));
-  pid_t pid = waitpid(-1, NULL, WNOHANG);
-  if (pid != target_pid)
+  pid_t pid = waitpid(-1, &chld_stat, WNOHANG);
+  if (pid != target_pid){
     return;
-  // send STP_EXIT
-  rc = write(control_channel, &btype, sizeof(btype));
+  }
+
+  if (chld_stat) { 
+    // our child exited with a non-zero status 
+    if(WIFSIGNALED(chld_stat)){
+      dbug(0, "Warning: child process exited with signal: %d (%s)\n", WTERMSIG(chld_stat), strsignal(WTERMSIG(chld_stat)));
+      target_pid_failed_p = 1;
+    }
+    if(WIFEXITED(chld_stat) && WEXITSTATUS(chld_stat)){
+        dbug(0, "Warning: child process exited with status: %d\n", WEXITSTATUS(chld_stat));
+        target_pid_failed_p = 1;
+    }
+  }
+
+  rc = write(control_channel, &btype, sizeof(btype)); // send STP_EXIT
   (void) rc; /* XXX: notused */
 }
 
@@ -471,8 +486,12 @@ void cleanup_and_exit(int detach, int rc)
   }
 
   if (WIFEXITED(rstatus)) {
-          _exit(rc ?: WEXITSTATUS(rstatus));
+          if(rc || target_pid_failed_p || rstatus) // if we have an error
+            _exit(1);
+          else
+            _exit(0); //success
   }
+
   _exit(-1);
 }
 

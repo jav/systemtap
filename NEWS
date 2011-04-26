@@ -1,5 +1,8 @@
 * What's new in version 1.5
 
+- stapio will now report if a child process has an abnormal exit along with
+  the associated status or signal.
+
 - Compiler optimization may sometimes result in systemtap not being able to
   access a user-space probe argument.  Compiling the application with
   -DSTAP_SDT_ARG_CONSTRAINT=nr will force the argument to be an immediate or
