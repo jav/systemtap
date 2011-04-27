@@ -135,13 +135,29 @@ class stapsh : public remote {
                 {
                   if (fds[i].revents & POLLIN)
                     {
-                      // XXX should we do line-buffering?
                       char buf[4096];
-                      size_t rc = fread(buf, 1, sizeof(buf), OUT);
-                      if (rc > 0)
+                      if (!prefix.empty())
                         {
-                          cout.write(buf, rc);
-                          continue;
+                          // If we have a line prefix, then read lines one at a
+                          // time and copy out with the prefix.
+                          errno = 0;
+                          while (fgets(buf, sizeof(buf), OUT))
+                            cout << prefix << buf;
+                          if (errno == EAGAIN)
+                            continue;
+                        }
+                      else
+                        {
+                          // Otherwise read an entire block of data at once.
+                          size_t rc = fread(buf, 1, sizeof(buf), OUT);
+                          if (rc > 0)
+                            {
+                              // NB: The buf could contain binary data,
+                              // including \0, so write as a block instead of
+                              // the usual <<string.
+                              cout.write(buf, rc);
+                              continue;
+                            }
                         }
                     }
                   close();
@@ -805,8 +821,11 @@ remote::run(const vector<remote*>& remotes)
 
   for (unsigned i = 0; i < remotes.size() && !pending_interrupts; ++i)
     {
-      remotes[i]->s->verbose = remotes[i]->s->perpass_verbose[4];
-      rc = remotes[i]->prepare();
+      remote *r = remotes[i];
+      r->s->verbose = r->s->perpass_verbose[4];
+      if (r->s->use_remote_prefix)
+        r->prefix = lex_cast(i) + ": ";
+      rc = r->prepare();
       if (rc)
         return rc;
     }

@@ -133,6 +133,7 @@ systemtap_session::systemtap_session ():
   server_cache = NULL;
   use_server_on_error = false;
   try_server_status = try_server_unset;
+  use_remote_prefix = false;
   systemtap_v_check = false;
 
   /*  adding in the XDG_DATA_DIRS variable path,
@@ -288,6 +289,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   server_cache = NULL;
   use_server_on_error = other.use_server_on_error;
   try_server_status = other.try_server_status;
+  use_remote_prefix = other.use_remote_prefix;
   systemtap_v_check = other.systemtap_v_check;
 
   include_path = other.include_path;
@@ -491,7 +493,10 @@ systemtap_session::usage (int exitcode)
 #endif
     "   --remote=HOSTNAME\n"
     "              run pass 5 on the specified ssh host.\n"
-    "              may be repeated for targeting multiple hosts.", compatible.c_str()) << endl
+    "              may be repeated for targeting multiple hosts.\n"
+    "   --remote-prefix\n"
+    "              prefix each line of remote output with a host index."
+    , compatible.c_str()) << endl
   ;
 
   time_t now;
@@ -537,6 +542,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_CHECK_VERSION 21
 #define LONG_OPT_USE_SERVER_ON_ERROR 22
 #define LONG_OPT_VERSION 23
+#define LONG_OPT_REMOTE_PREFIX 24
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -566,6 +572,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "use-server-on-error", 2, &long_opt, LONG_OPT_USE_SERVER_ON_ERROR },
         { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
         { "remote", 1, &long_opt, LONG_OPT_REMOTE },
+        { "remote-prefix", 0, &long_opt, LONG_OPT_REMOTE_PREFIX },
         { "check-version", 0, &long_opt, LONG_OPT_CHECK_VERSION },
         { "version", 0, &long_opt, LONG_OPT_VERSION },
         { NULL, 0, NULL, 0 }
@@ -1013,6 +1020,15 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               }
 
               remote_uris.push_back(optarg);
+              break;
+
+            case LONG_OPT_REMOTE_PREFIX:
+              if (client_options) {
+                  cerr << _F("ERROR: %s is invalid with %s", "--remote-prefix", "--client-options") << endl;
+                  return 1;
+              }
+
+              use_remote_prefix = true;
               break;
 
             case LONG_OPT_CHECK_VERSION:
