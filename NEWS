@@ -1,5 +1,10 @@
 * What's new in version 1.5
 
+- Systemtap checks that the build-id of the module being probed matches the
+  build-id saved in the systemtap module.  Invoking systemtap with
+  -DSTP_NO_BUILDID_CHECK will bypass this build-id runtime verification.  See
+  man ld(1) for info on --build-id.
+
 - stapio will now report if a child process has an abnormal exit along with
   the associated status or signal.
 
