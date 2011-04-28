@@ -500,11 +500,16 @@ class ssh_remote : public stapsh {
           }
         catch (runtime_error&)
           {
+            rc = finish();
+
+            // ssh itself signals errors with 255
+            if (rc == 255)
+              throw runtime_error(_("error establishing ssh connection"));
+
             // If rc == 127, that's command-not-found, so we let ::create()
             // try again in legacy mode.  But only do this if there's a single
             // remote, as the old code didn't handle ttys well with multiple
             // remotes.  Otherwise, throw up again. *barf*
-            rc = finish();
             if (rc != 127 || s->remote_uris.size() > 1)
               throw;
           }
