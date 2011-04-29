@@ -484,10 +484,12 @@ systemtap_session::usage (int exitcode)
     "   --use-server[=SERVER-SPEC]\n"
     "              specify systemtap compile-servers\n"
     "   --list-servers[=PROPERTIES]\n"
-    "              report on the status of the specified compile-servers\n"
+    "              report on the status of the specified compile-servers:\n"
+    "              all,specified,online,trusted,signer,compatible\n"
 #if HAVE_NSS
     "   --trust-servers[=TRUST-SPEC]\n"
-    "              add/revoke trust of specified compile-servers\n"
+    "              add/revoke trust of specified compile-servers:\n"
+    "              ssl,signer,all-users,revoke,no-prompt\n"
     "   --use-server-on-error[=yes/no]\n"
     "              retry compilation using a compile server upon compilation error\n"
 #endif
