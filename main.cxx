@@ -472,13 +472,6 @@ passes_0_4 (systemtap_session &s)
 
   s.kernel_base_release.assign(s.kernel_release, 0, s.kernel_release.find('-'));
 
-  // arguments parsed; get down to business
-  if (s.verbose > 1)
-    {
-      s.version ();
-      clog << _F("Session arch: %s release: %s", s.architecture.c_str(), s.kernel_release.c_str()) << endl;
-    }
-
   // Now that no further changes to s.kernel_build_tree can occur, let's use it.
   if ((rc = parse_kernel_config (s)) != 0)
     {
@@ -943,74 +936,69 @@ main (int argc, char * const argv [])
   // Check for options conflicts. Exits if errors are detected.
   s.check_options (argc, argv);
 
-  // If requested, query server status. This is independent of other tasks.
-  query_server_status (s);
-
-  // If requested, manage trust of servers. This is independent of other tasks.
-  manage_server_trust (s);
+  // arguments parsed; get down to business
+  if (s.verbose > 1)
+    s.version ();
 
   // Some of the remote methods need to write temporary data, so go ahead
   // and create the main tempdir now.
   rc = create_temp_dir (s);
 
-  // Run the passes only if a script has been specified. The requirement for
-  // a script has already been checked in systemtap_session::check_options.
-  if (rc == 0 && s.have_script)
+  // Prepare connections for each specified remote target.
+  vector<remote*> targets;
+  if (s.remote_uris.empty())
+    s.remote_uris.push_back("direct");
+  for (unsigned i = 0; rc == 0 && i < s.remote_uris.size(); ++i)
     {
-      vector<remote*> targets;
-      if (s.remote_uris.empty())
-	{
-	  remote* target = remote::create(s, "direct");
-	  if (target)
-	    targets.push_back(target);
-	  else
-	    rc = 1;
-	}
+      remote *target = remote::create(s, s.remote_uris[i]);
+      if (target)
+        targets.push_back(target);
       else
-	for (unsigned i = 0; i < s.remote_uris.size(); ++i)
-	  {
-	    remote *target = remote::create(s, s.remote_uris[i]);
-	    if (target)
-	      targets.push_back(target);
-	    else
-	      {
-		rc = 1;
-		break;
-	      }
-	  }
-
-      // Run passes 0-4 for each unique session,
-      // either locally or using a compile-server.
-      if (rc == 0)
-	{
-	  set<systemtap_session*> sessions;
-	  for (unsigned i = 0; i < targets.size(); ++i)
-	    sessions.insert(targets[i]->get_session());
-	  for (set<systemtap_session*>::iterator it = sessions.begin();
-	       it != sessions.end(); ++it)
-	    {
-	      (*it)->init_try_server ();
-	      if ((rc = passes_0_4 (**it)))
-		{
-		  // Compilation failed.
-		  // Try again using a server if appropriate.
-		  if ((*it)->try_server ())
-		    rc = passes_0_4_again_with_server (**it);
-		  if (rc)
-		    break;
-		}
-	    }
-	}
-
-      // Run pass 5, if requested
-      if (rc == 0 && s.last_pass >= 5 && ! pending_interrupts)
-	rc = pass_5 (s, targets);
-
-      for (unsigned i = 0; i < targets.size(); ++i)
-	delete targets[i];
+        rc = 1;
     }
 
+  // Discover and loop over each unique session created by the remote targets.
+  set<systemtap_session*> sessions;
+  for (unsigned i = 0; i < targets.size(); ++i)
+    sessions.insert(targets[i]->get_session());
+  for (set<systemtap_session*>::iterator it = sessions.begin();
+       rc == 0 && !pending_interrupts && it != sessions.end(); ++it)
+    {
+      systemtap_session& ss = **it;
+      if (ss.verbose > 1)
+        clog << _F("Session arch: %s release: %s",
+                   ss.architecture.c_str(), ss.kernel_release.c_str()) << endl;
+
+      // If requested, query server status. This is independent of other tasks.
+      query_server_status (ss);
+
+      // If requested, manage trust of servers. This is independent of other tasks.
+      manage_server_trust (ss);
+
+      // Run the passes only if a script has been specified. The requirement for
+      // a script has already been checked in systemtap_session::check_options.
+      if (ss.have_script)
+        {
+          // Run passes 0-4 for each unique session,
+          // either locally or using a compile-server.
+          ss.init_try_server ();
+          if ((rc = passes_0_4 (ss)))
+            {
+              // Compilation failed.
+              // Try again using a server if appropriate.
+              if (ss.try_server ())
+                rc = passes_0_4_again_with_server (ss);
+            }
+        }
+    }
+
+  // Run pass 5, if requested
+  if (rc == 0 && s.have_script && s.last_pass >= 5 && ! pending_interrupts)
+    rc = pass_5 (s, targets);
+
   // Pass 6. Cleanup
+  for (unsigned i = 0; i < targets.size(); ++i)
+    delete targets[i];
   cleanup (s, rc);
 
   return (rc||pending_interrupts) ? EXIT_FAILURE : EXIT_SUCCESS;
