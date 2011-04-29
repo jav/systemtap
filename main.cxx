@@ -404,6 +404,7 @@ remove_temp_dir (systemtap_session &s)
       else
         {
 	  // Ignore signals while we're deleting the temporary directory.
+	  // XXX should be masked instead, so none are lost?
 	  setup_signals (SIG_IGN);
 
 	  // Remove the temporary directory.
@@ -414,6 +415,9 @@ remove_temp_dir (systemtap_session &s)
 
 	  (void) stap_system (s.verbose, cleanupcmd);
           s.tmpdir.clear();
+
+	  // Restore signals.
+	  setup_signals (handle_interrupt);
         }
     }
 }
