@@ -475,11 +475,13 @@ class ssh_remote : public stapsh {
         // This is crafted so that we get a silent failure with status 127 if
         // the command is not found.  The combination of -P and $cmd ensures
         // that we pull the command out of the PATH, not aliases or such.
-        cmd.push_back("cmd=`type -P stapsh || exit 127` && exec \"$cmd\"");
+        string stapsh_cmd = "cmd=`type -P stapsh || exit 127` && exec \"$cmd\"";
         if (s->perpass_verbose[4] > 1)
-          cmd.back().append(" -v");
+          stapsh_cmd.append(" -v");
         if (s->perpass_verbose[4] > 2)
-          cmd.back().append(" -v");
+          stapsh_cmd.append(" -v");
+        // NB: We need to explicitly choose bash, as $SHELL may be weird...
+        cmd.push_back("/bin/bash -c '" + stapsh_cmd + "'");
 
         // mask signals while we spawn, so we can manually send even tty
         // signals *through* ssh rather than to ssh itself
