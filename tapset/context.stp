@@ -37,7 +37,7 @@ function execname:string ()
 /**
  * sfunction pid - Returns the ID of a target process
  * 
- * Description: This function returns the ID of a targer process.
+ * Description: This function returns the ID of a target process.
  */
 function pid:long ()
 %{ /* pure */ /* unprivileged */
