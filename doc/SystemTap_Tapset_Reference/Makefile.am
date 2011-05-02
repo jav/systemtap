@@ -20,6 +20,7 @@ endif
 
 if XMLTO_STRINGPARAM
 XMLTOMANPARAMS=--stringparam man.authors.section.enabled=0 --stringparam man.copyright.section.enabled=0
+XMLTOHTMLPARAMS=--stringparam use.id.as.filename=1
 endif
 
 if BUILD_REFDOCS
