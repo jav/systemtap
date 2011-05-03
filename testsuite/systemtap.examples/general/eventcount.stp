@@ -42,7 +42,7 @@ probe %($# >= 1 %? $1 %: never %),
       %($# >= 31 %? $32 %: never %),
       %($# >= 32 %? $32 %: never %)
 {
-  if (target() && pid() != target())
+  if (target() && ! target_set_pid(pid()))
     next
   c[tid(), pn()]<<<1
 }
