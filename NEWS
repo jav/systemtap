@@ -1,4 +1,7 @@
 * What's new in version 1.5
+- eventcount.stp now allows for event counting in the format of
+  'stap eventcount.stp process.end syscall.* ...', and also reports
+  corresponding event tid's.
 
 - Systemtap checks that the build-id of the module being probed matches the
   build-id saved in the systemtap module.  Invoking systemtap with

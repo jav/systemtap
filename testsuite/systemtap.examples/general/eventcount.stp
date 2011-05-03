@@ -1,0 +1,55 @@
+#! /usr/bin/env stap
+
+global c
+
+probe %($# == 0 || $# > 32 %? begin %: never %)
+{
+  printf("Please specify between 1 and 32 events to count.\n")
+  exit()
+}
+
+//paramaterize up to 32 arguments
+probe %($# >= 1 %? $1 %: never %),
+      %($# >= 2 %? $2 %: never %),
+      %($# >= 3 %? $3 %: never %),
+      %($# >= 4 %? $4 %: never %),
+      %($# >= 5 %? $5 %: never %),
+      %($# >= 6 %? $6 %: never %),
+      %($# >= 7 %? $7 %: never %),
+      %($# >= 8 %? $8 %: never %),
+      %($# >= 9 %? $9 %: never %),
+      %($# >= 10 %? $10 %: never %),
+      %($# >= 11 %? $11 %: never %),
+      %($# >= 12 %? $12 %: never %),
+      %($# >= 13 %? $13 %: never %),
+      %($# >= 14 %? $14 %: never %),
+      %($# >= 15 %? $15 %: never %),
+      %($# >= 16 %? $16 %: never %),
+      %($# >= 17 %? $17 %: never %),
+      %($# >= 18 %? $18 %: never %),
+      %($# >= 19 %? $19 %: never %),
+      %($# >= 20 %? $20 %: never %),
+      %($# >= 21 %? $21 %: never %),
+      %($# >= 22 %? $22 %: never %),
+      %($# >= 23 %? $23 %: never %),
+      %($# >= 24 %? $24 %: never %),
+      %($# >= 25 %? $25 %: never %),
+      %($# >= 26 %? $26 %: never %),
+      %($# >= 27 %? $27 %: never %),
+      %($# >= 28 %? $28 %: never %),
+      %($# >= 29 %? $29 %: never %),
+      %($# >= 30 %? $30 %: never %),
+      %($# >= 31 %? $32 %: never %),
+      %($# >= 32 %? $32 %: never %)
+{
+  if (target() && pid() != target())
+    next
+  c[tid(), pn()]<<<1
+}
+
+probe end {
+  printf("%s\t%s\n", "TID", "EVENT: COUNT")
+  foreach([tid+, name] in c)
+    printf("%5d\t%s: %d\n",tid, name, @count(c[tid, name]))
+  delete c
+}
