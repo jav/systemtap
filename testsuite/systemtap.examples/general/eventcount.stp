@@ -49,7 +49,10 @@ probe %($# >= 1 %? $1 %: never %),
 
 probe begin {
       start_ms = gettimeofday_ms() 
-      printf("Starting event counting at %s.\n", tz_ctime(gettimeofday_s()))
+      if (target()) msg = sprintf ("pid %d + children", target())
+      else msg = "system-wide";
+      printf("Starting %s event counting at %s.\n", msg, 
+             tz_ctime(gettimeofday_s()))
 }
 global start_ms
 
