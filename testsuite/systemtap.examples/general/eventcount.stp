@@ -62,9 +62,10 @@ probe end {
   if (elapsed_ms < 0) elapsed_ms=1
   printf("Total time elapsed: %d ms.\n", elapsed_ms)
 
-  printf("%14s\t%-30s\t%s\n", "TID", "EVENT", "COUNT (RATE Hz)")
+  printf("%-25s %-30s %s\n", "TID", "EVENT", "COUNT (RATE Hz)")
+  printf("%-25s %-30s %s\n", "---", "-----", "---------------")
   foreach([tid+, name] in c)
-    printf("%14s\t%-30s\t%d (%d.%02d)\n", tid, name,
+    printf("%-25s %-30s %d (%d.%02d)\n", tid, name,
            @count(c[tid, name]),
            (@count(c[tid,name])*100000/elapsed_ms)/100,
            (@count(c[tid,name])*100000/elapsed_ms)%100)
