@@ -954,6 +954,9 @@ the following syntax:
 probe perf.type(NN).config(MM).sample(XX)
 probe perf.type(NN).config(MM)
 .ESAMPLE
+The systemtap probe handler is called once per XX increments
+of the underlying performance counter.  The default sampling
+count is 1000000.
 The range of valid type/config is described by the 
 .IR perf_event_open (2)
 system call, and/or the 
