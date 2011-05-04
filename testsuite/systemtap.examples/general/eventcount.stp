@@ -44,12 +44,25 @@ probe %($# >= 1 %? $1 %: never %),
 {
   if (target() && ! target_set_pid(pid()))
     next
-  c[tid(), pn()]<<<1
+  c[sprintf("%s(%d)",execname(),tid()), pn()]<<<1
 }
 
+probe begin {
+      start_ms = gettimeofday_ms() 
+      printf("Starting event counting at %s.\n", tz_ctime(gettimeofday_s()))
+}
+global start_ms
+
 probe end {
-  printf("%s\t%s\n", "TID", "EVENT: COUNT")
+  printf("Finished event counting at %s.\n", tz_ctime(gettimeofday_s()))
+  elapsed_ms = gettimeofday_ms() - start_ms
+  if (elapsed_ms < 0) elapsed_ms=1
+  printf("Total time elapsed: %d ms.\n", elapsed_ms)
+
+  printf("%14s\t%-30s\t%s\n", "TID", "EVENT", "COUNT (RATE Hz)")
   foreach([tid+, name] in c)
-    printf("%5d\t%s: %d\n",tid, name, @count(c[tid, name]))
-  delete c
+    printf("%14s\t%-30s\t%d (%d.%02d)\n", tid, name,
+           @count(c[tid, name]),
+           (@count(c[tid,name])*100000/elapsed_ms)/100,
+           (@count(c[tid,name])*100000/elapsed_ms)%100)
 }
