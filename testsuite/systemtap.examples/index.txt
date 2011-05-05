@@ -30,6 +30,15 @@ keywords: filesystem hack
   # stap -g badname.stp -c "touch /tmp/myXXXfile" 2>&1 | grep denied
 
 
+general/eventcount.stp - Event Counter for eventcount.stp
+keywords: event counter tid pid
+
+  The script prints a count of specified events and their related tid's
+  over the course of execution.
+
+  # stap eventcount.stp syscall.* -c 'sleep 0.2'
+
+
 general/graphs.stp - Graphing Disk and CPU Utilization
 keywords: disk cpu use graph
 
