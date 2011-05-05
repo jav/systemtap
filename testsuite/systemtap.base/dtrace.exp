@@ -140,6 +140,19 @@ if {[file exists test.h]} then {
 exec rm -f test.o
 
 set ok 0
+verbose -log "CFLAGS=\"MYCFLAGS\" CC=echo $dtrace -G -s $dpath"
+spawn env CFLAGS=MYCFLAGS CC=echo $dtrace -G -s $dpath
+expect {
+    -re {-g MYCFLAGS} {incr ok}
+}
+catch {close}; catch {wait}
+if { $ok != 0} {
+    pass "dtrace CFLAGS= CC="
+} else {
+    fail "dtrace CFLAGS= CC="
+}
+
+set ok 0
 verbose -log "$dtrace -C -h -s $dpath -o XXX.h"
 catch {exec $dtrace -C -h -s $dpath -o XXX.h}
 spawn cat XXX.h

@@ -5,7 +5,7 @@
 # $(DTRACE) $(DTRACEFLAGS) -h -s $^ -o $@
 # which is a step that builds DTrace provider and probe definitions
 
-# Copyright (C) 2009, 2010 Red Hat Inc.
+# Copyright (C) 2009, 2010, 2011 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -225,7 +225,11 @@ if (build_header == False and build_source == False):
 
 if (s_filename != "" and use_cpp):
     (d,fn) = mkstemp(suffix=".d")
-    args = ['cpp'] + includes + defines + [s_filename, fn]
+    try:
+        CPP = os.environ["CPP"]
+    except KeyError:
+        CPP = "cpp"
+    args = [CPP] + includes + defines + [s_filename, fn]
     retcode = call(args)
     if (retcode != 0):
         print "\"cpp includes s_filename\" failed"
@@ -265,16 +269,24 @@ elif (build_source):
     f.write("\n#include <sys/sdt.h>\n\n")
     providers.semaphore_def_write(f)
     f.close()
-    #print ["gcc", "-fPIC"] + defines + ["-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"]
-    call(["gcc", "-fPIC"] + defines + includes +
-         ["-I.", "-I@prefix@/include", "-g", "-c", fn, "-o",
+    try:
+        CC = os.environ["CC"]
+    except KeyError:
+        CC = "gcc"
+    CFLAGS = "-g"
+    try:
+        CFLAGS = CFLAGS + " " + os.environ["CFLAGS"]
+    except KeyError:
+        True
+    call([CC, "-fPIC"] + defines + includes + CFLAGS.split(" ") +
+         ["-I.", "-I@prefix@/include", "-c", fn, "-o",
           filename + ".o"], shell=False)
     if (not keep_temps):
         os.remove(fn)
     else:
         print "source: " + fn
-if (use_cpp):
-    if (not keep_temps):
-        os.remove(s_filename)
-    else:
-        print "cpp: " + s_filename
+	if (use_cpp):
+	    if (not keep_temps):
+        	os.remove(s_filename)
+	    else:
+        	print "cpp: " + s_filename
