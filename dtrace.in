@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# vim: et sta sts=4 sw=4 ts=8
 
 # This handles the systemtap equivalent of
 # $(DTRACE) $(DTRACEFLAGS) -G -s $^ -o $@
@@ -235,7 +236,7 @@ if (s_filename != "" and use_cpp):
     s_filename = fn
 if (filename == ""):
     if (s_filename != ""):
-	(filename,ext) = os.path.splitext(s_filename)
+        (filename,ext) = os.path.splitext(s_filename)
         filename = os.path.basename(filename)
     else:
         usage()
@@ -275,8 +276,8 @@ elif (build_source):
         os.remove(fn)
     else:
         print "source: " + fn
-	if (use_cpp):
-	    if (not keep_temps):
-        	os.remove(s_filename)
-	    else:
-        	print "cpp: " + s_filename
+    if (use_cpp):
+        if (not keep_temps):
+            os.remove(s_filename)
+        else:
+            print "cpp: " + s_filename
