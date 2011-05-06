@@ -168,16 +168,6 @@ def help ():
     print _("         which is required by some packages that use dtrace.")
     sys.exit(1)
 
-def open_file (arg):
-    if (len(sys.argv) <= arg):
-        return False
-    try:
-        file = open(sys.argv[arg], 'r')
-    except IOError:
-        print (sys.argv[arg] + " not found")
-        sys.exit(1)
-    return file
-
 
 ########################################################################
 # main
