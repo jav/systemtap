@@ -370,7 +370,7 @@ void
 dwflpp::iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
                                               const char *, Dwarf_Addr,
                                               void *),
-                             base_query *data)
+                             void *data)
 {
   dwfl_getmodules (dwfl_ptr.get()->dwfl, callback, data, 0);
 
@@ -1048,7 +1048,7 @@ dwflpp::iterate_over_notes (void *object, void (*callback)(void *object, int typ
  * returning 'object' in case 'callback' is a method */
 
 void
-dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg), base_query *q)
+dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg), void *q)
 {
   std::set<std::string> added;
   string interpreter;
@@ -1056,8 +1056,8 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
   assert (this->module_name.length() != 0);
 
   Dwarf_Addr bias;
-  Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (module, &bias))
-      ?: dwfl_module_getelf (module, &bias));
+//  We cannot use this: dwarf_getelf (dwfl_module_getdwarf (module, &bias))
+  Elf *elf = dwfl_module_getelf (module, &bias);
   size_t phnum;
   elf_getphdrnum (elf, &phnum);
   for (size_t cnt = 0; cnt < phnum; ++cnt)
@@ -1071,16 +1071,16 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
 
           if (filedata != NULL && phdr->p_offset < maxsize)
             interpreter = (char*) (filedata + phdr->p_offset);
-          if (! (interpreter.substr (0,8) == "/lib/ld-"
-                 || interpreter.substr (0,10) == "/lib64/ld-")
-                && interpreter.find (".so") != string::npos)
-            throw semantic_error(_F("unsupported interpreter: %s", interpreter.c_str()));
           break;
         }
     }
 
-  if (geteuid() == 0 && !sess.suppress_warnings)
-    sess.print_warning(_("/usr/bin/ldd may not be safe to run on untrustworthy executables"));
+  if (interpreter.length() == 0)
+    return;
+  if (! (interpreter.substr (0,7) == "/lib/ld"
+      || interpreter.substr (0,22) == "/lib64/ld-linux-x86-64")
+      && interpreter.find (".so") != string::npos)
+    throw semantic_error(_F("unsupported interpreter: %s", interpreter.c_str()));
 
   string ldd_command = string("env LD_TRACE_LOADED_OBJECTS=1 LD_WARN=yes LD_BIND_NOW=yes ")
       + interpreter + " " + this->module_name;

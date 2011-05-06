@@ -101,6 +101,8 @@ error_handler [expr {$ok == 9}] "sdt_misc $glob $mssg"
 } ; # glob
 } ; # mssg_flags
 
+# Test globbing
+
 foreach glob {{*} {*libc*}} {
 set ok 0
 spawn $stap_path -c "/usr/bin/printf %s\\\\n ABCD" -e "probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\") \{printf(\"at printf begin\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\").return \{printf(\"at printf end\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").statement(\"__snprintf_chk@snprintf_chk.c+2\") \{printf(\"in printf body\\n\")\}"
@@ -119,3 +121,27 @@ catch {close}; catch {wait}
 
 error_handler [expr {$ok == 4}] "printf $glob"
 } ; # glob
+
+# Test --ldd
+
+set ok 0
+spawn $stap_path -c "/usr/bin/printf %s\\\\n ABCD" --ldd -v -v -v -e "probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\") \{printf(\"at printf begin\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\").return \{printf(\"at printf end\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").statement(\"__snprintf_chk@snprintf_chk.c+2\") \{printf(\"in printf body\\n\")\}"
+
+set ok 0
+expect {
+    -timeout 180
+    -re {Added -d '/lib64/libc.so.6' due to 'libc.so.6'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/libc.so.6' due to 'libc.so.6'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/libc.so.6' due to 'libc.so.6'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+catch {close}; catch {wait}
+
+error_handler [expr {$ok == 7}] "printf --ldd"
+

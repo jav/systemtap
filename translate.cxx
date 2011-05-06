@@ -18,6 +18,7 @@
 #include "dwarf_wrappers.h"
 #include "setupdwfl.h"
 #include "task_finder.h"
+#include "dwflpp.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -5464,15 +5465,29 @@ void emit_symbol_data_done (unwindsym_dump_context*, systemtap_session&);
 
 
 void
+add_unwindsym_iol_callback (void *q, const char *data)
+{
+  std::set<std::string> *added = (std::set<std::string>*)q;
+  added->insert (string (data));
+}
+
+
+static int
+query_module (Dwfl_Module *mod,
+              void **,
+              const char *name,
+              Dwarf_Addr addr,
+              void *arg)
+{
+  ((struct dwflpp*)arg)->focus_on_module(mod, NULL);
+  return DWARF_CB_OK;
+}
+
+
+void
 add_unwindsym_ldd (systemtap_session &s)
 {
   std::set<std::string> added;
-
-  // NB: This is not entirely safe.  It may be possible to create a
-  // handcrafted executable that sends ldd off to neverland, or even
-  // to execute the thing.
-  if (geteuid() == 0 && !s.suppress_warnings)
-    s.print_warning(_("/usr/bin/ldd may not be safe to run on untrustworthy executables"));
 
   for (std::set<std::string>::iterator it = s.unwindsym_modules.begin();
        it != s.unwindsym_modules.end();
@@ -5482,57 +5497,12 @@ add_unwindsym_ldd (systemtap_session &s)
       assert (modname.length() != 0);
       if (! is_user_module (modname)) continue;
 
-      string ldd_command = "/usr/bin/ldd " + modname;
-      if (s.verbose > 2)
-        clog << _F("Running '%s'", ldd_command.c_str()) << endl;
-
-      FILE *fp = popen (ldd_command.c_str(), "r");
-      if (fp == 0)
-        clog << ldd_command << _F(" failed: %s", strerror(errno)) << endl;
-      else
-        {
-          while (1)
-            {
-              char linebuf[256];
-              char *soname = 0;
-              char *shlib = 0;
-              unsigned long int addr = 0;
-
-              char *line = fgets (linebuf, 256, fp);
-              if (line == 0) break; // EOF or error
-
-              // Try soname => shlib (0xaddr)
-              int nf = sscanf (line, "%as => %as (0x%lx)",
-                               &soname, &shlib, &addr);
-              if (nf != 3 || shlib[0] != '/')
-                {
-                  // Try shlib (0xaddr)
-                  nf = sscanf (line, " %as (0x%lx)", &shlib, &addr);
-                  if (nf != 2 || shlib[0] != '/')
-                    continue; // fewer than expected fields, or bad shlib.
-                }
-
-              if (added.find (shlib) == added.end())
-                {
-                  if (s.verbose > 2)
-                    {
-                      clog << _F("Added -d '%s", shlib);
-                      if (nf == 3)
-                        clog << _F("' due to '%s'", soname);
-                      else
-                        clog << "'";
-                      clog << endl;
-                    }
-                  added.insert (shlib);
-                }
-
-              free (soname);
-              free (shlib);
-            }
-          pclose (fp);
-        }
+      struct dwflpp *mod_dwflpp = new dwflpp(s, modname, false);
+      mod_dwflpp->iterate_over_modules(&query_module, mod_dwflpp);
+      mod_dwflpp->iterate_over_libraries (&add_unwindsym_iol_callback, &added);
+      free (mod_dwflpp);
     }
-  
+
   s.unwindsym_modules.insert (added.begin(), added.end());
 }
 
