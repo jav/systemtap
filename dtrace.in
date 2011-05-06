@@ -225,10 +225,7 @@ if (build_header == False and build_source == False):
 
 if (s_filename != "" and use_cpp):
     (d,fn) = mkstemp(suffix=".d")
-    try:
-        CPP = os.environ["CPP"]
-    except KeyError:
-        CPP = "cpp"
+    CPP = os.environ.get("CPP", "cpp")
     args = [CPP] + includes + defines + [s_filename, fn]
     retcode = call(args)
     if (retcode != 0):
@@ -269,16 +266,9 @@ elif (build_source):
     f.write("\n#include <sys/sdt.h>\n\n")
     providers.semaphore_def_write(f)
     f.close()
-    try:
-        CC = os.environ["CC"]
-    except KeyError:
-        CC = "gcc"
-    CFLAGS = "-g"
-    try:
-        CFLAGS = CFLAGS + " " + os.environ["CFLAGS"]
-    except KeyError:
-        True
-    call([CC, "-fPIC"] + defines + includes + CFLAGS.split(" ") +
+    CC = os.environ.get("CC", "gcc")
+    CFLAGS = "-g " + os.environ.get("CFLAGS", "")
+    call([CC, "-fPIC"] + defines + includes + CFLAGS.split() +
          ["-I.", "-I@prefix@/include", "-c", fn, "-o",
           filename + ".o"], shell=False)
     if (not keep_temps):
