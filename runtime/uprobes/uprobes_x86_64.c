@@ -503,7 +503,6 @@ static int handle_riprel_insn(struct uprobe_probept *ppt)
 		+ 1			/* modrm byte */
 		+ 4			/* offset */
 		+ immed_size;		/* immediate field */
-#undef DEBUG_UPROBES_RIP
 #ifdef DEBUG_UPROBES_RIP
 {
 	int i;
