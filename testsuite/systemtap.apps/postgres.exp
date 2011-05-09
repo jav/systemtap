@@ -12,11 +12,9 @@ if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
 }
 
 ########## Create /tmp/stap-postgres.stp ########## 
-set postgresrelease "8.4.7"
-set postgresbuild "[pwd]/postgresql-$postgresrelease/bld"
-set postgresdir "[pwd]/postgresql-$postgresrelease/install/"
 set pgdata "/tmp/stap-postgres"
-
+set postgresrelease "9.0.4"
+set postgresdir "[pwd]/postgresql-$postgresrelease/install/"
 
 set fp [open "$pgdata.stp" "w"]
 puts $fp "
@@ -83,7 +81,7 @@ for i in \$(seq 0 10) ; do
     sleep 5
 done
 
-(cd $postgresbuild/src/test/regress/
+(cd $postgresdir/../src/test/regress/
  make installcheck > $pgdata.log 2>&1)
 
 ACQUIRE=\$(grep 'lwlock__acquire 0x\[0-9\]* 0x\[0-9\]*' $pgdata-markers.log | wc -l)
@@ -96,15 +94,15 @@ echo lwlock__acquire=\$ACQUIRE lwlock__release=\$RELEASE transaction__start=\$ST
 : 44873 75325 591 489 0
 
 if \[ \$ACQUIRE -gt 40000 -a \$RELEASE -gt 70000 -a \$START -gt 500 -a \$COMMIT -gt 400 \] ; then
-   echo PASS: postgres tests \$1
+   echo PASS: postgres tests \$ACQUIRE/\$RELEASE/\$START/\$COMMIT
 else
-   echo FAIL: postgres tests \$1
+   echo FAIL: postgres tests \$ACQUIRE/\$RELEASE/\$START/\$COMMIT
 fi
 
 if \[ \$OKAY -gt 100 \] ; then
-   echo PASS: postgres markers \$1
+   echo PASS: postgres markers \$OKAY
 else
-   echo FAIL: postgres markers \$1
+   echo FAIL: postgres markers \$OKAY
 fi
 
 /usr/local/pgsql/bin/pg_ctl stop -D $pgdata
@@ -119,25 +117,22 @@ if \[ ! -r postgresql-$postgresrelease.tar.bz2 \] ; then
    exit
 fi
 
-if \[ ! -d $postgresbuild/src/backend \] ; then
+if \[ ! -d $postgresdir/../src/backend \] ; then
 tar -x -f postgresql-${postgresrelease}.tar.bz2
 fi
 
 cd postgresql-${postgresrelease}/
-mkdir bld;cd bld
-../configure --enable-dtrace --prefix=$postgresdir
-sed -i -e 's|^CFLAGS = -O2.*\$|& -g -DEXPERIMENTAL_KPROBE_SDT -I $env(SYSTEMTAP_INCLUDES)|' src/Makefile.global
-# make
-# make install
-# run_tests kprobe
+# postgres 9.0.4 now seems to want build done from source dir
+# mkdir bld;cd bld
+./configure --enable-dtrace --prefix=$postgresdir
+sed -i -e 's|^CFLAGS = -O2.*\$|& -g -I $env(SYSTEMTAP_INCLUDES)|' src/Makefile.global
 
-sed -i -e 's/-DEXPERIMENTAL_KPROBE_SDT//' src/Makefile.global
-# (cd src/backend/utils/
-#  make clean)
-make
+J=\$(getconf _NPROCESSORS_CONF)
+make -j\$J
 make install
-run_tests uprobe
+run_tests
 "
+
 ########## End /tmp/stap-postgres.sh ########## 
 close $fp
 
