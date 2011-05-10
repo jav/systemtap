@@ -100,7 +100,7 @@ class direct : public remote {
   public:
     friend class remote;
 
-    virtual ~direct() {}
+    virtual ~direct() { finish(); }
 };
 
 
@@ -447,7 +447,7 @@ class direct_stapsh : public stapsh {
   public:
     friend class remote;
 
-    virtual ~direct_stapsh() {}
+    virtual ~direct_stapsh() { finish(); }
 };
 
 
@@ -540,7 +540,7 @@ class ssh_remote : public stapsh {
     static remote* create(systemtap_session& s, const string& host);
     static remote* create(systemtap_session& s, const uri_decoder& ud);
 
-    virtual ~ssh_remote() { }
+    virtual ~ssh_remote() { finish(); }
 };
 
 
