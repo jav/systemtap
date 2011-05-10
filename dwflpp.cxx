@@ -1077,9 +1077,9 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
 
   if (interpreter.length() == 0)
     return;
-  if (! (interpreter.substr (0,7) == "/lib/ld"
-      || interpreter.substr (0,22) == "/lib64/ld-linux-x86-64")
-      && interpreter.find (".so") != string::npos)
+  if (interpreter != "/lib/ld.so.1"
+      && interpreter != "/lib64/ld-linux-x86-64.so.2"
+      && interpreter !=  "/lib/ld-linux.so.2")
     throw semantic_error(_F("unsupported interpreter: %s", interpreter.c_str()));
 
   string ldd_command = string("env LD_TRACE_LOADED_OBJECTS=1 LD_WARN=yes LD_BIND_NOW=yes ")
