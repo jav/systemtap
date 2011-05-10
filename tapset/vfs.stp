@@ -20,10 +20,15 @@
 global __devnames
 function __find_bdevname:string(dev:long, bdev:long)
 {
+	/* bdevname() can't do anything without an actual bdev, so let's just
+	 * return the same result early without wasting space in __devnames.  */
+	if (bdev == 0)
+		return "N/A"
+
 	if (dev in __devnames)
 		return __devnames[dev]
-	else
-		return __devnames[dev] = bdevname(bdev)
+
+	return __devnames[dev] = bdevname(bdev)
 }
 
 /* deprecated */
@@ -594,7 +599,7 @@ probe vfs.do_sync_write.return = kernel.function("do_sync_write").return
 	}
 }
 
-probe vfs.block_sync_page = kernel.function("block_sync_page")
+probe vfs.block_sync_page = kernel.function("block_sync_page") ?
 {
 	dev = __page_dev($page)
 	devname = __find_bdevname(dev, __page_bdev($page))
@@ -610,7 +615,7 @@ probe vfs.block_sync_page = kernel.function("block_sync_page")
 	size = 1
 	units = "pages"
 }
-probe vfs.block_sync_page.return = kernel.function("block_sync_page").return
+probe vfs.block_sync_page.return = kernel.function("block_sync_page").return ?
 {
 	name = "block_sync_page"
 	retstr = sprintf("N/A")
@@ -729,7 +734,9 @@ probe vfs.add_to_page_cache.return =
 	}
 }
 
-probe vfs.remove_from_page_cache = kernel.function("__remove_from_page_cache")
+probe vfs.remove_from_page_cache =
+	kernel.function("__delete_from_page_cache") !,
+	kernel.function("__remove_from_page_cache")
 {
 	dev = __page_dev($page)
 	devname = __find_bdevname(dev, __page_bdev($page))
@@ -741,6 +748,7 @@ probe vfs.remove_from_page_cache = kernel.function("__remove_from_page_cache")
 	argstr = sprintf("%d", ino)
 }
 probe vfs.remove_from_page_cache.return =
+	kernel.function("__delete_from_page_cache").return !,
 	kernel.function("__remove_from_page_cache").return
 {
 	name = "vfs.remove_from_page_cache"
@@ -791,7 +799,7 @@ probe vfs.readv = kernel.function("vfs_readv")
 	vlen = $vlen
 	bytes_to_read = _get_fopv_size($vec, $vlen)
 
-	name = "vfs.read"
+	name = "vfs.readv"
 	argstr = sprintf("%d, %d, %p", bytes_to_read, $pos, $vec)
 }
 

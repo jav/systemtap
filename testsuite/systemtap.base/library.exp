@@ -44,6 +44,10 @@ set v_flag [lindex $v_flags $i]
 set flag "[lindex $mssg_flags $i] additional_flags=$v_flag"
 set mssg [lindex $mssgs $i]
 set exepath "[pwd]/sdt_misc_$mssg.x"
+set sopath "[pwd]/libsdt_$mssg.so"
+
+eval set globs "{{*} {*libsdt_*} $sopath}"
+foreach glob $globs {
 
 # Run dtrace
 
@@ -65,7 +69,6 @@ if { [error_handler [expr {[file exists $hpath] && [file exists $opath]}] "dtrac
 
 set F additional_flags
 set flags "$F=[sdt_includes] $F=$opath $F=-I. $F=$flag $F=-shared $F=-fPIC $F=-DNO_MAIN $F=-g"
-set sopath "[pwd]/libsdt_$mssg.so"
 set exepath "[pwd]/sdt_misc_${mssg}_shared.x"
 set res [target_compile $srcdir/$subdir/sdt_misc.c $sopath executable $flags ]
 if { [error_handler [expr {$res == ""}] "target_compile"] } { return }
@@ -75,7 +78,7 @@ set res [target_compile $srcdir/$subdir/sdt_misc.c $exepath executable $flags ]
 if { [error_handler [expr {$res == ""}] "target_compile"] } { return }
 
 set ok 0
-spawn $stap_path -c $exepath $srcdir/$subdir/library.stp $exepath $sopath
+spawn $stap_path -c $exepath $srcdir/$subdir/library.stp $exepath $glob
 
 expect {
     -timeout 180
@@ -94,5 +97,51 @@ expect {
 
 catch {close}; catch {wait}
 
-error_handler [expr {$ok == 9}] "shared $mssg"
+error_handler [expr {$ok == 9}] "sdt_misc $glob $mssg"
+} ; # glob
+} ; # mssg_flags
+
+# Test globbing
+
+foreach glob {{*} {*libc*}} {
+set ok 0
+spawn $stap_path -c "/usr/bin/printf %s\\\\n ABCD" -e "probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\") \{printf(\"at printf begin\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\").return \{printf(\"at printf end\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").statement(\"__snprintf_chk@snprintf_chk.c+2\") \{printf(\"in printf body\\n\")\}"
+
+expect {
+    -timeout 180
+    -re {ABCD} {incr ok; exp_continue }
+    -re {at printf begin} {incr ok; exp_continue }
+    -re {in printf body} {incr ok; exp_continue }
+    -re {at printf end} {incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
 }
+
+catch {close}; catch {wait}
+
+error_handler [expr {$ok == 4}] "printf $glob"
+} ; # glob
+
+# Test --ldd
+
+set ok 0
+spawn $stap_path -c "/usr/bin/printf %s\\\\n ABCD" --ldd -v -v -v -e "probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\") \{printf(\"at printf begin\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\").return \{printf(\"at printf end\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").statement(\"__snprintf_chk@snprintf_chk.c+2\") \{printf(\"in printf body\\n\")\}"
+
+set ok 0
+expect {
+    -timeout 180
+    -re {Added -d '/lib64/libc.so.6' due to 'libc.so.6'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/libc.so.6' due to 'libc.so.6'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/libc.so.6' due to 'libc.so.6'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
+    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+catch {close}; catch {wait}
+
+error_handler [expr {$ok == 7}] "printf --ldd"
+

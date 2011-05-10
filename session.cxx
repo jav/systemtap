@@ -133,6 +133,7 @@ systemtap_session::systemtap_session ():
   server_cache = NULL;
   use_server_on_error = false;
   try_server_status = try_server_unset;
+  use_remote_prefix = false;
   systemtap_v_check = false;
 
   /*  adding in the XDG_DATA_DIRS variable path,
@@ -288,6 +289,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   server_cache = NULL;
   use_server_on_error = other.use_server_on_error;
   try_server_status = other.try_server_status;
+  use_remote_prefix = other.use_remote_prefix;
   systemtap_v_check = other.systemtap_v_check;
 
   include_path = other.include_path;
@@ -350,7 +352,7 @@ systemtap_session::clone(const string& arch, const string& release)
 void
 systemtap_session::version ()
 {
-  clog << _F("Systemtap translator/driver (version %s /%s %s)\n"
+  clog << _F("Systemtap translator/driver (version %s/%s %s)\n"
              "Copyright (C) 2005-2011 Red Hat, Inc. and others\n"
              "This is free software; see the source for copying conditions.",
              VERSION, dwfl_version(NULL), GIT_MESSAGE) << endl;
@@ -389,39 +391,35 @@ systemtap_session::usage (int exitcode)
   clog
     << endl
     //Session.cxx:287-390 detail systemtap usage from stap -h
-    << _("Usage: stap [options] FILE         Run script in file.")
-    << endl
-    << _("   or: stap [options] -            Run script on stdin.")
-    << endl
-    << _("   or: stap [options] -e SCRIPT    Run given script.")
-    << endl
-    << _("   or: stap [options] -l PROBE     List matching probes.")
-    << endl
-    << _("   or: stap [options] -L PROBE     List matching probes and local variables.")
-    << endl
-    << endl
-    << _("Options:") << endl
-    << _("   --         end of translator options, script options follow") << endl
-    << _("   -h --help  show help") << endl
-    << _("   -V --version  show version") << endl
-    << _("   -p NUM     stop after pass NUM 1-5, instead of ") << last_pass << endl
-    << _("              (parse, elaborate, translate, compile, run)") << endl
-    << _("   -v         add verbosity to all passes") << endl
-    << _("   --vp {N}+  add per-pass verbosity [");
+    << _F("Usage: stap [options] FILE         Run script in file.\n"
+     "   or: stap [options] -            Run script on stdin.\n"
+     "   or: stap [options] -e SCRIPT    Run given script.\n"
+     "   or: stap [options] -l PROBE     List matching probes.\n"
+     "   or: stap [options] -L PROBE     List matching probes and local variables.\n\n"
+     "Options:\n"
+     "   --         end of translator options, script options follow\n"
+     "   -h --help  show help\n"
+     "   -V --version  show version\n"
+     "   -p NUM     stop after pass NUM 1-5, instead of %d\n"
+     "              (parse, elaborate, translate, compile, run)\n"
+     "   -v         add verbosity to all passes\n"
+     "   --vp {N}+  add per-pass verbosity [", last_pass);
   for (unsigned i=0; i<5; i++)
     clog << (perpass_verbose[i] <= 9 ? perpass_verbose[i] : 9);
   clog 
-    << "]" << endl
-    << _("   -k         keep temporary directory") << endl
-    << _F("   -u         unoptimized translation %s", (unoptimized ? _(" [set]") : "")) << endl
-    << _F("   -w         suppress warnings %s", (suppress_warnings ? _(" [set]") : "")) << endl
-    << _F("   -W         turn warnings into errors %s", (panic_warnings ? _(" [set]") : "")) << endl
-    << _F("   -g         guru mode %s", (guru_mode ? _(" [set]") : "")) << endl
-    << _F("   -P         prologue-searching for function probes %s",
-          (prologue_searching ? _(" [set]") : "")) << endl
-    << _F("   -b         bulk (percpu file) mode %s", (bulk_mode ? _(" [set]") : "")) << endl
-    << _F("   -s NUM     buffer size in megabytes, instead of %d", buffer_size) << endl
-    << _("   -I DIR     look in DIR for additional .stp script files");
+    << "]" << endl;
+    clog << _F("   -k         keep temporary directory\n"
+     "   -u         unoptimized translation %s\n"
+     "   -w         suppress warnings %s\n"
+     "   -W         turn warnings into errors %s\n"
+     "   -g         guru mode %s\n"
+     "   -P         prologue-searching for function probes %s\n"
+     "   -b         bulk (percpu file) mode %s\n"
+     "   -s NUM     buffer size in megabytes, instead of %d\n"
+     "   -I DIR     look in DIR for additional .stp script files", (unoptimized ? _(" [set]") : ""),
+         (suppress_warnings ? _(" [set]") : ""), (panic_warnings ? _(" [set]") : ""),
+         (guru_mode ? _(" [set]") : ""), (prologue_searching ? _(" [set]") : ""),
+         (bulk_mode ? _(" [set]") : ""), buffer_size);
   if (include_path.size() == 0)
     clog << endl;
   else
@@ -429,26 +427,26 @@ systemtap_session::usage (int exitcode)
   for (unsigned i=0; i<include_path.size(); i++)
     clog << "              " << include_path[i].c_str() << endl;
   clog
-    << _("   -D NM=VAL  emit macro definition into generated C code") << endl
-    << _("   -B NM=VAL  pass option to kbuild make") << endl
-    << _("   -G VAR=VAL set global variable to value") << endl
+    << _F("   -D NM=VAL  emit macro definition into generated C code\n"
+    "   -B NM=VAL  pass option to kbuild make\n"
+    "   -G VAR=VAL set global variable to value\n"
     //TRANSLATORS: translating 'runtime' is not advised 
-    << _("   -R DIR     look in DIR for runtime, instead of") << endl
-    << "              " << runtime_path.c_str() << endl
-    << _("   -r DIR     cross-compile to kernel with given build tree; or else") << endl
-    << _("   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of") << endl
-    << "              " << kernel_build_tree.c_str() << endl
-    << _F("   -a ARCH    cross-compile to given architecture, instead of %s", architecture.c_str()) << endl
-    << _("   -m MODULE  set probe module name, instead of ") << endl
-    << "              " << module_name.c_str() << endl
-    << _("   -o FILE    send script output to file, instead of stdout. This supports\n" 
-       "              strftime(3) formats for FILE") << endl
-    << _("   -c CMD     start the probes, run CMD, and exit when it finishes") << endl
-    << _("   -x PID     sets target() to PID") << endl
-    << _("   -F         run as on-file flight recorder with -o.") << endl
-    << _("              run as on-memory flight recorder without -o.") << endl
-    << _("   -S size[,n] set maximum of the size and the number of files.") << endl
-    << _("   -d OBJECT  add unwind/symbol data for OBJECT file");
+    "   -R DIR     look in DIR for runtime, instead of\n"
+    "              %s\n"
+    "   -r DIR     cross-compile to kernel with given build tree; or else\n"
+    "   -r RELEASE cross-compile to kernel /lib/modules/RELEASE/build, instead of\n"
+    "              %s\n" 
+    "   -a ARCH    cross-compile to given architecture, instead of %s\n"
+    "   -m MODULE  set probe module name, instead of \n"
+    "              %s\n"
+    "   -o FILE    send script output to file, instead of stdout. This supports\n" 
+    "              strftime(3) formats for FILE\n"
+    "   -c CMD     start the probes, run CMD, and exit when it finishes\n"
+    "   -x PID     sets target() to PID\n"
+    "   -F         run as on-file flight recorder with -o.\n"
+    "              run as on-memory flight recorder without -o.\n"
+    "   -S size[,n] set maximum of the size and the number of files.\n"
+    "   -d OBJECT  add unwind/symbol data for OBJECT file", runtime_path.c_str(), kernel_build_tree.c_str(), architecture.c_str(), module_name.c_str());
   if (unwindsym_modules.size() == 0)
     clog << endl;
   else
@@ -459,43 +457,48 @@ systemtap_session::usage (int exitcode)
       clog << "              " << syms[i].c_str() << endl;
   }
   clog
-    << _("   --ldd      add unwind/symbol data for all referenced object files.") << endl
-    << "   --all-modules" << endl
-    << _("              add unwind/symbol data for all loaded kernel objects.") << endl
-    << _("   -t         collect probe timing information") << endl
+    << _F("   --ldd      add unwind/symbol data for all referenced object files.\n"
+    "   --all-modules\n"
+    "              add unwind/symbol data for all loaded kernel objects.\n"
+    "   -t         collect probe timing information\n"
 #ifdef HAVE_LIBSQLITE3
-    << _("   -q         generate information on tapset coverage") << endl
+    "   -q         generate information on tapset coverage\n"
 #endif /* HAVE_LIBSQLITE3 */
-    << "   --unprivileged" << endl
-    << _("              restrict usage to features available to unprivileged users") << endl
+    "   --unprivileged\n"
+    "              restrict usage to features available to unprivileged users\n"
 #if 0 /* PR6864: disable temporarily; should merge with -d somehow */
-    << "   --kelf     make do with symbol table from vmlinux" << endl
-    << "   --kmap[=FILE]" << endl
-    << "              make do with symbol table from nm listing" << endl
+    "   --kelf     make do with symbol table from vmlinux\n"
+    "   --kmap[=FILE]\n"
+    "              make do with symbol table from nm listing\n"
 #endif
   // Formerly present --ignore-{vmlinux,dwarf} options are for testsuite use
   // only, and don't belong in the eyesight of a plain user.
-    << "   --compatible=VERSION" << endl
-    << _("              suppress incompatible language/tapset changes beyond VERSION,") << endl
-    << _F("              instead of %s", compatible.c_str()) << endl
-    << "   --check-version" << endl
-    << _("              displays warnings where a syntax element may be ") << endl
-    << _("              version dependent") << endl 
-    << _("   --skip-badvars") << endl
-    << _("              substitute zero for bad context $variables") << endl
-    << _("   --use-server[=SERVER-SPEC]") << endl
-    << _("              specify systemtap compile-servers") << endl
-    << _("   --list-servers[=PROPERTIES]") << endl
-    << _("              report on the status of the specified compile-servers") << endl
+    "   --compatible=VERSION\n"
+    "              suppress incompatible language/tapset changes beyond VERSION,\n"
+    "              instead of %s\n"
+    "   --check-version\n"
+    "              displays warnings where a syntax element may be \n"
+    "              version dependent\n"
+    "   --skip-badvars\n"
+    "              substitute zero for bad context $variables\n"
+    "   --use-server[=SERVER-SPEC]\n"
+    "              specify systemtap compile-servers\n"
+    "   --list-servers[=PROPERTIES]\n"
+    "              report on the status of the specified compile-servers:\n"
+    "              all,specified,online,trusted,signer,compatible\n"
 #if HAVE_NSS
-    << _("   --trust-servers[=TRUST-SPEC]") << endl
-    << _("              add/revoke trust of specified compile-servers") << endl
-    << _("   --use-server-on-error[=yes/no]") << endl
-    << _("              retry compilation using a compile server upon compilation error") << endl
+    "   --trust-servers[=TRUST-SPEC]\n"
+    "              add/revoke trust of specified compile-servers:\n"
+    "              ssl,signer,all-users,revoke,no-prompt\n"
+    "   --use-server-on-error[=yes/no]\n"
+    "              retry compilation using a compile server upon compilation error\n"
 #endif
-    << _("   --remote=HOSTNAME") << endl
-    << _("              run pass 5 on the specified ssh host.") << endl
-    << _("              may be repeated for targeting multiple hosts.") << endl
+    "   --remote=HOSTNAME\n"
+    "              run pass 5 on the specified ssh host.\n"
+    "              may be repeated for targeting multiple hosts.\n"
+    "   --remote-prefix\n"
+    "              prefix each line of remote output with a host index."
+    , compatible.c_str()) << endl
   ;
 
   time_t now;
@@ -541,6 +544,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_CHECK_VERSION 21
 #define LONG_OPT_USE_SERVER_ON_ERROR 22
 #define LONG_OPT_VERSION 23
+#define LONG_OPT_REMOTE_PREFIX 24
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -570,6 +574,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "use-server-on-error", 2, &long_opt, LONG_OPT_USE_SERVER_ON_ERROR },
         { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
         { "remote", 1, &long_opt, LONG_OPT_REMOTE },
+        { "remote-prefix", 0, &long_opt, LONG_OPT_REMOTE_PREFIX },
         { "check-version", 0, &long_opt, LONG_OPT_CHECK_VERSION },
         { "version", 0, &long_opt, LONG_OPT_VERSION },
         { NULL, 0, NULL, 0 }
@@ -1019,6 +1024,15 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               remote_uris.push_back(optarg);
               break;
 
+            case LONG_OPT_REMOTE_PREFIX:
+              if (client_options) {
+                  cerr << _F("ERROR: %s is invalid with %s", "--remote-prefix", "--client-options") << endl;
+                  return 1;
+              }
+
+              use_remote_prefix = true;
+              break;
+
             case LONG_OPT_CHECK_VERSION:
               push_server_opt = true;
               systemtap_v_check = true;
@@ -1296,7 +1310,7 @@ systemtap_session::register_library_aliases()
               for (unsigned n = 0; n < alias->alias_names.size(); ++n)
                 {
                   probe_point * name = alias->alias_names[n];
-                  match_node * n = pattern_root;
+                  match_node * mn = pattern_root;
                   for (unsigned c = 0; c < name->components.size(); ++c)
                     {
                       probe_point::component * comp = name->components[c];
@@ -1304,9 +1318,9 @@ systemtap_session::register_library_aliases()
                       if (comp->arg)
                         throw semantic_error(_F("alias component %s contains illegal parameter",
                                                 comp->functor.c_str()));
-                      n = n->bind(comp->functor);
+                      mn = mn->bind(comp->functor);
                     }
-                  n->bind(new alias_expansion_builder(alias));
+                  mn->bind(new alias_expansion_builder(alias));
                 }
             }
           catch (const semantic_error& e)

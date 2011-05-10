@@ -224,7 +224,7 @@ probe end
 	if (mmap_args[5] != close_args[1]) {
 	    failures += 1
 	    printf("close bad arg 1: 0x%x vs 0x%x\n",
-	           close_args[0], mmap_args[5])
+	           close_args[1], mmap_args[5])
 	}
 
 	# Validate syscall number

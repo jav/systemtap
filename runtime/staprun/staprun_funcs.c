@@ -83,6 +83,7 @@ int insert_module(
 	/* Use realpath() to canonicalize the module path. */
 	if (realpath(path, module_realpath) == NULL) {
 		perr("Unable to canonicalize path \"%s\"", path);
+		free(opts);
 		return -1;
 	}
 
@@ -96,6 +97,7 @@ int insert_module(
 	module_fd = open(module_realpath, O_RDONLY);
 	if (module_fd < 0) {
 		perr("Error opening '%s'", module_realpath);
+		free(opts);
 		return -1;
 	}
 
@@ -103,6 +105,7 @@ int insert_module(
 	if (fstat(module_fd, &sbuf) < 0) {
 		_perr("Error stat'ing '%s'", module_realpath);
 		close(module_fd);
+		free(opts);
 		return -1;
 	}
 

@@ -1,5 +1,7 @@
 # test the resolution of unresolved struct typedefs
 set test "unresolved-struct-typedef"
+# process probes need utrace
+if {![utrace_p]} { untested "$test"; return }
 
 set test_flags "additional_flags=-g"
 set test_flags "$test_flags additional_flags=-O2"

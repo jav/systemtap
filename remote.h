@@ -29,6 +29,7 @@ class remote {
 
   protected:
     systemtap_session* s;
+    std::string prefix;
 
     remote(systemtap_session& s): s(&s) {}
 

@@ -1,11 +1,12 @@
 #!/usr/bin/python
+# vim: et sta sts=4 sw=4 ts=8
 
 # This handles the systemtap equivalent of
 # $(DTRACE) $(DTRACEFLAGS) -G -s $^ -o $@
 # $(DTRACE) $(DTRACEFLAGS) -h -s $^ -o $@
 # which is a step that builds DTrace provider and probe definitions
 
-# Copyright (C) 2009, 2010 Red Hat Inc.
+# Copyright (C) 2009, 2010, 2011 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -19,6 +20,14 @@ import sys
 from subprocess import call
 from tempfile import mkstemp
 
+if "@ENABLE_NLS@":
+    import gettext
+    gettext.bindtextdomain('@PACKAGE@', '@LOCALEDIR@')
+    gettext.textdomain('@PACKAGE@')
+    _ = gettext.gettext
+
+else:
+    _ = ' '
 
 class _provider:
     semaphores_def = "\n"
@@ -28,7 +37,7 @@ class _provider:
                         "unsigned long","char","char*","float","double" ]
         split_arg = arg.rsplit(None,1)
         return (split_arg[0].strip() in basic_types) & (arg.find("[") == -1)
-    def __typedef_append(self, typedefs,this_probe,arg,c):
+    def __typedef_append(self, typedefs, this_probe, arg, c, add_typedefs):
         if (add_typedefs):
             split_arg = arg.rsplit(None,1)
             if (self.__basic_type(arg)):
@@ -95,7 +104,8 @@ class _provider:
                         args_string = ('%s %s,' %
                                        (args_string, arg.strip()))
                         c += 1
-                        typedefs = self.__typedef_append (typedefs,this_probe,arg,c)
+                        typedefs = self.__typedef_append (typedefs, this_probe,
+                                                          arg, c, add_typedefs)
                         arg = ""
                     else:
                         arg = arg + args[i]
@@ -108,7 +118,8 @@ class _provider:
                     (self.provider,this_probe)
                 else:
                     c += 1
-                    typedefs = self.__typedef_append (typedefs,this_probe,arg,c)
+                    typedefs = self.__typedef_append (typedefs, this_probe,
+                                                      arg, c, add_typedefs)
                     stap_str = "STAP_PROBE%d(%s,%s" % \
                         (c,self.provider,this_probe)
                 define_str = "#define %s(" % (this_probe_canon)
@@ -143,130 +154,126 @@ class _provider:
 
 
 def usage ():
-    print "Usage " + sys.argv[0] + " [--help] [-h | -G] [-C [-I<Path>]] -s File.d [-o <File>]"
+    print _("Usage ") + sys.argv[0] + " [--help] [-h | -G] [-C [-I<Path>]] -s File.d [-o <File>]"
 
 def help ():
     usage()
-    print "Where -h builds a systemtap header file from the .d file"
-    print "      -C when used with -h, also run cpp preprocessor"
-    print "      -o specifies an explicit output file name,"
-    print "         the default for -G is file.o and -h is file.h"
-    print "      -I when running cpp pass through this -I include Path"
-    print "      -s specifies the name of the .d input file"
-    print "      -G builds a stub file.o from file.d,"
-    print "         which is required by some packages that use dtrace."
+    print _("Where -h builds a systemtap header file from the .d file")
+    print _("      -C when used with -h, also run cpp preprocessor")
+    print _("      -o specifies an explicit output file name,")
+    print _("         the default for -G is file.o and -h is file.h")
+    print _("      -I when running cpp pass through this -I include Path")
+    print _("      -s specifies the name of the .d input file")
+    print _("      -G builds a stub file.o from file.d,")
+    print _("         which is required by some packages that use dtrace.")
     sys.exit(1)
-
-def open_file (arg):
-    if (len(sys.argv) <= arg):
-        return False
-    try:
-        file = open(sys.argv[arg], 'r')
-    except IOError:
-        print (sys.argv[arg] + " not found")
-        sys.exit(1)
-    return file
 
 
 ########################################################################
 # main
 ########################################################################
 
-if (len(sys.argv) < 2):
-    usage()
-    sys.exit(1)
-
-i = 1
-build_header = False
-build_source = False
-add_typedefs = False
-keep_temps = False
-use_cpp = False
-h_ext = '.h'
-filename = ""
-s_filename = ""
-includes = []
-defines = []
-while (i < len(sys.argv)):
-    if (sys.argv[i] == "-o"):
-        i += 1
-        filename = sys.argv[i]
-    elif (sys.argv[i] == "-s"):
-        i += 1
-        s_filename = sys.argv[i]
-    elif (sys.argv[i] == "-C"):
-        use_cpp = True
-    elif (sys.argv[i].startswith("-D")):
-        defines.append(sys.argv[i])
-    elif (sys.argv[i] == "-h"):
-        build_header = True
-    elif (sys.argv[i].startswith("-I")):
-        includes.append(sys.argv[i])
-    elif (sys.argv[i] == "-G"):
-        build_source = True
-    elif (sys.argv[i] == "-k"):
-        keep_temps = True
-    elif (sys.argv[i] == "--types"):
-        add_typedefs = True
-    elif (sys.argv[i] == "--help"):
-        help()
-    i += 1
-if (build_header == False and build_source == False):
-    usage()
-    sys.exit(1)
-
-if (s_filename != "" and use_cpp):
-    (d,fn) = mkstemp(suffix=".d")
-    args = ['cpp'] + includes + defines + [s_filename, fn]
-    retcode = call(args)
-    if (retcode != 0):
-        print "\"cpp includes s_filename\" failed"
+def main():
+    if (len(sys.argv) < 2):
         usage()
         sys.exit(1)
-    s_filename = fn
-if (filename == ""):
-    if (s_filename != ""):
-	(filename,ext) = os.path.splitext(s_filename)
-        filename = os.path.basename(filename)
+
+    i = 1
+    build_header = False
+    build_source = False
+    add_typedefs = False
+    keep_temps = False
+    use_cpp = False
+    h_ext = '.h'
+    filename = ""
+    s_filename = ""
+    includes = []
+    defines = []
+    while (i < len(sys.argv)):
+        if (sys.argv[i] == "-o"):
+            i += 1
+            filename = sys.argv[i]
+        elif (sys.argv[i] == "-s"):
+            i += 1
+            s_filename = sys.argv[i]
+        elif (sys.argv[i] == "-C"):
+            use_cpp = True
+        elif (sys.argv[i].startswith("-D")):
+            defines.append(sys.argv[i])
+        elif (sys.argv[i] == "-h"):
+            build_header = True
+        elif (sys.argv[i].startswith("-I")):
+            includes.append(sys.argv[i])
+        elif (sys.argv[i] == "-G"):
+            build_source = True
+        elif (sys.argv[i] == "-k"):
+            keep_temps = True
+        elif (sys.argv[i] == "--types"):
+            add_typedefs = True
+        elif (sys.argv[i] == "--help"):
+            help()
+        i += 1
+    if (build_header == False and build_source == False):
+        usage()
+        sys.exit(1)
+
+    if (s_filename != "" and use_cpp):
+        (d,fn) = mkstemp(suffix=".d")
+        CPP = os.environ.get("CPP", "cpp")
+        args = [CPP] + includes + defines + [s_filename, fn]
+        retcode = call(args)
+        if (retcode != 0):
+            print "\"cpp includes s_filename\" failed"
+            usage()
+            sys.exit(1)
+        s_filename = fn
+    if (filename == ""):
+        if (s_filename != ""):
+            (filename,ext) = os.path.splitext(s_filename)
+            filename = os.path.basename(filename)
+        else:
+            usage()
+            sys.exit(1)
     else:
-        usage()
-        sys.exit(1)
-else:
+        if (build_header):
+            h_ext = ""
+        else:
+            (filename,ext) = os.path.splitext(filename)
     if (build_header):
-        h_ext = ""
-    else:
-        (filename,ext) = os.path.splitext(filename)
-if (build_header):
-    providers = _provider()
-    providers.generate(s_filename, filename + h_ext, add_typedefs)
-elif (build_source):
-    (basename,ext) = os.path.splitext(s_filename)
+        providers = _provider()
+        providers.generate(s_filename, filename + h_ext, add_typedefs)
+    elif (build_source):
+        (basename,ext) = os.path.splitext(s_filename)
 
-    # create for semaphore_def_write
-    providers = _provider()
-    (d,fn) = mkstemp(suffix=".h")
-    providers.generate(s_filename, fn, add_typedefs)
-    if (not keep_temps):
-        os.remove(fn)
-    else:
-        print "header: " + fn
+        # create for semaphore_def_write
+        providers = _provider()
+        (d,fn) = mkstemp(suffix=".h")
+        providers.generate(s_filename, fn, add_typedefs)
+        if (not keep_temps):
+            os.remove(fn)
+        else:
+            print "header: " + fn
 
-    (d,fn) = mkstemp(suffix=".c")
-    f = open(fn,mode='w')
-    f.write("static __dtrace () {}\n")
-    f.write("\n#include <sys/sdt.h>\n\n")
-    providers.semaphore_def_write(f)
-    f.close()
-    #print ["gcc", "-fPIC"] + defines + ["-I.", "-I@prefix@/include", "-g", "-c", fn, "-o", filename + ".o"]
-    call(["gcc", "-fPIC"] + defines + includes +
-         ["-I.", "-I@prefix@/include", "-g", "-c", fn, "-o",
-          filename + ".o"], shell=False)
-    if (not keep_temps):
-        os.remove(fn)
-    else:
-        print "source: " + fn
-if (use_cpp):
-    if (not keep_temps):
-        os.remove(s_filename)
-    else:
-        print "cpp: " + s_filename
+        (d,fn) = mkstemp(suffix=".c")
+        f = open(fn,mode='w')
+        f.write("static __dtrace () {}\n")
+        f.write("\n#include <sys/sdt.h>\n\n")
+        providers.semaphore_def_write(f)
+        f.close()
+        CC = os.environ.get("CC", "gcc")
+        CFLAGS = "-g " + os.environ.get("CFLAGS", "")
+        call([CC, "-fPIC"] + defines + includes + CFLAGS.split() +
+             ["-I.", "-I@prefix@/include", "-c", fn, "-o",
+              filename + ".o"], shell=False)
+        if (not keep_temps):
+            os.remove(fn)
+        else:
+            print "source: " + fn
+        if (use_cpp):
+            if (not keep_temps):
+                os.remove(s_filename)
+            else:
+                print "cpp: " + s_filename
+
+if __name__ == "__main__":
+    main()

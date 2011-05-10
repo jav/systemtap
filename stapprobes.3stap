@@ -321,6 +321,8 @@ module(MPATTERN).function(PATTERN).return
 .br
 module(MPATTERN).function(PATTERN).inline
 .br
+module(MPATTERN).function(PATTERN).label(LPATTERN)
+.br
 .br
 kernel.statement(PATTERN)
 .br
@@ -331,6 +333,10 @@ module(MPATTERN).statement(PATTERN)
 process("PATH").function("NAME")
 .br
 process("PATH").statement("*@FILE.c:123")
+.br
+process("PATH").library("PATH").function("NAME")
+.br
+process("PATH").library("PATH").statement("*@FILE.c:123")
 .br
 process("PATH").function("*").return
 .br
@@ -642,6 +648,8 @@ and expose similar contextual $variables.
 .SAMPLE
 process("PATH").function("NAME")
 process("PATH").statement("*@FILE.c:123")
+process("PATH").library("PATH").function("NAME")
+process("PATH").library("PATH").statement("*@FILE.c:123")
 process("PATH").function("*").return
 process("PATH").function("myfun").label("foo")
 .ESAMPLE
@@ -654,8 +662,11 @@ to the working directory if they contain a "/" character, otherwise in
 .BR $PATH .
 If PATH names refer to scripts, the actual interpreters (specified in the
 script in the first line after the #! characters) are probed.
-PATH may also refer to shared libraries, in which case all proceses that
-map it at runtime would be selected for probing.
+If PATH is a process component parameter referring to shared libraries
+then all processes that map it at runtime would be selected for
+probing.  If PATH is a library component parameter referring to shared
+libraries then the process specified by the process component would be
+selected.
 If the PATH string contains wildcards as in the MPATTERN case, then
 standard globbing is performed to find all matching paths.  In this
 case, the 
@@ -943,6 +954,9 @@ the following syntax:
 probe perf.type(NN).config(MM).sample(XX)
 probe perf.type(NN).config(MM)
 .ESAMPLE
+The systemtap probe handler is called once per XX increments
+of the underlying performance counter.  The default sampling
+count is 1000000.
 The range of valid type/config is described by the 
 .IR perf_event_open (2)
 system call, and/or the 

@@ -208,13 +208,13 @@ probe vfs.do_sync_write.return
 	printf("%d\n", pos)
 }
 
-probe vfs.block_sync_page
+probe vfs.block_sync_page ?
 {
 	printf("%s %s\n", name, argstr)
 	printf("%p %s %d %d\n", dev, devname, ino, index)
 	printf("%d %s\n", size, units)
 }
-probe vfs.block_sync_page.return
+probe vfs.block_sync_page.return ?
 {
 	printf("%s %s\n", name, retstr)
 }

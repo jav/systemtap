@@ -15,7 +15,10 @@ global traced_pid, sleep_time, dequeue;
 global this_sleep;
 global debug = 0;
 
-function log_event:long (p:long) { return (!traced_pid || traced_pid == p) }
+function log_event:long (p:long)
+{
+  return (!traced_pid || traced_pid == task_pid(p))
+}
 
 #func names from hex addresses
 function func_backtrace:string (ips:string)
@@ -50,14 +53,14 @@ probe kernel.trace("deactivate_task") !,
   # check to see if task is in appropriate state:
   # TASK_INTERRUPTIBLE      1
   # TASK_UNINTERRUPTIBLE    2
-  if (log_event($p->pid) && (s & 3)) {
+  if (log_event($p) && (s & 3)) {
     dequeue[$p] = gettimeofday_us();
   }
 }
 
 probe kernel.trace("activate_task") !,
       kernel.function("activate_task") {
-  if (!log_event($p->pid)) next
+  if (!log_event($p)) next
 
   a = gettimeofday_us()
   d = dequeue[$p]

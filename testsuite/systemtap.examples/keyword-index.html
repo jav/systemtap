@@ -39,7 +39,7 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#ALLOCATOR">ALLOCATOR</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#FILES">FILES</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#HACK">HACK</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITORING">MONITORING</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SECURITY">SECURITY</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
+<p><tt><a href="#ALLOCATOR">ALLOCATOR</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#COUNTER">COUNTER</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#EVENT">EVENT</a> <a href="#FILES">FILES</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#HACK">HACK</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITORING">MONITORING</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PID">PID</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SECURITY">SECURITY</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TID">TID</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WRITE">WRITE</a> </tt></p>
 <h3><a name="ALLOCATOR">ALLOCATOR</a></h3>
 <ul>
 <li><a href="memory/vm.tracepoints.stp">memory/vm.tracepoints.stp</a> - Collect slab allocation statistics<br>
@@ -87,6 +87,12 @@ keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.ht
 <p>Print a timed per-thread callgraph, complete with function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.<p><font size="-2"><pre># stap para-callgraph.stp &#39;kernel.function(&quot;*@fs/proc*.c&quot;)&#39; \
 &#39;kernel.function(&quot;vfs_read&quot;)&#39; -c &quot;cat /proc/sys/vm/*&quot;</pre></font></p></li>
 </ul>
+<h3><a name="COUNTER">COUNTER</a></h3>
+<ul>
+<li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
+keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
+<p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p></li>
+</ul>
 <h3><a name="CPU">CPU</a></h3>
 <ul>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
@@ -110,6 +116,12 @@ keywords: <a href="keyword-index.html#DISK">DISK</a> <br>
 <li><a href="io/disktop.stp">io/disktop.stp</a> - Summarize Disk Read/Write Traffic<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <br>
 <p>Get the status of reading/writing disk every 5 seconds, output top ten entries during that period.<p><font size="-2"><pre># stap disktop.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+</ul>
+<h3><a name="EVENT">EVENT</a></h3>
+<ul>
+<li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
+keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
+<p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p></li>
 </ul>
 <h3><a name="FILES">FILES</a></h3>
 <ul>
@@ -348,6 +360,12 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.<p><font size="-2"><pre># stap nettop.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
 </ul>
+<h3><a name="PID">PID</a></h3>
+<ul>
+<li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
+keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
+<p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p></li>
+</ul>
 <h3><a name="PROCESS">PROCESS</a></h3>
 <ul>
 <li><a href="memory/overcommit.stp">memory/overcommit.stp</a> - Log failed process memory allocation due to overcommit limits<br>
@@ -557,6 +575,12 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/tcp_init_cwnd.stp">network/tcp_init_cwnd.stp</a> - Increase initial tcp congestion window to 10.<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>Run the tcp_init_cwnd.stp script in the background to override a kernel&#39;s default tcp cwnd value to 10, which has been found to improve latency for web server type workloads.  The script prints a count of cwnd value changes when it is stopped.<p><font size="-2"><pre># stap -g tcp_init_cwnd.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+</ul>
+<h3><a name="TID">TID</a></h3>
+<ul>
+<li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
+keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
+<p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p></li>
 </ul>
 <h3><a name="TIME">TIME</a></h3>
 <ul>

@@ -35,9 +35,9 @@ int init_ctl_channel(const char *name, int verb)
 	if (control_channel < 0) {
 		if (verb) {
 			if (attach_mod && errno == ENOENT)
-				err("ERROR: Can not attach. Module %s not running.\n", name);
+				err(_("ERROR: Can not attach. Module %s not running.\n"), name);
 			else
-				perr("Couldn't open control channel '%s'", buf);
+				perr(_("Couldn't open control channel '%s'"), buf);
 		}
 		return -3;
 	}

@@ -123,6 +123,17 @@ keywords: trace callgraph
   'kernel.function("vfs_read")' -c "cat /proc/sys/vm/*"
 
 
+= COUNTER =
+
+general/eventcount.stp - Event Counter for eventcount.stp
+keywords: event counter tid pid
+
+  The script prints a count of specified events and their related tid's
+  over the course of execution.
+
+  # stap eventcount.stp syscall.* -c 'sleep 0.2'
+
+
 = CPU =
 
 general/graphs.stp - Graphing Disk and CPU Utilization
@@ -174,6 +185,17 @@ keywords: disk
   ten entries during that period.
 
   # stap disktop.stp -c "sleep 0.2"
+
+
+= EVENT =
+
+general/eventcount.stp - Event Counter for eventcount.stp
+keywords: event counter tid pid
+
+  The script prints a count of specified events and their related tid's
+  over the course of execution.
+
+  # stap eventcount.stp syscall.* -c 'sleep 0.2'
 
 
 = FILES =
@@ -899,6 +921,17 @@ keywords: network traffic per-process
   # stap nettop.stp -c "sleep 0.2"
 
 
+= PID =
+
+general/eventcount.stp - Event Counter for eventcount.stp
+keywords: event counter tid pid
+
+  The script prints a count of specified events and their related tid's
+  over the course of execution.
+
+  # stap eventcount.stp syscall.* -c 'sleep 0.2'
+
+
 = PROCESS =
 
 memory/overcommit.stp - Log failed process memory allocation due to overcommit limits
@@ -1576,6 +1609,17 @@ keywords: network tcp socket
   count of cwnd value changes when it is stopped.
 
   # stap -g tcp_init_cwnd.stp -c "sleep 0.2"
+
+
+= TID =
+
+general/eventcount.stp - Event Counter for eventcount.stp
+keywords: event counter tid pid
+
+  The script prints a count of specified events and their related tid's
+  over the course of execution.
+
+  # stap eventcount.stp syscall.* -c 'sleep 0.2'
 
 
 = TIME =

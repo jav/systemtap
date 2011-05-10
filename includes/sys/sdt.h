@@ -45,9 +45,14 @@
 # define _SDT_ASM_STRING_1(x)		_SDT_ASM_1(.asciz #x)
 
 # define _SDT_ARGFMT(no)		%n[_SDT_S##no]@_SDT_ARGTMPL(_SDT_A##no)
+# ifndef STAP_SDT_ARG_CONSTRAINT
+# define STAP_SDT_ARG_CONSTRAINT        nor
+# endif
+# define _SDT_STRINGIFY(x)              #x
+# define _SDT_ARG_CONSTRAINT_STRING(x)  _SDT_STRINGIFY(x)
 # define _SDT_ARG(n, x)			\
   [_SDT_S##n] "n" ((_SDT_ARGSIGNED (x) ? 1 : -1) * (int) _SDT_ARGSIZE (x)), \
-  [_SDT_A##n] "nor" (_SDT_ARGVAL (x))
+  [_SDT_A##n] _SDT_ARG_CONSTRAINT_STRING (STAP_SDT_ARG_CONSTRAINT) (_SDT_ARGVAL (x))
 #endif
 #define _SDT_ASM_STRING(x)		_SDT_ASM_STRING_1(x)
 
@@ -256,6 +261,28 @@ __extension__ extern unsigned long long __sdt_unsp;
 #define STAP_PROBE10(provider,name,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10) \
   _SDT_PROBE(provider, name, 10, \
 	     (arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10))
+
+/* This STAP_PROBEV macro can be used in variadic scenarios, where the
+   number of probe arguments is not known until compile time.  Since
+   variadic macro support may vary with compiler options, you must
+   pre-#define SDT_USE_VARIADIC to enable this type of probe.
+
+   The trick to count __VA_ARGS__ was inspired by this post by
+   Laurent Deniau <laurent.deniau@cern.ch>:
+       http://groups.google.com/group/comp.std.c/msg/346fc464319b1ee5
+
+   Note that our _SDT_NARG is called with an extra 0 arg that's not
+   counted, so we don't have to worry about the behavior of macros
+   called without any arguments.  */
+
+#ifdef SDT_USE_VARIADIC
+#define _SDT_NARG(...) __SDT_NARG(__VA_ARGS__, 10,9,8,7,6,5,4,3,2,1,0)
+#define __SDT_NARG(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10, N, ...) N
+#define _SDT_PROBE_N(provider, name, N, ...) \
+  _SDT_PROBE(provider, name, N, (__VA_ARGS__))
+#define STAP_PROBEV(provider, name, ...) \
+  _SDT_PROBE_N(provider, name, _SDT_NARG(0, ##__VA_ARGS__), ##__VA_ARGS__)
+#endif
 
 /* These macros are for use in asm statements.  You must compile
    with -std=gnu99 or -std=c99 to use the STAP_PROBE_ASM macro.

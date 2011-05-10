@@ -176,6 +176,7 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
+LOCALEDIR = @LOCALEDIR@
 LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
@@ -249,7 +250,7 @@ AM_CXXFLAGS = -Wall -Werror -Wunused -W -Wformat=2 \
 AM_CPPFLAGS = -D_GNU_SOURCE -I$(srcdir)/../../includes \
 	-I$(builddir)/../../includes/sys -DBINDIR='"$(bindir)"' \
 	-DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR='"${pkgdatadir}"' \
-	-DPKGLIBDIR='"$(pkglibexecdir)"'
+	-DPKGLIBDIR='"$(pkglibexecdir)"' -DLOCALEDIR='"$(localedir)"'
 AM_LDFLAGS = @PIELDFLAGS@
 staprun_SOURCES = staprun.c staprun_funcs.c ctl.c common.c \
 	$(am__append_1)

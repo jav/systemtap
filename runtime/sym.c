@@ -298,36 +298,40 @@ static int _stp_build_id_check (struct _stp_module *m, unsigned long notes_addr,
 */
 static int _stp_module_check(void)
 {
-	struct _stp_module *m = NULL;
-	unsigned long notes_addr, base_addr;
-	unsigned i,j;
+  struct _stp_module *m = NULL;
+  unsigned long notes_addr, base_addr;
+  unsigned i,j;
 
-	for (i = 0; i < _stp_num_modules; i++)
-	{
-		m = _stp_modules[i];
-		if (m->build_id_len > 0 && m->notes_sect != 0) {
-		    dbug_sym(1, "build-id validation [%s]\n", m->name);
+#ifdef STP_NO_BUILDID_CHECK
+  return 0;
+#endif
 
-		    /* notes end address */
-		    if (!strcmp(m->name, "kernel")) {
-			  notes_addr = _stp_kmodule_relocate("kernel",
-					 "_stext", m->build_id_offset);
-			  base_addr = _stp_kmodule_relocate("kernel",
-							   "_stext", 0);
-                    } else {
-			  notes_addr = m->notes_sect + m->build_id_offset;
-			  base_addr = m->notes_sect;
-		    }
+  for (i = 0; i < _stp_num_modules; i++)
+    {
+      m = _stp_modules[i];
+      if (m->build_id_len > 0 && m->notes_sect != 0) {
+          dbug_sym(1, "build-id validation [%s]\n", m->name);
 
-		    if (notes_addr <= base_addr) { /* shouldn't happen */
-                            _stp_warn ("build-id address %lx < base %lx\n", 
-                                       notes_addr, base_addr);
-                            continue;
-                    }
-		    _stp_build_id_check (m, notes_addr, 0);
-		} /* end checking */
-	} /* end loop */
-	return 0;
+          /* notes end address */
+          if (!strcmp(m->name, "kernel")) {
+              notes_addr = _stp_kmodule_relocate("kernel",
+                  "_stext", m->build_id_offset);
+              base_addr = _stp_kmodule_relocate("kernel",
+                  "_stext", 0);
+          } else {
+              notes_addr = m->notes_sect + m->build_id_offset;
+              base_addr = m->notes_sect;
+          }
+
+          if (notes_addr <= base_addr) { /* shouldn't happen */
+              _stp_warn ("build-id address %lx < base %lx\n",
+                  notes_addr, base_addr);
+              continue;
+          }
+          return _stp_build_id_check (m, notes_addr, 0);
+      } /* end checking */
+    } /* end loop */
+  return 0;
 }
 
 
@@ -339,6 +343,10 @@ static int _stp_usermodule_check(struct task_struct *tsk, const char *path_name,
   unsigned i, j;
   unsigned char practice_id_bits[MAXSTRINGLEN];
   unsigned long vm_end = 0;
+
+#ifdef STP_NO_BUILDID_CHECK
+  return 0;
+#endif
 
   for (i = 0; i < _stp_num_modules; i++)
     {
@@ -358,7 +366,7 @@ static int _stp_usermodule_check(struct task_struct *tsk, const char *path_name,
 		     notes_addr, addr);
 	  continue;
 	}
-	_stp_build_id_check (m, notes_addr, 1);
+	return _stp_build_id_check (m, notes_addr, 1);
       }
     }
 

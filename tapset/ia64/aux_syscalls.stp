@@ -1,0 +1,26 @@
+# arch-specific requests of ptrace ___________________________
+#
+function _arch_ptrace_argstr(request, pid, addr, data)
+{
+	if (request == %{ PTRACE_SINGLEBLOCK %})
+		return sprintf ("PTRACE_SINGLEBLOCK, %d, %s", pid, _signal_name (data))
+	if (request == %{ PTRACE_OLD_GETSIGINFO %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_OLD_GETSIGINFO, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_OLD_SETSIGINFO %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_OLD_SETSIGINFO, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GETREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETREGS, %d", pid)
+	if (request == %{ PTRACE_SETREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETREGS, %d", pid)
+	if (request == %{ PTRACE_OLDSETOPTIONS %})
+		return sprintf ("PTRACE_OLDSETOPTIONS, %d, %s", pid, _ptrace_options_str (data))
+}
+
+function _ptrace_return_arch_prctl_addr(request, addr, data)
+{
+	return 0
+}

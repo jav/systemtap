@@ -34,7 +34,7 @@
 	  (bc##UL << 0xc)|(bd##UL << 0xd)|(be##UL << 0xe)|(bf##UL << 0xf))    \
 	 << (row % 64))
 
-static const unsigned long good_insns_64[256 / 64] = {
+static const volatile unsigned long good_insns_64[256 / 64] = {
 	/*      0 1 2 3 4 5 6 7 8 9 a b c d e f         */
 	/*      -------------------------------         */
 	W(0x00, 1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0)| /* 00 */
@@ -59,7 +59,7 @@ static const unsigned long good_insns_64[256 / 64] = {
 
 /* Good-instruction tables for 32-bit apps -- copied from i386 uprobes */
 
-static const unsigned long good_insns_32[256 / 64] = {
+static const volatile unsigned long good_insns_32[256 / 64] = {
 	/*      0 1 2 3 4 5 6 7 8 9 a b c d e f         */
 	/*      -------------------------------         */
 	W(0x00, 1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0)| /* 00 */
@@ -83,7 +83,7 @@ static const unsigned long good_insns_32[256 / 64] = {
 };
 
 /* Using this for both 64-bit and 32-bit apps */
-static const unsigned long good_2byte_insns[256 / 64] = {
+static const volatile unsigned long good_2byte_insns[256 / 64] = {
 	/*      0 1 2 3 4 5 6 7 8 9 a b c d e f         */
 	/*      -------------------------------         */
 	W(0x00, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1)| /* 00 */
@@ -384,7 +384,7 @@ static int immediate_operand_size(u8 opcode1, u8 opcode2, u8 reg,
  * TODO: These tables are common for kprobes and uprobes and can be moved
  * to a common place.
  */
-static const u64 onebyte_has_modrm[256 / 64] = {
+static const volatile u64 onebyte_has_modrm[256 / 64] = {
 	/*      0 1 2 3 4 5 6 7 8 9 a b c d e f         */
 	/*      -------------------------------         */
 	W(0x00, 1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0)| /* 00 */
@@ -406,7 +406,7 @@ static const u64 onebyte_has_modrm[256 / 64] = {
 	/*      -------------------------------         */
 	/*      0 1 2 3 4 5 6 7 8 9 a b c d e f         */
 };
-static const u64 twobyte_has_modrm[256 / 64] = {
+static const volatile u64 twobyte_has_modrm[256 / 64] = {
 	/*      0 1 2 3 4 5 6 7 8 9 a b c d e f         */
 	/*      -------------------------------         */
 	W(0x00, 1,1,1,1,0,0,0,0,0,0,0,0,0,1,0,1)| /* 0f */
@@ -503,7 +503,6 @@ static int handle_riprel_insn(struct uprobe_probept *ppt)
 		+ 1			/* modrm byte */
 		+ 4			/* offset */
 		+ immed_size;		/* immediate field */
-#undef DEBUG_UPROBES_RIP
 #ifdef DEBUG_UPROBES_RIP
 {
 	int i;

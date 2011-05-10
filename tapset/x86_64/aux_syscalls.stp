@@ -1,0 +1,70 @@
+# Helper for _arch_ptrace_argstr below.
+%{
+#include <asm/prctl.h>
+%}
+function _arch_ptrace_prctl_str(f)
+{
+	if (f == %{ ARCH_SET_GS %})
+		return "ARCH_SET_GS"
+	else if (f == %{ ARCH_SET_FS %})
+		return "ARCH_SET_FS"
+	else if (f == %{ ARCH_GET_FS %})
+		return "ARCH_GET_FS"
+	else if (f == %{ ARCH_GET_GS %})
+		return "ARCH_GET_GS"
+	else
+		return sprintf("?=%d",f)
+}
+
+# arch-specific requests of ptrace ___________________________
+# = like tapset/x86_64/syscalls.stp but with PTRACE_ARCH_PRCTL
+#
+%{
+#ifndef PTRACE_SINGLEBLOCK
+# define PTRACE_SINGLEBLOCK 33
+#endif
+%}
+function _arch_ptrace_argstr(request, pid, addr, data)
+{
+	if (request == %{ PTRACE_GETREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GETFPREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETFPREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETFPREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETFPREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GETFPXREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETFPXREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETFPXREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETFPXREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_OLDSETOPTIONS %})
+		return sprintf ("PTRACE_OLDSETOPTIONS, %d, %s", pid, _ptrace_options_str (data))
+	if (request == %{ PTRACE_GET_THREAD_AREA %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GET_THREAD_AREA, %d, index=%d, data=%p", pid, addr, data)
+	if (request == %{ PTRACE_SET_THREAD_AREA %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SET_THREAD_AREA, %d, index=%p, data=%p", pid, addr, data)
+	if (request == %{ PTRACE_ARCH_PRCTL %})
+		return sprintf ("PTRACE_ARCH_PRCTL, %d, addr=%p, %s", pid, addr, _arch_ptrace_prctl_str(data))
+	if (request == %{ PTRACE_SYSEMU %})
+		return sprintf ("PTRACE_SYSEMU, %d, %s", pid, _signal_name (data))
+	if (request == %{ PTRACE_SYSEMU_SINGLESTEP %})
+		return sprintf ("PTRACE_SYSEMU_SINGLESTEP, %d, %s", pid, _signal_name (data))
+	if (request == %{ PTRACE_SINGLEBLOCK %})
+		return sprintf ("PTRACE_SINGLEBLOCK, %d, %s", pid, _signal_name (data))
+}
+
+function _ptrace_return_arch_prctl_addr(request, addr, data)
+{
+	if (request == %{ PTRACE_ARCH_PRCTL %}
+	    && (data == %{ ARCH_GET_FS %} || data == %{ ARCH_GET_GS %}))
+		return user_long(addr)
+}

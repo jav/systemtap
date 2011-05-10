@@ -340,7 +340,7 @@ testsuite/dtrace: dtrace
 
 PHONIES += update-po
 update-po:
-	(cd $(srcdir); ls -1d *.c *.cxx *.h runtime/staprun/*.c runtime/staprun/*.h) \
+	(cd $(srcdir); ls -1d *.c *.cxx *.h runtime/staprun/*.c runtime/staprun/*.h dtrace.in) \
 	| grep -v loc2c-test.c \
 	| sort > $(srcdir)/po/POTFILES.in
 	$(MAKE) -C po update-po

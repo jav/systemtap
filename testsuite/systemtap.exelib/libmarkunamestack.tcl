@@ -41,7 +41,6 @@ set start_func 0
 send_log "Running: stap -w --ldd $srcdir/$subdir/libmarkunamestack.stp $testexe $testlib -c $testexe\n"
 spawn stap -w --ldd $srcdir/$subdir/libmarkunamestack.stp $testexe $testlib -c $testexe
 
-wait -i $spawn_id
 expect {
   -timeout 60
     -re {^print_[^\r\n]+\r\n} {incr print; exp_continue}
@@ -71,9 +70,12 @@ expect {
 # libc/ld/startup
     -re {^ 0x[a-f0-9]+ : _[^\r\n]+\r\n} {incr start_func; exp_continue}
 
-    timeout { fail "libmarkunamestack-$testname (timeout)" }
+    timeout { fail "libmarkunamestack-$testname (timeout)"; exec kill -INT -[exp_pid] }
     eof { }
 }
+# kill again for good measure
+exec kill -INT -[exp_pid]
+catch {close}; catch {wait -i $spawn_id}
 
 if {$lib == 8} { pass "lib-$testname" } {
     fail "lib-$testname ($lib)"

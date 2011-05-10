@@ -1,6 +1,7 @@
 set test "buildid"
 
 if {![installtest_p]} { untested $test; return }
+if {![uprobes_p]} { untested "$test (uprobes)"; return }
 
 proc cleanup_handler { verbose } {
     if { $verbose == 0 } {
@@ -67,6 +68,22 @@ expect {
 catch {close}; catch {wait}
 error_handler [expr $ok==1] "nonshared build id !ok ($ok)"
 
+# stap -DSTP_NO_BUILDID_CHECK with altered build id
+
+set ok 0
+# system "stap -m bid -p4 -DSTP_NO_BUILDID_CHECK $bid_stp $bid_exepath"
+spawn stap -m bid -p4 -DSTP_NO_BUILDID_CHECK $bid_stp $bid_exepath
+wait
+spawn staprun -u [pwd]/bid.ko -c $bid_exepath
+expect {
+    -timeout 180
+    -re {x=1} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+catch {close}; catch {wait}
+error_handler [expr $ok==1] "STP_NO_BUILDID_CHECK ($ok)"
+
 # Shared
 
 set bid_flags "additional_flags=-DNO_MAIN"
@@ -107,6 +124,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
+catch {close}; catch {wait}
 error_handler [expr $ok==1] "shared build id !ok ($ok)"
 
 cleanup_handler $verbose

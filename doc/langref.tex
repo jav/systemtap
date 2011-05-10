@@ -1135,6 +1135,14 @@ This command probes all threads that call into that library.  Typing
 the target command and descendants only.  You can use
 \texttt{\$\$vars} and others. You can provide the location of debug
 information to the stap command with the \texttt{-d DIRECTORY} option.
+To qualify a probe point to a location in a library required by a
+particular process try using a command with this syntax:
+\begin{vindent}
+\begin{verbatim}
+probe process("...").library("...").function("....") { ... }
+\end{verbatim}
+\end{vindent}
+The library name may use wildcards.
 
 \subsubsection{Instruction probes}
 \label{sec:insnprobes}

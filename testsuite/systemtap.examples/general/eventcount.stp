@@ -1,0 +1,77 @@
+#! /usr/bin/env stap
+
+global c
+
+probe %($# == 0 || $# > 32 %? begin %: never %)
+{
+  printf("Please specify between 1 and 32 events to count.\n")
+  exit()
+}
+
+//paramaterize up to 32 arguments
+probe %($# >= 1 %? $1 %: never %),
+      %($# >= 2 %? $2 %: never %),
+      %($# >= 3 %? $3 %: never %),
+      %($# >= 4 %? $4 %: never %),
+      %($# >= 5 %? $5 %: never %),
+      %($# >= 6 %? $6 %: never %),
+      %($# >= 7 %? $7 %: never %),
+      %($# >= 8 %? $8 %: never %),
+      %($# >= 9 %? $9 %: never %),
+      %($# >= 10 %? $10 %: never %),
+      %($# >= 11 %? $11 %: never %),
+      %($# >= 12 %? $12 %: never %),
+      %($# >= 13 %? $13 %: never %),
+      %($# >= 14 %? $14 %: never %),
+      %($# >= 15 %? $15 %: never %),
+      %($# >= 16 %? $16 %: never %),
+      %($# >= 17 %? $17 %: never %),
+      %($# >= 18 %? $18 %: never %),
+      %($# >= 19 %? $19 %: never %),
+      %($# >= 20 %? $20 %: never %),
+      %($# >= 21 %? $21 %: never %),
+      %($# >= 22 %? $22 %: never %),
+      %($# >= 23 %? $23 %: never %),
+      %($# >= 24 %? $24 %: never %),
+      %($# >= 25 %? $25 %: never %),
+      %($# >= 26 %? $26 %: never %),
+      %($# >= 27 %? $27 %: never %),
+      %($# >= 28 %? $28 %: never %),
+      %($# >= 29 %? $29 %: never %),
+      %($# >= 30 %? $30 %: never %),
+      %($# >= 31 %? $32 %: never %),
+      %($# >= 32 %? $32 %: never %)
+{
+  totalc <<< 1
+  if (target() && ! target_set_pid(pid()))
+    next
+  filteredc <<< 1
+  c[sprintf("%s(%d)",execname(),tid()), pn()]<<<1
+}
+
+global totalc, filteredc
+
+probe begin {
+      start_ms = gettimeofday_ms() 
+      if (target()) msg = sprintf ("pid %d + children", target())
+      else msg = "unfiltered";
+      printf("Starting event counting at %s, %s\n",
+             tz_ctime(gettimeofday_s()), msg)
+}
+global start_ms
+
+probe end {
+  printf("Finished event counting at %s.\n", tz_ctime(gettimeofday_s()))
+  elapsed_ms = gettimeofday_ms() - start_ms
+  if (elapsed_ms < 0) elapsed_ms=1
+  printf("Total time elapsed: %d ms, %d events total, %d filtered.\n",
+         elapsed_ms, @count(totalc), @count(filteredc))
+
+  printf("%-25s %-30s %s\n", "TID", "EVENT", "COUNT (RATE Hz)")
+  printf("%-25s %-30s %s\n", "---", "-----", "---------------")
+  foreach([tid+, name] in c)
+    printf("%-25s %-30s %d (%d.%02d)\n", tid, name,
+           @count(c[tid, name]),
+           (@count(c[tid,name])*100000/elapsed_ms)/100,
+           (@count(c[tid,name])*100000/elapsed_ms)%100)
+}

@@ -49,6 +49,9 @@ keywords: <a href="keyword-index.html#FORMAT">FORMAT</a> <br>
 <li><a href="general/badname.stp">general/badname.stp</a> - Bad Filename Filter<br>
 keywords: <a href="keyword-index.html#FILESYSTEM">FILESYSTEM</a> <a href="keyword-index.html#HACK">HACK</a> <br>
 <p>The badname.stp script shows how one could prevent the creation of files with undesirable names using guru mode.<p><font size="-2"><pre># stap -g badname.stp -c &quot;touch /tmp/myXXXfile&quot; 2&gt;&amp;1 | grep denied</pre></font></p></li>
+<li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
+keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
+<p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p></li>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html#CPU">CPU</a> <a href="keyword-index.html#USE">USE</a> <a href="keyword-index.html#GRAPH">GRAPH</a> <br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.<p><font size="-2"><pre># stap graphs.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>

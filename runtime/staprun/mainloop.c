@@ -24,6 +24,7 @@
 int ncpus;
 static int use_old_transport = 0;
 static int pending_interrupts = 0;
+static int target_pid_failed_p = 0;
 
 //enum _stp_sig_type { sig_none, sig_done, sig_detach };
 //static enum _stp_sig_type got_signal = sig_none;
@@ -54,12 +55,28 @@ static void *signal_thread(void *arg)
 static void chld_proc(int signum)
 {
   int32_t rc, btype = STP_EXIT;
+  int chld_stat = 0;
   dbug(2, "chld_proc %d (%s)\n", signum, strsignal(signum));
-  pid_t pid = waitpid(-1, NULL, WNOHANG);
-  if (pid != target_pid)
+  pid_t pid = waitpid(-1, &chld_stat, WNOHANG);
+  if (pid != target_pid) {
     return;
-  // send STP_EXIT
-  rc = write(control_channel, &btype, sizeof(btype));
+  }
+
+  if (chld_stat) {
+    // our child exited with a non-zero status
+    if (WIFSIGNALED(chld_stat)) {
+      err(_("Warning: child process exited with signal %d (%s)\n"),
+          WTERMSIG(chld_stat), strsignal(WTERMSIG(chld_stat)));
+      target_pid_failed_p = 1;
+    }
+    if (WIFEXITED(chld_stat) && WEXITSTATUS(chld_stat)) {
+      err(_("Warning: child process exited with status %d\n"),
+          WEXITSTATUS(chld_stat));
+      target_pid_failed_p = 1;
+    }
+  }
+
+  rc = write(control_channel, &btype, sizeof(btype)); // send STP_EXIT
   (void) rc; /* XXX: notused */
 }
 
@@ -104,7 +121,7 @@ static void setup_main_signals(void)
   sigaddset(s, SIGQUIT);
   pthread_sigmask(SIG_SETMASK, s, NULL);
   if (pthread_create(&tid, NULL, signal_thread, s) < 0) {
-    _perr("failed to create thread");
+    _perr(_("failed to create thread"));
     exit(1);
   }
 }
@@ -184,10 +201,10 @@ void start_cmd(void)
           case 0:
             break;
           case WRDE_SYNTAX:
-            _err ("wordexp: syntax error (unmatched quotes?) in -c COMMAND\n");
+            _err (_("wordexp: syntax error (unmatched quotes?) in -c COMMAND\n"));
             _exit(1);
           default:
-            _err ("wordexp: parsing error (%d)\n", rc);
+            _err (_("wordexp: parsing error (%d)\n"), rc);
             _exit (1);
           }
         if (words.we_wordc < 1) { _err ("empty -c COMMAND"); _exit (1); }
@@ -295,13 +312,13 @@ static void read_buffer_info(void)
 
   len = read(fd, buf, sizeof(buf));
   if (len <= 0) {
-    perr("Couldn't read bufsize");
+    perr(_("Couldn't read bufsize"));
     close(fd);
     return;
   }
   ret = sscanf(buf, "%u,%u", &n_subbufs, &subbuf_size);
   if (ret != 2)
-    perr("Couldn't read bufsize");
+    perr(_("Couldn't read bufsize"));
 
   dbug(2, "n_subbufs= %u, size=%u\n", n_subbufs, subbuf_size);
   close(fd);
@@ -321,7 +338,7 @@ int init_stapio(void)
   /* create control channel */
   use_old_transport = init_ctl_channel(modname, 1);
   if (use_old_transport < 0) {
-    err("Failed to initialize control channel.\n");
+    err(_("Failed to initialize control channel.\n"));
     return -1;
   }
   read_buffer_info();
@@ -356,7 +373,7 @@ int init_stapio(void)
     /* daemonize */
     ret = daemon(0, 1); /* don't close stdout at this time. */
     if (ret) {
-      err("Failed to daemonize stapio\n");
+      err(_("Failed to daemonize stapio\n"));
       return -1;
     }
 
@@ -371,7 +388,7 @@ int init_stapio(void)
     /* redirect all outputs to /dev/null */
     ret = open("/dev/null", O_RDWR);
     if (ret < 0) {
-      err("Failed to open /dev/null\n");
+      err(_("Failed to open /dev/null\n"));
       return -1;
     }
     close(STDIN_FILENO);
@@ -422,7 +439,7 @@ void cleanup_and_exit(int detach, int rc)
   close_ctl_channel();
 
   if (detach) {
-    err("\nDisconnecting from systemtap module.\n" "To reconnect, type \"staprun -A %s\"\n", modname);
+    err(_("\nDisconnecting from systemtap module.\n" "To reconnect, type \"staprun -A %s\"\n"), modname);
     _exit(0);
   }
 
@@ -471,8 +488,12 @@ void cleanup_and_exit(int detach, int rc)
   }
 
   if (WIFEXITED(rstatus)) {
-          _exit(rc ?: WEXITSTATUS(rstatus));
+          if(rc || target_pid_failed_p || rstatus) // if we have an error
+            _exit(1);
+          else
+            _exit(0); //success
   }
+
   _exit(-1);
 }
 
@@ -531,7 +552,7 @@ int stp_main_loop(void)
     dbug(3, "nb=%ld\n", (long)nb);
     if (nb < (ssize_t) sizeof(recvbuf.type)) {
       if (nb >= 0 || (errno != EINTR && errno != EAGAIN)) {
-        _perr("Unexpected EOF in read (nb=%ld)", (long)nb);
+        _perr(_("Unexpected EOF in read (nb=%ld)"), (long)nb);
         cleanup_and_exit(0, 1);
       }
       dbug(4, "sleeping\n");
@@ -546,13 +567,13 @@ int stp_main_loop(void)
 #if STP_TRANSPORT_VERSION == 1
     case STP_REALTIME_DATA:
       if (write_realtime_data(recvbuf.payload.data, nb)) {
-        _perr("write error (nb=%ld)", (long)nb);
+        _perr(_("write error (nb=%ld)"), (long)nb);
         cleanup_and_exit(0, 1);
       }
       break;
 #endif
     case STP_OOB_DATA:
-      if (strncmp(recvbuf.payload.data, "WARNING:", 7) == 0) {
+      if (strncmp(recvbuf.payload.data, _("WARNING:"), 7) == 0) {
               if (suppress_warnings) break;
               if (verbose) { /* don't eliminate duplicates */
                       eprintf("%.*s", (int) nb, recvbuf.payload.data);
@@ -579,7 +600,7 @@ int stp_main_loop(void)
                                  overflow staprun's memory. */
 #define MAX_STORED_WARNINGS 1024
                               if (seen_count++ == MAX_STORED_WARNINGS) {
-                                      eprintf("WARNING deduplication table full\n");
+                                      eprintf(_("WARNING deduplication table full\n"));
                                       free (dupstr);
                               }
                               else if (seen_count > MAX_STORED_WARNINGS) {
@@ -645,7 +666,7 @@ int stp_main_loop(void)
           int rc = ptrace (PTRACE_DETACH, target_pid, 0, 0);
           if (rc < 0)
             {
-              perror ("ptrace detach");
+              perror (_("ptrace detach"));
               if (target_cmd)
                 kill(target_pid, SIGKILL);
               cleanup_and_exit(0, 1);
@@ -678,7 +699,7 @@ int stp_main_loop(void)
         break;
       }
     default:
-      err("WARNING: ignored message of type %d\n", recvbuf.type);
+      err(_("WARNING: ignored message of type %d\n"), recvbuf.type);
     }
   }
   fclose(ofp);

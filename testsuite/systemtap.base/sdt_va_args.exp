@@ -1,0 +1,58 @@
+set test "sdt_va_args"
+set ::result_string {_
+1
+1 2
+1 2 3
+1 2 3 4
+1 2 3 4 5
+1 2 3 4 5 6
+1 2 3 4 5 6 7
+1 2 3 4 5 6 7 8
+1 2 3 4 5 6 7 8 9
+1 2 3 4 5 6 7 8 9 10}
+
+set extra_flags {
+    {}
+    {additional_flags=-std=c89}
+    {additional_flags=-std=c99}
+    {additional_flags=-std=gnu99}
+    {c++ additional_flags=-std=c++98 additional_flags=-x additional_flags=c++}
+    {c++ additional_flags=-std=gnu++98 additional_flags=-x additional_flags=c++}
+    {c++ additional_flags=-std=c++0x additional_flags=-x additional_flags=c++}
+    {c++ additional_flags=-std=gnu++0x additional_flags=-x additional_flags=c++}
+}
+set extra_mssgs {base c89 c99 gnu99 c++98 gnu++98 c++0x gnu++0x}
+
+# Iterate extra_flags, trying each with C and C++
+for {set i 0} {$i < [llength $extra_flags]} {incr i} {
+set extra_flag [lindex $extra_flags $i]
+set extra_mssg [lindex $extra_mssgs $i]
+set testprog "$test.c.exe.$i"
+
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags [sdt_includes]"
+set test_flags "$test_flags additional_flags=-Wall"
+set test_flags "$test_flags additional_flags=-Wextra"
+set test_flags "$test_flags additional_flags=-Werror"
+
+set saveidx 0
+
+set res [target_compile $srcdir/$subdir/$test.c $testprog executable "$test_flags $extra_flag"]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling $test.c $extra_mssg"
+    untested "$test $extra_mssg"
+    continue
+} else {
+    pass "compiling $test.c $extra_mssg"
+}
+
+if {[installtest_p] && [utrace_p] && [uprobes_p]} {
+  stap_run3 "$test $extra_mssg" -w $srcdir/$subdir/sdt.stp $testprog -c ./$testprog
+} else {
+  untested "$test $extra_mssg"
+}
+catch {exec rm -f $testprog}
+
+} ; # for {set i 0} {$i < [llength $extra_flags]}
+

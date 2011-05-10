@@ -23,6 +23,7 @@ probe begin {
 	printf("%s\n", module_name())
 	printf("%d\n", stp_pid() + stack_size() + stack_used()
 	       + stack_unused())
+	printf("addr: 0x%x\n", addr())
 	printf("uaddr: 0x%x\n", uaddr())
 	log(cmdline_args(1, 1, "bar"))
 	log(cmdline_arg(0))

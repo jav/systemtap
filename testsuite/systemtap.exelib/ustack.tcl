@@ -35,7 +35,6 @@ set start_func 0
 send_log "Running: stap -w --ldd $srcdir/$subdir/ustack.stp $testexe $testlib -c $testexe\n"
 spawn stap -w --ldd $srcdir/$subdir/ustack.stp $testexe $testlib -c $testexe
 
-wait
 expect {
   -timeout 60
     -re {^print_[^\r\n]+\r\n} {incr print; exp_continue}
@@ -44,9 +43,12 @@ expect {
     -re {^ 0x[a-f0-9]+ : lib_main\+0x[^\r\n]+\r\n} {incr lib_main; exp_continue}
     -re {^ 0x[a-f0-9]+ : lib_func\+0x[^\r\n]+\r\n} {incr lib_func; exp_continue}
     -re {^ 0x[a-f0-9]+ : _[^\r\n]+\r\n} {incr start_func; exp_continue}
-    timeout { fail "ustack-$testname (timeout)" }
+    timeout { fail "ustack-$testname (timeout)"; exec kill -INT -[exp_pid] }
     eof { }
 }
+# kill again for good measure
+exec kill -INT -[exp_pid]
+catch {close}; catch {wait}
 
 if {$print == 4} { pass "ustack-$testname print" } {
     fail "ustack-$testname print ($print)"

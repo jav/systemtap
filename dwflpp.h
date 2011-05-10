@@ -202,7 +202,7 @@ struct dwflpp
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
                                              const char *, Dwarf_Addr,
                                              void *),
-                            base_query *data);
+                            void *data);
 
   void iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
                          void * data);
@@ -250,6 +250,10 @@ struct dwflpp
   int iterate_over_notes (void *object,
 			  void (*callback)(void *object, int type,
 					   const char *data, size_t len));
+
+  void iterate_over_libraries (void (*callback)(void *object,
+      const char *data), void *data);
+
 
   GElf_Shdr * get_section(std::string section_name, GElf_Shdr *shdr_mem,
                           Elf **elf_ret=NULL);

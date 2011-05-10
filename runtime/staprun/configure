@@ -565,6 +565,7 @@ HAVE_NSS_TRUE
 nss_LIBS
 nss_CFLAGS
 PKG_CONFIG
+LOCALEDIR
 PIELDFLAGS
 PIECXXFLAGS
 PIECFLAGS
@@ -665,6 +666,7 @@ enable_dependency_tracking
 enable_largefile
 enable_pie
 enable_sdt_probes
+enable_nls
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1304,6 +1306,7 @@ Optional Features:
   --disable-largefile     omit support for large files
   --enable-pie            enable position-independent-executable
   --disable-sdt-probes    disable process.mark probes in staprun, stapio
+  --enable-nls            enable translating program messages
 
 Some influential environment variables:
   CC          C compiler command
@@ -4817,6 +4820,8 @@ fi
 
 
 
+LOCALEDIR="$localedir"
+
 
 # Check whether --enable-sdt-probes was given.
 if test "${enable_sdt_probes+set}" = set; then :
@@ -5026,6 +5031,18 @@ if test $have_nss = yes; then :
 
 
 $as_echo "#define HAVE_NSS 1" >>confdefs.h
+
+
+fi
+# Check whether --enable-nls was given.
+if test "${enable_nls+set}" = set; then :
+  enableval=$enable_nls;
+fi
+
+if test "x$enable_nls" != xno; then :
+
+
+$as_echo "#define ENABLE_NLS 1" >>confdefs.h
 
 
 fi

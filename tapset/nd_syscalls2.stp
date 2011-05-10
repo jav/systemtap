@@ -610,12 +610,16 @@ probe nd_syscall.ptrace = kprobe.function("sys_ptrace") ?
 	pid = long_arg(2)
 	addr = long_arg(3)
 	data = long_arg(4)
-	argstr = sprintf("%d, %d, %p, %p", request, pid, addr, data)
+	argstr = _ptrace_argstr(request, pid, addr, data)
 }
 probe nd_syscall.ptrace.return = kprobe.function("sys_ptrace").return ?
 {
 	name = "ptrace"
 	retstr = returnstr(1)
+
+	// long_arg values are not available here.
+	geteventmsg_data = 0
+	arch_prctl_addr = 0
 }
 
 # pwrite64 ___________________________________________________

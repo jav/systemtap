@@ -1,5 +1,8 @@
 /* config.in.  Generated from configure.ac by autoheader.  */
 
+/* Define to 1 if program messages should be translated. */
+#undef ENABLE_NLS
+
 /* Define to 1 to enable process.mark probes in staprun, stapio. */
 #undef ENABLE_SDT_PROBES
 

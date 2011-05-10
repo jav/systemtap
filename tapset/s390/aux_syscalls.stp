@@ -1,0 +1,37 @@
+# arch-specific requests of ptrace ___________________________
+#
+function _arch_ptrace_argstr(request, pid, addr, data)
+{
+	if (request == %{ PTRACE_OLDSETOPTIONS %})
+		return sprintf ("PTRACE_OLDSETOPTIONS, %d, %s", pid, _ptrace_options_str (data))
+
+	if (request == %{ PTRACE_PEEKUSR_AREA %})
+		area="PTRACE_PEEKUSR_AREA"
+	if (request == %{ PTRACE_POKEUSR_AREA %})
+		area="PTRACE_POKEUSR_AREA"
+	if (request == %{ PTRACE_PEEKTEXT_AREA %})
+		area="PTRACE_PEEKTEXT_AREA"
+	if (request == %{ PTRACE_PEEKDATA_AREA %})
+		area="PTRACE_PEEKDATA_AREA"
+	if (request == %{ PTRACE_POKETEXT_AREA %})
+		area="PTRACE_POKETEXT_AREA"
+	if (request == %{ PTRACE_POKEDATA_AREA %})
+		area="PTRACE_POKEDATA_AREA"
+	if (area!="")
+		// FIXME: ptrace of 32-bit debuggers is not caught by SystemTap,
+		//        use +4 and +8 offsets for them
+		return sprintf ("%s, %d, {len=%d, kernel_addr=%p, process_addr=%p}", area, pid,
+                                user_int(addr), user_long(addr+8), user_long(addr+16))
+
+	if (request == %{ PTRACE_GET_LAST_BREAK %})
+		// TODO: Retrieve *data in return
+		return sprintf ("PTRACE_GET_LAST_BREAK, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_PROT %})
+		// Not implemented in kernel
+		return sprintf ("PTRACE_PROT, %d, addr=%p, data=%p", pid, addr, data)
+}
+
+function _ptrace_return_arch_prctl_addr(request, addr, data)
+{
+	return 0
+}

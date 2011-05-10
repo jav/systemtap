@@ -135,13 +135,29 @@ class stapsh : public remote {
                 {
                   if (fds[i].revents & POLLIN)
                     {
-                      // XXX should we do line-buffering?
                       char buf[4096];
-                      size_t rc = fread(buf, 1, sizeof(buf), OUT);
-                      if (rc > 0)
+                      if (!prefix.empty())
                         {
-                          cout.write(buf, rc);
-                          continue;
+                          // If we have a line prefix, then read lines one at a
+                          // time and copy out with the prefix.
+                          errno = 0;
+                          while (fgets(buf, sizeof(buf), OUT))
+                            cout << prefix << buf;
+                          if (errno == EAGAIN)
+                            continue;
+                        }
+                      else
+                        {
+                          // Otherwise read an entire block of data at once.
+                          size_t rc = fread(buf, 1, sizeof(buf), OUT);
+                          if (rc > 0)
+                            {
+                              // NB: The buf could contain binary data,
+                              // including \0, so write as a block instead of
+                              // the usual <<string.
+                              cout.write(buf, rc);
+                              continue;
+                            }
                         }
                     }
                   close();
@@ -442,7 +458,7 @@ class ssh_remote : public stapsh {
 
     ssh_remote(systemtap_session& s): stapsh(s), child(0) {}
 
-    int connect(const string& host)
+    int connect(const string& host, const string& port)
       {
         int rc = 0;
         int in, out;
@@ -450,15 +466,22 @@ class ssh_remote : public stapsh {
         cmd.push_back("ssh");
         cmd.push_back("-q");
         cmd.push_back(host);
+        if (!port.empty())
+          {
+            cmd.push_back("-p");
+            cmd.push_back(port);
+          }
 
         // This is crafted so that we get a silent failure with status 127 if
         // the command is not found.  The combination of -P and $cmd ensures
         // that we pull the command out of the PATH, not aliases or such.
-        cmd.push_back("cmd=`type -P stapsh || exit 127` && exec \"$cmd\"");
+        string stapsh_cmd = "cmd=`type -P stapsh || exit 127` && exec \"$cmd\"";
         if (s->perpass_verbose[4] > 1)
-          cmd.back().append(" -v");
+          stapsh_cmd.append(" -v");
         if (s->perpass_verbose[4] > 2)
-          cmd.back().append(" -v");
+          stapsh_cmd.append(" -v");
+        // NB: We need to explicitly choose bash, as $SHELL may be weird...
+        cmd.push_back("/bin/bash -c '" + stapsh_cmd + "'");
 
         // mask signals while we spawn, so we can manually send even tty
         // signals *through* ssh rather than to ssh itself
@@ -484,11 +507,16 @@ class ssh_remote : public stapsh {
           }
         catch (runtime_error&)
           {
+            rc = finish();
+
+            // ssh itself signals errors with 255
+            if (rc == 255)
+              throw runtime_error(_("error establishing ssh connection"));
+
             // If rc == 127, that's command-not-found, so we let ::create()
             // try again in legacy mode.  But only do this if there's a single
             // remote, as the old code didn't handle ttys well with multiple
             // remotes.  Otherwise, throw up again. *barf*
-            rc = finish();
             if (rc != 127 || s->remote_uris.size() > 1)
               throw;
           }
@@ -524,11 +552,11 @@ class ssh_legacy_remote : public remote {
   private:
     vector<string> ssh_args, scp_args;
     string ssh_control;
-    string host, tmpdir;
+    string host, port, tmpdir;
     pid_t child;
 
-    ssh_legacy_remote(systemtap_session& s, const string& host)
-      : remote(s), host(host), child(0)
+    ssh_legacy_remote(systemtap_session& s, const string& host, const string& port)
+      : remote(s), host(host), port(port), child(0)
       {
         open_control_master();
         try
@@ -560,6 +588,14 @@ class ssh_legacy_remote : public remote {
         ssh_args = scp_args;
         ssh_args[0] = "ssh";
         ssh_args.push_back(host);
+
+        if (!port.empty())
+          {
+            scp_args.push_back("-P");
+            scp_args.push_back(port);
+            ssh_args.push_back("-p");
+            ssh_args.push_back(port);
+          }
 
         // NB: ssh -f will stay in the foreground until authentication is
         // complete and the control socket is created, so we know it's ready to
@@ -714,14 +750,22 @@ class ssh_legacy_remote : public remote {
 // Try to establish a stapsh connection to the remote, but fallback
 // to the older mechanism if the command is not found.
 remote*
-ssh_remote::create(systemtap_session& s, const string& host)
+ssh_remote::create(systemtap_session& s, const string& target)
 {
+  string port, host = target;
+  size_t i = host.find(':');
+  if (i != string::npos)
+    {
+      port = host.substr(i + 1);
+      host.erase(i);
+    }
+
   auto_ptr<ssh_remote> p (new ssh_remote(s));
-  int rc = p->connect(host);
+  int rc = p->connect(host, port);
   if (rc == 0)
     return p.release();
   else if (rc == 127) // stapsh command not found
-    return new ssh_legacy_remote(s, host); // try legacy instead
+    return new ssh_legacy_remote(s, host, port); // try legacy instead
   return NULL;
 }
 
@@ -753,6 +797,14 @@ remote::create(systemtap_session& s, const string& uri)
       else if (uri.find(':') != string::npos)
         {
           const uri_decoder ud(uri);
+
+          // An ssh "host:port" is ambiguous with a URI "scheme:path".
+          // So if it looks like a number, just assume ssh.
+          if (!ud.has_authority && !ud.has_query &&
+              !ud.has_fragment && !ud.path.empty() &&
+              ud.path.find_first_not_of("1234567890") == string::npos)
+            return ssh_remote::create(s, uri);
+
           if (ud.scheme == "ssh")
             return ssh_remote::create(s, ud);
           else
@@ -805,8 +857,11 @@ remote::run(const vector<remote*>& remotes)
 
   for (unsigned i = 0; i < remotes.size() && !pending_interrupts; ++i)
     {
-      remotes[i]->s->verbose = remotes[i]->s->perpass_verbose[4];
-      rc = remotes[i]->prepare();
+      remote *r = remotes[i];
+      r->s->verbose = r->s->perpass_verbose[4];
+      if (r->s->use_remote_prefix)
+        r->prefix = lex_cast(i) + ": ";
+      rc = r->prepare();
       if (rc)
         return rc;
     }

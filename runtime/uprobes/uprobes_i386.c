@@ -32,7 +32,7 @@
 	  (b8##UL << 0x8)|(b9##UL << 0x9)|(ba##UL << 0xa)|(bb##UL << 0xb) |   \
 	  (bc##UL << 0xc)|(bd##UL << 0xd)|(be##UL << 0xe)|(bf##UL << 0xf))    \
 	 << (row % 32))
-	static const unsigned long good_insns[256 / 32] = {
+	static const volatile unsigned long good_insns[256 / 32] = {
 		/*      0 1 2 3 4 5 6 7 8 9 a b c d e f         */
 		/*      -------------------------------         */
 		W(0x00, 1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0)| /* 00 */
@@ -55,7 +55,7 @@
 		/*      0 1 2 3 4 5 6 7 8 9 a b c d e f         */
 	};
 
-	static const unsigned long good_2byte_insns[256 / 32] = {
+	static const volatile unsigned long good_2byte_insns[256 / 32] = {
 		/*      0 1 2 3 4 5 6 7 8 9 a b c d e f         */
 		/*      -------------------------------         */
 		W(0x00, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1)| /* 00 */

@@ -37,7 +37,7 @@ function execname:string ()
 /**
  * sfunction pid - Returns the ID of a target process
  * 
- * Description: This function returns the ID of a targer process.
+ * Description: This function returns the ID of a target process.
  */
 function pid:long ()
 %{ /* pure */ /* unprivileged */
@@ -272,6 +272,7 @@ function is_return:long ()
  *
  * -x <pid>
  * target() returns the pid specified by -x
+ *
  * -c <command>
  * target() returns the pid for the executed command specified by -c
  */
@@ -337,6 +338,19 @@ function stack_unused:long ()
 %{ /* pure */
 	char a;
         THIS->__retvalue = (long)&a & (THREAD_SIZE-1);
+%}
+
+/**
+ * sfunction addr - Address of the current probe point.
+ *
+ * Description: Returns the instruction pointer from the current probe's
+ * register state.  Not all probe types have registers though, in which case
+ * zero is returned.  The returned address is suitable for use with functions
+ * like symname() and symdata().
+ */
+function addr:long ()
+%{ /* pure */
+  THIS->__retvalue = (intptr_t)(CONTEXT->regs ? REG_IP(CONTEXT->regs) : 0);
 %}
 
 /**

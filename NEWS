@@ -1,4 +1,33 @@
 * What's new in version 1.5
+- eventcount.stp now allows for event counting in the format of
+  'stap eventcount.stp process.end syscall.* ...', and also reports
+  corresponding event tid's.
+
+- Systemtap checks that the build-id of the module being probed matches the
+  build-id saved in the systemtap module.  Invoking systemtap with
+  -DSTP_NO_BUILDID_CHECK will bypass this build-id runtime verification.  See
+  man ld(1) for info on --build-id.
+
+- stapio will now report if a child process has an abnormal exit along with
+  the associated status or signal.
+
+- Compiler optimization may sometimes result in systemtap not being able to
+  access a user-space probe argument.  Compiling the application with
+  -DSTAP_SDT_ARG_CONSTRAINT=nr will force the argument to be an immediate or
+  register value which should enable systemtap to access the argument.
+
+- GNU Gettext has now been intergrated with systemtap.  Our translation
+  page can be found at http://www.transifex.net/projects/p/systemtap/ .
+  "make update-po" will generate the necessary files to use translated
+  messages.  Please refer to the po/README file for more info and 
+  please consider contributing to this I18N effort!
+
+- The new addr() function returns the probe's instruction pointer.
+
+- process("...").library("...") probes are now supported.  Wildcards
+  are supported in the library-name part, to refer to any shared
+  library that is required by process-name, which matches the glob
+  pattern and the rest of the probe point.
 
 - The "--remote USER@HOST" functionality can now be specified multiple times
   to fan out on multiple targets.  If the targets have distinct kernel and
@@ -19,12 +48,10 @@
 
 - process.mark now supports $$parms for reading probe parameters.
 
-- A new command line option, --use-server-on-error[=yes|no] is available for
-  stap. 'yes' instructs stap to retry compilation of a script using a
-  compile server if it fails on the local host. If the option is not
-  specified, then the default setting is 'no'. If the option is specified with
-  no argument, then 'yes' is assumed.
-  See See man stap(1) for complete details.
+- A new command line option, --use-server-on-error[=yes|no] is available
+  for stap.  It instructs stap to retry compilation of a script using a
+  compile server if it fails on the local host.  The default setting
+  is 'no'.
 
 - The following deprecated tools have been removed:
       stap-client
@@ -33,7 +60,7 @@
       stap-find-or-start-server
       stap-find-servers
   Use the --use-server, --trust-server and --list-servers options of stap
-  instead. See man stap(1) for complete details.
+  instead.
 
 * What's new in version 1.4, 2011-01-17
 

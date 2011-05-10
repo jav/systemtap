@@ -65,15 +65,17 @@ probe syscall.nfsservctl = kernel.function("sys_nfsservctl").call ?,
 {
 	name = "nfsservctl"
 	cmd = $cmd
-%( CONFIG_NFSD == "[ym]" %?
-	argp_uaddr = $arg
-	resp_uaddr = $res
-	argstr = sprintf("%s, %p, %p", _nfsctl_cmd_str($cmd), $arg, $res)
-%:
-	argp_uaddr = $notused
-	resp_uaddr = $notused2
-	argstr = sprintf("/* NI_SYSCALL */ %s, %p, %p", _nfsctl_cmd_str($cmd), $notused, $notused2)
-%)
+	if (@defined($arg) && @defined($res)) {
+		argp_uaddr = $arg
+		resp_uaddr = $res
+		argstr = sprintf("%s, %p, %p", _nfsctl_cmd_str($cmd),
+				 $arg, $res)
+	} else {
+		argp_uaddr = $notused
+		resp_uaddr = $notused2
+		argstr = sprintf("/* NI_SYSCALL */ %s, %p, %p",
+				 _nfsctl_cmd_str($cmd), $notused, $notused2)
+	}
 }
 probe syscall.nfsservctl.return = kernel.function("sys_nfsservctl").return ?,
                                   kernel.function("compat_sys_nfsservctl").return ?
@@ -582,12 +584,16 @@ probe syscall.ptrace = kernel.function("sys_ptrace").call ?
 	pid = $pid
 	addr = $addr
 	data = $data
-	argstr = sprintf("%d, %d, %p, %p", request, pid, addr, data)
+
+	argstr = _ptrace_argstr($request, $pid, $addr, $data)
 }
 probe syscall.ptrace.return = kernel.function("sys_ptrace").return ?
 {
 	name = "ptrace"
 	retstr = return_str(1, $return)
+
+	geteventmsg_data = _ptrace_return_geteventmsg_data($request, $data)
+	arch_prctl_addr = _ptrace_return_arch_prctl_addr($request, $addr, $data)
 }
 
 # pwrite64 ___________________________________________________

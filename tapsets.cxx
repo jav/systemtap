@@ -504,6 +504,9 @@ struct base_query
 			       string const & k, long & v);
   static bool get_number_param(literal_map_t const & params,
 			       string const & k, Dwarf_Addr & v);
+  static void query_library_callback (void *object, const char *data);
+  virtual void query_library (const char *data) = 0;
+
 
   // Extracted parameters.
   bool has_kernel;
@@ -532,13 +535,18 @@ base_query::base_query(dwflpp & dw, literal_map_t const & params):
       string library_name;
       has_process = get_string_param(params, TOK_PROCESS, module_val);
       has_library = get_string_param (params, TOK_LIBRARY, library_name);
-      if (has_library)
-	{
-	  path = find_executable (module_val);
-	  module_val = find_executable (library_name, "LD_LIBRARY_PATH");
-	}
-      else if (has_process)
+      if (has_process)
         module_val = find_executable (module_val);
+      if (has_library)
+        {
+          if (! contains_glob_chars (library_name))
+            {
+              path = module_val;
+              module_val = find_executable (library_name, "LD_LIBRARY_PATH");
+            }
+          else
+            path = library_name;
+        }
     }
 
   assert (has_kernel || has_process || has_module);
@@ -619,6 +627,7 @@ struct dwarf_query : public base_query
   virtual void handle_query_module();
   void query_module_dwarf();
   void query_module_symtab();
+  void query_library (const char *data);
 
   void add_probe_point(string const & funcname,
 		       char const * filename,
@@ -1919,8 +1928,12 @@ query_module (Dwfl_Module *mod,
             q->sess.sym_stext = lookup_symbol_address (mod, "_stext");
         }
 
-      // Finally, search the module for matches of the probe point.
-      q->handle_query_module();
+      if (q->has_library && contains_glob_chars (q->path))
+        // handle .library(GLOB)
+        q->dw.iterate_over_libraries (&q->query_library_callback, q);
+      else
+        // search the module for matches of the probe point.
+        q->handle_query_module();
 
 
       // If we know that there will be no more matches, abort early.
@@ -1933,6 +1946,42 @@ query_module (Dwfl_Module *mod,
     {
       q->sess.print_error (e);
       return DWARF_CB_ABORT;
+    }
+}
+
+
+void
+base_query::query_library_callback (void *q, const char *data)
+{
+  base_query *me = (base_query*)q;
+  me->query_library (data);
+}
+
+
+void
+dwarf_query::query_library (const char *library)
+{
+  if (dw.function_name_matches_pattern(library, user_lib))
+    {
+      string library_path = find_executable (library, "LD_LIBRARY_PATH");
+      probe_point* specific_loc = new probe_point(*base_loc);
+      specific_loc->optional = true;
+      vector<probe_point::component*> derived_comps;
+
+      vector<probe_point::component*>::iterator it;
+      for (it = specific_loc->components.begin();
+          it != specific_loc->components.end(); ++it)
+        if ((*it)->functor == TOK_LIBRARY)
+          derived_comps.push_back(new probe_point::component(TOK_LIBRARY,
+              new literal_string(library_path)));
+        else
+          derived_comps.push_back(*it);
+      probe_point* derived_loc = new probe_point(*specific_loc);
+      derived_loc->components = derived_comps;
+      probe *new_base = base_probe->create_alias(derived_loc, specific_loc);
+      derive_probes(sess, new_base, results);
+      if (sess.verbose > 2)
+        clog << _("module=") << library_path;
     }
 }
 
@@ -3453,6 +3502,7 @@ struct dwarf_cast_query : public base_query
     userspace_p(userspace_p), result(result) {}
 
   void handle_query_module();
+  void query_library (const char *data) {};
 };
 
 
@@ -4135,6 +4185,9 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
     ->bind(dw);
   root->bind(TOK_KERNEL)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
+    ->bind(dw);
+
+  root->bind_str(TOK_MODULE)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind(dw);
 
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw,
@@ -5021,23 +5074,21 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
 	      string width_adjust;
 	      switch (ri->second.second)
 		{
-		case QI: width_adjust = ") & 0xff"; break;
-		case QIh: width_adjust = ">>8) & 0xff"; break;
+		case QI: width_adjust = ") & 0xff)"; break;
+		case QIh: width_adjust = ">>8) & 0xff)"; break;
 		case HI:
 		  // preserve 16 bit register signness
-		  width_adjust = ") & (int64_t)0xffff";
-		  if (precision < 0 && sizeof(long) == 8)
+		  width_adjust = ") & 0xffff)";
+		  if (precision < 0)
 		    width_adjust += " << 48 >> 48";
-		  else if (precision < 0 && sizeof(long) == 4)
-		    width_adjust += " << 16 >> 16";
 		  break;
 		case SI:
 		  // preserve 32 bit register signness
-		  width_adjust = ") & (int64_t)0xffffffff";
-		  if (precision < 0 && sizeof(long) == 8)
+		  width_adjust = ") & 0xffffffff)";
+		  if (precision < 0)
 		    width_adjust += " << 32 >> 32";
 		  break;
-		default: width_adjust = ")";
+		default: width_adjust = "))";
 		}
               string type = "";
 	      if (probe_type == uprobe3_type)
@@ -5046,7 +5097,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
 	      type = type + "((";
               get_arg1->tok = e->tok;
               get_arg1->code = string("/* unprivileged */ /* pure */")
-                + string(" (int64_t)") + type
+                + string(" ((int64_t)") + type
                 + (is_user_module (process_name)
                    ? string("u_fetch_register(")
                    : string("k_fetch_register("))
@@ -5058,21 +5109,29 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
           // invalid register name, fall through
         }
 
-      // test for OFFSET(REGISTER)
+      // test for OFFSET(REGISTER) where OFFSET is +-N+-N+-N
       // NB: Despite PR11821, we can use regnames here, since the parentheses
-      // make things unambiguous.
-      rc = regexp_match (asmarg, string("^([-]?[0-9]*)[(](")+regnames+string(")[)]$"), matches);
+      // make things unambiguous. (Note: gdb/stap-probe.c also parses this)
+      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-]?[0-9]*)([+-]?[0-9]*)[(](")+regnames+string(")[)]$"), matches);
       if (! rc)
         {
-          string dispstr = matches[1];
+          string regname;
           int64_t disp = 0;
-              if (dispstr == "")
-                disp = 0;
-              else
-                try
-                  {
-                    disp = lex_cast<int64_t>(dispstr); // should decode positive/negative hex/decimal
-                  }
+
+          int idx;
+          for (idx = matches.size() - 1; idx > 0; idx--)
+            if (matches[idx].length())
+              {
+                regname = matches[idx];
+                break;
+              }
+
+          for (int i=1; i < idx; i++)
+            if (matches[i].length())
+              try
+                {
+                  disp += lex_cast<int64_t>(matches[i]); // should decode positive/negative hex/decimal
+                }
                 catch (const runtime_error& f) // unparseable offset
                   {
                     goto not_matched; // can't just 'break' out of
@@ -5080,7 +5139,6 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
                                       // value, unfortunately
                   }
 
-              string regname = matches[2];
               if (dwarf_regs.find (regname) != dwarf_regs.end()) // known register
                 {
                   // synthesize user_long(%{fetch_register(R)%} + D)
@@ -5313,6 +5371,7 @@ struct sdt_query : public base_query
             dwflpp & dw, literal_map_t const & params,
             vector<derived_probe *> & results);
 
+  void query_library (const char *data) {};
   void handle_query_module();
 
 private:
@@ -5960,9 +6019,7 @@ dwarf_builder::build(systemtap_session & sess,
       dw = get_kern_dw(sess, module_name);
     }
   else if (get_param (parameters, TOK_PROCESS, module_name))
-    {
-      string library_name;
-
+      {
       // PR6456  process("/bin/*")  glob handling
       if (contains_glob_chars (module_name))
         {
@@ -6119,11 +6176,9 @@ dwarf_builder::build(systemtap_session & sess,
          script_file.close();
       }
 
-      if (get_param (parameters, TOK_LIBRARY, library_name))
-	{
-	  module_name = find_executable (library_name, "LD_LIBRARY_PATH");
-	  user_lib = module_name;
-	}
+      get_param (parameters, TOK_LIBRARY, user_lib);
+      if (user_lib.length() && ! contains_glob_chars (user_lib))
+        module_name = find_executable (user_lib, "LD_LIBRARY_PATH");
       else
 	module_name = user_path; // canonicalize it
 
@@ -6768,8 +6823,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst, struct stap_uprobe, up);";
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->probe");
-  s.op->newline() << "if (sup->spec_index < 0 ||"
-                  << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
+  s.op->newline() << "if (sup->spec_index < 0 || "
+                  << "sup->spec_index >= " << probes.size() << ") {";
+  s.op->newline(1) << "_stp_error (\"bad spec_index %d (max " << probes.size()
+		   << "): %s\", sup->spec_index, c->probe_point);";
+  s.op->newline() << "atomic_dec (&c->busy);";
+  s.op->newline() << "goto probe_epilogue;";
+  s.op->newline(-1) << "}";
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->ri = GET_PC_URETPROBE_NONE;";
   s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
@@ -6793,8 +6853,14 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->probe");
   s.op->newline() << "c->ri = inst;";
-  s.op->newline() << "if (sup->spec_index < 0 ||"
-                  << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
+  s.op->newline() << "if (sup->spec_index < 0 || "
+                  << "sup->spec_index >= " << probes.size() << ") {";
+  s.op->newline(1) << "_stp_error (\"bad spec_index %d (max " << probes.size()
+		   << "): %s\", sup->spec_index, c->probe_point);";
+  s.op->newline() << "atomic_dec (&c->busy);";
+  s.op->newline() << "goto probe_epilogue;";
+  s.op->newline(-1) << "}";
+
   // XXX: kretprobes saves "c->pi = inst;" too
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
@@ -8485,6 +8551,7 @@ struct tracepoint_query : public base_query
   void handle_query_module();
   int handle_query_cu(Dwarf_Die * cudie);
   int handle_query_func(Dwarf_Die * func);
+  void query_library (const char *data) {};
 
   static int tracepoint_query_cu (Dwarf_Die * cudie, void * arg);
   static int tracepoint_query_func (Dwarf_Die * func, base_query * query);
