@@ -790,11 +790,7 @@ remote::create(systemtap_session& s, const string& uri)
 {
   try
     {
-      if (uri == "direct")
-        return new direct(s);
-      else if (uri == "stapsh")
-        return new direct_stapsh(s);
-      else if (uri.find(':') != string::npos)
+      if (uri.find(':') != string::npos)
         {
           const uri_decoder ud(uri);
 
@@ -805,6 +801,10 @@ remote::create(systemtap_session& s, const string& uri)
               ud.path.find_first_not_of("1234567890") == string::npos)
             return ssh_remote::create(s, uri);
 
+          if (ud.scheme == "direct")
+            return new direct(s);
+          else if (ud.scheme == "stapsh")
+            return new direct_stapsh(s);
           if (ud.scheme == "ssh")
             return ssh_remote::create(s, ud);
           else
