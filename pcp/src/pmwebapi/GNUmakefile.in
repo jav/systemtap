@@ -1,5 +1,6 @@
+#!gmake
 #
-# Copyright (c) 2000,2004 Silicon Graphics, Inc.  All Rights Reserved.
+# Copyright (c) 2000,2003,2004 Silicon Graphics, Inc.  All Rights Reserved.
 # Copyright (c) 2011 Red Hat Inc.
 # 
 # This program is free software; you can redistribute it and/or modify it
@@ -17,20 +18,24 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
 #
 
-TOPDIR = ..
+VPATH = @srcdir@
+srcdir = @srcdir@
+TOPDIR = ../..
 include $(TOPDIR)/src/include/builddefs
--include ./GNUlocaldefs
 
-SUBDIRS = pmdas @PMWEBAPI@
+CMDTARGET = pmwebapi$(EXECSUFFIX)
+TARGETS = $(CMDTARGET)
 
-default :: default_pcp
+DFILES 	= README
+CFILES	= main.c
+HFILES =
+LLDLIBS = -lpcp -lmicrohttpd
+LCFLAGS = -I. -I/usr/include/pcp
 
-default_pcp : $(SUBDIRS)
-	$(SUBDIRS_MAKERULE)
-
-install :: default_pcp install_pcp
-
-install_pcp : $(SUBDIRS)
-	$(SUBDIRS_MAKERULE)
+default_pcp default:	$(TARGETS)
 
 include $(BUILDRULES)
+
+install install_pcp:	default
+# install target doesn't work; PCP_BIN_DIR not propagated
+# $(INSTALL) -m 755 $(CMDTARGET) $(PCP_BIN_DIR)
