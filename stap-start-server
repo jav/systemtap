@@ -2,7 +2,7 @@
 
 # Start a systemtap server
 #
-# Copyright (C) 2008, 2009 Red Hat Inc.
+# Copyright (C) 2008-2011 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -18,7 +18,7 @@
 startup_timeout=20
 
 # start the server
-${stap_pkglibexecdir}stap-serverd "$@" </dev/null >/dev/null &
+${stap_pkglibexecdir}stap-serverd "$@" </dev/null >/dev/null 2>/dev/null &
 server_pid=$!
 
 # Make sure the server is started
@@ -26,7 +26,6 @@ for ((attempt=0; $attempt < $startup_timeout; ++attempt))
 do
     server_started=0
     avahi_advertising=0
-    server_listening=0
 
     # Has the server started?
     if ! (ps -e | grep stap-serverd | grep $server_pid) >/dev/null 2>&1; then
@@ -38,18 +37,13 @@ do
     server_started=1
 
     # Is avahi advertizing the server?
-    if ! (ps -fe | grep avahi-publish-service | grep $server_pid) > /dev/null 2>&1; then
+    if ! (avahi-browse $stap_avahi_service_tag --terminate | \
+	  grep "Systemtap Compile Server" | grep $server_pid) \
+	>/dev/null 2>&1; then
 	sleep 1
 	continue
     fi
     avahi_advertising=1
-
-    # Is the server listening?
-    if ! (ps -fe | grep stap-server-connect | grep $server_pid) > /dev/null 2>&1; then
-	sleep 1
-	continue
-    fi
-    server_listening=1
 
     # The server is ready
     echo $server_pid
@@ -62,8 +56,6 @@ if test $server_started = 0; then
     echo "${stap_pkglibexecdir}stap-serverd did not start" >&2
 elif test $avahi_advertising = 0; then
     echo "avahi is not advertising the server" >&2
-elif test $server_listening = 0; then
-    echo "The server could not open a connection to listen on" >&2
 fi
 
 # If the server partially started, then kill it.

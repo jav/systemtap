@@ -222,7 +222,7 @@ remove_file_or_dir (const char *name)
 
   if (remove (name) != 0)
     return 1;
-  cerr << _("remove returned 0") << endl;
+
   return 0;
 }
 
@@ -490,7 +490,7 @@ null_child_fd(posix_spawn_file_actions_t* fa, int childfd)
 }
 
 // Runs a command with a saved PID, so we can kill it from the signal handler
-static pid_t
+pid_t
 stap_spawn(int verbose, const vector<string>& args,
            posix_spawn_file_actions_t* fa)
 {
@@ -751,6 +751,28 @@ normalize_machine(const string& machine)
   return machine;
 }
 
+string
+kernel_release_from_build_tree (const string &kernel_build_tree, int verbose)
+{
+  string version_file_name = kernel_build_tree + "/include/config/kernel.release";
+  // The file include/config/kernel.release within the
+  // build tree is used to pull out the version information
+  ifstream version_file (version_file_name.c_str());
+  if (version_file.fail ())
+    {
+      if (verbose > 1)
+	//TRANSLATORS: Missing a file
+	cerr << _F("Missing %s", version_file_name.c_str()) << endl;
+      return "";
+    }
+
+  string kernel_release;
+  char c;
+  while (version_file.get(c) && c != '\n')
+    kernel_release.push_back(c);
+
+  return kernel_release;
+}
 
 std::string autosprintf(const char* format, ...)
 {

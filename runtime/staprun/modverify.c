@@ -38,6 +38,14 @@
 #include "../../nsscommon.h"
 #include "modverify.h"
 
+// Called by some of the functions in nsscommon.cxx.
+void
+nsscommon_error (const char *msg, int logit __attribute ((unused)))
+{
+  fprintf (stderr, "%s\n", msg);
+  fflush (stderr);
+}
+
 /* Function: int check_cert_db_permissions (const char *cert_db_path);
  *
  * Check that the given certificate directory and its contents have
@@ -212,6 +220,7 @@ verify_it (const char *signatureName, const SECItem *signature,
 {
   VFYContext *vfy;
   SECStatus secStatus;
+  int rc = MODULE_OK;
 
   /* Create a verification context.  */
   vfy = VFY_CreateContextDirect (pubKey, signature, SEC_OID_PKCS1_RSA_ENCRYPTION,
@@ -221,7 +230,8 @@ verify_it (const char *signatureName, const SECItem *signature,
       /* The key does not match the signature. This is not an error. It just
 	 means we are currently trying the wrong certificate/key. i.e. the
 	 module remains untrusted for now.  */
-      return MODULE_UNTRUSTED;
+      rc = MODULE_UNTRUSTED;
+      goto done;
     }
 
   /* Begin the verification process.  */
@@ -231,7 +241,8 @@ verify_it (const char *signatureName, const SECItem *signature,
       fprintf (stderr, "Unable to initialize verification context while verifying %s using the signature in %s.\n",
 	       module_name, signatureName);
       nssError ();
-      return MODULE_CHECK_ERROR;
+      rc = MODULE_CHECK_ERROR;
+      goto done;
     }
 
   /* Add the data to be verified.  */
@@ -241,7 +252,8 @@ verify_it (const char *signatureName, const SECItem *signature,
       fprintf (stderr, "Error while verifying %s using the signature in %s.\n",
 	       module_name, signatureName);
       nssError ();
-      return MODULE_CHECK_ERROR;
+      rc = MODULE_CHECK_ERROR;
+      goto done;
     }
 
   /* Complete the verification.  */
@@ -250,10 +262,13 @@ verify_it (const char *signatureName, const SECItem *signature,
     fprintf (stderr, "Unable to verify the signed module %s. It may have been altered since it was created.\n",
 	     module_name);
     nssError ();
-    return MODULE_ALTERED;
+    rc = MODULE_ALTERED;
   }
 
-  return MODULE_OK;
+ done:
+  if (vfy)
+    VFY_DestroyContext(vfy, PR_TRUE /*freeit*/);
+  return rc;
 }
 
 int verify_module (const char *signatureName, const char* module_name,
@@ -340,13 +355,10 @@ int verify_module (const char *signatureName, const char* module_name,
     }
 
   /* Initialize NSS. */
-  secStatus = NSS_Init (dbdir);
+  secStatus = nssInit (dbdir, 0/*readwrite*/);
   if (secStatus != SECSuccess)
     {
-      fprintf (stderr, "Unable to initialize nss library using the database in %s.\n",
-	       dbdir);
-      nssError ();
-      nssCleanup ();
+      // Message already issued.
       return MODULE_CHECK_ERROR;
     }
 
@@ -356,7 +368,7 @@ int verify_module (const char *signatureName, const char* module_name,
       fprintf (stderr, "Unable to find certificates in the certificate database in %s.\n",
 	       dbdir);
       nssError ();
-      nssCleanup ();
+      nssCleanup (dbdir);
       return MODULE_UNTRUSTED;
     }
 
@@ -373,8 +385,8 @@ int verify_module (const char *signatureName, const char* module_name,
 	  fprintf (stderr, "Unable to extract public key from the certificate with nickname %s from the certificate database in %s.\n",
 		   cert->nickname, dbdir);
 	  nssError ();
-	  nssCleanup ();
-	  return MODULE_CHECK_ERROR;
+	  rc = MODULE_CHECK_ERROR;
+	  break;
 	}
 
       /* Verify the file. */
@@ -384,8 +396,11 @@ int verify_module (const char *signatureName, const char* module_name,
 	break; /* resolved or error */
     }
 
+  CERT_DestroyCertList (certList);
+
   /* Shutdown NSS and exit NSPR gracefully. */
-  nssCleanup ();
+  nssCleanup (dbdir);
+  PR_Cleanup ();
 
   return rc;
 }

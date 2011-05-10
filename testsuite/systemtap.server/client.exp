@@ -32,6 +32,9 @@ proc list_servers { TEST_NAME SERVER_SPEC args } {
 	    incr n
 	    exp_continue
 	}
+	-re {^No certificate found in database [^\r]*\r\n} {
+	    exp_continue
+	}
 	-re {^[^\r]*\r\n} {
 	    set failed 1
 	}

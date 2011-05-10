@@ -334,12 +334,8 @@ dnl See if we have enough libraries and tools to build the compile server
   if test "x${have_nss_libs}" != "xyes"; then
     AC_MSG_WARN([will not build systemtap compile server, cannot find nss/nspr libraries])
   fi
-  AC_CHECK_PROG(have_certutil, certutil, [yes], [no])
-  if test "x${have_certutil}" != "xyes"; then
-    AC_MSG_WARN([will not build systemtap compile server, cannot find certutil])
-  fi
 fi
-AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes" -a "$enable_server" != "no"])
+AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}" == "xyesyes" -a "$enable_server" != "no"])
 
 if test "x${have_nss_includes}" != "xyes"; then
   AC_MSG_WARN([some compile server client functionality will be restricted, cannot find nss/nspr headers])

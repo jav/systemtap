@@ -188,7 +188,7 @@ missing_rpm_enlist (systemtap_session& sess, const char *filename, const char *r
 #if HAVE_LIBRPMIO
   rpmFreeCrypto (); // Shuts down NSS within librpm
 #else
-  NSS_Shutdown (); // Shut down NSS ourselves
+  nssCleanup (NULL); // Shut down NSS ourselves
 #endif
 #endif
 

@@ -1,12 +1,14 @@
 # Makefile.am --- automake input file for systemtap runtime tools
 
-AM_CPPFLAGS = -D_GNU_SOURCE
 AM_CFLAGS = -Wall -Werror -Wunused -W -Wformat=2 -Wno-format-nonliteral
+AM_CXXFLAGS = -Wall -Werror -Wunused -W -Wformat=2 -Wno-format-nonliteral
+AM_CPPFLAGS = -D_GNU_SOURCE
 AM_CPPFLAGS += -I$(srcdir)/../../includes
 AM_CPPFLAGS += -I$(builddir)/../../includes/sys
 AM_CPPFLAGS += -DBINDIR='"$(bindir)"' -DSYSCONFDIR='"$(sysconfdir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 
 AM_CFLAGS += @PIECFLAGS@
+AM_CXXFLAGS += @PIECXXFLAGS@
 AM_LDFLAGS = @PIELDFLAGS@
 
 bin_PROGRAMS = staprun stap-merge stapsh
@@ -14,11 +16,13 @@ pkglibexec_PROGRAMS = stapio
 
 staprun_SOURCES = staprun.c staprun_funcs.c ctl.c common.c
 staprun_CFLAGS = $(AM_CFLAGS) -DSINGLE_THREADED
+staprun_CXXFLAGS = $(AM_CXXFLAGS) -DSINGLE_THREADED
 staprun_LDADD =
 
 if HAVE_NSS
-staprun_SOURCES += modverify.c ../../nsscommon.c
+staprun_SOURCES += modverify.c ../../nsscommon.cxx ../../util.cxx
 staprun_CFLAGS += $(nss_CFLAGS)
+staprun_CXXFLAGS += $(nss_CFLAGS)
 staprun_LDADD += $(nss_LIBS)
 endif
 

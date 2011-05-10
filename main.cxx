@@ -399,7 +399,7 @@ remove_temp_dir (systemtap_session &s)
     {
       if (s.keep_tmpdir)
         // NB: the format of this message needs to match the expectations
-        // of stap-server-connect.c.
+        // of stap-serverd.cxx.
         clog << _F("Keeping temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
       else
         {

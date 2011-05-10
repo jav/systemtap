@@ -12,6 +12,7 @@ AM_MAINTAINER_MODE
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
 AC_PROG_CC
+AC_PROG_CXX
 AM_PROG_CC_STDC
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
@@ -22,22 +23,28 @@ AC_ARG_ENABLE([pie],
   [AS_HELP_STRING([--enable-pie], [enable position-independent-executable])])
 AS_IF([test "x$enable_pie" = xyes],[
   PIECFLAGS='-fPIE'
+  PIECXXFLAGS='-fPIE'
   PIELDFLAGS='-pie -Wl,-z,relro -Wl,-z,now'
   save_CFLAGS="$CFLAGS"
+  save_CXXFLAGS="$CXXFLAGS"
   save_LDFLAGS="$LDFLAGS"
   CFLAGS="$CFLAGS $PIECFLAGS"
+  CXXFLAGS="$CXXFLAGS $PIECXXFLAGS"
   LDFLAGS="$LDFLAGS $PIELDFLAGS"
   AC_LINK_IFELSE([int main () { return 0; }], [
      AC_MSG_NOTICE([Compiling with gcc pie et al.])
   ], [
      AC_MSG_NOTICE([Compiler does not support -pie et al.])
      PIECFLAGS=
+     PIECXXFLAGS=
      PIELDFLAGS=
   ])
   CFLAGS="$save_CFLAGS"
+  CXXFLAGS="$save_CXXFLAGS"
   LDFLAGS="$save_LDFLAGS"
 ])
 AC_SUBST(PIECFLAGS)
+AC_SUBST(PIECXXFLAGS)
 AC_SUBST(PIELDFLAGS)
 
 AC_ARG_ENABLE([sdt-probes],
