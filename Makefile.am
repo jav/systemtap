@@ -342,6 +342,9 @@ PHONIES += update-po
 update-po:
 	(cd $(srcdir); ls -1d *.c *.cxx *.h runtime/staprun/*.c runtime/staprun/*.h dtrace.in) \
 	| grep -v loc2c-test.c \
+	| grep -v config.h \
+	| grep -v git_version.h \
+	| grep -v runtime/staprun/config.h \
 	| sort > $(srcdir)/po/POTFILES.in
 	$(MAKE) -C po update-po
 

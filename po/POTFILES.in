@@ -21,9 +21,7 @@ loc2c.h
 main.cxx
 mdfour.c
 mdfour.h
-modsign.cxx
-modsign.h
-nsscommon.c
+nsscommon.cxx
 nsscommon.h
 parse.cxx
 parse.h
@@ -49,8 +47,11 @@ session.cxx
 session.h
 setupdwfl.cxx
 setupdwfl.h
+stap-authorize-cert.cxx
+stap-gen-cert.cxx
 staplog.c
-stap-server-connect.c
+stap-serverd.cxx
+stap-sign-module.cxx
 stapsslerr.h
 staptree.cxx
 staptree.h

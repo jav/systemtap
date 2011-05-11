@@ -1071,12 +1071,12 @@ format_cert_validity_time (SECItem &vTime, char *timeString, size_t ts_size)
     secStatus = DER_GeneralizedTimeToTime (& time, & vTime);
     break;
   default:
-    nsscommon_error ("Could not decode certificate validity");
+    nsscommon_error (_("Could not decode certificate validity"));
     return 1;
   }
   if (secStatus != SECSuccess)
     {
-      nsscommon_error ("Could not decode certificate validity time");
+      nsscommon_error (_("Could not decode certificate validity time"));
       return 1;
     }
 
@@ -1085,7 +1085,7 @@ format_cert_validity_time (SECItem &vTime, char *timeString, size_t ts_size)
   PR_ExplodeTime (time, PR_GMTParameters, & printableTime);
   if (! PR_FormatTime (timeString, ts_size, "%a %b %d %H:%M:%S %Y", & printableTime))
     {
-      nsscommon_error ("Could not format certificate validity time");
+      nsscommon_error (_("Could not format certificate validity time"));
       return 1;
     }
 
