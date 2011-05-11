@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sources.redhat.com\n"
-"POT-Creation-Date: 2011-05-11 13:58-0400\n"
+"POT-Creation-Date: 2011-05-11 19:32-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -226,7 +226,7 @@ msgstr ""
 msgid "Unable to connect to a server"
 msgstr ""
 
-#: csclient.cxx:1179 csclient.cxx:1925 stap-serverd.cxx:1529
+#: csclient.cxx:1179 csclient.cxx:1925 stap-serverd.cxx:1600
 msgid "Unable to set NSS export policy"
 msgstr ""
 
@@ -1502,199 +1502,199 @@ msgstr ""
 msgid "%s in DWARF expression [%Zu] at %<PRIu64> (%#x: %<PRId64>, %<PRId64>)"
 msgstr ""
 
-#: loc2c.c:915
+#: loc2c.c:926
 msgid "required DW_AT_frame_base attribute not supplied"
 msgstr ""
 
-#: loc2c.c:929
+#: loc2c.c:940
 #, c-format
 msgid "dwarf_getlocation_addr (form %#x): %s"
 msgstr ""
 
-#: loc2c.c:935
+#: loc2c.c:946
 msgid "DW_AT_frame_base not accessible at this address"
 msgstr ""
 
-#: loc2c.c:944
+#: loc2c.c:955
 msgid "No cfa_ops supplied, but needed by DW_OP_call_frame_cfa"
 msgstr ""
 
-#: loc2c.c:979
+#: loc2c.c:990
 msgid "not accessible at this address"
 msgstr ""
 
-#: loc2c.c:1525 loc2c.c:2450
+#: loc2c.c:1536 loc2c.c:2461
 msgid "cannot handle offset into register in fetch"
 msgstr ""
 
-#: loc2c.c:1530
+#: loc2c.c:1541
 msgid "noncontiguous location for base fetch"
 msgstr ""
 
-#: loc2c.c:1534 loc2c.c:1577
+#: loc2c.c:1545 loc2c.c:1588
 msgid "pointer has been optimized out"
 msgstr ""
 
-#: loc2c.c:1538
+#: loc2c.c:1549
 msgid "location not available"
 msgstr ""
 
-#: loc2c.c:1568
+#: loc2c.c:1579
 msgid "cannot handle offset into register in store"
 msgstr ""
 
-#: loc2c.c:1573
+#: loc2c.c:1584
 msgid "noncontiguous location for base store"
 msgstr ""
 
-#: loc2c.c:1581
+#: loc2c.c:1592
 msgid "location is computed value, cannot store"
 msgstr ""
 
-#: loc2c.c:1585
+#: loc2c.c:1596
 msgid "location is constant value, cannot store"
 msgstr ""
 
-#: loc2c.c:1589
+#: loc2c.c:1600
 msgid "location is not available, cannot store"
 msgstr ""
 
-#: loc2c.c:1693
+#: loc2c.c:1704
 msgid "stack value too big for fetch ???"
 msgstr ""
 
-#: loc2c.c:1697
+#: loc2c.c:1708
 msgid "single register too big for fetch/store ???"
 msgstr ""
 
-#: loc2c.c:1701
+#: loc2c.c:1712
 msgid "implicit pointer too big for fetch/store ???"
 msgstr ""
 
-#: loc2c.c:1706
+#: loc2c.c:1717
 msgid "cannot support noncontiguous location"
 msgstr ""
 
-#: loc2c.c:1734
+#: loc2c.c:1745
 msgid "declaring noncontig union for depth > 9, too many pieces"
 msgstr ""
 
-#: loc2c.c:1783 loc2c.c:2132 loc2c.c:2221
+#: loc2c.c:1794 loc2c.c:2143 loc2c.c:2232
 #, c-format
 msgid "cannot get byte_size attribute for type %s: %s"
 msgstr ""
 
-#: loc2c.c:1824
+#: loc2c.c:1835
 #, c-format
 msgid "cannot get bit field parameters: %s"
 msgstr ""
 
-#: loc2c.c:1899
+#: loc2c.c:1910
 msgid "fetch is larger than base integer types"
 msgstr ""
 
 #. TRANSLATORS: CU stands for 'compilation unit'
-#: loc2c.c:1919
+#: loc2c.c:1930
 #, c-format
 msgid "cannot determine CU address size from %s: %s"
 msgstr ""
 
-#: loc2c.c:2038
+#: loc2c.c:2049
 msgid "store is larger than base integer types"
 msgstr ""
 
-#: loc2c.c:2167
+#: loc2c.c:2178
 msgid "cannot take the address of a bit field"
 msgstr ""
 
-#: loc2c.c:2178
+#: loc2c.c:2189
 msgid "cannot take address of object in register"
 msgstr ""
 
-#: loc2c.c:2181
+#: loc2c.c:2192
 msgid "cannot take address of noncontiguous object"
 msgstr ""
 
-#: loc2c.c:2184
+#: loc2c.c:2195
 msgid "cannot take address of computed value"
 msgstr ""
 
-#: loc2c.c:2187
+#: loc2c.c:2198
 msgid "cannot take address of constant value"
 msgstr ""
 
-#: loc2c.c:2190
+#: loc2c.c:2201
 msgid "cannot take address of unavailable value"
 msgstr ""
 
-#: loc2c.c:2193
+#: loc2c.c:2204
 msgid "cannot take address of implicit pointer"
 msgstr ""
 
 #. TRANSLATORS: This refers to the basic type, (stripped of const/volatile/etc.)
-#: loc2c.c:2245
+#: loc2c.c:2256
 #, c-format
 msgid "cannot get inner type of type %s: %s"
 msgstr ""
 
-#: loc2c.c:2257
+#: loc2c.c:2268
 #, c-format
 msgid "cannot get byte_size attribute for array element type %s: %s"
 msgstr ""
 
-#: loc2c.c:2262
+#: loc2c.c:2273
 msgid "confused about array element size"
 msgstr ""
 
-#: loc2c.c:2276
+#: loc2c.c:2287
 #, c-format
 msgid "cannot get byte_stride attribute array type %s: %s"
 msgstr ""
 
-#: loc2c.c:2284
+#: loc2c.c:2295
 #, c-format
 msgid "cannot get element type of array type %s: %s"
 msgstr ""
 
-#: loc2c.c:2303
+#: loc2c.c:2314
 msgid "cannot dynamically index noncontiguous array"
 msgstr ""
 
 #. TRANSLATORS: The index is constant
-#: loc2c.c:2315
+#: loc2c.c:2326
 msgid "constant index is outside noncontiguous array"
 msgstr ""
 
-#: loc2c.c:2317
+#: loc2c.c:2328
 msgid "noncontiguous array splits elements"
 msgstr ""
 
-#: loc2c.c:2338
+#: loc2c.c:2349
 msgid "cannot index array stored in a register"
 msgstr ""
 
-#: loc2c.c:2340
+#: loc2c.c:2351
 msgid "constant index is outside array held in register"
 msgstr ""
 
-#: loc2c.c:2350
+#: loc2c.c:2361
 msgid "cannot index into constant value"
 msgstr ""
 
 #. TRANSLATORS: The index is constant
-#: loc2c.c:2353
+#: loc2c.c:2364
 msgid "constant index is outside constant array value"
 msgstr ""
 
-#: loc2c.c:2364
+#: loc2c.c:2375
 msgid "cannot index into implicit pointer"
 msgstr ""
 
-#: loc2c.c:2371
+#: loc2c.c:2382
 msgid "cannot index into computed value"
 msgstr ""
 
-#: loc2c.c:2376
+#: loc2c.c:2387
 msgid "cannot index into unavailable value"
 msgstr ""
 
@@ -3099,339 +3099,355 @@ msgstr ""
 msgid "Unable to generate certificate"
 msgstr ""
 
-#: stap-serverd.cxx:172
+#: stap-serverd.cxx:188
 #, c-format
 msgid "%s: unhandled option '%c %s'"
 msgstr ""
 
-#: stap-serverd.cxx:174
+#: stap-serverd.cxx:190
 #, c-format
 msgid "%s: unhandled option '%c'"
 msgstr ""
 
-#: stap-serverd.cxx:190
+#: stap-serverd.cxx:206
 #, c-format
 msgid "%s: unhandled option '--%s=%s'"
 msgstr ""
 
-#: stap-serverd.cxx:193
+#: stap-serverd.cxx:209
 #, c-format
 msgid "%s: unhandled option '--%s'"
 msgstr ""
 
-#: stap-serverd.cxx:201
+#: stap-serverd.cxx:217
 #, c-format
 msgid "%s: unrecognized argument '%s'"
 msgstr ""
 
-#: stap-serverd.cxx:210
+#: stap-serverd.cxx:231
 #, c-format
 msgid "Received interrupt %d, exiting"
 msgstr ""
 
-#: stap-serverd.cxx:263
+#: stap-serverd.cxx:286
 #, c-format
 msgid "Service '%s' successfully established."
 msgstr ""
 
-#: stap-serverd.cxx:273 stap-serverd.cxx:363
+#: stap-serverd.cxx:296 stap-serverd.cxx:386
 #, c-format
 msgid "Avahi service name collision, renaming service to '%s'"
 msgstr ""
 
-#: stap-serverd.cxx:281
+#: stap-serverd.cxx:304
 #, c-format
 msgid "Avahi entry group failure: %s"
 msgstr ""
 
-#: stap-serverd.cxx:302
+#: stap-serverd.cxx:325
 #, c-format
 msgid "avahi_entry_group_new () failed: %s"
 msgstr ""
 
-#: stap-serverd.cxx:311
+#: stap-serverd.cxx:334
 #, c-format
 msgid "Adding service '%s'"
 msgstr ""
 
-#: stap-serverd.cxx:343
+#: stap-serverd.cxx:366
 #, c-format
 msgid "Failed to add _ipp._tcp service: %s"
 msgstr ""
 
-#: stap-serverd.cxx:350
+#: stap-serverd.cxx:373
 #, c-format
 msgid "Failed to commit avahi entry group: %s"
 msgstr ""
 
-#: stap-serverd.cxx:387
+#: stap-serverd.cxx:410
 #, c-format
 msgid "Avahi client failure: %s"
 msgstr ""
 
-#: stap-serverd.cxx:425
+#: stap-serverd.cxx:448
 msgid "Failed to create avahi simple poll object."
 msgstr ""
 
-#: stap-serverd.cxx:437
+#: stap-serverd.cxx:460
 #, c-format
 msgid "Failed to create avahi client: %s"
 msgstr ""
 
-#: stap-serverd.cxx:469
+#: stap-serverd.cxx:492
 msgid "Could not create a thread for the avahi client"
 msgstr ""
 
-#: stap-serverd.cxx:473
+#: stap-serverd.cxx:496
 msgid "Unable to advertise presence on the network. Avahi is not available"
 msgstr ""
 
-#: stap-serverd.cxx:525
+#: stap-serverd.cxx:536
+#, c-format
+msgid "Unable to obtain current resource limits: %s"
+msgstr ""
+
+#: stap-serverd.cxx:572
 #, c-format
 msgid "===== compile server pid %d starting"
 msgstr ""
 
-#: stap-serverd.cxx:565
+#: stap-serverd.cxx:612
 msgid "Error reading size of request file"
 msgstr ""
 
-#: stap-serverd.cxx:570 stap-serverd.cxx:601
+#: stap-serverd.cxx:617 stap-serverd.cxx:648
 msgid "Error in PR_Read"
 msgstr ""
 
-#: stap-serverd.cxx:588
+#: stap-serverd.cxx:635
 #, c-format
 msgid "Could not open output file %s"
 msgstr ""
 
-#: stap-serverd.cxx:610
+#: stap-serverd.cxx:657
 #, c-format
 msgid "Could not write to output file %s"
 msgstr ""
 
-#: stap-serverd.cxx:618
+#: stap-serverd.cxx:665
 #, c-format
 msgid "Expected %d bytes, got %d while reading client request from socket"
 msgstr ""
 
-#: stap-serverd.cxx:646
+#: stap-serverd.cxx:693
 msgid "Could not import socket into SSL"
 msgstr ""
 
-#: stap-serverd.cxx:655
+#: stap-serverd.cxx:702
 msgid "Error setting SSL security for socket"
 msgstr ""
 
-#: stap-serverd.cxx:663
+#: stap-serverd.cxx:710
 msgid "Error setting handshake as server for socket"
 msgstr ""
 
-#: stap-serverd.cxx:671 stap-serverd.cxx:679
+#: stap-serverd.cxx:718 stap-serverd.cxx:726
 msgid "Error setting SSL client authentication mode for socket"
 msgstr ""
 
-#: stap-serverd.cxx:690
+#: stap-serverd.cxx:737
 msgid "Error in SSL_AuthCertificateHook"
 msgstr ""
 
-#: stap-serverd.cxx:699
+#: stap-serverd.cxx:746
 msgid "Error in SSL_BadCertHook"
 msgstr ""
 
-#: stap-serverd.cxx:707
+#: stap-serverd.cxx:754
 msgid "Error in SSL_HandshakeCallback"
 msgstr ""
 
-#: stap-serverd.cxx:718
+#: stap-serverd.cxx:765
 msgid "Error configuring SSL server"
 msgstr ""
 
-#: stap-serverd.cxx:752
+#: stap-serverd.cxx:799
 msgid "Error in SSL_OptionSet:SSL_REQUEST_CERTIFICATE"
 msgstr ""
 
-#: stap-serverd.cxx:762
+#: stap-serverd.cxx:809
 msgid "Error in SSL_OptionSet:SSL_REQUIRE_CERTIFICATE"
 msgstr ""
 
-#: stap-serverd.cxx:771
+#: stap-serverd.cxx:818
 msgid "Error in SSL_ReHandshake"
 msgstr ""
 
-#: stap-serverd.cxx:780
+#: stap-serverd.cxx:827
 msgid "Error in SSL_ForceHandshake"
 msgstr ""
 
-#: stap-serverd.cxx:800
+#: stap-serverd.cxx:847
 #, c-format
 msgid "Could not open input file %s"
 msgstr ""
 
-#: stap-serverd.cxx:816
+#: stap-serverd.cxx:863
 msgid "Error writing response to socket"
 msgstr ""
 
-#: stap-serverd.cxx:853
+#: stap-serverd.cxx:900
 msgid "Cannot parse stap options"
 msgstr ""
 
-#: stap-serverd.cxx:881
+#: stap-serverd.cxx:928
 msgid "Out of memory"
 msgstr ""
 
-#: stap-serverd.cxx:888
+#: stap-serverd.cxx:935
 #, c-format
 msgid "Error opening %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:895
+#: stap-serverd.cxx:942
 #, c-format
 msgid "Error reading %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:951
+#: stap-serverd.cxx:996
+#, c-format
+msgid "Unable to set resource limits for stap: %s"
+msgstr ""
+
+#: stap-serverd.cxx:1004
+#, c-format
+msgid "Unable to restore resource limits: %s"
+msgstr ""
+
+#: stap-serverd.cxx:1022
 msgid "Error in stap stderr open"
 msgstr ""
 
-#: stap-serverd.cxx:984
+#: stap-serverd.cxx:1055
 msgid "Error in stap tmpdir move"
 msgstr ""
 
-#: stap-serverd.cxx:995
+#: stap-serverd.cxx:1066
 #, c-format
 msgid "Unable to find a module in %s"
 msgstr ""
 
-#: stap-serverd.cxx:997
+#: stap-serverd.cxx:1068
 #, c-format
 msgid "Too many modules (%zu) in %s"
 msgstr ""
 
-#: stap-serverd.cxx:1020 stap-serverd.cxx:1028
+#: stap-serverd.cxx:1091 stap-serverd.cxx:1099
 #, c-format
 msgid "Could not link to %s from %s"
 msgstr ""
 
-#: stap-serverd.cxx:1076
+#: stap-serverd.cxx:1147
 msgid "Error in spawn getcwd"
 msgstr ""
 
-#: stap-serverd.cxx:1093
+#: stap-serverd.cxx:1164
 msgid "Error in spawn unchdir"
 msgstr ""
 
-#: stap-serverd.cxx:1098
-msgid "Error in spawn"
+#: stap-serverd.cxx:1169
+#, c-format
+msgid "Error in spawn: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1105
+#: stap-serverd.cxx:1176
 msgid "Error in waitpid"
 msgstr ""
 
-#: stap-serverd.cxx:1156
+#: stap-serverd.cxx:1227
 msgid "Error resetting SSL handshake"
 msgstr ""
 
-#: stap-serverd.cxx:1166
+#: stap-serverd.cxx:1237
 msgid "Error forcing SSL handshake"
 msgstr ""
 
-#: stap-serverd.cxx:1177 stap-serverd.cxx:1189 stap-serverd.cxx:1197
+#: stap-serverd.cxx:1248 stap-serverd.cxx:1260 stap-serverd.cxx:1268
 #, c-format
 msgid "Could not create temporary directory %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1234
+#: stap-serverd.cxx:1305
 msgid "Unable to extract client request"
 msgstr ""
 
-#: stap-serverd.cxx:1253
+#: stap-serverd.cxx:1324
 msgid "Unable to compress server response"
 msgstr ""
 
-#: stap-serverd.cxx:1263
+#: stap-serverd.cxx:1334
 msgid "Error closing ssl socket"
 msgstr ""
 
-#: stap-serverd.cxx:1275
+#: stap-serverd.cxx:1346
 msgid "Error in tmpdir cleanup"
 msgstr ""
 
-#: stap-serverd.cxx:1301
+#: stap-serverd.cxx:1372
 msgid "Unable to obtain certificate private key"
 msgstr ""
 
-#: stap-serverd.cxx:1312
+#: stap-serverd.cxx:1383
 msgid "Error accepting client connection"
 msgstr ""
 
-#: stap-serverd.cxx:1318
+#: stap-serverd.cxx:1389
 #, c-format
 msgid "%sAccepted connection from %d.%d.%d.%d:%d"
 msgstr ""
 
-#: stap-serverd.cxx:1332
+#: stap-serverd.cxx:1403
 msgid "Error processing client request"
 msgstr ""
 
-#: stap-serverd.cxx:1336
+#: stap-serverd.cxx:1407
 #, c-format
 msgid "%sRequest from %d.%d.%d.%d:%d complete"
 msgstr ""
 
-#: stap-serverd.cxx:1377
+#: stap-serverd.cxx:1448
 msgid "Error creating socket"
 msgstr ""
 
-#: stap-serverd.cxx:1395
+#: stap-serverd.cxx:1466
 msgid "Error setting socket properties"
 msgstr ""
 
-#: stap-serverd.cxx:1421
+#: stap-serverd.cxx:1492
 #, c-format
 msgid "Network port %d is unavailable. Trying another port"
 msgstr ""
 
-#: stap-serverd.cxx:1425
+#: stap-serverd.cxx:1496
 #, c-format
 msgid "Network port %d is busy. Trying another port"
 msgstr ""
 
-#: stap-serverd.cxx:1429
+#: stap-serverd.cxx:1500
 msgid "Error setting socket address"
 msgstr ""
 
-#: stap-serverd.cxx:1439
+#: stap-serverd.cxx:1510
 msgid "Unable to obtain socket address"
 msgstr ""
 
-#: stap-serverd.cxx:1444
+#: stap-serverd.cxx:1515
 #, c-format
 msgid "Using network port %d"
 msgstr ""
 
-#: stap-serverd.cxx:1452
+#: stap-serverd.cxx:1523
 msgid "Error listening on socket"
 msgstr ""
 
-#: stap-serverd.cxx:1461
+#: stap-serverd.cxx:1532
 #, c-format
 msgid "Unable to find our certificate in the database at %s"
 msgstr ""
 
-#: stap-serverd.cxx:1479
+#: stap-serverd.cxx:1550
 msgid "Error closing listen socket"
 msgstr ""
 
-#: stap-serverd.cxx:1507
+#: stap-serverd.cxx:1578
 msgid "Unable to authorize certificate for the local client"
 msgstr ""
 
-#: stap-serverd.cxx:1539
+#: stap-serverd.cxx:1610
 msgid "Unable to configure SSL server session ID cache"
 msgstr ""
 
-#: stap-serverd.cxx:1551
+#: stap-serverd.cxx:1622
 msgid "Unable to shut down server session ID cache"
 msgstr ""
 
@@ -4572,30 +4588,35 @@ msgstr ""
 msgid "kernel write fault at 0x%p (%s)"
 msgstr ""
 
-#: translate.cxx:5762
+#: translate.cxx:5732
+#, c-format
+msgid "divide by zero in DWARF operand (%s)"
+msgstr ""
+
+#: translate.cxx:5764
 #, c-format
 msgid "ignoring extra parts of compat version: %s"
 msgstr ""
 
-#: translate.cxx:5766
+#: translate.cxx:5768
 #, c-format
 msgid "parse error in compatibility version: %s"
 msgstr ""
 
-#: translate.cxx:5769
+#: translate.cxx:5771
 #, c-format
 msgid "compatibility version out of range: %s"
 msgstr ""
 
-#: translate.cxx:5789
+#: translate.cxx:5791
 msgid " recursive"
 msgstr ""
 
-#: translate.cxx:5789
+#: translate.cxx:5791
 msgid " non-recursive"
 msgstr ""
 
-#: translate.cxx:5788
+#: translate.cxx:5790
 #, c-format
 msgid "function recursion-analysis: max-nesting %d %s"
 msgstr ""
