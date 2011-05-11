@@ -1286,7 +1286,8 @@ void sign_file (
   SGN_DestroyContext (sgn, PR_TRUE);
 
   /* Now write the signed data to the output file.  */
-  PR_Close (local_file_fd);
+  if(local_file_fd != NULL)
+    PR_Close (local_file_fd);
   local_file_fd = PR_Open (outputName.c_str(), PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
 			   PR_IRUSR | PR_IWUSR | PR_IRGRP | PR_IWGRP | PR_IROTH);
   if (local_file_fd == NULL)
