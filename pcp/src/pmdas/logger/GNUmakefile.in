@@ -52,11 +52,12 @@ util.o event.o logger.o: util.h
 include $(BUILDRULES)
 
 install install_pcp:	default
-	$(INSTALL) -m 755 -d $(PMDADIR)
-	cd $(srcdir) && $(INSTALL) -m 755 Install Remove $(PMDADIR)
-	cd $(srcdir) && $(INSTALL) -m 644 $(DFILES) root help pmns $(PMDADIR)
-	$(INSTALL) -m 644 domain.h $(PMDADIR)/domain.h
-	$(INSTALL) -m 755 $(CMDTARGET) $(LIBTARGET) $(PMDADIR)
+# install target doesn't work; top level prefix not propagated
+#	$(INSTALL) -m 755 -d $(PMDADIR)
+#	cd $(srcdir) && $(INSTALL) -m 755 Install Remove $(PMDADIR)
+#	cd $(srcdir) && $(INSTALL) -m 644 $(DFILES) root help pmns $(PMDADIR)
+#	$(INSTALL) -m 644 domain.h $(PMDADIR)/domain.h
+#	$(INSTALL) -m 755 $(CMDTARGET) $(LIBTARGET) $(PMDADIR)
 
 .NOTPARALLEL:
 .ORDER:	domain.h $(OBJECTS)

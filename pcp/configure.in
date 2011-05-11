@@ -1797,6 +1797,10 @@ AC_SUBST(lib_for_readline)
 AC_SUBST(lib_for_curses)
 LIBS=$savedLIBS
 
+savedLIBS=$LIBS
+AC_CHECK_LIB(microhttpd,MHD_start_daemon,[AC_SUBST(PMWEBAPI,pmwebapi)])
+LIBS=$savedLIBS
+
 dnl Do you have git installed?
 AC_CHECK_PROGS(GIT,git)
 AC_SUBST(GIT)
@@ -1817,4 +1821,5 @@ dnl   Makefiles
     src/GNUmakefile
     src/pmdas/GNUmakefile
     src/pmdas/logger/GNUmakefile
+    src/pmwebapi/GNUmakefile
 )

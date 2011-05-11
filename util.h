@@ -7,9 +7,10 @@
 #include <sstream>
 #include <stdexcept>
 #include <cctype>
+extern "C" {
 #include <libintl.h>
 #include <locale.h>
-extern "C" {
+#include <signal.h>
 #include <stdint.h>
 #include <spawn.h>
 }
@@ -43,7 +44,6 @@ std::string find_executable(const std::string& name,
 			    const std::string& env_path = "PATH");
 const std::string cmdstr_quoted(const std::string& cmd);
 const std::string cmdstr_join(const std::vector<std::string>& cmds);
-std::string git_revision(const std::string& path);
 int stap_waitpid(int verbose, pid_t pid);
 pid_t stap_spawn(int verbose, const std::vector<std::string>& args);
 pid_t stap_spawn(int verbose, const std::vector<std::string>& args,
@@ -187,6 +187,26 @@ endswith(const std::string & s, const char * suffix)
     return false;
   return (s.compare(s_len - suffix_len, suffix_len, suffix) == 0);
 }
+
+
+// Mask our usual signals for the life of this object.
+struct stap_sigmasker {
+    sigset_t old;
+    stap_sigmasker()
+      {
+        sigset_t mask;
+        sigemptyset (&mask);
+        sigaddset (&mask, SIGHUP);
+        sigaddset (&mask, SIGPIPE);
+        sigaddset (&mask, SIGINT);
+        sigaddset (&mask, SIGTERM);
+        sigprocmask (SIG_BLOCK, &mask, &old);
+      }
+    ~stap_sigmasker()
+      {
+        sigprocmask (SIG_SETMASK, &old, NULL);
+      }
+};
 
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

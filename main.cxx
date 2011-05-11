@@ -403,9 +403,8 @@ remove_temp_dir (systemtap_session &s)
         clog << _F("Keeping temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
       else
         {
-	  // Ignore signals while we're deleting the temporary directory.
-	  // XXX should be masked instead, so none are lost?
-	  setup_signals (SIG_IGN);
+	  // Mask signals while we're deleting the temporary directory.
+	  stap_sigmasker masked;
 
 	  // Remove the temporary directory.
 	  vector<string> cleanupcmd;
@@ -415,9 +414,6 @@ remove_temp_dir (systemtap_session &s)
 
 	  (void) stap_system (s.verbose, cleanupcmd);
           s.tmpdir.clear();
-
-	  // Restore signals.
-	  setup_signals (handle_interrupt);
         }
     }
 }
@@ -947,7 +943,7 @@ main (int argc, char * const argv [])
   // Prepare connections for each specified remote target.
   vector<remote*> targets;
   if (s.remote_uris.empty())
-    s.remote_uris.push_back("direct");
+    s.remote_uris.push_back("direct:");
   for (unsigned i = 0; rc == 0 && i < s.remote_uris.size(); ++i)
     {
       remote *target = remote::create(s, s.remote_uris[i]);

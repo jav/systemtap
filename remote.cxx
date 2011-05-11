@@ -100,7 +100,7 @@ class direct : public remote {
   public:
     friend class remote;
 
-    virtual ~direct() {}
+    virtual ~direct() { finish(); }
 };
 
 
@@ -406,18 +406,10 @@ class direct_stapsh : public stapsh {
 
         // mask signals while we spawn, so we can simulate manual signals to
         // the "remote" target, as we must for the real ssh_remote case.
-        sigset_t mask, oldmask;
-        sigemptyset (&mask);
-        sigaddset (&mask, SIGHUP);
-        sigaddset (&mask, SIGPIPE);
-        sigaddset (&mask, SIGINT);
-        sigaddset (&mask, SIGTERM);
-        sigprocmask (SIG_BLOCK, &mask, &oldmask);
-
-        child = stap_spawn_piped(s.verbose, cmd, &in, &out);
-
-        // back to normal signals
-        sigprocmask (SIG_SETMASK, &oldmask, NULL);
+        {
+          stap_sigmasker masked;
+          child = stap_spawn_piped(s.verbose, cmd, &in, &out);
+        }
 
         if (child <= 0)
           throw runtime_error(_("error launching stapsh"));
@@ -447,7 +439,7 @@ class direct_stapsh : public stapsh {
   public:
     friend class remote;
 
-    virtual ~direct_stapsh() {}
+    virtual ~direct_stapsh() { finish(); }
 };
 
 
@@ -485,18 +477,10 @@ class ssh_remote : public stapsh {
 
         // mask signals while we spawn, so we can manually send even tty
         // signals *through* ssh rather than to ssh itself
-        sigset_t mask, oldmask;
-        sigemptyset (&mask);
-        sigaddset (&mask, SIGHUP);
-        sigaddset (&mask, SIGPIPE);
-        sigaddset (&mask, SIGINT);
-        sigaddset (&mask, SIGTERM);
-        sigprocmask (SIG_BLOCK, &mask, &oldmask);
-
-        child = stap_spawn_piped(s->verbose, cmd, &in, &out);
-
-        // back to normal signals
-        sigprocmask (SIG_SETMASK, &oldmask, NULL);
+        {
+          stap_sigmasker masked;
+          child = stap_spawn_piped(s->verbose, cmd, &in, &out);
+        }
 
         if (child <= 0)
           throw runtime_error(_("error launching stapsh"));
@@ -540,7 +524,7 @@ class ssh_remote : public stapsh {
     static remote* create(systemtap_session& s, const string& host);
     static remote* create(systemtap_session& s, const uri_decoder& ud);
 
-    virtual ~ssh_remote() { }
+    virtual ~ssh_remote() { finish(); }
 };
 
 
@@ -790,11 +774,7 @@ remote::create(systemtap_session& s, const string& uri)
 {
   try
     {
-      if (uri == "direct")
-        return new direct(s);
-      else if (uri == "stapsh")
-        return new direct_stapsh(s);
-      else if (uri.find(':') != string::npos)
+      if (uri.find(':') != string::npos)
         {
           const uri_decoder ud(uri);
 
@@ -805,6 +785,10 @@ remote::create(systemtap_session& s, const string& uri)
               ud.path.find_first_not_of("1234567890") == string::npos)
             return ssh_remote::create(s, uri);
 
+          if (ud.scheme == "direct")
+            return new direct(s);
+          else if (ud.scheme == "stapsh")
+            return new direct_stapsh(s);
           if (ud.scheme == "ssh")
             return ssh_remote::create(s, ud);
           else
@@ -874,31 +858,26 @@ remote::run(const vector<remote*>& remotes)
     }
 
   // mask signals while we're preparing to poll
-  sigset_t mask, oldmask;
-  sigemptyset (&mask);
-  sigaddset (&mask, SIGHUP);
-  sigaddset (&mask, SIGPIPE);
-  sigaddset (&mask, SIGINT);
-  sigaddset (&mask, SIGTERM);
-  sigprocmask (SIG_BLOCK, &mask, &oldmask);
+  {
+    stap_sigmasker masked;
 
-  for (;;) // polling loop for remotes that have fds to watch
-    {
-      vector<pollfd> fds;
-      for (unsigned i = 0; i < remotes.size(); ++i)
-	remotes[i]->prepare_poll (fds);
-      if (fds.empty())
-	break;
+    // polling loop for remotes that have fds to watch
+    for (;;)
+      {
+        vector<pollfd> fds;
+        for (unsigned i = 0; i < remotes.size(); ++i)
+          remotes[i]->prepare_poll (fds);
+        if (fds.empty())
+          break;
 
-      rc = ppoll (&fds[0], fds.size(), NULL, &oldmask);
-      if (rc < 0 && errno != EINTR)
-	break;
+        rc = ppoll (&fds[0], fds.size(), NULL, &masked.old);
+        if (rc < 0 && errno != EINTR)
+          break;
 
-      for (unsigned i = 0; i < remotes.size(); ++i)
-	remotes[i]->handle_poll (fds);
-    }
-
-  sigprocmask (SIG_SETMASK, &oldmask, NULL);
+        for (unsigned i = 0; i < remotes.size(); ++i)
+          remotes[i]->handle_poll (fds);
+      }
+  }
 
   for (unsigned i = 0; i < remotes.size(); ++i)
     {

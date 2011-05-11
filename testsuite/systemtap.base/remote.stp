@@ -1,0 +1,8 @@
+probe begin, end {
+    println(pp())
+}
+
+probe timer.s(30) {
+    println("timeout!")
+    exit()
+}
