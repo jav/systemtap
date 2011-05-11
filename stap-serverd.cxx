@@ -30,7 +30,9 @@ extern "C" {
 #include <wordexp.h>
 #include <glob.h>
 #include <fcntl.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/utsname.h>
 
 #include <nspr.h>
@@ -975,7 +977,6 @@ handleRequest (const char* requestDirName, const char* responseDirName)
      respected.  */
   int srlrc = 0;
   if (set_rlimits) {
-    struct rlimit rl;
     srlrc = setrlimit (RLIMIT_FSIZE, & translator_RLIMIT_FSIZE);
     srlrc |= setrlimit (RLIMIT_STACK, & translator_RLIMIT_STACK);
     srlrc |= setrlimit (RLIMIT_CPU,   & translator_RLIMIT_CPU);
@@ -987,7 +988,7 @@ handleRequest (const char* requestDirName, const char* responseDirName)
   else
     nsscommon_error (_F("Unable to set resource limits for stap: %s", strerror (errno)));
   if (set_rlimits) {
-    rrlrc = setrlimit (RLIMIT_FSIZE, & save_RLIMIT_FSIZE);
+    int rrlrc = setrlimit (RLIMIT_FSIZE, & save_RLIMIT_FSIZE);
     rrlrc |= setrlimit (RLIMIT_STACK, & save_RLIMIT_STACK);
     rrlrc |= setrlimit (RLIMIT_CPU,   & save_RLIMIT_CPU);
     rrlrc |= setrlimit (RLIMIT_NPROC, & save_RLIMIT_NPROC);
