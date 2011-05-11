@@ -1209,7 +1209,7 @@ void sign_file (
 
   // Predeclare these to keep C++ happy abount branches to 'done'.
   unsigned char buffer[4096];
-  PRFileDesc *local_file_fd;
+  PRFileDesc *local_file_fd = NULL;
   PRInt32 numBytes;
   SECStatus secStatus;
   SGNContext *sgn;
