@@ -24,13 +24,10 @@
  * APPL2	interaction with PMCD
  */
 
-#include <pcp/pmapi.h>
-#include <pcp/impl.h>
-#include <pcp/pmda.h>
 #include <ctype.h>
-#include <string.h>
-#include "domain.h"
+#include <sys/stat.h>
 #include "percontext.h"
+#include "domain.h"
 #include "event.h"
 #include "util.h"
 
@@ -47,15 +44,16 @@
  *	logger.numclients			- number of attached clients
  *	logger.numlogfiles			- number of monitored logfiles
  *	logger.param_string			- string event data
+ *	logger.perfile.{LOGFILE}.count		- observed event count
+ *	logger.perfile.{LOGFILE}.bytes		- observed events size
+ *	logger.perfile.{LOGFILE}.size		- logfile size
  *	logger.perfile.{LOGFILE}.path		- logfile path
  *	logger.perfile.{LOGFILE}.numclients	- number of attached
  *						  clients/logfile
  *	logger.perfile.{LOGFILE}.records	- event records/logfile
  */
 
-static struct LogfileData *logfiles = NULL;
-static int numlogfiles = 0;
-static int nummetrics = 0;
+static int nummetrics;
 static __pmnsTree *pmns;
 
 struct dynamic_metric_info {
@@ -63,21 +61,33 @@ struct dynamic_metric_info {
     int pmid_index;
     const char *help_text;
 };
-static struct dynamic_metric_info *dynamic_metric_infotab = NULL;
+static struct dynamic_metric_info *dynamic_metric_infotab;
 
 /*
  * all metrics supported in this PMDA - one table entry for each
  */
 
 static pmdaMetric dynamic_metrictab[] = {
+/* perfile.{LOGFILE}.count */
+    { NULL, 				/* m_user gets filled in later */
+      { 0 /* pmid gets filled in later */, PM_TYPE_U32, PM_INDOM_NULL,
+	PM_SEM_COUNTER, PMDA_PMUNITS(0,0,1,0,0,PM_COUNT_ONE) }, },
+/* perfile.{LOGFILE}.bytes */
+    { NULL, 				/* m_user gets filled in later */
+      { 0 /* pmid gets filled in later */, PM_TYPE_U64, PM_INDOM_NULL,
+	PM_SEM_COUNTER, PMDA_PMUNITS(1,0,0,PM_SPACE_BYTE,0,0) }, },
+/* perfile.{LOGFILE}.size */
+    { NULL, 				/* m_user gets filled in later */
+      { 0 /* pmid gets filled in later */, PM_TYPE_U64, PM_INDOM_NULL,
+	PM_SEM_INSTANT, PMDA_PMUNITS(1,0,0,PM_SPACE_BYTE,0,0) }, },
 /* perfile.{LOGFILE}.path */
     { NULL, 				/* m_user gets filled in later */
       { 0 /* pmid gets filled in later */, PM_TYPE_STRING, PM_INDOM_NULL,
-	PM_SEM_INSTANT, PMDA_PMUNITS(0,0,0,0,0,0) }, },
+	PM_SEM_DISCRETE, PMDA_PMUNITS(0,0,0,0,0,0) }, },
 /* perfile.{LOGFILE}.numclients */
     { NULL, 				/* m_user gets filled in later */
       { 0 /* pmid gets filled in later */, PM_TYPE_U32, PM_INDOM_NULL,
-	PM_SEM_DISCRETE, PMDA_PMUNITS(0,0,1,0,0,PM_COUNT_ONE) }, },
+	PM_SEM_INSTANT, PMDA_PMUNITS(0,0,1,0,0,PM_COUNT_ONE) }, },
 /* perfile.{LOGFILE}.records */
     { NULL, 				/* m_user gets filled in later */
       { 0 /* pmid gets filled in later */, PM_TYPE_EVENT, PM_INDOM_NULL,
@@ -85,6 +95,12 @@ static pmdaMetric dynamic_metrictab[] = {
 };
 
 static char *dynamic_nametab[] = {
+/* perfile.{LOGFILE}.count */
+    "count",
+/* perfile.{LOGFILE}.bytes */
+    "bytes",
+/* perfile.{LOGFILE}.size */
+    "size",
 /* perfile.{LOGFILE}.path */
     "path",
 /* perfile.{LOGFILE}.numclients */
@@ -94,6 +110,12 @@ static char *dynamic_nametab[] = {
 };
 
 static const char *dynamic_helptab[] = {
+/* perfile.{LOGFILE}.count */
+    "The cumulative number of events seen for this logfile.",
+/* perfile.{LOGFILE}.bytes */
+    "Cumulative number of bytes in events seen for this logfile.",
+/* perfile.{LOGFILE}.size */
+    "The current size of this logfile.",
 /* perfile.{LOGFILE}.path */
     "The path for this logfile.",
 /* perfile.{LOGFILE}.numclients */
@@ -117,31 +139,66 @@ static pmdaMetric static_metrictab[] = {
 	PMDA_PMUNITS(0,0,0,0,0,0) }, },
 };
 
-static pmdaMetric *metrictab = NULL;
+static pmdaMetric *metrictab;
 
 static char	mypath[MAXPATHLEN];
-char	       *configfile = NULL;
+char	       *configfile;
 
 void
 logger_end_contextCallBack(int ctx)
 {
-#ifdef PCP_DEBUG
     if (pmDebug & DBG_TRACE_APPL2)
 	__pmNotifyErr(LOG_INFO, "%s: saw context %d\n", __FUNCTION__, ctx);
-#endif
     ctx_end(ctx);
 }
 
 static int
 logger_profile(__pmProfile *prof, pmdaExt *ep)
 {
-//    (ep->e_context)
-#ifdef PCP_DEBUG
     if (pmDebug & DBG_TRACE_APPL2)
 	__pmNotifyErr(LOG_INFO, "%s: saw context %d\n", __FUNCTION__, ep->e_context);
-#endif
     ctx_start(ep->e_context);
     return 0;
+}
+
+static void
+logger_reload(void)
+{
+    struct stat pathstat;
+    int i, fd;
+
+    for (i = 0; i < numlogfiles; i++) {
+	if (logfiles[i].pid > 0)	/* process pipe */
+	    continue;
+	if (stat(logfiles[i].pathname, &pathstat) < 0) {
+	    if (logfiles[i].fd >= 0) {
+		close(logfiles[i].fd);
+		logfiles[i].fd = -1;
+	    }
+	    memset(&logfiles[i].pathstat, 0, sizeof(logfiles[i].pathstat));
+	} else {
+	    /* reopen if no descriptor before, or log rotated (new file) */
+	    if (logfiles[i].fd < 0 ||
+	        logfiles[i].pathstat.st_ino != pathstat.st_ino ||
+		logfiles[i].pathstat.st_dev != pathstat.st_dev) {
+		if (logfiles[i].fd < 0)
+		    close(logfiles[i].fd);
+		fd = open(logfiles[i].pathname, O_RDONLY|O_NONBLOCK);
+		if (fd < 0 && logfiles[i].fd >= 0)	/* log once */
+		    __pmNotifyErr(LOG_ERR, "open: %s - %s",
+				logfiles[i].pathname, strerror(errno));
+		logfiles[i].fd = fd;
+	    }
+	    logfiles[i].pathstat = pathstat;
+	}
+    }
+}
+
+static int
+logger_fetch(int numpmid, pmID pmidlist[], pmResult **resp, pmdaExt *pmda)
+{
+    logger_reload();
+    return pmdaFetch(numpmid, pmidlist, resp, pmda);
 }
 
 /*
@@ -154,10 +211,9 @@ logger_fetchCallBack(pmdaMetric *mdesc, unsigned int inst, pmAtomValue *atom)
     int		rc;
     int		status = PMDA_FETCH_STATIC;
 
-#ifdef PCP_DEBUG
     if (pmDebug & DBG_TRACE_APPL2)
 	__pmNotifyErr(LOG_INFO, "%s called\n", __FUNCTION__);
-#endif
+
     if (idp->cluster != 0 || (idp->item < 0 || idp->item > nummetrics)) {
 	__pmNotifyErr(LOG_ERR, "%s: PM_ERR_PMID (cluster = %d, item = %d)\n",
 		      __FUNCTION__, idp->cluster, idp->item);
@@ -193,13 +249,22 @@ logger_fetchCallBack(pmdaMetric *mdesc, unsigned int inst, pmAtomValue *atom)
 	}
 
 	switch(pinfo->pmid_index) {
-	  case 0:			/* perfile.{LOGFILE}.path */
+	  case 0:			/* perfile.{LOGFILE}.count */
+	    atom->ul = logfiles[pinfo->logfile].count;
+	    break;
+	  case 1:			/* perfile.{LOGFILE}.bytes */
+	    atom->ull = logfiles[pinfo->logfile].bytes;
+	    break;
+	  case 2:			/* perfile.{LOGFILE}.size */
+	    atom->ull = logfiles[pinfo->logfile].pathstat.st_size;
+	    break;
+	  case 3:			/* perfile.{LOGFILE}.path */
 	    atom->cp = logfiles[pinfo->logfile].pathname;
 	    break;
-	  case 1:			/* perfile.{LOGFILE}.numclients */
+	  case 4:			/* perfile.{LOGFILE}.numclients */
 	    atom->ul = event_get_clients_per_logfile(pinfo->logfile);
 	    break;
-	  case 2:			/* perfile.{LOGFILE}.records */
+	  case 5:			/* perfile.{LOGFILE}.records */
 	    if ((rc = event_fetch(&atom->vbp, pinfo->logfile)) != 0)
 		return rc;
 	    if (atom->vbp == NULL)
@@ -234,7 +299,7 @@ static int
 read_config(const char *filename)
 {
     FILE	       *configFile;
-    struct LogfileData *data;
+    struct EventFileData *data;
     int			rc = 0;
     size_t		len;
     char		line[MAXPATHLEN * 2];
@@ -278,12 +343,14 @@ read_config(const char *filename)
 	/* Strip all trailing whitespace. */
 	rstrip(line);
 
-	/* If the string is now empty, just ignore the line. */
+	/* If the string is now empty or a comment, just ignore the line. */
 	len = strlen(line);
 	if (len == 0) {
 	    continue;
+	} else if (line[0] == '#') {
+	    continue;
 	}
-	
+
 	/* Skip past all leading whitespace to find the start of
 	 * NAME. */
 	name = lstrip(line);
@@ -295,7 +362,7 @@ read_config(const char *filename)
 	while (*ptr != '\0' && ! isspace(*ptr)) {
 	    ptr++;
 	}
-	/* If we're at the end, we never found any whitespace, so
+	/* If we're at the end, we didn't find any whitespace, so
 	 * we've only got a NAME, with no PATHNAME. */
 	if (*ptr == '\0') {
 	    fprintf(stderr, "%s: badly formatted config file line: %s\n",
@@ -335,7 +402,7 @@ read_config(const char *filename)
 
 	/* Now we've got a reasonable NAME and PATHNAME.  Save them. */
 	numlogfiles++;
-	logfiles = realloc(logfiles, numlogfiles * sizeof(struct LogfileData));
+	logfiles = realloc(logfiles, numlogfiles*sizeof(struct EventFileData));
 	if (logfiles == NULL) {
 	    fprintf(stderr, "%s: realloc failed: %s\n", __FUNCTION__,
 		    strerror(errno));
@@ -343,15 +410,14 @@ read_config(const char *filename)
 	    break;
 	}
 	data = &logfiles[numlogfiles - 1];
-	strncpy(data->pmns_name, name, sizeof(data->pmns_name));
+	memset(data, 0, sizeof(*data));
+	strncpy(data->pmnsname, name, sizeof(data->pmnsname));
 	strncpy(data->pathname, ptr, sizeof(data->pathname));
-	/* data->pmid_string gets filled in after pmdaInit() is called. */
+	/* remaining fields filled in after pmdaInit() is called. */
 
-#ifdef PCP_DEBUG
 	if (pmDebug & DBG_TRACE_APPL0)
 	    __pmNotifyErr(LOG_INFO, "%s: saw logfile %s (%s)\n", __FUNCTION__,
-		      data->pathname, data->pmns_name);
-#endif
+		      data->pathname, data->pmnsname);
     }
     if (rc != 0) {
 	free(logfiles);
@@ -377,21 +443,17 @@ usage(void)
 static int
 logger_pmid(const char *name, pmID *pmid, pmdaExt *pmda)
 {
-#ifdef PCP_DEBUG
     if (pmDebug & DBG_TRACE_APPL0)
 	__pmNotifyErr(LOG_INFO, "%s: name %s\n", __FUNCTION__,
 		  (name == NULL) ? "NULL" : name);
-#endif
     return pmdaTreePMID(pmns, name, pmid);
 }
 
 static int
 logger_name(pmID pmid, char ***nameset, pmdaExt *pmda)
 {
-#ifdef PCP_DEBUG
     if (pmDebug & DBG_TRACE_APPL0)
 	__pmNotifyErr(LOG_INFO, "%s: pmid 0x%x\n", __FUNCTION__, pmid);
-#endif
     return pmdaTreeName(pmns, pmid, nameset);
 }
 
@@ -399,11 +461,9 @@ static int
 logger_children(const char *name, int traverse, char ***kids, int **sts,
 		pmdaExt *pmda)
 {
-#ifdef PCP_DEBUG
     if (pmDebug & DBG_TRACE_APPL0)
 	__pmNotifyErr(LOG_INFO, "%s: name %s\n", __FUNCTION__,
 		  (name == NULL) ? "NULL" : name);
-#endif
     return pmdaTreeChildren(pmns, name, traverse, kids, sts);
 }
 
@@ -499,9 +559,9 @@ logger_init(pmdaInterface *dp)
 
     if (dp->status != 0)
 	return;
-    dp->version.four.profile = logger_profile;
 
-    /* Dynamic PMNS handling. */
+    dp->version.four.fetch = logger_fetch;
+    dp->version.four.profile = logger_profile;
     dp->version.four.pmid = logger_pmid;
     dp->version.four.name = logger_name;
     dp->version.four.children = logger_children;
@@ -523,25 +583,22 @@ logger_init(pmdaInterface *dp)
     for (i = 0; i < numlogfiles; i++) {
 	for (j = 0; j < numdynamics; j++) {
 	    snprintf(name, sizeof(name), "logger.perfile.%s.%s",
-		     logfiles[i].pmns_name, dynamic_nametab[j]);
+		     logfiles[i].pmnsname, dynamic_nametab[j]);
 	    __pmAddPMNSNode(pmns, pmetric[j].m_desc.pmid, name);
 	}
 	pmetric += numdynamics;
     }
-    pmdaTreeRebuildHash(pmns, (numlogfiles * numdynamics)); /* for reverse (pmid->name) lookups */
+    /* for reverse (pmid->name) lookups */
+    pmdaTreeRebuildHash(pmns, (numlogfiles * numdynamics));
 
-    /* Now that the metric table has been fully filled in, update
-     * each LogfileData with the proper string pmid to use. */
-    for (i = 0; i < numlogfiles; i++) {
-	logfiles[i].pmid_string = metrictab[2].m_desc.pmid;
-    }
+    /* metric table is ready, update each logfile with the proper pmid */
+    for (i = 0; i < numlogfiles; i++)
+	logfiles[i].pmid = metrictab[2].m_desc.pmid;
 
-    event_init(dp, logfiles, numlogfiles);
+    /* initialise the event and client tracking code */
+    event_init();
 }
 
-/*
- * Set up the agent if running as a daemon.
- */
 int
 main(int argc, char **argv)
 {
@@ -551,7 +608,6 @@ main(int argc, char **argv)
     pmdaInterface	desc;
 
     __pmSetProgname(argv[0]);
-
     snprintf(mypath, sizeof(mypath), "%s%c" "logger" "%c" "help",
 		pmGetConfig("PCP_PMDAS_DIR"), sep, sep);
     pmdaDaemon(&desc, PMDA_INTERFACE_5, pmProgname, LOGGER,

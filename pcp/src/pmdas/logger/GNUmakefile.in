@@ -24,8 +24,7 @@ TOPDIR = ../../..
 include $(TOPDIR)/src/include/builddefs
 
 CMDTARGET = pmdalogger$(EXECSUFFIX)
-LIBTARGET = pmda_logger.$(DSOSUFFIX)
-TARGETS = $(CMDTARGET) $(LIBTARGET)
+TARGETS = $(CMDTARGET)
 
 DFILES 	= README
 CFILES	= logger.c percontext.c event.c util.c
@@ -40,7 +39,7 @@ IAM	= logger
 DOMAIN	= LOGGER
 PMDADIR	= $(PCP_PMDAS_DIR)/$(IAM)
 
-LDIRT	= domain.h *.o $(IAM).log pmda$(IAM) pmda_$(IAM).so
+LDIRT	= domain.h *.o $(IAM).log $(CMDTARGET)
 
 default_pcp default:	domain.h $(TARGETS)
 
@@ -52,12 +51,11 @@ util.o event.o logger.o: util.h
 include $(BUILDRULES)
 
 install install_pcp:	default
-# install target doesn't work; top level prefix not propagated
-#	$(INSTALL) -m 755 -d $(PMDADIR)
-#	cd $(srcdir) && $(INSTALL) -m 755 Install Remove $(PMDADIR)
-#	cd $(srcdir) && $(INSTALL) -m 644 $(DFILES) root help pmns $(PMDADIR)
-#	$(INSTALL) -m 644 domain.h $(PMDADIR)/domain.h
-#	$(INSTALL) -m 755 $(CMDTARGET) $(LIBTARGET) $(PMDADIR)
+	$(INSTALL) -m 755 -d $(PMDADIR)
+	cd $(srcdir) && $(INSTALL) -m 755 Install Remove $(PMDADIR)
+	cd $(srcdir) && $(INSTALL) -m 644 $(DFILES) root help pmns $(PMDADIR)
+	$(INSTALL) -m 644 domain.h $(PMDADIR)/domain.h
+	$(INSTALL) -m 755 $(CMDTARGET) $(PMDADIR)/$(CMDTARGET)
 
 .NOTPARALLEL:
 .ORDER:	domain.h $(OBJECTS)
@@ -70,7 +68,7 @@ install install_pcp:	default
 # is either in ../../pmns or in $(PCP_VAR_DIR)/pmns).
 #
 # The following line would be added to stdpmid.local:
-#   LOGGER 255
+#   LOGGER 106
 #
 # Then $(PCP_VAR_DIR)/pmns/Make.stdpmid would be run to generate
 # stdpmid from stdpmid.pcp/stdpmid.local.
