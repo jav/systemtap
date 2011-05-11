@@ -59,8 +59,8 @@ static PRStatus spawn_and_wait (const vector<string> &argv,
 /* getopt variables */
 extern int optind;
 
-/* File scope statics. Set during argument parsing. */
-static bool set_ulimits;
+/* File scope statics. Set during argument parsing and initialization. */
+static bool set_rlimits;
 static bool use_db_password;
 static int port;
 static string cert_db_path;
@@ -72,6 +72,20 @@ static string B_options;
 static string I_options;
 static string R_option;
 static pthread_t avahi_thread = 0;
+
+// Used to save our resource limits for these categories and impose smaller
+// limits on the translator while servicing a request.
+static struct rlimit save_RLIMIT_FSIZE;
+static struct rlimit save_RLIMIT_STACK;
+static struct rlimit save_RLIMIT_CPU;
+static struct rlimit save_RLIMIT_NPROC;
+static struct rlimit save_RLIMIT_AS;
+
+static struct rlimit translator_RLIMIT_FSIZE;
+static struct rlimit translator_RLIMIT_STACK;
+static struct rlimit translator_RLIMIT_CPU;
+static struct rlimit translator_RLIMIT_NPROC;
+static struct rlimit translator_RLIMIT_AS;
 
 // Message handling. Error messages occur during the handling of a request and
 // are logged, printed to stderr and also to the client's stderr.
@@ -502,10 +516,34 @@ initialize (int argc, char **argv) {
   }
   // 2) resource limits should be set if the user is the 'stap-server' daemon.
   string login = getlogin ();
-  if (login == "stap-server")
-    set_ulimits = true;
+  if (login == "stap-server") {
+    // First obtain the current limits.
+    int rc = getrlimit (RLIMIT_FSIZE, & save_RLIMIT_FSIZE);
+    rc |= getrlimit (RLIMIT_STACK, & save_RLIMIT_STACK);
+    rc |= getrlimit (RLIMIT_CPU,   & save_RLIMIT_CPU);
+    rc |= getrlimit (RLIMIT_NPROC, & save_RLIMIT_NPROC);
+    rc |= getrlimit (RLIMIT_AS,    & save_RLIMIT_AS);
+    if (rc != 0)
+      fatal (_F("Unable to obtain current resource limits: %s", strerror (errno)));
+
+    // Now establish limits for the translator. Make sure these limits do not exceed the current
+    // limits.
+    #define TRANSLATOR_LIMIT(category, limit) \
+      do { \
+	translator_RLIMIT_##category = save_RLIMIT_##category; \
+	if (translator_RLIMIT_##category.rlim_cur > (limit)) \
+	  translator_RLIMIT_##category.rlim_cur = (limit); \
+      } while (0);
+    TRANSLATOR_LIMIT (FSIZE, 50000);
+    TRANSLATOR_LIMIT (STACK, 1000);
+    TRANSLATOR_LIMIT (CPU, 60);
+    TRANSLATOR_LIMIT (NPROC, 20);
+    TRANSLATOR_LIMIT (AS, 500000);
+    set_rlimits = true;
+    #undef TRANSLATOR_LIMIT
+  }
   else
-    set_ulimits = false;
+    set_rlimits = false;
 
   // Seed the random number generator. Used to generate noise used during key generation.
   srand (time (NULL));
@@ -553,7 +591,7 @@ readDataFromSocket(PRFileDesc *sslSocket, const char *requestFileName)
   PRInt32     numBytesExpected;
   PRInt32     numBytesRead;
   PRInt32     numBytesWritten;
-  PRInt32     totalBytes;
+  PRInt32     totalBytes = 0;
 #define READ_BUFFER_SIZE 4096
   char        buffer[READ_BUFFER_SIZE];
 
@@ -930,8 +968,35 @@ handleRequest (const char* requestDirName, const char* responseDirName)
       stapargv.insert (stapargv.begin () + 1, "--unprivileged"); /* better not be resettable by later option */
     }
 
-  /* All ready, let's run the translator! */
-  rc = spawn_and_wait (stapargv, "/dev/null", stapstdout, stapstderr, requestDirName);
+  /* All ready, let's run the translator!
+     Set resource limits while the translator is running in order to prevent
+     DOS. spawn_and_wait ultimately uses posix_spawp which behaves like
+     fork (according to the man page), so the limits we set here will be
+     respected.  */
+  int srlrc = 0;
+  if (set_rlimits) {
+    struct rlimit rl;
+    srlrc = setrlimit (RLIMIT_FSIZE, & translator_RLIMIT_FSIZE);
+    srlrc |= setrlimit (RLIMIT_STACK, & translator_RLIMIT_STACK);
+    srlrc |= setrlimit (RLIMIT_CPU,   & translator_RLIMIT_CPU);
+    srlrc |= setrlimit (RLIMIT_NPROC, & translator_RLIMIT_NPROC);
+    srlrc |= setrlimit (RLIMIT_AS,    & translator_RLIMIT_AS);
+  }
+  if (srlrc == 0)
+    rc = spawn_and_wait (stapargv, "/dev/null", stapstdout, stapstderr, requestDirName);
+  else
+    nsscommon_error (_F("Unable to set resource limits for stap: %s", strerror (errno)));
+  if (set_rlimits) {
+    rrlrc = setrlimit (RLIMIT_FSIZE, & save_RLIMIT_FSIZE);
+    rrlrc |= setrlimit (RLIMIT_STACK, & save_RLIMIT_STACK);
+    rrlrc |= setrlimit (RLIMIT_CPU,   & save_RLIMIT_CPU);
+    rrlrc |= setrlimit (RLIMIT_NPROC, & save_RLIMIT_NPROC);
+    rrlrc |= setrlimit (RLIMIT_AS,    & save_RLIMIT_AS);
+    if (rrlrc != 0)
+      log (_F("Unable to restore resource limits: %s", strerror (errno)));
+  }
+  if (srlrc != 0)
+    return; // Translator was not run but we needed to restore our rlimits first.
 
   /* Save the RC */
   snprintf (staprc, PATH_MAX, "%s/rc", responseDirName);
