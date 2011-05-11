@@ -45,7 +45,7 @@ Requires: kernel-devel
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
-BuildRequires: nss-tools nss-devel avahi-devel pkgconfig
+BuildRequires: nss-devel avahi-devel pkgconfig
 
 # Additional requires for things spawned by stap
 Requires: coreutils grep sed unzip zip
@@ -118,7 +118,7 @@ Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap
-Requires: avahi avahi-tools nss nss-tools mktemp
+Requires: avahi avahi-tools nss mktemp
 Requires: zip unzip
 Requires(post): chkconfig
 Requires(preun): chkconfig
