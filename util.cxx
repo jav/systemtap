@@ -222,7 +222,7 @@ remove_file_or_dir (const char *name)
 
   if (remove (name) != 0)
     return 1;
-  cerr << _("remove returned 0") << endl;
+
   return 0;
 }
 
@@ -409,44 +409,46 @@ cmdstr_join(const vector<string>& cmds)
 }
 
 
-string
-git_revision(const string& path)
-{
-  string revision = "(not-a-git-repository)";
-  string git_dir = path + "/.git/";
+// signal-safe set of pids
+class spawned_pids_t {
+  private:
+    set<pid_t> pids;
 
-  struct stat st;
-  if (stat(git_dir.c_str(), &st) == 0)
-    {
-      string command = "git --git-dir=\"" + git_dir
-        + "\" rev-parse HEAD 2>/dev/null";
-
-      char buf[50];
-      FILE *fp = popen(command.c_str(), "r");
-      if (fp != NULL)
-        {
-          char *bufp = fgets(buf, sizeof(buf), fp);
-          int rc = pclose(fp);
-          if (bufp != NULL && rc == 0)
-            revision = buf;
-        }
-    }
-
-  return revision;
-}
-
-
-// XXX written only from the main thread, but can be read in a
-//     signal handler.  synchronization needed?
-static set<pid_t> spawned_pids;
+  public:
+    bool contains (pid_t p)
+      {
+        stap_sigmasker masked;
+        return pids.count(p) == 0;
+      }
+    bool insert (pid_t p)
+      {
+        stap_sigmasker masked;
+        return (p > 0) ? pids.insert(p).second : false;
+      }
+    void erase (pid_t p)
+      {
+        stap_sigmasker masked;
+        pids.erase(p);
+      }
+    int killall (int sig)
+      {
+        int ret = 0;
+        stap_sigmasker masked;
+        for (set<pid_t>::const_iterator it = pids.begin();
+             it != pids.end(); ++it)
+          ret = kill(*it, sig) ?: ret;
+        return ret;
+      }
+};
+static spawned_pids_t spawned_pids;
 
 
 int
 stap_waitpid(int verbose, pid_t pid)
 {
   int ret, status;
-  if (verbose > 1 && spawned_pids.count(pid) == 0)
-    clog << _("Spawn waitpid call on unmanaged pid ") << pid << endl;
+  if (verbose > 1 && spawned_pids.contains(pid))
+    clog << _F("Spawn waitpid call on unmanaged pid %d", pid) << endl;
   ret = waitpid(pid, &status, 0);
   if (ret == pid)
     {
@@ -490,7 +492,7 @@ null_child_fd(posix_spawn_file_actions_t* fa, int childfd)
 }
 
 // Runs a command with a saved PID, so we can kill it from the signal handler
-static pid_t
+pid_t
 stap_spawn(int verbose, const vector<string>& args,
            posix_spawn_file_actions_t* fa)
 {
@@ -631,16 +633,7 @@ stap_system_read(int verbose, const vector<string>& args, ostream& out)
 int
 kill_stap_spawn(int sig)
 {
-  int ret = 0;
-  for (set<pid_t>::iterator it = spawned_pids.begin();
-       it != spawned_pids.end(); ++it)
-    if (*it > 0)
-      {
-        int pidret = kill(*it, sig);
-        if (!ret)
-          ret = pidret;
-      }
-  return ret;
+  return spawned_pids.killall(sig);
 }
 
 
@@ -751,6 +744,28 @@ normalize_machine(const string& machine)
   return machine;
 }
 
+string
+kernel_release_from_build_tree (const string &kernel_build_tree, int verbose)
+{
+  string version_file_name = kernel_build_tree + "/include/config/kernel.release";
+  // The file include/config/kernel.release within the
+  // build tree is used to pull out the version information
+  ifstream version_file (version_file_name.c_str());
+  if (version_file.fail ())
+    {
+      if (verbose > 1)
+	//TRANSLATORS: Missing a file
+	cerr << _F("Missing %s", version_file_name.c_str()) << endl;
+      return "";
+    }
+
+  string kernel_release;
+  char c;
+  while (version_file.get(c) && c != '\n')
+    kernel_release.push_back(c);
+
+  return kernel_release;
+}
 
 std::string autosprintf(const char* format, ...)
 {

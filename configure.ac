@@ -334,12 +334,8 @@ dnl See if we have enough libraries and tools to build the compile server
   if test "x${have_nss_libs}" != "xyes"; then
     AC_MSG_WARN([will not build systemtap compile server, cannot find nss/nspr libraries])
   fi
-  AC_CHECK_PROG(have_certutil, certutil, [yes], [no])
-  if test "x${have_certutil}" != "xyes"; then
-    AC_MSG_WARN([will not build systemtap compile server, cannot find certutil])
-  fi
 fi
-AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}${have_certutil}" == "xyesyesyes" -a "$enable_server" != "no"])
+AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}" == "xyesyes" -a "$enable_server" != "no"])
 
 if test "x${have_nss_includes}" != "xyes"; then
   AC_MSG_WARN([some compile server client functionality will be restricted, cannot find nss/nspr headers])
@@ -603,17 +599,20 @@ else
   AC_CHECK_HEADERS([elfutils/version.h])
 fi
 
+AC_SUBST(ENABLE_NLS, "$USE_NLS")
+AC_SUBST(localedir, "$localedir")
+AC_SUBST(LOCALEDIR, "$localedir")
+
 dnl This is here mainly to make sure that configure --prefix=... changes
 dnl the config.h files so files depending on it are recompiled
 dnl prefix is passed through indirectly in the Makefile.am AM_CPPFLAGS.
 dnl Formerly: Don't use this directly (when not given it is set to NONE).
 dnl Currently: inline autoconf's later defaulting
 
-AC_SUBST(LOCALEDIR, "$localedir")
-
 stap_prefix=$prefix
 test "$stap_prefix" = NONE && stap_prefix=$ac_default_prefix
 AC_DEFINE_UNQUOTED(STAP_PREFIX, "$stap_prefix", [configure prefix location])
+AC_SUBST(STAP_PREFIX, "$stap_prefix")
 
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES([Makefile doc/Makefile \

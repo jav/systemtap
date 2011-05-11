@@ -1,7 +1,7 @@
 .\" -*- nroff -*-
 .TH STAP\-SERVER 8 
 .SH NAME
-stap\-server \- systemtap server management
+stap\-server \- systemtap compile server management
 
 .SH SYNOPSIS
 
@@ -307,8 +307,8 @@ depends on the proper
 management of server certificates.
 
 .PP
-The trustworthiness of a given systemtap server can not be determined
-automatically without a trusted certificate authority issuing systemtap server
+The trustworthiness of a given systemtap compile server can not be determined
+automatically without a trusted certificate authority issuing systemtap compile server
 certificates. This is
 not practical in everyday use and so, clients must authenticate servers
 against their own database of trusted server certificates. In this context,
@@ -452,11 +452,10 @@ For automatic selection of servers by clients, \fIavahi\fR must be installed
 on both the server and client hosts and \fImDNS\fR messages must be allowed through the firewall.
 
 .PP
-The systemtap server and its related utilities use the Secure Socket Layer
+The systemtap compile server and its related utilities use the Secure Socket Layer
 (SSL) as implemented by Network Security Services (NSS)
-for network security. The NSS tool
-.I certutil
-is used for the generation of certificates. The related
+for network security. NSS is also used
+for the generation and management of certificates. The related
 certificate databases must be protected in order to maintain the security of
 the system.
 Use of the utilities provided will help to ensure that the proper protection
@@ -477,8 +476,7 @@ stappaths (7) manual page.
 .IR stapex (3stap),
 .IR avahi ,
 .IR ulimit (1),
-.IR NSS ,
-.IR certutil
+.IR NSS
 
 .SH BUGS
 Use the Bugzilla link of the project web page or our mailing list.

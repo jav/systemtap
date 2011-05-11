@@ -1058,12 +1058,14 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
   Dwarf_Addr bias;
 //  We cannot use this: dwarf_getelf (dwfl_module_getdwarf (module, &bias))
   Elf *elf = dwfl_module_getelf (module, &bias);
-  size_t phnum;
-  elf_getphdrnum (elf, &phnum);
-  for (size_t cnt = 0; cnt < phnum; ++cnt)
+//  elf_getphdrnum (elf, &phnum) is not available in all versions of elfutils
+  for (int i = 0; ; i++)
     {
       GElf_Phdr mem;
-      GElf_Phdr *phdr = gelf_getphdr (elf, cnt, &mem);
+      GElf_Phdr *phdr;
+      phdr = gelf_getphdr (elf, i, &mem);
+      if (phdr == NULL)
+        break;
       if (phdr->p_type == PT_INTERP)
         {
           size_t maxsize;
@@ -1077,19 +1079,28 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
 
   if (interpreter.length() == 0)
     return;
-  if (! (interpreter.substr (0,7) == "/lib/ld"
-      || interpreter.substr (0,22) == "/lib64/ld-linux-x86-64")
-      && interpreter.find (".so") != string::npos)
+  // If it gets cumbersome to maintain this whitelist, we could just check for
+  // startswith("/lib/ld") || startswith("/lib64/ld"), and trust that no admin
+  // would install untrustworthy loaders in those paths.
+  if (interpreter != "/lib/ld.so.1"
+      && interpreter != "/lib64/ld-linux-x86-64.so.2"
+      && interpreter !=  "/lib/ld-linux.so.2")
     throw semantic_error(_F("unsupported interpreter: %s", interpreter.c_str()));
 
-  string ldd_command = string("env LD_TRACE_LOADED_OBJECTS=1 LD_WARN=yes LD_BIND_NOW=yes ")
-      + interpreter + " " + this->module_name;
-  if (sess.verbose > 2)
-    clog << "Running '" << ldd_command << "'" << endl;
+  vector<string> ldd_command;
+  ldd_command.push_back("/usr/bin/env");
+  ldd_command.push_back("LD_TRACE_LOADED_OBJECTS=1");
+  ldd_command.push_back("LD_WARN=yes");
+  ldd_command.push_back("LD_BIND_NOW=yes");
+  ldd_command.push_back(interpreter);
+  ldd_command.push_back(module_name);
 
-  FILE *fp = popen (ldd_command.c_str(), "r");
-  if (fp == 0)
-    clog << ldd_command << _F(" failed: %s", strerror(errno)) << endl;
+  FILE *fp;
+  int child_fd;
+  pid_t child = stap_spawn_piped(sess.verbose, ldd_command, NULL, &child_fd);
+  if (child <= 0 || !(fp = fdopen(child_fd, "r")))
+    clog << _F("library iteration on %s failed: %s",
+               module_name.c_str(), strerror(errno)) << endl;
   else
     {
       while (1) // this parsing loop borrowed from add_unwindsym_ldd
@@ -1130,7 +1141,10 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
           free (soname);
           free (shlib);
         }
-      pclose (fp);
+      if ((fclose(fp) || stap_waitpid(sess.verbose, child))
+          && !sess.suppress_warnings)
+        clog << _F("Warning: failed to read libraries from %s: %s",
+                   module_name.c_str(), strerror(errno)) << endl;
     }
 
   for (std::set<std::string>::iterator it = added.begin();

@@ -35,14 +35,13 @@ bin_SCRIPTS += dtrace
 pkglibexec_PROGRAMS =
 
 if HAVE_NSS
-pkglibexec_PROGRAMS += stap-sign-module
-pkglibexec_SCRIPTS += stap-gen-cert stap-authorize-cert
+pkglibexec_PROGRAMS += stap-sign-module stap-authorize-cert
 
 if BUILD_SERVER
 man_MANS += stap-server.8
-pkglibexec_PROGRAMS += stap-server-connect
+pkglibexec_PROGRAMS += stap-serverd stap-gen-cert
 bin_SCRIPTS += stap-server
-pkglibexec_SCRIPTS += stap-serverd stap-start-server stap-stop-server
+pkglibexec_SCRIPTS += stap-start-server stap-stop-server
 endif
 endif
 
@@ -112,13 +111,13 @@ stap_LDADD += -lavahi-client -lavahi-common
 endif
 
 if HAVE_NSS
-stap_SOURCES += nsscommon.c
+stap_SOURCES += nsscommon.cxx
 stap_CFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS) -DSTAP
 stap_CXXFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_CPPFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_LDADD += -lssl3 -lnss3 -lnspr4 -lplc4
-stap_server_connect_LDFLAGS = $(AM_LDFLAGS)
+stap_LDADD += -lssl3 -lnss3 -lnspr4 -lplc4 -lsmime3
 stap_sign_module_LDFLAGS = $(AM_LDFLAGS)
+stap_authorize_cert_LDFLAGS = $(AM_LDFLAGS)
 
 install-exec-local: install-scripts
 
@@ -164,16 +163,28 @@ CLEANFILES +=  $(pkglibexec_PROGRAMS)
 
 if BUILD_TRANSLATOR
 if HAVE_NSS
-stap_sign_module_SOURCES = modsign.cxx nsscommon.c util.cxx
+stap_sign_module_SOURCES = stap-sign-module.cxx nsscommon.cxx util.cxx
 stap_sign_module_CPPFLAGS = $(AM_CPPFLAGS)
 stap_sign_module_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_sign_module_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_sign_module_LDADD = -lnss3 -lnspr4
+stap_sign_module_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
+
+stap_authorize_cert_SOURCES = stap-authorize-cert.cxx nsscommon.cxx util.cxx
+stap_authorize_cert_CPPFLAGS = $(AM_CPPFLAGS)
+stap_authorize_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_authorize_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_authorize_cert_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
 
 if BUILD_SERVER
-stap_server_connect_SOURCES = stap-server-connect.c nsscommon.c
-stap_server_connect_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_server_connect_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4
+stap_serverd_SOURCES = stap-serverd.cxx util.cxx nsscommon.cxx
+stap_serverd_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_serverd_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_serverd_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4 -lsmime3 -lavahi-client -lavahi-common -lpthread
+
+stap_gen_cert_SOURCES = stap-gen-cert.cxx util.cxx nsscommon.cxx
+stap_gen_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_gen_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_gen_cert_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
 endif
 endif
 

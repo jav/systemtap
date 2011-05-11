@@ -6346,18 +6346,24 @@ enum info_status
 symbol_table::read_from_elf_file(const string &path,
 				 const systemtap_session &sess)
 {
+  vector<string> cmd;
+  cmd.push_back("/usr/bin/nm");
+  cmd.push_back("-n");
+  cmd.push_back("--defined-only");
+  cmd.push_back("path");
+
   FILE *f;
-  string cmd = string("/usr/bin/nm -n --defined-only ") + path;
-  f = popen(cmd.c_str(), "r");
-  if (!f)
+  int child_fd;
+  pid_t child = stap_spawn_piped(sess.verbose, cmd, NULL, &child_fd);
+  if (child <= 0 || !(f = fdopen(child_fd, "r")))
     {
-      // nm failures are detected by pclose, not popen.
+      // nm failures are detected by stap_waitpid
       cerr << _F("Internal error reading symbol table from %s -- %s",
                  path.c_str(), strerror(errno));
       return info_absent;
     }
   enum info_status status = read_symbols(f, path);
-  if (pclose(f) != 0)
+  if (fclose(f) || stap_waitpid(sess.verbose, child))
     {
       if (status == info_present && ! sess.suppress_warnings)
         cerr << _F("Warning: nm cannot read symbol table from %s", path.c_str());

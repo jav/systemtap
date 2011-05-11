@@ -20,9 +20,12 @@ import sys
 from subprocess import call
 from tempfile import mkstemp
 
-if "@ENABLE_NLS@":
+if "@USE_NLS@" == "yes":
     import gettext
-    gettext.bindtextdomain('@PACKAGE@', '@LOCALEDIR@')
+    # hack around autoconf's weird stepwise substitution
+    datarootdir=string.replace("@datarootdir@", "${prefix}", "@STAP_PREFIX@")
+    localedir=string.replace("@LOCALEDIR@", "${datarootdir}", datarootdir)
+    gettext.bindtextdomain('@PACKAGE@', localedir)
     gettext.textdomain('@PACKAGE@')
     _ = gettext.gettext
 

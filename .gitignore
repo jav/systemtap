@@ -20,8 +20,6 @@ staprun
 testresults
 stapio
 stap_merge
-stap-client-connect
-stap-server-connect
 CVS
 .checkstyle
 .cproject

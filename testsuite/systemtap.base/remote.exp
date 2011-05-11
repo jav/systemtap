@@ -1,0 +1,86 @@
+# Test that the --remote=host mechanism is working
+# Requires the test user to specify hosts with automated ssh access.
+
+set test "remote"
+
+if {[info exists env(SYSTEMTAP_TESTREMOTES)]} {
+  set remotes [split $env(SYSTEMTAP_TESTREMOTES) ,]
+} else { set remotes [list] }
+set batch_remotes [list]
+
+if {![llength $remotes] || ![installtest_p]} { untested $test; return }
+verbose -log "$test: $remotes"
+
+# Test each remote individually
+foreach remote $remotes {
+  # Try building for the remote
+  spawn stap $srcdir/$subdir/$test.stp --remote=$remote -p4
+  expect {
+    -timeout 180
+    timeout { fail "$test build $remote (timeout)" }
+    eof { }
+  }
+  catch {close}; catch {wait} res
+  set rc [lindex $res 3]
+  if {$rc == 0} {
+    pass "$test build $remote"
+  } else {
+    fail "$test build $remote ($rc)"
+    untested "$test run $remote"
+    continue
+  }
+
+  # Try running on the remote
+  set begin 0
+  set end 0
+  set err 0
+  spawn stap $srcdir/$subdir/$test.stp --remote=$remote
+  expect {
+    -timeout 180
+    -re {^begin\r\n} { incr begin; exec kill -INT [exp_pid]; exp_continue }
+    -re {^end\r\n} { incr end; exp_continue }
+    -re {^[^\r\n]*\r\n} { incr err; exp_continue }
+    timeout { fail "$test run $remote (timeout)" }
+    eof { }
+  }
+  catch {close}; catch {wait}
+  if {!$err && $begin == 1 && $end == 1} {
+    pass "$test run $remote"
+    lappend batch_remotes "--remote=$remote"
+  } else {
+    fail "$test run $remote ($begin $end $err)"
+  }
+}
+
+verbose -log "$test: batch $batch_remotes"
+if {[llength $batch_remotes] < 2} {
+  untested "$test batch"
+} else {
+  # Try running the good ones together
+  set begin 0
+  set end 0
+  set err 0
+  eval spawn stap {$srcdir/$subdir/$test.stp} $batch_remotes
+  expect {
+    -timeout 180
+    -re {^begin\r\n} {
+      incr begin
+      if {$begin == [llength $batch_remotes]} {exec kill -INT [exp_pid]}
+      exp_continue
+    }
+    -re {^end\r\n} { incr end; exp_continue }
+    -re {^[^\r\n]*\r\n} {
+      incr err;
+      if {$err == 1} {exec kill -INT [exp_pid]}
+      exp_continue
+    }
+    timeout { fail "$test batch $batch_remotes (timeout)" }
+    eof { }
+  }
+  catch {close}; catch {wait}
+  if {!$err && [llength $batch_remotes] == $begin && $begin == $end} {
+    pass "$test batch $batch_remotes"
+  } else {
+    fail "$test batch $batch_remotes ($begin $end $err)"
+  }
+}

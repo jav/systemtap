@@ -1260,23 +1260,7 @@ systemtap_session::setup_kernel_release (const char* kstr)
   if (kstr[0] == '/') // fully specified path
     {
       kernel_build_tree = kstr;
-      string version_file_name = kernel_build_tree + "/include/config/kernel.release";
-      // The file include/config/kernel.release within the
-      // build tree is used to pull out the version information
-      ifstream version_file (version_file_name.c_str());
-      if (version_file.fail ())
-	{
-          if (verbose > 1)
-            //TRANSLATORS: Missing a file
-            cerr << _F("Missing %s", version_file_name.c_str()) << endl;
-          return; // pass0 will realize the failure
-	}
-      else
-	{
-	  char c;
-	  while (version_file.get(c) && c != '\n')
-	    kernel_release.push_back(c);
-	}
+      kernel_release = kernel_release_from_build_tree (kernel_build_tree, verbose);
 
       // PR10745
       // Maybe it's a full kernel source tree, for purposes of PR10745.
