@@ -1058,12 +1058,14 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
   Dwarf_Addr bias;
 //  We cannot use this: dwarf_getelf (dwfl_module_getdwarf (module, &bias))
   Elf *elf = dwfl_module_getelf (module, &bias);
-  size_t phnum;
-  elf_getphdrnum (elf, &phnum);
-  for (size_t cnt = 0; cnt < phnum; ++cnt)
+//  elf_getphdrnum (elf, &phnum) is not available in all versions of elfutils
+  for (int i = 0; ; i++)
     {
       GElf_Phdr mem;
-      GElf_Phdr *phdr = gelf_getphdr (elf, cnt, &mem);
+      GElf_Phdr *phdr;
+      phdr = gelf_getphdr (elf, i, &mem);
+      if (phdr == NULL)
+        break;
       if (phdr->p_type == PT_INTERP)
         {
           size_t maxsize;
