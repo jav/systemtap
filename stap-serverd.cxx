@@ -223,6 +223,11 @@ extern "C"
 void
 handle_interrupt (int sig)
 {
+  // If one of the resource limits of the translator was exceeded, then we can continue.
+  if (sig == SIGXFSZ)
+    return;
+
+  // Otherwise, it's game over.
   log (_F("Received interrupt %d, exiting", sig));
   kill_stap_spawn (sig);
   cleanup ();
@@ -244,6 +249,7 @@ setup_signals (sighandler_t handler)
       sigaddset (&sa.sa_mask, SIGTERM);
       sigaddset (&sa.sa_mask, SIGTTIN);
       sigaddset (&sa.sa_mask, SIGTTOU);
+      sigaddset (&sa.sa_mask, SIGXFSZ);
     }
   sa.sa_flags = SA_RESTART;
 
@@ -253,6 +259,7 @@ setup_signals (sighandler_t handler)
   sigaction (SIGTERM, &sa, NULL);
   sigaction (SIGTTIN, &sa, NULL);
   sigaction (SIGTTOU, &sa, NULL);
+  sigaction (SIGXFSZ, &sa, NULL);
 }
 
 #if HAVE_AVAHI
@@ -536,11 +543,11 @@ initialize (int argc, char **argv) {
 	if (translator_RLIMIT_##category.rlim_cur > (limit)) \
 	  translator_RLIMIT_##category.rlim_cur = (limit); \
       } while (0);
-    TRANSLATOR_LIMIT (FSIZE, 50000);
-    TRANSLATOR_LIMIT (STACK, 1000);
+    TRANSLATOR_LIMIT (FSIZE, 50000 * 1024);
+    TRANSLATOR_LIMIT (STACK, 1000 * 1024);
     TRANSLATOR_LIMIT (CPU, 60);
     TRANSLATOR_LIMIT (NPROC, 20);
-    TRANSLATOR_LIMIT (AS, 500000);
+    TRANSLATOR_LIMIT (AS, 500000 * 1024);
     set_rlimits = true;
     #undef TRANSLATOR_LIMIT
   }
@@ -975,15 +982,15 @@ handleRequest (const char* requestDirName, const char* responseDirName)
      DOS. spawn_and_wait ultimately uses posix_spawp which behaves like
      fork (according to the man page), so the limits we set here will be
      respected.  */
-  int srlrc = 0;
+  rc = 0;
   if (set_rlimits) {
-    srlrc = setrlimit (RLIMIT_FSIZE, & translator_RLIMIT_FSIZE);
-    srlrc |= setrlimit (RLIMIT_STACK, & translator_RLIMIT_STACK);
-    srlrc |= setrlimit (RLIMIT_CPU,   & translator_RLIMIT_CPU);
-    srlrc |= setrlimit (RLIMIT_NPROC, & translator_RLIMIT_NPROC);
-    srlrc |= setrlimit (RLIMIT_AS,    & translator_RLIMIT_AS);
+    rc = setrlimit (RLIMIT_FSIZE, & translator_RLIMIT_FSIZE);
+    rc |= setrlimit (RLIMIT_STACK, & translator_RLIMIT_STACK);
+    rc |= setrlimit (RLIMIT_CPU,   & translator_RLIMIT_CPU);
+    rc |= setrlimit (RLIMIT_NPROC, & translator_RLIMIT_NPROC);
+    rc |= setrlimit (RLIMIT_AS,    & translator_RLIMIT_AS);
   }
-  if (srlrc == 0)
+  if (rc == 0)
     rc = spawn_and_wait (stapargv, "/dev/null", stapstdout, stapstderr, requestDirName);
   else
     nsscommon_error (_F("Unable to set resource limits for stap: %s", strerror (errno)));
@@ -996,8 +1003,6 @@ handleRequest (const char* requestDirName, const char* responseDirName)
     if (rrlrc != 0)
       log (_F("Unable to restore resource limits: %s", strerror (errno)));
   }
-  if (srlrc != 0)
-    return; // Translator was not run but we needed to restore our rlimits first.
 
   /* Save the RC */
   snprintf (staprc, PATH_MAX, "%s/rc", responseDirName);
@@ -1161,7 +1166,7 @@ spawn_and_wait (const vector<string> &argv,
 
   if (pid == -1)
     {
-      nsscommon_error (_("Error in spawn"));
+      nsscommon_error (_F("Error in spawn: %s", strerror (errno)));
       return PR_FAILURE;
     }
 
