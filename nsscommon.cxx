@@ -1307,7 +1307,8 @@ void sign_file (
   if (privKey)
     SECKEY_DestroyPrivateKey (privKey);
   CERT_DestroyCertificate (cert);
-  PR_Close (local_file_fd);
+  if(local_file_fd != NULL)
+    PR_Close (local_file_fd);
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
