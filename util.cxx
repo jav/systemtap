@@ -434,7 +434,8 @@ class spawned_pids_t {
       {
         int ret = 0;
         stap_sigmasker masked;
-        for (set<pid_t>::iterator it = pids.begin(); it != pids.end(); ++it)
+        for (set<pid_t>::const_iterator it = pids.begin();
+             it != pids.end(); ++it)
           ret = kill(*it, sig) ?: ret;
         return ret;
       }
