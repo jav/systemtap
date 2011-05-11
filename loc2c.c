@@ -681,7 +681,6 @@ translate (struct location_context *ctx, int indent,
 	  UNOP (abs, op_abs);
 	  BINOP (and, &);
 	  BINOP (minus, -);
-	  BINOP (mod, %);
 	  BINOP (mul, *);
 	  UNOP (neg, -);
 	  UNOP (not, ~);
@@ -716,9 +715,21 @@ translate (struct location_context *ctx, int indent,
 	  {
 	    POP (b);
 	    POP (a);
-	    push ("(%s) " STACKFMT " / (%s)" STACKFMT,
+	    push ("dwarf_div_op((%s) " STACKFMT ", (%s) " STACKFMT ")",
 		  stack_slot_type (loc, true), a,
 		  stack_slot_type (loc, true), b);
+	    used_deref = true;
+	    break;
+	  }
+
+	case DW_OP_mod:
+	  {
+	    POP (b);
+	    POP (a);
+	    push ("dwarf_mod_op((%s) " STACKFMT ", (%s) " STACKFMT ")",
+		  stack_slot_type (loc, false), a,
+		  stack_slot_type (loc, false), b);
+	    used_deref = true;
 	    break;
 	  }
 

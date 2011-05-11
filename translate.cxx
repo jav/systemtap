@@ -5728,6 +5728,8 @@ void translate_runtime(systemtap_session& s)
                   << lex_cast_qstring(_("kernel read fault at 0x%p (%s)"));
   s.op->newline() << "#define STAP_MSG_LOC2C_02 "
                   << lex_cast_qstring(_("kernel write fault at 0x%p (%s)"));
+  s.op->newline() << "#define STAP_MSG_LOC2C_03 "
+                  << lex_cast_qstring(_("divide by zero in DWARF operand (%s)"));
 }
 int
 prepare_translate_pass (systemtap_session& s)

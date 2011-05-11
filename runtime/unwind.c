@@ -856,11 +856,25 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 			BINOP(plus, +);
 			BINOP(minus, -);
 			BINOP(mul, *);
-			BINOP(div, /);
-			BINOP(mod, %);
 			BINOP(shl, <<);
 			BINOP(shra, >>);
 #undef	BINOP
+
+		case DW_OP_mod: {
+			unsigned long b = POP;
+			unsigned long a = POP;
+			if (b == 0)
+				goto divzero;
+			PUSH (a % b);
+		}
+
+		case DW_OP_div: {
+			long b = POP;
+			long a = POP;
+			if (b == 0)
+				goto divzero;
+			PUSH (a / b);
+		}
 
 		case DW_OP_shr: {
 			unsigned long b = POP;
@@ -943,6 +957,9 @@ overflow:
 	return 1;
 underflow:
 	_stp_warn("DWARF expression stack underflow in CFI\n");
+	return 1;
+divzero:
+	_stp_warn("DWARF expression stack divide by zero in CFI\n");
 	return 1;
 
 #undef	NEED

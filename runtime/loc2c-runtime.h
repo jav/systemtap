@@ -82,6 +82,28 @@
     })
 #endif
 
+/* dwarf_div_op and dwarf_mod_op do division and modulo operations catching any
+   divide by zero issues.  When they detect div_by_zero they "fault"
+   by jumping to the (slightly misnamed) deref_fault label.  */
+#define dwarf_div_op(a,b) ({							\
+    if (b == 0) {							\
+	snprintf(c->error_buffer, sizeof(c->error_buffer),		\
+		 STAP_MSG_LOC2C_03, "DW_OP_div");			\
+	c->last_error = c->error_buffer;				\
+	goto deref_fault;						\
+    }									\
+    a / b;								\
+})
+#define dwarf_mod_op(a,b) ({							\
+    if (b == 0) {							\
+	snprintf(c->error_buffer, sizeof(c->error_buffer),		\
+		 STAP_MSG_LOC2C_03, "DW_OP_mod");			\
+	c->last_error = c->error_buffer;				\
+	goto deref_fault;						\
+    }									\
+    a % b;								\
+})
+
 /* PR 10601: user-space (user_regset) register access.  */
 #if defined(STAPCONF_REGSET)
 #include <linux/regset.h>
