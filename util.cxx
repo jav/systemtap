@@ -409,17 +409,45 @@ cmdstr_join(const vector<string>& cmds)
 }
 
 
-// XXX written only from the main thread, but can be read in a
-//     signal handler.  synchronization needed?
-static set<pid_t> spawned_pids;
+// signal-safe set of pids
+class spawned_pids_t {
+  private:
+    set<pid_t> pids;
+
+  public:
+    bool contains (pid_t p)
+      {
+        stap_sigmasker masked;
+        return pids.count(p) == 0;
+      }
+    bool insert (pid_t p)
+      {
+        stap_sigmasker masked;
+        return (p > 0) ? pids.insert(p).second : false;
+      }
+    void erase (pid_t p)
+      {
+        stap_sigmasker masked;
+        pids.erase(p);
+      }
+    int killall (int sig)
+      {
+        int ret = 0;
+        stap_sigmasker masked;
+        for (set<pid_t>::iterator it = pids.begin(); it != pids.end(); ++it)
+          ret = kill(*it, sig) ?: ret;
+        return ret;
+      }
+};
+static spawned_pids_t spawned_pids;
 
 
 int
 stap_waitpid(int verbose, pid_t pid)
 {
   int ret, status;
-  if (verbose > 1 && spawned_pids.count(pid) == 0)
-    clog << _("Spawn waitpid call on unmanaged pid ") << pid << endl;
+  if (verbose > 1 && spawned_pids.contains(pid))
+    clog << _F("Spawn waitpid call on unmanaged pid %d", pid) << endl;
   ret = waitpid(pid, &status, 0);
   if (ret == pid)
     {
@@ -604,16 +632,7 @@ stap_system_read(int verbose, const vector<string>& args, ostream& out)
 int
 kill_stap_spawn(int sig)
 {
-  int ret = 0;
-  for (set<pid_t>::iterator it = spawned_pids.begin();
-       it != spawned_pids.end(); ++it)
-    if (*it > 0)
-      {
-        int pidret = kill(*it, sig);
-        if (!ret)
-          ret = pidret;
-      }
-  return ret;
+  return spawned_pids.killall(sig);
 }
 
 
