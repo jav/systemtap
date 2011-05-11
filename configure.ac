@@ -599,17 +599,20 @@ else
   AC_CHECK_HEADERS([elfutils/version.h])
 fi
 
+AC_SUBST(ENABLE_NLS, "$USE_NLS")
+AC_SUBST(localedir, "$localedir")
+AC_SUBST(LOCALEDIR, "$localedir")
+
 dnl This is here mainly to make sure that configure --prefix=... changes
 dnl the config.h files so files depending on it are recompiled
 dnl prefix is passed through indirectly in the Makefile.am AM_CPPFLAGS.
 dnl Formerly: Don't use this directly (when not given it is set to NONE).
 dnl Currently: inline autoconf's later defaulting
 
-AC_SUBST(LOCALEDIR, "$localedir")
-
 stap_prefix=$prefix
 test "$stap_prefix" = NONE && stap_prefix=$ac_default_prefix
 AC_DEFINE_UNQUOTED(STAP_PREFIX, "$stap_prefix", [configure prefix location])
+AC_SUBST(STAP_PREFIX, "$stap_prefix")
 
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES([Makefile doc/Makefile \

@@ -600,7 +600,9 @@ am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
 subdirs
+STAP_PREFIX
 LOCALEDIR
+ENABLE_NLS
 support_section_question
 DATE
 stap_LIBS
@@ -10693,8 +10695,12 @@ done
 
 fi
 
+ENABLE_NLS="$USE_NLS"
+
+localedir="$localedir"
 
 LOCALEDIR="$localedir"
+
 
 
 stap_prefix=$prefix
@@ -10703,6 +10709,8 @@ test "$stap_prefix" = NONE && stap_prefix=$ac_default_prefix
 cat >>confdefs.h <<_ACEOF
 #define STAP_PREFIX "$stap_prefix"
 _ACEOF
+
+STAP_PREFIX="$stap_prefix"
 
 
 ac_config_headers="$ac_config_headers config.h:config.in"
