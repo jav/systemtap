@@ -1083,6 +1083,7 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
   // startswith("/lib/ld") || startswith("/lib64/ld"), and trust that no admin
   // would install untrustworthy loaders in those paths.
   if (interpreter != "/lib/ld.so.1"
+      && interpreter != "/lib64/ld64.so.1"
       && interpreter != "/lib64/ld-linux-x86-64.so.2"
       && interpreter !=  "/lib/ld-linux.so.2")
     throw semantic_error(_F("unsupported interpreter: %s", interpreter.c_str()));
