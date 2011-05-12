@@ -12,4 +12,5 @@ void foo (void)
 {
   struct task_struct *p;
   p = t.real_parent; 
+  (void) p;
 }

@@ -6,4 +6,5 @@ void foo (void)
 {
   struct stacktrace_ops t;
   t.walk_stack = print_context_stack;
+  (void) t;
 }

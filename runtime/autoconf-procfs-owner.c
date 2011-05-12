@@ -5,4 +5,5 @@
 void bar (void) {
         struct proc_dir_entry foo;
 	foo.owner = (void*) 0;
+        (void) foo;
 }
