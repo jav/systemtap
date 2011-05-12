@@ -2385,7 +2385,7 @@ dwflpp::resolve_unqualified_inner_typedie (Dwarf_Die *typedie,
 void
 dwflpp::translate_final_fetch_or_store (struct obstack *pool,
                                         struct location **tail,
-                                        Dwarf_Addr module_bias,
+                                        Dwarf_Addr /*module_bias*/,
                                         Dwarf_Die *vardie,
                                         Dwarf_Die *start_typedie,
                                         bool lvalue,
@@ -2442,7 +2442,7 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
         Dwarf_Word encoding = (Dwarf_Word) -1;
         dwarf_formudata (dwarf_attr_integrate (typedie, DW_AT_encoding, &encoding_attr),
                          & encoding);
-        if (encoding < 0)
+        if (encoding == (Dwarf_Word) -1)
           {
             // clog << "bad type1 " << encoding << " diestr" << endl;
             throw semantic_error (_F("unsupported type (mystery encoding %s for %s", lex_cast(encoding).c_str(),

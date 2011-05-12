@@ -705,7 +705,7 @@ struct probe
   void print (std::ostream& o) const;
   virtual void printsig (std::ostream &o) const;
   virtual void collect_derivation_chain (std::vector<probe*> &probes_list);
-  virtual void collect_derivation_pp_chain (std::vector<probe_point*> &pp_list) {}
+  virtual void collect_derivation_pp_chain (std::vector<probe_point*> &) {}
   virtual const probe_alias *get_alias () const { return 0; }
   virtual probe* create_alias(probe_point* l, probe_point* a);
   virtual const probe* basest () const { return this; }

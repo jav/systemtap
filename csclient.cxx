@@ -2612,7 +2612,7 @@ get_or_keep_compatible_server_info (
 
 static void
 keep_server_info_with_cert_and_port (
-  systemtap_session &s,
+  systemtap_session &,
   const compile_server_info &server,
   vector<compile_server_info> &servers
 )
@@ -2649,7 +2649,7 @@ keep_server_info_with_cert_and_port (
 // Obtain missing host name or ip address, if any.
 static void
 resolve_host (
-  systemtap_session& s,
+  systemtap_session&,
   compile_server_info &server,
   vector<compile_server_info> &resolved_servers
 )
@@ -2777,7 +2777,7 @@ void resolve_callback(
     const AvahiAddress *address,
     uint16_t port,
     AvahiStringList *txt,
-    AvahiLookupResultFlags flags,
+    AvahiLookupResultFlags /*flags*/,
     AVAHI_GCC_UNUSED void* userdata) {
 
     assert(r);

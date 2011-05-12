@@ -1851,7 +1851,7 @@ c_unparser::emit_locks(const varuse_collecting_visitor&)
 
 
 void
-c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
+c_unparser::emit_unlocks(const varuse_collecting_visitor&)
 {
   o->newline() << "stp_unlock_probe(locks, ARRAY_SIZE(locks));";
 }
@@ -4717,7 +4717,7 @@ static void create_debug_frame_hdr (const unsigned char e_ident[],
   Dwarf_Off off = 0;
   Dwarf_CFI_Entry entry;
 
-  while (res != 1 && off >= 0)
+  while (res != 1)
     {
       Dwarf_Off next_off;
       res = dwarf_next_cfi (e_ident, debug_frame, false, off, &next_off,
@@ -5475,8 +5475,8 @@ add_unwindsym_iol_callback (void *q, const char *data)
 static int
 query_module (Dwfl_Module *mod,
               void **,
-              const char *name,
-              Dwarf_Addr addr,
+              const char *,
+              Dwarf_Addr,
               void *arg)
 {
   ((struct dwflpp*)arg)->focus_on_module(mod, NULL);
@@ -5508,7 +5508,7 @@ add_unwindsym_ldd (systemtap_session &s)
 
 static set<string> vdso_paths;
 
-static int find_vdso(const char *path, const struct stat *status, int type)
+static int find_vdso(const char *path, const struct stat *, int type)
 {
   if (type == FTW_F)
     {

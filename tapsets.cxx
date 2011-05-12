@@ -346,7 +346,7 @@ symbol_table
 
 static bool null_die(Dwarf_Die *die)
 {
-  static Dwarf_Die null = { 0 };
+  static Dwarf_Die null;
   return (!die || !memcmp(die, &null, sizeof(null)));
 }
 
@@ -721,7 +721,7 @@ struct dwarf_builder: public derived_probe_builder
   }
 
   /* NB: not virtual, so can be called from dtor too: */
-  void dwarf_build_no_more (bool verbose)
+  void dwarf_build_no_more (bool)
   {
     delete_map(kern_dw);
     delete_map(user_dw);
@@ -3502,7 +3502,7 @@ struct dwarf_cast_query : public base_query
     userspace_p(userspace_p), result(result) {}
 
   void handle_query_module();
-  void query_library (const char *data) {};
+  void query_library (const char *) {}
 };
 
 
@@ -4681,7 +4681,7 @@ struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
     arg_count (arg_count)
   {
     tokenize(arg_string, arg_tokens, " ");
-    assert(arg_count >= 0 && arg_count <= 10);
+    assert(arg_count <= 10);
   }
   const string & process_name;
   const string & provider_name;
@@ -4847,7 +4847,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
 
     need_debug_info = false;
     tokenize(arg_string, arg_tokens, " ");
-    assert(arg_count >= 0 && arg_count <= 10); // XXX: why assert() ?
+    assert(arg_count <= 10);
   }
 
   systemtap_session& session;
@@ -4892,7 +4892,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
   else if (e->name == "$$vars" || e->name == "$$parms")
     {
       e->assert_no_components("sdt", true);
-      assert(arg_count >= 0 && arg_count <= 10);
+      assert(arg_count <= 10);
 
       // Convert $$vars to sprintf of a list of vars which we recursively evaluate
       // NB: we synthesize a new token here rather than reusing
@@ -5371,7 +5371,7 @@ struct sdt_query : public base_query
             dwflpp & dw, literal_map_t const & params,
             vector<derived_probe *> & results);
 
-  void query_library (const char *data) {};
+  void query_library (const char *) {}
   void handle_query_module();
 
 private:
@@ -6277,7 +6277,7 @@ symbol_table::~symbol_table()
 
 void
 symbol_table::add_symbol(const char *name, bool weak, bool descriptor,
-                         Dwarf_Addr addr, Dwarf_Addr *high_addr)
+                         Dwarf_Addr addr, Dwarf_Addr */*high_addr*/)
 {
 #ifdef __powerpc__
   // Map ".sys_foo" to "sys_foo".
@@ -6390,7 +6390,7 @@ symbol_table::read_from_text_file(const string& path,
 }
 
 void
-symbol_table::prepare_section_rejection(Dwfl_Module *mod)
+symbol_table::prepare_section_rejection(Dwfl_Module */*mod*/)
 {
 #ifdef __powerpc__
   /*
@@ -6684,7 +6684,7 @@ uprobe_derived_probe::emit_unprivileged_assertion (translator_output* o)
 struct uprobe_builder: public derived_probe_builder
 {
   uprobe_builder() {}
-  virtual void build(systemtap_session & sess,
+  virtual void build(systemtap_session &,
 		     probe * base,
 		     probe_point * location,
 		     literal_map_t const & parameters,
@@ -6793,7 +6793,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
           s.op->line() << " },";
         }
       else
-        ; // skip it in this pass, already have a suitable stap_uprobe_tf slot for it.
+        { } // skip it in this pass, already have a suitable stap_uprobe_tf slot for it.
     }
   s.op->newline(-1) << "};";
 
@@ -7483,7 +7483,7 @@ struct kprobe_builder: public derived_probe_builder
 
 
 void
-kprobe_builder::build(systemtap_session & sess,
+kprobe_builder::build(systemtap_session &,
 		      probe * base,
 		      probe_point * location,
 		      literal_map_t const & parameters,
@@ -7596,8 +7596,7 @@ hwbkpt_derived_probe::hwbkpt_derived_probe (probe *base,
                                             unsigned int len,
                                             bool has_only_read_access,
                                             bool has_only_write_access,
-                                            bool has_rw_access
-                                            ):
+                                            bool):
   derived_probe (base, location, true /* .components soon rewritten */ ),
   hwbkpt_addr (addr),
   symbol_name (symname),
@@ -8295,7 +8294,7 @@ resolve_tracepoint_arg_type(tracepoint_arg& arg)
 
 
 void
-tracepoint_derived_probe::build_args(dwflpp& dw, Dwarf_Die& func_die)
+tracepoint_derived_probe::build_args(dwflpp&, Dwarf_Die& func_die)
 {
   Dwarf_Die arg;
   if (dwarf_child(&func_die, &arg) == 0)
@@ -8557,7 +8556,7 @@ struct tracepoint_query : public base_query
   void handle_query_module();
   int handle_query_cu(Dwarf_Die * cudie);
   int handle_query_func(Dwarf_Die * func);
-  void query_library (const char *data) {};
+  void query_library (const char *) {}
 
   static int tracepoint_query_cu (Dwarf_Die * cudie, void * arg);
   static int tracepoint_query_func (Dwarf_Die * func, base_query * query);

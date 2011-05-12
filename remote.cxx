@@ -114,14 +114,14 @@ class stapsh : public remote {
       {
         if (fdout >= 0 && OUT)
           {
-            pollfd p = { fdout, POLLIN };
+            pollfd p = { fdout, POLLIN, 0 };
             fds.push_back(p);
           }
 
         // need to send a signal?
         if (fdin >= 0 && IN && interrupts_sent < pending_interrupts)
           {
-            pollfd p = { fdin, POLLOUT };
+            pollfd p = { fdin, POLLOUT, 0 };
             fds.push_back(p);
           }
       }
