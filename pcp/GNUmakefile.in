@@ -46,12 +46,13 @@ default_pcp : configure_pcp
 install :: default_pcp install_pcp
 
 install_pcp :  default_pcp
-	@for d in `echo $(SUBDIRS)`; do \
-	    if test -d "$$d" ; then \
-		echo === $$d ===; \
-		$(MAKE) -C $$d $@ || exit $$?; \
-	    fi; \
-	done
+#	Don't install; not suitable for systemtap --prefix builds
+#	@for d in `echo $(SUBDIRS)`; do \
+#	    if test -d "$$d" ; then \
+#		echo === $$d ===; \
+#		$(MAKE) -C $$d $@ || exit $$?; \
+#	    fi; \
+#	done
 
 ifdef BUILDRULES
 include $(BUILDRULES)
