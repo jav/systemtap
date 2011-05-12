@@ -256,7 +256,8 @@ int pending_interrupts;
 extern "C"
 void handle_interrupt (int sig)
 {
-  clog << _F("Received signal %d", sig) << endl << flush;
+  // This might be nice, but we don't know our current verbosity...
+  // clog << _F("Received signal %d", sig) << endl << flush;
   kill_stap_spawn(sig);
   pending_interrupts ++;
   if (pending_interrupts > 1) // XXX: should be configurable? time-based?
