@@ -256,6 +256,7 @@ int pending_interrupts;
 extern "C"
 void handle_interrupt (int sig)
 {
+  clog << _F("Received signal %d", sig) << endl << flush;
   kill_stap_spawn(sig);
   pending_interrupts ++;
   if (pending_interrupts > 1) // XXX: should be configurable? time-based?
@@ -281,6 +282,8 @@ setup_signals (sighandler_t handler)
       sigaddset (&sa.sa_mask, SIGPIPE);
       sigaddset (&sa.sa_mask, SIGINT);
       sigaddset (&sa.sa_mask, SIGTERM);
+      sigaddset (&sa.sa_mask, SIGXFSZ);
+      sigaddset (&sa.sa_mask, SIGXCPU);
     }
   sa.sa_flags = SA_RESTART;
 
@@ -288,6 +291,8 @@ setup_signals (sighandler_t handler)
   sigaction (SIGPIPE, &sa, NULL);
   sigaction (SIGINT, &sa, NULL);
   sigaction (SIGTERM, &sa, NULL);
+  sigaction (SIGXFSZ, &sa, NULL);
+  sigaction (SIGXCPU, &sa, NULL);
 }
 
 int parse_kernel_config (systemtap_session &s)
