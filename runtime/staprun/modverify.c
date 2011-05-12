@@ -355,7 +355,7 @@ int verify_module (const char *signatureName, const char* module_name,
     }
 
   /* Initialize NSS. */
-  secStatus = nssInit (dbdir, 0/*readwrite*/);
+  secStatus = nssInit (dbdir, 0/*readwrite*/, 1/*issueMessage*/);
   if (secStatus != SECSuccess)
     {
       // Message already issued.

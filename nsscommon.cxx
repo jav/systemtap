@@ -167,14 +167,14 @@ nssError (void)
 
 extern "C"
 SECStatus
-nssInit (const char *db_path, int readWrite)
+nssInit (const char *db_path, int readWrite, int issueMessage)
 {
   SECStatus secStatus;
   if (readWrite)
     secStatus = NSS_InitReadWrite (db_path);
   else
     secStatus = NSS_Init (db_path);
-  if (secStatus != SECSuccess)
+  if (secStatus != SECSuccess && issueMessage)
     {
       nsscommon_error (_F("Error initializing NSS for %s", db_path));
       nssError ();
@@ -754,7 +754,7 @@ add_client_cert (const string &inFileName, const string &db_path)
     }
 
   // See if the database already exists and can be initialized.
-  SECStatus secStatus = nssInit (db_path.c_str (), 1/*readwrite*/);
+  SECStatus secStatus = nssInit (db_path.c_str (), 1/*readwrite*/, 0/*issueMessage*/);
   if (secStatus != SECSuccess)
     {
       // Try again with a fresh database.

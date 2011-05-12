@@ -32,7 +32,7 @@ char *nssPasswordCallback (PK11SlotInfo *info __attribute ((unused)),
 			   PRBool retry __attribute ((unused)),
 			   void *arg __attribute ((unused)));
 
-SECStatus nssInit (const char *db_path, INIT (int readWrite, 0));
+SECStatus nssInit (const char *db_path, INIT (int readWrite, 0), INIT (int issueMessage, 1));
 void nssCleanup (const char *db_path);
 
 void nsscommon_error (const char *msg, INIT(int logit, 1));
