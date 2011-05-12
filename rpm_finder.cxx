@@ -39,6 +39,7 @@ extern "C" {
 extern "C" {
 #include <nss.h>
 }
+#include "nsscommon.h"
 #endif
 
 /* Returns the count of newly added rpms.  */
