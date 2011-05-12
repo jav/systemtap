@@ -1,4 +1,12 @@
 * What's new in version 1.5
+
+- The compile server and its related tools (stap-gen-ert, stap-authorize-cert,
+   stap-sign-module) have been re-implemented in C++. Previously, these
+   components were a mix of bash scripts and C code. These changes should be
+   transparent to the end user with the exception of NSS certificate database
+   password prompting (see below). The old implementation would prompt more
+   than once for the same password in some situations.
+  
 - eventcount.stp now allows for event counting in the format of
   'stap eventcount.stp process.end syscall.* ...', and also reports
   corresponding event tid's.
