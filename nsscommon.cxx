@@ -124,10 +124,17 @@ log_ok ()
 void
 log (const string &msg)
 {
+  // What time is it?
+  time_t now;
+  time (& now);
+  string nowStr = ctime (& now);
+  // Remove the newline from the end of the time string.
+  nowStr.erase (nowStr.size () - 1, 1);
+
   if (logfile.good ())
-    logfile << msg << endl << flush;
+    logfile << nowStr << ": " << msg << endl << flush;
   else
-    clog << msg << endl << flush;
+    clog << nowStr << ": " << msg << endl << flush;
 }
 
 void
@@ -1151,21 +1158,21 @@ cert_db_is_valid (const string &db_path, const string &nss_cert_name)
       CERTValidity &v = c->validity;
       char timeString[256];
       if (format_cert_validity_time (v.notBefore, timeString, sizeof (timeString)) == 0)
-	log (_F("  Not Valid Before: %s", timeString));
+	log (_F("  Not Valid Before: %s UTC", timeString));
       if (format_cert_validity_time (v.notAfter, timeString, sizeof (timeString)) == 0)
-	log (_F("  Not Valid After: %s", timeString));
+	log (_F("  Not Valid After: %s UTC", timeString));
 
       // Now ask NSS to check the validity.
       if (cert_is_valid (c))
 	{
 	  // The cert is valid. One valid cert is enough.
-	  log (_("  Certificate is valid"));
+	  log (_("Certificate is valid"));
 	  valid_p = true;
 	  break;
 	}
 
       // The cert is not valid. Look for another one.
-      log (_("  Certificate is not valid"));
+      log (_("Certificate is not valid"));
     }
   CERT_DestroyCertList (certs);
 

@@ -33,7 +33,6 @@ extern "C" {
 #include <fcntl.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/utsname.h>
 
 #include <nspr.h>
@@ -591,7 +590,7 @@ initialize (int argc, char **argv) {
   parse_options (argc, argv);
 
   pid_t pid = getpid ();
-  log (_F("===== compile server pid %d starting", pid));
+  log (_F("===== compile server pid %d starting =====", pid));
 
   // Where is the ssl certificate/key database?
   if (cert_db_path.empty ())
@@ -1390,7 +1389,6 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
   PRFileDesc *tcpSocket;
   SECStatus   secStatus;
   CERTCertDBHandle *dbHandle;
-  time_t      now;
 
   dbHandle = CERT_GetDefaultCertDB ();
 
@@ -1414,9 +1412,7 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
 	}
 
       /* Log the accepted connection.  */
-      time (& now);
-      log (_F("%sAccepted connection from %d.%d.%d.%d:%d",
-              ctime (& now),
+      log (_F("Accepted connection from %d.%d.%d.%d:%d",
 	      (addr.inet.ip      ) & 0xff,
 	      (addr.inet.ip >>  8) & 0xff,
 	      (addr.inet.ip >> 16) & 0xff,
@@ -1432,9 +1428,7 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
 	nsscommon_error (_("Error processing client request"));
 
       // Log the end of the request.
-      time (& now);
-      log (_F("%sRequest from %d.%d.%d.%d:%d complete",
-              ctime (& now),
+      log (_F("Request from %d.%d.%d.%d:%d complete",
 	      (addr.inet.ip      ) & 0xff,
 	      (addr.inet.ip >>  8) & 0xff,
 	      (addr.inet.ip >> 16) & 0xff,
