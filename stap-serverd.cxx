@@ -24,6 +24,7 @@
 #include <string>
 #include <cerrno>
 #include <cassert>
+#include <climits>
 
 extern "C" {
 #include <getopt.h>
@@ -73,7 +74,9 @@ static string cert_serial_number;
 static string B_options;
 static string I_options;
 static string R_option;
+#if HAVE_AVAHI
 static pthread_t avahi_thread = 0;
+#endif
 
 // Used to save our resource limits for these categories and impose smaller
 // limits on the translator while servicing a request.

@@ -355,10 +355,10 @@ fi
 AC_CHECK_LIB(avahi-client, avahi_client_new,
   AC_CHECK_LIB(avahi-common, avahi_strerror, have_avahi_libs=yes))
 if test "x${have_avahi_includes}" != "xyes"; then
-  AC_MSG_WARN([some compile server client functionality will be restricted, cannot find avahi headers])
+  AC_MSG_WARN([some compile-server functionality will be restricted, cannot find avahi headers])
 fi
 if test "x${have_avahi_libs}" != "xyes"; then
-  AC_MSG_WARN([some compile server client functionality will be restricted, cannot find avahi libraries])
+  AC_MSG_WARN([some compile-server functionality will be restricted, cannot find avahi libraries])
 fi
 if test "x${have_avahi_includes}${have_avahi_libs}" = "xyesyes"; then
   AC_DEFINE([HAVE_AVAHI], [1], [Define to 1 if you have the avahi libraries.])

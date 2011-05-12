@@ -162,6 +162,12 @@ static void merge_server_info (const vector<compile_server_info> &source, vector
 #endif
 static void resolve_host (systemtap_session& s, compile_server_info &server, vector<compile_server_info> &servers);
 
+/* Exit error codes */
+#define SUCCESS                   0
+#define GENERAL_ERROR             1
+#define CA_CERT_INVALID_ERROR     2
+#define SERVER_CERT_EXPIRED_ERROR 3
+
 #if HAVE_NSS
 // -----------------------------------------------------
 // NSS related code used by the compile server client
@@ -596,12 +602,6 @@ do_connect (connectionState_t *connectionState)
   prStatus = PR_Close(sslSocket);
   return secStatus;
 }
-
-/* Exit error codes */
-#define SUCCESS                   0
-#define GENERAL_ERROR             1
-#define CA_CERT_INVALID_ERROR     2
-#define SERVER_CERT_EXPIRED_ERROR 3
 
 int
 client_connect (const char *hostName, PRUint32 ip,

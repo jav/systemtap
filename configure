@@ -9640,12 +9640,12 @@ fi
 fi
 
 if test "x${have_avahi_includes}" != "xyes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: some compile server client functionality will be restricted, cannot find avahi headers" >&5
-$as_echo "$as_me: WARNING: some compile server client functionality will be restricted, cannot find avahi headers" >&2;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: some compile-server functionality will be restricted, cannot find avahi headers" >&5
+$as_echo "$as_me: WARNING: some compile-server functionality will be restricted, cannot find avahi headers" >&2;}
 fi
 if test "x${have_avahi_libs}" != "xyes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: some compile server client functionality will be restricted, cannot find avahi libraries" >&5
-$as_echo "$as_me: WARNING: some compile server client functionality will be restricted, cannot find avahi libraries" >&2;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: some compile-server functionality will be restricted, cannot find avahi libraries" >&5
+$as_echo "$as_me: WARNING: some compile-server functionality will be restricted, cannot find avahi libraries" >&2;}
 fi
 if test "x${have_avahi_includes}${have_avahi_libs}" = "xyesyes"; then
 
