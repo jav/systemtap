@@ -9,7 +9,7 @@
 	<edition>2.0</edition>
 
 	<productname>Systemtap</productname>
-	<productnumber>1.4</productnumber>
+	<productnumber>1.5</productnumber>
 
 	<pubsnumber>2</pubsnumber>
 	<abstract condition="RedHat"><para>This guide provides basic instructions on how to use SystemTap to monitor different subsystems of &PRODUCT; in finer detail. The <citetitle>SystemTap Beginners Guide</citetitle> is recommended for users who have taken <ulink url="https://www.redhat.com/courses/rh133_red_hat_linux_system_administration_and_rhct_exam/">RHCT</ulink> or have a similar level of expertise in &PRODUCT;.</para></abstract>
