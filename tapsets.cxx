@@ -6390,7 +6390,7 @@ symbol_table::read_from_text_file(const string& path,
 }
 
 void
-symbol_table::prepare_section_rejection(Dwfl_Module */*mod*/)
+symbol_table::prepare_section_rejection(Dwfl_Module *mod __attribute__ ((unused)))
 {
 #ifdef __powerpc__
   /*
