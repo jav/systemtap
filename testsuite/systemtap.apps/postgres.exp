@@ -126,6 +126,9 @@ cd postgresql-${postgresrelease}/
 # mkdir bld;cd bld
 ./configure --enable-dtrace --prefix=$postgresdir
 sed -i -e 's|^CFLAGS = -O2.*\$|& -g -I $env(SYSTEMTAP_INCLUDES)|' src/Makefile.global
+if \[ \$(uname -m) = ppc64 \] ; then 
+   sed -i -e 's|CFLAGS = |& -DSTAP_SDT_ARG_CONSTRAINT=nr |' src/Makefile.global
+fi
 
 J=\$(getconf _NPROCESSORS_CONF)
 make -j\$J
