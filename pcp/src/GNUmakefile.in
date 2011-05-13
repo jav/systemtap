@@ -21,7 +21,7 @@ TOPDIR = ..
 include $(TOPDIR)/src/include/builddefs
 -include ./GNUlocaldefs
 
-SUBDIRS = pmdas @PMWEBAPI@
+SUBDIRS = pmdas
 
 default :: default_pcp
 
