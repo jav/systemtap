@@ -1428,6 +1428,7 @@ c_unparser::emit_module_exit ()
 		<< "contexts[i] != NULL && "
                 << "atomic_read (& contexts[i]->busy)) {";
   o->newline(1) << "holdon = 1;";
+
   // just in case things are really stuck, let's print some diagnostics
   o->newline() << "if (time_after(jiffies, hold_start + HZ) "; // > 1 second
   o->line() << "&& (i > hold_index)) {"; // not already printed
@@ -1435,6 +1436,29 @@ c_unparser::emit_module_exit ()
   o->newline() << "printk(KERN_ERR \"%s context[%d] stuck: %s\\n\", THIS_MODULE->name, i, contexts[i]->probe_point);";
   o->newline(-1) << "}";
   o->newline(-1) << "}";
+
+  // Just in case things are really really stuck, a handler probably
+  // suffered a fault, and the kernel probably killed a task/thread
+  // already.  We can't be quite sure in what state everything is in,
+  // however auxiliary stuff like kprobes / uprobes / locks have
+  // already been unregistered.  So it's *probably* safe to
+  // pretend/assume/hope everything is OK, and let the cleanup finish.
+  //
+  // In the worst case, there may occur a fault, as a genuinely
+  // running probe handler tries to access script globals (about to be
+  // freed), or something accesses module memory (about to be
+  // unloaded).  This is sometimes stinky, so the alternative
+  // (default) is to change from a livelock to a livelock that sleeps
+  // awhile.
+  o->newline() << "#ifdef STAP_OVERRIDE_STUCK_CONTEXT";
+  o->newline() << "if (time_after(jiffies, hold_start + HZ*10)) { "; // > 10 seconds
+  o->newline(1) << "printk(KERN_ERR \"%s overriding stuck context to allow module shutdown.\", THIS_MODULE->name);";
+  o->newline() << "holdon = 0;"; // allow loop to exit
+  o->newline(-1) << "}";
+  o->newline() << "#else";
+  o->newline() << "msleep (250);"; // at least stop sucking down the staprun cpu
+  o->newline() << "#endif";
+
   // NB: we run at least one of these during the shutdown sequence:
   o->newline () << "yield ();"; // aka schedule() and then some
   o->newline(-2) << "} while (holdon);";
