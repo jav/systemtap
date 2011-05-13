@@ -2433,7 +2433,6 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
                                dwarf_type_name(typedie).c_str()), e->tok);
       break;
 
-    case DW_TAG_enumeration_type:
     case DW_TAG_base_type:
 
       // Reject types we can't handle in systemtap
@@ -2458,6 +2457,8 @@ dwflpp::translate_final_fetch_or_store (struct obstack *pool,
                                      dwarf_type_name(typedie).c_str()), e->tok);
           }
       }
+      // Fallthrough. enumeration_types are always scalar.
+    case DW_TAG_enumeration_type:
 
       ty = pe_long;
       if (lvalue)
