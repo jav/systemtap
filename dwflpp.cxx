@@ -1082,13 +1082,18 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
   // If it gets cumbersome to maintain this whitelist, we could just check for
   // startswith("/lib/ld") || startswith("/lib64/ld"), and trust that no admin
   // would install untrustworthy loaders in those paths.
-  if (interpreter != "/lib/ld.so.1"     // ppc / s390
-      && interpreter != "/lib64/ld64.so.1"
-      && interpreter != "/lib/ld-linux-ia64.so.2" // ia64
-      && interpreter != "/emul/ia32-linux/lib/ld-linux.so.2"
-      && interpreter != "/lib64/ld-linux-x86-64.so.2"   // x8664
-      && interpreter !=  "/lib/ld-linux.so.2")          // x86
-    throw semantic_error(_F("unsupported interpreter: %s", interpreter.c_str()));
+  if ((interpreter != "/lib/ld.so.1"     // ppc / s390
+       && interpreter != "/lib64/ld64.so.1"
+       && interpreter != "/lib/ld-linux-ia64.so.2" // ia64
+       && interpreter != "/emul/ia32-linux/lib/ld-linux.so.2"
+       && interpreter != "/lib64/ld-linux-x86-64.so.2"   // x8664
+       && interpreter !=  "/lib/ld-linux.so.2"))          // x86
+    {
+      if (! sess.suppress_warnings)
+        sess.print_warning (_F("module %s --ldd skipped: unsupported interpreter: %s",
+                               module_name.c_str(), interpreter.c_str()));
+      return;
+    }
 
   vector<string> ldd_command;
   ldd_command.push_back("/usr/bin/env");
