@@ -454,7 +454,7 @@ stap_waitpid(int verbose, pid_t pid)
     {
       spawned_pids.erase(pid);
       ret = WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
-      if (verbose > 2)
+      if (verbose > 1)
         clog << _F("Spawn waitpid result (0x%x): %d", status, ret) << endl;
     }
   else
