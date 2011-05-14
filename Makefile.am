@@ -179,7 +179,10 @@ if BUILD_SERVER
 stap_serverd_SOURCES = stap-serverd.cxx util.cxx nsscommon.cxx
 stap_serverd_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_serverd_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_serverd_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4 -lsmime3 -lavahi-client -lavahi-common -lpthread
+stap_serverd_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4 -lsmime3 -lpthread
+if HAVE_AVAHI
+stap_serverd_LDADD += -lavahi-client -lavahi-common
+endif
 
 stap_gen_cert_SOURCES = stap-gen-cert.cxx util.cxx nsscommon.cxx
 stap_gen_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)

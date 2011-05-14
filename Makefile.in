@@ -65,8 +65,9 @@ bin_PROGRAMS = $(am__EXEEXT_1)
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_21 = stamp-elfutils
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_22 = lib-elfutils/libdw.so
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_23 = install-elfutils
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@@HAVE_NSS_TRUE@am__append_24 = -lavahi-client -lavahi-common
 @BUILD_TRANSLATOR_TRUE@noinst_PROGRAMS = loc2c-test$(EXEEXT)
-@BUILD_PCP_TRUE@am__append_24 = pcp
+@BUILD_PCP_TRUE@am__append_25 = pcp
 subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(srcdir)/Makefile.am $(top_srcdir)/configure \
@@ -163,7 +164,7 @@ stap_gen_cert_LINK = $(CXXLD) $(stap_gen_cert_CXXFLAGS) $(CXXFLAGS) \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_serverd-util.$(OBJEXT) \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_serverd-nsscommon.$(OBJEXT)
 stap_serverd_OBJECTS = $(am_stap_serverd_OBJECTS)
-stap_serverd_DEPENDENCIES =
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_DEPENDENCIES = $(am__DEPENDENCIES_1)
 stap_serverd_LINK = $(CXXLD) $(stap_serverd_CXXFLAGS) $(CXXFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am_stap_sign_module_OBJECTS = stap_sign_module-stap-sign-module.$(OBJEXT) \
@@ -319,6 +320,8 @@ PIECFLAGS = @PIECFLAGS@
 PIECXXFLAGS = @PIECXXFLAGS@
 PIELDFLAGS = @PIELDFLAGS@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSUB = @POSUB@
 PUBLICAN_BRAND = @PUBLICAN_BRAND@
 RANLIB = @RANLIB@
@@ -475,7 +478,13 @@ PHONIES = $(am__append_17) $(am__append_23) runcheck update-po \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_SOURCES = stap-serverd.cxx util.cxx nsscommon.cxx
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4 -lsmime3 -lavahi-client -lavahi-common -lpthread
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_LDADD = -lssl3 \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	-lnss3 \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	-lnspr4 \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	-lplc4 \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	-lsmime3 \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	-lpthread \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	$(am__append_24)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_SOURCES = stap-gen-cert.cxx util.cxx nsscommon.cxx
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
@@ -494,7 +503,7 @@ LDADD =
 EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
 EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
 TEST_COV_DIR = coverage
-SUBDIRS = . runtime/staprun grapher doc po $(am__append_24)
+SUBDIRS = . runtime/staprun grapher doc po $(am__append_25)
 DIST_SUBDIRS = testsuite $(SUBDIRS)
 EXTRA_DIST = m4/ChangeLog  man/tapset*.3stap
 
