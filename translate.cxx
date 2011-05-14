@@ -5524,7 +5524,7 @@ add_unwindsym_ldd (systemtap_session &s)
       struct dwflpp *mod_dwflpp = new dwflpp(s, modname, false);
       mod_dwflpp->iterate_over_modules(&query_module, mod_dwflpp);
       mod_dwflpp->iterate_over_libraries (&add_unwindsym_iol_callback, &added);
-      free (mod_dwflpp);
+      delete mod_dwflpp;
     }
 
   s.unwindsym_modules.insert (added.begin(), added.end());
@@ -5755,11 +5755,23 @@ void translate_runtime(systemtap_session& s)
   s.op->newline() << "#define STAP_MSG_LOC2C_03 "
                   << lex_cast_qstring(_("divide by zero in DWARF operand (%s)"));
 }
+
+
 int
 prepare_translate_pass (systemtap_session& s)
 {
-  prepare_symbol_data (s);
-  return 0;
+  int rc = 0;
+  try
+    {
+      prepare_symbol_data (s);
+    }
+  catch (const semantic_error& e)
+    {
+      s.print_error (e);
+      rc = 1;
+    }
+
+  return rc;
 }
 
 
