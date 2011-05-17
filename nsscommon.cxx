@@ -848,8 +848,9 @@ add_client_cert (const string &inFileName, const string &db_path)
       nsscommon_error (_("Unable to change certificate trust"));
       nssError ();
     }
-    
+
  done:
+  // Free NSS/NSPR objects and shutdown NSS.
   if (slot)
     PK11_FreeSlot (slot);
   if (trust)
@@ -859,6 +860,27 @@ add_client_cert (const string &inFileName, const string &db_path)
   if (certDER.data)
     PORT_Free (certDER.data);
   nssCleanup (db_path.c_str ());
+
+  // Make sure that the cert database files are read/write by the owner and
+  // readable by all.
+  glob_t globbuf;
+  string filespec = db_path + "/*";
+  int r = glob (filespec.c_str (), 0, NULL, & globbuf);
+  if (r == GLOB_NOSPACE || r == GLOB_ABORTED) {
+    // Not fatal, just a warning
+    nsscommon_error (_F("Could not search certificate database directory %s", db_path.c_str ()));
+  }
+  else if (r != GLOB_NOMATCH)
+    {
+      mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+      for (unsigned i = 0; i < globbuf.gl_pathc; ++i)
+	{
+	  // Not fatal, just a warning
+	  if (chmod (globbuf.gl_pathv[i], mode) != 0)
+	    nsscommon_error (_F("Could set file permissions for %s", globbuf.gl_pathv[i]));
+	}
+    }
+  
   return secStatus;
 }
 
