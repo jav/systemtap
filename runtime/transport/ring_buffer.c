@@ -3,6 +3,7 @@
 #include <linux/wait.h>
 #include <linux/poll.h>
 #include <linux/cpumask.h>
+#include <asm/local.h>
 
 static DEFINE_PER_CPU(local_t, _stp_cpu_disabled);
 
