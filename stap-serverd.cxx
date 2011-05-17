@@ -258,6 +258,7 @@ setup_signals (sighandler_t handler)
 {
   struct sigaction sa;
 
+  memset(&sa, 0, sizeof(sa));
   sa.sa_handler = handler;
   sigemptyset (&sa.sa_mask);
   if (handler != SIG_IGN)
