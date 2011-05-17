@@ -6,7 +6,7 @@
 # return non-zero if the filename should be blocked
 function filter:long (name:string)
 {
-  return euid() && isinstr(name, "XXX")
+  return isinstr(name, "XXXbadnameXXX")
 }
 
 global squash_inode_permission
