@@ -26,6 +26,7 @@ int main()
   sigprocmask(SIG_UNBLOCK, &mask, NULL);
   //staptest// rt_sigprocmask (SIG_UNBLOCK, \[SIGUSR1\], 0x[0]+, 8) = 0
 
+  memset(&sa, 0, sizeof(sa));
   sa.sa_handler = SIG_IGN;
   sigemptyset(&sa.sa_mask);
   sigaddset(&sa.sa_mask, SIGALRM);

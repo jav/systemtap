@@ -405,6 +405,7 @@ int init_oldrelayfs(void)
 	char relay_filebase[PATH_MAX], proc_filebase[PATH_MAX];
 	struct sigaction sa;
 
+	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = switchfile_handler;
 	sa.sa_flags = 0;
 	sigemptyset(&sa.sa_mask);

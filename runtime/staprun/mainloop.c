@@ -146,6 +146,7 @@ void start_cmd(void)
 
   /* if we are execing a target cmd, ignore ^C in stapio */
   /* and let the target cmd get it. */
+  memset(&a, 0, sizeof(a));
   sigemptyset(&a.sa_mask);
   a.sa_flags = 0;
   a.sa_handler = SIG_IGN;
@@ -157,6 +158,7 @@ void start_cmd(void)
   sigaddset (&blockmask, SIGUSR1);
 
   /* Establish the SIGUSR1 signal handler. */
+  memset(&usr1_action, 0, sizeof(usr1_action));
   sigfillset (&usr1_action.sa_mask);
   usr1_action.sa_flags = 0;
   usr1_action.sa_handler = signal_usr1;
@@ -452,6 +454,7 @@ void cleanup_and_exit(int detach, int rc)
 
   // So that waitpid() below will work correctly, we need to clear
   // out our SIGCHLD handler.
+  memset(&sa, 0, sizeof(sa));
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
   sa.sa_handler = SIG_DFL;

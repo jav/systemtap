@@ -155,6 +155,7 @@ setup_signals (void)
 {
   unsigned i;
   struct sigaction sa;
+  memset(&sa, 0, sizeof(sa));
   sa.sa_handler = handle_signal;
   sigemptyset (&sa.sa_mask);
   for (i = 0; i < sizeof(signals) / sizeof(*signals); ++i)
