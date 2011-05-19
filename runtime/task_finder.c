@@ -1332,6 +1332,9 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 	long syscall_no;
 	unsigned long args[3] = { 0L };
 	int rc;
+	int is_mmap_or_mmap2 = 0;
+	int is_mprotect = 0;
+	int is_munmap = 0;
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
@@ -1341,38 +1344,42 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 	if (tgt == NULL)
 		return UTRACE_RESUME;
 
-	// See if syscall is one we're interested in.
+	// See if syscall is one we're interested in.  On x86_64, this
+	// is a potentially expensive operation (since we have to
+	// check and see if it is a 32-bit task).  So, cache the
+	// results.
 	//
 	// FIXME: do we need to handle mremap()?
 	syscall_no = syscall_get_nr(tsk, regs);
-	if (syscall_no != MMAP_SYSCALL_NO(tsk)
-	    && syscall_no != MMAP2_SYSCALL_NO(tsk)
-	    && syscall_no != MPROTECT_SYSCALL_NO(tsk)
-	    && syscall_no != MUNMAP_SYSCALL_NO(tsk))
+	is_mmap_or_mmap2 = (syscall_no == MMAP_SYSCALL_NO(tsk)
+			    || syscall_no == MMAP2_SYSCALL_NO(tsk) ? 1 : 0);
+	if (!is_mmap_or_mmap2) {
+		is_mprotect = (syscall_no == MPROTECT_SYSCALL_NO(tsk) ? 1 : 0);
+		if (!is_mprotect) {
+			is_munmap = (syscall_no == MUNMAP_SYSCALL_NO(tsk)
+				     ? 1 : 0);
+		}
+	}
+	if (!is_mmap_or_mmap2 && !is_mprotect && !is_munmap)
 		return UTRACE_RESUME;
 
 	// The syscall is one we're interested in, but do we have a
 	// handler for it?
-	if (((syscall_no == MMAP_SYSCALL_NO(tsk)
-	      || syscall_no == MMAP2_SYSCALL_NO(tsk)) && tgt->mmap_events == 0)
-	    || (syscall_no == MPROTECT_SYSCALL_NO(tsk)
-		&& tgt->mprotect_events == 0)
-	    || (syscall_no == MUNMAP_SYSCALL_NO(tsk)
-		&& tgt->munmap_events == 0))
+	if ((is_mmap_or_mmap2 && tgt->mmap_events == 0)
+	    || (is_mprotect && tgt->mprotect_events == 0)
+	    || (is_munmap && tgt->munmap_events == 0))
 		return UTRACE_RESUME;
 
+	// Save the needed arguments.  Note that for mmap, we really
+	// just need the return value, so there is no need to save
+	// any arguments.
 	__stp_tf_handler_start();
-	if (syscall_no == MUNMAP_SYSCALL_NO(tsk)) {
-		// We need 2 arguments
+	if (is_munmap) {
+		// We need 2 arguments for munmap()
 		syscall_get_arguments(tsk, regs, 0, 2, args);
 	}
-	else if (syscall_no == MMAP_SYSCALL_NO(tsk)
-		 || syscall_no == MMAP2_SYSCALL_NO(tsk)) {
-		// For mmap, we really just need the return value, so
-		// there is no need to save arguments
-	}
-	else {				// mprotect()
-		// We need 3 arguments
+	else if (is_mprotect) {
+		// We need 3 arguments for mprotect()
 		syscall_get_arguments(tsk, regs, 0, 3, args);
 	}
 
