@@ -267,8 +267,8 @@ stap_utrace_detach(struct task_struct *tsk,
 	struct mm_struct *mm;
 	int rc = 0;
 
-	// Ignore init
-	if (tsk == NULL || tsk->pid <= 1)
+	// Ignore invalid tasks.
+	if (tsk == NULL || tsk->pid <= 0)
 		return 0;
 
 #ifdef PF_KTHREAD
@@ -486,8 +486,8 @@ __stp_utrace_attach(struct task_struct *tsk,
 	struct mm_struct *mm;
 	int rc = 0;
 
-	// Ignore init
-	if (tsk == NULL || tsk->pid <= 1)
+	// Ignore invalid tasks.
+	if (tsk == NULL || tsk->pid <= 0)
 		return EPERM;
 
 #ifdef PF_KTHREAD
@@ -870,8 +870,8 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	char *mmpath_buf;
 	char *mmpath;
 
-	if (path_tsk == NULL || path_tsk->pid <= 1
-	    || match_tsk == NULL || match_tsk->pid <= 1)
+	if (path_tsk == NULL || path_tsk->pid <= 0
+	    || match_tsk == NULL || match_tsk->pid <= 0)
 		return;
 
 	/* Grab the path associated with the path_tsk. */
@@ -1009,7 +1009,7 @@ __stp_utrace_task_finder_report_exec(enum utrace_resume_action action,
 #define real_parent parent
 #endif
 	if (tsk != NULL && tsk->real_parent != NULL
-	    && tsk->real_parent->pid > 1) {
+	    && tsk->real_parent->pid > 0) {
 		// We'll hardcode this as a process end, but a thread
 		// *could* call exec (although they aren't supposed to).
 		__stp_utrace_attach_match_tsk(tsk->real_parent, tsk, 0, 1);
