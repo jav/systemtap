@@ -3,15 +3,16 @@
 # systemtap	Startup script for SystemTap scripts
 #
 # chkconfig: - 00 99
-# description: SystemTap is a programmable kernel/application tracing tool.
 # config: /etc/systemtap/config
 # config: /etc/systemtap/conf.d
 ### BEGIN INIT INFO
 # Provides: SystemTap scripts startup
 # Required-Start: $local_fs
 # Required-Stop: $local_fs
-# Short-Description: Start and stop SystemTap scripts
-# Description: SystemTap is a programmable kernel/application tracing tool.
+# Short-Description: Start and stop systemtap scripts
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Description: The systemtap service runs a configured list of scripts at system startup.
 ### END INIT INFO
 
 # Source function library.

@@ -459,7 +459,7 @@ exit 0
 %dir %{_sysconfdir}/stap-server/conf.d
 %config(noreplace) %{_sysconfdir}/sysconfig/stap-server
 %dir %attr(0755,stap-server,stap-server) %{_localstatedir}/log/stap-server
-%ghost %config %attr(0644,stap-server,stap-server) %{_localstatedir}/log/stap-server/log
+%ghost %config(noreplace) %attr(0644,stap-server,stap-server) %{_localstatedir}/log/stap-server/log
 %ghost %attr(0755,stap-server,stap-server) %{_localstatedir}/run/stap-server
 %doc initscript/README.stap-server
 

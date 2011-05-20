@@ -3,10 +3,17 @@
 # stap-server	init.d script for the systemtap compile server
 #
 # chkconfig: - 00 99
-# description: The systemtap compile server provides a centralized and secure \
-#              environment for compiling systemtap scripts.
 # config: /etc/sysconfig/stap-server
 # config: /etc/stap-server/conf.d
+### BEGIN INIT INFO
+# Provides: SystemTap compile-server startup
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $network
+# Short-Description: Start and stop SystemTap compile-server
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Description: stap-server provides remote-compilation services to systemtap users on the local network.
+### END INIT INFO
 
 # Call the installed stap-server script.
 STAP_USER=stap-server @bindir@/stap-server "$@"
