@@ -1,12 +1,13 @@
 # stap -DMAXERRORS=40
 
-# NB: PR 6538 will cause systemtap to warn about the read-only globals;
-# we can't help that though since the point of this test is to see what
-# happens when an empty (never written-to) aggregate is queried.
+# NB: The never-deletes help us avoid WARNING about the read-only
+# globals; the point of this test is to see what happens when an
+# empty (never written-to) aggregate is queried.
 
 global sc
+probe never { delete sc }
 probe begin { println(@count(sc)) }
-probe begin { print(@sum(sc)) }
+probe begin { println(@sum(sc)) }
 probe begin { print(@max(sc)) }
 probe begin { print(@min(sc)) }
 probe begin { print(@avg(sc)) }
@@ -14,12 +15,13 @@ probe begin { print(@hist_log(sc)) }
 probe begin { x=@hist_log(sc)[5]; print(x) }
 
 global ry
+probe never { delete ry }
 probe begin { println(@count(ry[4])) }
-probe begin { print(@sum(ry[4])) }
+probe begin { println(@sum(ry[4])) }
 probe begin { print(@max(ry[4])) }
 probe begin { print(@min(ry[4])) }
 probe begin { print(@avg(ry[4])) }
 probe begin { print(@hist_log(ry[4])) }
 probe begin { x=@hist_log(ry[4])[5]; print(x) }
 
-probe begin { exit() }
+probe begin(1) { exit() }

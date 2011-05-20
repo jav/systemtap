@@ -4638,7 +4638,9 @@ c_unparser::visit_stat_op (stat_op* e)
     var *v = load_aggregate(e->stat, agg);
     {
       // PR 2142+2610: empty aggregates
-      if (e->ctype == sc_count)
+      if ((e->ctype == sc_count) ||
+          (e->ctype == sc_sum &&
+           strverscmp(session->compatible.c_str(), "1.5") >= 0))
         {
           o->newline() << "if (unlikely (" << agg.value() << " == NULL))";
           o->indent(1);

@@ -20,4 +20,25 @@ expect {
 catch close
 wait
 
-if {$ok == 2 && $ko == 13} then { pass $test } else { fail "$test ($ok $ko)" }
+# As of stap 1.5, @count and @sum are allowed, the rest fail
+if {$ok == 4 && $ko == 11} then { pass $test } else { fail "$test ($ok $ko)" }
+
+
+set ok 0
+set ko 0
+
+spawn stap -DMAXERRORS=20 $srcdir/$subdir/$test.stp --compatible=1.4
+# spawn echo hello children 0
+expect {
+  -timeout 150
+  -re {^ERROR: empty aggregate[^\r]*\r} { incr ko ; exp_continue }
+  -re {^WARNING: Number of errors} { incr ko ; exp_continue }
+  -re {^0\r} { incr ok ; exp_continue }
+  -re {\n} { exp_continue }
+  eof { }
+}
+catch close
+wait
+
+# In stap <= 1.4, only @count is allowed, the rest fail
+if {$ok == 2 && $ko == 13} then { pass "$test 1.4" } else { fail "$test 1.4 ($ok $ko)" }
