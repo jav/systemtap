@@ -42,7 +42,7 @@ extern "C" {
 #if HAVE_AVAHI
 #include <avahi-client/publish.h>
 #include <avahi-common/alternative.h>
-#include <avahi-common/simple-watch.h>
+#include <avahi-common/thread-watch.h>
 #include <avahi-common/malloc.h>
 #include <avahi-common/error.h>
 #endif
@@ -73,9 +73,6 @@ static string cert_serial_number;
 static string B_options;
 static string I_options;
 static string R_option;
-#if HAVE_AVAHI
-static pthread_t avahi_thread = 0;
-#endif
 
 // Used to save our resource limits for these categories and impose smaller
 // limits on the translator while servicing a request.
@@ -285,8 +282,9 @@ setup_signals (sighandler_t handler)
 
 #if HAVE_AVAHI
 static AvahiEntryGroup *avahi_group = NULL;
-static AvahiSimplePoll *avahi_simple_poll = NULL;
+static AvahiThreadedPoll *avahi_threaded_poll = NULL;
 static char *avahi_service_name = NULL;
+static AvahiClient *avahi_client = 0;
 
 static void create_services (AvahiClient *c);
 
@@ -325,7 +323,7 @@ entry_group_callback (
       nsscommon_error (_F("Avahi entry group failure: %s",
 		  avahi_strerror (avahi_client_errno (avahi_entry_group_get_client (g)))));
       // Some kind of failure happened while we were registering our services.
-      avahi_simple_poll_quit (avahi_simple_poll);
+      avahi_threaded_poll_stop (avahi_threaded_poll);
       break;
 
     case AVAHI_ENTRY_GROUP_UNCOMMITED:
@@ -352,7 +350,7 @@ create_services (AvahiClient *c) {
   // because it was reset previously, add our entries.
   if (avahi_entry_group_is_empty (avahi_group))
     {
-      log (_F("Adding service '%s'", avahi_service_name));
+      log (_F("Adding Avahi service '%s'", avahi_service_name));
 
       // Create the txt tags that will be registered with our service.
       string sysinfo = "sysinfo=" + uname_r + " " + arch;
@@ -410,7 +408,8 @@ create_services (AvahiClient *c) {
   return;
 
  fail:
-  avahi_simple_poll_quit (avahi_simple_poll);
+  avahi_entry_group_reset (avahi_group);
+  avahi_threaded_poll_stop (avahi_threaded_poll);
 }
 
 static void
@@ -429,7 +428,7 @@ client_callback (AvahiClient *c, AvahiClientState state, AVAHI_GCC_UNUSED void *
 
     case AVAHI_CLIENT_FAILURE:
       nsscommon_error (_F("Avahi client failure: %s", avahi_strerror (avahi_client_errno (c))));
-      avahi_simple_poll_quit (avahi_simple_poll);
+      avahi_threaded_poll_stop (avahi_threaded_poll);
       break;
 
     case AVAHI_CLIENT_S_COLLISION:
@@ -451,48 +450,67 @@ client_callback (AvahiClient *c, AvahiClientState state, AVAHI_GCC_UNUSED void *
     }
 }
  
+static void
+avahi_cleanup () {
+  if (avahi_service_name)
+    log (_F("Removing Avahi service '%s'", avahi_service_name));
+
+  // Stop the avahi client, if it's running
+  if (avahi_threaded_poll)
+    avahi_threaded_poll_stop (avahi_threaded_poll);
+
+  // Clean up the avahi objects. The order of freeing these is significant.
+  if (avahi_group) {
+    avahi_entry_group_reset (avahi_group);
+    avahi_entry_group_free (avahi_group);
+    avahi_group = 0;
+  }
+  if (avahi_client) {
+    avahi_client_free (avahi_client);
+    avahi_client = 0;
+  }
+  if (avahi_threaded_poll) {
+    avahi_threaded_poll_free (avahi_threaded_poll);
+    avahi_threaded_poll = 0;
+  }
+  if (avahi_service_name) {
+    avahi_free (avahi_service_name);
+    avahi_service_name = 0;
+  }
+}
+
 // The entry point for the avahi client thread.
-static void *
-avahi_publish_service (void *arg)
+static void
+avahi_publish_service (CERTCertificate *cert)
 {
-  CERTCertificate *cert = (CERTCertificate *)arg;
   cert_serial_number = get_cert_serial_number (cert);
 
   string buf = "Systemtap Compile Server, pid=" + lex_cast (getpid ());
   avahi_service_name = avahi_strdup (buf.c_str ());
 
-  AvahiClient *client = 0;
-
   // Allocate main loop object.
-  if (! (avahi_simple_poll = avahi_simple_poll_new ()))
+  if (! (avahi_threaded_poll = avahi_threaded_poll_new ()))
     {
-      nsscommon_error (_("Failed to create avahi simple poll object."));
-      goto done;
+      nsscommon_error (_("Failed to create avahi threaded poll object."));
+      return;
     }
 
-  // Allocate a new client.
+  // Always allocate a new client.
   int error;
-  client = avahi_client_new (avahi_simple_poll_get (avahi_simple_poll), (AvahiClientFlags)0,
-			     client_callback, NULL, & error);
-
+  avahi_client = avahi_client_new (avahi_threaded_poll_get (avahi_threaded_poll),
+				   (AvahiClientFlags)0,
+				   client_callback, NULL, & error);
   // Check wether creating the client object succeeded.
-  if (! client)
+  if (! avahi_client)
     {
       nsscommon_error (_F("Failed to create avahi client: %s", avahi_strerror(error)));
-      goto done;
+      return;
     }
 
   // Run the main loop.
-  avahi_simple_poll_loop (avahi_simple_poll);
-  
- done:
-  // Cleanup.
-  if (client)
-    avahi_client_free (client);
-  if (avahi_simple_poll)
-    avahi_simple_poll_free (avahi_simple_poll);
-  avahi_free (avahi_service_name);
-  return NULL;
+  avahi_threaded_poll_start (avahi_threaded_poll);
+
+  return;
 }
 #endif // HAVE_AVAHI
 
@@ -500,19 +518,7 @@ static void
 advertise_presence (CERTCertificate *cert __attribute ((unused)))
 {
 #if HAVE_AVAHI
-  // The avahi client must run on its own thread, since the poll loop does not
-  // exit. The avahi thread will be cancelled automatically when the main thread
-  // finishes. Run the thread as joinable to the main thread, so that we can know, when we
-  // cancel it, that it actually was cancelled.
-  pthread_attr_t attr;
-  pthread_attr_init (& attr);
-  pthread_attr_setdetachstate (& attr, PTHREAD_CREATE_JOINABLE);
-  int rc = pthread_create (& avahi_thread, & attr, avahi_publish_service, (void *)cert);
-  if (rc == EAGAIN)
-    {
-      nsscommon_error (_("Could not create a thread for the avahi client"));
-      avahi_thread = 0;
-    }
+  avahi_publish_service (cert);
 #else
   nsscommon_error (_("Unable to advertise presence on the network. Avahi is not available"));
 #endif
@@ -522,15 +528,7 @@ static void
 unadvertise_presence ()
 {
 #if HAVE_AVAHI
-  if (avahi_thread)
-    {
-      pthread_cancel (avahi_thread);
-      pthread_join (avahi_thread, NULL);
-      avahi_thread = 0;
-      avahi_group = NULL;
-      avahi_simple_poll = NULL;
-      avahi_service_name = NULL;
-    }
+  avahi_cleanup ();
 #endif
 }
 
