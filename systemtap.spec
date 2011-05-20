@@ -133,7 +133,7 @@ scripts to kernel objects on their demand.
 %package sdt-devel
 Summary: Static probe support tools
 Group: Development/System
-License: GPLv2+, Public Domain
+License: GPLv2+ and Public Domain
 URL: http://sourceware.org/systemtap/
 
 %description sdt-devel
