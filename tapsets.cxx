@@ -3795,6 +3795,16 @@ dwarf_derived_probe::join_group (systemtap_session& s)
 }
 
 
+static bool
+kernel_supports_inode_uprobes(systemtap_session& s)
+{
+  // The arch-supports is new to the builtin inode-uprobes, so it makes a
+  // reasonable indicator of the new API.  Else we'll need an autoconf...
+  return (s.kernel_config["CONFIG_ARCH_SUPPORTS_UPROBES"] == "y"
+          && s.kernel_config["CONFIG_UPROBES"] == "y");
+}
+
+
 dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                                          const string& filename,
                                          int line,
@@ -3835,6 +3845,12 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
       // ET_DYN ones do (addr += run-time mmap base address).  We tell these apart
       // by the incoming section value (".absolute" vs. ".dynamic").
       // XXX Assert invariants here too?
+
+      // inode-uprobes needs an offset rather than an absolute VM address.
+      if (kernel_supports_inode_uprobes(q.dw.sess) &&
+          section == ".absolute" && addr == dwfl_addr &&
+          addr >= q.dw.module_start && addr < q.dw.module_end)
+        this->addr = addr - q.dw.module_start;
     }
   else
     {
@@ -6182,7 +6198,13 @@ dwarf_builder::build(systemtap_session & sess,
       else
 	module_name = user_path; // canonicalize it
 
-      if (sess.kernel_config["CONFIG_UTRACE"] != string("y"))
+      if (kernel_supports_inode_uprobes(sess))
+        {
+          if (has_null_param(parameters, TOK_RETURN))
+            throw semantic_error
+              (_("process return probes not available with inode-based uprobes"));
+        }
+      else if (sess.kernel_config["CONFIG_UTRACE"] != string("y"))
         throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE"));
 
       // user-space target; we use one dwflpp instance per module name
@@ -6635,6 +6657,16 @@ private:
     return p->module + "|" + p->section + "|" + lex_cast(p->pid);
   }
 
+  // Using our own utrace-based uprobes
+  void emit_module_utrace_decls (systemtap_session& s);
+  void emit_module_utrace_init (systemtap_session& s);
+  void emit_module_utrace_exit (systemtap_session& s);
+
+  // Using the upstream inode-based uprobes
+  void emit_module_inode_decls (systemtap_session& s);
+  void emit_module_inode_init (systemtap_session& s);
+  void emit_module_inode_exit (systemtap_session& s);
+
 public:
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
@@ -6648,11 +6680,15 @@ uprobe_derived_probe::join_group (systemtap_session& s)
   if (! s.uprobe_derived_probes)
     s.uprobe_derived_probes = new uprobe_derived_probe_group ();
   s.uprobe_derived_probes->enroll (this);
-  enable_task_finder(s);
 
-  // Ask buildrun.cxx to build extra module if needed, and
-  // signal staprun to load that module
-  s.need_uprobes = true;
+  if (!kernel_supports_inode_uprobes(s))
+    {
+      enable_task_finder(s);
+
+      // Ask buildrun.cxx to build extra module if needed, and
+      // signal staprun to load that module
+      s.need_uprobes = true;
+    }
 }
 
 
@@ -6684,13 +6720,16 @@ uprobe_derived_probe::emit_unprivileged_assertion (translator_output* o)
 struct uprobe_builder: public derived_probe_builder
 {
   uprobe_builder() {}
-  virtual void build(systemtap_session &,
+  virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
 		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results)
   {
     int64_t process, address;
+
+    if (kernel_supports_inode_uprobes(sess))
+      throw semantic_error (_("absolute process probes not available with inode-based uprobes"));
 
     bool b1 = get_param (parameters, TOK_PROCESS, process);
     (void) b1;
@@ -6705,10 +6744,10 @@ struct uprobe_builder: public derived_probe_builder
 
 
 void
-uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
+uprobe_derived_probe_group::emit_module_utrace_decls (systemtap_session& s)
 {
   if (probes.empty()) return;
-  s.op->newline() << "/* ---- user probes ---- */";
+  s.op->newline() << "/* ---- utrace uprobes ---- */";
   // If uprobes isn't in the kernel, pull it in from the runtime.
 
   s.op->newline() << "#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)";
@@ -6892,11 +6931,11 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
 
 void
-uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
+uprobe_derived_probe_group::emit_module_utrace_init (systemtap_session& s)
 {
   if (probes.empty()) return;
 
-  s.op->newline() << "/* ---- user probes ---- */";
+  s.op->newline() << "/* ---- utrace uprobes ---- */";
 
   s.op->newline() << "for (j=0; j<MAXUPROBES; j++) {";
   s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[j];";
@@ -6925,10 +6964,10 @@ uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
 
 
 void
-uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
+uprobe_derived_probe_group::emit_module_utrace_exit (systemtap_session& s)
 {
   if (probes.empty()) return;
-  s.op->newline() << "/* ---- user probes ---- */";
+  s.op->newline() << "/* ---- utrace uprobes ---- */";
 
   // NB: there is no stap_unregister_task_finder_target call;
   // important stuff like utrace cleanups are done by
@@ -6997,6 +7036,126 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
 
   s.op->newline() << "mutex_destroy (& stap_uprobes_lock);";
 }
+
+
+void
+uprobe_derived_probe_group::emit_module_inode_decls (systemtap_session& s)
+{
+  if (probes.empty()) return;
+  s.op->newline() << "/* ---- inode uprobes ---- */";
+  s.op->newline() << "#include \"uprobes-inode.c\"";
+
+  // Write the probe handler.
+  s.op->newline() << "static int enter_inode_uprobe "
+                  << "(struct uprobe_consumer *inst, struct pt_regs *regs) {";
+  s.op->newline(1) << "struct stp_inode_uprobe_consumer *sup = "
+                   << "container_of(inst, struct stp_inode_uprobe_consumer, consumer);";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sup->probe");
+  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
+  // XXX: Can't set SET_REG_IP; we don't actually know the relocated address.
+  // ...  In some error cases, uprobes itself calls uprobes_get_bkpt_addr().
+  s.op->newline() << "(*sup->probe->ph) (c);";
+  common_probe_entryfn_epilogue (s.op);
+  s.op->newline() << "return 0;";
+  s.op->newline(-1) << "}";
+  s.op->assert_0_indent();
+
+  // Index of all the modules for which we need inodes.
+  map<string, unsigned> module_index;
+  unsigned module_index_ctr = 0;
+
+  // Discover and declare targets for each unique path.
+  s.op->newline() << "static struct stp_inode_uprobe_target "
+                  << "stap_inode_uprobe_targets[] = {";
+  s.op->indent(1);
+  for (unsigned i=0; i<probes.size(); i++)
+    {
+      uprobe_derived_probe *p = probes[i];
+      if (module_index.find (p->module) == module_index.end())
+        {
+          module_index[p->module] = module_index_ctr++;
+          s.op->newline() << "{ .filename=" << lex_cast_qstring(p->module) << " },";
+        }
+    }
+  s.op->newline(-1) << "};";
+  s.op->assert_0_indent();
+
+  // Declare the actual probes.
+  s.op->newline() << "static struct stp_inode_uprobe_consumer "
+                  << "stap_inode_uprobe_consumers[] = {";
+  s.op->indent(1);
+  for (unsigned i=0; i<probes.size(); i++)
+    {
+      uprobe_derived_probe *p = probes[i];
+      unsigned index = module_index[p->module];
+      s.op->newline() << "{"
+                      << " .consumer={ .handler=enter_inode_uprobe },"
+                      << " .target=&stap_inode_uprobe_targets[" << index << "],"
+                      << " .offset=(loff_t)0x" << hex << p->addr << dec << "ULL,"
+                      << " .probe=" << common_probe_init (p) << ","
+                      << "},";
+    }
+  s.op->newline(-1) << "};";
+  s.op->assert_0_indent();
+}
+
+
+void
+uprobe_derived_probe_group::emit_module_inode_init (systemtap_session& s)
+{
+  if (probes.empty()) return;
+  s.op->newline() << "/* ---- inode uprobes ---- */";
+  s.op->newline() << "rc = stp_inode_uprobes_init ("
+                  << "stap_inode_uprobe_targets, "
+                  << "ARRAY_SIZE(stap_inode_uprobe_targets), "
+                  << "stap_inode_uprobe_consumers, "
+                  << "ARRAY_SIZE(stap_inode_uprobe_consumers));";
+}
+
+
+void
+uprobe_derived_probe_group::emit_module_inode_exit (systemtap_session& s)
+{
+  if (probes.empty()) return;
+  s.op->newline() << "/* ---- inode uprobes ---- */";
+  s.op->newline() << "stp_inode_uprobes_exit ("
+                  << "stap_inode_uprobe_targets, "
+                  << "ARRAY_SIZE(stap_inode_uprobe_targets), "
+                  << "stap_inode_uprobe_consumers, "
+                  << "ARRAY_SIZE(stap_inode_uprobe_consumers));";
+}
+
+
+void
+uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
+{
+  if (kernel_supports_inode_uprobes (s))
+    emit_module_inode_decls (s);
+  else
+    emit_module_utrace_decls (s);
+}
+
+
+void
+uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
+{
+  if (kernel_supports_inode_uprobes (s))
+    emit_module_inode_init (s);
+  else
+    emit_module_utrace_init (s);
+}
+
+
+void
+uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
+{
+  if (kernel_supports_inode_uprobes (s))
+    emit_module_inode_exit (s);
+  else
+    emit_module_utrace_exit (s);
+}
+
 
 // ------------------------------------------------------------------------
 // Kprobe derived probes
