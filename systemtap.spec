@@ -260,6 +260,9 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/examples examples
 # Fix paths in the example & testsuite scripts
 find examples testsuite -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+stap@#!%{_bindir}/stap@'
 
+# To make rpmlint happy, remove any .gitignore files in the testsuite.
+find testsuite -type f -name '.gitignore' -print0 | xargs -0 rm -f
+
 # Because "make install" may install staprun with whatever mode, the
 # post-processing programs rpmbuild runs won't be able to read it.
 # So, we change permissions so that they can read it.  We'll set the
