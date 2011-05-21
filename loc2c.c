@@ -1618,12 +1618,21 @@ discontiguify (struct location_context *ctx, int indent, struct location *loc,
   inline bool pieces_small_enough (void)
     {
       if (loc->type != loc_noncontiguous)
-	return (loc->byte_size ?: total_bytes) <= max_piece_bytes;
+	return total_bytes <= max_piece_bytes;
       struct location *p;
       for (p = loc->pieces; p != NULL; p = p->next)
 	if (p->byte_size > max_piece_bytes)
 	  return false;
       return true;
+    }
+
+  /* Constants are always copied byte-wise, but we may need to
+   * truncate to the total_bytes requested here. */
+  if (loc->type == loc_constant)
+    {
+      if (loc->byte_size > total_bytes)
+	loc->byte_size = total_bytes;
+      return loc;
     }
 
   if (pieces_small_enough ())
@@ -1674,29 +1683,6 @@ discontiguify (struct location_context *ctx, int indent, struct location *loc,
 	  }
 
 	--indent;
-	break;
-      }
-
-    case loc_constant:
-      {
-	Dwarf_Word offset = 0;
-	while (total_bytes - offset > 0)
-	  {
-	    Dwarf_Word size = total_bytes - offset;
-	    if (size > max_piece_bytes)
-	      size = max_piece_bytes;
-
-	    struct location *piece = alloc_location (ctx);
-	    piece->next = NULL;
-	    piece->type = loc_constant;
-	    piece->byte_size = size;
-	    piece->constant_block = loc->constant_block + offset;
-
-	    add (piece);
-
-	    offset += size;
-	  }
-
 	break;
       }
 
