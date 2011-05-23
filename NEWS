@@ -1,4 +1,4 @@
-* What's new in version 1.5, 2001-05-23
+* What's new in version 1.5, 2011-05-23
 
 - The compile server and its related tools (stap-gen-ert, stap-authorize-cert,
    stap-sign-module) have been re-implemented in C++. Previously, these
