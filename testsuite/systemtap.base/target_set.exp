@@ -19,6 +19,7 @@ proc failtest {reason} {
 proc expect_target_set_string {} {
 	expect {
 		"^target set:\r\n" { }
+		-re {^Warning: child process exited.+\r\n} { exp_continue }
 		timeout { failtest "timeout (expect_target_set_string)"
 			return -code return }
 		eof { failtest "eof (expect_target_set_string)"
@@ -32,6 +33,7 @@ proc expect_target_set_pids generations {
 	for {set i 0} {$i < $generations} {incr i} {
 		expect {
 			-re {^([0-9]+) begat ([0-9]+)\r\n} { set pid_array($expect_out(1,string)) $expect_out(2,string) }
+			-re {^Warning: child process exited.+\r\n} { exp_continue }
 			timeout { failtest "timeout (expect_target_set_pids)"
 				return -code return }
 			eof { failtest "eof (expect_target_set_pids)"

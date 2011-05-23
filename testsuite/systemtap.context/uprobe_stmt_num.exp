@@ -26,9 +26,16 @@ send_log "cmd: $cmd\n"
 catch {eval exec $cmd} output
 send_log "cmd output: $output\n"
 
-# There should be at least 6 lines probes
-# Function entry, 4 actual source lines and function exit.
-set output_lines [split $output "\n"]
+# There should be at least 6 address lines: function entry, 4 actual
+# source lines and function exit.  Be sure to ignore any non-numeric
+# lines (since we only want to save the output addresses).
+set output_lines {}
+foreach line [split $output "\n"] {
+    if {[regexp {^0x[0-9]+} $line]} {
+	lappend output_lines "$line"
+    }
+}
+
 set lines [llength $output_lines]
 if { $lines >= 6 } {
     pass "$test-run-one"

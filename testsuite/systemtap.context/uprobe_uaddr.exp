@@ -28,7 +28,13 @@ send_log "cmd: $cmd\n"
 catch {eval exec $cmd} output
 send_log "cmd output:\n $output\n"
 
-set output_lines [split $output "\n"]
+# Only save the address lines.
+set output_lines {}
+foreach line [split $output "\n"] {
+    if {[regexp {0x[0-9]+} $line]} {
+	lappend output_lines "$line"
+    }
+}
 
 set lines [llength $output_lines]
 if { $lines == 6 } {

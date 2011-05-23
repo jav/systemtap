@@ -36,4 +36,5 @@ main (int argc, char *argv[], char *envp[])
   // Use SIGFPE since we never expect that to be triggered.
   signal(SIGFPE, main_handler);
   lib_main();
+  return 0;
 }
