@@ -11,7 +11,7 @@ global name, back, backtime, bored
    probe kernel.function("wait_for_completion").call
    avoids have the kretprobe stuff in the backtrace.
    for more information see:
-   http://sources.redhat.com/bugzilla/show_bug.cgi?id=6436
+   http://sourceware.org/bugzilla/show_bug.cgi?id=6436
 */
 
 

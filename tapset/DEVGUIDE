@@ -272,13 +272,13 @@ Review & Submission
 -------------------
 All new tapsets and major changes should be reviewed "early and often"
 by the SystemTap community.  You can sign up for the systemtap mailing
-list at http://sources.redhat.com/systemtap/getinvolved.html.  The
-mailing list archive is found at http://sources.redhat.com/ml/systemtap/.
+list at http://sourceware.org/systemtap/getinvolved.html.  The
+mailing list archive is found at http://sourceware.org/ml/systemtap/.
 The systemtap-cvs mailing list archive is at
-http://sources.redhat.com/ml/systemtap-cvs/.
+http://sourceware.org/ml/systemtap-cvs/.
 
 You can request GIT write access at
-http://sources.redhat.com/cgi-bin/pdw/ps_form.cgi.
+http://sourceware.org/cgi-bin/pdw/ps_form.cgi.
 
 
 REFERENCE MATERIAL
@@ -297,7 +297,7 @@ you with SystemTap:
   (http://sourceware.org/systemtap/getinvolved.html)
 
 - GIT repository
-  (http://sources.redhat.com/git/?p=systemtap.git;a=summary)
+  (http://sourceware.org/git/?p=systemtap.git;a=summary)
 
 - HACKING file in the source directory.  This file outlines what's 
   expected of project contributors.

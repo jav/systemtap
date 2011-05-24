@@ -144,5 +144,5 @@ stap\-server service default log file.
 .SH BUGS
 Use the Bugzilla link of the project web page or our mailing list.
 .nh
-.BR http://sources.redhat.com/systemtap/  ,  <systemtap@sources.redhat.com> .
+.BR http://sourceware.org/systemtap/  ,  <systemtap@sourceware.org> .
 .hy

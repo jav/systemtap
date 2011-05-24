@@ -1,6 +1,6 @@
 systemtap: a linux trace/probe tool
 
-Visit the project web site at <http://sources.redhat.com/systemtap>,
+Visit the project web site at <http://sourceware.org/systemtap>,
 for documentation and mailing lists for developers and users.
 
 This is free software.
@@ -46,11 +46,11 @@ Build steps:
   # apt-get build-dep systemtap
 
 - Download systemtap sources:
-  http://sources.redhat.com/systemtap/ftp/releases/
-  http://sources.redhat.com/systemtap/ftp/snapshots/
+  http://sourceware.org/systemtap/ftp/releases/
+  http://sourceware.org/systemtap/ftp/snapshots/
   (or)
-  git clone git://sources.redhat.com/git/systemtap.git
-      (or) http://sources.redhat.com/git/systemtap.git
+  git clone git://sourceware.org/git/systemtap.git
+      (or) http://sourceware.org/git/systemtap.git
 
 - Build systemtap normally:
   % .../configure [other autoconf options]

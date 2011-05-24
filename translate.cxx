@@ -5442,7 +5442,7 @@ dump_unwindsyms (Dwfl_Module *m,
    * check fails for a shared object.
    *
    * See also:
-   *    http://sources.redhat.com/ml/systemtap/2009-q4/msg00574.html
+   *    http://sourceware.org/ml/systemtap/2009-q4/msg00574.html
    */
   if (build_id_len > 0
       && (modname != "kernel" || (build_id_vaddr > base + extra_offset))) {

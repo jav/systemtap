@@ -1,7 +1,7 @@
 This text describes contribution procedures for adding scripts to
 systemtap.examples directory.  Please read before submitting SystemTap
 examples.  Discussions take place on the
-<systemtap@sources.redhat.com> mailing list.
+<systemtap@sourceware.org> mailing list.
 
 - general
 
@@ -100,7 +100,7 @@ examples.  Discussions take place on the
 
   When you have a SystemTap script that should be included as an
   example, submit it to the SystemTap mailing list,
-  systemtap@sources.redhat.com for review. Even if the script is not
+  systemtap@sourceware.org for review. Even if the script is not
   ready for submission as an example, feel free to ask questions or
   discuss the work-in-progress script with other people working with
   SystemTap.

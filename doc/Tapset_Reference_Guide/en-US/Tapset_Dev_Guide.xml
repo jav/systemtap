@@ -119,7 +119,7 @@ probe kprocess.create = kernel.function("copy_process").return
 	will not need or understand them. Keep your tapsets simple and high-level.
 </para>
 
-<remark>info from here:http://sources.redhat.com/git/?p=systemtap.git;a=blob_plain;f=tapset/DEVGUIDE</remark>
+<remark>info from here:http://sourceware.org/git/?p=systemtap.git;a=blob_plain;f=tapset/DEVGUIDE</remark>
 
 	</section>
 	

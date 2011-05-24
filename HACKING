@@ -1,6 +1,6 @@
 This text describes contribution procedures to systemtap.  Please read
 and understand them before jumping in.  Discussions take place on
-the <systemtap@sources.redhat.com> mailing list.
+the <systemtap@sourceware.org> mailing list.
 
 - general
 
@@ -147,10 +147,10 @@ the <systemtap@sources.redhat.com> mailing list.
 
 - git basics
 
-  git clone ssh://sources.redhat.com/git/systemtap.git
-  # OR: use git://sources.redhat.com/git/systemtap.git then add to .git/config:
+  git clone ssh://sourceware.org/git/systemtap.git
+  # OR: use git://sourceware.org/git/systemtap.git then add to .git/config:
   #     [remote "origin"]
-  #     pushurl=ssh://sources.redhat.com/git/systemtap.git
+  #     pushurl=ssh://sourceware.org/git/systemtap.git
   # build ; hack hack hack; test
   git add FILE1 FILE2 # enumerate all modified or new files
   git status # to confirm that needed local changes are "staged"
