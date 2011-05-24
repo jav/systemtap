@@ -48,7 +48,8 @@ keywords: <a href="keyword-index.html#FORMAT">FORMAT</a> <br>
 <p>The script prints a table showing the available attributes (bold, underline, and inverse) with color combinations for the ans_set_color3() function in the ansi.stp tapset.<p><font size="-2"><pre># stap ansi_colors2.stp</pre></font></p></li>
 <li><a href="general/badname.stp">general/badname.stp</a> - Bad Filename Filter<br>
 keywords: <a href="keyword-index.html#FILESYSTEM">FILESYSTEM</a> <a href="keyword-index.html#HACK">HACK</a> <br>
-<p>The badname.stp script shows how one could prevent the creation of files with undesirable names using guru mode.<p><font size="-2"><pre># stap -g badname.stp -c &quot;touch /tmp/myXXXfile&quot; 2&gt;&amp;1 | grep denied</pre></font></p></li>
+<p>The badname.stp script shows how one could prevent the creation of files with undesirable names using guru mode.<p><font size="-2"><pre># stap -g badname.stp -c &quot;touch /tmp/myXXXbadnameXXXfile.$$ 2&gt;&amp;1 | grep \
+denied&quot;</pre></font></p></li>
 <li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
 keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
 <p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p></li>
@@ -61,11 +62,11 @@ keywords: <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
 <li><a href="general/para-callgraph-verbose.stp">general/para-callgraph-verbose.stp</a> - Callgraph tracing with verbose arguments<br>
 keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.html#CALLGRAPH">CALLGRAPH</a> <br>
 <p>Print a timed per-thread callgraph, complete with pretty-printed function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.<p><font size="-2"><pre># stap para-callgraph-verbose.stp &#39;kernel.function(&quot;*@fs/proc*.c&quot;)&#39; \
-&#39;kernel.function(&quot;vfs_read&quot;)&#39; -c &quot;cat /proc/sys/vm/*&quot;</pre></font></p></li>
+&#39;kernel.function(&quot;vfs_read&quot;)&#39; -c &quot;cat /proc/sys/vm/* || true&quot;</pre></font></p></li>
 <li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Callgraph tracing with arguments<br>
 keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.html#CALLGRAPH">CALLGRAPH</a> <br>
 <p>Print a timed per-thread callgraph, complete with function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.<p><font size="-2"><pre># stap para-callgraph.stp &#39;kernel.function(&quot;*@fs/proc*.c&quot;)&#39; \
-&#39;kernel.function(&quot;vfs_read&quot;)&#39; -c &quot;cat /proc/sys/vm/*&quot;</pre></font></p></li>
+&#39;kernel.function(&quot;vfs_read&quot;)&#39; -c &quot;cat /proc/sys/vm/* || true&quot;</pre></font></p></li>
 <li><a href="general/sizeof.stp">general/sizeof.stp</a> - Print the size of a C type.<br>
 keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
 <p>This script prints the size of a type, based on dwarf debuginfo for any kernel or userspace module, or trial-compilation of a given header file name.<p><font size="-2"><pre># stap sizeof.stp FILE &#39;&lt;/usr/include/stdio.h&gt;&#39;</pre></font></p></li>
@@ -220,7 +221,7 @@ keywords: <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <br>
 <p>The migrate.stp script takes an argument which is the executable name of the task it should monitor. Each time a task with that executable name migrates between processors an entry is printed with the process id (pid), the executable name, the processor off loading the task, and the process taking the task. Note that the task may or may not be executing at the time of the migration.<p><font size="-2"><pre># stap migrate.stp -c &quot;sleep 0.2&quot; bash</pre></font></p></li>
 <li><a href="process/noptrace.stp">process/noptrace.stp</a> - disable ptrace(2) from hierarchies of processes<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <br>
-<p>noptrace.stp blocks ptrace(2) attempts from processes identified by stap -c/-x, as also specifiable from /proc/systemtap/stap_XXX/ control files.  Processes may be added or removed from the blocked list.<p><font size="-2"><pre># stap -g noptrace.stp -c &#39;strace ls&#39;</pre></font></p></li>
+<p>noptrace.stp blocks ptrace(2) attempts from processes identified by stap -c/-x, as also specifiable from /proc/systemtap/stap_XXX/ control files.  Processes may be added or removed from the blocked list.<p><font size="-2"><pre># stap -g noptrace.stp -c &#39;strace ls || true&#39;</pre></font></p></li>
 <li><a href="process/pf2.stp">process/pf2.stp</a> - Profile kernel functions<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The pf2.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top ten kernel functions with samples.<p><font size="-2"><pre># stap pf2.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>

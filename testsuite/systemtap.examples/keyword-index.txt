@@ -106,7 +106,7 @@ keywords: trace callgraph
   nested within the trigger.
 
   # stap para-callgraph-verbose.stp 'kernel.function("*@fs/proc*.c")' \
-  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/*"
+  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/* || true"
 
 
 general/para-callgraph.stp - Callgraph tracing with arguments
@@ -120,7 +120,7 @@ keywords: trace callgraph
   the trigger.
 
   # stap para-callgraph.stp 'kernel.function("*@fs/proc*.c")' \
-  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/*"
+  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/* || true"
 
 
 = COUNTER =
@@ -218,7 +218,8 @@ keywords: filesystem hack
   The badname.stp script shows how one could prevent the creation of
   files with undesirable names using guru mode.
 
-  # stap -g badname.stp -c "touch /tmp/myXXXfile" 2>&1 | grep denied
+  # stap -g badname.stp -c "touch /tmp/myXXXbadnameXXXfile.$$ 2>&1 | grep \
+  denied"
 
 
 = FORMAT =
@@ -315,7 +316,8 @@ keywords: filesystem hack
   The badname.stp script shows how one could prevent the creation of
   files with undesirable names using guru mode.
 
-  # stap -g badname.stp -c "touch /tmp/myXXXfile" 2>&1 | grep denied
+  # stap -g badname.stp -c "touch /tmp/myXXXbadnameXXXfile.$$ 2>&1 | grep \
+  denied"
 
 
 = INTERRUPT =
@@ -999,7 +1001,7 @@ keywords: process security
   control files.  Processes may be added or removed from the blocked
   list.
 
-  # stap -g noptrace.stp -c 'strace ls'
+  # stap -g noptrace.stp -c 'strace ls || true'
 
 
 process/pfiles.stp - print process file descriptors
@@ -1323,7 +1325,7 @@ keywords: process security
   control files.  Processes may be added or removed from the blocked
   list.
 
-  # stap -g noptrace.stp -c 'strace ls'
+  # stap -g noptrace.stp -c 'strace ls || true'
 
 
 = SIGNALS =
@@ -1683,7 +1685,7 @@ keywords: trace callgraph
   nested within the trigger.
 
   # stap para-callgraph-verbose.stp 'kernel.function("*@fs/proc*.c")' \
-  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/*"
+  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/* || true"
 
 
 general/para-callgraph.stp - Callgraph tracing with arguments
@@ -1697,7 +1699,7 @@ keywords: trace callgraph
   the trigger.
 
   # stap para-callgraph.stp 'kernel.function("*@fs/proc*.c")' \
-  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/*"
+  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/* || true"
 
 
 network/tcp_trace.stp - Tcp connection tracing utility.

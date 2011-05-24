@@ -27,7 +27,8 @@ keywords: filesystem hack
   The badname.stp script shows how one could prevent the creation of
   files with undesirable names using guru mode.
 
-  # stap -g badname.stp -c "touch /tmp/myXXXfile" 2>&1 | grep denied
+  # stap -g badname.stp -c "touch /tmp/myXXXbadnameXXXfile.$$ 2>&1 | grep \
+  denied"
 
 
 general/eventcount.stp - Event Counter for eventcount.stp
@@ -69,7 +70,7 @@ keywords: trace callgraph
   nested within the trigger.
 
   # stap para-callgraph-verbose.stp 'kernel.function("*@fs/proc*.c")' \
-  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/*"
+  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/* || true"
 
 
 general/para-callgraph.stp - Callgraph tracing with arguments
@@ -83,7 +84,7 @@ keywords: trace callgraph
   the trigger.
 
   # stap para-callgraph.stp 'kernel.function("*@fs/proc*.c")' \
-  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/*"
+  'kernel.function("vfs_read")' -c "cat /proc/sys/vm/* || true"
 
 
 general/sizeof.stp - Print the size of a C type.
@@ -671,7 +672,7 @@ keywords: process security
   control files.  Processes may be added or removed from the blocked
   list.
 
-  # stap -g noptrace.stp -c 'strace ls'
+  # stap -g noptrace.stp -c 'strace ls || true'
 
 
 process/pf2.stp - Profile kernel functions
