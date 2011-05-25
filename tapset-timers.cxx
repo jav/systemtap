@@ -669,7 +669,8 @@ register_tapset_timers(systemtap_session& s)
     ->bind_unprivileged()
     ->bind(builder);
 
-  // Not ok for unprivileged users.
+  // Not ok for unprivileged users, because register_timer_hook only allows a
+  // single attached callback.  No resource-sharing -> no unprivileged access.
   root->bind("profile")
     ->bind(builder);
 }
