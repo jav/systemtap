@@ -65,6 +65,7 @@ struct utrace_derived_probe: public derived_probe
 
   void emit_unprivileged_assertion (translator_output*);
   void print_dupe_stamp(ostream& o);
+  void getargs (std::list<std::string> &arg_set) const;
 };
 
 
@@ -242,6 +243,17 @@ utrace_derived_probe::print_dupe_stamp(ostream& o)
     print_dupe_stamp_unprivileged_process_owner (o);
 }
 
+void
+utrace_derived_probe::getargs(std::list<std::string> &arg_set) const
+{
+  arg_set.push_back("$syscall:long");
+  arg_set.push_back("$arg1:long");
+  arg_set.push_back("$arg2:long");
+  arg_set.push_back("$arg3:long");
+  arg_set.push_back("$arg4:long");
+  arg_set.push_back("$arg5:long");
+  arg_set.push_back("$arg6:long");
+}
 
 void
 utrace_var_expanding_visitor::visit_target_symbol_cached (target_symbol* e)

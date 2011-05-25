@@ -1,5 +1,7 @@
 * What's new in version 1.6
 
+- stap -L 'process("PATH").syscall' will now list context variables
+
 * What's new in version 1.5, 2011-05-23
 
 - The compile server and its related tools (stap-gen-ert, stap-authorize-cert,
