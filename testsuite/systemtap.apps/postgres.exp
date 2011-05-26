@@ -105,7 +105,7 @@ else
    echo FAIL: postgres markers \$OKAY
 fi
 
-/usr/local/pgsql/bin/pg_ctl stop -D $pgdata
+$postgresdir/bin/pg_ctl stop -D $pgdata
 kill \$STAPPID
 \}
 
