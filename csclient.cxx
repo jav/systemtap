@@ -2480,7 +2480,8 @@ get_server_info_from_db (
   CERTCertList *certs = get_cert_list_from_db (server_cert_nickname ());
   if (! certs)
     {
-      clog << _F("No certificate found in database %s", cert_db_path.c_str ()) << endl;
+      if (s.verbose > 1)
+	clog << _F("No certificate found in database %s", cert_db_path.c_str ()) << endl;
       goto cleanup;
     }
 
