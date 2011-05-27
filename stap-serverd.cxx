@@ -1221,7 +1221,6 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
 {
   PRFileDesc *       sslSocket = NULL;
   SECStatus          secStatus = SECFailure;
-  PRSocketOptionData socketOption;
   int                rc;
   char              *rc1;
   char               tmpdir[PATH_MAX]; 
@@ -1234,11 +1233,13 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
 
   tmpdir[0]='\0'; /* prevent cleanup-time /bin/rm of uninitialized directory */
 
+#if 0 // already done on the listenSocket
   /* Make sure the socket is blocking. */
+  PRSocketOptionData socketOption;
   socketOption.option             = PR_SockOpt_Nonblocking;
   socketOption.value.non_blocking = PR_FALSE;
   PR_SetSocketOption (tcpSocket, &socketOption);
-
+#endif
   secStatus = SECFailure;
   sslSocket = setupSSLSocket (tcpSocket, cert, privKey);
   if (sslSocket == NULL)
@@ -1454,34 +1455,97 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
  *
  */
 static SECStatus
-server_main ()
+server_main (PRFileDesc *listenSocket)
 {
-  SECStatus           secStatus;
-  PRStatus            prStatus;
-  PRFileDesc *        listenSocket;
-  PRNetAddr           addr;
-  PRSocketOptionData  socketOption;
+  // Initialize NSS.
+  SECStatus secStatus = nssInit (cert_db_path.c_str ());
+  if (secStatus != SECSuccess)
+    {
+      // Message already issued.
+      return secStatus;
+    }
 
-  /* Create a new socket. */
-  listenSocket = PR_NewTCPSocket();
+  // Preinitialized here due to jumps to the label 'done'.
+  CERTCertificate *cert = NULL;
+  bool serverCacheConfigured = false;
+
+  // Enable cipher suites which are allowed by U.S. export regulations.
+  // NB: The NSS docs say that SSL_ClearSessionCache is required for the new settings to take
+  // effect, however, calling it puts NSS in a state where it will not shut down cleanly.
+  // We need to be able to shut down NSS cleanly if we are to generate a new certificate when
+  // ours expires. It should be noted however, thet SSL_ClearSessionCache only clears the
+  // client cache, and we are a server.
+  secStatus = NSS_SetExportPolicy ();
+  //      SSL_ClearSessionCache ();
+  if (secStatus != SECSuccess)
+    {
+      nsscommon_error (_("Unable to set NSS export policy"));
+      nssError ();
+      goto done;
+    }
+
+  // Configure the SSL session cache for a single process server with the default settings.
+  secStatus = SSL_ConfigServerSessionIDCache (0, 0, 0, NULL);
+  if (secStatus != SECSuccess)
+    {
+      nsscommon_error (_("Unable to configure SSL server session ID cache"));
+      nssError ();
+      goto done;
+    }
+  serverCacheConfigured = true;
+
+  /* Get own certificate. */
+  cert = PK11_FindCertFromNickname (server_cert_nickname (), NULL);
+  if (cert == NULL)
+    {
+      nsscommon_error (_F("Unable to find our certificate in the database at %s", 
+			  cert_db_path.c_str ()));
+      nssError ();
+      goto done;
+    }
+
+  // Tell the world that we're listening.
+  advertise_presence (cert);
+
+  /* Handle connections to the socket. */
+  secStatus = accept_connections (listenSocket, cert);
+
+  // Tell the world we're no longer listening.
+  unadvertise_presence ();
+
+ done:
+  // Clean up
+  if (cert)
+    CERT_DestroyCertificate (cert);
+
+  // Shutdown NSS
+  if (serverCacheConfigured && SSL_ShutdownServerSessionIDCache () != SECSuccess)
+    {
+      nsscommon_error (_("Unable to shut down server session ID cache"));
+      nssError ();
+    }
+  nssCleanup (cert_db_path.c_str ());
+
+  return secStatus;
+}
+
+static void
+listen ()
+{
+  // Create a new socket.
+  PRFileDesc *listenSocket = PR_NewTCPSocket ();
   if (listenSocket == NULL)
     {
       nsscommon_error (_("Error creating socket"));
       nssError ();
-      return SECFailure;
+      return;
     }
 
-  /* Set socket to be blocking -
-   * on some platforms the default is nonblocking.
-   */
+  // Set socket to be blocking - on some platforms the default is nonblocking.
+  PRSocketOptionData socketOption;
   socketOption.option = PR_SockOpt_Nonblocking;
   socketOption.value.non_blocking = PR_FALSE;
-
-  // Predeclare to keep C++ happy about jumps to 'done'.
-  CERTCertificate *cert = NULL;
-
-  secStatus = SECFailure;
-  prStatus = PR_SetSocketOption (listenSocket, &socketOption);
+  PRStatus prStatus = PR_SetSocketOption (listenSocket, & socketOption);
   if (prStatus != PR_SUCCESS)
     {
       nsscommon_error (_("Error setting socket properties"));
@@ -1489,15 +1553,26 @@ server_main ()
       goto done;
     }
 
-  /* Configure the network connection. */
+  // Allow the socket address to be reused, in case we want the same port across a
+  // 'service stap-server restart'
+  socketOption.option = PR_SockOpt_Reuseaddr;
+  socketOption.value.reuse_addr = PR_TRUE;
+  prStatus = PR_SetSocketOption (listenSocket, & socketOption);
+  if (prStatus != PR_SUCCESS)
+    {
+      nsscommon_error (_("Error setting socket properties"));
+      nssError ();
+      goto done;
+    }
+
+  // Configure the network connection.
+  PRNetAddr addr;
   addr.inet.family = PR_AF_INET;
   addr.inet.ip	   = PR_INADDR_ANY;
 
   // Bind the socket to an address. Retry if the selected port is busy.
   for (;;)
     {
-      //      if (port == 0)
-      //	port = IPPORT_USERRESERVED + (rand () % (64000 - IPPORT_USERRESERVED));
       addr.inet.port = PR_htons (port);
 
       /* Bind the address to the listener socket. */
@@ -1535,9 +1610,8 @@ server_main ()
   port = PR_ntohs (addr.inet.port);
   log (_F("Using network port %d", port));
 
-  /* Listen for connection on the socket.  The second argument is
-   * the maximum size of the queue for pending connections.
-   */
+  // Listen for connection on the socket.  The second argument is the maximum size of the queue
+  // for pending connections.
   prStatus = PR_Listen (listenSocket, 5);
   if (prStatus != PR_SUCCESS)
     {
@@ -1546,48 +1620,16 @@ server_main ()
       goto done;
     }
 
-  /* Get own certificate. */
-  cert = PK11_FindCertFromNickname (server_cert_nickname (), NULL);
-  if (cert == NULL)
-    {
-      nsscommon_error (_F("Unable to find our certificate in the database at %s", 
-			  cert_db_path.c_str ()));
-      nssError ();
-      goto done;
-    }
-
-  // Tell the world that we're listening.
-  advertise_presence (cert);
-
-  /* Handle connections to the socket. */
-  secStatus = accept_connections (listenSocket, cert);
-
-  // Tell the world we're no longer listening.
-  unadvertise_presence ();
-
- done:
-  if (PR_Close (listenSocket) != PR_SUCCESS)
-    {
-      nsscommon_error (_("Error closing listen socket"));
-      nssError ();
-    }
-  if (cert)
-    CERT_DestroyCertificate (cert);
-
-  return secStatus;
-}
-
-static void
-listen ()
-{
-  // Listen forever, unless a fatal error occurs.
+  // Loop forever. We check our certificate (and regenerate, if necessary) and then start the
+  // server. The server will go down when our certificate is no longer valid (e.g. expired). We
+  // then generate a new one and start the server again.
   for (;;)
     {
       // Ensure that our certificate is valid. Generate a new one if not.
       if (check_cert (cert_db_path, server_cert_nickname (), use_db_password) != 0)
 	{
 	  // Message already issued
-	  return;
+	  goto done;
 	}
 
       // Ensure that our certificate is trusted by our local client.
@@ -1597,59 +1639,19 @@ listen ()
       if (secStatus != SECSuccess)
 	{
 	  nsscommon_error (_("Unable to authorize certificate for the local client"));
-	  return;
+	  goto done;
 	}
 
-      /* Initialize NSS. */
-      secStatus = nssInit (cert_db_path.c_str ());
-      if (secStatus != SECSuccess)
-	{
-	  // Message already issued.
-	  return;
-	}
-
-      // Enable cipher suites which are allowed by U.S. export regulations.
-      // NB: The NSS docs say that SSL_ClearSessionCache is required for the new settings to take
-      // effect, however, calling it puts NSS in a state where it will not shut down cleanly.
-      // We need to be able to shut down NSS cleanly if we are to generate a new certificate when
-      // ours expires. It should be noted however, thet SSL_ClearSessionCache only clears the
-      // client cache, and we are a server.
-      secStatus = NSS_SetExportPolicy ();
-      //      SSL_ClearSessionCache ();
-      if (secStatus != SECSuccess)
-	{
-	  nsscommon_error (_("Unable to set NSS export policy"));
-	  nssError ();
-	  nssCleanup (cert_db_path.c_str ());
-	  return;
-	}
-
-      // Configure the SSL session cache for a single process server with the default settings.
-      secStatus = SSL_ConfigServerSessionIDCache (0, 0, 0, NULL);
-      if (secStatus != SECSuccess)
-	{
-	  nsscommon_error (_("Unable to configure SSL server session ID cache"));
-	  nssError ();
-	  nssCleanup (cert_db_path.c_str ());
-	  return;
-	}
-
-      /* Launch server. */
-      secStatus = server_main ();
-
-      // Shutdown NSS
-      if (SSL_ShutdownServerSessionIDCache () != SECSuccess)
-	{
-	  nsscommon_error (_("Unable to shut down server session ID cache"));
-	  nssError ();
-	}
-      nssCleanup (cert_db_path.c_str ());
-      if (secStatus != SECSuccess)
-	{
-	  // Message already issued.
-	  return;
-	}
+      // Launch the server.
+      secStatus = server_main (listenSocket);
     } // loop forever
+
+ done:
+  if (PR_Close (listenSocket) != PR_SUCCESS)
+    {
+      nsscommon_error (_("Error closing listen socket"));
+      nssError ();
+    }
 }
 
 int
