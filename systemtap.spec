@@ -84,7 +84,7 @@ BuildRequires: boost-devel
 BuildRequires: gettext-devel
 
 %description
-SystemTap is an instrumentation system for systems running Linux 2.6.
+SystemTap is an instrumentation system for systems running Linux.
 Developers can write instrumentation to collect data on the operation
 of the system.
 
@@ -98,7 +98,7 @@ Requires(pre): shadow-utils
 
 %description runtime
 SystemTap runtime is the runtime component of an instrumentation
-system for systems running Linux 2.6.  Developers can write
+system for systems running Linux.  Developers can write
 instrumentation to collect data on the operation of the system.
 
 %package testsuite
