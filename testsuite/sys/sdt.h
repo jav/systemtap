@@ -4,7 +4,12 @@
 #if defined STAP_SDT_V1 || defined STAP_SDT_V2 || \
     defined EXPERIMENTAL_KPROBE_SDT
 #include <sys/types.h>
-#include "../../sdt_types.h"
+
+/* Also defined in "sdt_types.h"  Defined here for systemtap-testsuite */
+#define UPROBE1_TYPE 0x31425250 /* "PRB1" (little-endian) */
+#define KPROBE1_TYPE 0x32425250 /* "PRB2" */
+#define UPROBE2_TYPE 0x32425055 /* "UPB2" */
+#define KPROBE2_TYPE 0x3242504b /* "KPB2" */
 
 #ifdef __LP64__
  #define STAP_PROBE_ADDR(arg) "\t.quad " arg
