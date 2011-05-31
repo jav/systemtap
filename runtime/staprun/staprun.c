@@ -226,12 +226,18 @@ int init_staprun(void)
 		if (need_uprobes && enable_uprobes() != 0)
 			return -1;
 		if (insert_stap_module() < 0) {
-                  /* staprun or stapio might have crashed or been SIGKILL'd,
-                     without first removing the kernel module.  This would block
-                     a subsequent rerun attempt.  So here we gingerly try to
-                     unload it first. */
-                  int ret = remove_module (modname, 0);
-		  err("Retrying, after attempted removal of module %s (rc %d)\n", modname, ret);
+		  if (errno != EEXIST)
+		    return -1;
+
+		  /* staprun or stapio might have crashed or been SIGKILL'd,
+		     without first removing the kernel module.  This would block
+		     a subsequent rerun attempt.  So here we gingerly try to
+		     unload it first. */
+		  int ret = remove_module (modname, 0);
+		  if (ret != 0)
+		    return ret;
+
+		  err("Retrying, after attempted removal of module %s\n", modname);
 		  /* Then we try an insert a second time.  */
 		  if (insert_stap_module() < 0)
 			return -1;

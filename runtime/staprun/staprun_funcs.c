@@ -136,6 +136,7 @@ int insert_module(
 
 	if (ret != 0) {
 		err("Error inserting module '%s': %s\n", module_realpath, moderror(saved_errno));
+		errno = saved_errno;
 		return -1;
 	}
 	return 0;
