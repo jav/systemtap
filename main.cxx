@@ -260,7 +260,10 @@ void handle_interrupt (int sig)
   // clog << _F("Received signal %d", sig) << endl << flush;
   kill_stap_spawn(sig);
   pending_interrupts ++;
-  if (pending_interrupts > 1) // XXX: should be configurable? time-based?
+  // Absorb the first two signals.   This used to be one, but when
+  // stap is run under sudo, and then interrupted, sudo relays a
+  // redundant copy of the signal to stap, leading to an unclean shutdown.
+  if (pending_interrupts > 2) // XXX: should be configurable? time-based?
     {
       char msg[] = "Too many interrupts received, exiting.\n";
       int rc = write (2, msg, sizeof(msg)-1);
