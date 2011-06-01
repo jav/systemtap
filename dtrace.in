@@ -15,22 +15,20 @@
 
 import os
 import posix
-import string
 import sys
 from subprocess import call
 from tempfile import mkstemp
 
-if "@USE_NLS@" == "yes":
-    import gettext
-    # hack around autoconf's weird stepwise substitution
-    datarootdir=string.replace("@datarootdir@", "${prefix}", "@STAP_PREFIX@")
-    localedir=string.replace("@LOCALEDIR@", "${datarootdir}", datarootdir)
-    gettext.bindtextdomain('@PACKAGE@', localedir)
-    gettext.textdomain('@PACKAGE@')
-    _ = gettext.gettext
-
-else:
-    _ = ' '
+def init_gettext():
+    if "@USE_NLS@" == "yes":
+        import gettext
+        # hack around autoconf's weird stepwise substitution
+        datarootdir = "@datarootdir@".replace("${prefix}", "@STAP_PREFIX@")
+        localedir = "@LOCALEDIR@".replace("${datarootdir}", datarootdir)
+        gettext.bindtextdomain('@PACKAGE@', localedir)
+        gettext.textdomain('@PACKAGE@')
+        return gettext.gettext
+    return str
 
 class _provider:
     semaphores_def = "\n"
@@ -279,4 +277,5 @@ def main():
                 print "cpp: " + s_filename
 
 if __name__ == "__main__":
+    _ = init_gettext()
     main()
