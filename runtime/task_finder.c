@@ -506,7 +506,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 	engine = utrace_attach_task(tsk, UTRACE_ATTACH_CREATE, ops, data);
 	if (IS_ERR(engine)) {
 		int error = -PTR_ERR(engine);
-		if (error != ENOENT) {
+		if (error != ESRCH && error != ENOENT) {
 			_stp_error("utrace_attach returned error %d on pid %d",
 				   error, (int)tsk->pid);
 			rc = error;
