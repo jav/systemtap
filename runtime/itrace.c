@@ -58,7 +58,6 @@ static void remove_atomic_ss_breakpoint (struct task_struct *tsk,
 #endif
 
 struct itrace_info {
-	pid_t tid;
 	u32 step_flag;
 	struct stap_itrace_probe *itrace_probe;
 #ifdef CONFIG_PPC
@@ -260,7 +259,6 @@ static struct itrace_info *create_itrace_info(
 		return NULL;
 	}
 	ui->tsk = tsk;
-	ui->tid = tsk->pid;
 	ui->step_flag = step_flag;
 	ui->itrace_probe = itrace_probe;
 #ifdef CONFIG_PPC
@@ -302,13 +300,13 @@ static struct itrace_info *create_itrace_info(
 	return ui;
 }
 
-static struct itrace_info *find_itrace_info(pid_t tid)
+static struct itrace_info *find_itrace_info(struct task_struct *tsk)
 {
 	struct itrace_info *ui = NULL;
 
 	spin_lock(&itrace_lock);
 	list_for_each_entry(ui, &usr_itrace_info, link) {
-		if (ui->tid == tid)
+		if (ui->tsk == tsk)
 			goto done;
 	}
 	ui = NULL;
@@ -356,7 +354,8 @@ void static remove_usr_itrace_info(struct itrace_info *ui)
 		return;
 
 	if (debug)
-		printk(KERN_INFO "remove_usr_itrace_info: tid=%d\n", ui->tid);
+		printk(KERN_INFO "remove_usr_itrace_info: tid=%d\n",
+		       (ui->tsk ? ui->tsk->pid : -1));
 
 	if (ui->tsk && ui->engine) {
 		status = utrace_control(ui->tsk, ui->engine, UTRACE_DETACH);
