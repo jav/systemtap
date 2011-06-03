@@ -303,9 +303,6 @@ endif
 	(cd $(srcdir)/man; for f in *.3*; do rm -rf "$(DESTDIR)$(man3dir)/$$f"; done)
 
 SUBDIRS = . runtime/staprun grapher doc po
-if BUILD_PCP
-SUBDIRS += pcp
-endif
 DIST_SUBDIRS = testsuite $(SUBDIRS)
 EXTRA_DIST = m4/ChangeLog  man/tapset*.3stap
 
