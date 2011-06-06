@@ -1,17 +1,10 @@
 set test "library"
 
-set mssgs {{kprobe} {uprobe}}
-set v_flags {{-DSTAP_SDT_V2} {-DSTAP_SDT_V3}}
-set mssg_flags {{-DEXPERIMENTAL_KPROBE_SDT} {}}
-
 proc cleanup_handler { verbose } {
-    global mssgs
     if { $verbose == 0 } {
-	foreach x $mssgs {
-	    catch {exec rm -f libsdt_${x}.so sdt_misc_${x}.x }
-	}
-	catch {exec rm -f sdt_misc_.c sdt_misc_.h sdt_misc_.o }
+	catch {exec rm -f libsdt.so sdt_misc.x }
     }
+    catch {exec rm -f sdt_misc_.c sdt_misc_.h sdt_misc_.o }
 }
 
 proc error_handler { res message } {
@@ -39,15 +32,8 @@ set dpath "[pwd]/sdt_misc_.d"
 set hpath "[pwd]/sdt_misc_.h"
 set opath "[pwd]/sdt_misc_.o"
 
-for {set i 0} {$i < [llength $mssg_flags]} {incr i} {
-set v_flag [lindex $v_flags $i]
-set flag "[lindex $mssg_flags $i] additional_flags=$v_flag"
-set mssg [lindex $mssgs $i]
-set exepath "[pwd]/sdt_misc_$mssg.x"
-set sopath "[pwd]/libsdt_$mssg.so"
-
-eval set globs "{{*} {*libsdt_*} $sopath}"
-foreach glob $globs {
+set exepath "[pwd]/sdt_misc.x"
+set sopath "[pwd]/libsdt.so"
 
 # Run dtrace
 
@@ -57,26 +43,29 @@ if {[installtest_p]} {
     set dtrace ../dtrace
 }
 
-verbose -log "$dtrace $flag --types -h -s $srcdir/$subdir/sdt_misc_.d"
+verbose -log "$dtrace -DSTAP_SDT_V3 --types -h -s $srcdir/$subdir/sdt_misc_.d"
 if {[catch {exec $dtrace --types -h -s $srcdir/$subdir/sdt_misc_.d} res]} {
     verbose -log "unable to run $dtrace: $res"
 }
-verbose -log "$dtrace $v_flag --types -G -s $srcdir/$subdir/sdt_misc_.d"
-if {[catch {exec $dtrace $v_flag --types -G -s $srcdir/$subdir/sdt_misc_.d} res]} {
+verbose -log "$dtrace -DSTAP_SDT_V3 --types -G -s $srcdir/$subdir/sdt_misc_.d"
+if {[catch {exec $dtrace -DSTAP_SDT_V3 --types -G -s $srcdir/$subdir/sdt_misc_.d} res]} {
     verbose -log "unable to run $dtrace: $res"
 }
 if { [error_handler [expr {[file exists $hpath] && [file exists $opath]}] "dtrace"] } { return }
 
 set F additional_flags
-set flags "$F=[sdt_includes] $F=$opath $F=-I. $F=$flag $F=-shared $F=-fPIC $F=-DNO_MAIN $F=-g"
-set exepath "[pwd]/sdt_misc_${mssg}_shared.x"
+set flags "$F=[sdt_includes] $F=$opath $F=-I. $F=-shared $F=-fPIC $F=-DNO_MAIN $F=-g"
 set res [target_compile $srcdir/$subdir/sdt_misc.c $sopath executable $flags ]
 if { [error_handler [expr {$res == ""}] "target_compile"] } { return }
 
-set flags "$F=-Wl,-rpath,[pwd] $F=-L[pwd] $F=-lsdt_${mssg} $F=-DONLY_MAIN $F=-g"
+set flags "$F=-Wl,-rpath,[pwd] $F=-L[pwd] $F=-lsdt $F=-DONLY_MAIN $F=-g"
 set res [target_compile $srcdir/$subdir/sdt_misc.c $exepath executable $flags ]
 if { [error_handler [expr {$res == ""}] "target_compile"] } { return }
 
+# Test globbing
+
+eval set globs "{{*} {*libsdt*} $sopath}"
+foreach glob $globs {
 set ok 0
 spawn $stap_path -c $exepath $srcdir/$subdir/library.stp $exepath $glob
 
@@ -97,51 +86,25 @@ expect {
 
 catch {close}; catch {wait}
 
-error_handler [expr {$ok == 9}] "sdt_misc $glob $mssg"
-} ; # glob
-} ; # mssg_flags
-
-# Test globbing
-
-foreach glob {{*} {*libc*}} {
-set ok 0
-spawn $stap_path -c "/usr/bin/printf %s\\\\n ABCD" -e "probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\") \{printf(\"at printf begin\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\").return \{printf(\"at printf end\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").statement(\"__snprintf_chk@snprintf_chk.c+2\") \{printf(\"in printf body\\n\")\}"
-
-expect {
-    -timeout 180
-    -re {ABCD} {incr ok; exp_continue }
-    -re {at printf begin} {incr ok; exp_continue }
-    -re {in printf body} {incr ok; exp_continue }
-    -re {at printf end} {incr ok; exp_continue }
-    timeout { fail "$test (timeout)" }
-    eof { }
-}
-
-catch {close}; catch {wait}
-
-error_handler [expr {$ok == 4}] "printf $glob"
+error_handler [expr {$ok == 9}] "sdt_misc $glob"
 } ; # glob
 
 # Test --ldd
 
 set ok 0
-spawn $stap_path -c "/usr/bin/printf %s\\\\n ABCD" --ldd -v -v -v -e "probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\") \{printf(\"at printf begin\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").function(\"__snprintf_chk\").return \{printf(\"at printf end\\n\")\} probe process(\"/usr/bin/printf\").library(\"$glob\").statement(\"__snprintf_chk@snprintf_chk.c+2\") \{printf(\"in printf body\\n\")\}"
+spawn $stap_path --ldd -v -v -v -c $exepath -e "probe process(\"$exepath\").library(\"*\").statement(\"baz@sdt_misc.c\") \{printf(\"%s \", pn())\}"
 
 set ok 0
 expect {
     -timeout 180
-    -re {Added -d '/lib64/libc.so.6' due to 'libc.so.6'} {incr ok; exp_continue }
-    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
-    -re {Added -d '/lib64/libc.so.6' due to 'libc.so.6'} {incr ok; exp_continue }
-    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
-    -re {Added -d '/lib64/libc.so.6' due to 'libc.so.6'} {incr ok; exp_continue }
-    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
-    -re {Added -d '/lib64/ld-linux-x86-64.so.2'} {incr ok; exp_continue }
+    -re {Added -d '.*libsdt.so' due to 'libsdt.so'}  {incr ok; exp_continue }
+    -re {Added -d '/lib.*/libm.so.[0-9]' due to 'libm.so.[0-9]'} {incr ok; exp_continue }
+    -re {Added -d '/lib.*/libc.so.[0-9]' due to 'libc.so.[0-9]'} {incr ok; exp_continue }
+    -re {Added -d '/lib.*/.*ld.*so'} {incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
 
 catch {close}; catch {wait}
 
-error_handler [expr {$ok == 7}] "printf --ldd"
-
+error_handler [expr {$ok == 4}] "printf --ldd ($ok)"
