@@ -153,7 +153,7 @@ function __tcp_skb_sport:long (tcphdr:long)
 
 /* returns TCP destination port for a given sk_buff structure */
 function __tcp_skb_dport:long (tcphdr:long){
-	return @cast(tcphdr, "tcphdr")->dest
+	return ntohs(@cast(tcphdr, "tcphdr")->dest)
 }
 
 /* return the TCP source port for a given sock */
