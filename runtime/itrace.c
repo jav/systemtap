@@ -284,6 +284,7 @@ static struct itrace_info *create_itrace_info(
 		UTRACE_EVENT(DEATH));
 	if (status < 0) {
 		printk(KERN_ERR "utrace_attach returns %d\n", status);
+		utrace_engine_put(ui->engine);
 		return NULL;
 	}
 
@@ -293,10 +294,12 @@ static struct itrace_info *create_itrace_info(
 		if (status < 0) {
 			printk(KERN_ERR "utrace_control(%d) returns %d\n",
 				step_flag, status);
+			utrace_engine_put(ui->engine);
 			return NULL;
 		}
 	}
 
+	utrace_engine_put(ui->engine);
 	return ui;
 }
 
