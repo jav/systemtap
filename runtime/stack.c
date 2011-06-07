@@ -73,6 +73,7 @@ struct print_stack_data
         int level;
 };
 
+#if defined(STAPCONF_STACKTRACE_OPS_WARNING)
 static void print_stack_warning(void *data, char *msg)
 {
 }
@@ -81,6 +82,7 @@ static void
 print_stack_warning_symbol(void *data, char *msg, unsigned long symbol)
 {
 }
+#endif
 
 static int print_stack_stack(void *data, char *name)
 {
@@ -95,8 +97,10 @@ static void print_stack_address(void *data, unsigned long addr, int reliable)
 }
 
 static const struct stacktrace_ops print_stack_ops = {
+#if defined(STAPCONF_STACKTRACE_OPS_WARNING)
 	.warning = print_stack_warning,
 	.warning_symbol = print_stack_warning_symbol,
+#endif
 	.stack = print_stack_stack,
 	.address = print_stack_address,
 #if defined(STAPCONF_WALK_STACK)
