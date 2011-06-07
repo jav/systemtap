@@ -4433,7 +4433,9 @@ c_unparser::visit_print_format (print_format* e)
 		case pe_stats:
 		  throw semantic_error(_("cannot print a raw stats object"), e->args[i]->tok);
 		case pe_long:
-		  curr.type = print_format::conv_signed_decimal;
+		  curr.type = print_format::conv_number;
+		  curr.base = 10;
+		  curr.set_flag (print_format::fmt_flag_sign);
 		  break;
 		case pe_string:
 		  curr.type = print_format::conv_string;
@@ -4473,7 +4475,7 @@ c_unparser::visit_print_format (print_format* e)
       // Make the [s]printf call...
 
       // Generate code to check that any pointer arguments are actually accessible.  */
-      int arg_ix = 0;
+      size_t arg_ix = 0;
       for (unsigned i = 0; i < components.size(); ++i) {
 	if (components[i].type == print_format::conv_literal)
 	  continue;
@@ -4524,6 +4526,7 @@ c_unparser::visit_print_format (print_format* e)
 	++arg_ix;
       }
 
+      // Shortcuts for cases that aren't formatted at all
       if (e->print_to_stream)
         {
 	  if (e->print_char)
@@ -4544,42 +4547,248 @@ c_unparser::visit_print_format (print_format* e)
 		o->line() << '"' << format_string << "\");";
 	      return;
 	    }
+	}
 
+      o->newline() << "{";
+      o->newline(1) << "char *str = NULL, *end = NULL;";
+
+      if (e->print_to_stream)
+        {
 	  // We'll just hardcode the result of 0 instead of using the
 	  // temporary.
 	  res.override("((int64_t)0LL)");
-	  o->newline() << "_stp_printf (";
+
+	  // Compute the buffer size needed for these arguments.
+	  arg_ix = 0;
+	  o->newline() << "{";
+	  o->newline(1) << "int num_bytes = 0;";
+	  vector<print_format::format_component>::const_iterator c;
+	  for (c = components.begin(); c != components.end(); ++c)
+	    {
+	      if (c->type == print_format::conv_literal)
+		{
+		  literal_string ls(c->literal_string);
+		  o->newline() << "num_bytes += sizeof(";
+		  visit_literal_string(&ls);
+		  o->line() << ") - 1;"; // don't count the '\0'
+		  continue;
+		}
+
+	      o->newline() << "{";
+	      o->indent(1);
+
+	      o->newline() << "int width = ";
+	      if (c->widthtype == print_format::width_dynamic
+		  && arg_ix < tmp.size())
+		o->line() << "clamp_t(int, " << tmp[arg_ix++].value()
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else if (c->widthtype == print_format::width_static)
+		o->line() << "clamp_t(int, " << c->width
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else
+		o->line() << "-1;";
+
+	      o->newline() << "int precision = ";
+	      if (c->prectype == print_format::prec_dynamic && arg_ix < tmp.size())
+		o->line() << "clamp_t(int, " << tmp[arg_ix++].value()
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else if (c->prectype == print_format::prec_static)
+		o->line() << "clamp_t(int, " << c->precision
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else
+		o->line() << "-1;";
+
+	      assert (arg_ix < tmp.size()); // XXX
+
+	      switch (c->type)
+		{
+		case print_format::conv_pointer:
+		  // NB: stap < 1.3 had odd %p behavior... see _stp_vsnprintf
+		  if (strverscmp(session->compatible.c_str(), "1.3") < 0)
+		    {
+		      o->newline() << "unsigned long ptr_value = "
+			<< tmp[arg_ix++].value() << ";";
+		      o->newline() << "if (width == -1)";
+		      o->newline(1) << "width = 2 + 2 * sizeof(void*);";
+		      o->newline(-1) << "precision = width - 2;";
+		      if (!c->test_flag(print_format::fmt_flag_left))
+			o->newline() << "precision = min_t(int, precision, 2 * sizeof(void*));";
+		      o->newline() << "num_bytes += number_size(ptr_value, "
+			<< c->base << ", width, precision, " << c->flags << ");";
+		      break;
+		    }
+		  // else fall-through to conv_number
+		case print_format::conv_number:
+		  o->newline() << "num_bytes += number_size("
+		    << tmp[arg_ix++].value() << ", " << c->base
+		    << ", width, precision, " << c->flags << ");";
+		  break;
+
+		case print_format::conv_char:
+		  o->newline() << "num_bytes += max(width, 1);";
+		  break;
+
+		case print_format::conv_string:
+		  o->newline() << "num_bytes += _stp_vsprint_memory_size("
+		    << tmp[arg_ix++].value() << ", width, precision, 's', "
+		    << c->flags << ");";
+		  break;
+
+		case print_format::conv_memory:
+		case print_format::conv_memory_hex:
+		  o->newline() << "num_bytes += _stp_vsprint_memory_size("
+		    << "(const char*)(intptr_t)" << tmp[arg_ix++].value()
+		    << ", width, precision, '"
+		    << ((c->type == print_format::conv_memory) ? "m" : "M")
+		    << "', " << c->flags << ");";
+		  break;
+
+		case print_format::conv_binary:
+		  o->newline() << "num_bytes += _stp_vsprint_binary_size("
+		    << tmp[arg_ix++].value() << ", width, precision);";
+		  break;
+
+		default:
+		  assert(false); // XXX
+		  break;
+		}
+
+	      o->newline(-1) << "}";
+	    }
+
+	  o->newline() << "num_bytes = clamp(num_bytes, 0, STP_BUFFER_SIZE);";
+	  o->newline() << "str = (char*)_stp_reserve_bytes(num_bytes);";
+	  o->newline() << "end = str ? str + num_bytes - 1 : 0;";
+	  o->newline(-1) << "}";
         }
-      else
-	o->newline() << "_stp_snprintf (" << res.value() << ", MAXSTRINGLEN, ";
+      else // !e->print_to_stream
+	{
+	  // String results are a known buffer and size;
+	  o->newline() << "str = " << res.value() << ";";
+	  o->newline() << "end = str + MAXSTRINGLEN - 1;";
+	}
 
-      o->line() << '"' << format_string << '"';
+      o->newline() << "if (str && str <= end) {";
+      o->indent(1);
 
-      /* Generate the actual arguments. Make sure that they match the expected type of the
-	 format specifier.  */
+      // Generate code to print the actual arguments.
       arg_ix = 0;
-      for (unsigned i = 0; i < components.size(); ++i) {
-	if (components[i].type == print_format::conv_literal)
-	  continue;
+      vector<print_format::format_component>::const_iterator c;
+      for (c = components.begin(); c != components.end(); ++c)
+	{
+	  if (c->type == print_format::conv_literal)
+	    {
+	      literal_string ls(c->literal_string);
+	      o->newline() << "{";
+	      o->newline(1) << "const char *src = ";
+	      visit_literal_string(&ls);
+	      o->line() << ";";
+	      o->newline() << "while (*src && str <= end)";
+	      o->newline(1) << "*str++ = *src++;";
+	      o->newline(-2) << "}";
+	      continue;
+	    }
 
-	/* Cast the width and precision arguments, if any, to 'int'.  */
-	if (components[i].widthtype == print_format::width_dynamic)
-	  o->line() << ", (int)" << tmp[arg_ix++].value();
-	if (components[i].prectype == print_format::prec_dynamic)
-	  o->line() << ", (int)" << tmp[arg_ix++].value();
+	  o->newline() << "{";
+	  o->indent(1);
 
-	/* The type of the %m argument is 'char*'.  */
-	if (components[i].type == print_format::conv_memory
-	    || components[i].type == print_format::conv_memory_hex)
-	  o->line() << ", (char*)(uintptr_t)" << tmp[arg_ix++].value();
-	/* The type of the %c argument is 'int'.  */
-	else if (components[i].type == print_format::conv_char)
-	  o->line() << ", (int)" << tmp[arg_ix++].value();
-	else if (arg_ix < (int) tmp.size())
-	  o->line() << ", " << tmp[arg_ix++].value();
-      }
+	  o->newline() << "int width = ";
+	  if (c->widthtype == print_format::width_dynamic
+	      && arg_ix < tmp.size())
+	    o->line() << "clamp_t(int, " << tmp[arg_ix++].value()
+		      << ", 0, end - str + 1);";
+	  else if (c->widthtype == print_format::width_static)
+	    o->line() << "clamp_t(int, " << c->width
+		      << ", 0, end - str + 1);";
+	  else
+	    o->line() << "-1;";
 
-      o->line() << ");";
+	  o->newline() << "int precision = ";
+	  if (c->prectype == print_format::prec_dynamic && arg_ix < tmp.size())
+	    o->line() << "clamp_t(int, " << tmp[arg_ix++].value()
+		      << ", 0, end - str + 1);";
+	  else if (c->prectype == print_format::prec_static)
+	    o->line() << "clamp_t(int, " << c->precision
+		      << ", 0, end - str + 1);";
+	  else
+	    o->line() << "-1;";
+
+	  assert (arg_ix < tmp.size()); // XXX
+
+	  switch (c->type)
+	    {
+	    case print_format::conv_pointer:
+	      // NB: stap < 1.3 had odd %p behavior... see _stp_vsnprintf
+	      if (strverscmp(session->compatible.c_str(), "1.3") < 0)
+		{
+		  o->newline() << "unsigned long ptr_value = "
+		    << tmp[arg_ix++].value() << ";";
+		  o->newline() << "if (width == -1)";
+		  o->newline(1) << "width = 2 + 2 * sizeof(void*);";
+		  o->newline(-1) << "precision = width - 2;";
+		  if (!c->test_flag(print_format::fmt_flag_left))
+		    o->newline() << "precision = min_t(int, precision, 2 * sizeof(void*));";
+		  o->newline() << "str = number(str, end, ptr_value, "
+		    << c->base << ", width, precision, " << c->flags << ");";
+		  break;
+		}
+	      // else fall-through to conv_number
+	    case print_format::conv_number:
+	      o->newline() << "str = number(str, end, "
+		<< tmp[arg_ix++].value() << ", " << c->base
+		<< ", width, precision, " << c->flags << ");";
+	      break;
+
+	    case print_format::conv_char:
+	      if (c->test_flag(print_format::fmt_flag_left))
+		o->newline() << "*str++ = " << tmp[arg_ix++].value() << ";";
+	      o->newline() << "while (width-- > 1 && str <= end)";
+	      o->newline(1) << "*str++ = ' ';";
+	      o->indent(-1);
+	      if (!c->test_flag(print_format::fmt_flag_left))
+		o->newline() << "*str++ = " << tmp[arg_ix++].value() << ";";
+	      break;
+
+	    case print_format::conv_string:
+	      o->newline() << "str = _stp_vsprint_memory(str, end, "
+		<< tmp[arg_ix++].value() << ", width, precision, 's', "
+		<< c->flags << ");";
+	      break;
+
+	    case print_format::conv_memory:
+	    case print_format::conv_memory_hex:
+	      o->newline() << "str = _stp_vsprint_memory(str, end, "
+		<< "(const char*)(intptr_t)" << tmp[arg_ix++].value()
+		<< ", width, precision, '"
+		<< ((c->type == print_format::conv_memory) ? "m" : "M")
+		<< "', " << c->flags << ");";
+	      break;
+
+	    case print_format::conv_binary:
+	      o->newline() << "str = _stp_vsprint_binary(str, end, "
+		<< tmp[arg_ix++].value() << ", width, precision, "
+		<< c->flags << ");";
+	      break;
+
+	    default:
+	      assert(false); // XXX
+	      break;
+	    }
+	  o->newline(-1) << "}";
+	}
+
+      if (!e->print_to_stream)
+	{
+	  o->newline() << "if (str <= end)";
+	  o->newline(1) << "*str = '\\0';";
+	  o->newline(-1) << "else";
+	  o->newline(1) << "*end = '\\0';";
+	  o->indent(-1);
+	}
+
+      o->newline(-1) << "}";
+
+      o->newline(-1) << "}";
       o->newline() << res.value() << ";";
     }
 }

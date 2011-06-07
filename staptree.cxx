@@ -574,19 +574,19 @@ print_format::components_to_string(vector<format_component> const & components)
 	{
 	  oss << '%';
 
-	  if (i->flags & static_cast<unsigned long>(fmt_flag_zeropad))
+	  if (i->test_flag (fmt_flag_zeropad))
 	    oss << '0';
 
-	  if (i->flags & static_cast<unsigned long>(fmt_flag_plus))
+	  if (i->test_flag (fmt_flag_plus))
 	    oss << '+';
 
-	  if (i->flags & static_cast<unsigned long>(fmt_flag_space))
+	  if (i->test_flag (fmt_flag_space))
 	    oss << ' ';
 
-	  if (i->flags & static_cast<unsigned long>(fmt_flag_left))
+	  if (i->test_flag (fmt_flag_left))
 	    oss << '-';
 
-	  if (i->flags & static_cast<unsigned long>(fmt_flag_special))
+	  if (i->test_flag (fmt_flag_special))
 	    oss << '#';
 
 	  if (i->widthtype == width_dynamic)
@@ -609,28 +609,24 @@ print_format::components_to_string(vector<format_component> const & components)
 	      oss << "llc";
 	      break;
 
-	    case conv_signed_decimal:
-	      oss << "lld";
+	    case conv_number:
+	      if (i->base == 16)
+		{
+		  if (i->test_flag (fmt_flag_large))
+		    oss << "llX";
+		  else
+		    oss << "llx";
+		}
+	      else if (i->base == 8)
+		oss << "llo";
+	      else if (i->test_flag (fmt_flag_sign))
+		oss << "lld";
+	      else
+		oss << "llu";
 	      break;
 
-	    case conv_unsigned_decimal:
-	      oss << "llu";
-	      break;
-
-	    case conv_unsigned_octal:
-	      oss << "llo";
-	      break;
-
-	    case conv_unsigned_ptr:
+	    case conv_pointer:
 	      oss << "p";
-	      break;
-
-	    case conv_unsigned_uppercase_hex:
-	      oss << "llX";
-	      break;
-
-	    case conv_unsigned_lowercase_hex:
-	      oss << "llx";
 	      break;
 
 	    case conv_string:
@@ -705,27 +701,27 @@ print_format::string_to_components(string const & str)
       switch (*i)
 	{
 	case '0':
-	  curr.flags |= static_cast<unsigned long>(fmt_flag_zeropad);
+	  curr.set_flag (fmt_flag_zeropad);
 	  ++i;
 	  break;
 
 	case '+':
-	  curr.flags |= static_cast<unsigned long>(fmt_flag_plus);
+	  curr.set_flag (fmt_flag_plus);
 	  ++i;
 	  break;
 
 	case '-':
-	  curr.flags |= static_cast<unsigned long>(fmt_flag_left);
+	  curr.set_flag (fmt_flag_left);
 	  ++i;
 	  break;
 
 	case ' ':
-	  curr.flags |= static_cast<unsigned long>(fmt_flag_space);
+	  curr.set_flag (fmt_flag_space);
 	  ++i;
 	  break;
 
 	case '#':
-	  curr.flags |= static_cast<unsigned long>(fmt_flag_special);
+	  curr.set_flag (fmt_flag_special);
 	  ++i;
 	  break;
 
@@ -823,27 +819,30 @@ print_format::string_to_components(string const & str)
 
 	case 'd':
 	case 'i':
-	  curr.type = conv_signed_decimal;
+	  curr.set_flag (fmt_flag_sign);
+	case 'u':
+	  curr.type = conv_number;
+	  curr.base = 10;
 	  break;
 
 	case 'o':
-	  curr.type = conv_unsigned_octal;
-	  break;
-
-	case 'u':
-	  curr.type = conv_unsigned_decimal;
-	  break;
-
-	case 'p':
-	  curr.type = conv_unsigned_ptr;
+	  curr.type = conv_number;
+	  curr.base = 8;
 	  break;
 
 	case 'X':
-	  curr.type = conv_unsigned_uppercase_hex;
+	  curr.set_flag (fmt_flag_large);
+	case 'x':
+	  curr.type = conv_number;
+	  curr.base = 16;
 	  break;
 
-	case 'x':
-	  curr.type = conv_unsigned_lowercase_hex;
+	case 'p':
+	  // Since stap 1.3, %p == %#x.
+	  curr.set_flag (fmt_flag_special);
+	  curr.type = conv_pointer;
+	  curr.base = 16;
+	  // Oddness for stap < 1.3 is handled in translation
 	  break;
 
 	default:
