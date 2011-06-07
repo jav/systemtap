@@ -71,22 +71,23 @@ spawn $stap_path -c $exepath $srcdir/$subdir/library.stp $exepath $glob
 
 expect {
     -timeout 180
-    -re {bar begin} {incr ok; exp_continue }
-    -re {bar 2} {incr ok; exp_continue }
-    -re {bar end} {incr ok; exp_continue }
-    -re {baz begin} {incr ok; exp_continue }
-    -re {baz 3 abc} {incr ok; exp_continue }
-    -re {baz end} {incr ok; exp_continue }
-    -re {buz begin} {incr ok; exp_continue }
-    -re {buz 4} {incr ok; exp_continue }
-    -re {buz end} {incr ok; exp_continue }
+    -re {^WARNING:.*\r\n} {exp_continue }
+    -re {^bar begin\r\n} {incr ok; exp_continue }
+    -re {^bar 2\r\n} {incr ok; exp_continue }
+    -re {^bar end\r\n} {incr ok; exp_continue }
+    -re {^baz begin\r\n} {incr ok; exp_continue }
+    -re {^baz 3 abc\r\n} {incr ok; exp_continue }
+    -re {^baz end\r\n} {incr ok; exp_continue }
+    -re {^buz begin\r\n} {incr ok; exp_continue }
+    -re {^buz 4\r\n} {incr ok; exp_continue }
+    -re {^buz end\r\n} {incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
 
 catch {close}; catch {wait}
 
-error_handler [expr {$ok == 9}] "sdt_misc $glob"
+error_handler [expr {$ok == 9}] "sdt_misc $glob ($ok != 9)"
 } ; # glob
 
 # Test --ldd
@@ -107,4 +108,4 @@ expect {
 
 catch {close}; catch {wait}
 
-error_handler [expr {$ok == 4}] "printf --ldd ($ok)"
+error_handler [expr {$ok == 4}] "printf --ldd ($ok) ($ok != 4)"
