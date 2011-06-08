@@ -56,6 +56,7 @@ extern "C" {
 #include <math.h>
 #include <regex.h>
 #include <unistd.h>
+#include <wordexp.h>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -4192,20 +4193,37 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
 
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw,
 					   true/*bind_unprivileged*/);
+  register_function_and_statement_variants(root->bind(TOK_PROCESS), dw,
+					   true/*bind_unprivileged*/);
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS)
+                                           ->bind_str(TOK_LIBRARY), dw,
+					   true/*bind_unprivileged*/);
+  register_function_and_statement_variants(root->bind(TOK_PROCESS)
                                            ->bind_str(TOK_LIBRARY), dw,
 					   true/*bind_unprivileged*/);
 
   root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind_unprivileged()
     ->bind(dw);
+  root->bind(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
+    ->bind_unprivileged()
+    ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
+    ->bind_unprivileged()
+    ->bind(dw);
+  root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
     ->bind_unprivileged()
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
     ->bind_unprivileged()
     ->bind(dw);
+  root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
+    ->bind_unprivileged()
+    ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)
+    ->bind_unprivileged()
+    ->bind(dw);
+  root->bind(TOK_PROCESS)->bind_str(TOK_MARK)
     ->bind_unprivileged()
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
@@ -6006,6 +6024,7 @@ dwarf_builder::build(systemtap_session & sess,
   // may be reused if we try to cross-instrument multiple targets.
 
   dwflpp* dw = 0;
+  literal_map_t filled_parameters = parameters;
 
   string module_name;
   if (has_null_param (parameters, TOK_KERNEL))
@@ -6018,8 +6037,22 @@ dwarf_builder::build(systemtap_session & sess,
       // elfutils module listing.
       dw = get_kern_dw(sess, module_name);
     }
-  else if (get_param (parameters, TOK_PROCESS, module_name))
+  else if (get_param (parameters, TOK_PROCESS, module_name) || has_null_param(parameters, TOK_PROCESS))
       {
+      if(has_null_param(filled_parameters, TOK_PROCESS))
+        {
+          wordexp_t words;
+          int rc = wordexp(sess.cmd.c_str(), &words, WRDE_NOCMD|WRDE_UNDEF);
+          if(rc || words.we_wordc <= 0)
+            throw semantic_error(_("unspecified process probe is invalid without a -c COMMAND"));
+          module_name = words.we_wordv[0];
+          filled_parameters[TOK_PROCESS] = new literal_string(module_name);// this needs to be used in place of the blank map
+          // in the case of TOK_MARK we need to modify locations as well
+          if(location->components[0]->functor==TOK_PROCESS &&
+            location->components[0]->arg == 0)
+            location->components[0]->arg = new literal_string(module_name);
+          wordfree (& words);
+        } 
       // PR6456  process("/bin/*")  glob handling
       if (contains_glob_chars (module_name))
         {
@@ -6196,13 +6229,13 @@ dwarf_builder::build(systemtap_session & sess,
   string dummy_mark_name; // NB: PR10245: dummy value, need not substitute - => __
   if (get_param(parameters, TOK_MARK, dummy_mark_name))
     {
-      sdt_query sdtq(base, location, *dw, parameters, finished_results);
+      sdt_query sdtq(base, location, *dw, filled_parameters, finished_results);
       dw->iterate_over_modules(&query_module, &sdtq);
       return;
     }
 
   unsigned results_pre = finished_results.size();
-  dwarf_query q(base, location, *dw, parameters, finished_results, user_path, user_lib);
+  dwarf_query q(base, location, *dw, filled_parameters, finished_results, user_path, user_lib);
 
   // XXX: kernel.statement.absolute is a special case that requires no
   // dwfl processing.  This code should be in a separate builder.

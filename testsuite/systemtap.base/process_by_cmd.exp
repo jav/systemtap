@@ -1,0 +1,32 @@
+set test "process_by_cmd"
+set ::result_string {func end
+state end
+func label end
+mark end
+state end
+state end
+state end
+func return end
+func return end
+func return end
+mark end
+func return end}
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags [sdt_includes]"
+
+set res [target_compile $srcdir/$subdir/$test.c $test executable "$test_flags"]
+if {$res != ""} {
+  verbose -log "target_compile failed: $res" 2
+  fail "$test.c compile"
+  untested "$test"
+  return
+} else {
+    pass "$test.c compile"
+}
+
+if {[installtest_p] && [utrace_p] && [uprobes_p]} {
+  stap_run2 $srcdir/$subdir/process_by_cmd.stp -c ./$test
+} else {
+  untested "$test"
+}
+catch {exec rm -f $test}

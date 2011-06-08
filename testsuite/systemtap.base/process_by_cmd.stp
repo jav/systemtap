@@ -1,0 +1,5 @@
+probe process.function("main") { printf("func end\n") }
+probe process.function("main").label("l1") { printf("func label end\n") }
+probe process.function("*").return { printf("func return end\n") }
+probe process.mark("*") { printf("mark end\n") }
+probe process.statement("*@process_by_cmd.c") { printf("state end\n") }

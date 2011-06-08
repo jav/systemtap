@@ -616,7 +616,12 @@ If a process probe is specified without a PID or FULLPATH, all user
 threads will be probed.  However, if systemtap was invoked with the
 .IR \-c " or " \-x
 options, then process probes are restricted to the process
-hierarchy associated with the target process.
+hierarchy associated with the target process.  If a process probe is
+specified without a PID or FULLPATH, but with the 
+.IR \-c "
+option, the PATH of the
+.IR \-c "
+cmd will be heuristically filled into the process PATH.
 
 .PP
 Third, symbolic static instrumentation compiled into programs and

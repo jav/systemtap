@@ -1,5 +1,11 @@
 * What's new in version 1.6
 
+- Systemtap now fills in missing process names to probe points when used with
+  -c CMD.  This avoids redundant 
+  'process("a.out")... process("a.out")... {}' -c 'a.out' style usage.  The
+  a.out binary is parsed from the '-c CMD' usage and placed only into empty
+  process probe points.  
+
 - stap -L 'process("PATH").syscall' will now list context variables
 
 * What's new in version 1.5, 2011-05-23
