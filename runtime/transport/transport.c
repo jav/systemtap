@@ -465,6 +465,12 @@ static int _stp_transport_fs_init(const char *module_name)
 	}
 
 	if (_stp_transport_data_fs_init() != 0) {
+#if STP_TRANSPORT_VERSION == 1
+		relayfs_remove_dir(__stp_module_dir);
+#else
+		debugfs_remove(__stp_module_dir);
+#endif
+		__stp_module_dir = NULL;
 		_stp_remove_root_dir();
 		_stp_unlock_transport_dir();
 		return -1;
