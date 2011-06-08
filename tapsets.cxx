@@ -1960,7 +1960,9 @@ base_query::query_library_callback (void *q, const char *data)
 
 
 void
-dwarf_query::query_library (const char *library)
+query_one_library (const char *library, dwflpp & dw,
+    const string user_lib, probe * base_probe, probe_point *base_loc,
+    vector<derived_probe *> & results)
 {
   if (dw.function_name_matches_pattern(library, user_lib))
     {
@@ -1980,10 +1982,17 @@ dwarf_query::query_library (const char *library)
       probe_point* derived_loc = new probe_point(*specific_loc);
       derived_loc->components = derived_comps;
       probe *new_base = base_probe->create_alias(derived_loc, specific_loc);
-      derive_probes(sess, new_base, results);
-      if (sess.verbose > 2)
+      derive_probes(dw.sess, new_base, results);
+      if (dw.sess.verbose > 2)
         clog << _("module=") << library_path;
     }
+}
+
+
+void
+dwarf_query::query_library (const char *library)
+{
+  query_one_library (library, dw, user_lib, base_probe, base_loc, results);
 }
 
 
@@ -5387,9 +5396,9 @@ struct sdt_query : public base_query
 {
   sdt_query(probe * base_probe, probe_point * base_loc,
             dwflpp & dw, literal_map_t const & params,
-            vector<derived_probe *> & results);
+            vector<derived_probe *> & results, const string user_lib);
 
-  void query_library (const char *) {}
+  void query_library (const char *data);
   void handle_query_module();
 
 private:
@@ -5401,6 +5410,7 @@ private:
   vector<derived_probe *> & results;
   string pp_mark;
   string pp_provider;
+  string user_lib;
 
   set<string> probes_handled;
 
@@ -5438,9 +5448,9 @@ private:
 
 sdt_query::sdt_query(probe * base_probe, probe_point * base_loc,
                      dwflpp & dw, literal_map_t const & params,
-                     vector<derived_probe *> & results):
+                     vector<derived_probe *> & results, const string user_lib):
   base_query(dw, params), base_probe(base_probe),
-  base_loc(base_loc), params(params), results(results)
+  base_loc(base_loc), params(params), results(results), user_lib(user_lib)
 {
   assert(get_string_param(params, TOK_MARK, pp_mark));
   get_string_param(params, TOK_PROVIDER, pp_provider); // pp_provider == "" -> unspecified
@@ -6013,6 +6023,13 @@ sdt_query::convert_location ()
 
 
 void
+sdt_query::query_library (const char *library)
+{
+    query_one_library (library, dw, user_lib, base_probe, base_loc, results);
+}
+
+
+void
 dwarf_builder::build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
@@ -6229,7 +6246,7 @@ dwarf_builder::build(systemtap_session & sess,
   string dummy_mark_name; // NB: PR10245: dummy value, need not substitute - => __
   if (get_param(parameters, TOK_MARK, dummy_mark_name))
     {
-      sdt_query sdtq(base, location, *dw, filled_parameters, finished_results);
+      sdt_query sdtq(base, location, *dw, filled_parameters, finished_results, user_lib);
       dw->iterate_over_modules(&query_module, &sdtq);
       return;
     }

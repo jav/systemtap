@@ -71,15 +71,19 @@ spawn $stap_path -c $exepath $srcdir/$subdir/library.stp $exepath $glob
 
 expect {
     -timeout 180
-    -re {^WARNING:.*\r\n} {exp_continue }
     -re {^bar begin\r\n} {incr ok; exp_continue }
     -re {^bar 2\r\n} {incr ok; exp_continue }
+    -re {^In test_probe_2 probe 0x2\r\n} { incr ok; exp_continue }
     -re {^bar end\r\n} {incr ok; exp_continue }
     -re {^baz begin\r\n} {incr ok; exp_continue }
     -re {^baz 3 abc\r\n} {incr ok; exp_continue }
+    -re {^In test_probe_0 probe 0x3\r\n} { incr ok; exp_continue }
+    -re {^In test_probe_3 probe 0x3 0x[0-9a-f][0-9a-f]*\r\n} { incr ok; exp_continue }
     -re {^baz end\r\n} {incr ok; exp_continue }
     -re {^buz begin\r\n} {incr ok; exp_continue }
     -re {^buz 4\r\n} {incr ok; exp_continue }
+    -re {^In test_probe_4 dtrace probe 0x[0-9a-f][0-9a-f]*\r\n} { incr ok; exp_continue }
+    -re {^In test_probe_1 probe 0x0\r\n} { incr ok; exp_continue }
     -re {^buz end\r\n} {incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
@@ -87,7 +91,7 @@ expect {
 
 catch {close}; catch {wait}
 
-error_handler [expr {$ok == 9}] "sdt_misc $glob ($ok != 9)"
+error_handler [expr {$ok == 15}] "sdt_misc $glob ($ok != 15)"
 } ; # glob
 
 # Test --ldd
