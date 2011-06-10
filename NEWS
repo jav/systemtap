@@ -1,10 +1,16 @@
 * What's new in version 1.6
 
+- Systemtap will now map - to _ in module names.  Previously, 
+  stap -L 'module("i2c-core").function("*")' would be empty.  It now returns
+  a list had stap -L 'module("i2c_core").function("*") been specified.
+
 - Systemtap now fills in missing process names to probe points when used with
   -c CMD.  This avoids redundant 
   'process("a.out")... process("a.out")... {}' -c 'a.out' style usage.  The
   a.out binary is parsed from the '-c CMD' usage and placed only into empty
-  process probe points.  
+  process probe points.  As an example:
+  stap -e 'probe process.function("*"), process.mark("*")
+  {printf("%s\n", probefunc())}' -c 'stap -V'
 
 - stap -L 'process("PATH").syscall' will now list context variables
 
