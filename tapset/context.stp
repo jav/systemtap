@@ -402,12 +402,17 @@ function cmdline_args:string(n:long, m:long, delim:string)
           nr = 0;
           len = arg_end - arg_start;
           arg = user_string2(arg_start, "");
-          while (arg != "" && len > 0)
+          while (len > 0)
             {
               if (nr == n)
                 args = arg;
               else if (nr > n)
-                args .= delim . arg;
+                {
+                  if (arg == "")
+                    args .= delim . "\"\""
+                  else
+                    args .= delim . arg;
+                }
 
               arg_len = strlen(arg);
               arg_start += arg_len + 1;
