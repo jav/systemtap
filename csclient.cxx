@@ -879,6 +879,11 @@ compile_server_client::create_request ()
   // Add the sysinfo file
   string sysinfo = "sysinfo: " + s.kernel_release + " " + s.architecture;
   rc = write_to_file (client_tmpdir + "/sysinfo", sysinfo);
+  if (rc != 0)
+    return rc;
+
+  // Add localization data
+  rc = add_localization_variables();
 
   return rc;
 }
@@ -1006,6 +1011,33 @@ compile_server_client::include_file_or_directory (
 	   << name << ": " << e
 	   << endl;
     }
+  return rc;
+}
+
+// Add the localization variables to the server request
+// package.
+int
+compile_server_client::add_localization_variables()
+{
+  int rc;
+  string envVar;
+  string fname;
+
+  const set<string> &locVars = localization_variables();
+  set<string>::iterator it;
+
+  /* Note: We don't have to check for the contents of the environment
+   * variables here, since they will be checked extensively on the
+   * server.
+   */
+  for (it = locVars.begin(); it != locVars.end(); it++)
+    {
+      char* var = getenv((*it).c_str());
+      if (var)
+        envVar += *it + "=" + (string)var + "\n";
+    }
+  fname = client_tmpdir + "/locale";
+  rc = write_to_file(fname, envVar);
   return rc;
 }
 
@@ -1320,10 +1352,13 @@ compile_server_client::unpack_response ()
     }
 
   // Remove the output line due to the synthetic server-side -k
+  // Look for a message containing the name of the temporary directory.
+  // We can't key on the message text, because it may not always be in English, so
+  // instead, look for the quoted directory name.
   cmd.clear();
   cmd.push_back("sed");
   cmd.push_back("-i");
-  cmd.push_back("/^Keeping temporary directory.*/ d");
+  cmd.push_back("/^Keeping temporary directory.*/ d"); // XXX: THIS DOES NOT WORK FOR NON-ENGLISH
   cmd.push_back(server_tmpdir + "/stderr");
   stap_system (s.verbose, cmd);
 

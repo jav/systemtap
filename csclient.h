@@ -34,6 +34,7 @@ private:
   int add_package_args ();
   int add_package_arg (const std::string &arg);
   int compile_using_server (const std::vector<compile_server_info> &servers);
+  int add_localization_variables();
 
   int read_from_file (const std::string &fname, int &data);
   int write_to_file (const std::string &fname, const std::string &data);

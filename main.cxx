@@ -403,7 +403,7 @@ create_temp_dir (systemtap_session &s)
 }
 
 static void
-remove_temp_dir (systemtap_session &s)
+remove_temp_dir(systemtap_session &s)
 {
   if (!s.tmpdir.empty())
     {
@@ -413,16 +413,16 @@ remove_temp_dir (systemtap_session &s)
         clog << _F("Keeping temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
       else
         {
-	  // Mask signals while we're deleting the temporary directory.
-	  stap_sigmasker masked;
+          // Mask signals while we're deleting the temporary directory.
+          stap_sigmasker masked;
 
-	  // Remove the temporary directory.
-	  vector<string> cleanupcmd;
-	  cleanupcmd.push_back("rm");
-	  cleanupcmd.push_back("-rf");
-	  cleanupcmd.push_back(s.tmpdir);
+          // Remove the temporary directory.
+          vector<string> cleanupcmd;
+          cleanupcmd.push_back("rm");
+          cleanupcmd.push_back("-rf");
+          cleanupcmd.push_back(s.tmpdir);
 
-	  (void) stap_system (s.verbose, cleanupcmd);
+          (void) stap_system(s.verbose, cleanupcmd);
           s.tmpdir.clear();
         }
     }

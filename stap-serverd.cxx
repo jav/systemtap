@@ -24,6 +24,9 @@
 #include <cerrno>
 #include <cassert>
 #include <climits>
+#include <iostream>
+#include <fstream>
+#include <map>
 
 extern "C" {
 #include <getopt.h>
@@ -38,6 +41,7 @@ extern "C" {
 #include <ssl.h>
 #include <nss.h>
 #include <keyhi.h>
+#include <regex.h>
 
 #if HAVE_AVAHI
 #include <avahi-client/publish.h>
@@ -56,7 +60,7 @@ using namespace std;
 static void cleanup ();
 static PRStatus spawn_and_wait (const vector<string> &argv,
                                 const char* fd0, const char* fd1, const char* fd2,
-				const char *pwd, bool setrlimits = false);
+				const char *pwd, bool setrlimits = false, const vector<string>& envVec = vector<string> ());
 
 /* getopt variables */
 extern int optind;
@@ -898,6 +902,7 @@ handleRequest (const char* requestDirName, const char* responseDirName)
   char stapstderr[PATH_MAX];
   char staprc[PATH_MAX];
   char stapsymvers[PATH_MAX];
+  string staplang;
   vector<string> stapargv;
   int rc;
   wordexp_t words;
@@ -970,6 +975,7 @@ handleRequest (const char* requestDirName, const char* responseDirName)
 
   snprintf (stapstdout, PATH_MAX, "%s/stdout", responseDirName);
   snprintf (stapstderr, PATH_MAX, "%s/stderr", responseDirName);
+  staplang = string(requestDirName) + "/locale";
 
   /* Check for the unprivileged flag; we need this so that we can decide to sign the module. */
   for (i=0; i < stapargv.size (); i++)
@@ -996,8 +1002,92 @@ handleRequest (const char* requestDirName, const char* responseDirName)
       stapargv.insert (stapargv.begin () + 1, "--unprivileged"); /* better not be resettable by later option */
     }
 
+  /* Unpackage internationalization variables and verify their contents */
+  map<string, string> envMap; /* To temporarily store the entire array of strings */
+  vector<string> envVec; /* Final version to be sent to spawn_and_wait() */
+  string line;
+  const set<string> &locVars = localization_variables();
+  ifstream langfile;
+
+  /* Copy the global environ variable into the map */
+  i = -1;
+  while (environ[++i])
+    {
+      vector<string> environTok;
+      tokenize(environ[i], environTok, "=");
+      envMap[environTok[0]] = (string)getenv(environTok[0].c_str());
+    }
+
+  /* Create regular expression objects to verify lines read from file. Should not allow spaces, ctrl characters, etc */
+  regex_t checkre;
+  if ((regcomp(&checkre, "^[a-zA-Z0-9@_.-=]*$", REG_EXTENDED | REG_NOSUB) != 0))
+    {
+      nsscommon_error(_F("Error in regcomp: %s", strerror (errno)));
+      return; //Report error.
+    }
+
+  /* Go through each line of the file, verify it, then add it to the vector */
+  langfile.open(staplang.c_str());
+  if (!langfile.is_open())
+    {
+      nsscommon_error(
+          _F("Unable to open file %s for reading: %s", staplang.c_str(), strerror (errno)));
+      return;
+    }
+  else
+    {
+      while (1)
+        {
+          getline(langfile, line);
+          if (!langfile.good())
+            break;
+
+          /* Extract key and value from the line. Note: value may contain "=". */
+          string key;
+          string value;
+          size_t pos;
+          pos = line.find("=");
+          key = line.substr(0, pos);
+          pos++;
+          value = line.substr(pos);
+
+          /* Make sure the key is found in the localization variables global set */
+          if (locVars.find(key) == locVars.end())
+            {
+              nsscommon_error(
+                  _F("Localization key %s not found in global list", key.c_str()));
+              return;
+            }
+
+          /* Make sure the value does not contain illegal characters */
+          if ((regexec(&checkre, value.c_str(), (size_t) 0, NULL, 0) != 0))
+            {
+              nsscommon_error(
+                  _F("Localization value %s contains illegal characters", value.c_str()));
+              return;
+            }
+
+          /* All is good, copy line into envMap, replacing if already there */
+          envMap[key] = value;
+        }
+
+      if (!langfile.eof())
+        {
+          nsscommon_error(
+              _F("Error reading file %s: %s", staplang.c_str(), strerror (errno)));
+          return;
+        }
+    }
+
+  regfree(&checkre);
+
+  /* Copy map into vector */
+  for (map<string, string>::iterator it = envMap.begin(); it != envMap.end(); it++)
+    envVec.push_back(it->first + "=" + it->second);
+
   /* All ready, let's run the translator! */
-  rc = spawn_and_wait (stapargv, "/dev/null", stapstdout, stapstderr, requestDirName, set_rlimits);
+  rc = spawn_and_wait(stapargv, "/dev/null", stapstdout, stapstderr,
+      requestDirName, set_rlimits, envVec);
 
   /* Save the RC */
   snprintf (staprc, PATH_MAX, "%s/rc", responseDirName);
@@ -1023,11 +1113,11 @@ handleRequest (const char* requestDirName, const char* responseDirName)
       char line[PATH_MAX];
       char *l = fgets(line, PATH_MAX, f); /* NB: normally includes \n at end */
       if (!l) break;
-      char key[]="Keeping temporary directory \"";
+      char key[]="Keeping temporary directory \""; //XXX: THIS DOES NOT WORK FOR NON-ENGLISH
 
       /* Look for line from main.cxx: s.keep_tmpdir */
       if (strncmp(l, key, strlen(key)) == 0 &&
-          l[strlen(l)-2] == '"')  /* "\n */
+                l[strlen(l)-2] == '"')  /* "\n */
         { 
           /* Move this directory under responseDirName.  We don't have to
              preserve the exact stapXXXXXX suffix part, since stap-client
@@ -1038,6 +1128,7 @@ handleRequest (const char* requestDirName, const char* responseDirName)
              remember to delete it later anyhow. */
           vector<string> mvargv;
           char *orig_staptmpdir = & l[strlen(key)];
+
           char new_staptmpdir[PATH_MAX];
 
           orig_staptmpdir[strlen(orig_staptmpdir)-2] = '\0'; /* Kill the closing "\n */
@@ -1110,7 +1201,7 @@ handleRequest (const char* requestDirName, const char* responseDirName)
 static PRStatus
 spawn_and_wait (const vector<string> &argv,
 		const char* fd0, const char* fd1, const char* fd2,
-		const char *pwd,  bool setrlimits)
+		const char *pwd,  bool setrlimits, const vector<string>& envVec)
 { 
   pid_t pid;
   int rc;
@@ -1162,7 +1253,7 @@ spawn_and_wait (const vector<string> &argv,
   }
   if (rc == 0)
     {
-      pid = stap_spawn (0, argv, & actions);
+      pid = stap_spawn (0, argv, & actions, envVec);
       /* NB: don't react to pid==-1 right away; need to chdir back first. */
     }
   else {

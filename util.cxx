@@ -493,7 +493,7 @@ null_child_fd(posix_spawn_file_actions_t* fa, int childfd)
 // Runs a command with a saved PID, so we can kill it from the signal handler
 pid_t
 stap_spawn(int verbose, const vector<string>& args,
-           posix_spawn_file_actions_t* fa)
+           posix_spawn_file_actions_t* fa, const vector<string>& envVec)
 {
   const char *cmd;
   string command;
@@ -509,9 +509,29 @@ stap_spawn(int verbose, const vector<string>& args,
     argv[i] = args[i].c_str();
   argv[args.size()] = NULL;
 
+  char** env;
+  bool allocated;
+  if(envVec.empty())
+  {
+	  env = environ;
+  	  allocated = false;
+  }
+  else
+  {
+	allocated = true;
+	env = new char*[envVec.size() + 1];
+
+  	for (size_t i = 0; i < envVec.size(); ++i)
+  	    env[i] = (char*)envVec[i].c_str();
+  	  env[envVec.size()] = NULL;
+  }
+
   pid_t pid = 0;
   int ret = posix_spawnp(&pid, argv[0], fa, NULL,
-                         const_cast<char * const *>(argv), environ);
+                         const_cast<char * const *>(argv), env);
+ if (allocated)
+	  delete[] env;
+
   PROBE2(stap, stap_system__spawn, ret, pid);
   if (ret != 0)
     {
@@ -583,6 +603,28 @@ cleanup_fa:
   posix_spawn_file_actions_destroy(&fa);
 
   return pid;
+}
+
+// Global set of supported localization variables. Make changes here to
+// add or remove variables. List of variables from:
+// http://publib.boulder.ibm.com/infocenter/tivihelp/v8r1/index.jsp?topic=/
+// com.ibm.netcool_OMNIbus.doc_7.3.0/omnibus/wip/install/concept/omn_con_settingyourlocale.html
+const set<string>&
+localization_variables()
+{
+  static set<string> localeVars;
+  if (localeVars.empty())
+    {
+      localeVars.insert("LANG");
+      localeVars.insert("LC_ALL");
+      localeVars.insert("LC_CTYPE");
+      localeVars.insert("LC_COLLATE");
+      localeVars.insert("LC_MESSAGES");
+      localeVars.insert("LC_TIME");
+      localeVars.insert("LC_MONETARY");
+      localeVars.insert("LC_NUMERIC");
+    }
+  return localeVars;
 }
 
 // Runs a command with a saved PID, so we can kill it from the signal handler,

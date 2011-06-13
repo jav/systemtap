@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <cctype>
+#include <set>
 extern "C" {
 #include <libintl.h>
 #include <locale.h>
@@ -47,7 +48,7 @@ const std::string cmdstr_join(const std::vector<std::string>& cmds);
 int stap_waitpid(int verbose, pid_t pid);
 pid_t stap_spawn(int verbose, const std::vector<std::string>& args);
 pid_t stap_spawn(int verbose, const std::vector<std::string>& args,
-		 posix_spawn_file_actions_t* fa);
+		 posix_spawn_file_actions_t* fa, const std::vector<std::string>& envVec = std::vector<std::string> ());
 pid_t stap_spawn_piped(int verbose, const std::vector<std::string>& args,
                        int* child_in=NULL, int* child_out=NULL, int* child_err=NULL);
 int stap_system(int verbose, const std::vector<std::string>& args,
@@ -60,7 +61,7 @@ bool contains_glob_chars (const std::string &str);
 std::string kernel_release_from_build_tree (const std::string &kernel_build_tree, int verbose = 0);
 std::string normalize_machine(const std::string& machine);
 std::string autosprintf(const char* format, ...) __attribute__ ((format (printf, 1, 2)));
-
+const std::set<std::string>& localization_variables();
 
 // stringification generics
 
