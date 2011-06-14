@@ -16,6 +16,7 @@
 import os
 import posix
 import sys
+import shlex
 from subprocess import call
 from tempfile import mkstemp
 
@@ -229,8 +230,7 @@ def main():
     if (s_filename != "" and use_cpp):
         (d,fn) = mkstemp(suffix=".d")
         CPP = os.environ.get("CPP", "cpp")
-        args = [CPP] + includes + defines + [s_filename, fn]
-        retcode = call(args)
+        retcode = call(shlex.split(CPP) + includes + defines + [s_filename, fn])
         if (retcode != 0):
             print "\"cpp includes s_filename\" failed"
             usage()
@@ -268,7 +268,7 @@ def main():
         f.close()
         CC = os.environ.get("CC", "gcc")
         CFLAGS = "-g " + os.environ.get("CFLAGS", "")
-        retcode = call(CC.split() + defines + includes + CFLAGS.split() +
+        retcode = call(shlex.split(CC) + defines + includes + shlex.split(CFLAGS) +
              ["-fPIC", "-I.", "-I@prefix@/include", "-c", fn, "-o",
               filename + suffix], shell=False)
         if (retcode != 0):
