@@ -268,8 +268,8 @@ def main():
         f.close()
         CC = os.environ.get("CC", "gcc")
         CFLAGS = "-g " + os.environ.get("CFLAGS", "")
-        retcode = call([CC, "-fPIC"] + defines + includes + CFLAGS.split() +
-             ["-I.", "-I@prefix@/include", "-c", fn, "-o",
+        retcode = call(CC.split() + defines + includes + CFLAGS.split() +
+             ["-fPIC", "-I.", "-I@prefix@/include", "-c", fn, "-o",
               filename + suffix], shell=False)
         if (retcode != 0):
             print "\"gcc " + fn + "\" failed"
