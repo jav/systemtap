@@ -184,7 +184,7 @@ def help ():
 def main():
     if (len(sys.argv) < 2):
         usage()
-        sys.exit(1)
+        return 1
 
     i = 1
     build_header = False
@@ -225,7 +225,7 @@ def main():
         i += 1
     if (build_header == False and build_source == False):
         usage()
-        sys.exit(1)
+        return 1
 
     if (s_filename != "" and use_cpp):
         (d,fn) = mkstemp(suffix=".d")
@@ -234,7 +234,7 @@ def main():
         if (retcode != 0):
             print "\"cpp includes s_filename\" failed"
             usage()
-            sys.exit(1)
+            return 1
         s_filename = fn
     if (filename == ""):
         if (s_filename != ""):
@@ -242,7 +242,7 @@ def main():
             filename = os.path.basename(filename)
         else:
             usage()
-            sys.exit(1)
+            return 1
     else:
         suffix = ""
     if (build_header):
@@ -274,7 +274,7 @@ def main():
         if (retcode != 0):
             print "\"gcc " + fn + "\" failed"
             usage()
-            sys.exit(1)
+            return 1
         if (not keep_temps):
             os.remove(fn)
         else:
@@ -284,7 +284,8 @@ def main():
                 os.remove(s_filename)
             else:
                 print "cpp: " + s_filename
+    return 0
 
 if __name__ == "__main__":
     _ = init_gettext()
-    main()
+    sys.exit(main())
