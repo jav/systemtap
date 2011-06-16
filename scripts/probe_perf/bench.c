@@ -1119,6 +1119,7 @@ Oscar ()
 #define LOOP 500
 #endif
 
+int
 main ()
 {
   int i,j;
@@ -1201,4 +1202,5 @@ main ()
   for (j = 1; j <= fft_cycles_idx; j++)
     fft_cycles_avg += (*fft_cycles)[j];
   printf ("fft_cycles %#lx\n", fft_cycles_avg / fft_cycles_idx);
+  return 0;
 }

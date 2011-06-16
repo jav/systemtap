@@ -104,7 +104,7 @@ if [ ! -z "$STAP" ] ; then
 else
  STAP=/usr/
 fi
-echo Using /usr/bin/stap
+echo Using $STAP/bin/stap
 
 if [ ! -z "$TESTSRC" ] ; then
  if [ ! -r "$TESTSRC/sys/sdt.h" ] ; then
@@ -112,7 +112,7 @@ if [ ! -z "$TESTSRC" ] ; then
     exit
  fi
 else
- echo You must specify the directory where the testsuite sources are found.
+ echo -e 'The testsuite sources containing directory must be given\nso the compatible sdt.h can be found'
  usage
 fi
 echo Using $TESTSRC/sys/sdt.h
@@ -124,7 +124,7 @@ echo -e "\n##### KPROBE #####\n"
 stap_test EXPERIMENTAL_KPROBE_SDT kprobe
 
 echo -e "\n##### UPROBE V1 #####\n"
-stap_test UPROBE_SDT uprobe
+stap_test STAP_SDT_V1 uprobe
 
 echo -e "\n##### UPROBE V2 #####\n"
 stap_test STAP_SDT_V2 uprobe2
