@@ -1,15 +1,27 @@
-set self unprivilegedok
+set test unprivilegedok
 
 # Need to build a user application
 catch {exec gcc -g -o foo $srcdir/systemtap.unprivileged/foo.c} err
-if {$err == "" && [file exists foo]} then { pass "$self compile" } else { fail "$self compile: $err" }
+if {$err == "" && [file exists foo]} then { pass "$test compile" } else { fail "$test compile: $err" }
 
-# Now run the tests
-foreach file [lsort [glob -nocomplain $srcdir/systemtap.unprivileged/$self/*.stp]] {
-    set test $self/[file tail $file]
-    verbose -log "Running $file"
-    set rc [stap_run_batch $file]
-    if {$rc == 0} { pass $test } else { fail $test }
+# These probes should be acceptable for unprivileged users
+set valid_probes [list \
+  {%(CONFIG_UTRACE=="y" %? process("foo").begin %: end %)} \
+  {%(CONFIG_UTRACE=="y" %? process("foo").function("bar") %: end %)} \
+  {%(CONFIG_UTRACE=="y" %? process("foo").function("bar").call %: end %)} \
+  {%(CONFIG_UTRACE=="y" %? process("foo").function("bar").return %: end %)} \
+]
+
+foreach probe $valid_probes {
+    set cmd [list stap --unprivileged -e "probe $probe { println (\"Hello\"); }" -c ./foo ]
+    verbose -log "eval exec $cmd"
+    catch {eval exec $cmd} res_stap
+    verbose -log $res_stap
+    if { "$res_stap" == "Hello" } {
+	pass "$test: $probe"
+    } else {
+	fail "$test: $probe"
+    }
 }
 
 catch {exec rm -f foo}

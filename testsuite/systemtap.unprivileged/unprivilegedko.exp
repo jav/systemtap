@@ -1,13 +1,23 @@
-set self unprivilegedko
-foreach file [lsort [glob -nocomplain $srcdir/systemtap.unprivileged/$self/*.stp]] {
-    set test $self/[file tail $file]
-    verbose -log "Running $file"
-    set rc [stap_run_batch $file]
-    if {$rc < 0} {
-	# crashed
-	fail $test
+set test unprivilegedko
+
+# These probes should not be acceptable to pass 2
+set invalid_probes [list \
+  {kernel.function("sys_read") {}} \
+  {kernel.trace("*") {}} \
+  {module("*scsi*").function("*") {}} \
+  {kernel.mark("*") {}} \
+  {kernel.mark("*").format("*") {}} \
+]
+
+set error_regexp ".*semantic error: probe point is not allowed for unprivileged users.*"
+foreach probe $invalid_probes {
+    set cmd [list stap --unprivileged -p2 -e "probe $probe" ]
+    verbose -log "eval exec $cmd"
+    catch {eval exec $cmd} res_stap
+    verbose -log $res_stap
+    if {[regexp $error_regexp $res_stap]} {
+	pass "$test: $probe"
     } else {
-	setup_xfail *-*-*
-	if {$rc == 0} { pass $test } else { fail $test }
+	fail "$test: $probe"
     }
 }
