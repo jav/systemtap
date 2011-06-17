@@ -919,8 +919,8 @@ handleRequest (const char* requestDirName, const char* responseDirName)
      content is not a concern. */
   // TODO: Use tokenize here.
   rc = wordexp (stap_options.c_str (), & words, WRDE_NOCMD|WRDE_UNDEF);
-  if (rc) 
-    { 
+  if (rc)
+    {
       nsscommon_error (_("Cannot parse stap options"));
       return;
     }
@@ -932,8 +932,15 @@ handleRequest (const char* requestDirName, const char* responseDirName)
 
   /* Process the saved command line arguments.  Avoid quoting/unquoting errors by
      transcribing literally. */
-  stapargv.push_back ("--client-options");
 
+  string new_staptmpdir = (string)responseDirName + "/stap000000";
+  rc = mkdir(new_staptmpdir.c_str(), 0700);
+  if (rc)
+    nsscommon_error(_F("Could not create temporary directory %s", new_staptmpdir.c_str()));
+
+  stapargv.push_back("--tmpdir=" + new_staptmpdir);
+
+  stapargv.push_back ("--client-options");
   for (i=1 ; ; i++)
     {
       char stapargfile[PATH_MAX];
@@ -1099,92 +1106,49 @@ handleRequest (const char* requestDirName, const char* responseDirName)
       fclose(f);
     }
 
-  /* Parse output to extract the -k-saved temporary directory.
-     XXX: bletch. */
-  f = fopen(stapstderr, "r");
-  if (!f)
+  /* In unprivileged mode, if we have a module built, we need to
+     sign the sucker. */
+  if (unprivileged)
     {
-      nsscommon_error (_F("Error in stap stderr open: %s", strerror (errno)));
-      return;
+      glob_t globber;
+      char pattern[PATH_MAX];
+      snprintf (pattern, PATH_MAX, "%s/*.ko", new_staptmpdir.c_str());
+      rc = glob (pattern, GLOB_ERR, NULL, &globber);
+      if (rc)
+        nsscommon_error (_F("Unable to find a module in %s", new_staptmpdir.c_str()));
+      else if (globber.gl_pathc != 1)
+        nsscommon_error (_F("Too many modules (%zu) in %s", globber.gl_pathc, new_staptmpdir.c_str()));
+      else
+        {
+         sign_file (cert_db_path, server_cert_nickname(),
+                    globber.gl_pathv[0], string(globber.gl_pathv[0]) + ".sgn");
+        }
     }
 
-  while (1)
+  /* If uprobes.ko is required, then we need to return it to the client.
+     uprobes.ko was required if the file "Module.symvers" is not empty in
+     the temp directory.  */
+  snprintf (stapsymvers, PATH_MAX, "%s/Module.symvers", new_staptmpdir.c_str());
+  rc = stat (stapsymvers, & st);
+  if (rc == 0 && st.st_size != 0)
     {
-      char line[PATH_MAX];
-      char *l = fgets(line, PATH_MAX, f); /* NB: normally includes \n at end */
-      if (!l) break;
-      char key[]="Keeping temporary directory \""; //XXX: THIS DOES NOT WORK FOR NON-ENGLISH
+      /* uprobes.ko is required. Link to it from the response directory.  */
+      vector<string> lnargv;
+      lnargv.push_back ("/bin/ln");
+      lnargv.push_back ("-s");
+      lnargv.push_back (PKGDATADIR "/runtime/uprobes/uprobes.ko");
+      lnargv.push_back (responseDirName);
+      rc = stap_system (0, lnargv);
+      if (rc != PR_SUCCESS)
+        nsscommon_error (_F("Could not link to %s from %s", lnargv[2].c_str (), lnargv[3].c_str ()));
 
-      /* Look for line from main.cxx: s.keep_tmpdir */
-      if (strncmp(l, key, strlen(key)) == 0 &&
-                l[strlen(l)-2] == '"')  /* "\n */
-        { 
-          /* Move this directory under responseDirName.  We don't have to
-             preserve the exact stapXXXXXX suffix part, since stap-client
-             will accept anything ("stap......" regexp), and rewrite it
-             to a client-local string.
-             
-             We don't just symlink because then we'd have to
-             remember to delete it later anyhow. */
-          vector<string> mvargv;
-          char *orig_staptmpdir = & l[strlen(key)];
-
-          char new_staptmpdir[PATH_MAX];
-
-          orig_staptmpdir[strlen(orig_staptmpdir)-2] = '\0'; /* Kill the closing "\n */
-          snprintf(new_staptmpdir, PATH_MAX, "%s/stap000000", responseDirName);
-          mvargv.push_back ("mv");
-          mvargv.push_back (orig_staptmpdir);
-          mvargv.push_back (new_staptmpdir);
-          rc = stap_system (0, mvargv);
+      /* In unprivileged mode, we need to return the signature as well. */
+      if (unprivileged)
+        {
+          lnargv[2] = PKGDATADIR "/runtime/uprobes/uprobes.ko.sgn";
+          rc = stap_system (0, lnargv);
           if (rc != PR_SUCCESS)
-            nsscommon_error (_("Error in stap tmpdir move"));
-
-          /* In unprivileged mode, if we have a module built, we need to
-             sign the sucker. */
-          if (unprivileged) 
-            {
-              glob_t globber;
-              char pattern[PATH_MAX];
-              snprintf (pattern,PATH_MAX,"%s/*.ko", new_staptmpdir);
-              rc = glob (pattern, GLOB_ERR, NULL, &globber);
-              if (rc)
-                nsscommon_error (_F("Unable to find a module in %s", new_staptmpdir));
-              else if (globber.gl_pathc != 1)
-                nsscommon_error (_F("Too many modules (%zu) in %s", globber.gl_pathc, new_staptmpdir));
-              else
-                {
-		  sign_file (cert_db_path, server_cert_nickname (),
-			     globber.gl_pathv[0], string (globber.gl_pathv[0]) + ".sgn");
-                }
-            }
-
-	  /* If uprobes.ko is required, then we need to return it to the client.
-	     uprobes.ko was required if the file "Module.symvers" is not empty in
-	     the temp directory.  */
-	  snprintf (stapsymvers, PATH_MAX, "%s/Module.symvers", new_staptmpdir);
-	  rc = stat (stapsymvers, & st);
-	  if (rc == 0 && st.st_size != 0)
-	    {
-	      /* uprobes.ko is required. Link to it from the response directory.  */
-	      vector<string> lnargv;
-	      lnargv.push_back ("/bin/ln");
-	      lnargv.push_back ("-s");
-	      lnargv.push_back (PKGDATADIR "/runtime/uprobes/uprobes.ko");
-	      lnargv.push_back (responseDirName);
-	      rc = stap_system (0, lnargv);
-	      if (rc != PR_SUCCESS)
-		nsscommon_error (_F("Could not link to %s from %s", lnargv[2].c_str (), lnargv[3].c_str ()));
-
-	      /* In unprivileged mode, we need to return the signature as well. */
-	      if (unprivileged) 
-		{
-		  lnargv[2] = PKGDATADIR "/runtime/uprobes/uprobes.ko.sgn";
-		  rc = stap_system (0, lnargv);
-		  if (rc != PR_SUCCESS)
-		    nsscommon_error (_F("Could not link to %s from %s", lnargv[2].c_str (), lnargv[3].c_str ()));
-		}
-	    }
+            nsscommon_error (_F("Could not link to %s from %s", lnargv[2].c_str (), lnargv[3].c_str ()));
         }
     }
 
@@ -1314,7 +1278,7 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   SECStatus          secStatus = SECFailure;
   int                rc;
   char              *rc1;
-  char               tmpdir[PATH_MAX]; 
+  char               tmpdir[PATH_MAX];
   char               requestFileName[PATH_MAX];
   char               requestDirName[PATH_MAX];
   char               responseDirName[PATH_MAX];

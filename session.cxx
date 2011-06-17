@@ -110,6 +110,7 @@ systemtap_session::systemtap_session ():
   module_name = "stap_" + lex_cast(getpid());
   stapconf_name = "stapconf_" + lex_cast(getpid()) + ".h";
   output_file = ""; // -o FILE
+  tmpdir_opt_set = false;
   save_module = false;
   keep_tmpdir = false;
   cmd = "";
@@ -266,6 +267,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   module_name = other.module_name;
   stapconf_name = other.stapconf_name;
   output_file = other.output_file; // XXX how should multiple remotes work?
+  tmpdir_opt_set = false;
   save_module = other.save_module;
   keep_tmpdir = other.keep_tmpdir;
   cmd = other.cmd;
@@ -498,6 +500,8 @@ systemtap_session::usage (int exitcode)
     "              may be repeated for targeting multiple hosts.\n"
     "   --remote-prefix\n"
     "              prefix each line of remote output with a host index."
+    "   --tmpdir=NAME\n"
+    "              specify name of temporary directory to be used."
     , compatible.c_str()) << endl
   ;
 
@@ -545,6 +549,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_USE_SERVER_ON_ERROR 22
 #define LONG_OPT_VERSION 23
 #define LONG_OPT_REMOTE_PREFIX 24
+#define LONG_OPT_TMPDIR 25
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -577,6 +582,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "remote-prefix", 0, &long_opt, LONG_OPT_REMOTE_PREFIX },
         { "check-version", 0, &long_opt, LONG_OPT_CHECK_VERSION },
         { "version", 0, &long_opt, LONG_OPT_VERSION },
+        { "tmpdir", 1, &long_opt, LONG_OPT_TMPDIR },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -924,6 +930,12 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    case LONG_OPT_CLIENT_OPTIONS:
 	      client_options = true;
 	      break;
+	    case LONG_OPT_TMPDIR:
+              if (client_options)
+                client_options_disallowed += client_options_disallowed.empty() ? "--tmpdir" : ", --tmpdir";
+              tmpdir_opt_set = true;
+              tmpdir = optarg;
+              break;
 	    case LONG_OPT_USE_SERVER:
 	      if (client_options)
 		client_options_disallowed += client_options_disallowed.empty () ? "--use-server" : ", --use-server";
@@ -1124,7 +1136,6 @@ systemtap_session::check_options (int argc, char * const argv [])
     {
       last_pass = 4; /* Quietly downgrade.  Server passed through -p5 naively. */
     }
-
   // If phase 5 has been requested and the user is a member of stapusr but not
   // stapdev, then add --unprivileged and --use-server to the invocation,
   // if not already specified.
@@ -1180,6 +1191,13 @@ systemtap_session::check_options (int argc, char * const argv [])
       consult_symtab = true;
       if (kernel_symtab_path == PATH_TBD)
         kernel_symtab_path = string("/boot/System.map-") + kernel_release;
+    }
+  // Can't use --remote and --tmpdir together because with --remote,
+  // there may be more than one tmpdir needed.
+  if (!remote_uris.empty() && tmpdir_opt_set)
+    {
+      cerr << _F("You can't specify %s and %s together.", "--remote", "--tmpdir") << endl;
+      usage(1);
     }
   // Warn in case the target kernel release doesn't match the running one.
   if (last_pass > 4 &&

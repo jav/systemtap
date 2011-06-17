@@ -378,8 +378,8 @@ create_temp_dir (systemtap_session &s)
 
   // Create a temporary directory to build within.
   // Be careful with this, as "tmpdir" is "rm -rf"'d at the end.
-  const char* tmpdir_env = getenv("TMPDIR");
-  if (! tmpdir_env)
+  const char * tmpdir_env = getenv("TMPDIR");
+  if (!tmpdir_env)
     tmpdir_env = "/tmp";
 
   string stapdir = "/stapXXXXXX";
@@ -389,7 +389,7 @@ create_temp_dir (systemtap_session &s)
   umask(mask);
   if (! tmpdir_name)
     {
-      const char* e = strerror (errno);
+      const char* e = strerror(errno);
       //TRANSLATORS: we can't make the directory due to the error
       cerr << _F("ERROR: cannot create temporary directory (\" %s \"): %s", tmpdirt.c_str(), e) << endl;
       return 1;
@@ -407,11 +407,9 @@ remove_temp_dir(systemtap_session &s)
 {
   if (!s.tmpdir.empty())
     {
-      if (s.keep_tmpdir)
-        // NB: the format of this message needs to match the expectations
-        // of stap-serverd.cxx.
-        clog << _F("Keeping temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
-      else
+      if (s.keep_tmpdir && !s.tmpdir_opt_set)
+          clog << _F("Keeping temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
+      else if (!s.tmpdir_opt_set)
         {
           // Mask signals while we're deleting the temporary directory.
           stap_sigmasker masked;
