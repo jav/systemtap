@@ -1055,7 +1055,6 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
 static void
 handleRequest (const string &requestDirName, const string &responseDirName)
 {
-  char stapsymvers[PATH_MAX];
   vector<string> stapargv;
   int rc;
   wordexp_t words;
@@ -1063,7 +1062,6 @@ handleRequest (const string &requestDirName, const string &responseDirName)
   unsigned i;
   FILE* f;
   int unprivileged = 0;
-  struct stat st;
 
   // Save the server version. Do this early, so the client knows what version of the server
   // it is dealing with, even if the request is not fully completed.
@@ -1225,30 +1223,31 @@ handleRequest (const string &requestDirName, const string &responseDirName)
         }
     }
 
-  /* If uprobes.ko is required, then we need to return it to the client.
-     uprobes.ko was required if the file "Module.symvers" is not empty in
-     the temp directory.  */
-  snprintf (stapsymvers, PATH_MAX, "%s/Module.symvers", new_staptmpdir.c_str());
-  rc = stat (stapsymvers, & st);
-  if (rc == 0 && st.st_size != 0)
+  /* If uprobes.ko is required, it will have been built or cache-copied into
+   * the temp directory.  We need to pack it into the response where the client
+   * can find it, and sign if necessary for unprivileged users.
+   */
+  string uprobes_ko = new_staptmpdir + "/uprobes/uprobes.ko";
+  if (get_file_size(uprobes_ko) > 0)
     {
-      /* uprobes.ko is required. Link to it from the response directory.  */
-      vector<string> lnargv;
-      lnargv.push_back ("/bin/ln");
-      lnargv.push_back ("-s");
-      lnargv.push_back (PKGDATADIR "/runtime/uprobes/uprobes.ko");
-      lnargv.push_back (responseDirName);
-      rc = stap_system (0, lnargv);
-      if (rc != PR_SUCCESS)
-        server_error (_F("Could not link to %s from %s", lnargv[2].c_str (), lnargv[3].c_str ()));
+      /* uprobes.ko is required. Link to it from the response directory.
+       *
+       * XXX It's already underneath the stap tmpdir, but older stap clients
+       * don't know to look for it there, so we end up packing uprobes twice
+       * into the zip.  We could move instead of symlink.  Or perhaps once the
+       * server stops forcing -k (PR12888) it won't be packing the tmpdir.
+       */
+      string uprobes_response = (string)responseDirName + "/uprobes.ko";
+      rc = symlink(uprobes_ko.c_str(), uprobes_response.c_str());
+      if (rc != 0)
+        server_error (_F("Could not link to %s from %s",
+                            uprobes_ko.c_str(), uprobes_response.c_str()));
 
-      /* In unprivileged mode, we need to return the signature as well. */
+      /* In unprivileged mode, we need a signature on uprobes as well. */
       if (unprivileged)
         {
-          lnargv[2] = PKGDATADIR "/runtime/uprobes/uprobes.ko.sgn";
-          rc = stap_system (0, lnargv);
-          if (rc != PR_SUCCESS)
-            server_error (_F("Could not link to %s from %s", lnargv[2].c_str (), lnargv[3].c_str ()));
+          sign_file (cert_db_path, server_cert_nickname(),
+                     uprobes_response, uprobes_response + ".sgn");
         }
     }
 
@@ -1819,3 +1818,5 @@ main (int argc, char **argv) {
   cleanup ();
   return 0;
 }
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

@@ -27,22 +27,10 @@ proc utrace_p {} {
 
 
 proc uprobes_p {} {
-    global env
-    if {! [utrace_p]} {
-        return 0
-    }
-    set uprobes $env(SYSTEMTAP_RUNTIME)/uprobes
-    set res [catch "exec make -q -C $uprobes uprobes.ko" output]
-    if {$res != 0} {
-        # build as user at $uprobes which will be the source
-	# tree for 'make check' and the install tree for
-	# 'make installcheck'.
-	verbose -log "exec make -C $uprobes"
-	set res [catch "exec make -C $uprobes" output]
-	verbose -log "OUT $output"
-	verbose -log "RC $res"
-    }
-    if {$res == 0} { return 1 } else { return 0 }
+    # If this is a utrace kernel, then we can use our version of uprobes.
+    # No need to build it now, stap will handle that itself.
+    if {[utrace_p]} { return 1 }
+    return 0
 }
 
 

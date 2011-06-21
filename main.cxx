@@ -731,9 +731,14 @@ passes_0_4 (systemtap_session &s)
       // See if we can use cached source/module.
       if (get_script_from_cache(s))
         {
+	  // We may still need to build uprobes, if it's not also cached.
+	  if (s.need_uprobes)
+	    rc = uprobes_pass(s);
+
 	  // If our last pass isn't 5, we're done (since passes 3 and
 	  // 4 just generate what we just pulled out of the cache).
-	  if (s.last_pass < 5 || pending_interrupts) return rc;
+	  if (rc || s.last_pass < 5 || pending_interrupts)
+            return rc;
 
 	  // Short-circuit to pass 5.
 	  return 0;

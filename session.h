@@ -169,6 +169,7 @@ public:
   bool tapset_compile_coverage;
   bool need_uprobes;
   std::string uprobes_path;
+  std::string uprobes_hash;
   bool load_only; // flight recorder mode
   bool omit_werror;
   bool unprivileged;

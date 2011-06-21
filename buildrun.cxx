@@ -10,6 +10,7 @@
 #include "buildrun.h"
 #include "session.h"
 #include "util.h"
+#include "hash.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -29,8 +30,6 @@ extern "C" {
 
 
 using namespace std;
-
-static int uprobes_pass (systemtap_session& s);
 
 /* Adjust and run make_cmd to build a kernel module. */
 static int
@@ -87,6 +86,27 @@ run_make_cmd(systemtap_session& s, vector<string>& make_cmd,
   if (rc != 0)
     s.set_try_server ();
   return rc;
+}
+
+static vector<string>
+make_make_cmd(systemtap_session& s, const string& dir)
+{
+  vector<string> make_cmd;
+  make_cmd.push_back("make");
+  make_cmd.push_back("-C");
+  make_cmd.push_back(s.kernel_build_tree);
+  make_cmd.push_back("M=" + dir); // need make-quoting?
+  make_cmd.push_back("modules");
+
+  // Add architecture, except for old powerpc (RHBZ669082)
+  if (s.architecture != "powerpc" ||
+      (strverscmp (s.kernel_base_release.c_str(), "2.6.15") >= 0))
+    make_cmd.push_back("ARCH=" + s.architecture); // need make-quoting?
+
+  // Add any custom kbuild flags
+  make_cmd.insert(make_cmd.end(), s.kbuildflags.begin(), s.kbuildflags.end());
+
+  return make_cmd;
 }
 
 static void
@@ -280,22 +300,7 @@ compile_pass (systemtap_session& s)
     }
 
   // Run make
-  vector<string> make_cmd;
-  make_cmd.push_back("make");
-  make_cmd.push_back("-C");
-  make_cmd.push_back(module_dir);
-  make_cmd.push_back("M=" + s.tmpdir); // need make-quoting?
-
-  // Add architecture, except for old powerpc (RHBZ669082)
-  if (s.architecture != "powerpc" ||
-      (strverscmp (s.kernel_base_release.c_str(), "2.6.15") >= 0))
-    make_cmd.push_back("ARCH=" + s.architecture); // need make-quoting?
-
-  // Add any custom kbuild flags
-  make_cmd.insert(make_cmd.end(), s.kbuildflags.begin(), s.kbuildflags.end());
-
-  make_cmd.push_back("modules");
-
+  vector<string> make_cmd = make_make_cmd(s, s.tmpdir);
   rc = run_make_cmd(s, make_cmd);
   if (rc)
     s.set_try_server ();
@@ -319,82 +324,6 @@ kernel_built_uprobes (systemtap_session& s)
   return (stap_system (s.verbose, grep_cmd) == 0);
 }
 
-/*
- * We only want root, the owner of the uprobes build directory
- * and members of the group owning the uprobes build directory
- * modifying uprobes.
- */
-static bool
-may_build_uprobes (const systemtap_session& s)
-{
-  // root may build uprobes.
-  uid_t euid = geteuid ();
-  if (euid == 0)
-    return true;
-
-  // Get information on the build directory.
-  string uprobes_home = s.runtime_path + "/uprobes";
-  struct stat file_info;
-  if (stat(uprobes_home.c_str(), &file_info) != 0) {
-    clog << _("Unable to obtain information on ") << uprobes_home << '.' << endl;
-    return false;
-  }
-
-  // The owner of the build directory may build uprobes.
-  if (euid == file_info.st_uid)
-    return true;
-
-  // Members of the group owner of the build directory may build uprobes.
-  if (in_group_id (file_info.st_gid))
-    return true;
-
-  return false;
-}
-
-/*
- * Use "make -q" with a fake target to
- * verify that uprobes doesn't need to be rebuilt.
- */
-static bool
-verify_uprobes_uptodate (systemtap_session& s)
-{
-  if (s.verbose > 1)
-    clog << _("Pass 4, preamble: verifying that SystemTap's version of uprobes is up to date.")
-	 << endl;
-
-  string uprobes_home = s.runtime_path + "/uprobes";
-  vector<string> make_cmd;
-  make_cmd.push_back("make");
-  make_cmd.push_back("-q");
-  make_cmd.push_back("-C");
-  make_cmd.push_back(uprobes_home);
-  make_cmd.push_back("uprobes.ko");
-  int rc = run_make_cmd(s, make_cmd);
-  if (rc) {
-    clog << _("SystemTap's version of uprobes is out of date.") << endl;
-
-    struct stat file_info;
-    if (stat(uprobes_home.c_str(), &file_info) != 0) {
-      clog << _("Unable to obtain information on ") << uprobes_home << '.' << endl;
-    }
-    else {
-      struct passwd *owner = getpwuid (file_info.st_uid);
-      string owner_name = owner == NULL ? _("The owner of ") + uprobes_home :
-	                                  owner->pw_name;
-      if (owner_name == "root")
-	owner_name = "";
-      struct group *owner_group = getgrgid (file_info.st_gid);
-      string owner_group_name = owner_group == NULL ? _("The owner group of ") + uprobes_home :
-	                                              owner_group->gr_name;
-      clog << _F("As root, %s%s or a member of the '%s' group, run\n",
-                 owner_name.c_str(), (owner_name.empty() ? "" : ", "), owner_group_name.c_str());
-      clog << "\"make -C " << uprobes_home << "\"." << endl;
-    }
-  }
-
-  return rc;
-}
-
 static int
 make_uprobes (systemtap_session& s)
 {
@@ -402,35 +331,93 @@ make_uprobes (systemtap_session& s)
     clog << _("Pass 4, preamble: (re)building SystemTap's version of uprobes.")
 	 << endl;
 
-  string uprobes_home = s.runtime_path + "/uprobes";
-  vector<string> make_cmd;
-  make_cmd.push_back("make");
-  make_cmd.push_back("-C");
-  make_cmd.push_back(uprobes_home);
-  int rc = run_make_cmd(s, make_cmd);
+  // create a subdirectory for the uprobes module
+  string dir(s.tmpdir + "/uprobes");
+  if (create_dir(dir.c_str()) != 0)
+    {
+      if (! s.suppress_warnings)
+        cerr << _("Warning: failed to create directory for build uprobes.") << endl;
+      s.set_try_server ();
+      return 1;
+    }
+
+  // create a simple Makefile
+  string makefile(dir + "/Makefile");
+  ofstream omf(makefile.c_str());
+  omf << "obj-m := uprobes.o" << endl;
+  // RHBZ 655231: later rhel6 kernels' module-signing kbuild logic breaks out-of-tree modules
+  omf << "CONFIG_MODULE_SIG := n" << endl;
+  omf.close();
+
+  // create a simple #include-chained source file
+  string runtimesourcefile(s.runtime_path + "/uprobes/uprobes.c");
+  string sourcefile(dir + "/uprobes.c");
+  ofstream osrc(sourcefile.c_str());
+  osrc << "#include \"" << runtimesourcefile << "\"" << endl;
+  osrc.close();
+
+  // make the module
+  vector<string> make_cmd = make_make_cmd(s, dir);
+  bool quiet = (s.verbose < 4);
+  int rc = run_make_cmd(s, make_cmd, quiet, quiet);
+  if (!rc && !copy_file(dir + "/Module.symvers",
+                        s.tmpdir + "/Module.symvers"))
+    rc = -1;
+
   if (s.verbose > 1)
     clog << _("uprobes rebuild exit code: ") << rc << endl;
   if (rc)
     s.set_try_server ();
+  else
+    s.uprobes_path = dir + "/uprobes.ko";
   return rc;
 }
 
-/*
- * Copy uprobes' exports (in Module.symvers) into the temporary directory
- * so the script-module build can find them.
- */
-static int
-copy_uprobes_symbols (const systemtap_session& s)
+static bool
+get_cached_uprobes(systemtap_session& s)
 {
-  vector<string> cp_cmd;
-  cp_cmd.push_back ("/bin/cp");
-  cp_cmd.push_back (s.runtime_path + "/uprobes/Module.symvers");
-  cp_cmd.push_back (s.tmpdir);
+  s.uprobes_hash = s.use_cache ? find_uprobes_hash(s) : "";
+  if (!s.uprobes_hash.empty())
+    {
+      // NB: We always put uprobes.ko in its own directory, especially so
+      // stap-serverd can more easily locate it.
+      string dir(s.tmpdir + "/uprobes");
+      if (create_dir(dir.c_str()) != 0)
+        return false;
 
-  return stap_system (s.verbose, cp_cmd);
+      string cacheko = s.uprobes_hash + ".ko";
+      string tmpko = dir + "/uprobes.ko";
+
+      // The symvers file still needs to go in the script module's directory.
+      string cachesyms = s.uprobes_hash + ".symvers";
+      string tmpsyms = s.tmpdir + "/Module.symvers";
+
+      if (get_file_size(cacheko) > 0 && copy_file(cacheko, tmpko) &&
+          get_file_size(cachesyms) > 0 && copy_file(cachesyms, tmpsyms))
+        {
+          s.uprobes_path = tmpko;
+          return true;
+        }
+    }
+  return false;
 }
 
-static int
+static void
+set_cached_uprobes(systemtap_session& s)
+{
+  if (s.use_cache && !s.uprobes_hash.empty())
+    {
+      string cacheko = s.uprobes_hash + ".ko";
+      string tmpko = s.tmpdir + "/uprobes/uprobes.ko";
+      copy_file(tmpko, cacheko);
+
+      string cachesyms = s.uprobes_hash + ".symvers";
+      string tmpsyms = s.tmpdir + "/uprobes/Module.symvers";
+      copy_file(tmpsyms, cachesyms);
+    }
+}
+
+int
 uprobes_pass (systemtap_session& s)
 {
   if (!s.need_uprobes || kernel_built_uprobes(s))
@@ -443,23 +430,17 @@ uprobes_pass (systemtap_session& s)
   }
 
   /*
-   * We need to use the version of uprobes that comes with SystemTap, so
-   * we may need to rebuild uprobes.ko there.  Unfortunately, this is
-   * never a no-op; e.g., the modpost step gets run every time.  Only
-   * certain users can build uprobes, so we keep the uprobes directory
-   * writable only by those users.  But that means that other users
-   * can't run the make even if everything's up to date.
-   *
-   * So for the other users, we just verify that uprobes doesn't need
-   * to be rebuilt.  If that's not so, stap must fail.
+   * We need to use the version of uprobes that comes with SystemTap.  Try to
+   * get it from the cache first.  If not found, build it and try to save it to
+   * the cache for future reuse.
    */
-  int rc;
-  if (may_build_uprobes (s))
-    rc = make_uprobes(s);
-  else
-    rc = verify_uprobes_uptodate(s);
-  if (rc == 0)
-    rc = copy_uprobes_symbols(s);
+  int rc = 0;
+  if (!get_cached_uprobes(s))
+    {
+      rc = make_uprobes(s);
+      if (!rc)
+        set_cached_uprobes(s);
+    }
   if (rc)
     s.set_try_server ();
   return rc;
@@ -597,21 +578,7 @@ make_tracequery(systemtap_session& s, string& name,
   osrc.close();
 
   // make the module
-  vector<string> make_cmd;
-  make_cmd.push_back("make");
-  make_cmd.push_back("-C");
-  make_cmd.push_back(s.kernel_build_tree);
-  make_cmd.push_back("M=" + dir); // need make-quoting?
-  make_cmd.push_back("modules");
-
-  // Add architecture, except for old powerpc (RHBZ669082)
-  if (s.architecture != "powerpc" ||
-      (strverscmp (s.kernel_base_release.c_str(), "2.6.15") >= 0))
-    make_cmd.push_back("ARCH=" + s.architecture); // need make-quoting?
-
-  // Add any custom kbuild flags
-  make_cmd.insert(make_cmd.end(), s.kbuildflags.begin(), s.kbuildflags.end());
-
+  vector<string> make_cmd = make_make_cmd(s, dir);
   bool quiet = (s.verbose < 4);
   int rc = run_make_cmd(s, make_cmd, quiet, quiet);
   if (rc)
@@ -668,21 +635,7 @@ make_typequery_kmod(systemtap_session& s, const vector<string>& headers, string&
   osrc.close();
 
   // make the module
-  vector<string> make_cmd;
-  make_cmd.push_back("make");
-  make_cmd.push_back("-C");
-  make_cmd.push_back(s.kernel_build_tree);
-  make_cmd.push_back("M=" + dir); // need make-quoting?
-  make_cmd.push_back("modules");
-
-  // Add architecture, except for old powerpc (RHBZ669082)
-  if (s.architecture != "powerpc" ||
-      (strverscmp (s.kernel_base_release.c_str(), "2.6.15") >= 0))
-    make_cmd.push_back("ARCH=" + s.architecture); // need make-quoting?
-
-  // Add any custom kbuild flags
-  make_cmd.insert(make_cmd.end(), s.kbuildflags.begin(), s.kbuildflags.end());
-
+  vector<string> make_cmd = make_make_cmd(s, dir);
   bool quiet = (s.verbose < 4);
   int rc = run_make_cmd(s, make_cmd, quiet, quiet);
   if (rc)
