@@ -26,6 +26,7 @@ CVS
 .metadata
 .project
 .settings
+.autotools
 SNAPSHOT
 *.o
 git_version.h
