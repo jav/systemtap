@@ -384,9 +384,7 @@ create_temp_dir (systemtap_session &s)
 
   string stapdir = "/stapXXXXXX";
   string tmpdirt = tmpdir_env + stapdir;
-  mode_t mask = umask(0);
   const char *tmpdir_name = mkdtemp((char *)tmpdirt.c_str());
-  umask(mask);
   if (! tmpdir_name)
     {
       const char* e = strerror(errno);
