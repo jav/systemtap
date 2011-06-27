@@ -265,7 +265,7 @@ badCertHandler(void *arg, PRFileDesc *sslSocket)
 {
   SECStatus secStatus;
   PRErrorCode errorNumber;
-  CERTCertificate *serverCert;
+  CERTCertificate *serverCert = NULL;
   SECItem subAltName;
   PRArenaPool *tmpArena = NULL;
   CERTGeneralName *nameList, *current;
@@ -355,7 +355,6 @@ badCertHandler(void *arg, PRFileDesc *sslSocket)
 	  if (serverCert != NULL)
 	    {
 	      secStatus = trustNewServer (serverCert);
-	      CERT_DestroyCertificate (serverCert);
 	    }
 	}
       break;
@@ -368,6 +367,11 @@ badCertHandler(void *arg, PRFileDesc *sslSocket)
     PORT_Free (expected);
   if (tmpArena)
     PORT_FreeArena (tmpArena, PR_FALSE);
+
+  if (serverCert != NULL)
+    {
+      CERT_DestroyCertificate (serverCert);
+    }
 
   return secStatus;
 }

@@ -1236,7 +1236,7 @@ parser::parse ()
     }
   else if (num_errors > 0)
     {
-      cerr << num_errors << " parse error(s)." << endl;
+      cerr << _F(ngettext("%d parse error.", "%d parse errors.", num_errors), num_errors) << endl;
       delete f;
       f = 0;
     }

@@ -806,7 +806,8 @@ derive_probes (systemtap_session& s,
         }
       catch (const semantic_error& e)
         {
-          if (! s.listing_mode) // suppress error messages in listing mode
+	  //only output in listing if -vv is supplied
+          if (!s.listing_mode || (s.listing_mode && s.verbose > 1))
             {
               // XXX: prefer not to print_error at every nest/unroll level
               semantic_error* er = new semantic_error (e); // copy it
