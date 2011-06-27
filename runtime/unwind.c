@@ -351,15 +351,15 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				break;
 			case DW_CFA_advance_loc1:
 				result = ptr.p8 < end && advance_loc(*ptr.p8++, state);
-				dbug_unwind(1, "DW_CFA_advance_loc1 %d\n", result);
+				dbug_unwind(1, "DW_CFA_advance_loc1 (result=%d)\n", result);
 				break;
 			case DW_CFA_advance_loc2:
 				result = ptr.p8 <= end + 2 && advance_loc(*ptr.p16++, state);
-				dbug_unwind(1, "DW_CFA_advance_loc2 %d\n", result);
+				dbug_unwind(1, "DW_CFA_advance_loc2 (result=%d)\n", result);
 				break;
 			case DW_CFA_advance_loc4:
 				result = ptr.p8 <= end + 4 && advance_loc(*ptr.p32++, state);
-				dbug_unwind(1, "DW_CFA_advance_loc4 %d\n", result);
+				dbug_unwind(1, "DW_CFA_advance_loc4 (result=%d)\n", result);
 				break;
 			case DW_CFA_offset_extended:
 				value = get_uleb128(&ptr.p8, end);
@@ -385,7 +385,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 			case DW_CFA_undefined:
 			case DW_CFA_same_value:
 				set_rule(get_uleb128(&ptr.p8, end), Nowhere, 0, state);
-				dbug_unwind(1, "DW_CFA_undefined\n");
+				dbug_unwind(1, "DW_CFA_undefined (instruction: 0x%x)\n", *(ptr.p8 - 1));
 				break;
 			case DW_CFA_register:
 				value = get_uleb128(&ptr.p8, end);
@@ -481,16 +481,16 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 			break;
 		case 1:
 			result = advance_loc(*ptr.p8++ & 0x3f, state);
-			dbug_unwind(1, "case 1\n");
+			dbug_unwind(1, "DW_CFA_advance_loc\n");
 			break;
 		case 2:
 			value = *ptr.p8++ & 0x3f;
 			set_rule(value, Memory, get_uleb128(&ptr.p8, end), state);
-			dbug_unwind(1, "case 2\n");
+			dbug_unwind(1, "DW_CFA_offset\n");
 			break;
 		case 3:
 			set_rule(*ptr.p8++ & 0x3f, Nowhere, 0, state);
-			dbug_unwind(1, "case 3\n");
+			dbug_unwind(1, "DW_CFA_restore\n");
 			break;
 		}
 		dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
@@ -947,7 +947,7 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 	return 0;
 
 copy_failed:
-	_stp_warn("_stp_read_address failed to access memory\n");
+	_stp_warn("_stp_read_address failed to access memory for deref\n");
 	return 1;
 truncated:
 	_stp_warn("invalid (truncated) DWARF expression in CFI\n");
@@ -1105,8 +1105,10 @@ static int unwind_frame(struct unwind_context *context,
 
 	/* get code aligment factor */
 	state->codeAlign = get_uleb128(&ptr, end);
+	dbug_unwind (1, "codeAlign=%lx\n", state->codeAlign);
 	/* get data aligment factor */
 	state->dataAlign = get_sleb128(&ptr, end);
+	dbug_unwind (1, "dataAlign=%lx\n", state->dataAlign);
 	if (state->codeAlign == 0 || state->dataAlign == 0 || ptr >= end)
 		goto err;;
 
@@ -1267,7 +1269,7 @@ static int unwind_frame(struct unwind_context *context,
 	return 0;
 
 copy_failed:
-	_stp_warn("_stp_read_address failed to access memory\n");
+	_stp_warn("_stp_read_address failed to access memory location\n");
 err:
 	return -EIO;
 
