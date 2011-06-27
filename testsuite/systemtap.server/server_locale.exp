@@ -20,19 +20,17 @@ if {[info exists env(LANG)]} {
 	unset oldEnvVar
 } 
 set env(LANG) en_US\n.utf8
-set failed 0
+set failed 1
 set cmd [concat stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
 	-timeout 150
-	-re "^sed: can't read /tmp/stap....../server/stderr: No such file or directory\r\n" {
+	-re {^Server: Localization key '.utf8' not found in global list\r\n} {
+		set failed 0
 		exp_continue
 	}
-	-re "^sed: can't read /tmp/stap....../server/stdout: No such file or directory\r\n" {
-		exp_continue
-	}
-	-re "^Unable to open file '/tmp/stap....../server/rc' for reading: No such file or directory\r\n" {
+	-re {^Hello\r\n} {
 		exp_continue
 	}
 	-re {^[^\r\n]*\r\n} {
@@ -66,7 +64,7 @@ if {[info exists env(LANG)]} {
 	unset oldEnvVar
 } 
 set env(LANG) en_US.utf-8@toronto=test
-set failed 0
+set failed 1
 set cmd [concat stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
@@ -74,6 +72,9 @@ expect {
 	-timeout 150
 	-re "^Hello\r\n" {
 		exp_continue
+	}
+	-re "^Server: Localization value 'en_US.utf-8@toronto=test' contains illegal characters\r\n" {
+		set failed 0
 	}
 	-re {^[^\r\n]*\r\n} {
 		set failed 1	

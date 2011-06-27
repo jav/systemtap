@@ -827,7 +827,8 @@ compile_server_client::create_request ()
 {
   // Add the current protocol version.
   ostringstream protocol_version;
-  protocol_version << CURRENT_CS_PROTOCOL_VERSION << " (0x" << hex << CURRENT_CS_PROTOCOL_VERSION << ")";
+  protocol_version << CURRENT_CS_PROTOCOL_VERSION
+		   << " (0x" << hex << CURRENT_CS_PROTOCOL_VERSION << ")";
   int rc = write_to_file (client_tmpdir + "/version", protocol_version.str ());
   if (rc != 0)
     return rc;
