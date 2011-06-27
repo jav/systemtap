@@ -16,6 +16,7 @@
 #include <sys/times.h>
 #include <vector>
 #include <fstream>
+#include <sstream>
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
@@ -58,6 +59,7 @@ extern "C" {
 }
 
 #include "nsscommon.h"
+#include "cscommon.h"
 #endif // HAVE_NSS
 
 using namespace std;
@@ -819,7 +821,12 @@ compile_server_client::initialize ()
 int
 compile_server_client::create_request ()
 {
-  int rc = 0;
+  // Add the current protocol version.
+  ostringstream protocol_version;
+  protocol_version << CURRENT_CS_PROTOCOL_VERSION << " (0x" << hex << CURRENT_CS_PROTOCOL_VERSION << ")";
+  int rc = write_to_file (client_tmpdir + "/version", protocol_version.str ());
+  if (rc != 0)
+    return rc;
 
   // Add the script file or script option
   if (s.script_file != "")
@@ -1302,7 +1309,28 @@ compile_server_client::unpack_response ()
   if (rc != 0)
     {
       clog << _F("Unable to unzip the server response '%s'\n", server_zipfile.c_str());
+      return rc;
     }
+
+  // Determine the server protocol version.
+  server_version = CS_PROTOCOL_VERSION (1, 0); // Assumed until discovered otherwise
+  string filename = server_tmpdir + "/version";
+  if (file_exists (filename))
+    read_from_file (filename, server_version);
+
+  // Make sure we can communicate with this server.
+  bool compatible = client_server_compatible (CURRENT_CS_PROTOCOL_VERSION, server_version);
+  if (s.verbose > 1 || ! compatible)
+    clog << _F("Server protocol version is 0x%x\n", server_version);
+  if (! compatible)
+    {
+      clog << _F("Unable to communicate with a server using protocol version 0x%x",
+		 server_version);
+      return 1;
+    }
+
+  // Warn about the shortcomings of this server if it is down level.
+  show_server_compatibility (server_version);
 
   // If the server's response contains a systemtap temp directory, move
   // its contents to our temp directory.
@@ -1316,7 +1344,8 @@ compile_server_client::unpack_response ()
       if (globbuf.gl_pathc > 1)
 	{
 	  clog << _("Incorrect number of files in server response") << endl;
-	  rc = 1; goto done;
+	  rc = 1;
+	  goto done;
 	}
 
       assert (globbuf.gl_pathc == 1);
@@ -1344,26 +1373,31 @@ compile_server_client::unpack_response ()
 	      if (rc != 0)
 		{
                  clog << _F("Unable to link '%s' to '%s':%s\n",
-                      oldname.c_str(), newname.c_str(), strerror(errno));
+			    oldname.c_str(), newname.c_str(), strerror(errno));
 		  goto done;
 		}
 	    }
 	}
     }
 
-  // Remove the output line due to the synthetic server-side -k
-  // Look for a message containing the name of the temporary directory.
-  // We can't key on the message text, because it may not always be in English, so
-  // instead, look for the quoted directory name.
+  // If the server version is less that 1.1, remove the output line due to the synthetic
+  // server-side -k. Look for a message containing the name of the temporary directory.
+  // We can look for the English message since server versions before 1.1 do not support
+  // localization.
+  if (server_version < CS_PROTOCOL_VERSION (1, 1))
+    {
+      cmd.clear();
+      cmd.push_back("sed");
+      cmd.push_back("-i");
+      cmd.push_back("/^Keeping temporary directory.*/ d");
+      cmd.push_back(server_tmpdir + "/stderr");
+      stap_system (s.verbose, cmd);
+    }
+
+  // Remove the output line due to the synthetic server-side -p4
   cmd.clear();
   cmd.push_back("sed");
   cmd.push_back("-i");
-  cmd.push_back("/^Keeping temporary directory.*/ d"); // XXX: THIS DOES NOT WORK FOR NON-ENGLISH
-  cmd.push_back(server_tmpdir + "/stderr");
-  stap_system (s.verbose, cmd);
-
-  // Remove the output line due to the synthetic server-side -p4
-  cmd.erase(cmd.end() - 2, cmd.end());
   cmd.push_back("/^.*\\.ko$/ d");
   cmd.push_back(server_tmpdir + "/stdout");
   stap_system (s.verbose, cmd);
@@ -1477,8 +1511,9 @@ compile_server_client::read_from_file (const string &fname, int &data)
   return 1; // Failure
 }
 
+template <class T>
 int
-compile_server_client::write_to_file (const string &fname, const string &data)
+compile_server_client::write_to_file (const string &fname, const T &data)
 {
   // C++ streams may not set errno in the even of a failure. However if we
   // set it to 0 before each operation and it gets set during the operation,
@@ -1548,6 +1583,19 @@ compile_server_client::flush_to_stream (const string &fname, ostream &o)
     clog << _("unknown error") << endl;
   return 1; // Failure
 }
+
+void
+compile_server_client::show_server_compatibility (int server_version)
+{
+  // Locale sensitivity was added in version 1.1
+  if (server_version < CS_PROTOCOL_VERSION (1, 1))
+    {
+      if (s.verbose <= 1) // this message already printed?
+	clog << _F("Server protocol version is 0x%x\n", server_version);
+      clog << _("The server does not use localization information passed by the client\n");
+    }
+}
+
 #endif // HAVE_NSS
 
 // Utility Functions.

@@ -1,3 +1,6 @@
+#ifndef NSS_COMMON_H
+#define NSS_COMMON_H 1
+
 /* Used for parameters with default C++ values which are also called from C */
 #if defined(c_plusplus) || defined(__cplusplus)
 #define INIT(v,i) v = (i)
@@ -76,5 +79,7 @@ CERTCertList *get_cert_list_from_db (const std::string &cert_nickname);
 std::string get_cert_serial_number (const CERTCertificate *cert);
 
 #endif // defined(c_plusplus) || defined(__cplusplus)
+
+#endif // NSS_COMMON_H
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

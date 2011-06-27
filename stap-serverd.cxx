@@ -54,6 +54,7 @@ extern "C" {
 
 #include "util.h"
 #include "nsscommon.h"
+#include "cscommon.h"
 
 using namespace std;
 
@@ -66,6 +67,7 @@ static PRStatus spawn_and_wait (const vector<string> &argv,
 extern int optind;
 
 /* File scope statics. Set during argument parsing and initialization. */
+static int client_version;
 static bool set_rlimits;
 static bool use_db_password;
 static int port;
@@ -581,6 +583,7 @@ initialize (int argc, char **argv) {
   srand (time (NULL));
 
   // Initial values.
+  client_version = CS_PROTOCOL_VERSION (1, 0); // Assumed until discovered otherwise
   use_db_password = false;
   port = 0;
   struct utsname utsname;
@@ -609,6 +612,40 @@ cleanup ()
 {
   unadvertise_presence ();
   end_log ();
+}
+
+static int
+read_from_file (const string &fname, int &data)
+{
+  // C++ streams may not set errno in the even of a failure. However if we
+  // set it to 0 before each operation and it gets set during the operation,
+  // then we can use its value in order to determine what happened.
+  errno = 0;
+  ifstream f (fname.c_str ());
+  if (! f.good ())
+    {
+      clog << _F("Unable to open file '%s' for reading: ", fname.c_str());
+      goto error;
+    }
+
+  // Read the data;
+  errno = 0;
+  f >> data;
+  if (f.fail ())
+    {
+      clog << _F("Unable to read from file '%s': ", fname.c_str());
+      goto error;
+    }
+
+  // NB: not necessary to f.close ();
+  return 0; // Success
+
+ error:
+  if (errno)
+    clog << strerror (errno) << endl;
+  else
+    clog << _("unknown error") << endl;
+  return 1; // Failure
 }
 
 /* Function:  readDataFromSocket()
@@ -892,6 +929,96 @@ writeDataToSocket(PRFileDesc *sslSocket, const char *responseFileName)
   return secStatus;
 }
 
+static void
+get_stap_locale (const string &staplang, vector<string> &envVec)
+{
+  // If the client version is < 1.1, then no file containing environment
+  // variables defining the locale has been passed.
+  if (client_version < CS_PROTOCOL_VERSION (1, 1))
+    return;
+
+  /* Go through each line of the file, verify it, then add it to the vector */
+  ifstream langfile;
+  langfile.open(staplang.c_str());
+  if (!langfile.is_open())
+    {
+      // Not fatal. Proceed with the environment we have.
+      nsscommon_error(_F("Unable to open file %s for reading: %s", staplang.c_str(),
+			 strerror (errno)));
+      return;
+    }
+
+  /* Unpackage internationalization variables and verify their contents */
+  map<string, string> envMap; /* To temporarily store the entire array of strings */
+  string line;
+  const set<string> &locVars = localization_variables();
+
+  /* Copy the global environ variable into the map */
+  unsigned i = -1;
+  while (environ[++i])
+    {
+      vector<string> environTok;
+      tokenize(environ[i], environTok, "=");
+      envMap[environTok[0]] = (string)getenv(environTok[0].c_str());
+    }
+
+  /* Create regular expression objects to verify lines read from file. Should not allow
+     spaces, ctrl characters, etc */
+  regex_t checkre;
+  if ((regcomp(&checkre, "^[a-zA-Z0-9@_.-=]*$", REG_EXTENDED | REG_NOSUB) != 0))
+    {
+      // Not fatal. Proceed with the environment we have.
+      nsscommon_error(_F("Error in regcomp: %s", strerror (errno)));
+      return;
+    }
+
+  while (1)
+    {
+      getline(langfile, line);
+      if (!langfile.good())
+	break;
+
+      /* Extract key and value from the line. Note: value may contain "=". */
+      string key;
+      string value;
+      size_t pos;
+      pos = line.find("=");
+      key = line.substr(0, pos);
+      pos++;
+      value = line.substr(pos);
+
+      /* Make sure the key is found in the localization variables global set */
+      if (locVars.find(key) == locVars.end())
+	{
+	  // Not fatal. Just ignore it.
+	  nsscommon_error(_F("Localization key %s not found in global list",
+			     key.c_str()));
+	}
+
+      /* Make sure the value does not contain illegal characters */
+      if ((regexec(&checkre, value.c_str(), (size_t) 0, NULL, 0) != 0))
+	{
+	  // Not fatal. Just ignore it.
+	  nsscommon_error(_F("Localization value %s contains illegal characters",
+			     value.c_str()));
+	}
+
+      /* All is good, copy line into envMap, replacing if already there */
+      envMap[key] = value;
+    }
+
+  if (!langfile.eof())
+    {
+      // Not fatal. Proceed with what we have.
+      nsscommon_error(_F("Error reading file %s: %s", staplang.c_str(), strerror (errno)));
+    }
+
+  regfree(&checkre);
+
+  /* Copy map into vector */
+  for (map<string, string>::iterator it = envMap.begin(); it != envMap.end(); it++)
+    envVec.push_back(it->first + "=" + it->second);
+}
 
 /* Run the translator on the data in the request directory, and produce output
    in the given output directory. */
@@ -902,7 +1029,6 @@ handleRequest (const char* requestDirName, const char* responseDirName)
   char stapstderr[PATH_MAX];
   char staprc[PATH_MAX];
   char stapsymvers[PATH_MAX];
-  string staplang;
   vector<string> stapargv;
   int rc;
   wordexp_t words;
@@ -912,6 +1038,33 @@ handleRequest (const char* requestDirName, const char* responseDirName)
   int unprivileged = 0;
   struct stat st;
 
+  // Save the server version. Do this early, so the client knows what version of the server
+  // it is dealing with, even if the request is not fully completed.
+  string stapversion = string (responseDirName) + "/version";
+  f = fopen (stapversion.c_str (), "w");
+  if (f) 
+    {
+      fprintf(f, "%d (0x%x)", CURRENT_CS_PROTOCOL_VERSION, CURRENT_CS_PROTOCOL_VERSION);
+      fclose(f);
+    }
+  else
+    nsscommon_error (_F("Unable to open client version file %s", stapversion.c_str ()));
+
+  // Get the client version. The default version is already set. Use it if we fail here.
+  string filename = (string)requestDirName + "/version";
+  if (file_exists (filename))
+    read_from_file (filename, client_version);
+  log (_F("Client version is 0x%x", client_version));
+
+  // We can't deal with a client using a newer version of the protocol than we are.
+  if (! client_server_compatible (client_version, CURRENT_CS_PROTOCOL_VERSION))
+    {
+      nsscommon_error (_F("Unable to communicate with a client using protocol version 0x%x",
+			  client_version));
+      return;
+    }
+
+  // The name of the translator executable.
   stapargv.push_back ((char *)(getenv ("SYSTEMTAP_STAP") ?: STAP_PREFIX "/bin/stap"));
 
   /* Transcribe stap_options.  We use plain wordexp(3), since these
@@ -982,7 +1135,6 @@ handleRequest (const char* requestDirName, const char* responseDirName)
 
   snprintf (stapstdout, PATH_MAX, "%s/stdout", responseDirName);
   snprintf (stapstderr, PATH_MAX, "%s/stderr", responseDirName);
-  staplang = string(requestDirName) + "/locale";
 
   /* Check for the unprivileged flag; we need this so that we can decide to sign the module. */
   for (i=0; i < stapargv.size (); i++)
@@ -1009,92 +1161,14 @@ handleRequest (const char* requestDirName, const char* responseDirName)
       stapargv.insert (stapargv.begin () + 1, "--unprivileged"); /* better not be resettable by later option */
     }
 
-  /* Unpackage internationalization variables and verify their contents */
-  map<string, string> envMap; /* To temporarily store the entire array of strings */
-  vector<string> envVec; /* Final version to be sent to spawn_and_wait() */
-  string line;
-  const set<string> &locVars = localization_variables();
-  ifstream langfile;
-
-  /* Copy the global environ variable into the map */
-  i = -1;
-  while (environ[++i])
-    {
-      vector<string> environTok;
-      tokenize(environ[i], environTok, "=");
-      envMap[environTok[0]] = (string)getenv(environTok[0].c_str());
-    }
-
-  /* Create regular expression objects to verify lines read from file. Should not allow spaces, ctrl characters, etc */
-  regex_t checkre;
-  if ((regcomp(&checkre, "^[a-zA-Z0-9@_.-=]*$", REG_EXTENDED | REG_NOSUB) != 0))
-    {
-      nsscommon_error(_F("Error in regcomp: %s", strerror (errno)));
-      return; //Report error.
-    }
-
-  /* Go through each line of the file, verify it, then add it to the vector */
-  langfile.open(staplang.c_str());
-  if (!langfile.is_open())
-    {
-      nsscommon_error(
-          _F("Unable to open file %s for reading: %s", staplang.c_str(), strerror (errno)));
-      return;
-    }
-  else
-    {
-      while (1)
-        {
-          getline(langfile, line);
-          if (!langfile.good())
-            break;
-
-          /* Extract key and value from the line. Note: value may contain "=". */
-          string key;
-          string value;
-          size_t pos;
-          pos = line.find("=");
-          key = line.substr(0, pos);
-          pos++;
-          value = line.substr(pos);
-
-          /* Make sure the key is found in the localization variables global set */
-          if (locVars.find(key) == locVars.end())
-            {
-              nsscommon_error(
-                  _F("Localization key %s not found in global list", key.c_str()));
-              return;
-            }
-
-          /* Make sure the value does not contain illegal characters */
-          if ((regexec(&checkre, value.c_str(), (size_t) 0, NULL, 0) != 0))
-            {
-              nsscommon_error(
-                  _F("Localization value %s contains illegal characters", value.c_str()));
-              return;
-            }
-
-          /* All is good, copy line into envMap, replacing if already there */
-          envMap[key] = value;
-        }
-
-      if (!langfile.eof())
-        {
-          nsscommon_error(
-              _F("Error reading file %s: %s", staplang.c_str(), strerror (errno)));
-          return;
-        }
-    }
-
-  regfree(&checkre);
-
-  /* Copy map into vector */
-  for (map<string, string>::iterator it = envMap.begin(); it != envMap.end(); it++)
-    envVec.push_back(it->first + "=" + it->second);
+  // Environment variables (possibly empty) to be passed to spawn_and_wait().
+  string staplang = string(requestDirName) + "/locale";
+  vector<string> envVec;
+  get_stap_locale (staplang, envVec);
 
   /* All ready, let's run the translator! */
   rc = spawn_and_wait(stapargv, "/dev/null", stapstdout, stapstderr,
-      requestDirName, set_rlimits, envVec);
+		      requestDirName, set_rlimits, envVec);
 
   /* Save the RC */
   snprintf (staprc, PATH_MAX, "%s/rc", responseDirName);

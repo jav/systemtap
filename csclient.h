@@ -37,8 +37,11 @@ private:
   int add_localization_variables();
 
   int read_from_file (const std::string &fname, int &data);
-  int write_to_file (const std::string &fname, const std::string &data);
+  template <class T>
+  int write_to_file (const std::string &fname, const T &data);
   int flush_to_stream (const std::string &fname, std::ostream &o);
+
+  void show_server_compatibility (int server_version);
 
   systemtap_session &s;
   std::vector<std::string> private_ssl_dbs;
@@ -47,6 +50,7 @@ private:
   std::string client_zipfile;
   std::string server_tmpdir;
   std::string server_zipfile;
+  int server_version;
   unsigned argc;
 };
 
