@@ -388,6 +388,9 @@ create_services (AvahiClient *c) {
       // Create the txt tags that will be registered with our service.
       string sysinfo = "sysinfo=" + uname_r + " " + arch;
       string certinfo = "certinfo=" + cert_serial_number;
+      ostringstream protocol_version;
+      protocol_version << "0x" << hex << CURRENT_CS_PROTOCOL_VERSION;
+      string version = "version=" + protocol_version.str ();
       string optinfo = "optinfo=";
       string separator;
       if (! R_option.empty ())
@@ -410,7 +413,7 @@ create_services (AvahiClient *c) {
 						(AvahiPublishFlags)0,
 						avahi_service_name, "_stap._tcp", NULL, NULL, port,
 						sysinfo.c_str (), optinfo.c_str (),
-						certinfo.c_str (), NULL)) < 0)
+						version.c_str (), certinfo.c_str (), NULL)) < 0)
 	{
 	  if (ret == AVAHI_ERR_COLLISION)
 	    goto collision;

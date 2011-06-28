@@ -82,11 +82,12 @@ struct compile_server_info
 {
   compile_server_info () : port (0) {}
 
-  std::string host_name;
-  std::string ip_address;
+  string host_name;
+  string ip_address;
   unsigned short port;
-  std::string sysinfo;
-  std::string certinfo;
+  string version;
+  string sysinfo;
+  string certinfo;
 
   bool empty () const
   {
@@ -107,6 +108,9 @@ struct compile_server_info
 
     // Compare the other fields only if they have both been set.
     if (this->port != 0 && that.port != 0 && this->port != that.port)
+      return false;
+    if (! this->version.empty () && ! that.version.empty () &&
+	this->version != that.version)
       return false;
     if (! this->sysinfo.empty () && ! that.sysinfo.empty () &&
 	this->sysinfo != that.sysinfo)
@@ -1627,6 +1631,11 @@ ostream &operator<< (ostream &s, const compile_server_info &i)
     s << i.sysinfo << '"';
   else
     s << "unknown\"";
+  s << " version=";
+  if (! i.version.empty ())
+    s << i.version;
+  else
+    s << "unknown";
   s << " certinfo=\"";
   if (! i.certinfo.empty ())
     s << i.certinfo << '"';
@@ -1766,7 +1775,7 @@ query_server_status (systemtap_session &s, const string &status_string)
       assert (! servers[i].empty ());
       // Don't list servers with no cert information. They may not actually
       // exist.
-      // TODO: Could try contacting the server and obtaining it cert
+      // TODO: Could try contacting the server and obtaining its cert
       if (servers[i].certinfo.empty ())
 	continue;
       clog << servers[i] << endl;
@@ -2678,6 +2687,17 @@ get_or_keep_compatible_server_info (
       // Retain empty entries.
       assert (! servers[i].empty ());
 
+      // Check the server version.
+      if (servers[i].version.empty ()) {
+	servers.erase (servers.begin () + i);
+	continue;
+      }
+      int server_version = strtoul (servers[i].version.c_str (), NULL, 0);
+      if (! client_server_compatible (CURRENT_CS_PROTOCOL_VERSION, server_version)) {
+	  servers.erase (servers.begin () + i);
+	  continue;
+      }
+
       // Check the target of the server.
       if (servers[i].sysinfo != s.kernel_release + " " + s.architecture)
 	{
@@ -2899,6 +2919,9 @@ void resolve_callback(
 		t = avahi_string_list_to_string(txt);
 		info.sysinfo = extract_field_from_avahi_txt ("sysinfo=", t);
 		info.certinfo = extract_field_from_avahi_txt ("certinfo=", t);
+		info.version = extract_field_from_avahi_txt ("version=", t);
+		if (info.version.empty ())
+		  info.version = "0x10000"; // default version is 1.0
 		avahi_free(t);
 
 		// Add this server to the list of discovered servers.
@@ -3225,6 +3248,8 @@ merge_server_info (
     target.port = source.port;
   if (target.sysinfo.empty ())
     target.sysinfo = source.sysinfo;
+  if (target.version.empty ())
+    target.version = source.version;
   if (target.certinfo.empty ())
     target.certinfo = source.certinfo;
 }
