@@ -482,7 +482,6 @@ check_groups (
 				gid = stapusr_gid;
 		}
 		if (gid != stapusr_gid) {
-			unprivileged_user = 1;
 			return 0;
 		}
 	}
@@ -558,10 +557,10 @@ void assert_stap_module_permissions(
 		return;
 
 	/* Are we are an ordinary user?.  */
-	if (check_groups_rc == 0) {
+	if (check_groups_rc == 0 || check_groups_rc == -2) {
 		err("ERROR: You are trying to run systemtap as a normal user.\n"
-		    "You should either be root, or be part of either "
-		    "group \"stapdev\" or group \"stapusr\".\n");
+		    "You should either be root, or be part of "
+		    "group \"stapusr\" and possibly group \"stapdev\".\n");
 		if (check_groups_rc == -2)
 			err("Your system doesn't seem to have either group.\n");
 	}
@@ -613,10 +612,10 @@ void assert_uprobes_module_permissions(
 		return;
 
 	/* Check permissions for group membership.  */
-	if (check_groups_rc == 0) {
+	if (check_groups_rc == 0 || check_groups_rc == -2) {
 		err("ERROR: You are trying to load the module %s as a normal user.\n"
-		    "You should either be root, or be part of either "
-		    "group \"stapdev\" or group \"stapusr\".\n", module_path);
+		    "You should either be root, or be part of "
+		    "group \"stapusr\" and possible group \"stapusr\".\n", module_path);
 		if (check_groups_rc == -2)
 			err("Your system doesn't seem to have either group.\n");
 	}
