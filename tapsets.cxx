@@ -7857,9 +7857,9 @@ hwbkpt_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline() << "probe_point = sdp->probe->pp;"; // for error messages
   s.op->newline() << "stap_hwbkpt_ret_array[i] = register_wide_hw_breakpoint(hp, (void *)&enter_hwbkpt_probe);";
-  s.op->newline() << "if (IS_ERR(stap_hwbkpt_ret_array[i])) {";
-  s.op->newline(1) << "int err_code = PTR_ERR(stap_hwbkpt_ret_array[i]);";
-  s.op->newline(0) << "_stp_warn(\"Hwbkpt probe %s: registration error %d, addr %p, name %s\", probe_point, err_code, addr, hwbkpt_symbol_name);";
+  s.op->newline() << "rc = PTR_ERR(stap_hwbkpt_ret_array[i]);";
+  s.op->newline() << "if (rc) {";
+  s.op->newline(1) << "_stp_warn(\"Hwbkpt probe %s: registration error %d, addr %p, name %s\", probe_point, rc, addr, hwbkpt_symbol_name);";
   s.op->newline(-1) << "}";
   s.op->newline() << " else sdp->registered_p = 1;";
   s.op->newline(-1) << "}"; // for loop
