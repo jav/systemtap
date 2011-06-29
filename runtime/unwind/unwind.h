@@ -23,7 +23,8 @@
 #error "Unsupported dwarf unwind architecture"
 #endif
 
-#define STP_MAX_STACK_DEPTH 8
+/* Used for DW_CFA_remember_state and DW_CFA_restore_state. */
+#define STP_MAX_STACK_DEPTH 4
 
 #ifndef BUILD_BUG_ON_ZERO
 #define BUILD_BUG_ON_ZERO(e) (sizeof(char[1 - 2 * !!(e)]) - 1)
@@ -273,11 +274,7 @@ struct unwind_item {
 	};
 };
 
-struct unwind_state {
-	uleb128_t loc, org;
-	const u8 *cieStart, *cieEnd;
-	uleb128_t codeAlign;
-	sleb128_t dataAlign;
+struct unwind_reg_state {
 	union {
 		struct cfa {
 			uleb128_t reg, offs;
@@ -285,11 +282,17 @@ struct unwind_state {
 		const u8 *cfa_expr;
 	};
 	struct unwind_item regs[ARRAY_SIZE(reg_info)];
+	unsigned cfa_is_expr:1;
+};
+
+struct unwind_state {
+	uleb128_t loc;
+	const u8 *cieStart, *cieEnd;
+	uleb128_t codeAlign;
+	sleb128_t dataAlign;
 	unsigned stackDepth:8;
 	unsigned version:8;
-	unsigned cfa_is_expr:1;
-	const u8 *label;
-	const u8 *stack[STP_MAX_STACK_DEPTH];
+	struct unwind_reg_state reg[STP_MAX_STACK_DEPTH];
 };
 
 static const struct cfa badCFA = { ARRAY_SIZE(reg_info), 1 };

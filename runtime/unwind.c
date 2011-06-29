@@ -281,6 +281,8 @@ static signed fde_pointer_type(const u32 *cie, void *unwind_data,
 	return DW_EH_PE_absptr;
 }
 
+#define REG_STATE state->reg[state->stackDepth]
+
 static int advance_loc(unsigned long delta, struct unwind_state *state)
 {
 	state->loc += delta * state->codeAlign;
@@ -291,9 +293,9 @@ static int advance_loc(unsigned long delta, struct unwind_state *state)
 static void set_rule(uleb128_t reg, enum item_location where, uleb128_t value, struct unwind_state *state)
 {
 	dbug_unwind(1, "reg=%lx, where=%d, value=%lx\n", reg, where, value);
-	if (reg < ARRAY_SIZE(state->regs)) {
-		state->regs[reg].where = where;
-		state->regs[reg].value = value;
+	if (reg < ARRAY_SIZE(REG_STATE.regs)) {
+		REG_STATE.regs[reg].where = where;
+		REG_STATE.regs[reg].value = value;
 	}
 }
 
@@ -305,9 +307,9 @@ static void set_expr_rule(uleb128_t reg, enum item_location where,
 	uleb128_t len = get_uleb128(expr, end);
 	dbug_unwind(1, "reg=%lx, where=%d, expr=%lu@%p\n",
 		    reg, where, len, *expr);
-	if (end - *expr >= len && reg < ARRAY_SIZE(state->regs)) {
-		state->regs[reg].where = where;
-		state->regs[reg].expr = start;
+	if (end - *expr >= len && reg < ARRAY_SIZE(REG_STATE.regs)) {
+		REG_STATE.regs[reg].where = where;
+		REG_STATE.regs[reg].expr = start;
 		*expr += len;
 	}
 }
@@ -325,17 +327,18 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 	} ptr;
 	int result = 1;
 
-	if (end - start > MAX_CFI)
-	  return 0;
-
-	dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
-	if (start != state->cieStart) {
-		state->loc = state->org;
-		result = processCFI(state->cieStart, state->cieEnd, 0, ptrType, state);
-		if (targetLoc == 0 && state->label == NULL)
-			return result;
+	if (end - start > MAX_CFI) {
+		_stp_warn("Too many CFI instuctions\n");
+		return 0;
 	}
 
+	if (start != state->cieStart) {
+		dbug_unwind(1, "First process FDE\n");
+		result = processCFI(state->cieStart, state->cieEnd, 0, ptrType, state);
+		dbug_unwind(1, "FDE result=%d\n", result);
+	}
+
+	dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
 	for (ptr.p8 = start; result && ptr.p8 < end;) {
 		switch (*ptr.p8 >> 6) {
 			uleb128_t value;
@@ -404,58 +407,50 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				dbug_unwind(1, "DW_CFA_val_expression\n");
 				break;
 			case DW_CFA_remember_state:
-				dbug_unwind(1, "DW_CFA_remember_state\n");
-				if (ptr.p8 == state->label) {
-					state->label = NULL;
-					return 1;
-				}
-				if (state->stackDepth >= STP_MAX_STACK_DEPTH)
+				state->stackDepth++;
+				if (state->stackDepth >= STP_MAX_STACK_DEPTH) {
+					_stp_warn("Too many stacked DW_CFA_remember_state\n");
 					return 0;
-				state->stack[state->stackDepth++] = ptr.p8;
+				}
+				memcpy(&REG_STATE,
+				       &state->reg[state->stackDepth - 1],
+				       sizeof (REG_STATE));
+				dbug_unwind(1, "DW_CFA_remember_state (stackDepth=%d)\n", state->stackDepth);
 				break;
 			case DW_CFA_restore_state:
-				dbug_unwind(1, "DW_CFA_restore_state\n");
-				if (state->stackDepth) {
-					const uleb128_t loc = state->loc;
-					const u8 *label = state->label;
-
-					state->label = state->stack[state->stackDepth - 1];
-					state->cfa_is_expr = 0;
-					memcpy(&state->cfa, &badCFA, sizeof(state->cfa));
-					memset(state->regs, 0, sizeof(state->regs));
-					state->stackDepth = 0;
-					result = processCFI(start, end, 0, ptrType, state);
-					state->loc = loc;
-					state->label = label;
-				} else
+				if (state->stackDepth == 0) {
+					_stp_warn("Unbalanced DW_CFA_restore_state\n");
 					return 0;
+				}
+				state->stackDepth--;
+				dbug_unwind(1, "DW_CFA_restore_state (stackDepth=%d)\n", state->stackDepth);
 				break;
 			case DW_CFA_def_cfa:
-				state->cfa.reg = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "DW_CFA_def_cfa reg=%ld\n", state->cfa.reg);
+				REG_STATE.cfa.reg = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "DW_CFA_def_cfa reg=%ld\n", REG_STATE.cfa.reg);
 				/*nobreak */
 			case DW_CFA_def_cfa_offset:
-				state->cfa.offs = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "DW_CFA_def_cfa_offset offs=%lx\n", state->cfa.offs);
+				REG_STATE.cfa.offs = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "DW_CFA_def_cfa_offset offs=%lx\n", REG_STATE.cfa.offs);
 				break;
 			case DW_CFA_def_cfa_sf:
-				state->cfa.reg = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "DW_CFA_def_cfa_sf reg=%ld\n", state->cfa.reg);
+				REG_STATE.cfa.reg = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "DW_CFA_def_cfa_sf reg=%ld\n", REG_STATE.cfa.reg);
 				/*nobreak */
 			case DW_CFA_def_cfa_offset_sf:
-				state->cfa.offs = get_sleb128(&ptr.p8, end) * state->dataAlign;
-				dbug_unwind(1, "DW_CFA_def_cfa_offset_sf offs=%lx\n", state->cfa.offs);
+				REG_STATE.cfa.offs = get_sleb128(&ptr.p8, end) * state->dataAlign;
+				dbug_unwind(1, "DW_CFA_def_cfa_offset_sf offs=%lx\n", REG_STATE.cfa.offs);
 				break;
 			case DW_CFA_def_cfa_register:
-				state->cfa.reg = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "DW_CFA_def_cfa_register reg=%ld\n", state->cfa.reg);
+				REG_STATE.cfa.reg = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "DW_CFA_def_cfa_register reg=%ld\n", REG_STATE.cfa.reg);
 				break;
 			case DW_CFA_def_cfa_expression: {
 				const u8 *cfa_expr = ptr.p8;
 				value = get_uleb128(&ptr.p8, end);
 				if (ptr.p8 < end && end - ptr.p8 >= value) {
-					state->cfa_is_expr = 1;
-					state->cfa_expr = cfa_expr;
+					REG_STATE.cfa_is_expr = 1;
+					REG_STATE.cfa_expr = cfa_expr;
 					ptr.p8 += value;
 					dbug_unwind(1, "DW_CFA_def_cfa_expression %lu@%p\n", value, cfa_expr);
 				}
@@ -499,7 +494,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 		if (result && targetLoc != 0 && targetLoc < state->loc)
 			return 1;
 	}
-	return result && ptr.p8 == end && (targetLoc == 0 || state->label == NULL);
+	return result && ptr.p8 == end;
 }
 
 #ifdef DEBUG_UNWIND
@@ -1141,26 +1136,31 @@ static int unwind_frame(struct unwind_context *context,
 			goto err;
 	}
 
-	state->org = startLoc;
-	memcpy(&state->cfa, &badCFA, sizeof(state->cfa));
+	state->stackDepth = 0;
+	state->loc = startLoc;
+	memcpy(&REG_STATE.cfa, &badCFA, sizeof(REG_STATE.cfa));
 	/* process instructions */
 	if (!processCFI(ptr, end, pc, ptrType, state)
-	    || state->loc > endLoc || state->regs[retAddrReg].where == Nowhere || state->cfa.reg >= ARRAY_SIZE(reg_info)
-	    || reg_info[state->cfa.reg].width != sizeof(unsigned long)
-	    || state->cfa.offs % sizeof(unsigned long))
+	    || state->loc > endLoc || REG_STATE.regs[retAddrReg].where == Nowhere
+	    || REG_STATE.cfa.reg >= ARRAY_SIZE(reg_info)
+	    || reg_info[REG_STATE.cfa.reg].width != sizeof(unsigned long)
+	    || REG_STATE.cfa.offs % sizeof(unsigned long))
 		goto err;
 
 	/* update frame */
 #ifndef CONFIG_AS_CFI_SIGNAL_FRAME
-	if (frame->call_frame && !UNW_DEFAULT_RA(state->regs[retAddrReg], state->dataAlign))
+	if (frame->call_frame && !UNW_DEFAULT_RA(REG_STATE.regs[retAddrReg], state->dataAlign))
 		frame->call_frame = 0;
 #endif
-	if (state->cfa_is_expr) {
-		if (compute_expr(state->cfa_expr, frame, &cfa))
+	if (REG_STATE.cfa_is_expr) {
+		if (compute_expr(REG_STATE.cfa_expr, frame, &cfa))
 			goto err;
 	}
-	else
-		cfa = FRAME_REG(state->cfa.reg, unsigned long) + state->cfa.offs;
+	else {
+		dbug_unwind(1, "cfa reg=%ld, offs=%lx\n",
+			    REG_STATE.cfa.reg,  REG_STATE.cfa.offs);
+		cfa = FRAME_REG(REG_STATE.cfa.reg, unsigned long) + REG_STATE.cfa.offs;
+	}
 	startLoc = min((unsigned long)UNW_SP(frame), cfa);
 	endLoc = max((unsigned long)UNW_SP(frame), cfa);
 	dbug_unwind(1, "cfa=%lx startLoc=%lx, endLoc=%lx\n", cfa, startLoc, endLoc);
@@ -1171,28 +1171,28 @@ static int unwind_frame(struct unwind_context *context,
                             (unsigned long)startLoc, (unsigned long)endLoc);
 	}
 	dbug_unwind(1, "cie=%lx fde=%lx\n", (unsigned long) cie, (unsigned long) fde);
-	for (i = 0; i < ARRAY_SIZE(state->regs); ++i) {
+	for (i = 0; i < ARRAY_SIZE(REG_STATE.regs); ++i) {
 		if (REG_INVALID(i)) {
-			if (state->regs[i].where == Nowhere)
+			if (REG_STATE.regs[i].where == Nowhere)
 				continue;
 			_stp_warn("REG_INVALID %d\n", i);
 			goto err;
 		}
-		dbug_unwind(2, "register %d. where=%d\n", i, state->regs[i].where);
-		switch (state->regs[i].where) {
+		dbug_unwind(2, "register %d. where=%d\n", i, REG_STATE.regs[i].where);
+		switch (REG_STATE.regs[i].where) {
 		default:
 			break;
 		case Register:
-			if (state->regs[i].value >= ARRAY_SIZE(reg_info)
-			    || REG_INVALID(state->regs[i].value)
-			    || reg_info[i].width > reg_info[state->regs[i].value].width) {
+			if (REG_STATE.regs[i].value >= ARRAY_SIZE(reg_info)
+			    || REG_INVALID(REG_STATE.regs[i].value)
+			    || reg_info[i].width > reg_info[REG_STATE.regs[i].value].width) {
 				_stp_warn("case Register bad\n");
 				goto err;
 			}
-			switch (reg_info[state->regs[i].value].width) {
+			switch (reg_info[REG_STATE.regs[i].value].width) {
 #define CASE(n) \
 			case sizeof(u##n): \
-				state->regs[i].value = FRAME_REG(state->regs[i].value, \
+				REG_STATE.regs[i].value = FRAME_REG(REG_STATE.regs[i].value, \
 				                                const u##n); \
 				break
 				CASES;
@@ -1204,12 +1204,12 @@ static int unwind_frame(struct unwind_context *context,
 			break;
 		}
 	}
-	for (i = 0; i < ARRAY_SIZE(state->regs); ++i) {
+	for (i = 0; i < ARRAY_SIZE(REG_STATE.regs); ++i) {
 		dbug_unwind(2, "register %d. invalid=%d\n", i, REG_INVALID(i));
 		if (REG_INVALID(i))
 			continue;
-		dbug_unwind(2, "register %d. where=%d\n", i, state->regs[i].where);
-		switch (state->regs[i].where) {
+		dbug_unwind(2, "register %d. where=%d\n", i, REG_STATE.regs[i].where);
+		switch (REG_STATE.regs[i].where) {
 		case Nowhere:
 			if (reg_info[i].width != sizeof(UNW_SP(frame))
 			    || &FRAME_REG(i, __typeof__(UNW_SP(frame)))
@@ -1220,7 +1220,7 @@ static int unwind_frame(struct unwind_context *context,
 		case Register:
 			switch (reg_info[i].width) {
 #define CASE(n) case sizeof(u##n): \
-				FRAME_REG(i, u##n) = state->regs[i].value; \
+				FRAME_REG(i, u##n) = REG_STATE.regs[i].value; \
 				break
 				CASES;
 #undef CASE
@@ -1230,15 +1230,15 @@ static int unwind_frame(struct unwind_context *context,
 			}
 			break;
 		case Expr:
-			if (compute_expr(state->regs[i].expr, frame, &addr))
+			if (compute_expr(REG_STATE.regs[i].expr, frame, &addr))
 				goto err;
 			goto memory;
 		case ValExpr:
-			if (compute_expr(state->regs[i].expr, frame, &addr))
+			if (compute_expr(REG_STATE.regs[i].expr, frame, &addr))
 				goto err;
 			goto value;
 		case Value:
-			addr = cfa + state->regs[i].value * state->dataAlign;
+			addr = cfa + REG_STATE.regs[i].value * state->dataAlign;
 		value:
 			if (reg_info[i].width != sizeof(unsigned long)) {
 				_stp_warn("bad Register width\n");
@@ -1247,7 +1247,7 @@ static int unwind_frame(struct unwind_context *context,
 			FRAME_REG(i, unsigned long) = addr;
 			break;
 		case Memory:
-			addr = cfa + state->regs[i].value * state->dataAlign;
+			addr = cfa + REG_STATE.regs[i].value * state->dataAlign;
 		memory:
 			dbug_unwind(2, "addr=%lx width=%d\n", addr, reg_info[i].width);
 			switch (reg_info[i].width) {
