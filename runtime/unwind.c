@@ -332,12 +332,6 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 		return 0;
 	}
 
-	if (start != state->cieStart) {
-		dbug_unwind(1, "First process FDE\n");
-		result = processCFI(state->cieStart, state->cieEnd, 0, ptrType, state);
-		dbug_unwind(1, "FDE result=%d\n", result);
-	}
-
 	dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
 	for (ptr.p8 = start; result && ptr.p8 < end;) {
 		switch (*ptr.p8 >> 6) {
@@ -1139,7 +1133,14 @@ static int unwind_frame(struct unwind_context *context,
 	state->stackDepth = 0;
 	state->loc = startLoc;
 	memcpy(&REG_STATE.cfa, &badCFA, sizeof(REG_STATE.cfa));
-	/* process instructions */
+
+	/* Common Information Entry (CIE) instructions. */
+	dbug_unwind (1, "processCFI for CIE\n");
+	if (!processCFI(state->cieStart, state->cieEnd, 0, ptrType, state))
+		goto err;
+
+	/* Process Frame Description Entry (FDE) instructions. */
+	dbug_unwind (1, "processCFI for FDE\n");
 	if (!processCFI(ptr, end, pc, ptrType, state)
 	    || state->loc > endLoc || REG_STATE.regs[retAddrReg].where == Nowhere
 	    || REG_STATE.cfa.reg >= ARRAY_SIZE(reg_info)
