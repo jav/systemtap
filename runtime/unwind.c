@@ -227,58 +227,81 @@ static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrTy
 static signed fde_pointer_type(const u32 *cie, void *unwind_data,
 			       uint32_t table_len)
 {
+	const u32 cie_id = *(const u32 *) (cie + 1);
 	const u8 *ptr = (const u8 *)(cie + 2);
-	unsigned version = *ptr;
+	unsigned version = *ptr++;
 
-	if (version != 1 && version != 3 && version != 4)
+	if (version != 1 && version != 3 && version != 4) {
+		_stp_warn ("Unsupported CIE version: %d\n", version);
 		return -1;	/* unsupported */
-	if (*++ptr) {
+	}
+
+	/* CIE_id must be 0 (.debug_frame) or -1 (.eh_frame)
+	   XXX dwarf32-vs-dwarf64 format? */
+	if (cie_id == 0 || cie_id == (const u32) -1) {
 		const char *aug;
 		const u8 *end = (const u8 *)(cie + 1) + *cie;
 		uleb128_t len;
 
 		/* end of cie should fall within unwind table. */
 		if (((void*)end) < ((void *)unwind_data)
-		    || ((void *)end) > ((void *)(unwind_data + table_len)))
-		  return -1;
+		    || ((void *)end) > ((void *)(unwind_data + table_len))) {
+			_stp_warn("End of cie should fall within unwind table\n");
+			return -1;
+		}
 
-		/* check if augmentation size is first (and thus present) */
-		if (*ptr != 'z')
-			return -1;
 		/* check if augmentation string is nul-terminated */
-		if ((ptr = memchr(aug = (const void *)ptr, 0, end - ptr)) == NULL)
+		aug = (const void *) ptr;
+		if ((ptr = memchr(aug, 0, end - ptr)) == NULL) {
+			_stp_warn("Unterminated augmentation string\n");
 			return -1;
+		}
 		++ptr;		/* skip terminator */
 		get_uleb128(&ptr, end);	/* skip code alignment */
 		get_sleb128(&ptr, end);	/* skip data alignment */
 		/* skip return address column */
 		version <= 1 ? (void)++ptr : (void)get_uleb128(&ptr, end);
-		len = get_uleb128(&ptr, end);	/* augmentation length */
-		if (ptr + len < ptr || ptr + len > end)
-			return -1;
-		end = ptr + len;
-		while (*++aug) {
-			if (ptr >= end)
+		if (*aug == 'z') {
+			len = get_uleb128(&ptr, end);	/* augmentation length */
+			if (ptr + len < ptr || ptr + len > end) {
+				_stp_warn("Bogus augmentation lenght\n");
 				return -1;
-			switch (*aug) {
+			}
+			end = ptr + len;
+		}
+		while (*aug) {
+			if (ptr >= end) {
+				_stp_warn("Augmentation data runs past end\n");
+				return -1;
+			}
+			switch (*aug++) {
+			case 'z':
+				break;
 			case 'L':
 				++ptr;
 				break;
 			case 'P':{
 					signed ptrType = *ptr++;
-
-					if (!read_pointer(&ptr, end, ptrType) || ptr > end)
+					if (!read_pointer(&ptr, end, ptrType) || ptr > end) {
+						_stp_warn("couldn't read personality routine handler\n");
 						return -1;
+					}
 				}
 				break;
 			case 'R':
 				return *ptr;
+			case 'S':
+				break;
 			default:
+				_stp_warn("Unknown augmentation char '%c'\n", *(aug - 1));
 				return -1;
 			}
 		}
+		return DW_EH_PE_absptr;
+	} else {
+		_stp_warn("Unexpected CIE_id: %x\n", cie_id);
+		return -1;
 	}
-	return DW_EH_PE_absptr;
 }
 
 #define REG_STATE state->reg[state->stackDepth]
@@ -1066,22 +1089,20 @@ static int unwind_frame(struct unwind_context *context,
 	}
 	if (*++ptr) {
 		/* check if augmentation size is first (and thus present) */
-		if (*ptr == 'z') {
-			while (++ptr < end && *ptr) {
-				switch (*ptr) {
-					/* check for ignorable (or already handled)
-					 * nul-terminated augmentation string */
-				case 'L':
-				case 'P':
-				case 'R':
-					continue;
-				case 'S':
-					dbug_unwind(1, "This is a signal frame\n");
-					frame->call_frame = 0;
-					continue;
-				default:
-					break;
-				}
+		while (ptr++ < end && *ptr) {
+			switch (*ptr) {
+				/* check for ignorable (or already handled)
+				 * nul-terminated augmentation string */
+			case 'z':
+			case 'L':
+			case 'P':
+			case 'R':
+				continue;
+			case 'S':
+				dbug_unwind(1, "This is a signal frame\n");
+				frame->call_frame = 0;
+				continue;
+			default:
 				break;
 			}
 		}
