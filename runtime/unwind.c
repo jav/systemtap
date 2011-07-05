@@ -91,23 +91,29 @@ static sleb128_t get_sleb128(const u8 **pcur, const u8 *end)
 	return value;
 }
 
+/* whether this is a real fde or not */
+static const int is_fde(const u32 *fde, int is_ehframe)
+{
+	/* check that length is proper */
+	if (!*fde || (*fde & (sizeof(*fde) - 1))) {
+		_stp_warn("bad fde\n");
+		return 0;
+	}
+
+	/* CIE id for eh_frame is 0, otherwise 0xffffffff */
+	if (is_ehframe && fde[1] == 0)
+		return 0;
+	else if (fde[1] == 0xffffffff)
+		return 0;
+
+	return 1;
+}
+
 /* given an FDE, find its CIE */
 static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
 			      uint32_t table_len, int is_ehframe)
 {
 	const u32 *cie;
-
-	/* check that length is proper */
-	if (!*fde || (*fde & (sizeof(*fde) - 1)))
-		return &bad_cie;
-
-	/* CIE id for eh_frame is 0, otherwise 0xffffffff */
-	if (is_ehframe && fde[1] == 0)
-		return &not_fde;
-	else if (fde[1] == 0xffffffff)
-		return &not_fde;
-
-	/* OK, must be an FDE.  Now find its CIE. */
 
 	/* CIE_pointer must be a proper offset */
 	if ((fde[1] & (sizeof(*fde) - 1)) || fde[1] > (unsigned long)(fde + 1) - (unsigned long)unwind_data) {
@@ -125,12 +131,13 @@ static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
 
 	/* Make sure address falls in the table */
 	if (((void *)cie) < ((void*)unwind_data)
-	    || ((void*)cie) > ((void*)(unwind_data + table_len)))
-	  return NULL;
+	    || ((void*)cie) > ((void*)(unwind_data + table_len))) {
+		_stp_warn("cie address falls outside table\n");
+		return NULL;
+	}
 
 	if (*cie <= sizeof(*cie) + 4 || *cie >= fde[1] - sizeof(*fde)
-	    || (*cie & (sizeof(*cie) - 1))
-	    || (cie[1] != 0xffffffff && cie[1] != 0)) {
+	    || is_fde(cie, is_ehframe)) {
 		_stp_warn("cie is not valid %lx %x %x %x\n", (unsigned long)cie, *cie, fde[1], cie[1]);
 		return NULL;	/* this is not a (valid) CIE */
 	}
@@ -1016,10 +1023,10 @@ static int unwind_frame(struct unwind_context *context,
 	dbug_unwind(1, "%s: fde=%lx\n", m->name, (unsigned long) fde);
 
 	/* found the fde, now set startLoc and endLoc */
-	if (fde != NULL) {
+	if (fde != NULL && is_fde(fde, is_ehframe)) {
 		cie = cie_for_fde(fde, table, table_len, is_ehframe);
 		dbug_unwind(1, "%s: cie=%lx\n", m->name, (unsigned long) cie);
-		if (likely(cie != NULL && cie != &bad_cie && cie != &not_fde)) {
+		if (likely(cie != NULL)) {
 			ptr = (const u8 *)(fde + 2);
 			ptrType = fde_pointer_type(cie, table, table_len);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
@@ -1034,7 +1041,7 @@ static int unwind_frame(struct unwind_context *context,
 				goto done;
 			}
 		} else {
-			dbug_unwind(1, "fde found in header, but cie is bad!\n");
+			_stp_warn("fde found in header, but cie is bad!\n");
 			fde = NULL;
 		}
 	} else if ((is_ehframe ? m->unwind_hdr: s->debug_hdr) == NULL) {
@@ -1046,13 +1053,11 @@ static int unwind_frame(struct unwind_context *context,
 	    for (fde = table, tableSize = table_len; cie = NULL, tableSize > sizeof(*fde)
 		 && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
 			dbug_unwind(3, "fde=%lx tableSize=%d\n", (long)*fde, (int)tableSize);
-			cie = cie_for_fde(fde, table, table_len, is_ehframe);
-			if (cie == &bad_cie) {
-				cie = NULL;
-				break;
-			}
-			if (cie == NULL || cie == &not_fde || (ptrType = fde_pointer_type(cie, table, table_len)) < 0)
+			if (!is_fde(fde, is_ehframe))
 				continue;
+			cie = cie_for_fde(fde, table, table_len, is_ehframe);
+			if (cie == NULL || (ptrType = fde_pointer_type(cie, table, table_len)) < 0)
+				break;
 
 			ptr = (const u8 *)(fde + 2);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
