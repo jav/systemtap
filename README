@@ -19,11 +19,17 @@ Prerequisites:
 Installation steps:
 
 - Install the kernel development and gcc packages.
+  On modern Fedora, # yum install kernel-devel-`uname -r`
+
 - Install any debuginfo packages you need, for kernel and/or userspace.
+  On modern Fedora, # debuginfo-install kernel [...]
+
   (Beware of confusion between kernel vs. kernel-debug vs kernel-PAE etc.
   variants.  Each likely has a corresponding development and debuginfo
   package.)
-- Install the systemtap package, if one already exists.
+
+- Install the systemtap package.
+  On modern Fedora, # yum install systemtap systemtap-runtime
 
 Build steps:
 
@@ -86,6 +92,9 @@ Build steps:
   can only launch (with "staprun") pre-compiled probe modules (created
   by "stap -p4 ...") that a system administrator copied under
   /lib/modules/`uname -r`/systemtap.
+
+  To run a simple test.
+  # stap -v -e 'probe vfs.read {printf("read performed\n"); exit()}'
 
   To run the full test suite from the build tree.
   % sudo make installcheck
