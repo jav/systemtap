@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  * kernel stack unwinding
- * Copyright (C) 2008-2010 Red Hat Inc.
+ * Copyright (C) 2008-2011 Red Hat Inc.
  *
  * Based on old kernel code that is
  * Copyright (C) 2002-2006 Novell, Inc.
@@ -612,15 +612,18 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 				   int is_ehframe)
 {
 	const u8 *ptr, *end, *hdr = is_ehframe ? m->unwind_hdr: s->debug_hdr;
+	uint32_t hdr_len = is_ehframe ? m->unwind_hdr_len : s->debug_hdr_len;
 	unsigned long startLoc;
 	u32 *fde = NULL;
 	unsigned num, tableSize, t2;
 	unsigned long eh_hdr_addr = m->unwind_hdr_addr;
 
-	if (hdr == NULL || hdr[0] != 1)
+	if (hdr == NULL || hdr_len < 4 || hdr[0] != 1) {
+		_stp_warn("no or bad debug frame hdr\n");
 		return NULL;
+	}
 
-	dbug_unwind(1, "search for %lx", pc);
+	dbug_unwind(1, "binary search for %lx", pc);
 
 	/* table_enc */
 	switch (hdr[3] & DW_EH_PE_FORM) {
@@ -641,7 +644,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 		return NULL;
 	}
 	ptr = hdr + 4;
-	end = hdr + (is_ehframe ? m->unwind_hdr_len : s->debug_hdr_len);
+	end = hdr + hdr_len;
 	{
 		// XXX Can the header validity be checked just once?
 		unsigned long eh = read_ptr_sect(&ptr, end, hdr[1], 0,
@@ -1034,10 +1037,12 @@ static int unwind_frame(struct unwind_context *context,
 			dbug_unwind(1, "fde found in header, but cie is bad!\n");
 			fde = NULL;
 		}
-	}
-
-	/* did not a good fde find with binary search, so do slow linear search */
-	if (fde == NULL) {
+	} else if ((is_ehframe ? m->unwind_hdr: s->debug_hdr) == NULL) {
+	    /* Only do a linear search if there isn't a search header.
+	       There always should be one, we create it in the translator
+	       if it didn't exist. Only if we are using elfutils < 0.142
+	       should these ever be missing. */
+	    _stp_warn("No binary search table for debug frame, doing slow linear search for %s\n", m->name);
 	    for (fde = table, tableSize = table_len; cie = NULL, tableSize > sizeof(*fde)
 		 && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
 			dbug_unwind(3, "fde=%lx tableSize=%d\n", (long)*fde, (int)tableSize);
