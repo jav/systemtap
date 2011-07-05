@@ -73,10 +73,10 @@ Build steps:
   personal directory.
 
   % make all
-  % sudo make install
+  # make install
 
   To uninstall systemtap:
-  % sudo make uninstall
+  # make uninstall
 
 - Run systemtap:
 
@@ -87,17 +87,19 @@ Build steps:
   Some samples should be available under $prefix/share/doc/systemtap/examples.
 
   Normally, run "stap" as root.  If desired, create "stapdev" and
-  "stapusr" entries in /etc/groups.  Any users in "stapdev" will be
-  able to run systemtap as if with root privileges.  Users in "stapusr"
-  can only launch (with "staprun") pre-compiled probe modules (created
+  "stapusr" entries in /etc/groups.  Any users in "stapdev"+"stapusr" will
+  be able to run systemtap as if with root privileges.  Users in "stapusr"
+  only may launch (with "staprun") pre-compiled probe modules (created
   by "stap -p4 ...") that a system administrator copied under
-  /lib/modules/`uname -r`/systemtap.
+  /lib/modules/`uname -r`/systemtap.  "stapusr" may also be permitted to
+  create arbitrary unprivileged systemtap scripts of their own.  See
+  README.unprivileged for additional setup instructions.
 
   To run a simple test.
   # stap -v -e 'probe vfs.read {printf("read performed\n"); exit()}'
 
   To run the full test suite from the build tree.
-  % sudo make installcheck
+  # make installcheck
 
 
 Tips:
@@ -111,8 +113,8 @@ Tips:
 
 Building a kernel.org kernel:
 
-- Consider applying the utrace patches, if you wish to probe
-  user-space applications.  http://people.redhat.com/roland/utrace/
+- Consider applying the utrace kernel patches, if you wish to probe
+  user-space applications.  http://sourceware.org/systemtap/wiki/utrace
 
 - Build the kernel using your normal procedures.  Enable
   CONFIG_DEBUG_INFO, CONFIG_KPROBES, CONFIG_RELAY, CONFIG_DEBUG_FS,
