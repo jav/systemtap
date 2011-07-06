@@ -207,7 +207,7 @@ the system administrator must certify which ones are trusted as SSL peers,
 as systemtap kernel module signers or both.
 
 Certifying a compile server as an SSL peer means what the system administrator
-trusts that it compile systemtap scripts correctly.
+trusts that it compiles systemtap scripts correctly.
 
 Certifying a compile server as a module signer means that the system
 administrator trusts it to correctly check a systemtap script for
