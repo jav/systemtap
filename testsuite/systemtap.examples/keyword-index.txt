@@ -586,6 +586,28 @@ keywords: statistics memory simple
   # stap sizeof.stp FILE '</usr/include/stdio.h>'
 
 
+memory/hw_watch_addr.stp - Watch access to a kernel address using breakpoint hardware
+keywords: memory watchpoint
+
+  The script will watch accesses to a single kernel address and prints
+  a traceback each time the address is accessed. This script needs to
+  be run as root to allow access to the breakpoint hardware.
+
+  # stap --all-modules hw_watch_addr.stp 0x`grep "pid_max$" /proc/kallsyms` \
+  -c "sleep 1"
+
+
+memory/hw_watch_sym.stp - Watch to a kernel symbol using breakpoint hardware
+keywords: memory watchpoint
+
+  The script will watch accesses to the starting address of a single
+  kernel symbol and prints a traceback each time the symbol is
+  accessed. This script needs to be run as root to allow access to the
+  breakpoint hardware.
+
+  # stap --all-modules hw_watch_sym.stp pid_max -c "sleep 1"
+
+
 memory/kmalloc-top - Show Paths to Kernel Malloc (kmalloc) Invocations
 keywords: memory
 
@@ -1819,6 +1841,30 @@ keywords: syscall wait4
   waiting for. If the waited for PID is not specified , it is "-1".
 
   # stap wait4time.stp -c "sleep 0.2"
+
+
+= WATCHPOINT =
+
+memory/hw_watch_addr.stp - Watch access to a kernel address using breakpoint hardware
+keywords: memory watchpoint
+
+  The script will watch accesses to a single kernel address and prints
+  a traceback each time the address is accessed. This script needs to
+  be run as root to allow access to the breakpoint hardware.
+
+  # stap --all-modules hw_watch_addr.stp 0x`grep "pid_max$" /proc/kallsyms` \
+  -c "sleep 1"
+
+
+memory/hw_watch_sym.stp - Watch to a kernel symbol using breakpoint hardware
+keywords: memory watchpoint
+
+  The script will watch accesses to the starting address of a single
+  kernel symbol and prints a traceback each time the symbol is
+  accessed. This script needs to be run as root to allow access to the
+  breakpoint hardware.
+
+  # stap --all-modules hw_watch_sym.stp pid_max -c "sleep 1"
 
 
 = WRITE =

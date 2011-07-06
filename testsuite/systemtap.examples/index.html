@@ -135,6 +135,13 @@ keywords: <a href="keyword-index.html#LOCKING">LOCKING</a> <br>
 <li><a href="locks/bkl_stats.stp">locks/bkl_stats.stp</a> - Per Process Statistics on Big Kernel Lock (BKL) Use<br>
 keywords: <a href="keyword-index.html#LOCKING">LOCKING</a> <br>
 <p>The bkl_stats.stp script can indicate which processes have excessive waits for the Big Kernel Lock (BKL) and which processes are taking the BKL for long periods of time. The bkl_stats.stp script prints lists of all the processes that require the BKL. Every five seconds two tables are printed out. The first table lists the processes that waited for the BKL followed by the number of times that the process waited, the minimum time of the wait, the average and the maximum time waited. The second table lists has similar information for the time spent in holding the lock for each of the processes.<p><font size="-2"><pre># stap bkl_stats.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+<li><a href="memory/hw_watch_addr.stp">memory/hw_watch_addr.stp</a> - Watch access to a kernel address using breakpoint hardware<br>
+keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#WATCHPOINT">WATCHPOINT</a> <br>
+<p>The script will watch accesses to a single kernel address and prints a traceback each time the address is accessed. This script needs to be run as root to allow access to the breakpoint hardware.<p><font size="-2"><pre># stap --all-modules hw_watch_addr.stp 0x`grep &quot;pid_max$&quot; /proc/kallsyms` \
+-c &quot;sleep 1&quot;</pre></font></p></li>
+<li><a href="memory/hw_watch_sym.stp">memory/hw_watch_sym.stp</a> - Watch to a kernel symbol using breakpoint hardware<br>
+keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#WATCHPOINT">WATCHPOINT</a> <br>
+<p>The script will watch accesses to the starting address of a single kernel symbol and prints a traceback each time the symbol is accessed. This script needs to be run as root to allow access to the breakpoint hardware.<p><font size="-2"><pre># stap --all-modules hw_watch_sym.stp pid_max -c &quot;sleep 1&quot;</pre></font></p></li>
 <li><a href="memory/kmalloc-top">memory/kmalloc-top</a> - Show Paths to Kernel Malloc (kmalloc) Invocations<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 <p>The kmalloc-top perl program runs a small systemtap script to collect stack traces for each call to the kmalloc function and counts the time that each stack trace is observed. When kmalloc-top exits it prints out sorted list. The output can be filtered to print only the first N stack traces (-t), stack traces with a minimum counts (-m), or exclude certain stack traces (-e).<p><font size="-2"><pre># ./kmalloc-top -c &quot;sleep 0.2&quot;</pre></font></p></li>
