@@ -1,0 +1,14 @@
+title: Watch to a kernel symbol using breakpoint hardware
+name: hw_watch_sym.stp
+version: 1.0
+author: William Cohen
+keywords: memory watchpoint
+subsystem: memory
+status: production
+exit: user-controlled
+output: trace
+scope: system-wide
+description: The script will watch accesses to the starting address of a single kernel symbol and prints a traceback each time the symbol is accessed. This script needs to be run as root to allow access to the breakpoint hardware.
+test_support: perf stat --event=mem:0xc000000 /bin/true
+test_check: stap --all-modules -p4 hw_watch_sym.stp pid_max
+test_installcheck: stap --all-modules hw_watch_sym.stp pid_max -c "sleep 1"
