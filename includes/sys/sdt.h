@@ -77,7 +77,7 @@ struct __sdt_type
 #define __SDT_ALWAYS_SIGNED(T) \
 template<> struct __sdt_type<T> { static const bool __sdt_signed = true; };
 #define __SDT_COND_SIGNED(T) \
-template<> struct __sdt_type<T> { static const bool __sdt_signed = ((T)(-1) < 0); };
+template<> struct __sdt_type<T> { static const bool __sdt_signed = ((T)(-1) < 1); };
 __SDT_ALWAYS_SIGNED(signed char)
 __SDT_ALWAYS_SIGNED(short)
 __SDT_ALWAYS_SIGNED(int)
