@@ -7745,7 +7745,7 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "stap_hwbkpt_ret_array[" << hwbkpt_probes.size() << "];";
   s.op->newline() << "static struct stap_hwbkpt_probe {";
   s.op->newline() << "int registered_p:1;";
-// registered_p =  0 signifies a probe that failed registration
+// registered_p =  0 signifies a probe that is unregistered (or failed)
 // registered_p =  1 signifies a probe that got registered successfully
 
   // Symbol Names are mostly small and uniform enough
@@ -7763,7 +7763,6 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
     {
       hwbkpt_derived_probe* p = hwbkpt_probes.at(it);
       s.op->newline() << "{";
-      s.op->line() << " .registered_p=1,";
       if (p->symbol_name.size())
       s.op->line() << " .address=(unsigned long)0x0" << "ULL,";
       else
@@ -7857,9 +7856,14 @@ hwbkpt_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline() << "probe_point = sdp->probe->pp;"; // for error messages
   s.op->newline() << "stap_hwbkpt_ret_array[i] = register_wide_hw_breakpoint(hp, (void *)&enter_hwbkpt_probe);";
-  s.op->newline() << "rc = PTR_ERR(stap_hwbkpt_ret_array[i]);";
+  s.op->newline() << "rc = 0;";
+  s.op->newline() << "if (IS_ERR(stap_hwbkpt_ret_array[i])) {";
+  s.op->newline(1) << "rc = PTR_ERR(stap_hwbkpt_ret_array[i]);";
+  s.op->newline() << "stap_hwbkpt_ret_array[i] = 0;";
+  s.op->newline(-1) << "}";
   s.op->newline() << "if (rc) {";
   s.op->newline(1) << "_stp_warn(\"Hwbkpt probe %s: registration error %d, addr %p, name %s\", probe_point, rc, addr, hwbkpt_symbol_name);";
+  s.op->newline() << "sdp->registered_p = 0;";
   s.op->newline(-1) << "}";
   s.op->newline() << " else sdp->registered_p = 1;";
   s.op->newline(-1) << "}"; // for loop
