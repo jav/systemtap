@@ -288,7 +288,10 @@ static signed fde_pointer_type(const u32 *cie, void *unwind_data,
 				++ptr;
 				break;
 			case 'P':{
-					signed ptrType = *ptr++;
+					/* We are not actually interested in
+					   the value, so don't try to deref.
+					   Mask off DW_EH_PE_indirect. */
+					signed ptrType = *ptr++ & 0x7F;
 					if (!read_pointer(&ptr, end, ptrType) || ptr > end) {
 						_stp_warn("couldn't read personality routine handler\n");
 						return -1;
