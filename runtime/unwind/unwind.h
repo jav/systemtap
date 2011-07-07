@@ -248,17 +248,6 @@ static const struct {
 typedef unsigned long uleb128_t;
 typedef   signed long sleb128_t;
 
-static struct unwind_table {
-	unsigned long pc; /* text */
-	unsigned long range; /* text_size */
-	const void *address; /* unwind_data */
-	unsigned long size; /* unwind_data_len */
-	const unsigned char *header; /* unwind_header */
-	unsigned long hdrsz;
-	struct unwind_table *link;
-	const char *name; /* module name */
-} root_table;
-
 struct unwind_item {
 	enum item_location {
 		Nowhere,
