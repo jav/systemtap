@@ -830,10 +830,7 @@ int
 compile_server_client::create_request ()
 {
   // Add the current protocol version.
-  ostringstream protocol_version;
-  protocol_version << CURRENT_CS_PROTOCOL_VERSION
-		   << " (0x" << hex << CURRENT_CS_PROTOCOL_VERSION << ")";
-  int rc = write_to_file (client_tmpdir + "/version", protocol_version.str ());
+  int rc = write_to_file (client_tmpdir + "/version", CURRENT_CS_PROTOCOL_VERSION);
   if (rc != 0)
     return rc;
 
@@ -1322,23 +1319,12 @@ compile_server_client::unpack_response ()
     }
 
   // Determine the server protocol version.
-  server_version = CS_PROTOCOL_VERSION (1, 0); // Assumed until discovered otherwise
+  cs_protocol_version server_version;
   string filename = server_tmpdir + "/version";
   if (file_exists (filename))
-    read_from_file (filename, server_version);
+    ::read_from_file (filename, server_version);
 
-  // Make sure we can communicate with this server.
-  bool compatible = client_server_compatible (CURRENT_CS_PROTOCOL_VERSION, server_version);
-  if (s.verbose > 1 || ! compatible)
-    clog << _F("Server protocol version is 0x%x\n", server_version);
-  if (! compatible)
-    {
-      clog << _F("Unable to communicate with a server using protocol version 0x%x",
-		 server_version);
-      return 1;
-    }
-
-  // Warn about the shortcomings of this server if it is down level.
+  // Warn about the shortcomings of this server, if it is down level.
   show_server_compatibility (server_version);
 
   // If the server's response contains a systemtap temp directory, move
@@ -1389,11 +1375,11 @@ compile_server_client::unpack_response ()
 	}
     }
 
-  // If the server version is less that 1.1, remove the output line due to the synthetic
+  // If the server version is less that 1.6, remove the output line due to the synthetic
   // server-side -k. Look for a message containing the name of the temporary directory.
   // We can look for the English message since server versions before 1.1 do not support
   // localization.
-  if (server_version < CS_PROTOCOL_VERSION (1, 1))
+  if (server_version < "1.6")
     {
       cmd.clear();
       cmd.push_back("sed");
@@ -1594,13 +1580,12 @@ compile_server_client::flush_to_stream (const string &fname, ostream &o)
 }
 
 void
-compile_server_client::show_server_compatibility (int server_version)
+compile_server_client::show_server_compatibility (const cs_protocol_version &server_version)
 {
-  // Locale sensitivity was added in version 1.1
-  if (server_version < CS_PROTOCOL_VERSION (1, 1))
+  // Locale sensitivity was added in version 1.6
+  if (server_version < "1.6")
     {
-      if (s.verbose <= 1) // this message already printed?
-	clog << _F("Server protocol version is 0x%x\n", server_version);
+      clog << _F("Server protocol version is %s\n", server_version.v);
       clog << _("The server does not use localization information passed by the client\n");
     }
 }
@@ -2687,17 +2672,6 @@ get_or_keep_compatible_server_info (
       // Retain empty entries.
       assert (! servers[i].empty ());
 
-      // Check the server version.
-      if (servers[i].version.empty ()) {
-	servers.erase (servers.begin () + i);
-	continue;
-      }
-      int server_version = strtoul (servers[i].version.c_str (), NULL, 0);
-      if (! client_server_compatible (CURRENT_CS_PROTOCOL_VERSION, server_version)) {
-	  servers.erase (servers.begin () + i);
-	  continue;
-      }
-
       // Check the target of the server.
       if (servers[i].sysinfo != s.kernel_release + " " + s.architecture)
 	{
@@ -2921,7 +2895,7 @@ void resolve_callback(
 		info.certinfo = extract_field_from_avahi_txt ("certinfo=", t);
 		info.version = extract_field_from_avahi_txt ("version=", t);
 		if (info.version.empty ())
-		  info.version = "0x10000"; // default version is 1.0
+		  info.version = "1.0"; // default version is 1.0
 		avahi_free(t);
 
 		// Add this server to the list of discovered servers.

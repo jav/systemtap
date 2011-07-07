@@ -20,12 +20,12 @@
 */
 #include "config.h"
 
+#include <fstream>
 #include <string>
 #include <cerrno>
 #include <cassert>
 #include <climits>
 #include <iostream>
-#include <fstream>
 #include <map>
 
 extern "C" {
@@ -67,7 +67,7 @@ static PRStatus spawn_and_wait (const vector<string> &argv,
 extern int optind;
 
 /* File scope statics. Set during argument parsing and initialization. */
-static int client_version;
+static cs_protocol_version client_version;
 static bool set_rlimits;
 static bool use_db_password;
 static int port;
@@ -388,9 +388,7 @@ create_services (AvahiClient *c) {
       // Create the txt tags that will be registered with our service.
       string sysinfo = "sysinfo=" + uname_r + " " + arch;
       string certinfo = "certinfo=" + cert_serial_number;
-      ostringstream protocol_version;
-      protocol_version << "0x" << hex << CURRENT_CS_PROTOCOL_VERSION;
-      string version = "version=" + protocol_version.str ();
+      string version = string ("version=") + CURRENT_CS_PROTOCOL_VERSION;;
       string optinfo = "optinfo=";
       string separator;
       if (! R_option.empty ())
@@ -613,7 +611,7 @@ initialize (int argc, char **argv) {
   srand (time (NULL));
 
   // Initial values.
-  client_version = CS_PROTOCOL_VERSION (1, 0); // Assumed until discovered otherwise
+  client_version = "1.0"; // Assumed until discovered otherwise
   use_db_password = false;
   port = 0;
   struct utsname utsname;
@@ -642,40 +640,6 @@ cleanup ()
 {
   unadvertise_presence ();
   end_log ();
-}
-
-static int
-read_from_file (const string &fname, int &data)
-{
-  // C++ streams may not set errno in the even of a failure. However if we
-  // set it to 0 before each operation and it gets set during the operation,
-  // then we can use its value in order to determine what happened.
-  errno = 0;
-  ifstream f (fname.c_str ());
-  if (! f.good ())
-    {
-      clog << _F("Unable to open file '%s' for reading: ", fname.c_str());
-      goto error;
-    }
-
-  // Read the data;
-  errno = 0;
-  f >> data;
-  if (f.fail ())
-    {
-      clog << _F("Unable to read from file '%s': ", fname.c_str());
-      goto error;
-    }
-
-  // NB: not necessary to f.close ();
-  return 0; // Success
-
- error:
-  if (errno)
-    clog << strerror (errno) << endl;
-  else
-    clog << _("unknown error") << endl;
-  return 1; // Failure
 }
 
 /* Function:  readDataFromSocket()
@@ -962,9 +926,9 @@ writeDataToSocket(PRFileDesc *sslSocket, const char *responseFileName)
 static void
 get_stap_locale (const string &staplang, vector<string> &envVec)
 {
-  // If the client version is < 1.1, then no file containing environment
+  // If the client version is < 1.6, then no file containing environment
   // variables defining the locale has been passed.
-  if (client_version < CS_PROTOCOL_VERSION (1, 1))
+  if (client_version < "1.6")
     return;
 
   /* Go through each line of the file, verify it, then add it to the vector */
@@ -1069,7 +1033,7 @@ handleRequest (const string &requestDirName, const string &responseDirName)
   f = fopen (stapversion.c_str (), "w");
   if (f) 
     {
-      fprintf(f, "%d (0x%x)", CURRENT_CS_PROTOCOL_VERSION, CURRENT_CS_PROTOCOL_VERSION);
+      fputs (CURRENT_CS_PROTOCOL_VERSION, f);
       fclose(f);
     }
   else
@@ -1079,15 +1043,7 @@ handleRequest (const string &requestDirName, const string &responseDirName)
   string filename = requestDirName + "/version";
   if (file_exists (filename))
     read_from_file (filename, client_version);
-  log (_F("Client version is 0x%x", client_version));
-
-  // We can't deal with a client using a newer version of the protocol than we are.
-  if (! client_server_compatible (client_version, CURRENT_CS_PROTOCOL_VERSION))
-    {
-      client_error (_F("Unable to communicate with a client using protocol version 0x%x",
-		       client_version));
-      return;
-    }
+  log (_F("Client version is %s", client_version.v));
 
   // The name of the translator executable.
   stapargv.push_back ((char *)(getenv ("SYSTEMTAP_STAP") ?: STAP_PREFIX "/bin/stap"));

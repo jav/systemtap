@@ -9,6 +9,7 @@
 #define CSCLIENT_H
 
 struct compile_server_info;
+struct cs_protocol_version;
 
 class compile_server_client
 {
@@ -41,7 +42,7 @@ private:
   int write_to_file (const std::string &fname, const T &data);
   int flush_to_stream (const std::string &fname, std::ostream &o);
 
-  void show_server_compatibility (int server_version);
+  void show_server_compatibility (const cs_protocol_version &server_version);
 
   systemtap_session &s;
   std::vector<std::string> private_ssl_dbs;
@@ -50,7 +51,6 @@ private:
   std::string client_zipfile;
   std::string server_tmpdir;
   std::string server_zipfile;
-  int server_version;
   unsigned argc;
 };
 

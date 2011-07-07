@@ -77,7 +77,11 @@ DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(srcdir)/dtrace.in ABOUT-NLS depcomp \
 	$(am__noinst_HEADERS_DIST) $(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/gettext.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/lib-ld.m4 \
+	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
+	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/po.m4 \
+	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -137,6 +141,7 @@ loc2c_test_LINK = $(CCLD) $(loc2c_test_CFLAGS) $(CFLAGS) \
 @BUILD_TRANSLATOR_TRUE@	stap-rpm_finder.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-setupdwfl.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-csclient.$(OBJEXT) \
+@BUILD_TRANSLATOR_TRUE@	stap-cscommon.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-remote.$(OBJEXT) $(am__objects_1)
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
@@ -156,6 +161,7 @@ stap_gen_cert_DEPENDENCIES =
 stap_gen_cert_LINK = $(CXXLD) $(stap_gen_cert_CXXFLAGS) $(CXXFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am_stap_serverd_OBJECTS = stap_serverd-stap-serverd.$(OBJEXT) \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_serverd-cscommon.$(OBJEXT) \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_serverd-util.$(OBJEXT) \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_serverd-nsscommon.$(OBJEXT)
 stap_serverd_OBJECTS = $(am_stap_serverd_OBJECTS)
@@ -286,7 +292,6 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
-INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
@@ -427,7 +432,7 @@ oldinclude_HEADERS = includes/sys/sdt.h includes/sys/sdt-config.h
 @BUILD_TRANSLATOR_TRUE@	tapset-itrace.cxx tapset-utrace.cxx \
 @BUILD_TRANSLATOR_TRUE@	task_finder.cxx dwflpp.cxx \
 @BUILD_TRANSLATOR_TRUE@	rpm_finder.cxx setupdwfl.cxx \
-@BUILD_TRANSLATOR_TRUE@	csclient.cxx remote.cxx \
+@BUILD_TRANSLATOR_TRUE@	csclient.cxx cscommon.cxx remote.cxx \
 @BUILD_TRANSLATOR_TRUE@	$(am__append_12)
 @BUILD_TRANSLATOR_TRUE@noinst_HEADERS = sdt_types.h
 @BUILD_TRANSLATOR_TRUE@stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ \
@@ -469,7 +474,7 @@ PHONIES = $(am__append_17) $(am__append_23) runcheck update-po \
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_SOURCES = stap-serverd.cxx util.cxx nsscommon.cxx
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_SOURCES = stap-serverd.cxx cscommon.cxx util.cxx nsscommon.cxx
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_LDADD = -lssl3 \
@@ -750,6 +755,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-coveragedb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-csclient.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-cscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-dwarf_wrappers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-dwflpp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-elaborate.Po@am__quote@
@@ -781,6 +787,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_gen_cert-nsscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_gen_cert-stap-gen-cert.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_gen_cert-util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_serverd-cscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_serverd-nsscommon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_serverd-stap-serverd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_serverd-util.Po@am__quote@
@@ -1284,6 +1291,22 @@ stap-csclient.obj: csclient.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-csclient.obj `if test -f 'csclient.cxx'; then $(CYGPATH_W) 'csclient.cxx'; else $(CYGPATH_W) '$(srcdir)/csclient.cxx'; fi`
 
+stap-cscommon.o: cscommon.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-cscommon.o -MD -MP -MF $(DEPDIR)/stap-cscommon.Tpo -c -o stap-cscommon.o `test -f 'cscommon.cxx' || echo '$(srcdir)/'`cscommon.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-cscommon.Tpo $(DEPDIR)/stap-cscommon.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='cscommon.cxx' object='stap-cscommon.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-cscommon.o `test -f 'cscommon.cxx' || echo '$(srcdir)/'`cscommon.cxx
+
+stap-cscommon.obj: cscommon.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-cscommon.obj -MD -MP -MF $(DEPDIR)/stap-cscommon.Tpo -c -o stap-cscommon.obj `if test -f 'cscommon.cxx'; then $(CYGPATH_W) 'cscommon.cxx'; else $(CYGPATH_W) '$(srcdir)/cscommon.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-cscommon.Tpo $(DEPDIR)/stap-cscommon.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='cscommon.cxx' object='stap-cscommon.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-cscommon.obj `if test -f 'cscommon.cxx'; then $(CYGPATH_W) 'cscommon.cxx'; else $(CYGPATH_W) '$(srcdir)/cscommon.cxx'; fi`
+
 stap-remote.o: remote.cxx
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-remote.o -MD -MP -MF $(DEPDIR)/stap-remote.Tpo -c -o stap-remote.o `test -f 'remote.cxx' || echo '$(srcdir)/'`remote.cxx
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-remote.Tpo $(DEPDIR)/stap-remote.Po
@@ -1427,6 +1450,22 @@ stap_serverd-stap-serverd.obj: stap-serverd.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='stap-serverd.cxx' object='stap_serverd-stap-serverd.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_serverd_CXXFLAGS) $(CXXFLAGS) -c -o stap_serverd-stap-serverd.obj `if test -f 'stap-serverd.cxx'; then $(CYGPATH_W) 'stap-serverd.cxx'; else $(CYGPATH_W) '$(srcdir)/stap-serverd.cxx'; fi`
+
+stap_serverd-cscommon.o: cscommon.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_serverd_CXXFLAGS) $(CXXFLAGS) -MT stap_serverd-cscommon.o -MD -MP -MF $(DEPDIR)/stap_serverd-cscommon.Tpo -c -o stap_serverd-cscommon.o `test -f 'cscommon.cxx' || echo '$(srcdir)/'`cscommon.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap_serverd-cscommon.Tpo $(DEPDIR)/stap_serverd-cscommon.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='cscommon.cxx' object='stap_serverd-cscommon.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_serverd_CXXFLAGS) $(CXXFLAGS) -c -o stap_serverd-cscommon.o `test -f 'cscommon.cxx' || echo '$(srcdir)/'`cscommon.cxx
+
+stap_serverd-cscommon.obj: cscommon.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_serverd_CXXFLAGS) $(CXXFLAGS) -MT stap_serverd-cscommon.obj -MD -MP -MF $(DEPDIR)/stap_serverd-cscommon.Tpo -c -o stap_serverd-cscommon.obj `if test -f 'cscommon.cxx'; then $(CYGPATH_W) 'cscommon.cxx'; else $(CYGPATH_W) '$(srcdir)/cscommon.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap_serverd-cscommon.Tpo $(DEPDIR)/stap_serverd-cscommon.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='cscommon.cxx' object='stap_serverd-cscommon.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_serverd_CXXFLAGS) $(CXXFLAGS) -c -o stap_serverd-cscommon.obj `if test -f 'cscommon.cxx'; then $(CYGPATH_W) 'cscommon.cxx'; else $(CYGPATH_W) '$(srcdir)/cscommon.cxx'; fi`
 
 stap_serverd-util.o: util.cxx
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_serverd_CXXFLAGS) $(CXXFLAGS) -MT stap_serverd-util.o -MD -MP -MF $(DEPDIR)/stap_serverd-util.Tpo -c -o stap_serverd-util.o `test -f 'util.cxx' || echo '$(srcdir)/'`util.cxx
