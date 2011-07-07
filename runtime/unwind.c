@@ -22,31 +22,6 @@ struct unwind_context {
     struct unwind_state state;
 };
 
-struct eh_frame_hdr_table_entry {
-	unsigned long start, fde;
-};
-
-static int cmp_eh_frame_hdr_table_entries(const void *p1, const void *p2)
-{
-	const struct eh_frame_hdr_table_entry *e1 = p1;
-	const struct eh_frame_hdr_table_entry *e2 = p2;
-	return (e1->start > e2->start) - (e1->start < e2->start);
-}
-
-static void swap_eh_frame_hdr_table_entries(void *p1, void *p2, int size)
-{
-	struct eh_frame_hdr_table_entry *e1 = p1;
-	struct eh_frame_hdr_table_entry *e2 = p2;
-	unsigned long v;
-
-	v = e1->start;
-	e1->start = e2->start;
-	e2->start = v;
-	v = e1->fde;
-	e1->fde = e2->fde;
-	e2->fde = v;
-}
-
 static uleb128_t get_uleb128(const u8 **pcur, const u8 *end)
 {
 	const u8 *cur = *pcur;
