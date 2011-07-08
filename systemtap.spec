@@ -106,7 +106,9 @@ Summary: Instrumentation System Testsuite
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap systemtap-sdt-devel dejagnu which prelink
+Requires: systemtap = %{version}-%{release}
+Requires: systemtap-sdt-devel = %{version}-%{release}
+Requires: dejagnu which prelink
 
 %description testsuite
 The testsuite allows testing of the entire SystemTap toolchain
@@ -117,7 +119,7 @@ Summary: Instrumentation System Server
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap
+Requires: systemtap = %{version}-%{release}
 Requires: avahi avahi-tools nss mktemp
 Requires: zip unzip
 Requires(post): chkconfig
@@ -144,7 +146,7 @@ Summary: Systemtap Initscripts
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap-runtime
+Requires: systemtap-runtime = %{version}-%{release}
 Requires(post): chkconfig
 Requires(preun): chkconfig
 Requires(preun): initscripts
@@ -159,7 +161,7 @@ Summary: Instrumentation System Grapher
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap-runtime
+Requires: systemtap-runtime = %{version}-%{release}
 
 %description grapher
 SystemTap grapher is a utility for real-time visualization of
