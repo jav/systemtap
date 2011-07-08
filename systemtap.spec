@@ -396,7 +396,7 @@ exit 0
 %files -f %{name}.lang
 %defattr(-,root,root)
 
-%doc README AUTHORS NEWS COPYING examples
+%doc README README.unprivileged AUTHORS NEWS COPYING examples
 %if %{with_docs}
 %doc docs.installed/*.pdf
 %doc docs.installed/tapsets
@@ -440,7 +440,7 @@ exit 0
 %{_mandir}/man7/stappaths.7*
 %{_mandir}/man8/staprun.8*
 
-%doc README AUTHORS NEWS COPYING
+%doc README README.security AUTHORS NEWS COPYING
 
 %files testsuite
 %defattr(-,root,root)
