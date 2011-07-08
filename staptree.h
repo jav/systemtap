@@ -841,11 +841,13 @@ struct varuse_collecting_visitor: public functioncall_traversing_visitor
   std::set<vardecl*> read;
   std::set<vardecl*> written;
   bool embedded_seen;
+  bool current_lvalue_read;
   expression* current_lvalue;
   expression* current_lrvalue;
   varuse_collecting_visitor(systemtap_session& s):
     session (s),
     embedded_seen (false),
+    current_lvalue_read (false),
     current_lvalue(0),
     current_lrvalue(0) {}
   void visit_embeddedcode (embeddedcode *s);
