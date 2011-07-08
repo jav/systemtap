@@ -55,6 +55,52 @@ if {[info exists oldEnvVar]} {
 }
 
 
+###### Embedded ';' in Environment Variables ########
+# Should not allow embedded ';' in Environment Variables
+# There are many disallowed chars, but let's just try one
+set test "Embedded ';' in Env Vars"
+if {[info exists env(LANG)]} {
+	set oldEnvVar $env(LANG)
+	} elseif {[info exists oldEnvVar]} {
+	unset oldEnvVar
+}
+set env(LANG) "en_US;.utf8"
+set failed 1
+set cmd [concat stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Server: Localization value '\[^'\]*' contains illegal characters\r\n" {
+		# good, it was not passed through
+		set failed 0
+		exp_continue
+	}
+	-re {^Hello\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1
+	}
+	timeout {
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+if {[info exists oldEnvVar]} {
+	set env(LANG) $oldEnvVar
+	} else {
+	unset env(LANG)
+}
+
+
 ###### Use of "_.-@=" in Environment Variables ########
 # Should allow "_.-@=" in Environment Variables
 set test "Use of '_.-@=' in Env Vars"
@@ -64,7 +110,7 @@ if {[info exists env(LANG)]} {
 	unset oldEnvVar
 } 
 set env(LANG) en_US.utf-8@toronto=test
-set failed 1
+set failed 0
 set cmd [concat stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
@@ -72,9 +118,6 @@ expect {
 	-timeout 150
 	-re "^Hello\r\n" {
 		exp_continue
-	}
-	-re "^Server: Localization value 'en_US.utf-8@toronto=test' contains illegal characters\r\n" {
-		set failed 0
 	}
 	-re {^[^\r\n]*\r\n} {
 		set failed 1	

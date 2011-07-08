@@ -995,7 +995,7 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
   /* Create regular expression objects to verify lines read from file. Should not allow
      spaces, ctrl characters, etc */
   regex_t checkre;
-  if ((regcomp(&checkre, "^[a-zA-Z0-9@_.-=]*$", REG_EXTENDED | REG_NOSUB) != 0))
+  if ((regcomp(&checkre, "^[a-zA-Z0-9@_.=-]*$", REG_EXTENDED | REG_NOSUB) != 0))
     {
       // Not fatal. Proceed with the environment we have.
       server_error(_F("Error in regcomp: %s", strerror (errno)));
