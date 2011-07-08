@@ -67,7 +67,7 @@ static sleb128_t get_sleb128(const u8 **pcur, const u8 *end)
 }
 
 /* Whether this is a real CIE. Assumes CIE (length) sane. */
-static const int has_cie_id(const u32 *cie, int is_ehframe)
+static int has_cie_id(const u32 *cie, int is_ehframe)
 {
 	/* CIE id for eh_frame is 0, otherwise 0xffffffff */
 	if (is_ehframe && cie[1] == 0)
@@ -79,7 +79,7 @@ static const int has_cie_id(const u32 *cie, int is_ehframe)
 }
 
 /* whether this is a real fde or not */
-static const int is_fde(const u32 *fde, void *table, uint32_t table_len,
+static int is_fde(const u32 *fde, void *table, uint32_t table_len,
 			int is_ehframe)
 {
 	const u8 *end;
@@ -247,7 +247,7 @@ static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrTy
 /* Parse FDE and CIE content. Basic sanity checks should already have
    been done start/end/version/id (done by is_fde and cie_for_fde).
    Returns -1 if FDE or CIE cannot be parsed.*/
-static const int parse_fde_cie(const u32 *fde, const u32 *cie,
+static int parse_fde_cie(const u32 *fde, const u32 *cie,
 			       void *unwind_data, uint32_t table_len,
 			       unsigned *ptrType,
 			       unsigned long *startLoc, unsigned long *locRange,
