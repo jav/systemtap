@@ -276,24 +276,13 @@ struct unwind_reg_state {
 
 struct unwind_state {
 	uleb128_t loc;
-	const u8 *cieStart, *cieEnd;
 	uleb128_t codeAlign;
 	sleb128_t dataAlign;
 	unsigned stackDepth:8;
-	unsigned version:8;
 	struct unwind_reg_state reg[STP_MAX_STACK_DEPTH];
 };
 
 static const struct cfa badCFA = { ARRAY_SIZE(reg_info), 1 };
-static unsigned long read_pointer(const u8 **pLoc,
-                                  const void *end,
-                                  signed ptrType);
-static const int is_fde(const u32 *fde, int is_ehframe);
-static const u32 *cie_for_fde(const u32 *fde, void *table,
-			      uint32_t table_len, int is_ehframe);
-static signed fde_pointer_type(const u32 *cie,
-			       void *table, uint32_t table_len);
-
 
 #endif /* STP_USE_DWARF_UNWINDER */
 #endif /*_STP_UNWIND_H_*/

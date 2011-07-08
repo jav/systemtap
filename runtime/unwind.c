@@ -66,29 +66,52 @@ static sleb128_t get_sleb128(const u8 **pcur, const u8 *end)
 	return value;
 }
 
-/* whether this is a real fde or not */
-static const int is_fde(const u32 *fde, int is_ehframe)
+/* Whether this is a real CIE. Assumes CIE (length) sane. */
+static const int has_cie_id(const u32 *cie, int is_ehframe)
 {
+	/* CIE id for eh_frame is 0, otherwise 0xffffffff */
+	if (is_ehframe && cie[1] == 0)
+		return 1;
+	else if (cie[1] == 0xffffffff)
+		return 1;
+	else
+		return 0;
+}
+
+/* whether this is a real fde or not */
+static const int is_fde(const u32 *fde, void *table, uint32_t table_len,
+			int is_ehframe)
+{
+	const u8 *end;
+
 	/* check that length is proper */
 	if (!*fde || (*fde & (sizeof(*fde) - 1))) {
 		_stp_warn("bad fde\n");
 		return 0;
 	}
 
-	/* CIE id for eh_frame is 0, otherwise 0xffffffff */
-	if (is_ehframe && fde[1] == 0)
+	if (has_cie_id(fde, is_ehframe))
 		return 0;
-	else if (fde[1] == 0xffffffff)
+
+	end = (const u8 *)(fde + 1) + *fde;
+
+        /* end should fall within unwind table. */
+        if (((void*)end) < table
+            || ((void *)end) > ((void *)(table + table_len))) {
+		_stp_warn("bad fde length\n");
 		return 0;
+	}
 
 	return 1;
 }
 
-/* given an FDE, find its CIE */
+/* given an FDE, find its CIE and sanity check */
 static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
 			      uint32_t table_len, int is_ehframe)
 {
 	const u32 *cie;
+	unsigned version;
+	const u8 *end;
 
 	/* CIE_pointer must be a proper offset */
 	if ((fde[1] & (sizeof(*fde) - 1)) || fde[1] > (unsigned long)(fde + 1) - (unsigned long)unwind_data) {
@@ -112,9 +135,24 @@ static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
 	}
 
 	if (*cie <= sizeof(*cie) + 4 || *cie >= fde[1] - sizeof(*fde)
-	    || is_fde(cie, is_ehframe)) {
+	    || ! has_cie_id(cie, is_ehframe)) {
 		_stp_warn("cie is not valid %lx %x %x %x\n", (unsigned long)cie, *cie, fde[1], cie[1]);
 		return NULL;	/* this is not a (valid) CIE */
+	}
+
+	version = *(const u8 *)(cie + 2);
+	if (version != 1 && version != 3 && version != 4) {
+		_stp_warn ("Unsupported CIE version: %d\n", version);
+		return NULL;
+	}
+
+	end = (const u8 *)(cie + 1) + *cie;
+
+        /* end should fall within unwind table. */
+        if (((void *)end) < (void *)unwind_data
+            || ((void *)end) > ((void *)(unwind_data + table_len))) {
+		_stp_warn ("CIE end falls outside table\n");
+		return NULL;
 	}
 
 	return cie;
@@ -206,87 +244,120 @@ static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrTy
 	return read_ptr_sect(pLoc, end, ptrType, 0, 0);
 }
 
-static signed fde_pointer_type(const u32 *cie, void *unwind_data,
-			       uint32_t table_len)
+/* Parse FDE and CIE content. Basic sanity checks should already have
+   been done start/end/version/id (done by is_fde and cie_for_fde).
+   Returns -1 if FDE or CIE cannot be parsed.*/
+static const int parse_fde_cie(const u32 *fde, const u32 *cie,
+			       void *unwind_data, uint32_t table_len,
+			       unsigned *ptrType,
+			       unsigned long *startLoc, unsigned long *locRange,
+			       const u8 **fdeStart, const u8 **fdeEnd,
+			       const u8 **cieStart, const u8 **cieEnd,
+			       uleb128_t *codeAlign, sleb128_t *dataAlign,
+			       uleb128_t *retAddrReg, unsigned *call_frame)
 {
-	const u32 cie_id = *(const u32 *) (cie + 1);
-	const u8 *ptr = (const u8 *)(cie + 2);
-	unsigned version = *ptr++;
+	const u8 *ciePtr = (const u8 *)(cie + 2);
+	const u8 *fdePtr = (const u8 *)(fde + 2);
+	unsigned version = *ciePtr++;
+	const char *aug = (const void *)ciePtr;
+	uleb128_t augLen = 0;	/* Set to non-zero if cie aug starts with z */
 
-	if (version != 1 && version != 3 && version != 4) {
-		_stp_warn ("Unsupported CIE version: %d\n", version);
-		return -1;	/* unsupported */
+	*cieEnd = (const u8 *)(cie + 1) + *cie;
+	*fdeEnd = (const u8 *)(fde + 1) + *fde;
+
+	/* check if augmentation string is nul-terminated */
+	if ((ciePtr = memchr(aug, 0, *cieEnd - ciePtr)) == NULL) {
+		_stp_warn("Unterminated augmentation string\n");
+		return -1;
+	}
+	ciePtr++;	/* skip aug terminator */
+
+	*codeAlign = get_uleb128(&ciePtr, *cieEnd);
+	*dataAlign = get_sleb128(&ciePtr, *cieEnd);
+	dbug_unwind(2, "codeAlign=%lx, dataAlign=%lx\n",
+		    *codeAlign, *dataAlign);
+	if (*codeAlign == 0 || *dataAlign == 0) {
+		_stp_warn("zero codeAlign or dataAlign values\n");
+		return -1;
 	}
 
-	/* CIE_id must be 0 (.debug_frame) or -1 (.eh_frame)
-	   XXX dwarf32-vs-dwarf64 format? */
-	if (cie_id == 0 || cie_id == (const u32) -1) {
-		const char *aug;
-		const u8 *end = (const u8 *)(cie + 1) + *cie;
-		uleb128_t len;
+	*retAddrReg = ((version <= 1)
+		       ? *ciePtr++ : get_uleb128(&ciePtr, *cieEnd));
 
-		/* end of cie should fall within unwind table. */
-		if (((void*)end) < ((void *)unwind_data)
-		    || ((void *)end) > ((void *)(unwind_data + table_len))) {
-			_stp_warn("End of cie should fall within unwind table\n");
+	if (*aug == 'z') {
+		augLen = get_uleb128(&ciePtr, *cieEnd);
+		if (augLen > (const u8 *)cie - *cieEnd
+		    || ciePtr + augLen > *cieEnd) {
+			_stp_warn("Bogus CIE augmentation length\n");
 			return -1;
 		}
+	}
+	*cieStart = ciePtr + augLen;
 
-		/* check if augmentation string is nul-terminated */
-		aug = (const void *) ptr;
-		if ((ptr = memchr(aug, 0, end - ptr)) == NULL) {
-			_stp_warn("Unterminated augmentation string\n");
+	/* Read augmentation string to determine frame_call and ptrType. */
+	*call_frame = 1;
+	*ptrType = DW_EH_PE_absptr;
+	while (*aug) {
+		if (ciePtr > *cieStart) {
+			_stp_warn("Augmentation data runs past end\n");
 			return -1;
 		}
-		++ptr;		/* skip terminator */
-		get_uleb128(&ptr, end);	/* skip code alignment */
-		get_sleb128(&ptr, end);	/* skip data alignment */
-		/* skip return address column */
-		version <= 1 ? (void)++ptr : (void)get_uleb128(&ptr, end);
-		if (*aug == 'z') {
-			len = get_uleb128(&ptr, end);	/* augmentation length */
-			if (ptr + len < ptr || ptr + len > end) {
-				_stp_warn("Bogus augmentation lenght\n");
-				return -1;
-			}
-			end = ptr + len;
-		}
-		while (*aug) {
-			if (ptr >= end) {
-				_stp_warn("Augmentation data runs past end\n");
-				return -1;
-			}
-			switch (*aug++) {
+		switch (*aug) {
 			case 'z':
 				break;
 			case 'L':
-				++ptr;
+				ciePtr++;
 				break;
-			case 'P':{
-					/* We are not actually interested in
-					   the value, so don't try to deref.
-					   Mask off DW_EH_PE_indirect. */
-					signed ptrType = *ptr++ & 0x7F;
-					if (!read_pointer(&ptr, end, ptrType) || ptr > end) {
-						_stp_warn("couldn't read personality routine handler\n");
-						return -1;
-					}
+			case 'P': {
+				/* We are not actually interested in
+				   the value, so don't try to deref.
+				   Mask off DW_EH_PE_indirect. */
+				signed pType = *ciePtr++ & 0x7F;
+				if (!read_pointer(&ciePtr, *cieStart, pType)) {
+					_stp_warn("couldn't read personality routine handler\n");
+					return -1;
 				}
 				break;
+			}
 			case 'R':
-				return *ptr;
+				*ptrType = *ciePtr++;
+				break;
 			case 'S':
+				*call_frame = 0;
 				break;
 			default:
 				_stp_warn("Unknown augmentation char '%c'\n", *(aug - 1));
 				return -1;
-			}
 		}
-		return DW_EH_PE_absptr;
-	} else {
-		_stp_warn("Unexpected CIE_id: %x\n", cie_id);
+		aug++;
+	}
+
+	if (ciePtr != *cieStart) {
+		_stp_warn("Bogus CIE augmentation data\n");
 		return -1;
 	}
+
+	/* Now we finally know the type encoding and whether or not the
+	   augmentation string starts with 'z' indicating the FDE might also
+	   have some augmentation data, so we can parse the FDE. */
+	*startLoc = read_pointer(&fdePtr, *fdeEnd, *ptrType);
+	*locRange = read_pointer(&fdePtr, *fdeEnd,
+				 *ptrType & (DW_EH_PE_FORM | DW_EH_PE_signed));
+	dbug_unwind(2, "startLoc: %lx, locrange: %lx\n",
+		    *startLoc, *locRange);
+
+	/* Skip FDE augmentation length (not interested in data). */
+	if (augLen != 0) {
+		augLen = get_uleb128(&fdePtr, *fdeEnd);
+		if (augLen > (const u8 *)fde - *fdeEnd
+		    || fdePtr + augLen > *fdeEnd) {
+			_stp_warn("Bogus FDE augmentation length\n");
+			return -1;
+		}
+	}
+	*fdeStart = fdePtr + augLen;
+
+	return 0;
 }
 
 #define REG_STATE state->reg[state->stackDepth]
@@ -976,12 +1047,15 @@ static int unwind_frame(struct unwind_context *context,
 			void *table, uint32_t table_len, int is_ehframe)
 {
 	const u32 *fde = NULL, *cie = NULL;
-	const u8 *ptr = NULL, *end = NULL;
+	/* The start and end of the CIE CFI instructions. */
+	const u8 *cieStart = NULL, *cieEnd = NULL;
+	/* The start and end of the FDE CFI instructions. */
+	const u8 *fdeStart = NULL, *fdeEnd = NULL;
 	struct unwind_frame_info *frame = &context->info;
 	unsigned long pc = UNW_PC(frame) - frame->call_frame;
-	unsigned long tableSize, startLoc = 0, endLoc = 0, cfa;
+	unsigned long startLoc = 0, endLoc = 0, locRange = 0, cfa;
 	unsigned i;
-	signed ptrType = -1;
+	signed ptrType = -1, call_frame = 1;
 	uleb128_t retAddrReg = 0;
 	struct unwind_state *state = &context->state;
 	unsigned long addr;
@@ -997,23 +1071,28 @@ static int unwind_frame(struct unwind_context *context,
 		goto err;
 	}
 
+	memset(state, 0, sizeof(*state));
+
 	fde = _stp_search_unwind_hdr(pc, tsk, m, s, is_ehframe);
 	dbug_unwind(1, "%s: fde=%lx\n", m->name, (unsigned long) fde);
 
 	/* found the fde, now set startLoc and endLoc */
-	if (fde != NULL && is_fde(fde, is_ehframe)) {
+	if (fde != NULL && is_fde(fde, table, table_len, is_ehframe)) {
 		cie = cie_for_fde(fde, table, table_len, is_ehframe);
 		dbug_unwind(1, "%s: cie=%lx\n", m->name, (unsigned long) cie);
 		if (likely(cie != NULL)) {
-			ptr = (const u8 *)(fde + 2);
-			ptrType = fde_pointer_type(cie, table, table_len);
-			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
+			if (parse_fde_cie(fde, cie, table, table_len, &ptrType,
+					  &startLoc, &locRange,
+					  &fdeStart, &fdeEnd,
+					  &cieStart, &cieEnd,
+					  &state->codeAlign,
+					  &state->dataAlign,
+					  &retAddrReg,
+					  &call_frame) < 0)
+				goto err;
 			startLoc = adjustStartLoc(startLoc, tsk, m, s, ptrType, is_ehframe);
-
-			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
-			if (!(ptrType & DW_EH_PE_indirect))
-				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
-			endLoc = startLoc + read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
+			endLoc = startLoc + locRange;
+			dbug_unwind(1, "startLoc: %lx, endLoc: %lx\n", startLoc, endLoc);
 			if (pc > endLoc) {
                                 dbug_unwind(1, "pc (%lx) > endLoc(%lx)\n", pc, endLoc);
 				goto done;
@@ -1027,25 +1106,33 @@ static int unwind_frame(struct unwind_context *context,
 	       There always should be one, we create it in the translator
 	       if it didn't exist. Only if we are using elfutils < 0.142
 	       should these ever be missing. */
+	    unsigned long tableSize;
 	    _stp_warn("No binary search table for debug frame, doing slow linear search for %s\n", m->name);
 	    for (fde = table, tableSize = table_len; cie = NULL, tableSize > sizeof(*fde)
 		 && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
 			dbug_unwind(3, "fde=%lx tableSize=%d\n", (long)*fde, (int)tableSize);
-			if (!is_fde(fde, is_ehframe))
+			if (!is_fde(fde, table, table_len, is_ehframe))
 				continue;
 			cie = cie_for_fde(fde, table, table_len, is_ehframe);
-			if (cie == NULL || (ptrType = fde_pointer_type(cie, table, table_len)) < 0)
+			if (cie == NULL
+			    || parse_fde_cie(fde, cie, table, table_len,
+					     &ptrType,
+					     &startLoc, &locRange,
+					     &fdeStart, &fdeEnd,
+					     &cieStart, &cieEnd,
+					     &state->codeAlign,
+					     &state->dataAlign,
+					     &retAddrReg,
+					     &call_frame) < 0)
 				break;
-
-			ptr = (const u8 *)(fde + 2);
-			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
 			startLoc = adjustStartLoc(startLoc, tsk, m, s, ptrType, is_ehframe);
-			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!startLoc)
 				continue;
-			if (!(ptrType & DW_EH_PE_indirect))
-				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
-			endLoc = startLoc + read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
+			endLoc = startLoc + locRange;
+			if (pc > endLoc) {
+                                dbug_unwind(1, "pc (%lx) > endLoc(%lx)\n", pc, endLoc);
+				goto done;
+			}
 			dbug_unwind(3, "endLoc=%lx\n", endLoc);
 			if (pc >= startLoc && pc < endLoc)
 				break;
@@ -1059,98 +1146,27 @@ static int unwind_frame(struct unwind_context *context,
 
 	/* found the CIE and FDE */
 
-	memset(state, 0, sizeof(*state));
-	state->cieEnd = ptr;	/* keep here temporarily */
-	ptr = (const u8 *)(cie + 2);
-	end = (const u8 *)(cie + 1) + *cie;
-
-	/* end should fall within unwind table. */
-	if (((void *)end) < table
-	    || ((void *)end) > ((void *)(table + table_len)))
-	  goto err;
-
-	frame->call_frame = 1;
-	state->version = *ptr;
-	if (state->version != 1 && state->version != 3 && state->version != 4) {
-		_stp_warn("CIE version number is %d.  1, 3 or 4 is supported.\n", state->version);
-		goto err;	/* unsupported version */
-	}
-	if (*++ptr) {
-		/* check if augmentation size is first (and thus present) */
-		while (ptr++ < end && *ptr) {
-			switch (*ptr) {
-				/* check for ignorable (or already handled)
-				 * nul-terminated augmentation string */
-			case 'z':
-			case 'L':
-			case 'P':
-			case 'R':
-				continue;
-			case 'S':
-				dbug_unwind(1, "This is a signal frame\n");
-				frame->call_frame = 0;
-				continue;
-			default:
-				break;
-			}
-		}
-		if (ptr >= end || *ptr) {
-			_stp_warn("Problem parsing the augmentation string.\n");
-			goto err;
-		}
-	}
-	++ptr;
-
-	/* get code aligment factor */
-	state->codeAlign = get_uleb128(&ptr, end);
-	dbug_unwind (1, "codeAlign=%lx\n", state->codeAlign);
-	/* get data aligment factor */
-	state->dataAlign = get_sleb128(&ptr, end);
-	dbug_unwind (1, "dataAlign=%lx\n", state->dataAlign);
-	if (state->codeAlign == 0 || state->dataAlign == 0 || ptr >= end)
-		goto err;;
-
-	retAddrReg = state->version <= 1 ? *ptr++ : get_uleb128(&ptr, end);
-
-	/* skip augmentation */
-	if (((const char *)(cie + 2))[1] == 'z') {
-		uleb128_t augSize = get_uleb128(&ptr, end);
-		ptr += augSize;
-	}
-	if (ptr > end || retAddrReg >= ARRAY_SIZE(reg_info)
+	// Sanity check return address register value.
+	if (retAddrReg >= ARRAY_SIZE(reg_info)
 	    || REG_INVALID(retAddrReg)
-	    || reg_info[retAddrReg].width != sizeof(unsigned long))
+	    || reg_info[retAddrReg].width != sizeof(unsigned long)) {
+		_stp_warn("Bad retAddrReg value\n");
 		goto err;
-
-	state->cieStart = ptr;
-	ptr = state->cieEnd;
-	state->cieEnd = end;
-	end = (const u8 *)(fde + 1) + *fde;
-
-	/* end should fall within unwind table. */
-	if (((void*)end) < table
-	    || ((void *)end) > ((void *)(table + table_len)))
-	  goto err;
-
-	/* skip augmentation */
-	if (((const char *)(cie + 2))[1] == 'z') {
-		uleb128_t augSize = get_uleb128(&ptr, end);
-		if ((ptr += augSize) > end)
-			goto err;
 	}
 
+	frame->call_frame = call_frame;
 	state->stackDepth = 0;
 	state->loc = startLoc;
 	memcpy(&REG_STATE.cfa, &badCFA, sizeof(REG_STATE.cfa));
 
 	/* Common Information Entry (CIE) instructions. */
 	dbug_unwind (1, "processCFI for CIE\n");
-	if (!processCFI(state->cieStart, state->cieEnd, 0, ptrType, state))
+	if (!processCFI(cieStart, cieEnd, 0, ptrType, state))
 		goto err;
 
 	/* Process Frame Description Entry (FDE) instructions. */
 	dbug_unwind (1, "processCFI for FDE\n");
-	if (!processCFI(ptr, end, pc, ptrType, state)
+	if (!processCFI(fdeStart, fdeEnd, pc, ptrType, state)
 	    || state->loc > endLoc || REG_STATE.regs[retAddrReg].where == Nowhere
 	    || REG_STATE.cfa.reg >= ARRAY_SIZE(reg_info)
 	    || reg_info[REG_STATE.cfa.reg].width != sizeof(unsigned long)
