@@ -120,6 +120,16 @@ struct compile_server_info
       return false;
     return true;
   }
+
+  // Used to sort servers by preference for order of contact. The preferred server is
+  // "less" than the other one.
+  bool operator< (const compile_server_info &that) const
+  {
+    // Prefer servers with a later (higher) version number.
+    cs_protocol_version this_version (this->version.c_str ());
+    cs_protocol_version that_version (that.version.c_str ());
+    return that_version < this_version;
+  }
 };
 
 ostream &operator<< (ostream &s, const compile_server_info &i);
@@ -1071,6 +1081,18 @@ compile_server_client::package_request ()
   return rc;
 }
 
+static void
+preferred_order (vector<compile_server_info> &servers)
+{
+  // Sort the given list of servers into the preferred order for contacting.
+  // Don't bother if there are less than 2 servers in the list.
+  if (servers.size () < 2)
+    return;
+
+  // Sort the list using compile_server_info::operator<
+  sort (servers.begin (), servers.end ());
+}
+
 int
 compile_server_client::find_and_connect_to_server ()
 {
@@ -1122,6 +1144,9 @@ compile_server_client::find_and_connect_to_server ()
       clog << _("Unable to find a server") << endl;
       return 1;
     }
+
+  // Sort the list of servers into a preferred order.
+  preferred_order (server_list);
 
   // Now try each of the identified servers in turn.
   int rc = compile_using_server (server_list);
@@ -1750,6 +1775,9 @@ query_server_status (systemtap_session &s, const string &status_string)
   vector<compile_server_info> servers;
   get_all_server_info (s, servers);
   keep_common_server_info (raw_servers, servers);
+
+  // Sort the list of servers into a preferred order.
+  preferred_order (servers);
 
   // Print the server information. Skip the empty entry at the head of the list.
   clog << _F("Systemtap Compile Server Status for '%s'", working_string.c_str()) << endl;
