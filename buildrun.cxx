@@ -309,19 +309,13 @@ compile_pass (systemtap_session& s)
 
 /*
  * If uprobes was built as part of the kernel build (either built-in
- * or as a module), the uprobes exports should show up in either
- * s.kernel_build_tree / Module.symvers.  Return true if so.
+ * or as a module), the uprobes exports should show up.  This is to be
+ * as distinct from the stap-built uprobes.ko from the runtime.
  */
 static bool
 kernel_built_uprobes (systemtap_session& s)
 {
-  vector<string> grep_cmd;
-  grep_cmd.push_back ("/bin/grep");
-  grep_cmd.push_back ("-q");
-  grep_cmd.push_back ("unregister_uprobe");
-  grep_cmd.push_back (s.kernel_build_tree + "/Module.symvers");
-
-  return (stap_system (s.verbose, grep_cmd) == 0);
+  return (s.kernel_exports.find("unregister_uprobe") != s.kernel_exports.end());
 }
 
 static int
