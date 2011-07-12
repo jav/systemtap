@@ -248,7 +248,7 @@ class stapsh : public remote {
             if (reply != "OK\n")
               {
                 rc = 1;
-                if (s->verbose > 1)
+                if (s->verbose > 0)
                   {
                     if (reply.empty())
                       clog << _("stapsh file ERROR: no reply") << endl;
@@ -324,7 +324,7 @@ class stapsh : public remote {
             if (reply != "OK\n")
               {
                 rc = 1;
-                if (s->verbose > 1)
+                if (s->verbose > 0)
                   {
                     if (reply.empty())
                       clog << _("stapsh run ERROR: no reply") << endl;
@@ -339,6 +339,10 @@ class stapsh : public remote {
             long flags = fcntl(fdout, F_GETFL) | O_NONBLOCK;
             fcntl(fdout, F_SETFL, flags);
           }
+        else
+          // If run failed for any reason, then this
+          // connection is effectively dead to us.
+          close();
 
         return rc;
       }
