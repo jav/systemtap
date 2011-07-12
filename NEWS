@@ -1,5 +1,9 @@
 * What's new in version 1.6
 
+- Systemtap error messages now provide feedback when staprun or any other
+  process fails to launch.  This also specifically covers when the user 
+  doesn't have the proper permissions to launch staprun.
+
 - Systemtap will now map - to _ in module names.  Previously, 
   stap -L 'module("i2c-core").function("*")' would be empty.  It now returns
   a list had stap -L 'module("i2c_core").function("*") been specified.
