@@ -42,11 +42,9 @@ set ok 0
 expect {
     -timeout 180
     -re {gs0_save=0x29} { incr ok; exp_continue }
-    -re {gs1=0x2} { incr ok; exp_continue }
-    -re {gs2=0x2} { incr ok; exp_continue }
-    -re {gs3=0x1} { incr ok; exp_continue }
-    -re {gs4=0x1} { incr ok; exp_continue }
-    -re {gs6=0x2} { incr ok; exp_continue }
+    -re {gs2=0x4} { incr ok; exp_continue }
+    -re {gs3=0x4} { incr ok; exp_continue }
+    -re {gs4=0x5} { incr ok; exp_continue }
     -re {ga1."foo".=0x2} { incr ok; exp_continue }
     -re {ga2."foo".=0x1} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
@@ -54,4 +52,4 @@ expect {
 
 catch {close}; catch {wait}
 
-if {$ok == 8} { pass "$test ($ok)" } { fail "$test ($ok)" }
+if {$ok == 6} { pass "$test ($ok)" } { fail "$test ($ok)" }

@@ -2083,22 +2083,22 @@ varuse_collecting_visitor::visit_symbol (symbol *e)
     written.insert (e->referent);
   */
 
-  if (current_lvalue == e)
+  if (current_lvalue == e || current_lrvalue == e)
     {
       written.insert (e->referent);
     }
-  else if (current_lrvalue == e)
-    {
-      written.insert (e->referent);
-      if (current_lvalue_read)
-        read.insert (e->referent);
-    }
-  if ((current_lvalue != e
-        && (current_lvalue == 0 || ((symbol*)current_lvalue)->referent != e->referent))
-      && current_lrvalue != e)
+  if (current_lvalue != e || current_lrvalue == e)
     {
       read.insert (e->referent);
     }
+
+  if (current_lrvalue == e)
+    {
+      if (current_lvalue_read)
+        used.insert (e->referent);
+    }
+  else if (current_lvalue != e)
+    used.insert (e->referent);
 }
 
 // NB: stat_op need not be overridden, since it will get to

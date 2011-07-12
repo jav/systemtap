@@ -1383,6 +1383,7 @@ void add_global_var_display (systemtap_session& s)
   if (s.listing_mode) return;
 
   varuse_collecting_visitor vut(s);
+
   for (unsigned i=0; i<s.probes.size(); i++)
     {
       s.probes[i]->body->visit (& vut);
@@ -1394,7 +1395,8 @@ void add_global_var_display (systemtap_session& s)
   for (unsigned g=0; g < s.globals.size(); g++)
     {
       vardecl* l = s.globals[g];
-      if (vut.read.find (l) != vut.read.end()
+      if ((vut.read.find (l) != vut.read.end()
+           && vut.used.find (l) != vut.used.end())
           || vut.written.find (l) == vut.written.end())
 	continue;
 

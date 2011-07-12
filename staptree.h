@@ -840,6 +840,7 @@ struct varuse_collecting_visitor: public functioncall_traversing_visitor
   systemtap_session& session;
   std::set<vardecl*> read;
   std::set<vardecl*> written;
+  std::set<vardecl*> used;
   bool embedded_seen;
   bool current_lvalue_read;
   expression* current_lvalue;
