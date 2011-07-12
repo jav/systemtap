@@ -2,7 +2,7 @@
 set kvr [exec uname -r]
 set kv [exec uname -r | cut -f1 -d-]
 # a pattern bound to match
-set kr {2?[0-9]*}
+set kr {[23]?[0-9]*}
 # a pattern bound to mismatch
 set krx {?noSuchKernel*}
 
