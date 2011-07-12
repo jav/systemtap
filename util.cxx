@@ -495,8 +495,12 @@ pid_t
 stap_spawn(int verbose, const vector<string>& args,
            posix_spawn_file_actions_t* fa, const vector<string>& envVec)
 {
+  string::const_iterator it;
+  it = args[0].begin();
   const char *cmd;
   string command;
+  if(*it == '/' && (access(args[0].c_str(), X_OK)==-1)) //checking to see if staprun is executable
+    clog << _F("Warning: %s is not executable (%s)", args[0].c_str(), strerror(errno)) << endl;
   for (size_t i = 0; i < args.size(); ++i)
     command += " " + args[i];
   cmd = command.c_str();
@@ -645,8 +649,11 @@ stap_system(int verbose, const vector<string>& args,
     {
       pid_t pid = stap_spawn(verbose, args, &fa);
       ret = pid;
-      if (pid > 0)
+      if (pid > 0){
         ret = stap_waitpid(verbose, pid);
+        if(ret)
+          clog << _F("Warning: %s exited with status: %d", args.front().c_str(), ret) << endl;
+      }
     }
 
   posix_spawn_file_actions_destroy(&fa);

@@ -76,11 +76,13 @@ class uri_decoder {
 class direct : public remote {
   private:
     pid_t child;
+    vector<string> args;
     direct(systemtap_session& s): remote(s), child(0) {}
 
     int start()
       {
-        pid_t pid = stap_spawn (s->verbose, make_run_command (*s));
+        args = make_run_command(*s);
+        pid_t pid = stap_spawn (s->verbose, args);
         if (pid <= 0)
           return 1;
         child = pid;
@@ -93,6 +95,8 @@ class direct : public remote {
           return 1;
 
         int ret = stap_waitpid(s->verbose, child);
+        if(ret)
+          clog << _F("Warning: %s exited with status: %d", args.front().c_str(), ret) << endl;
         child = 0;
         return ret;
       }
