@@ -723,7 +723,7 @@ compile_server_client::passes_0_4 ()
 #else
   // arguments parsed; get down to business
   if (s.verbose > 1)
-    clog << _("Using a compile server") << endl;
+    clog << _("Using a compile server.") << endl;
 
   struct tms tms_before;
   times (& tms_before);
@@ -771,10 +771,16 @@ compile_server_client::passes_0_4 ()
   // syntax errors, if any, are already printed
   if (s.verbose)
     {
-      clog << _("Passes: via server ") << s.winning_server << " "
+      string ws = s.winning_server;
+      if (ws == "") ws = "?";
+      clog << _("Passes: via server ") << ws << " "
            << getmemusage()
            << TIMESPRINT
            << endl;
+    }
+  if (rc)
+    {
+      clog << _("Passes: via server failed.  Try again with another '-v' option.") << endl;
     }
 
   if (rc == 0)
@@ -1141,7 +1147,7 @@ compile_server_client::find_and_connect_to_server ()
   unsigned limit = server_list.size ();
   if (limit == 0)
     {
-      clog << _("Unable to find a server") << endl;
+      clog << _("Unable to find a compile server.") << endl;
       return 1;
     }
 
@@ -1167,7 +1173,7 @@ compile_server_client::find_and_connect_to_server ()
     }
 
   // We were unable to use any available server
-  clog << _("Unable to connect to a server") << endl;
+  clog << _("Unable to connect to a server.") << endl;
   return 1; // Failure
 }
 #endif // HAVE_NSS
@@ -1480,7 +1486,7 @@ compile_server_client::process_response ()
 	{
 	  if (rc == 0)
 	    {
-	      clog << _("No module was returned by the server") << endl;
+	      clog << _("No module was returned by the server.") << endl;
 	      rc = 1;
 	    }
 	}

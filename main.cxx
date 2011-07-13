@@ -452,7 +452,13 @@ passes_0_4 (systemtap_session &s)
     {
 #if HAVE_NSS
       compile_server_client client (s);
-      return client.passes_0_4 ();
+      int rc = client.passes_0_4 ();
+      // Need to give a user a better diagnostic, if she didn't
+      // even ask for a server
+      if (rc && s.automatic_server_mode) {
+        cerr << _("Note: --use-server --unprivileged was selected because of stapusr membership.") << endl;
+      }
+      return rc;
 #else
       cerr << _("WARNING: Without NSS, using a compile-server is not supported by this version of systemtap") << endl;
       // This cannot be an attempt to use a server after a local compile failed

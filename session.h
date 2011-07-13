@@ -187,6 +187,7 @@ public:
   std::string client_options_disallowed;
   std::vector<std::string> server_status_strings;
   std::vector<std::string> specified_servers;
+  bool automatic_server_mode;
   std::string server_trust_spec;
   std::vector<std::string> server_args;
   std::string winning_server;

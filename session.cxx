@@ -133,6 +133,7 @@ systemtap_session::systemtap_session ():
   unwindsym_ldd = false;
   client_options = false;
   server_cache = NULL;
+  automatic_server_mode = false;
   use_server_on_error = false;
   try_server_status = try_server_unset;
   use_remote_prefix = false;
@@ -1151,6 +1152,7 @@ systemtap_session::check_options (int argc, char * const argv [])
 	  stgr = getgrnam ("stapdev");
 	  if (! stgr || ! in_group_id (stgr->gr_gid))
 	    {
+              automatic_server_mode = true;
 	      if (! unprivileged)
 		{
                   if (perpass_verbose[0] > 1)
