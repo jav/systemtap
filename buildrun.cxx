@@ -441,7 +441,8 @@ uprobes_pass (systemtap_session& s)
 }
 
 vector<string>
-make_run_command (systemtap_session& s, const string& module)
+make_run_command (systemtap_session& s, const string& module,
+                  const string& version)
 {
   // for now, just spawn staprun
   vector<string> staprun_cmd;
@@ -487,7 +488,7 @@ make_run_command (systemtap_session& s, const string& module)
   if (s.load_only)
     staprun_cmd.push_back(s.output_file.empty() ? "-L" : "-D");
 
-  if(!s.modname_given)
+  if(!s.modname_given && (strverscmp("1.6", version.c_str()) <= 0))
     staprun_cmd.push_back("-R");
 
   if (!s.size_option.empty())

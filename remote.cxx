@@ -113,6 +113,7 @@ class stapsh : public remote {
     int interrupts_sent;
     int fdin, fdout;
     FILE *IN, *OUT;
+    string remote_version;
 
     virtual void prepare_poll(vector<pollfd>& fds)
       {
@@ -311,7 +312,8 @@ class stapsh : public remote {
         // Send the staprun args
         // NB: The remote is left to decide its own staprun path
         ostringstream run("run", ios::out | ios::ate);
-        vector<string> cmd = make_run_command(*s, s->module_name + ".ko");
+        vector<string> cmd = make_run_command(*s, s->module_name + ".ko",
+                                              remote_version);
         for (unsigned i = 1; i < cmd.size(); ++i)
           run << ' ' << qpencode(cmd[i]);
         run << '\n';
@@ -385,7 +387,10 @@ class stapsh : public remote {
         tokenize(reply, uname, " \t\r\n");
         if (uname.size() != 4 || uname[0] != "stapsh")
           throw runtime_error(_("failed to get uname from stapsh"));
-        // XXX check VERSION compatibility
+
+        // We assume that later versions will know how to talk to us.
+        // Looking backward, we use this for make_run_command().
+        this->remote_version = uname[1];
 
         this->s = s->clone(uname[2], uname[3]);
       }
@@ -683,7 +688,8 @@ class ssh_legacy_remote : public remote {
         if (rc == 0) {
           vector<string> cmd = ssh_args;
           cmd.push_back("-t");
-          cmd.push_back(cmdstr_join(make_run_command(*s, tmpmodule)));
+          // We don't know the actual version, but all <=1.3 are approx equal.
+          cmd.push_back(cmdstr_join(make_run_command(*s, tmpmodule, "1.3")));
           pid_t pid = stap_spawn(s->verbose, cmd);
           if (pid > 0)
             child = pid;
