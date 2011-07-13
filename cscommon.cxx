@@ -16,6 +16,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
+#include <iomanip>
+
+extern "C"
+{
+#include <ssl.h>
+}
 
 using namespace std;
 
@@ -104,5 +110,18 @@ read_from_file (const string &fname, cs_protocol_version &data)
   else
     clog << _("unknown error") << endl;
   return 1; // Failure
+}
+
+string get_cert_serial_number (const CERTCertificate *cert)
+{
+  ostringstream serialNumber;
+  serialNumber << hex << setfill('0') << right;
+  for (unsigned i = 0; i < cert->serialNumber.len; ++i)
+    {
+      if (i > 0)
+	serialNumber << ':';
+      serialNumber << setw(2) << (unsigned)cert->serialNumber.data[i];
+    }
+  return serialNumber.str ();
 }
 

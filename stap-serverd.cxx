@@ -249,6 +249,12 @@ parse_options (int argc, char **argv)
     server_error (_F("%s: unrecognized argument '%s'", argv[0], argv[i]));
 }
 
+static string
+server_cert_file ()
+{
+  return server_cert_db_path () + "/stap.cert";
+}
+
 // Signal handling. When an interrupt is received, kill any spawned processes
 // and exit.
 extern "C"

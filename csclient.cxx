@@ -192,6 +192,10 @@ static void add_server_trust (systemtap_session &s, const string &cert_db_path, 
 static void revoke_server_trust (systemtap_session &s, const string &cert_db_path, const vector<compile_server_info> &server_list);
 static void get_server_info_from_db (systemtap_session &s, vector<compile_server_info> &servers, const string &cert_db_path);
 
+static string global_client_cert_db_path () {
+  return SYSCONFDIR "/systemtap/ssl/client";
+}
+
 static string
 private_ssl_cert_db_path ()
 {

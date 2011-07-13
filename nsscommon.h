@@ -41,8 +41,6 @@ void nssCleanup (const char *db_path);
 void nsscommon_error (const char *msg, INIT(int logit, 1));
 void nssError (void);
 
-int create_server_cert_db (const char *ssl_db);
-
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif
@@ -53,9 +51,7 @@ int create_server_cert_db (const char *ssl_db);
 
 const char *server_cert_nickname ();
 std::string server_cert_db_path ();
-std::string server_cert_file ();
 std::string local_client_cert_db_path ();
-std::string global_client_cert_db_path ();
 
 void nsscommon_error (const std::string &msg, int logit = 1);
 
@@ -76,7 +72,6 @@ void sign_file (
 );
 
 CERTCertList *get_cert_list_from_db (const std::string &cert_nickname);
-std::string get_cert_serial_number (const CERTCertificate *cert);
 
 #endif // defined(c_plusplus) || defined(__cplusplus)
 
