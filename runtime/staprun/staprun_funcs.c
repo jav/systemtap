@@ -207,8 +207,7 @@ rename_module(void* module_file, const __off_t st_size)
   		return -1;
   	}
 
-  	/* Get data from section while translating from file representation
-  	   to memory representation.  */
+  	/* Get access to raw data from section; do not translate/copy. */
   	if ((data = elf_rawdata (scn, data)) == NULL) {
   		_err("Error getting Elf data from section.\n");
   		return -1;
