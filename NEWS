@@ -1,5 +1,10 @@
 * What's new in version 1.6
 
+- Staprun can now rename the module to a unique name with the '-R' option before 
+  inserting it. Systemtap itself will also call staprun with '-R' by default. 
+  This allows the same module to be inserted more than once, without conflicting 
+  duplicate names.
+
 - Systemtap error messages now provide feedback when staprun or any other
   process fails to launch.  This also specifically covers when the user 
   doesn't have the proper permissions to launch staprun.
