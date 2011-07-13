@@ -502,7 +502,7 @@ systemtap_session::usage (int exitcode)
     "              run pass 5 on the specified ssh host.\n"
     "              may be repeated for targeting multiple hosts.\n"
     "   --remote-prefix\n"
-    "              prefix each line of remote output with a host index."
+    "              prefix each line of remote output with a host index.\n"
     "   --tmpdir=NAME\n"
     "              specify name of temporary directory to be used."
     , compatible.c_str()) << endl
