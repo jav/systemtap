@@ -112,6 +112,7 @@ systemtap_session::systemtap_session ():
   output_file = ""; // -o FILE
   tmpdir_opt_set = false;
   save_module = false;
+  modname_given = false;
   keep_tmpdir = false;
   cmd = "";
   target_pid = 0;
@@ -269,6 +270,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   output_file = other.output_file; // XXX how should multiple remotes work?
   tmpdir_opt_set = false;
   save_module = other.save_module;
+  modname_given = other.modname_given;
   keep_tmpdir = other.keep_tmpdir;
   cmd = other.cmd;
   target_pid = other.target_pid; // XXX almost surely nonsense for multiremote
@@ -702,6 +704,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    client_options_disallowed += client_options_disallowed.empty () ? "-m" : ", -m";
           module_name = string (optarg);
 	  save_module = true;
+	  modname_given = true;
 	  {
 	    // If the module name ends with '.ko', chop it off since
 	    // modutils doesn't like modules named 'foo.ko.ko'.

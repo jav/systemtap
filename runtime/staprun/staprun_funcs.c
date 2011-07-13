@@ -18,6 +18,9 @@
 #include <grp.h>
 #include <pwd.h>
 #include <assert.h>
+#include <libelf.h>
+#include <gelf.h>
+#include <math.h>
 
 #include "modverify.h"
 
@@ -112,7 +115,7 @@ int insert_module(
 	/* mmap in the entire module. Work with the memory mapped data from this
 	   point on to avoid a TOCTOU race between path and signature checking
 	   below and module loading.  */
-	module_file = mmap(NULL, sbuf.st_size, PROT_READ, MAP_PRIVATE, module_fd, 0);
+	module_file = mmap(NULL, sbuf.st_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, module_fd, 0);
 	if (module_file == MAP_FAILED) {
 		_perr("Error mapping '%s'", module_realpath);
 		close(module_fd);
@@ -123,6 +126,19 @@ int insert_module(
 	/* Check whether this module can be loaded by the current user.
 	 * check_permissions will exit(-1) if permissions are insufficient*/
 	assert_permissions (module_realpath, module_fd, module_file, sbuf.st_size);
+
+	/* Rename Module if '-R' was passed */
+	if(rename_mod){
+		dbug(2,"Renaming module '%s'\n", modname);
+		if(rename_module(module_file, sbuf.st_size) < 0) {
+
+			  _err("Error renaming module");
+			  close(module_fd);
+			  free(opts);
+			  return -1;
+		}
+		dbug(2,"Renamed module to '%s'\n", modname);
+	}
 
 	PROBE1(staprun, insert__module, (char*)module_realpath);
 	/* Actually insert the module */
@@ -140,6 +156,102 @@ int insert_module(
 		return -1;
 	}
 	return 0;
+}
+
+int
+rename_module(void* module_file, const __off_t st_size)
+{
+	int found = 0;
+	int length_to_replace;
+	char *name;
+	char newname[MODULE_NAME_LEN];
+	char *p;
+	size_t shstrndx;
+	pid_t pid;
+	Elf* elf;
+	Elf_Scn *scn = 0;
+	Elf_Data *data = 0;
+	GElf_Shdr shdr_mem;
+	GElf_Shdr *shdr;
+
+  	/* Create descriptor for memory region.  */
+  	if((elf = elf_memory (module_file, st_size))== NULL) {
+  		_err("Error creating Elf object.\n");
+  		return -1;
+  	}
+
+  	/* Get the string section index */
+  	if(elf_getshdrstrndx (elf, &shstrndx) < 0) {
+  		_err("Error getting section index.\n");
+  		return -1;
+  	}
+
+  	/* Go through the sections looking for ".gnu.linkonce.this_module" */
+  	while ((scn = elf_nextscn (elf, scn))) {
+  		 if((shdr = gelf_getshdr (scn, &shdr_mem))==NULL) {
+  		 	 _err("Error getting section header.\n");
+  		 	 return -1;
+  		 }
+  		 name = elf_strptr (elf, shstrndx, shdr_mem.sh_name);
+  		 if (name == NULL) {
+  			 _err("Error getting section name.\n");
+  			 return -1;
+  		 }
+  		 if(strcmp(name, ".gnu.linkonce.this_module") == 0) {
+  			 found = 1;
+  			 break;
+  		 }
+  	}
+  	if(!found) {
+  		_err("Section name \".gnu.linkonce.this_module\" not found in module.\n");
+  		return -1;
+  	}
+
+  	/* Get data from section while translating from file representation
+  	   to memory representation.  */
+  	if ((data = elf_rawdata (scn, data)) == NULL) {
+  		_err("Error getting Elf data from section.\n");
+  		return -1;
+  	}
+
+  	/* Generate new module name with the same length as the old name.
+    	   The new name is of the form: stap_<FirstPartOfOldname>_<pid>*/
+  	pid = getpid();
+  	if (strlen(modname) >= MODULE_NAME_LEN) {
+  		_err("Old module name is too long.\n");
+  		return -1;
+  	}
+  	length_to_replace = (int)strlen(modname)-((int)log10(pid)+1) - 1;
+  	if(length_to_replace < 0 || length_to_replace > (int)strlen(modname)) {
+  		_err("Error getting length of oldname to replace in newname.\n");
+  		return -1;
+  	}
+  	if (snprintf(newname, sizeof(newname), "%.*s_%d", length_to_replace, modname, pid) < 0) {
+  	    	_err("Creating newname failed./n");
+  	    	return -1;
+  	}
+
+	/* Find where it is in the module structure.
+	   To our knowledge, this section is always completely zeroed apart
+	   from the module name, so a simple search and replace should suffice.
+	   A signed module from any stapusr will already have been proven
+	   untampered.  An unsigned module from a stapdev could try to do
+	   naughty things, but we're already trusting these users so much
+	   that they can shoot their feet however they like.
+	   */
+	for (p = data->d_buf; p < (char *)data->d_buf + data->d_size - strlen(modname); p++) {
+		if (memcmp(p, modname, strlen(modname)) == 0) {
+			strncpy(p, newname, strlen(p)); /* Actually replace the oldname in memory with the newname */
+			modname = strdup(newname); /* This is just to update the global variable containing the current module name */
+			if (modname == NULL) {
+				_perr("allocating memory failed");
+				return -1;
+			}
+			return 0;
+		}
+	}
+	_err("Could not find old name to replace!\n");
+	return -1;
 }
 
 int mountfs(void)

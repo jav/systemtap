@@ -156,6 +156,7 @@ public:
   unsigned verbose;
   bool timing;
   bool save_module;
+  bool modname_given;
   bool keep_tmpdir;
   bool guru_mode;
   bool listing_mode;

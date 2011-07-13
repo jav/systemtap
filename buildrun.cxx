@@ -487,6 +487,9 @@ make_run_command (systemtap_session& s, const string& module)
   if (s.load_only)
     staprun_cmd.push_back(s.output_file.empty() ? "-L" : "-D");
 
+  if(!s.modname_given)
+    staprun_cmd.push_back("-R");
+
   if (!s.size_option.empty())
     {
       staprun_cmd.push_back("-S");

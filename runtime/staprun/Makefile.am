@@ -17,7 +17,7 @@ pkglibexec_PROGRAMS = stapio
 staprun_SOURCES = staprun.c staprun_funcs.c ctl.c common.c
 staprun_CFLAGS = $(AM_CFLAGS) -DSINGLE_THREADED
 staprun_CXXFLAGS = $(AM_CXXFLAGS) -DSINGLE_THREADED
-staprun_LDADD =
+staprun_LDADD = -lelf
 
 if HAVE_NSS
 staprun_SOURCES += modverify.c ../../nsscommon.cxx ../../util.cxx
