@@ -1097,6 +1097,7 @@ handleRequest (const string &requestDirName, const string &responseDirName)
       argfile = fopen(stapargfile, "r");
       if (! argfile)
         {
+          free(arg);
           server_error (_F("Error opening %s: %s", stapargfile, strerror (errno)));
           return;
         }
@@ -1104,6 +1105,8 @@ handleRequest (const string &requestDirName, const string &responseDirName)
       rc = fread(arg, 1, st.st_size, argfile);
       if (rc != st.st_size)
         {
+          free(arg);
+          fclose(argfile);
           server_error (_F("Error reading %s: %s", stapargfile, strerror (errno)));
           return;
         }
@@ -1250,15 +1253,20 @@ spawn_and_wait (const vector<string> &argv,
     {
       dotfd = open (".", O_RDONLY);
       if (dotfd < 0)
-        { 
+        {
           server_error (_("Error in spawn getcwd"));
           return PR_FAILURE;
         }
-      
+
       rc = chdir (pwd);
-      CHECKRC ("Error in spawn chdir");
-    } 
- 
+      if (rc)
+        {
+          close(dotfd);
+          server_error(_("Error in spawn chdir"));
+          return PR_FAILURE;
+        }
+    }
+
   // Set resource limits, if requested, in order to prevent
   // DOS. spawn_and_wait ultimately uses posix_spawp which behaves like
   // fork (according to the posix_spawnbp man page), so the limits we set here will be
