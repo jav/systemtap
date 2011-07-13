@@ -226,8 +226,12 @@ int init_staprun(void)
 		if (need_uprobes && enable_uprobes() != 0)
 			return -1;
 		if (insert_stap_module() < 0) {
+#ifdef HAVE_ELF_GETSHDRSTRNDX
 			if(!rename_mod && errno == EEXIST)
 				err("Rerun with staprun option '-R' to rename this module.\n");
+#endif
+                        /* Without a working rename_module(), we shan't
+                           advise people to use -R. */
 			return -1;
 		}
 		if (send_relocations() < 0)

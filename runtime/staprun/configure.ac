@@ -31,7 +31,7 @@ AS_IF([test "x$enable_pie" = xyes],[
   CFLAGS="$CFLAGS $PIECFLAGS"
   CXXFLAGS="$CXXFLAGS $PIECXXFLAGS"
   LDFLAGS="$LDFLAGS $PIELDFLAGS"
-  AC_LINK_IFELSE([int main () { return 0; }], [
+  AC_LINK_IFELSE([AC_LANG_SOURCE([int main () { return 0; }])], [
      AC_MSG_NOTICE([Compiling with gcc pie et al.])
   ], [
      AC_MSG_NOTICE([Compiler does not support -pie et al.])
@@ -65,6 +65,23 @@ AC_ARG_ENABLE([nls], [AS_HELP_STRING([--enable-nls], [enable translating program
 AS_IF([test "x$enable_nls" != xno], [
 AC_DEFINE([ENABLE_NLS], [1], [Define to 1 if program messages should be translated.])
 ])
+
+
+dnl We link only against the system elfutils.  Connecting to a
+dnl bundled elfutils build (stap/configure --with-elfutils=PATH)
+dnl is too tricky to bother with.
+
+AC_CHECK_HEADERS([libelf.h])
+
+save_LIBS="$LIBS"
+dnl this will only succeed with elfutils 0.142+
+AC_CHECK_LIB(elf,elf_getshdrstrndx,[
+        AC_DEFINE([HAVE_ELF_GETSHDRSTRNDX],[1],[Define to 1 if libelf has elf_getshdrstrndx])])
+staprun_LIBS="$staprun_LIBS -lelf"
+LIBS="$save_LIBS"  
+
+AC_SUBST(staprun_LIBS)
+AC_MSG_NOTICE([staprun will link $staprun_LIBS])
 
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile)

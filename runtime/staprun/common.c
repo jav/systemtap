@@ -271,9 +271,13 @@ void usage(char *prog)
 	"-d              Delete a module.  Only detached or unused modules\n"
 	"                the user has permission to access will be deleted. Use \"*\"\n"
 	"                (quoted) to delete all unused modules.\n"
-	"-R		 Have staprun create a new name for the module before\n"
-	"		 inserting it. This allows the same module to be inserted\n"
-	"		 more than once.\n"
+#ifdef HAVE_ELF_GETSHDRSTRNDX
+        "-R              Have staprun create a new name for the module before\n"
+        "                inserting it. This allows the same module to be inserted\n"
+        "                more than once.\n"
+#else
+        "-R              (Module renaming is not available in this configuration.)\n"
+#endif
 	"-D              Run in background. This requires '-o' option.\n"
 	"-S size[,N]     Switches output file to next file when the size\n"
 	"                of file reaches the specified size. The value\n"

@@ -18,8 +18,14 @@
 #include <grp.h>
 #include <pwd.h>
 #include <assert.h>
+
+/* The module-renaming facility only works with new enough
+   elfutils: 0.142+. */
+#ifdef HAVE_LIBELF_H
 #include <libelf.h>
 #include <gelf.h>
+#endif
+
 #include <math.h>
 
 #include "modverify.h"
@@ -161,6 +167,7 @@ int insert_module(
 int
 rename_module(void* module_file, const __off_t st_size)
 {
+#ifdef HAVE_ELF_GETSHDRSTRNDX
 	int found = 0;
 	int length_to_replace;
 	char *name;
@@ -251,6 +258,14 @@ rename_module(void* module_file, const __off_t st_size)
 	}
 	_err("Could not find old name to replace!\n");
 	return -1;
+#else
+        /* Old or no elfutils?  Pretend to have renamed.  This means a
+           greater likelihood for module-name collisions, but so be
+           it. */
+        (void) module_file;
+        (void) st_size;
+        return 0; 
+#endif
 }
 
 int mountfs(void)
