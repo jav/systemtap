@@ -70,7 +70,7 @@ AS_IF([test "x$enable_ssp" != xno],[
    save_CXXFLAGS="$CXXFLAGS"
    CXXFLAGS="$CXXFLAGS -Werror -fstack-protector-all -D_FORTIFY_SOURCE=2"
    CFLAGS="$CFLAGS -Werror -fstack-protector-all -D_FORTIFY_SOURCE=2"
-   AC_COMPILE_IFELSE([int something ();], [
+   AC_COMPILE_IFELSE([AC_LANG_SOURCE([int something ();])], [
        AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])
 	CFLAGS="$save_CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
 	CXXFLAGS="$save_CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"],[
@@ -102,7 +102,7 @@ AS_IF([test "x$enable_pie" == xyes],[
    CFLAGS="$CFLAGS -fPIE"
    CXXFLAGS="$CXXFLAGS -fPIE"
    LDFLAGS="$LDFLAGS -pie -Wl,-z,relro -Wl,-z,now"
-   AC_LINK_IFELSE([void main () {}], [
+   AC_LINK_IFELSE([AC_LANG_SOURCE([void main () {}])], [
        AC_MSG_NOTICE([Compiling with gcc pie et al.])
           # LDFLAGS is special since it may be passed down to bundled-elfutils,
           # and interfere with the .so's built therein
@@ -498,7 +498,7 @@ AC_LANG_POP(C++)
 AC_CACHE_CHECK([for assembler .section "?" flags support], stap_cv_sectionq, [
 old_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -Wa,--fatal-warnings"
-AC_COMPILE_IFELSE([asm(".section .note.foo,\"?\",\"note\"\n"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([asm(".section .note.foo,\"?\",\"note\"\n"
 		       ".byte 1, 2, 3\n"
 		       ".previous\n"
 		       ".section .text,\"axG\",\"progbits\",foogroup,comdat\n"
@@ -506,7 +506,7 @@ AC_COMPILE_IFELSE([asm(".section .note.foo,\"?\",\"note\"\n"
 		       ".pushsection .note.foo,\"?\",\"note\"\n"
 		       ".byte 4, 5, 6\n"
 		       ".popsection\n"
-		       ".byte 2\n");],
+		       ".byte 2\n");])],
 		  stap_cv_sectionq=yes, stap_cv_sectionq=no)
 CFLAGS="$old_CFLAGS"])
 AC_SUBST(support_section_question)
@@ -529,7 +529,7 @@ if test $build_elfutils = yes -a $enable_translator = yes; then
   CXXFLAGS="$CXXFLAGS -fgnu89-inline"
   CFLAGS="$CFLAGS -fgnu89-inline"
   gnu89_inline_flag=""
-  AC_COMPILE_IFELSE([int something ();], [
+  AC_COMPILE_IFELSE([AC_LANG_SOURCE([int something ();])], [
     AC_MSG_NOTICE([Compiling elfutils with gcc -fgnu89-inline])
     gnu89_inline_flag="-fgnu89-inline"],[
     AC_MSG_NOTICE([Compiler does not support -fgnu89-inline])])
