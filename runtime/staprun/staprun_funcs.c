@@ -179,7 +179,6 @@ rename_module(void* module_file, const __off_t st_size)
 	Elf_Scn *scn = 0;
 	Elf_Data *data = 0;
 	GElf_Shdr shdr_mem;
-	GElf_Shdr *shdr;
 
   	/* Create descriptor for memory region.  */
   	if((elf = elf_memory (module_file, st_size))== NULL) {
@@ -195,7 +194,7 @@ rename_module(void* module_file, const __off_t st_size)
 
   	/* Go through the sections looking for ".gnu.linkonce.this_module" */
   	while ((scn = elf_nextscn (elf, scn))) {
-  		 if((shdr = gelf_getshdr (scn, &shdr_mem))==NULL) {
+  		 if((gelf_getshdr (scn, &shdr_mem))==NULL) {
   		 	 _err("Error getting section header.\n");
   		 	 return -1;
   		 }
