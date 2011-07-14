@@ -5508,9 +5508,12 @@ sdt_query::handle_probe_entry()
 
   bool need_debug_info = false;
 
+  // We could get the Elf* from either dwarf_getelf(dwfl_module_getdwarf(...))
+  // or dwfl_module_getelf(...).  We only need it for the machine type, which
+  // should be the same.  The bias is used for relocating debuginfoless probes,
+  // though, so that must come from the possibly-prelinked ELF file, not DWARF.
   Dwarf_Addr bias;
-  Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw.mod_info->mod, &bias))
-	      ?: dwfl_module_getelf (dw.mod_info->mod, &bias));
+  Elf* elf = dwfl_module_getelf (dw.mod_info->mod, &bias);
 
   if (have_kprobe())
     {
@@ -5732,6 +5735,10 @@ sdt_query::setup_note_probe_entry (int type, const char *data, size_t len)
   semaphore += base - base_ref;
   pc += base - base_ref;
 
+  // The semaphore also needs the ELF bias added now, so
+  // record_semaphore can properly relocate it later.
+  semaphore += bias;
+
   if (sess.verbose > 4)
     clog << _F(" saw .note.stapsdt %s%s ", probe_name.c_str(), (provider_name != "" ? _(" (provider ")+provider_name+") " : "").c_str()) << "@0x" << hex << pc << dec << endl;
 
@@ -5824,8 +5831,7 @@ sdt_query::record_semaphore (vector<derived_probe *> & results, unsigned start)
       addr  = lookup_symbol_address(dw.module, semaphore.c_str());
     if (addr)
       {
-        if (probe_type != uprobe3_type
-	    && dwfl_module_relocations (dw.module) > 0)
+        if (dwfl_module_relocations (dw.module) > 0)
           dwfl_module_relocate_address (dw.module, &addr);
         // XXX: relocation basis?
         for (unsigned i = start; i < results.size(); ++i)
