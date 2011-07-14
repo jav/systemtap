@@ -479,7 +479,7 @@ void send_relocation_modules ()
         fclose (secfile);
       else
         {
-          set_clexec (fileno (secfile));
+          (void)set_clexec (fileno (secfile));
           /* NB: don't fclose this arbitrarily-chosen section file.
              This forces the kernel to keep a nonzero reference count
              on the subject module, until staprun exits, by which time
