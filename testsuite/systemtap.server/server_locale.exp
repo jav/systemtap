@@ -238,6 +238,9 @@ send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
 	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
 	-re {^Aucun module a été renvoyé par le serveur\r\n} {
 		exp_continue
 	}
@@ -257,6 +260,9 @@ expect {
 		exp_continue
 	}
 	-re {^Passe 1 : échec de l'analyse syntaxique\. Essayez encore avec une option '--vp 1' supplémentaire\.\r\n} {
+		exp_continue
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
 		exp_continue
 	}
 	-re {^[^\r\n]*\r\n} {
@@ -295,7 +301,7 @@ send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
 	-timeout 150
-	-re {^No module was returned by the server\r\n} {
+	-re {^No module was returned by the server.\r\n} {
 		exp_continue		
 	}
 	-re {^parse error: Could not find matching closing quote\r\n} {
@@ -315,6 +321,9 @@ expect {
 	}
 	-re {^Pass 1: parse failed\.  Try again with another '--vp 1' option\.\r\n} {
 		exp_continue		
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
 	}
 	-re {^[^\r\n]*\r\n} {
 		set failed 1		
@@ -436,6 +445,9 @@ send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
 	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
 	-re {^Aucun module a été renvoyé par le serveur\r\n} {
 		exp_continue		
 	}
@@ -461,6 +473,9 @@ expect {
 	}
 	-re {^Conservation du répertoire temporaire "/tmp/stap......"\r\n} {
 		exp_continue	
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
 	}
 	-re {^[^\r\n]*\r\n} {
 		set failed 1	
@@ -498,7 +513,7 @@ send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
 	-timeout 150
-	-re {^No module was returned by the server\r\n} {
+	-re {^No module was returned by the server.\r\n} {
 		exp_continue		
 	}
 	-re {^parse error: Could not find matching closing quote\r\n} {
@@ -518,6 +533,9 @@ expect {
 	}
 	-re {^Pass 1: parse failed\.  Try again with another '--vp 1' option\.\r\n} {
 		exp_continue		
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
 	}
 	-re {^Keeping temporary directory "/tmp/stap......"\r\n} {
 		exp_continue		
@@ -640,6 +658,9 @@ send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
 	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
 	-re {^Aucun module a été renvoyé par le serveur\r\n} {
 		exp_continue
 	}
@@ -659,6 +680,9 @@ expect {
 		exp_continue
 	}
 	-re {^Passe 1 : échec de l'analyse syntaxique\. Essayez encore avec une option '--vp 1' supplémentaire\.\r\n} {
+		exp_continue
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
 		exp_continue
 	}
 	-re {^[^\r\n]*\r\n} {
@@ -697,7 +721,7 @@ send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
 	-timeout 150
-	-re {^No module was returned by the server\r\n} {
+	-re {^No module was returned by the server.\r\n} {
 		exp_continue		
 	}
 	-re {^parse error: Could not find matching closing quote\r\n} {
@@ -717,6 +741,9 @@ expect {
 	}
 	-re {^Pass 1: parse failed\.  Try again with another '--vp 1' option\.\r\n} {
 		exp_continue		
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
 	}
 	-re {^[^\r\n]*\r\n} {
 		set failed 1		
@@ -838,6 +865,9 @@ send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
 	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
 	-re {^Aucun module a été renvoyé par le serveur\r\n} {
 		exp_continue		
 	}
@@ -860,6 +890,9 @@ expect {
 	}
 	-re {^Passe 1 : échec de l'analyse syntaxique\. Essayez encore avec une option '--vp 1' supplémentaire\.\r\n} {
 		exp_continue	
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
 	}
 	-re {^Conservation du répertoire temporaire "/tmp/stap......"\r\n} {
 		exp_continue	
@@ -900,7 +933,7 @@ send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
 	-timeout 150
-	-re {^No module was returned by the server\r\n} {
+	-re {^No module was returned by the server.\r\n} {
 		exp_continue		
 	}
 	-re {^parse error: Could not find matching closing quote\r\n} {
@@ -920,6 +953,9 @@ expect {
 	}
 	-re {^Pass 1: parse failed\.  Try again with another '--vp 1' option\.\r\n} {
 		exp_continue		
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
 	}
 	-re {^Keeping temporary directory "/tmp/stap......"\r\n} {
 		exp_continue		
