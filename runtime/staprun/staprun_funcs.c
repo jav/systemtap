@@ -65,8 +65,14 @@ int insert_module(
 	char module_realpath[PATH_MAX];
 	int module_fd;
 	struct stat sbuf;
+	int rename_this_module;
 
-	dbug(2, "inserting module\n");
+	dbug(2, "inserting module %s\n", path);
+
+	/* Rename the script module if '-R' was passed, but not other modules
+	 * like uprobes.  We can tell which this is by comparing to the global
+	 * modpath, but we must do it before it's transformed by realpath.  */
+	rename_this_module = rename_mod && (strcmp(path, modpath) == 0);
 
 	if (special_options)
 		opts = strdup(special_options);
@@ -134,7 +140,7 @@ int insert_module(
 	assert_permissions (module_realpath, module_fd, module_file, sbuf.st_size);
 
 	/* Rename Module if '-R' was passed */
-	if(rename_mod){
+	if (rename_this_module) {
 		dbug(2,"Renaming module '%s'\n", modname);
 		if(rename_module(module_file, sbuf.st_size) < 0) {
 
