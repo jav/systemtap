@@ -9,6 +9,7 @@
 */
 #include "config.h"
 #include "session.h"
+#include "cscommon.h"
 #include "csclient.h"
 #include "util.h"
 #include "stap-probe.h"
@@ -59,7 +60,6 @@ extern "C" {
 }
 
 #include "nsscommon.h"
-#include "cscommon.h"
 #endif // HAVE_NSS
 
 using namespace std;
@@ -133,6 +133,18 @@ struct compile_server_info
 };
 
 ostream &operator<< (ostream &s, const compile_server_info &i);
+
+static void
+preferred_order (vector<compile_server_info> &servers)
+{
+  // Sort the given list of servers into the preferred order for contacting.
+  // Don't bother if there are less than 2 servers in the list.
+  if (servers.size () < 2)
+    return;
+
+  // Sort the list using compile_server_info::operator<
+  sort (servers.begin (), servers.end ());
+}
 
 struct compile_server_cache
 {
@@ -1089,18 +1101,6 @@ compile_server_client::package_request ()
   sh_cmd.push_back(cmd);
   int rc = stap_system (s.verbose, sh_cmd);
   return rc;
-}
-
-static void
-preferred_order (vector<compile_server_info> &servers)
-{
-  // Sort the given list of servers into the preferred order for contacting.
-  // Don't bother if there are less than 2 servers in the list.
-  if (servers.size () < 2)
-    return;
-
-  // Sort the list using compile_server_info::operator<
-  sort (servers.begin (), servers.end ());
 }
 
 int
