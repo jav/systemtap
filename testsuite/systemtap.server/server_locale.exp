@@ -14,14 +14,9 @@ if {! [use_server_p]} then {
 ###### Embedded '\n' in Environment Variables ########
 # Should not allow embedded '\n' in Environment Variables
 set test "Embedded '\\n' in Env Vars"
-if {[info exists env(LANG)]} {
-	set oldEnvVar $env(LANG)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LANG) en_US\n.utf8
+
 set failed 1
-set cmd [concat stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
+set cmd [concat env \"LANG=en_US\\n.utf8\" stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -48,25 +43,16 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LANG) $oldEnvVar
-	} else {
-	unset env(LANG)
-}
+
 
 
 ###### Embedded ';' in Environment Variables ########
 # Should not allow embedded ';' in Environment Variables
 # There are many disallowed chars, but let's just try one
 set test "Embedded ';' in Env Vars"
-if {[info exists env(LANG)]} {
-	set oldEnvVar $env(LANG)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-}
-set env(LANG) "en_US;.utf8"
+
 set failed 1
-set cmd [concat stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
+set cmd [concat env \"LANG=en_US\;.utf8\" stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -94,24 +80,15 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LANG) $oldEnvVar
-	} else {
-	unset env(LANG)
-}
+
 
 
 ###### Use of "_.-@=" in Environment Variables ########
 # Should allow "_.-@=" in Environment Variables
 set test "Use of '_.-@=' in Env Vars"
-if {[info exists env(LANG)]} {
-	set oldEnvVar $env(LANG)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LANG) en_US.utf-8@toronto=test
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
+set cmd [concat env LANG=en_US.utf-8@toronto=test stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -133,11 +110,6 @@ if {$failed != 0} {
 	fail "$test"
     } else {
 	pass "$test"
-}
-if {[info exists oldEnvVar]} {
-	set env(LANG) $oldEnvVar
-	} else {
-	unset env(LANG)
 }
 
 
@@ -148,14 +120,9 @@ if {[info exists oldEnvVar]} {
 ########### LANG Proper Syntax Test (French) ##############
 #Run a basic execution test in French. Should return only "Bonjour".
 set test "LANG Proper Syntax Test (French)"
-if {[info exists env(LANG)]} {
-	set oldEnvVar $env(LANG)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LANG) fr_FR.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server]
+set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -178,23 +145,14 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LANG) $oldEnvVar
-	} else {
-	unset env(LANG)
-}
+
 
 ########### LANG Proper Syntax Test (English) #############
 #Run a basic execution test in English. Should return only "Hello".
 set test "LANG Proper Syntax Test (English)"
-if {[info exists env(LANG)]} {
-	set oldEnvVar $env(LANG)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LANG) en_US.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
+set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -216,24 +174,14 @@ if {$failed != 0} {
 	fail "$test"
     } else {
 	pass "$test"
-}
-if {[info exists oldEnvVar]} {
-	set env(LANG) $oldEnvVar
-	} else {
-	unset env(LANG)
 }
 
 ########### LANG Bad Syntax Test (French) #############
 # Run an execution test with a syntax error, in French.
 set test "LANG Bad Syntax Test (French)"
-if {[info exists env(LANG)]} {
-	set oldEnvVar $env(LANG)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LANG) fr_FR.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server]
+set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -280,23 +228,13 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LANG) $oldEnvVar
-	} else {
-	unset env(LANG)
-}
 
 ########### LANG Bad Syntax Test (English) #############
 # Run an execution test with a syntax error, in English.
 set test "LANG Bad Syntax Test (English)"
-if {[info exists env(LANG)]} {
-	set oldEnvVar $env(LANG)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LANG) en_US.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server]
+set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -340,23 +278,13 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LANG) $oldEnvVar
-	} else {
-	unset env(LANG)
-}
 
 ########### LANG Proper Syntax Test (French, -k) #############
 #Run a basic execution test in French with -k.
 set test "LANG Proper Syntax Test (French, -k)"
-if {[info exists env(LANG)]} {
-	set oldEnvVar $env(LANG)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LANG) fr_FR.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server -k]
+set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server -k]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -382,23 +310,13 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LANG) $oldEnvVar
-	} else {
-	unset env(LANG)
-}
 
 ########### LANG Proper Syntax Test (English, -k) #############
 #Run a basic execution test in English with -k.
 set test "LANG Proper Syntax Test (English, -k)"
-if {[info exists env(LANG)]} {
-	set oldEnvVar $env(LANG)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LANG) en_US.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server -k]
+set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server -k]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -424,23 +342,13 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LANG) $oldEnvVar
-	} else {
-	unset env(LANG)
-}
 
 ########### LANG Bad Syntax Test (French, -k) #############
 # Run an execution test with a syntax error, in French, with -k.
 set test "LANG Bad Syntax Test (French, -k)"
-if {[info exists env(LANG)]} {
-	set oldEnvVar $env(LANG)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LANG) fr_FR.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server -k]
+set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server -k]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -492,23 +400,13 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LANG) $oldEnvVar
-	} else {
-	unset env(LANG)
-}
 
 ########### LANG Bad Syntax Test (English, -k) #############
 # Run an execution test with a syntax error, in English, with -k.
 set test "LANG Bad Syntax Test (English, -k)"
-if {[info exists env(LANG)]} {
-	set oldEnvVar $env(LANG)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-}
-set env(LANG) en_US.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server -k]
+set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server -k]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -554,11 +452,6 @@ if {$failed != 0} {
 	fail "$test"
     } else {
 	pass "$test"
-}
-if {[info exists oldEnvVar]} {
-	set env(LANG) $oldEnvVar
-	} else {
-	unset env(LANG)
 }
 
 ######################################################
@@ -568,14 +461,9 @@ if {[info exists oldEnvVar]} {
 ########### LC_ALL Proper Syntax Test (French) ##############
 #Run a basic execution test in French. Should return only "Bonjour".
 set test "LC_ALL Proper Syntax Test (French)"
-if {[info exists env(LC_ALL)]} {
-	set oldEnvVar $env(LC_ALL)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LC_ALL) fr_FR.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server]
+set cmd [concat env LC_ALL=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -597,24 +485,14 @@ if {$failed != 0} {
 	fail "$test"
     } else {
 	pass "$test"
-}
-if {[info exists oldEnvVar]} {
-	set env(LC_ALL) $oldEnvVar
-	} else {
-	unset env(LC_ALL)
 }
 
 ########### LC_ALL Proper Syntax Test (English) #############
 #Run a basic execution test in English. Should return only "Hello".
 set test "LC_ALL Proper Syntax Test (English)"
-if {[info exists env(LC_ALL)]} {
-	set oldEnvVar $env(LC_ALL)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LC_ALL) en_US.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
+set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -637,23 +515,13 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LC_ALL) $oldEnvVar
-	} else {
-	unset env(LC_ALL)
-}
 
 ########### LC_ALL Bad Syntax Test (French) #############
 # Run an execution test with a syntax error, in French.
 set test "LC_ALL Bad Syntax Test (French)"
-if {[info exists env(LC_ALL)]} {
-	set oldEnvVar $env(LC_ALL)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LC_ALL) fr_FR.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server]
+set cmd [concat env LC_ALL=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -700,23 +568,13 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LC_ALL) $oldEnvVar
-	} else {
-	unset env(LC_ALL)
-}
 
 ########### LC_ALL Bad Syntax Test (English) #############
 # Run an execution test with a syntax error, in English.
 set test "LC_ALL Bad Syntax Test (English)"
-if {[info exists env(LC_ALL)]} {
-	set oldEnvVar $env(LC_ALL)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LC_ALL) en_US.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server]
+set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -760,23 +618,13 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LC_ALL) $oldEnvVar
-	} else {
-	unset env(LC_ALL)
-}
 
 ########### LC_ALL Proper Syntax Test (French, -k) #############
 #Run a basic execution test in French with -k.
 set test "LC_ALL Proper Syntax Test (French, -k)"
-if {[info exists env(LC_ALL)]} {
-	set oldEnvVar $env(LC_ALL)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LC_ALL) fr_FR.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server -k]
+set cmd [concat env LC_ALL=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server -k]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -802,23 +650,14 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LC_ALL) $oldEnvVar
-	} else {
-	unset env(LC_ALL)
-}
+
 
 ########### LC_ALL Proper Syntax Test (English, -k) #############
 #Run a basic execution test in English with -k.
 set test "LC_ALL Proper Syntax Test (English, -k)"
-if {[info exists env(LC_ALL)]} {
-	set oldEnvVar $env(LC_ALL)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LC_ALL) en_US.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server -k]
+set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server -k]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -844,23 +683,13 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LC_ALL) $oldEnvVar
-	} else {
-	unset env(LC_ALL)
-}
 
 ########### LC_ALL Bad Syntax Test (French, -k) #############
 # Run an execution test with a syntax error, in French, with -k.
 set test "LC_ALL Bad Syntax Test (French, -k)"
-if {[info exists env(LC_ALL)]} {
-	set oldEnvVar $env(LC_ALL)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-} 
-set env(LC_ALL) fr_FR.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server -k]
+set cmd [concat env LC_ALL=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server -k]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -912,23 +741,14 @@ if {$failed != 0} {
     } else {
 	pass "$test"
 }
-if {[info exists oldEnvVar]} {
-	set env(LC_ALL) $oldEnvVar
-	} else {
-	unset env(LC_ALL)
-}
+
 
 ########### LC_ALL Bad Syntax Test (English, -k) #############
 # Run an execution test with a syntax error, in English, with -k.
 set test "LC_ALL Bad Syntax Test (English, -k)"
-if {[info exists env(LC_ALL)]} {
-	set oldEnvVar $env(LC_ALL)
-	} elseif {[info exists oldEnvVar]} {
-	unset oldEnvVar
-}
-set env(LC_ALL) en_US.utf8
+
 set failed 0
-set cmd [concat stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server -k]
+set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server -k]
 send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
@@ -974,11 +794,6 @@ if {$failed != 0} {
 	fail "$test"
     } else {
 	pass "$test"
-}
-if {[info exists oldEnvVar]} {
-	set env(LC_ALL) $oldEnvVar
-	} else {
-	unset env(LC_ALL)
 }
 
 ######################################################
