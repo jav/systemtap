@@ -711,8 +711,10 @@ probe syscall.execve = kernel.function("do_execve").call
 {
 	name = "execve"
 	filename = kernel_string($filename)
-	args = __get_argv($argv, 0)
-	argstr = sprintf("%s %s", filename, __get_argv($argv, 1))
+	# kernel 3.0 changed the pointer's name to __argv
+	__argv = @defined($__argv) ? $__argv : $argv
+	args = __get_argv(__argv, 0)
+	argstr = sprintf("%s %s", filename, __get_argv(__argv, 1))
 }
 # v2.6.15-rc2 or earlier has problems with sys_execve return probes
 # another reason to probe on do_execve
@@ -729,8 +731,10 @@ probe syscall.compat_execve = kernel.function("compat_do_execve").call ?
 {
 	name = "compat_execve"
 	filename = kernel_string($filename)
-	args = __get_compat_argv($argv, 0)
-	argstr = sprintf("%s %s", filename, __get_compat_argv($argv, 1))
+	# kernel 3.0 changed the pointer's name to __argv
+	__argv = @defined($__argv) ? $__argv : $argv
+	args = __get_compat_argv(__argv, 0)
+	argstr = sprintf("%s %s", filename, __get_compat_argv(__argv, 1))
 }
 probe syscall.compat_execve.return = kernel.function("compat_do_execve").return  ?
 {
