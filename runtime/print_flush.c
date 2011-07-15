@@ -99,7 +99,10 @@ void EXPORT_FN(stp_print_flush)(_stp_pbuf *pb)
 #else  /* !STP_BULKMODE */
 
 #if STP_TRANSPORT_VERSION == 1
-
+	/** STP_TRANSPORT_VERSION == 1 is special, _stp_ctl_write will
+	    pass through procfs _stp_ctl_write_fs which recognizes
+	    STP_REALTIME_DATA as data that needs to be send right away
+	    over the .cmd channel instead of being queued.  */
 	if (unlikely(_stp_ctl_write(STP_REALTIME_DATA, pb->buf, len) <= 0))
 		atomic_inc (&_stp_transport_failures);
 

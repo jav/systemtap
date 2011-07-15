@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * control channel
- * Copyright (C) 2007-2010 Red Hat Inc.
+ * Copyright (C) 2007-2011 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -145,6 +145,12 @@ static void _stp_ctl_write_dbug(int type, void *data, int len)
 }
 #endif
 
+/* Send a message directly (only old_relay) or puts it on the
+   _stp_ctl_ready_q.  Doesn't call wake_up on _stp_ctl_wq (use
+   _stp_ctl_send if you need that behavior).  Returns zero if len
+   was zero, or len > STP_CTL_BUFFER_SIZE.  Returns the the length
+   if the send or stored message on success. Returns a negative
+   error code on failure.  */
 static int _stp_ctl_write(int type, void *data, unsigned len)
 {
 	struct _stp_buffer *bptr;
@@ -180,22 +186,56 @@ static int _stp_ctl_write(int type, void *data, unsigned len)
 	return len + sizeof(bptr->type);
 }
 
-/* send commands with timeout and retry */
+/* send commands with timeout and retry (can still fail though).
+   Will call wake_up on _stp_ctl_wq if new data is available for
+   _stp_ctl_read_cmd, so stapio can immediately read it if wanted.
+   Returns zero if the message had zero length or was too big.
+   Returns the length of the final message if sucessfully send or queued.
+   Returns a negative error number on failure.  */
 static int _stp_ctl_send(int type, void *data, int len)
 {
-	int err, trylimit = 50;
+	int err, trylimit = 20; /* XXX Come up with a better heuristic.  */
+        int mesg_on_queue = 0;
+        unsigned long flags;
+
 	dbug_trans(1, "ctl_send: type=%d len=%d\n", type, len);
-	while ((err = _stp_ctl_write(type, data, len)) < 0 && trylimit--)
-		msleep(5);
-	if (err > 0)
+	while ((err = _stp_ctl_write(type, data, len)) < 0 && trylimit--) {
+		/* Trouble we ran out of buffers.  */
+                printk(KERN_WARNING "_stp_ctl_write (type=%d len=%d) failed: %d\n", type, len, err);
+
+		/* If there are pending messages on the queue, then yell
+		   and scream for someone to pick them off quickly.  */
+		spin_lock_irqsave(&_stp_ctl_ready_lock, flags);
+		if (!list_empty(&_stp_ctl_ready_q))
+			mesg_on_queue = 1;
+		spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
+		if (!mesg_on_queue) {
+			printk(KERN_ERR "_stp_ctl_write failed, but no messages on queue!\n");
+			break;
+		}
+                wake_up_interruptible(&_stp_ctl_wq);
+		/* Note that we cannot really sleep (PR12960), so we
+		   delay and hope another thread will pick up and stapio
+		   reads some msgs from the queue to free up some memory.  */
+		mdelay(5);
+	}
+
+	if (err > 0) {
+		/* A message was queued (or directly written), so wake up
+		   _stp_ctl_read_cmd so stapio can pick it up asap.  */
 		wake_up_interruptible(&_stp_ctl_wq);
-        else
-                // printk instead of _stp_error since an error here means our transport is suspect
+        } else {
+                /* printk instead of _stp_error since an error here means
+		   our message or transport is suspect.  */
                 printk(KERN_ERR "ctl_send (type=%d len=%d) failed: %d\n", type, len, err);
+	}
 	dbug_trans(1, "returning %d\n", err);
 	return err;
 }
 
+/** Called when someone tries to read from our .cmd file.
+    Will take _stp_ctl_ready_lock and pick off the next _stp_buffer
+    from the _stp_ctl_ready_q, will wait_event on _stp_ctl_wq.  */
 static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf,
 				 size_t count, loff_t *ppos)
 {

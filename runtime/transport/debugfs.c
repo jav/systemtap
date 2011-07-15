@@ -12,8 +12,12 @@
 #include <linux/debugfs.h>
 #include "transport.h"
 
-#define STP_DEFAULT_BUFFERS 50
+/* Defines the number of buffers allocated in control.c (which #includes
+   this file) for the _stp_pool_q.  This is the number of .cmd messages
+   the module can store before they have to be read by stapio.  */
+#define STP_DEFAULT_BUFFERS 64
 
+/* Always returns zero, we just push all messages on the _stp_ctl_ready_q.  */
 inline static int _stp_ctl_write_fs(int type, void *data, unsigned len)
 {
 	return 0;

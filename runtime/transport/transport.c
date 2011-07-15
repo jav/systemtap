@@ -187,7 +187,10 @@ static void _stp_attach(void)
 
 /*
  *	_stp_ctl_work_callback - periodically check for IO or exit
- *	This is run by a kernel thread and may sleep.
+ *	This IO comes from ERRORs or WARNINGs which are send with
+ *	_stp_ctl_write as type STP_OOB_DATA, so don't immediately
+ *	trigger a wake_up of _stp_ctl_wq.
+ *	This is run by a kernel thread and may NOT sleep.
  */
 static void _stp_ctl_work_callback(unsigned long val)
 {
