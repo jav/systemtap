@@ -1,3 +1,8 @@
+NOTE: This was written before the staprun/stapio split.
+These days staprun handles the priviliged module loading operation
+(and sending the kernel/module relocation and tzinfo messages)
+and stapio handles the i/o with the kernel module.
+
 INITIALIZATION
 
 init_module() is defined in runtime.h. It returns _stp_transport_init().

@@ -26,22 +26,57 @@ struct _stp_trace {
 /* stp control channel command values */
 enum
 {
+	/** stapio sends a STP_START after recieving a STP_TRANSPORT from
+	    the module. The module sends STP_START back with result of call
+	    probe_start() which will install all initial probes.  */
 	STP_START,
+	/** stapio sends STP_EXIT to signal it wants to stop the module
+	    itself or in response to receiving a STP_REQUEST_EXIT.
+	    The module sends STP_EXIT once _stp_clean_and_exit has been
+	    called (the first time) in reponse to a STP_EXIT or an rmmod.  */
 	STP_EXIT,
+	/** _stp_warn and _stp_error messages from the module.  stapio
+	    parses the start if the message payload string to determine
+	    whether it is a WARNING: or ERROR:.  */
 	STP_OOB_DATA,
+	/**  Send by the module (tapset/system.stp) to request stapio to
+	     execute a shell command with the given message payload.  */
 	STP_SYSTEM,
+	/** modules sends STP_TRANSPORT to stapio when ready to recieve a
+	    STP_START message.  stapio sends STP_BULK and then STP_START
+	    back.  */
 	STP_TRANSPORT,
+	/** Never used.  */
 	STP_CONNECT,
+	/** Never used.  */
 	STP_DISCONNECT,
+	/** Send by the staprun when initializing relayfs in response to a
+	    STP_TRANSPORT message with a (empty) 127 char payload.  Silently
+	    absorbed by module when in STP_BULKMODE (percpu files), otherwise
+	    returns -EINVAL to indicate bulkmode is disabled.  */
 	STP_BULK,
+	/** Send as first message from staprun stp_main_loop, but never
+	    never acted upon. Used to be initial message for message to
+	    start requestion symbol data (symbol data is now compiled
+	    into the module).  */
 	STP_READY,
+	/** Send by staprun at startup to notify module of where the kernel
+	    (_stext) and all other modules are loaded.  */
         STP_RELOCATION,
-	/** deprecated STP_TRANSPORT_VERSION == 1 **/
+	/** Never used.  deprecated STP_TRANSPORT_VERSION == 1 **/
 	STP_BUF_INFO,
+	/** Never used.  */
 	STP_SUBBUFS_CONSUMED,
+	/** Used by the module only when STP_TRANSPORT_VERSION == 1 for
+	    stapio to write realtime data packet to disk.  */
 	STP_REALTIME_DATA,
+	/** Send by the module when it gets unloaded or STP_EXIT has been
+	    received by stapio.  */
 	STP_REQUEST_EXIT,
+	/** Send by staprun to notify module of current timezone.
+            Only send once at startup.  */
         STP_TZINFO,
+	/** Max number of message types, sanity check only.  */
 	STP_MAX_CMD
 };
 

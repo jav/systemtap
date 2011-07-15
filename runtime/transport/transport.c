@@ -273,7 +273,10 @@ static int _stp_transport_init(void)
 	/* start transport */
 	_stp_transport_data_fs_start();
 
-        /* Signal stapio to send us STP_START back (XXX: ?!?!?!).  */
+        /* Signal stapio to send us STP_START back.
+           This is an historic convention. This was called
+	   STP_TRANSPORT_INFO and had a payload that described the
+	   transport buffering, this is no longer the case.  */
 	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
 
 	dbug_trans(1, "returning 0...\n");
