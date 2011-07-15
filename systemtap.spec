@@ -411,7 +411,6 @@ exit 0
 %{_bindir}/stap-prep
 %{_bindir}/stap-report
 %{_mandir}/man1/stap.1*
-%{_mandir}/man1/stapgraph.1*
 %{_mandir}/man1/stap-merge.1*
 %{_mandir}/man3/*
 %{_mandir}/man7/stappaths.7*
@@ -492,6 +491,7 @@ exit 0
 %defattr(-,root,root)
 %{_bindir}/stapgraph
 %{_datadir}/%{name}/*.glade
+%{_mandir}/man1/stapgraph.1*
 %endif
 
 
