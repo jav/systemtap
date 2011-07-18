@@ -7,7 +7,7 @@ set failed2 1
 
 # Run first module. Stays running since no exit() call.
 # Also keep track of its PID, so we can kill it later.
-spawn env LANG=C stap -e {probe begin{printf("Hello\n");}}
+spawn stap -e {probe begin{printf("Hello\n");}}
 set firstid $spawn_id
 
 # Run second, identical module. Before, it would cause an
@@ -16,7 +16,7 @@ set firstid $spawn_id
 # renamed.
 # Note: The outputs must also be the same - they will have 
 # different names to begin with otherwise.
-spawn env LANG=C stap -e {probe begin{printf("Hello\n");}}
+spawn stap -e {probe begin{printf("Hello\n");}}
 set secondid $spawn_id
 
 # Make sure they both output "Hello"
@@ -49,7 +49,7 @@ if {$failed1 == 1 || $failed2 == 1} {
 # when calling staprun directly without using -R
 set test "Inserting 2 Identical Modules: Staprun without -R"
 set failed 0
-set compile { exec env LANG=C stap -e {probe begin{printf("Hello\n");}} -p4 }
+set compile { exec stap -e {probe begin{printf("Hello\n");}} -p4 }
 set module [eval $compile] 
 
 spawn staprun $module
@@ -90,7 +90,7 @@ if {$failed} {
 set test "Inserting 2 Identical Modules: Staprun with -R"
 set failed1 1
 set failed2 1
-set compile { exec env LANG=C stap -e {probe begin{printf("Hello\n");}} -p4 }
+set compile { exec stap -e {probe begin{printf("Hello\n");}} -p4 }
 set module [eval $compile] 
 
 spawn staprun -R $module
