@@ -385,7 +385,7 @@ static int _stp_ctl_write(int type, void *data, unsigned len)
    Returns a negative error number on failure.  */
 static int _stp_ctl_send(int type, void *data, int len)
 {
-	int err, mesg_on_queue;
+	int err, mesg_on_queue = 0;
 	unsigned long flags;
 	dbug_trans(1, "ctl_send: type=%d len=%d\n", type, len);
 	err = _stp_ctl_write(type, data, len);
