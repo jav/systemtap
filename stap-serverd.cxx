@@ -954,8 +954,7 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
   const set<string> &locVars = localization_variables();
 
   /* Copy the global environ variable into the map */
-  unsigned i = -1;
-  while (environ[++i])
+  for (unsigned i=0; environ[i]; i++)
     {
       vector<string> environTok;
       tokenize(environ[i], environTok, "=");
