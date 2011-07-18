@@ -578,7 +578,7 @@ int stp_main_loop(void)
       break;
 #endif
     case STP_OOB_DATA:
-      if (strncmp(recvbuf.payload.data, _("WARNING:"), 7) == 0) {
+      if (strncmp(recvbuf.payload.data, "WARNING:", 7) == 0) {
               if (suppress_warnings) break;
               if (verbose) { /* don't eliminate duplicates */
                       eprintf("%.*s", (int) nb, recvbuf.payload.data);
