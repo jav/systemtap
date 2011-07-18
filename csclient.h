@@ -8,6 +8,8 @@
 #ifndef CSCLIENT_H
 #define CSCLIENT_H
 
+
+#if HAVE_NSS
 struct compile_server_info;
 struct cs_protocol_version;
 
@@ -53,6 +55,7 @@ private:
   std::string server_zipfile;
   unsigned argc;
 };
+#endif // HAVE_NSS
 
 // Utility functions
 void query_server_status (systemtap_session &s);

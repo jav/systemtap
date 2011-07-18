@@ -47,7 +47,9 @@ extern int optind;
 
 #define PATH_TBD string("__TBD__")
 
+#if HAVE_NSS
 bool systemtap_session::NSPR_Initialized = false;
+#endif
 
 systemtap_session::systemtap_session ():
   // NB: pointer members must be manually initialized!
@@ -330,17 +332,17 @@ systemtap_session::~systemtap_session ()
   delete_map(subsessions);
 }
 
+#if HAVE_NSS
 void
 systemtap_session::NSPR_init ()
 {
-#if HAVE_NSS
   if (! NSPR_Initialized)
     {
       PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
       NSPR_Initialized = true;
     }
-#endif // HAVE_NSS
 }
+#endif // HAVE_NSS
 
 systemtap_session*
 systemtap_session::clone(const string& arch, const string& release)
@@ -1120,9 +1122,7 @@ systemtap_session::check_options (int argc, char * const argv [])
 #if ! HAVE_NSS
   if (client_options)
     cerr << _("WARNING: --client-options is not supported by this version of systemtap") << endl;
-#endif
 
-#if ! HAVE_NSS
   if (! server_trust_spec.empty ())
     {
       cerr << _("WARNING: --trust-servers is not supported by this version of systemtap") << endl;
