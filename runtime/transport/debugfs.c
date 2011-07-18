@@ -14,8 +14,9 @@
 
 /* Defines the number of buffers allocated in control.c (which #includes
    this file) for the _stp_pool_q.  This is the number of .cmd messages
-   the module can store before they have to be read by stapio.  */
-#define STP_DEFAULT_BUFFERS 64
+   the module can store before they have to be read by stapio.
+   40 is somewhat arbitrary, 8 pre-allocated messages, 32 dynamic.  */
+#define STP_DEFAULT_BUFFERS 40
 
 /* Always returns zero, we just push all messages on the _stp_ctl_ready_q.  */
 inline static int _stp_ctl_write_fs(int type, void *data, unsigned len)

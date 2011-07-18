@@ -1,0 +1,30 @@
+# Test proper shutdown while "overflowing" warning and system messages
+
+set test "warn_overflow"
+if {![installtest_p]} { untested $test; return }
+
+# -vv suppresses WARNING duplication filtering in staprun.
+spawn stap -vv $srcdir/$subdir/$test.stp
+set ok 0
+set warn 0
+expect {
+    -timeout 180
+
+    -re {^WARNING: too many pending \([a-z]+\) messages\r\n} {
+        incr warn; exp_continue
+    }
+
+    -re {^stap_begin\r\n} { incr ok; exp_continue; }
+    -re {^stap_syscall\r\n} { incr ok; exp_continue; }
+    -re {^stap_end\r\n} { incr ok; exp_continue; }
+
+    -re {^[^\r\n]*\r\n} { exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+if {$ok == 3 && $warn == 3} {
+    pass "$test ($ok,$warn)"
+} {
+    fail "$test ($ok,$warn)"
+}
