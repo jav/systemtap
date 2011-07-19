@@ -77,7 +77,11 @@ DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
 	$(srcdir)/dtrace.in ABOUT-NLS depcomp \
 	$(am__noinst_HEADERS_DIST) $(oldinclude_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/gettext.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/lib-ld.m4 \
+	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
+	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/po.m4 \
+	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -288,7 +292,6 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
-INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
@@ -2039,6 +2042,7 @@ cscope:
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@	for dir in libelf libebl libdw libdwfl backends; do \
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@	  $(MAKE) $(AM_MAKEFLAGS) -j1 -C build-elfutils/$$dir bin_PROGRAMS= install; \
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@	done
+@BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@	$(MAKE) $(AM_MAKEFLAGS) -j1 -C build-elfutils install-pkgincludeHEADERS;
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@	touch $@
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@lib-elfutils/libdw.so: stamp-elfutils ;
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@install-elfutils:

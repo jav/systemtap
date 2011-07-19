@@ -1104,8 +1104,8 @@ static int unwind_frame(struct unwind_context *context,
 	} else if ((is_ehframe ? m->unwind_hdr: s->debug_hdr) == NULL) {
 	    /* Only do a linear search if there isn't a search header.
 	       There always should be one, we create it in the translator
-	       if it didn't exist. Only if we are using elfutils < 0.142
-	       should these ever be missing. */
+	       if it didn't exist. These should never be missing except
+	       when there are toolchain bugs. */
 	    unsigned long tableSize;
 	    _stp_warn("No binary search table for debug frame, doing slow linear search for %s\n", m->name);
 	    for (fde = table, tableSize = table_len; cie = NULL, tableSize > sizeof(*fde)

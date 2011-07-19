@@ -25,23 +25,12 @@
 /* Define to 1 if you have the <boost/shared_ptr.hpp> header file. */
 #undef HAVE_BOOST_SHARED_PTR_HPP
 
-/* Define to 1 if you have the MacOS X function CFLocaleCopyCurrent in the
-   CoreFoundation framework. */
-#undef HAVE_CFLOCALECOPYCURRENT
-
-/* Define to 1 if you have the MacOS X function CFPreferencesCopyAppValue in
-   the CoreFoundation framework. */
-#undef HAVE_CFPREFERENCESCOPYAPPVALUE
-
 /* Define to 1 if you have the <crash/defs.h> header file. */
 #undef HAVE_CRASH_DEFS_H
 
 /* Define if the GNU dcgettext() function is already present or preinstalled.
    */
 #undef HAVE_DCGETTEXT
-
-/* Define to 1 if you have the <elfutils/version.h> header file. */
-#undef HAVE_ELFUTILS_VERSION_H
 
 /* Define if the GNU gettext() function is already present or preinstalled. */
 #undef HAVE_GETTEXT

@@ -30,11 +30,6 @@ extern "C" {
 #include <regex.h>
 }
 
-#if !_ELFUTILS_PREREQ(0,142)
-// Always use newer name, old name is deprecated in 0.142.
-#define elf_getshdrstrndx elf_getshstrndx
-#endif
-
 
 struct func_info;
 struct inline_instance_info;

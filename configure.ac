@@ -463,8 +463,8 @@ if test $enable_translator = yes; then
     AC_CHECK_LIB(dw, dwfl_module_getsym,[],[
       AC_MSG_ERROR([missing elfutils development headers/libraries (install elfutils-devel, libebl-dev, libdw-dev and/or libebl-devel)])],
       [-Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf])
-    AC_CHECK_LIB(dw, dwarf_getelf,[],[
-      AC_MSG_ERROR([elfutils, libdw too old, need 0.126+])],
+    AC_CHECK_LIB(dw, dwarf_getcfi_elf,[],[
+      AC_MSG_ERROR([elfutils, libdw too old, need 0.142+])],
       [-Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf])
     stap_LIBS="$stap_LIBS -Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf"
     LIBS="$save_LIBS"
@@ -516,7 +516,6 @@ if test $stap_cv_sectionq = yes; then
 fi
 AC_CONFIG_FILES([includes/sys/sdt-config.h po/Makefile.in])
 
-
 if test $build_elfutils = yes -a $enable_translator = yes; then
   case "$with_elfutils" in
   /*) elfutils_srcdir="$with_elfutils" ;;
@@ -551,19 +550,13 @@ if test $build_elfutils = yes -a $enable_translator = yes; then
 				CFLAGS="${CFLAGS/-Wall/} $gnu89_inline_flag" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
    if test -f ${elfutils_srcdir}/config/version.h.in; then
-        echo Trying to install elfutils version header...
-	make install-pkgincludeHEADERS
+        echo Found elfutils/version.h header...
+   else
+	echo elfutils/version.h header not found, need elfutils 0.142+...
+	exit -1
    fi
-   # so that elfutils/version.h - available from 0.138 - may be found.
-   # Don't use install-data because that will fail (installing in $prefix).
   )
-  if test $? != 0; then exit; fi
-  save_CPPFLAGS=${CPPFLAGS}
-  CPPFLAGS="${CPPFLAGS} -Iinclude-elfutils" # in case bundled elfutils
-  AC_CHECK_HEADERS([elfutils/version.h])
-  CPPFLAGS="$save_CPPFLAGS"
-else
-  AC_CHECK_HEADERS([elfutils/version.h])
+  if test $? != 0; then exit -1; fi
 fi
 
 AC_SUBST(ENABLE_NLS, "$USE_NLS")

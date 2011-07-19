@@ -145,6 +145,7 @@ stamp-elfutils: config.status
 	for dir in libelf libebl libdw libdwfl backends; do \
 	  $(MAKE) $(AM_MAKEFLAGS) -j1 -C build-elfutils/$$dir bin_PROGRAMS= install; \
 	done
+	$(MAKE) $(AM_MAKEFLAGS) -j1 -C build-elfutils install-pkgincludeHEADERS;
 	touch $@
 stap_DEPENDENCIES += lib-elfutils/libdw.so
 lib-elfutils/libdw.so: stamp-elfutils ;

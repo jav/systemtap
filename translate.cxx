@@ -4730,7 +4730,6 @@ static void create_debug_frame_hdr (const unsigned char e_ident[],
   *debug_frame_hdr = NULL;
   *debug_frame_hdr_len = 0;
 
-#if _ELFUTILS_PREREQ(0,142)
   int cies = 0;
   set< pair<Dwarf_Addr, Dwarf_Off> > fdes;
   set< pair<Dwarf_Addr, Dwarf_Off> >::iterator it;
@@ -4822,7 +4821,6 @@ static void create_debug_frame_hdr (const unsigned char e_ident[],
 	  *table++ = (*it).second;
 	}
     }
-#endif
 }
 
 // Get the .debug_frame end .eh_frame sections for the given module.
@@ -4958,26 +4956,6 @@ dump_unwindsyms (Dwfl_Module *m,
                                         (const unsigned char **)&build_id_bits,
                                          &build_id_vaddr)) > 0)
   {
-    // Enable workaround for elfutils dwfl bug.
-    // see https://bugzilla.redhat.com/show_bug.cgi?id=465872
-    // and http://sourceware.org/ml/systemtap/2008-q4/msg00579.html
-#if !_ELFUTILS_PREREQ(0,138)
-    // Let's standardize to the new "start of build-id bits" behavior.
-    build_id_vaddr -= build_id_len;
-#endif
-
-    // And check for another workaround needed.
-    // see https://bugzilla.redhat.com/show_bug.cgi?id=489439
-    // and http://sourceware.org/ml/systemtap/2009-q1/msg00513.html
-#if !_ELFUTILS_PREREQ(0,141)
-    if (build_id_vaddr < base && dwfl_module_relocations (m) == 1)
-      {
-        GElf_Addr main_bias;
-        dwfl_module_getelf (m, &main_bias);
-        build_id_vaddr += main_bias;
-      }
-#endif
-
      if (modname != "kernel")
       {
         Dwarf_Addr reloc_vaddr = build_id_vaddr;
@@ -5055,10 +5033,6 @@ dump_unwindsyms (Dwfl_Module *m,
               ki = dwfl_module_relocate_address (m, &extra_offset);
               dwfl_assert ("dwfl_module_relocate_address extra_offset",
                            ki >= 0);
-              // Sadly dwfl_module_relocate_address is broken on
-              // elfutils < 0.138, so we need to adjust for the module
-              // base address outself. (see also below).
-              extra_offset = sym.st_value - base;
               if (c->session.verbose > 2)
                 clog << _F("Found kernel _stext extra offset 0x%#" PRIx64, extra_offset) << endl;
             }
@@ -5083,14 +5057,6 @@ dump_unwindsyms (Dwfl_Module *m,
                   int ki = dwfl_module_relocate_address (m, &sym_addr);
                   dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
                   secname = dwfl_module_relocation_info (m, ki, NULL);
-
-                  // For ET_DYN files (secname == "") we do ignore the
-                  // dwfl_module_relocate_address adjustment. libdwfl
-                  // up to 0.137 would substract the wrong bias. So we do
-                  // it ourself, it is always just the module base address
-                  // in this case.
-                  if (ki == 0 && secname != NULL && secname[0] == '\0')
-                    sym_addr = save_addr - base;
 		}
 
               if (n == 1 && modname == "kernel")

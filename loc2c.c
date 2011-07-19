@@ -7,27 +7,13 @@
 #include <error.h>
 #include <dwarf.h>
 #include <elfutils/libdw.h>
+#include <elfutils/version.h>
+
 #include <assert.h>
 #include "loc2c.h"
 
 #include "config.h"
 
-#include <elfutils/libdw.h>
-#ifdef HAVE_ELFUTILS_VERSION_H
-#include <elfutils/version.h>
-#endif
-
-#if !defined(_ELFUTILS_PREREQ)
-// make a dummy PREREQ check for elfutils < 0.138
-#define _ELFUTILS_PREREQ(major, minor) (0 >= 1)
-#endif
-
-#if !_ELFUTILS_PREREQ (0,142)
-#define DW_TAG_rvalue_reference_type	0x42
-#define DW_AT_data_bit_offset           0x6b
-#define DW_OP_implicit_value		0x9e
-#define DW_OP_stack_value		0x9f
-#endif
 
 #define N_(x) x
 

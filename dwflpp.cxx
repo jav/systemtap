@@ -1059,6 +1059,7 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
 //  We cannot use this: dwarf_getelf (dwfl_module_getdwarf (module, &bias))
   Elf *elf = dwfl_module_getelf (module, &bias);
 //  elf_getphdrnum (elf, &phnum) is not available in all versions of elfutils
+//  needs libelf from elfutils 0.144+
   for (int i = 0; ; i++)
     {
       GElf_Phdr mem;
@@ -2019,22 +2020,7 @@ dwflpp::translate_location(struct obstack *pool,
 {
 
   /* DW_AT_data_member_location, can be either constant offsets
-     (struct member fields), or full blown location expressions.
-     In older elfutils, dwarf_getlocation_addr would not handle the
-     constant for us, but newer ones do.  For older ones, we work
-     it by faking an expression, which is what newer ones do. */
-#if !_ELFUTILS_PREREQ (0,142)
-  if (dwarf_whatattr (attr) == DW_AT_data_member_location)
-    {
-      Dwarf_Op offset_loc;
-      memset(&offset_loc, 0, sizeof(Dwarf_Op));
-      offset_loc.atom = DW_OP_plus_uconst;
-      if (dwarf_formudata (attr, &offset_loc.number) == 0)
-        return c_translate_location (pool, &loc2c_error, this,
-                                     &loc2c_emit_address, 1, 0, pc,
-                                     NULL, &offset_loc, 1, NULL, NULL, NULL);
-    }
-#endif
+     (struct member fields), or full blown location expressions.  */
 
   /* There is no location expression, but a constant value instead.  */
   if (dwarf_whatattr (attr) == DW_AT_const_value)
@@ -3215,7 +3201,6 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
     clog << "get_cfa_ops @0x" << hex << pc << dec
 	 << ", module_start @0x" << hex << module_start << dec << endl;
 
-#if _ELFUTILS_PREREQ(0,142)
   // Try debug_frame first, then fall back on eh_frame.
   size_t cfa_nops = 0;
   Dwarf_Addr bias = 0;
@@ -3250,13 +3235,11 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 	clog << "dwfl_module_eh_cfi failed: " << dwfl_errmsg(-1) << endl;
 
     }
-#endif
 
   if (sess.verbose > 2)
     {
       if (cfa_ops == NULL)
 	clog << _("not found cfa") << endl;
-#if _ELFUTILS_PREREQ(0,142)
       else
 	{
 	  Dwarf_Addr frame_start, frame_end;
@@ -3266,7 +3249,6 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
           clog << _F("found cfa, info: %d [start: 0x%#" PRIx64 ", end: 0x%#" PRIx64 
                      ", nops: %zu", info, frame_start, frame_end, cfa_nops) << endl;
 	}
-#endif
     }
 
   return cfa_ops;
