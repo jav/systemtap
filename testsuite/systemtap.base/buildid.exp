@@ -53,7 +53,7 @@ expect {
     eof { }
 }
 catch {close}; catch {wait}
-error_handler [expr $ok==1] "nonshared build id ok ($ok)"
+if { [error_handler [expr $ok==1] "nonshared build id ok ($ok)"] } { return }
 
 # now alter the build id using objcopy
 
@@ -117,7 +117,7 @@ expect {
     eof { }
 }
 catch {close}; catch {wait}
-error_handler [expr $ok==1] "shared build id ok ($ok)"
+if { [error_handler [expr $ok==1] "shared build id ok ($ok)"] } { return }
 
 # now alter the build id using objcopy
 
