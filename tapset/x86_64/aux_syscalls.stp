@@ -20,6 +20,12 @@ function _arch_ptrace_prctl_str(f)
 # = like tapset/x86_64/syscalls.stp but with PTRACE_ARCH_PRCTL
 #
 %{
+#ifndef PTRACE_SYSEMU
+# define PTRACE_SYSEMU 31
+#endif
+#ifndef PTRACE_SYSEMU_SINGLESTEP
+# define PTRACE_SYSEMU_SINGLESTEP 32
+#endif
 #ifndef PTRACE_SINGLEBLOCK
 # define PTRACE_SINGLEBLOCK 33
 #endif
