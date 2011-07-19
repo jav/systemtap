@@ -23,9 +23,11 @@ if {![installtest_p]} {
 # (this was usually enough to trigger the fault)
 for {set i 0} {$i < 10} {incr i} {
     spawn staprun $module -o /dev/null
-    while { [catch { exec pkill stapio -P [pid] } msg ] } { }
-    catch { close }
-    wait
+    sleep 1
+    catch { exec pkill stapio -P [pid] 2>/dev/null }
+    catch { close } 
+    catch { wait } 
+    # don't delay before the next staprun
 }
 
 # if we're still alive, we pass :)
