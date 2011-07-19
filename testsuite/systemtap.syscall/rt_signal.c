@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/syscall.h>
-
+#include <string.h>
 
 static void 
 sig_act_handler(int signo)
