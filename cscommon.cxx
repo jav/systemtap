@@ -18,10 +18,12 @@
 #include <cassert>
 #include <iomanip>
 
+#if HAVE_NSS
 extern "C"
 {
 #include <ssl.h>
 }
+#endif
 
 using namespace std;
 
@@ -75,6 +77,7 @@ cs_protocol_version::operator< (const cs_protocol_version &that) const
   return false;
 }
 
+#if HAVE_NSS
 int
 read_from_file (const string &fname, cs_protocol_version &data)
 {
@@ -124,4 +127,4 @@ string get_cert_serial_number (const CERTCertificate *cert)
     }
   return serialNumber.str ();
 }
-
+#endif /* HAVE_NSS */

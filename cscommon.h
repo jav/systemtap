@@ -2,10 +2,12 @@
 #ifndef CSCOMMON_H
 #define CSCOMMON_H 1
 
+#if HAVE_NSS
 extern "C"
 {
 #include <ssl.h>
 }
+#endif
 
 // Versioning system for the protocol used for communication between the compile-server and client.
 // The original version is 1.0. After that, we use the systemtap release number.
@@ -44,7 +46,9 @@ struct cs_protocol_version
   const char *v;
 };
 
+#if HAVE_NSS
 extern int read_from_file (const std::string &fname, cs_protocol_version &data);
 extern std::string get_cert_serial_number (const CERTCertificate *cert);
+#endif
 
 #endif // CSCOMMON_H
