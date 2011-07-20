@@ -1007,8 +1007,10 @@ int
 dwflpp::iterate_over_notes (void *object, void (*callback)(void *object, int type, const char *data, size_t len))
 {
   Dwarf_Addr bias;
-  Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (module, &bias))
-              ?: dwfl_module_getelf (module, &bias));
+  // Note we really want the actual elf file, not the dwarf .debug file.
+  // Older binutils had a bug where they mangled the SHT_NOTE type during
+  // --keep-debug.
+  Elf* elf = dwfl_module_getelf (module, &bias);
   size_t shstrndx;
   if (elf_getshdrstrndx (elf, &shstrndx))
     return elf_errno();
