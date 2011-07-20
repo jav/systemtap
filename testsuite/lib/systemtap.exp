@@ -235,6 +235,16 @@ proc shutdown_server {} {
     }
 }
 
+proc normalize_arch { arch } {
+    if {$arch == "ppc64"} then {return "powerpc"}
+    if {$arch == "s390x"} then {return "s390"}
+    if {$arch == "i686"} then {return "i386"}
+    if {$arch == "armv5tel"} then {return "arm"}
+    if {$arch == "armv7l"} then {return "arm"}
+    if {$arch == "armv7lh"} then {return "arm"}
+    return $arch
+}
+
 proc get_system_info {} {
     global Host Snapshot Distro GCC_Version env
 
