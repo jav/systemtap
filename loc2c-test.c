@@ -171,7 +171,7 @@ handle_fields (struct obstack *pool,
 	  else
 	    {
 	      /* We expect a block or a constant.  */
-	      size_t locexpr_len;
+	      size_t locexpr_len = 0;
 	      const Dwarf_Op *locexpr;
 	      locexpr = get_location (cubias, pc, &attr_mem, &locexpr_len);
 	      c_translate_location (pool, NULL, NULL, NULL,
@@ -336,7 +336,7 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 	error (2, 0, _("cannot get location of variable: %s"),
 	       dwarf_errmsg (-1));
 
-      size_t locexpr_len;
+      size_t locexpr_len = 0;
       const Dwarf_Op *locexpr = get_location (cubias, pc,
 					      &attr_mem, &locexpr_len);
 

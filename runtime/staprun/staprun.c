@@ -421,8 +421,9 @@ int send_relocation_kernel ()
 
 void send_relocation_modules ()
 {
-  unsigned i;
+  unsigned i = 0;
   glob_t globbuf;
+  globbuf.gl_pathc = 0;
   int r = glob("/sys/module/*/sections/*", GLOB_PERIOD, NULL, &globbuf);
 
   if (r == GLOB_NOSPACE || r == GLOB_ABORTED)

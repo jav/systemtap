@@ -33,7 +33,7 @@ static int target_pid_failed_p = 0;
 static void *signal_thread(void *arg)
 {
   sigset_t *s = (sigset_t *) arg;
-  int signum;
+  int signum = 0;
 
   while (1) {
     if (sigwait(s, &signum) < 0) {

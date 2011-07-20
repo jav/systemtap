@@ -1943,7 +1943,8 @@ c_translate_fetch (struct obstack *pool, int indent,
       (*input)->type = loc_fragment;
       (*input)->address.declare = "tmp";
 
-      Dwarf_Word bit_offset, bit_size;
+      Dwarf_Word bit_offset = 0;
+      Dwarf_Word bit_size = 0;
       get_bitfield (*input, die, &bit_offset, &bit_size);
 
       obstack_printf (pool, "%*s"
@@ -2071,7 +2072,8 @@ c_translate_store (struct obstack *pool, int indent,
       (*input)->type = loc_fragment;
       (*input)->address.declare = "tmp";
 
-      Dwarf_Word bit_offset, bit_size;
+      Dwarf_Word bit_offset = 0;
+      Dwarf_Word bit_size = 0;
       get_bitfield (*input, die, &bit_offset, &bit_size);
 
       obstack_printf (pool, "%*s"
