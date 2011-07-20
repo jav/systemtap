@@ -70,7 +70,7 @@ wait;catch {close}
 
 spawn stap -l {vm.*}
 expect {
-    -timeout 60
+    -timeout 180
     -re "vm.*" {pass "cmd_parse8"}
     timeout {fail "cmd_parse8: unexpected timeout"}
     eof {fail "cmd_parse8: unexpected EOF"}
