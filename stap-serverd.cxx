@@ -79,6 +79,7 @@ static string cert_serial_number;
 static string B_options;
 static string I_options;
 static string R_option;
+static bool   keep_temp;
 
 // Used to save our resource limits for these categories and impose smaller
 // limits on the translator while servicing a request.
@@ -185,7 +186,7 @@ parse_options (int argc, char **argv)
         { "log", 1, & long_opt, LONG_OPT_LOG },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "a:B:I:Pr:R:", long_options, NULL);
+      int grc = getopt_long (argc, argv, "a:B:I:kPr:R:", long_options, NULL);
       if (grc < 0)
         break;
       switch (grc)
@@ -200,6 +201,9 @@ parse_options (int argc, char **argv)
 	case 'I':
 	  I_options += optarg;
 	  stap_options += string (" -") + (char)grc + optarg;
+	  break;
+	case 'k':
+	  keep_temp = true;
 	  break;
 	case 'P':
 	  use_db_password = true;
@@ -620,6 +624,7 @@ initialize (int argc, char **argv) {
   client_version = "1.0"; // Assumed until discovered otherwise
   use_db_password = false;
   port = 0;
+  keep_temp = false;
   struct utsname utsname;
   uname (& utsname);
   uname_r = utsname.release;
@@ -1067,11 +1072,8 @@ handleRequest (const string &requestDirName, const string &responseDirName)
   for (u=0; u<words.we_wordc; u++)
     stapargv.push_back (words.we_wordv[u]);
 
-  stapargv.push_back ("-k"); /* Need to keep temp files in order to package them up again. */
-
   /* Process the saved command line arguments.  Avoid quoting/unquoting errors by
      transcribing literally. */
-
   string new_staptmpdir = responseDirName + "/stap000000";
   rc = mkdir(new_staptmpdir.c_str(), 0700);
   if (rc)
@@ -1189,23 +1191,28 @@ handleRequest (const string &requestDirName, const string &responseDirName)
 
   /* If uprobes.ko is required, it will have been built or cache-copied into
    * the temp directory.  We need to pack it into the response where the client
-   * can find it, and sign if necessary for unprivileged users.
+   * can find it, and sign, if necessary, for unprivileged users.
    */
   string uprobes_ko = new_staptmpdir + "/uprobes/uprobes.ko";
   if (get_file_size(uprobes_ko) > 0)
     {
-      /* uprobes.ko is required. Link to it from the response directory.
+      /* uprobes.ko is required.
        *
-       * XXX It's already underneath the stap tmpdir, but older stap clients
-       * don't know to look for it there, so we end up packing uprobes twice
-       * into the zip.  We could move instead of symlink.  Or perhaps once the
-       * server stops forcing -k (PR12888) it won't be packing the tmpdir.
+       * It's already underneath the stap tmpdir, but older stap clients
+       * don't know to look for it there, so, for these clients, we end up packing uprobes twice
+       * into the zip.  We could move instead of symlink.
        */
-      string uprobes_response = (string)responseDirName + "/uprobes.ko";
-      rc = symlink(uprobes_ko.c_str(), uprobes_response.c_str());
-      if (rc != 0)
-        server_error (_F("Could not link to %s from %s",
-                            uprobes_ko.c_str(), uprobes_response.c_str()));
+      string uprobes_response;
+      if (client_version < "1.6")
+	{
+	  uprobes_response = (string)responseDirName + "/uprobes.ko";
+	  rc = symlink(uprobes_ko.c_str(), uprobes_response.c_str());
+	  if (rc != 0)
+	    server_error (_F("Could not link to %s from %s",
+			     uprobes_ko.c_str(), uprobes_response.c_str()));
+	}
+      else
+	uprobes_response = uprobes_ko;
 
       /* In unprivileged mode, we need a signature on uprobes as well. */
       if (unprivileged)
@@ -1487,16 +1494,22 @@ cleanup:
 	server_error (_("Error closing ssl socket"));
 	nssError ();
       }
+
   if (tmpdir[0]) 
     {
-      /* Remove the whole tmpdir and all that lies beneath. */
-      argv.clear ();
-      argv.push_back ("rm");
-      argv.push_back ("-r");
-      argv.push_back (tmpdir);
-      rc = stap_system (0, argv);
-      if (rc != PR_SUCCESS)
-        server_error (_("Error in tmpdir cleanup"));
+      // Remove the whole tmpdir and all that lies beneath, unless -k was specified.
+      if (keep_temp) 
+	log (_F("Keeping temporary directory %s", tmpdir));
+      else
+	{
+	  argv.clear ();
+	  argv.push_back ("rm");
+	  argv.push_back ("-r");
+	  argv.push_back (tmpdir);
+	  rc = stap_system (0, argv);
+	  if (rc != PR_SUCCESS)
+	    server_error (_("Error in tmpdir cleanup"));
+	}
     }
 
   return secStatus;

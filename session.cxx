@@ -754,7 +754,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
           break;
 
         case 'k':
-	  push_server_opt = true;
+          if (client_options) { cerr << _F("ERROR: %s invalid with %s", "-k", "--client-options") << endl; return 1; } 
           keep_tmpdir = true;
           use_script_cache = false; /* User wants to keep a usable build tree. */
           break;

@@ -24,15 +24,17 @@ extern "C"
 //   Versions 1.6 and higher
 //     Client:
 //       - Passes localization variables to the server in the file client_tmpdir + "/locale"
+//       - Looks for the uprobes module in server_response + "/uprobes"
+//       - No longer needs to remove stap's "Keeping temporary directory ..." message from
+//         the server's stderr response.
 //       - Looks for 'version' tag in server's avahi record and does not automatically connect to
-//         an incompatioble server.
+//         an incompatible server. Also prefers newer servers over older ones.
 //     Server:
-//     - Applies localization variables passed from the client to stap during translation.
-//     - Uses --tmpdir to specify temp directory to be used by stap, instead of -k, in order to
-//     - avoid parsing error messages in search of stap's randomly-generated temp dir. As a result,
-//       the client no longer needs to remove stap's "Keeping temporary directory ..." message from
-//       the server's stderr response.
-//     - Advertises its protocol version using a 'version' tag in avahi.
+//       - Applies localization variables passed from the client to stap during translation.
+//       - Looks for the uprobes module in server_response + "/uprobes"
+//       - Uses --tmpdir to specify temp directory to be used by stap, instead of -k, in order to
+//         avoid parsing error messages in search of stap's randomly-generated temp dir.
+//       - Advertises its protocol version using a 'version' tag in avahi.
 //
 #define CURRENT_CS_PROTOCOL_VERSION VERSION
 

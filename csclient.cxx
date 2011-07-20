@@ -1330,13 +1330,12 @@ compile_server_client::unpack_response ()
     }
 
   // Determine the server protocol version.
-  cs_protocol_version server_version;
   string filename = server_tmpdir + "/version";
   if (file_exists (filename))
     ::read_from_file (filename, server_version);
 
   // Warn about the shortcomings of this server, if it is down level.
-  show_server_compatibility (server_version);
+  show_server_compatibility ();
 
   // If the server's response contains a systemtap temp directory, move
   // its contents to our temp directory.
@@ -1455,10 +1454,16 @@ compile_server_client::process_response ()
 		}
 
 	      // If a uprobes.ko module was returned, then make note of it.
-	      if (file_exists (s.tmpdir + "/server/uprobes.ko"))
+	      string uprobes_ko;
+	      if (server_version < "1.6")
+		uprobes_ko = s.tmpdir + "/server/uprobes.ko";
+	      else
+		uprobes_ko = s.tmpdir + "/uprobes/uprobes.ko";
+
+	      if (file_exists (uprobes_ko))
 		{
 		  s.need_uprobes = true;
-		  s.uprobes_path = s.tmpdir + "/server/uprobes.ko";
+		  s.uprobes_path = uprobes_ko;
 		}
 	    }
 	}
@@ -1591,7 +1596,7 @@ compile_server_client::flush_to_stream (const string &fname, ostream &o)
 }
 
 void
-compile_server_client::show_server_compatibility (const cs_protocol_version &server_version)
+compile_server_client::show_server_compatibility () const
 {
   // Locale sensitivity was added in version 1.6
   if (server_version < "1.6")
