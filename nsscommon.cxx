@@ -186,7 +186,16 @@ nssCleanup (const char *db_path)
       if (db_path)
 	nsscommon_error (_F("Unable to shutdown NSS for database %s", db_path));
       else
-	nsscommon_error (_("Unable to shutdown NSS"));
+	{
+	  // This shutdown request is coming from the rpm finder which attempts to shutdown NSS
+	  // manually if rpmFreeCrypto() is not available (see rpm_finder.cxx:missing_rpm_enlist).
+	  // At that point there is no way of knowing if NSS was actually started, so allow
+	  // failure here with SEC_ERROR_NOT_INITIALIZED.
+	  PRErrorCode errorNumber = PR_GetError ();
+	  if (errorNumber == SEC_ERROR_NOT_INITIALIZED)
+	    return;
+	  nsscommon_error (_("Unable to shutdown NSS"));
+	}
       nssError ();
     }
 }
