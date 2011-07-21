@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.6\n"
 "Report-Msgid-Bugs-To: systemtap@sourceware.org\n"
-"POT-Creation-Date: 2011-07-20 11:49-0400\n"
+"POT-Creation-Date: 2011-07-21 08:00-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -45,11 +45,11 @@ msgstr ""
 msgid "Warning: failed to create directory for querying tracepoints."
 msgstr ""
 
-#: buildrun.cxx:600
+#: buildrun.cxx:607
 msgid "Warning: failed to create directory for querying types."
 msgstr ""
 
-#: buildrun.cxx:701
+#: buildrun.cxx:708
 #, c-format
 msgid "Warning: skipping malformed @cast header \"%s\""
 msgstr ""
@@ -126,7 +126,7 @@ msgstr ""
 #: csclient.cxx:67
 #, c-format
 msgid ""
-"WARNING: The domain name, \\%s, does not match the DNS name(s) on the server "
+"WARNING: The domain name, %s, does not match the DNS name(s) on the server "
 "certificate:\n"
 msgstr ""
 
@@ -207,7 +207,7 @@ msgstr ""
 msgid "Unable to connect to a server."
 msgstr ""
 
-#: csclient.cxx:1239 csclient.cxx:1681 stap-serverd.cxx:1608
+#: csclient.cxx:1239 csclient.cxx:1686 stap-serverd.cxx:1621
 msgid "Unable to set NSS export policy"
 msgstr ""
 
@@ -227,266 +227,266 @@ msgstr ""
 msgid "Unable to unzip the server response '%s'\n"
 msgstr ""
 
-#: csclient.cxx:1346 csclient.cxx:1364 csclient.cxx:1432 csclient.cxx:1733
+#: csclient.cxx:1345 csclient.cxx:1363 csclient.cxx:1431 csclient.cxx:1738
 #, c-format
 msgid "Searching \"%s\"\n"
 msgstr ""
 
-#: csclient.cxx:1352
+#: csclient.cxx:1351
 msgid "Incorrect number of files in server response"
 msgstr ""
 
-#: csclient.cxx:1360 csclient.cxx:1445 csclient.cxx:1741
+#: csclient.cxx:1359 csclient.cxx:1444 csclient.cxx:1746
 msgid "  found "
 msgstr ""
 
-#: csclient.cxx:1377
+#: csclient.cxx:1376
 #, c-format
 msgid "  found %s -- linking from %s"
 msgstr ""
 
-#: csclient.cxx:1381
+#: csclient.cxx:1380
 #, c-format
 msgid "Unable to link '%s' to '%s':%s\n"
 msgstr ""
 
-#: csclient.cxx:1439
+#: csclient.cxx:1438
 msgid "Incorrect number of modules in server response"
 msgstr ""
 
-#: csclient.cxx:1469
+#: csclient.cxx:1474
 msgid "No module was returned by the server."
 msgstr ""
 
-#: csclient.cxx:1496 csclient.cxx:1565 cscommon.cxx:92
+#: csclient.cxx:1501 csclient.cxx:1570 cscommon.cxx:92
 #, c-format
 msgid "Unable to open file '%s' for reading: "
 msgstr ""
 
-#: csclient.cxx:1505 cscommon.cxx:101
+#: csclient.cxx:1510 cscommon.cxx:101
 #, c-format
 msgid "Unable to read from file '%s': "
 msgstr ""
 
-#: csclient.cxx:1516 csclient.cxx:1551 csclient.cxx:1589 cscommon.cxx:114
+#: csclient.cxx:1521 csclient.cxx:1556 csclient.cxx:1594 cscommon.cxx:114
 msgid "unknown error"
 msgstr ""
 
-#: csclient.cxx:1531
+#: csclient.cxx:1536
 #, c-format
 msgid "Unable to open file '%s' for writing: "
 msgstr ""
 
-#: csclient.cxx:1540
+#: csclient.cxx:1545
 #, c-format
 msgid "Unable to write to file '%s': "
 msgstr ""
 
-#: csclient.cxx:1599
+#: csclient.cxx:1604
 #, c-format
 msgid "Server protocol version is %s\n"
 msgstr ""
 
-#: csclient.cxx:1600
+#: csclient.cxx:1605
 msgid "The server does not use localization information passed by the client\n"
 msgstr ""
 
-#: csclient.cxx:1616 csclient.cxx:2280
+#: csclient.cxx:1621 csclient.cxx:2285
 msgid "as a module signer for all users"
 msgstr ""
 
-#: csclient.cxx:1619 csclient.cxx:2270
+#: csclient.cxx:1624 csclient.cxx:2275
 msgid "as an SSL peer"
 msgstr ""
 
-#: csclient.cxx:1621 csclient.cxx:2272
+#: csclient.cxx:1626 csclient.cxx:2277
 msgid " for all users"
 msgstr ""
 
-#: csclient.cxx:1623 csclient.cxx:2274
+#: csclient.cxx:1628 csclient.cxx:2279
 msgid " for the current user"
 msgstr ""
 
-#: csclient.cxx:1632
+#: csclient.cxx:1637
 msgid " is already "
 msgstr ""
 
-#: csclient.cxx:1634
+#: csclient.cxx:1639
 msgid "untrusted "
 msgstr ""
 
-#: csclient.cxx:1636
+#: csclient.cxx:1641
 msgid "trusted "
 msgstr ""
 
-#: csclient.cxx:1656
+#: csclient.cxx:1661
 #, c-format
 msgid "Unable to find or create the client certificate database directory %s: "
 msgstr ""
 
-#: csclient.cxx:1718
+#: csclient.cxx:1723
 #, c-format
 msgid "Unable to connect to %s"
 msgstr ""
 
-#: csclient.cxx:1745
+#: csclient.cxx:1750
 #, c-format
 msgid "Warning: Unable to change permissions on %s: "
 msgstr ""
 
-#: csclient.cxx:1764
+#: csclient.cxx:1769
 #, c-format
 msgid "Certificate database '%s' does not exist"
 msgstr ""
 
-#: csclient.cxx:1800 csclient.cxx:1942
+#: csclient.cxx:1805 csclient.cxx:1947
 msgid "Out of memory:"
 msgstr ""
 
-#: csclient.cxx:1843
+#: csclient.cxx:1848
 #, c-format
 msgid "Unable to query certificate database %s: "
 msgstr ""
 
-#: csclient.cxx:1882
+#: csclient.cxx:1887
 #, c-format
 msgid "Unable to remove certificate from %s: "
 msgstr ""
 
-#: csclient.cxx:1912
+#: csclient.cxx:1917
 #, c-format
 msgid "Certificate database '%s' does not exist."
 msgstr ""
 
-#: csclient.cxx:1934 nsscommon.cxx:1139
+#: csclient.cxx:1939 nsscommon.cxx:1148
 #, c-format
 msgid "No certificate found in database %s"
 msgstr ""
 
-#: csclient.cxx:1964
+#: csclient.cxx:1969
 msgid "Unable to find alt name extension on server certificate: "
 msgstr ""
 
-#: csclient.cxx:1974
+#: csclient.cxx:1979
 msgid "Unable to decode alt name extension on server certificate: "
 msgstr ""
 
-#: csclient.cxx:2120
+#: csclient.cxx:2125
 #, c-format
 msgid "Warning: unsupported compile server property: %s"
 msgstr ""
 
-#: csclient.cxx:2169
+#: csclient.cxx:2174
 #, c-format
 msgid "Systemtap Compile Server Status for '%s'"
 msgstr ""
 
-#: csclient.cxx:2184
+#: csclient.cxx:2189
 msgid "No servers found"
 msgstr ""
 
-#: csclient.cxx:2221
+#: csclient.cxx:2226
 msgid "Only root can specify 'signer' on --trust-servers"
 msgstr ""
 
-#: csclient.cxx:2233
+#: csclient.cxx:2238
 msgid "Only root can specify 'all-users' on --trust-servers"
 msgstr ""
 
-#: csclient.cxx:2242
+#: csclient.cxx:2247
 msgid "Warning: Unrecognized server trust specification: "
 msgstr ""
 
-#: csclient.cxx:2259
+#: csclient.cxx:2264
 msgid "No servers identified for trust"
 msgstr ""
 
-#: csclient.cxx:2279
+#: csclient.cxx:2284
 msgid " and "
 msgstr ""
 
-#: csclient.cxx:2287
+#: csclient.cxx:2292
 msgid "Revoking trust "
 msgstr ""
 
-#: csclient.cxx:2289
+#: csclient.cxx:2294
 msgid "Adding trust "
 msgstr ""
 
-#: csclient.cxx:2294
+#: csclient.cxx:2299
 msgid "Revoke trust "
 msgstr ""
 
-#: csclient.cxx:2296
+#: csclient.cxx:2301
 msgid "Add trust "
 msgstr ""
 
-#: csclient.cxx:2298
+#: csclient.cxx:2303
 #, c-format
 msgid "in the following servers %s"
 msgstr ""
 
-#: csclient.cxx:2313
+#: csclient.cxx:2318
 msgid "Server trust unchanged"
 msgstr ""
 
-#: csclient.cxx:2491 csclient.cxx:2529
+#: csclient.cxx:2496 csclient.cxx:2534
 #, c-format
 msgid "Invalid port number specified: %s"
 msgstr ""
 
-#: csclient.cxx:2510
+#: csclient.cxx:2515
 #, c-format
 msgid "No server matching %s found"
 msgstr ""
 
-#: csclient.cxx:2591
+#: csclient.cxx:2596
 msgid "Unable to determine server trust as an SSL peer"
 msgstr ""
 
-#: csclient.cxx:2637
+#: csclient.cxx:2642
 msgid "Unable to determine server trust as a module signer"
 msgstr ""
 
-#: csclient.cxx:2704
+#: csclient.cxx:2709
 msgid "Unable to detect server compatibility"
 msgstr ""
 
-#: csclient.cxx:2888
+#: csclient.cxx:2893
 #, c-format
 msgid "Failed to resolve service '%s' of type '%s' in domain '%s': %s"
 msgstr ""
 
-#: csclient.cxx:2945
+#: csclient.cxx:2950
 #, c-format
 msgid "Avahi browse failed: %s"
 msgstr ""
 
-#: csclient.cxx:2958
+#: csclient.cxx:2963
 #, c-format
 msgid "Failed to resolve service '%s': %s"
 msgstr ""
 
-#: csclient.cxx:2979
+#: csclient.cxx:2984
 #, c-format
 msgid "Avahi Server connection failure: %s"
 msgstr ""
 
-#: csclient.cxx:3025
+#: csclient.cxx:3030
 msgid "Failed to create Avahi simple poll object"
 msgstr ""
 
-#: csclient.cxx:3041
+#: csclient.cxx:3046
 #, c-format
 msgid "Failed to create Avahi client: %s"
 msgstr ""
 
-#: csclient.cxx:3053
+#: csclient.cxx:3058
 #, c-format
 msgid "Failed to create Avahi service browser: %s"
 msgstr ""
 
-#: csclient.cxx:3100
+#: csclient.cxx:3105
 msgid "Unable to detect online servers"
 msgstr ""
 
@@ -540,7 +540,7 @@ msgstr ""
 msgid "cannot find "
 msgstr ""
 
-#: dwflpp.cxx:144 session.cxx:1487
+#: dwflpp.cxx:144 session.cxx:1488
 msgid "WARNING: "
 msgstr ""
 
@@ -1848,315 +1848,315 @@ msgstr ""
 msgid "Unable to shutdown NSS for database %s"
 msgstr ""
 
-#: nsscommon.cxx:189
+#: nsscommon.cxx:197
 msgid "Unable to shutdown NSS"
 msgstr ""
 
-#: nsscommon.cxx:256
+#: nsscommon.cxx:265
 msgid "Cannot prompt for certificate database password. stdin is not a tty"
 msgstr ""
 
-#: nsscommon.cxx:269
+#: nsscommon.cxx:278
 #, c-format
 msgid "Password for certificate database in %s: "
 msgstr ""
 
-#: nsscommon.cxx:305 nsscommon.cxx:856
+#: nsscommon.cxx:314 nsscommon.cxx:865
 #, c-format
 msgid "Could not search certificate database directory %s"
 msgstr ""
 
-#: nsscommon.cxx:311
+#: nsscommon.cxx:320
 #, c-format
 msgid "Could not remove %s"
 msgstr ""
 
-#: nsscommon.cxx:318
+#: nsscommon.cxx:327
 #, c-format
 msgid ""
 "Could not remove certificate database directory %s\n"
 "%s"
 msgstr ""
 
-#: nsscommon.cxx:350
+#: nsscommon.cxx:359
 msgid "Passwords do not match"
 msgstr ""
 
-#: nsscommon.cxx:361
+#: nsscommon.cxx:370
 msgid "Too many password attempts"
 msgstr ""
 
-#: nsscommon.cxx:373
+#: nsscommon.cxx:382
 #, c-format
 msgid "Could not initialize pin for certificate database %s"
 msgstr ""
 
-#: nsscommon.cxx:386
+#: nsscommon.cxx:395
 #, c-format
 msgid "Unable to authenticate the default slot for certificate database %s"
 msgstr ""
 
-#: nsscommon.cxx:413
+#: nsscommon.cxx:422
 msgid "Unable to generate public/private key pair"
 msgstr ""
 
-#: nsscommon.cxx:425
+#: nsscommon.cxx:434
 msgid "Unable to create subject public key info for certificate request"
 msgstr ""
 
-#: nsscommon.cxx:435
+#: nsscommon.cxx:444
 msgid "Unable to create certificate request"
 msgstr ""
 
-#: nsscommon.cxx:457
+#: nsscommon.cxx:466
 msgid "Unable to create certificate validity dates"
 msgstr ""
 
-#: nsscommon.cxx:471 nsscommon.cxx:967
+#: nsscommon.cxx:480 nsscommon.cxx:976
 msgid "Unable to create certificate"
 msgstr ""
 
-#: nsscommon.cxx:485
+#: nsscommon.cxx:494
 msgid "Unable to allocate certificate extensions"
 msgstr ""
 
-#: nsscommon.cxx:504
+#: nsscommon.cxx:513
 msgid "Unable to encode certificate type extensions"
 msgstr ""
 
-#: nsscommon.cxx:515 nsscommon.cxx:533
+#: nsscommon.cxx:524 nsscommon.cxx:542
 msgid "Unable to allocate alternate DNS name extension for certificate"
 msgstr ""
 
-#: nsscommon.cxx:563
+#: nsscommon.cxx:572
 msgid "Unable to encode alternate DNS name extension for certificate"
 msgstr ""
 
-#: nsscommon.cxx:572
+#: nsscommon.cxx:581
 msgid "Unable to add alternate DNS name extension for certificate"
 msgstr ""
 
-#: nsscommon.cxx:587
+#: nsscommon.cxx:596
 msgid "Unable to complete alternate DNS name extension for certificate"
 msgstr ""
 
-#: nsscommon.cxx:608
+#: nsscommon.cxx:617
 msgid ""
 "Unable to determine the signature algorithm for the signing the certificate"
 msgstr ""
 
-#: nsscommon.cxx:617
+#: nsscommon.cxx:626
 msgid "Unable to set the signature algorithm for signing the certificate"
 msgstr ""
 
-#: nsscommon.cxx:633
+#: nsscommon.cxx:642
 msgid "Unable to encode the certificate for signing"
 msgstr ""
 
-#: nsscommon.cxx:641
+#: nsscommon.cxx:650
 msgid "Unable to allocate memory for signing the certificate"
 msgstr ""
 
-#: nsscommon.cxx:648
+#: nsscommon.cxx:657
 msgid "Unable to sign the certificate"
 msgstr ""
 
-#: nsscommon.cxx:664 nsscommon.cxx:788
+#: nsscommon.cxx:673 nsscommon.cxx:797
 msgid "Unable to decode certificate"
 msgstr ""
 
-#: nsscommon.cxx:676
+#: nsscommon.cxx:685
 #, c-format
 msgid "Unable to import certificate into the database at %s"
 msgstr ""
 
-#: nsscommon.cxx:685
+#: nsscommon.cxx:694
 msgid "Unable to allocate certificate trust"
 msgstr ""
 
-#: nsscommon.cxx:693
+#: nsscommon.cxx:702
 msgid "Unable decode trust string 'PCu,,PCu'"
 msgstr ""
 
-#: nsscommon.cxx:703 nsscommon.cxx:833
+#: nsscommon.cxx:712 nsscommon.cxx:842
 msgid "Unable to change certificate trust"
 msgstr ""
 
-#: nsscommon.cxx:720
+#: nsscommon.cxx:729
 #, c-format
 msgid ""
 "Could not open certificate file %s for reading\n"
 "%s"
 msgstr ""
 
-#: nsscommon.cxx:730
+#: nsscommon.cxx:739
 #, c-format
 msgid ""
 "Could not obtain information about certificate file %s\n"
 "%s"
 msgstr ""
 
-#: nsscommon.cxx:743
+#: nsscommon.cxx:752
 #, c-format
 msgid ""
 "Error reading from certificate file %s\n"
 "%s"
 msgstr ""
 
-#: nsscommon.cxx:762 nsscommon.cxx:889
+#: nsscommon.cxx:771 nsscommon.cxx:898
 #, c-format
 msgid "Could not create certificate database directory %s"
 msgstr ""
 
-#: nsscommon.cxx:797 nsscommon.cxx:918
+#: nsscommon.cxx:806 nsscommon.cxx:927
 #, c-format
 msgid "Could not obtain internal key slot for certificate database %s"
 msgstr ""
 
-#: nsscommon.cxx:807
+#: nsscommon.cxx:816
 #, c-format
 msgid "Could not import certificate into the database at %s"
 msgstr ""
 
-#: nsscommon.cxx:816
+#: nsscommon.cxx:825
 msgid "Could not allocate certificate trust"
 msgstr ""
 
-#: nsscommon.cxx:823
+#: nsscommon.cxx:832
 msgid "Unable decode trust string 'P,P,P'"
 msgstr ""
 
-#: nsscommon.cxx:865
+#: nsscommon.cxx:874
 #, c-format
 msgid "Could set file permissions for %s"
 msgstr ""
 
-#: nsscommon.cxx:876
+#: nsscommon.cxx:885
 #, c-format
 msgid "Generating a new certificate database directory in %s"
 msgstr ""
 
-#: nsscommon.cxx:935
+#: nsscommon.cxx:944
 msgid "Unable to encode certificate common header"
 msgstr ""
 
-#: nsscommon.cxx:987
+#: nsscommon.cxx:996
 #, c-format
 msgid ""
 "Error writing to certificate file %s\n"
 "%s"
 msgstr ""
 
-#: nsscommon.cxx:994
+#: nsscommon.cxx:1003
 #, c-format
 msgid ""
 "Could not open certificate file %s for writing\n"
 "%s"
 msgstr ""
 
-#: nsscommon.cxx:1004
+#: nsscommon.cxx:1013
 #, c-format
 msgid "Unable to add certificate to %s"
 msgstr ""
 
-#: nsscommon.cxx:1054
+#: nsscommon.cxx:1063
 msgid "NSS library failure in CERT_CreateSubjectCertList"
 msgstr ""
 
-#: nsscommon.cxx:1075
+#: nsscommon.cxx:1084
 msgid "Could not decode certificate validity"
 msgstr ""
 
-#: nsscommon.cxx:1080
+#: nsscommon.cxx:1089
 msgid "Could not decode certificate validity time"
 msgstr ""
 
-#: nsscommon.cxx:1089
+#: nsscommon.cxx:1098
 msgid "Could not format certificate validity time"
 msgstr ""
 
-#: nsscommon.cxx:1115
+#: nsscommon.cxx:1124
 #, c-format
 msgid "Certificate database %s does not exist"
 msgstr ""
 
-#: nsscommon.cxx:1122
+#: nsscommon.cxx:1131
 #, c-format
 msgid "Certificate database %s is obsolete"
 msgstr ""
 
-#: nsscommon.cxx:1143
+#: nsscommon.cxx:1152
 #, c-format
 msgid "Certificate found in database %s"
 msgstr ""
 
-#: nsscommon.cxx:1155
+#: nsscommon.cxx:1164
 #, c-format
 msgid "  Not Valid Before: %s UTC"
 msgstr ""
 
-#: nsscommon.cxx:1157
+#: nsscommon.cxx:1166
 #, c-format
 msgid "  Not Valid After: %s UTC"
 msgstr ""
 
-#: nsscommon.cxx:1163
+#: nsscommon.cxx:1172
 msgid "Certificate is valid"
 msgstr ""
 
-#: nsscommon.cxx:1169
+#: nsscommon.cxx:1178
 msgid "Certificate is not valid"
 msgstr ""
 
-#: nsscommon.cxx:1188
+#: nsscommon.cxx:1197
 msgid "Unable to generate new certificate"
 msgstr ""
 
-#: nsscommon.cxx:1205
+#: nsscommon.cxx:1214
 #, c-format
 msgid "Unable to find certificate with nickname %s in %s."
 msgstr ""
 
-#: nsscommon.cxx:1223
+#: nsscommon.cxx:1232
 #, c-format
 msgid ""
 "Unable to obtain private key from the certificate with nickname %s in %s."
 msgstr ""
 
-#: nsscommon.cxx:1234
+#: nsscommon.cxx:1243
 msgid "Could not create signing context"
 msgstr ""
 
-#: nsscommon.cxx:1241
+#: nsscommon.cxx:1250
 msgid "Could not initialize signing context."
 msgstr ""
 
-#: nsscommon.cxx:1250
+#: nsscommon.cxx:1259
 #, c-format
 msgid "Could not open module file %s"
 msgstr ""
 
-#: nsscommon.cxx:1263
+#: nsscommon.cxx:1272
 #, c-format
 msgid "Error reading module file %s"
 msgstr ""
 
-#: nsscommon.cxx:1272
+#: nsscommon.cxx:1281
 #, c-format
 msgid "Error while signing module file %s"
 msgstr ""
 
-#: nsscommon.cxx:1282
+#: nsscommon.cxx:1291
 #, c-format
 msgid "Could not complete signature of module file %s"
 msgstr ""
 
-#: nsscommon.cxx:1296
+#: nsscommon.cxx:1305
 #, c-format
 msgid "Could not open signature file %s"
 msgstr ""
 
-#: nsscommon.cxx:1304
+#: nsscommon.cxx:1313
 #, c-format
 msgid "Error writing to signature file %s"
 msgstr ""
@@ -2837,7 +2837,7 @@ msgid ""
 "support."
 msgstr ""
 
-#: session.cxx:362
+#: session.cxx:363
 #, c-format
 msgid ""
 "Systemtap translator/driver (version %s/%s %s)\n"
@@ -2845,11 +2845,11 @@ msgid ""
 "This is free software; see the source for copying conditions."
 msgstr ""
 
-#: session.cxx:366
+#: session.cxx:367
 msgid "enabled features:"
 msgstr ""
 
-#: session.cxx:401
+#: session.cxx:402
 #, c-format
 msgid ""
 "Usage: stap [options] FILE         Run script in file.\n"
@@ -2869,11 +2869,11 @@ msgid ""
 "   --vp {N}+  add per-pass verbosity ["
 msgstr ""
 
-#: session.cxx:426 session.cxx:427 session.cxx:428 session.cxx:429
+#: session.cxx:427 session.cxx:428 session.cxx:429 session.cxx:430
 msgid " [set]"
 msgstr ""
 
-#: session.cxx:418
+#: session.cxx:419
 #, c-format
 msgid ""
 "   -k         keep temporary directory\n"
@@ -2887,11 +2887,11 @@ msgid ""
 "   -I DIR     look in DIR for additional .stp script files"
 msgstr ""
 
-#: session.cxx:433 session.cxx:460
+#: session.cxx:434 session.cxx:461
 msgid ", in addition to"
 msgstr ""
 
-#: session.cxx:437
+#: session.cxx:438
 #, c-format
 msgid ""
 "   -D NM=VAL  emit macro definition into generated C code\n"
@@ -2916,7 +2916,7 @@ msgid ""
 "   -d OBJECT  add unwind/symbol data for OBJECT file"
 msgstr ""
 
-#: session.cxx:467
+#: session.cxx:468
 #, c-format
 msgid ""
 "   --ldd      add unwind/symbol data for all referenced object files.\n"
@@ -2957,133 +2957,133 @@ msgid ""
 "              specify name of temporary directory to be used."
 msgstr ""
 
-#: session.cxx:642
+#: session.cxx:643
 msgid "Invalid pass number (should be 1-5)."
 msgstr ""
 
-#: session.cxx:647
+#: session.cxx:648
 msgid "Listing (-l) mode implies pass 2."
 msgstr ""
 
-#: session.cxx:684 session.cxx:848
+#: session.cxx:685 session.cxx:849
 msgid "Only one script can be given on the command line."
 msgstr ""
 
-#: session.cxx:700 session.cxx:829 session.cxx:863
+#: session.cxx:701 session.cxx:758 session.cxx:830 session.cxx:864
 #, c-format
 msgid "ERROR: %s invalid with %s"
 msgstr ""
 
-#: session.cxx:717 session.cxx:735
+#: session.cxx:718 session.cxx:736
 #, c-format
 msgid "Truncating module name to '%s'"
 msgstr ""
 
-#: session.cxx:723
+#: session.cxx:724
 msgid "Module name cannot be empty."
 msgstr ""
 
-#: session.cxx:786
+#: session.cxx:787
 msgid "Invalid buffer size (should be 1-4095)."
 msgstr ""
 
-#: session.cxx:799
+#: session.cxx:800
 msgid "Empty CMD string invalid."
 msgstr ""
 
-#: session.cxx:808
+#: session.cxx:809
 msgid "Invalid target process ID number."
 msgstr ""
 
-#: session.cxx:884
+#: session.cxx:885
 msgid "You can't specify multiple --kmap options."
 msgstr ""
 
-#: session.cxx:915
+#: session.cxx:916
 msgid "Invalid --vp argument: it takes 1 to 5 digits."
 msgstr ""
 
-#: session.cxx:966
+#: session.cxx:967
 #, c-format
 msgid "Invalid argument '%s' for --use-server-on-error."
 msgstr ""
 
-#: session.cxx:994 session.cxx:1001 session.cxx:1008 session.cxx:1021
-#: session.cxx:1030 session.cxx:1038 session.cxx:1047
+#: session.cxx:995 session.cxx:1002 session.cxx:1009 session.cxx:1022
+#: session.cxx:1031 session.cxx:1039 session.cxx:1048
 #, c-format
 msgid "ERROR: %s is invalid with %s"
 msgstr ""
 
-#: session.cxx:1061
+#: session.cxx:1062
 #, c-format
 msgid "Unhandled long argument id %d"
 msgstr ""
 
-#: session.cxx:1075
+#: session.cxx:1076
 #, c-format
 msgid "Unhandled argument code %d"
 msgstr ""
 
-#: session.cxx:1117
+#: session.cxx:1118
 msgid "A script must be specified."
 msgstr ""
 
-#: session.cxx:1124
+#: session.cxx:1125
 msgid "WARNING: --client-options is not supported by this version of systemtap"
 msgstr ""
 
-#: session.cxx:1128
+#: session.cxx:1129
 msgid "WARNING: --trust-servers is not supported by this version of systemtap"
 msgstr ""
 
-#: session.cxx:1135
+#: session.cxx:1136
 msgid "Warning: Ignoring --use-server due to the use of -R"
 msgstr ""
 
-#: session.cxx:1159
+#: session.cxx:1160
 msgid "Using --unprivileged for member of the group stapusr"
 msgstr ""
 
-#: session.cxx:1166
+#: session.cxx:1167
 msgid "Using --use-server for member of the group stapusr"
 msgstr ""
 
-#: session.cxx:1175
+#: session.cxx:1176
 #, c-format
 msgid "You can't specify %s when --unprivileged is specified."
 msgstr ""
 
-#: session.cxx:1181 session.cxx:1186 session.cxx:1193 session.cxx:1204
+#: session.cxx:1182 session.cxx:1187 session.cxx:1194 session.cxx:1205
 #, c-format
 msgid "You can't specify %s and %s together."
 msgstr ""
 
-#: session.cxx:1213
+#: session.cxx:1214
 msgid ""
 "WARNING: kernel release/architecture mismatch with host forces last-pass 4."
 msgstr ""
 
-#: session.cxx:1300
+#: session.cxx:1301
 #, c-format
 msgid "Located kernel source tree (COPYING) at '%s'"
 msgstr ""
 
-#: session.cxx:1342
+#: session.cxx:1343
 #, c-format
 msgid "alias component %s contains illegal parameter"
 msgstr ""
 
-#: session.cxx:1354
+#: session.cxx:1355
 msgid " while registering probe alias "
 msgstr ""
 
-#: session.cxx:1407
+#: session.cxx:1408
 #, c-format
 msgid "semantic error: %s"
 msgstr ""
 
 #. TRANSLATORS:  Here were are printing the source string of the error
-#: session.cxx:1466
+#: session.cxx:1467
 msgid "source: "
 msgstr ""
 
@@ -3113,397 +3113,402 @@ msgstr ""
 msgid "Unable to generate certificate"
 msgstr ""
 
-#: stap-serverd.cxx:120
+#: stap-serverd.cxx:121
 #, c-format
 msgid "Could not open client stderr file %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:220
+#: stap-serverd.cxx:224
 #, c-format
 msgid "%s: unhandled option '%c %s'"
 msgstr ""
 
-#: stap-serverd.cxx:222
+#: stap-serverd.cxx:226
 #, c-format
 msgid "%s: unhandled option '%c'"
 msgstr ""
 
-#: stap-serverd.cxx:238
+#: stap-serverd.cxx:242
 #, c-format
 msgid "%s: unhandled option '--%s=%s'"
 msgstr ""
 
-#: stap-serverd.cxx:241
+#: stap-serverd.cxx:245
 #, c-format
 msgid "%s: unhandled option '--%s'"
 msgstr ""
 
-#: stap-serverd.cxx:249
+#: stap-serverd.cxx:253
 #, c-format
 msgid "%s: unrecognized argument '%s'"
 msgstr ""
 
-#: stap-serverd.cxx:285
+#: stap-serverd.cxx:289
 #, c-format
 msgid "Received signal %d, exiting"
 msgstr ""
 
-#: stap-serverd.cxx:344
+#: stap-serverd.cxx:348
 #, c-format
 msgid "Service '%s' successfully established."
 msgstr ""
 
-#: stap-serverd.cxx:354 stap-serverd.cxx:445
+#: stap-serverd.cxx:358 stap-serverd.cxx:449
 #, c-format
 msgid "Avahi service name collision, renaming service to '%s'"
 msgstr ""
 
-#: stap-serverd.cxx:362
+#: stap-serverd.cxx:366
 #, c-format
 msgid "Avahi entry group failure: %s"
 msgstr ""
 
-#: stap-serverd.cxx:383
+#: stap-serverd.cxx:387
 #, c-format
 msgid "avahi_entry_group_new () failed: %s"
 msgstr ""
 
-#: stap-serverd.cxx:392
+#: stap-serverd.cxx:396
 #, c-format
 msgid "Adding Avahi service '%s'"
 msgstr ""
 
-#: stap-serverd.cxx:425
+#: stap-serverd.cxx:429
 #, c-format
 msgid "Failed to add _stap._tcp service: %s"
 msgstr ""
 
-#: stap-serverd.cxx:432
+#: stap-serverd.cxx:436
 #, c-format
 msgid "Failed to commit avahi entry group: %s"
 msgstr ""
 
-#: stap-serverd.cxx:470
+#: stap-serverd.cxx:474
 #, c-format
 msgid "Avahi client failure: %s"
 msgstr ""
 
-#: stap-serverd.cxx:496
+#: stap-serverd.cxx:500
 #, c-format
 msgid "Removing Avahi service '%s'"
 msgstr ""
 
-#: stap-serverd.cxx:534
+#: stap-serverd.cxx:538
 msgid "Failed to create avahi threaded poll object."
 msgstr ""
 
-#: stap-serverd.cxx:546
+#: stap-serverd.cxx:550
 #, c-format
 msgid "Failed to create avahi client: %s"
 msgstr ""
 
-#: stap-serverd.cxx:563
+#: stap-serverd.cxx:567
 msgid "Unable to advertise presence on the network. Avahi is not available"
 msgstr ""
 
-#: stap-serverd.cxx:595
+#: stap-serverd.cxx:599
 #, c-format
 msgid "Unable to obtain current resource limits: %s"
 msgstr ""
 
-#: stap-serverd.cxx:632
+#: stap-serverd.cxx:637
 #, c-format
 msgid "===== compile server pid %d starting ====="
 msgstr ""
 
-#: stap-serverd.cxx:672
+#: stap-serverd.cxx:677
 msgid "Error reading size of request file"
 msgstr ""
 
-#: stap-serverd.cxx:677 stap-serverd.cxx:708
+#: stap-serverd.cxx:682 stap-serverd.cxx:713
 msgid "Error in PR_Read"
 msgstr ""
 
-#: stap-serverd.cxx:695
+#: stap-serverd.cxx:700
 #, c-format
 msgid "Could not open output file %s"
 msgstr ""
 
-#: stap-serverd.cxx:717
+#: stap-serverd.cxx:722
 #, c-format
 msgid "Could not write to output file %s"
 msgstr ""
 
-#: stap-serverd.cxx:725
+#: stap-serverd.cxx:730
 #, c-format
 msgid "Expected %d bytes, got %d while reading client request from socket"
 msgstr ""
 
-#: stap-serverd.cxx:753
+#: stap-serverd.cxx:758
 msgid "Could not import socket into SSL"
 msgstr ""
 
-#: stap-serverd.cxx:762
+#: stap-serverd.cxx:767
 msgid "Error setting SSL security for socket"
 msgstr ""
 
-#: stap-serverd.cxx:770
+#: stap-serverd.cxx:775
 msgid "Error setting handshake as server for socket"
 msgstr ""
 
-#: stap-serverd.cxx:778 stap-serverd.cxx:786
+#: stap-serverd.cxx:783 stap-serverd.cxx:791
 msgid "Error setting SSL client authentication mode for socket"
 msgstr ""
 
-#: stap-serverd.cxx:797
+#: stap-serverd.cxx:802
 msgid "Error in SSL_AuthCertificateHook"
 msgstr ""
 
-#: stap-serverd.cxx:806
+#: stap-serverd.cxx:811
 msgid "Error in SSL_BadCertHook"
 msgstr ""
 
-#: stap-serverd.cxx:814
+#: stap-serverd.cxx:819
 msgid "Error in SSL_HandshakeCallback"
 msgstr ""
 
-#: stap-serverd.cxx:825
+#: stap-serverd.cxx:830
 msgid "Error configuring SSL server"
 msgstr ""
 
-#: stap-serverd.cxx:859
+#: stap-serverd.cxx:864
 msgid "Error in SSL_OptionSet:SSL_REQUEST_CERTIFICATE"
 msgstr ""
 
-#: stap-serverd.cxx:869
+#: stap-serverd.cxx:874
 msgid "Error in SSL_OptionSet:SSL_REQUIRE_CERTIFICATE"
 msgstr ""
 
-#: stap-serverd.cxx:878
+#: stap-serverd.cxx:883
 msgid "Error in SSL_ReHandshake"
 msgstr ""
 
-#: stap-serverd.cxx:887
+#: stap-serverd.cxx:892
 msgid "Error in SSL_ForceHandshake"
 msgstr ""
 
-#: stap-serverd.cxx:907
+#: stap-serverd.cxx:912
 #, c-format
 msgid "Could not open input file %s"
 msgstr ""
 
-#: stap-serverd.cxx:923
+#: stap-serverd.cxx:928
 msgid "Error writing response to socket"
 msgstr ""
 
-#: stap-serverd.cxx:946
+#: stap-serverd.cxx:951
 #, c-format
 msgid "Unable to open file %s for reading: %s"
 msgstr ""
 
-#: stap-serverd.cxx:970
+#: stap-serverd.cxx:975
 #, c-format
 msgid "Error in regcomp: %s"
 msgstr ""
 
-#: stap-serverd.cxx:993
+#: stap-serverd.cxx:998
 #, c-format
 msgid "Localization key '%s' not found in global list"
 msgstr ""
 
-#: stap-serverd.cxx:1001
+#: stap-serverd.cxx:1006
 #, c-format
 msgid "Localization value '%s' contains illegal characters"
 msgstr ""
 
-#: stap-serverd.cxx:1012
+#: stap-serverd.cxx:1017
 #, c-format
 msgid "Error reading file %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1045
+#: stap-serverd.cxx:1050
 #, c-format
 msgid "Unable to open client version file %s"
 msgstr ""
 
-#: stap-serverd.cxx:1051
+#: stap-serverd.cxx:1056
 #, c-format
 msgid "Client version is %s"
 msgstr ""
 
-#: stap-serverd.cxx:1063
+#: stap-serverd.cxx:1068
 msgid "Cannot parse stap options"
 msgstr ""
 
-#: stap-serverd.cxx:1078
+#: stap-serverd.cxx:1080
 #, c-format
 msgid "Could not create temporary directory %s"
 msgstr ""
 
-#: stap-serverd.cxx:1098
+#: stap-serverd.cxx:1100
 msgid "Out of memory"
 msgstr ""
 
-#: stap-serverd.cxx:1106
+#: stap-serverd.cxx:1108
 #, c-format
 msgid "Error opening %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1115
+#: stap-serverd.cxx:1117
 #, c-format
 msgid "Error reading %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1180
+#: stap-serverd.cxx:1182
 #, c-format
 msgid "Unable to find a module in %s"
 msgstr ""
 
-#: stap-serverd.cxx:1182
+#: stap-serverd.cxx:1184
 #, c-format
 msgid "Too many modules (%zu) in %s"
 msgstr ""
 
-#: stap-serverd.cxx:1207
+#: stap-serverd.cxx:1211
 #, c-format
 msgid "Could not link to %s from %s"
 msgstr ""
 
-#: stap-serverd.cxx:1262
+#: stap-serverd.cxx:1269
 msgid "Error in spawn getcwd"
 msgstr ""
 
-#: stap-serverd.cxx:1270
+#: stap-serverd.cxx:1277
 msgid "Error in spawn chdir"
 msgstr ""
 
-#: stap-serverd.cxx:1293
+#: stap-serverd.cxx:1300
 #, c-format
 msgid "Unable to set resource limits for %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1304
+#: stap-serverd.cxx:1311
 #, c-format
 msgid "Unable to restore resource limits after %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1314
+#: stap-serverd.cxx:1321
 msgid "Error in spawn unchdir"
 msgstr ""
 
-#: stap-serverd.cxx:1319
+#: stap-serverd.cxx:1326
 #, c-format
 msgid "Error in spawn: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1326
+#: stap-serverd.cxx:1333
 msgid "Error in waitpid"
 msgstr ""
 
-#: stap-serverd.cxx:1378
+#: stap-serverd.cxx:1385
 msgid "Error resetting SSL handshake"
 msgstr ""
 
-#: stap-serverd.cxx:1388
+#: stap-serverd.cxx:1395
 msgid "Error forcing SSL handshake"
 msgstr ""
 
-#: stap-serverd.cxx:1399 stap-serverd.cxx:1411 stap-serverd.cxx:1419
+#: stap-serverd.cxx:1406 stap-serverd.cxx:1418 stap-serverd.cxx:1426
 #, c-format
 msgid "Could not create temporary directory %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1458
+#: stap-serverd.cxx:1465
 msgid "Unable to extract client request"
 msgstr ""
 
-#: stap-serverd.cxx:1477
+#: stap-serverd.cxx:1484
 msgid "Unable to compress server response"
 msgstr ""
 
-#: stap-serverd.cxx:1487
+#: stap-serverd.cxx:1494
 msgid "Error closing ssl socket"
 msgstr ""
 
-#: stap-serverd.cxx:1499
+#: stap-serverd.cxx:1502
+#, c-format
+msgid "Keeping temporary directory %s"
+msgstr ""
+
+#: stap-serverd.cxx:1511
 msgid "Error in tmpdir cleanup"
 msgstr ""
 
-#: stap-serverd.cxx:1524
+#: stap-serverd.cxx:1537
 msgid "Unable to obtain certificate private key"
 msgstr ""
 
-#: stap-serverd.cxx:1535
+#: stap-serverd.cxx:1548
 msgid "Error accepting client connection"
 msgstr ""
 
-#: stap-serverd.cxx:1540
+#: stap-serverd.cxx:1553
 #, c-format
 msgid "Accepted connection from %d.%d.%d.%d:%d"
 msgstr ""
 
-#: stap-serverd.cxx:1553
+#: stap-serverd.cxx:1566
 msgid "Error processing client request"
 msgstr ""
 
-#: stap-serverd.cxx:1556
+#: stap-serverd.cxx:1569
 #, c-format
 msgid "Request from %d.%d.%d.%d:%d complete"
 msgstr ""
 
-#: stap-serverd.cxx:1617
+#: stap-serverd.cxx:1630
 msgid "Unable to configure SSL server session ID cache"
 msgstr ""
 
-#: stap-serverd.cxx:1627
+#: stap-serverd.cxx:1640
 #, c-format
 msgid "Unable to find our certificate in the database at %s"
 msgstr ""
 
-#: stap-serverd.cxx:1650
+#: stap-serverd.cxx:1663
 msgid "Unable to shut down server session ID cache"
 msgstr ""
 
-#: stap-serverd.cxx:1665
+#: stap-serverd.cxx:1678
 msgid "Error creating socket"
 msgstr ""
 
-#: stap-serverd.cxx:1677 stap-serverd.cxx:1689
+#: stap-serverd.cxx:1690 stap-serverd.cxx:1702
 msgid "Error setting socket properties"
 msgstr ""
 
-#: stap-serverd.cxx:1714
+#: stap-serverd.cxx:1727
 #, c-format
 msgid "Network port %d is unavailable. Trying another port"
 msgstr ""
 
-#: stap-serverd.cxx:1718
+#: stap-serverd.cxx:1731
 #, c-format
 msgid "Network port %d is busy. Trying another port"
 msgstr ""
 
-#: stap-serverd.cxx:1722
+#: stap-serverd.cxx:1735
 msgid "Error setting socket address"
 msgstr ""
 
-#: stap-serverd.cxx:1732
+#: stap-serverd.cxx:1745
 msgid "Unable to obtain socket address"
 msgstr ""
 
-#: stap-serverd.cxx:1737
+#: stap-serverd.cxx:1750
 #, c-format
 msgid "Using network port %d"
 msgstr ""
 
-#: stap-serverd.cxx:1744
+#: stap-serverd.cxx:1757
 msgid "Error listening on socket"
 msgstr ""
 
-#: stap-serverd.cxx:1767
+#: stap-serverd.cxx:1780
 msgid "Unable to authorize certificate for the local client"
 msgstr ""
 
-#: stap-serverd.cxx:1778
+#: stap-serverd.cxx:1791
 msgid "Error closing listen socket"
 msgstr ""
 
@@ -4136,26 +4141,26 @@ msgstr ""
 msgid "found parameter for tracepoint '%s': type:'%s' name:'%s'"
 msgstr ""
 
-#: tapsets.cxx:8704
+#: tapsets.cxx:8712
 msgid "tracepoint_builder releasing dwflpp"
 msgstr ""
 
-#: tapsets.cxx:8724
+#: tapsets.cxx:8732
 #, c-format
 msgid "Pass 2: getting a tracepoint query for %zu headers: "
 msgstr ""
 
-#: tapsets.cxx:8740
+#: tapsets.cxx:8748
 #, c-format
 msgid "Pass 2: using cached %s"
 msgstr ""
 
-#: tapsets.cxx:8806
+#: tapsets.cxx:8814
 #, c-format
 msgid "Located kernel source tree (DW_AT_comp_dir) at '%s'"
 msgstr ""
 
-#: tapsets.cxx:8838
+#: tapsets.cxx:8846
 msgid "Checking tracepoint glob "
 msgstr ""
 
