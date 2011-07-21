@@ -31,8 +31,7 @@ private:
   // Client/server utility methods.
   int include_file_or_directory (
     const std::string &subdir,
-    const std::string &path,
-    const char *option = 0
+    const std::string &path
   );
   int add_package_args ();
   int add_package_arg (const std::string &arg);
