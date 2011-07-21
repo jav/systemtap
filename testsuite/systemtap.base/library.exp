@@ -67,7 +67,7 @@ if { [error_handler [expr {$res == ""}] "target_compile"] } { return }
 eval set globs "{{*} {*libsdt*} $sopath}"
 foreach glob $globs {
 set ok 0
-spawn $stap_path -c $exepath $srcdir/$subdir/library.stp $exepath $glob
+spawn $stap_path -c $exepath $srcdir/$subdir/library.stp $exepath "$glob"
 
 expect {
     -timeout 180
@@ -85,6 +85,8 @@ expect {
     -re {^In test_probe_4 dtrace probe 0x[0-9a-f][0-9a-f]*\r\n} { incr ok; exp_continue }
     -re {^In test_probe_1 probe 0x0\r\n} { incr ok; exp_continue }
     -re {^buz end\r\n} {incr ok; exp_continue }
+    -re {^WARNING:.*No DWARF information found\r\n} { exp_continue }
+    -re {^Missing separate debuginfos.*\r\n} { exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
