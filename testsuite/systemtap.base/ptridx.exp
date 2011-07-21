@@ -26,6 +26,9 @@ if {[catch {exec stap -L {process("./ptridx.exe").function("*").label("*")}}]} {
         # the variables may have no location
         setup_xfail *-*-*
         }
+      -re {^17, 23\r\n} { 
+          # output from ptridx.exe itself
+          exp_continue }
       -re {^[ap] (0x\[0-9a-f]+ => )?17, 23\r\n} { incr ok; exp_continue }
       timeout { fail "$test (timeout)" }
       eof { }
