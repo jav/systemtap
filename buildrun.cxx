@@ -581,6 +581,13 @@ make_tracequery(systemtap_session& s, string& name,
   int rc = run_make_cmd(s, make_cmd, quiet, quiet);
   if (rc)
     s.set_try_server ();
+
+  // XXX: sometimes we fail a tracequery due to PR9993 / PR11649 type
+  // kernel trace header problems.  In this case, due to PR12729,
+  // we get a lovely "Warning: make exited with status: 2" but no
+  // other useful diagnostic.  -vvvv would let a user see what's up,
+  // but the user can't fix the problem even with that.
+
   return rc;
 }
 
