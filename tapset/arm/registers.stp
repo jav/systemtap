@@ -1,0 +1,158 @@
+/* Dwarfless register access for arm */
+
+global _reg_offsets, _stp_regs_registered
+
+function _stp_register_regs() {
+
+	/* Same order as pt_regs */
+	_reg_offsets["r0"] =  0		_reg_offsets["a1"] =  0
+	_reg_offsets["r1"] =  4		_reg_offsets["a2"] =  4
+	_reg_offsets["r2"] =  8		_reg_offsets["a3"] =  8
+	_reg_offsets["r3"] = 12		_reg_offsets["a4"] =  12
+	_reg_offsets["r4"] = 16		_reg_offsets["v1"] =  16
+	_reg_offsets["r5"] = 20		_reg_offsets["v2"] =  20
+	_reg_offsets["r6"] = 24		_reg_offsets["v3"] =  24
+	_reg_offsets["r7"] = 28		_reg_offsets["v4"] =  28
+	_reg_offsets["r8"] = 32		_reg_offsets["v5"] =  32
+	_reg_offsets["r9"] = 36  	_reg_offsets["v6"] =  36
+	_reg_offsets["r10"] = 40	_reg_offsets["v7"] =  40
+	_reg_offsets["fp"] = 44		_reg_offsets["v8"] =  44
+	_reg_offsets["ip"] = 48
+	_reg_offsets["sp"] = 52
+	_reg_offsets["lr"] = 56
+	_reg_offsets["pc"] = 60
+	_reg_offsets["cpsr"] = 64
+	_reg_offsets["orig_r0"] = 68
+
+	_stp_regs_registered = 1
+}
+
+function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
+	long value;
+	if (!CONTEXT->regs) {
+		CONTEXT->last_error = "No registers available in this context";
+		return;
+	}
+	if (THIS->offset < 0 || THIS->offset > sizeof(struct pt_regs) - sizeof(long)) {
+		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+				"Bad register offset: %lld", THIS->offset);
+		CONTEXT->last_error = CONTEXT->error_buffer;
+		return;
+	}
+	memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset, sizeof(value));
+	THIS->__retvalue = value;
+%}
+
+function _stp_probing_kernel:long () %{ /* pure */
+	THIS->__retvalue = !user_mode(CONTEXT->regs);
+%}
+
+/* Return the named register value as a signed value. */
+function register:long (name:string) {
+	if (!registers_valid()) {
+		error("cannot access CPU registers in this context")
+		return 0
+	}
+	if (!_stp_regs_registered)
+		_stp_register_regs()
+	offset = _reg_offsets[name]
+	if (offset == 0 && !(name in _reg_offsets)) {
+		error("Unknown register: " . name)
+		return 0
+	}
+	return _stp_get_register_by_offset(offset)
+}
+
+/*
+ * Return the named register value as an unsigned value.  Specifically,
+ * don't sign-extend the register value when promoting it to 64 bits.
+ */
+function u_register:long (name:string) {
+	return register(name) & 0xffffffff;
+}
+
+/* Return the value of function arg #argnum (1=first arg) as a signed value.
+ *
+ * We don't yet support extracting arg #5 and beyond, which are passed
+ * on stack
+ */
+function _stp_arg:long (argnum:long) {
+	val = 0
+	if (argnum < 1 || argnum > 4) {
+		error(sprintf("Cannot access arg(%d)", argnum))
+		return 0
+	}
+
+	if (argnum == 1)
+		val = u_register("r0")
+	else if (argnum == 2)
+		val = u_register("r1")
+	else if (argnum == 3)
+		val = u_register("r2")
+	else if (argnum == 4)
+		val = u_register("r3")
+
+	return val;
+}
+
+/* Return the value of function arg #argnum as a signed int. */
+function int_arg:long (argnum:long) {
+	return _stp_arg(argnum)
+}
+
+/* Return the value of function arg #argnum as an unsigned int. */
+function uint_arg:long (argnum:long) {
+	return _stp_arg(argnum) & 0xffffffff;
+}
+
+function long_arg:long (argnum:long) {
+	return int_arg(argnum)
+}
+
+function ulong_arg:long (argnum:long) {
+	return uint_arg(argnum)
+}
+
+function longlong_arg:long (argnum:long) {
+	/*
+	 * TODO: If argnum == nr_regarg, gcc puts the whole 64-bit arg
+	 * on the stack.
+	 */
+	lowbits = uint_arg(argnum)
+	highbits = uint_arg(argnum+1)
+	return ((highbits << 32) | lowbits)
+}
+
+function ulonglong_arg:long (argnum:long) {
+	return longlong_arg(argnum)
+}
+
+function pointer_arg:long (argnum:long) {
+	return ulong_arg(argnum)
+}
+
+function s32_arg:long (argnum:long) {
+	return int_arg(argnum)
+}
+
+function u32_arg:long (argnum:long) {
+	return uint_arg(argnum)
+}
+
+function s64_arg:long (argnum:long) {
+	return longlong_arg(argnum)
+}
+
+function u64_arg:long (argnum:long) {
+	return ulonglong_arg(argnum)
+}
+
+function asmlinkage() %{ /* pure */ %}
+
+function fastcall() %{ /* pure */ %}
+
+function regparm() %{
+	snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+		"regparm is invalid on arm.");
+	CONTEXT->last_error = CONTEXT->error_buffer;
+%}
