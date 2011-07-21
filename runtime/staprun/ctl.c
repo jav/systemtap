@@ -27,11 +27,18 @@ int init_ctl_channel(const char *name, int verb)
 			return -2;
 	}
 
-	if (access(buf, R_OK|W_OK) != 0)
-		return -5;
-
 	control_channel = open(buf, O_RDWR);
 	dbug(2, "Opened %s (%d)\n", buf, control_channel);
+
+/* It's actually safe to do this check before the open(),
+ * as the file we're trying to access connot be modified
+ * by a typical user.
+ */
+	if (access(buf, R_OK|W_OK) != 0){
+		close(control_channel);
+		return -5;
+	}
+
 	if (control_channel < 0) {
 		if (verb) {
 			if (attach_mod && errno == ENOENT)

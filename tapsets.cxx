@@ -8431,6 +8431,7 @@ static vector<string> tracepoint_extra_decls (systemtap_session& s)
     they_live.push_back ("struct xfs_inode;");
     they_live.push_back ("struct xfs_buf;");
     they_live.push_back ("struct xfs_bmbt_irec;");
+    they_live.push_back ("struct xfs_trans;");
   }
 
   if (s.kernel_config["CONFIG_NFSD"] != string("")) {
@@ -8438,6 +8439,13 @@ static vector<string> tracepoint_extra_decls (systemtap_session& s)
   }
 
   they_live.push_back ("#include <asm/cputime.h>");
+
+  // linux 3.0
+  they_live.push_back ("struct cpu_workqueue_struct;");
+
+  if (s.kernel_config["CONFIG_EXT4_FS"] != string(""))
+    if (s.kernel_source_tree != "")
+      they_live.push_back ("#include \"fs/ext4/ext4.h\""); // in kernel-source tree
 
   return they_live;
 }

@@ -32,10 +32,20 @@ int main()
 
 #ifdef SYS_sigprocmask
   syscall (SYS_sigprocmask, SIG_BLOCK, &mask, NULL);
+  /* sigprocmask is unimplemented on powerpc64 */
+#ifdef __powerpc64__
+  //staptest// ni_syscall () = -38 (ENOSYS)
+#else
   //staptest// sigprocmask (SIG_BLOCK, XXXX, 0x0+) = 0
+#endif
 
   syscall (SYS_sigprocmask, SIG_UNBLOCK, &mask, NULL);
+  /* sigprocmask is unimplemented on powerpc64 */
+#ifdef __powerpc64__
+  //staptest// ni_syscall () = -38 (ENOSYS)
+#else
   //staptest// sigprocmask (SIG_UNBLOCK, XXXX, 0x0+) = 0
+#endif
 #endif
 
   memset(&sa, 0, sizeof(sa));
@@ -44,8 +54,13 @@ int main()
 
 #ifdef SYS_sigaction
   syscall (SYS_sigaction, SIGUSR1, &sa, NULL);
+  /* sigaction is unimplemented on powerpc64 */
+#ifdef __powerpc64__
+  //staptest// ni_syscall () = -38 (ENOSYS)
+#else
   //staptest// sigaction (SIGUSR1, {SIG_IGN}, 0x0+) = 0
- #endif
+#endif
+#endif
 
 #ifdef SYS_tgkill
   syscall(SYS_tgkill, 1234, 5678, 0);

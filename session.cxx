@@ -347,12 +347,13 @@ systemtap_session::NSPR_init ()
 systemtap_session*
 systemtap_session::clone(const string& arch, const string& release)
 {
-  if (this->architecture == arch && this->kernel_release == release)
+  const string norm_arch = normalize_machine(arch);
+  if (this->architecture == norm_arch && this->kernel_release == release)
     return this;
 
-  systemtap_session*& s = subsessions[make_pair(arch, release)];
+  systemtap_session*& s = subsessions[make_pair(norm_arch, release)];
   if (!s)
-    s = new systemtap_session(*this, arch, release);
+    s = new systemtap_session(*this, norm_arch, release);
   return s;
 }
 

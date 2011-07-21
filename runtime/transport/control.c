@@ -199,6 +199,8 @@ static int _stp_ctl_alloc_special_buffers(void)
 	if (_stp_ctl_oob_warn == NULL)
 		return -1;
 	_stp_ctl_oob_warn->type = _STP_CTL_MSG_UNUSED;
+	/* Note that the following message shouldn't be translated,
+	 * since "WARNING:" is part of the module cmd protocol. */
 	msg = "WARNING: too many pending (warning) messages\n";
 	len = strlen(msg) + 1;
 	_stp_ctl_oob_warn->len = len;
@@ -208,6 +210,8 @@ static int _stp_ctl_alloc_special_buffers(void)
 	if (_stp_ctl_oob_err == NULL)
 		return -1;
 	_stp_ctl_oob_err->type = _STP_CTL_MSG_UNUSED;
+	/* Note that the following message shouldn't be translated,
+	 * since "ERROR:" is part of the module cmd protocol. */
 	msg = "ERROR: too many pending (error) messages\n";
 	len = strlen(msg) + 1;
 	_stp_ctl_oob_err->len = len;
@@ -217,6 +221,8 @@ static int _stp_ctl_alloc_special_buffers(void)
 	if (_stp_ctl_system_warn == NULL)
 		return -1;
 	_stp_ctl_system_warn->type = _STP_CTL_MSG_UNUSED;
+	/* Note that the following message shouldn't be translated,
+	 * since "WARNING:" is part of the module cmd protocol. */
 	msg = "WARNING: too many pending (system) messages\n";
 	len = strlen(msg) + 1;
 	_stp_ctl_system_warn->len = len;
@@ -226,6 +232,8 @@ static int _stp_ctl_alloc_special_buffers(void)
 	if (_stp_ctl_realtime_err == NULL)
 		return -1;
 	_stp_ctl_realtime_err->type = _STP_CTL_MSG_UNUSED;
+	/* Note that the following message shouldn't be translated,
+	 * since "ERROR:" is part of the module cmd protocol. */
 	msg = "ERROR: too many pending (realtime) messages\n";
 	len = strlen(msg) + 1;
 	_stp_ctl_realtime_err->len = len;
@@ -271,9 +279,15 @@ static struct _stp_buffer *_stp_ctl_get_buffer(int type, void *data,
 			bptr = _stp_ctl_request_exit_msg;
 			break;
 		case STP_OOB_DATA:
+			/* Note that "WARNING:" should not be
+			 * translated, since it is part of the module
+			 * cmd protocol. */
 			if (data && len >= 7
 			    && strncmp(data, "WARNING:", 7) == 0)
 				bptr = _stp_ctl_oob_warn;
+			/* Note that "ERROR:" should not be
+			 * translated, since it is part of the module
+			 * cmd protocol. */
 			else if (data && len >= 5
 				 && strncmp(data, "ERROR:", 5) == 0)
 				bptr = _stp_ctl_oob_err;

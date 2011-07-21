@@ -64,7 +64,7 @@ extern "C" {
 
 using namespace std;
 
-#define STAP_CSC_01 _("WARNING: The domain name, \%s, does not match the DNS name(s) on the server certificate:\n")
+#define STAP_CSC_01 _("WARNING: The domain name, %s, does not match the DNS name(s) on the server certificate:\n")
 #define STAP_CSC_02 _("could not find input file %s\n")
 #define STAP_CSC_03 _("could not open input file %s\n")
 #define STAP_CSC_04 _("Unable to open output file %s\n")

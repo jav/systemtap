@@ -155,28 +155,32 @@ proc setup_server {} {
     set path "$net_path/stap"
     set fp [open $path "w"]
     puts $fp "#!/bin/sh"
-    puts $fp "[exec which stap] $use_server \"\$@\""
+    # NB: [which stap] does not necessarily work here, because
+    # $PATH might already have had .../testsuite/net added,
+    # leading to an infinite fork/exec loop.
+    puts $fp "exec $installed_stap $use_server \"\$@\""
     close $fp
     exec chmod +x $path
 
     # Add the wrapper script to the PATH after creating it
-    set installed_stap [exec which stap]
     set env(PATH) "$net_path:$env(PATH)"
 
     return 1
 }
 
 proc start_server {} {
-    global srcdir env server_pid
+    global srcdir env server_pid installed_stap
 
     # Server management scripts and data are installed if this is an
     # install test, otherwise there is some setup to do.
     # Make sure the server management scripts and tools are on the $PATH.
     if {! [installtest_p]} then {
 	set env(PATH) "$srcdir/..:[exec pwd]/..:$env(PATH)"
+        set installed_stap "[exec pwd]/../stap"
 	set env(SYSTEMTAP_SERVER_SCRIPTS) "$srcdir/.."
     } else {
 	set env(PATH) "$env(PKGLIBDIR):$env(PATH)"
+        set installed_stap "$env(SYSTEMTAP_PATH)/stap"
 	set env(SYSTEMTAP_SERVER_SCRIPTS) $env(PKGLIBDIR)
     }
 
@@ -393,4 +397,11 @@ proc sdt_includes {} {
   }
 
   return $flags
+}
+
+proc stripped_p { EXE } {
+    if { [catch {eval exec "file $EXE | grep -q \"not stripped\""} dummy] } {
+	return 1
+    }
+    return 0
 }
