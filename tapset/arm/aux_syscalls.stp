@@ -34,7 +34,7 @@ function _arch_ptrace_argstr(request, pid, addr, data)
 		return sprintf ("PTRACE_SETCRUNCHREGS, %d, %s", pid, _signal_name (data))
 }
 
-function _ptrace_return_arch_prctl_addr(request, addr, data)
+function _ptrace_return_arch_prctl_addr:long(request:long, addr:long, data:long)
 {
 	return 0
 }
