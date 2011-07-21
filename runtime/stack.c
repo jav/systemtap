@@ -23,7 +23,16 @@
 
 #include "sym.c"
 #include "regs.h"
+
+/* DWARF unwinder only tested so far on i386 and x86_64.
+   It would be nice to also make this depend on STP_NEED_UNWIND_DATA.
+   But that is defined too late when [u]context-unwind.stp is used.
+   XXX turn define in tapsets into prama:unwind?  */
+#ifdef STP_USE_DWARF_UNWINDER
 #include "unwind.c"
+#else
+struct unwind_context { };
+#endif
 
 #define MAXBACKTRACE 20
 
@@ -48,12 +57,10 @@ struct uretprobe_instance;
 
 static void _stp_stack_print_fallback(unsigned long, int, int);
 
-#if defined (__x86_64__)
-#include "stack-x86_64.c"
+#if (defined(__i386__) || defined(__x86_64__))
+#include "stack-x86.c"
 #elif defined (__ia64__)
 #include "stack-ia64.c"
-#elif  defined (__i386__)
-#include "stack-i386.c"
 #elif defined (__powerpc__)
 #include "stack-ppc.c"
 #elif defined (__arm__)

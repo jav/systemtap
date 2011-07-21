@@ -117,13 +117,6 @@ static struct
 #endif
 #endif
 
-#ifdef CONFIG_FRAME_POINTER
-/* Just because frame pointers are available does not mean we can trust them. */
-#ifndef STP_USE_DWARF_UNWINDER
-#define STP_USE_FRAME_POINTER
-#endif
-#endif
-
 #include "alloc.c"
 #include "print.c"
 #include "string.c"

@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
- * x86_64 stack tracing functions
- * Copyright (C) 2005-2010 Red Hat Inc.
+ * x86 stack tracing functions
+ * Copyright (C) 2005-2011 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -29,13 +29,12 @@ static int _stp_valid_pc_addr(unsigned long addr, struct task_struct *tsk)
 	return addr != 0L && tsk != NULL ? ok : ! ok;
 }
 
-
 /* DWARF unwinder failed.  Just dump intereting addresses on kernel stack. */
 #if !defined(STAPCONF_KERNEL_STACKTRACE)
 static void _stp_stack_print_fallback(unsigned long stack, int verbose, int levels)
 {
 	unsigned long addr;
-	while (levels && stack & (THREAD_SIZE - 1)) {
+	while (levels && stack & (THREAD_SIZE-1)) {
 		if (unlikely(_stp_read_address(addr, (unsigned long *)stack,
 					       KERNEL_DS))
 		    || ! _stp_valid_pc_addr(addr, NULL)) {
@@ -55,7 +54,6 @@ static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
 			      struct uretprobe_instance *ri, int uregs_valid)
 {
 #ifdef STP_USE_DWARF_UNWINDER
-        int start_levels = levels;
 	struct unwind_frame_info *info = &uwcontext->info;
 	int sanitize = tsk && ! uregs_valid;
 	arch_unw_init_frame_info(info, regs, sanitize);
@@ -90,9 +88,5 @@ static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
 			_stp_stack_print_fallback(UNW_SP(info), verbose, levels);
 		return;
 	}
-#else /* ! STP_USE_DWARF_UNWINDER */
-	_stp_stack_print_fallback(REG_SP(regs), verbose, levels);
 #endif
 }
-
-

@@ -36,7 +36,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 			       struct unwind_context *uwcontext,
 			       struct uretprobe_instance *ri, int uregs_valid)
 {
-#ifdef STP_USE_FRAME_POINTER
+#ifdef CONFIG_FRAME_POINTER
 	int		pc_offset = find_str_pc_offset();
 	unsigned long	*fp = (unsigned long *)regs->ARM_fp;
 	unsigned long	*next_fp, *pc;
@@ -65,5 +65,5 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 
 		fp = next_fp;
 	}
-#endif /* STP_USE_FRAME_POINTER */
+#endif /* CONFIG_FRAME_POINTER */
 }
