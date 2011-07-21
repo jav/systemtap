@@ -398,3 +398,10 @@ proc sdt_includes {} {
 
   return $flags
 }
+
+proc stripped_p { EXE } {
+    if { [catch {eval exec "file $EXE | grep -q \"not stripped\""} dummy] } {
+	return 1
+    }
+    return 0
+}

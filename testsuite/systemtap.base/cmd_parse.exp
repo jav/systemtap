@@ -71,7 +71,7 @@ wait;catch {close}
 # slow test case; requires kernel tracepoint query modules
 spawn stap -l {vm.*}
 expect {
-    -timeout 240 
+    -timeout 240
     -re {^vm[^\r\n]*\r\n} {pass "cmd_parse8"}
     -re "^Warning: make exited with status: 2\r\n" {exp_continue}
     timeout {fail "cmd_parse8: unexpected timeout"}
