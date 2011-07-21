@@ -1,5 +1,10 @@
 * What's new in version 1.6
 
+- SystemTap has improved support for the ARM architecture.  The
+  kread() and kwrite() operations for ARM were corrected allowing many
+  of the tapsets probes and function to work properly on the ARM
+  architecture.
+
 - Staprun can now rename the module to a unique name with the '-R' option before 
   inserting it. Systemtap itself will also call staprun with '-R' by default. 
   This allows the same module to be inserted more than once, without conflicting 
