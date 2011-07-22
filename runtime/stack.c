@@ -115,6 +115,7 @@ static const struct stacktrace_ops print_stack_ops = {
 #endif
 };
 
+/* Currently only used by the stack-x64.c code when dwarf unwinding fails. */
 static void _stp_stack_print_fallback(unsigned long stack, int verbose, int levels)
 {
         struct print_stack_data print_data;
@@ -124,7 +125,12 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
         dump_trace(current, NULL, (long *)stack, 0, &print_stack_ops,
                    &print_data);
 }
-#endif
+#else
+static void _stp_stack_print_fallback(unsigned long s, int v, int l) {
+	/* Don't guess, just give up. */
+	_stp_print_addr(0, v | _STP_SYM_INEXACT, NULL);
+}
+#endif /* defined(STAPCONF_KERNEL_STACKTRACE) */
 
 // Without KPROBES very little works atm.
 // But this file is unconditionally imported, while these two functions are only

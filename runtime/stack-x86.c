@@ -29,25 +29,6 @@ static int _stp_valid_pc_addr(unsigned long addr, struct task_struct *tsk)
 	return addr != 0L && tsk != NULL ? ok : ! ok;
 }
 
-/* DWARF unwinder failed.  Just dump intereting addresses on kernel stack. */
-#if !defined(STAPCONF_KERNEL_STACKTRACE)
-static void _stp_stack_print_fallback(unsigned long stack, int verbose, int levels)
-{
-	unsigned long addr;
-	while (levels && stack & (THREAD_SIZE-1)) {
-		if (unlikely(_stp_read_address(addr, (unsigned long *)stack,
-					       KERNEL_DS))
-		    || ! _stp_valid_pc_addr(addr, NULL)) {
-			/* cannot access stack.  give up. */
-			return;
-		}
-		_stp_print_addr(addr, verbose | _STP_SYM_INEXACT, NULL);
-		levels--;
-		stack++;
-	}
-}
-#endif
-
 static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
 			      struct task_struct *tsk,
 			      struct unwind_context *uwcontext,
