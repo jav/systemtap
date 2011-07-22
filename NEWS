@@ -41,6 +41,9 @@
 
 - Depends on elfutils 0.142+.
 
+- Deprecated task_backtrace:string (task:long). This function will go
+  away after 1.6. Please run your scripts with stap --check-version.
+
 * What's new in version 1.5, 2011-05-23
 
 - The compile server and its related tools (stap-gen-ert, stap-authorize-cert,
