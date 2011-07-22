@@ -12,9 +12,6 @@
 //processor.
 // </tapsetdescription>
 %{
-#ifndef STP_NEED_UNWIND_DATA
-#define STP_NEED_UNWIND_DATA 1
-#endif
 #ifndef STP_NEED_SYMBOL_DATA
 #define STP_NEED_SYMBOL_DATA 1
 #endif
@@ -27,7 +24,7 @@
  *  except that deeper stack nesting may be supported.
  *  The function does not return a value.
  */
-function print_backtrace () %{
+function print_backtrace () %{ /* pragma:unwind */
 	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG)) {
 		_stp_stack_print(CONTEXT->regs, _STP_SYM_FULL,
 				 CONTEXT->pi, MAXTRACE, NULL,
@@ -52,7 +49,7 @@ function print_backtrace () %{
  * but more efficient (no need to translate between hex strings and
  * final backtrace string).
  */
-function sprint_backtrace:string () %{ /* pure */
+function sprint_backtrace:string () %{ /* pure */ /* pragma:unwind */
 	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG))
 		_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
 				   _STP_SYM_SIMPLE, CONTEXT->regs,
@@ -69,7 +66,7 @@ function sprint_backtrace:string () %{ /* pure */
  * that are a backtrace of the stack. Output may be truncated as 
  * as per maximum string length (MAXSTRINGLEN).
  */
-function backtrace:string () %{ /* pure */
+function backtrace:string () %{ /* pure */ /* pragma:unwind */
 	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG))
 		_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
 				   _STP_SYM_NONE, CONTEXT->regs,
@@ -88,6 +85,7 @@ function backtrace:string () %{ /* pure */
  *  Output may be truncated as per maximum string length.
  */
 function task_backtrace:string (task:long) %{ /* pure */
+	/* Note this doesn't currently use the dwarf unwinder, so no pragma. */
 	 _stp_stack_snprint_tsk(THIS->__retvalue, MAXSTRINGLEN,
 				(struct task_struct *)(unsigned long)THIS->task,
 				_STP_SYM_NONE, MAXTRACE);

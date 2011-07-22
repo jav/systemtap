@@ -25,9 +25,10 @@
 #include "regs.h"
 
 /* DWARF unwinder only tested so far on i386 and x86_64.
-   It would be nice to also make this depend on STP_NEED_UNWIND_DATA.
-   But that is defined too late when [u]context-unwind.stp is used.
-   XXX turn define in tapsets into prama:unwind?  */
+   We only need to compile in the unwinder when both STP_NEED_UNWIND_DATA
+   (set when a stap script defines pragma:unwind, as done in
+   [u]context-unwind.stp) is defined and the architecture actually supports
+   dwarf unwinding (as defined by STP_USE_DWARF_UNWINDER in runtime.h).  */
 #ifdef STP_USE_DWARF_UNWINDER
 #include "unwind.c"
 #else

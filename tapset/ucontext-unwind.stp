@@ -7,9 +7,6 @@
 // later version.
 
 %{
-#ifndef STP_NEED_UNWIND_DATA
-#define STP_NEED_UNWIND_DATA 1
-#endif
 #ifndef STP_NEED_SYMBOL_DATA
 #define STP_NEED_SYMBOL_DATA 1
 #endif
@@ -25,7 +22,7 @@
  * shared libraries not mentioned in the current script run stap with
  * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
-function print_ubacktrace () %{
+function print_ubacktrace () %{ /* pragma:unwind */
 /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
@@ -73,7 +70,7 @@ function print_ubacktrace () %{
  * shared libraries not mentioned in the current script run stap with
  * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
-function sprint_ubacktrace:string () %{
+function sprint_ubacktrace:string () %{ /* pragma:unwind */
 /* pure */ /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
@@ -114,7 +111,7 @@ function sprint_ubacktrace:string () %{
  * shared libraries not mentioned in the current script run stap with
  * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
-function print_ubacktrace_brief () %{
+function print_ubacktrace_brief () %{ /* pragma:unwind */
 /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
@@ -155,7 +152,7 @@ function print_ubacktrace_brief () %{
  * shared libraries not mentioned in the current script run stap with
  * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
-function ubacktrace:string () %{
+function ubacktrace:string () %{ /* pragma:unwind */
 /* pure */ /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
   /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
   if (current->mm)
