@@ -29,13 +29,11 @@
   stap -L 'module("i2c-core").function("*")' would be empty.  It now returns
   a list had stap -L 'module("i2c_core").function("*") been specified.
 
-- Systemtap now fills in missing process names to probe points when used with
-  -c CMD.  This avoids redundant 
-  'process("a.out")... process("a.out")... {}' -c 'a.out' style usage.  The
-  a.out binary is parsed from the '-c CMD' usage and placed only into empty
-  process probe points.  As an example:
-  stap -e 'probe process.function("*"), process.mark("*")
-  {printf("%s\n", probefunc())}' -c 'stap -V'
+- Systemtap now fills in missing process names to probe points, to
+  avoid having to name them twice twice:
+  % stap -e 'probe process("a.out").function("*") {}' -c 'a.out ...'
+  Now the probed process name is inferred from the -c CMD argument.
+  % stap -e 'probe process.function("*") {}' -c 'a.out ...'
 
 - stap -L 'process("PATH").syscall' will now list context variables
 
