@@ -76,6 +76,7 @@ function backtrace:string () %{ /* pure */ /* pragma:unwind */
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}
 
+%( systemtap_v <= "1.6" %?
 /**
  *  sfunction task_backtrace - Hex backtrace of an arbitrary task
  *  @task: pointer to task_struct
@@ -83,6 +84,7 @@ function backtrace:string () %{ /* pure */ /* pragma:unwind */
  *  Description: This function returns a string of hex addresses
  *  that are a backtrace of the stack of a particular task
  *  Output may be truncated as per maximum string length.
+ *  Deprecated in SystemTap 1.6.
  */
 function task_backtrace:string (task:long) %{ /* pure */
 	/* Note this doesn't currently use the dwarf unwinder, so no pragma. */
@@ -90,6 +92,7 @@ function task_backtrace:string (task:long) %{ /* pure */
 				(struct task_struct *)(unsigned long)THIS->task,
 				_STP_SYM_NONE, MAXTRACE);
 %}
+%)
 
 /**
  *  sfunction caller - Return name and address of calling function

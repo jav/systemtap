@@ -24,6 +24,38 @@ proc stap_direct_and_with_client {stap options} {
     regsub -all "\[\"\\\\;\]" $options {\\\0} options
     regsub -all "\[\n\]" $options {\\n} options
 
+    # If the options contain -I/ or the equivalent, then the client will balk.
+    # So test that the client balks.
+    if {[regexp "\-I */$" $options] || [regexp "\-I */ " $options]} {
+	set passed 0
+	set fallthrough 0
+	set cmd [concat stap $options --use-server]
+	send_log "executing: $cmd\n"
+	eval spawn $cmd
+	expect {
+	    -timeout 150
+	    -re {^Unable to send / to the server\r\n} {
+		set passed 1
+	    }
+	    # Some other options can cause errors which occur before the one for -I/.
+	    # If one of these errors occurs, then fall through to the normal test.
+	    -re {^ERROR: Safety pattern mismatch for -D parameter .*\r\n} {
+		set fallthrough 1
+	    }
+	    -re {^.*\r\n} { exp_continue }
+	    timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+	    }
+	}
+	catch close
+	if { $fallthrough == 0 } {
+	    return $passed
+	}
+    }
+
+    # Otherwise, check the that output from compiling directly and using
+    # the client/server are reasonable similar.
     verbose -log "eval exec $stap $options"
     catch {eval exec $stap $options} res_stap
     verbose -log $res_stap
@@ -142,6 +174,12 @@ set previously_fixed [list \
   "-p1 -I285v7pl -eo5\\0 -D86s -c-c*v" \
   "-l syscall.open* -- -p5" \
   "-l syscall.open* -- -rfoo" \
+  "-p1 -I/ 1\\nbzg3 -ebf -Do -ckrll=\\;oh -\S4" \
+  "-p1 -I / 1\\nbzg3 -ebf -Do -ckrll=\\;oh -\S4" \
+  "-p1 1\\nbzg3 -ebf -Do -ckrll=\\;oh -\S4 -I/" \
+  "-p1 1\\nbzg3 -ebf -Do -ckrll=\\;oh -\S4 -I /" \
+  "-p1 -I -e\\;/ -Dhn6 -cejijqmi0 -S3-k -" \
+  "-p1 -I/ -e/ -D -c\\n1v\\;nd8 -S--" \
 ]
 
 set i 0

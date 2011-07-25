@@ -1,5 +1,21 @@
 * What's new in version 1.6
 
+- The systemtap compile-server no longer uses the -k option when calling the
+  translator (stap). As a result, the server will now take advantage of the
+  module cache when compiling the same script more than once. You may observe
+  an improvement in the performance of the server in this situation.
+
+- The systemtap compile-server and client now each check the version of the
+  other, allowing both to adapt when communicating with a down-level
+  counterpart. As a result, all version of the client can communicate
+  with all versions of the server and vice-versa. Client will prefer newer
+  servers when selecting a server automatically.
+
+- SystemTap has improved support for the ARM architecture.  The
+  kread() and kwrite() operations for ARM were corrected allowing many
+  of the tapsets probes and function to work properly on the ARM
+  architecture.
+
 - Staprun can now rename the module to a unique name with the '-R' option before 
   inserting it. Systemtap itself will also call staprun with '-R' by default. 
   This allows the same module to be inserted more than once, without conflicting 
@@ -13,17 +29,18 @@
   stap -L 'module("i2c-core").function("*")' would be empty.  It now returns
   a list had stap -L 'module("i2c_core").function("*") been specified.
 
-- Systemtap now fills in missing process names to probe points when used with
-  -c CMD.  This avoids redundant 
-  'process("a.out")... process("a.out")... {}' -c 'a.out' style usage.  The
-  a.out binary is parsed from the '-c CMD' usage and placed only into empty
-  process probe points.  As an example:
-  stap -e 'probe process.function("*"), process.mark("*")
-  {printf("%s\n", probefunc())}' -c 'stap -V'
+- Systemtap now fills in missing process names to probe points, to
+  avoid having to name them twice twice:
+  % stap -e 'probe process("a.out").function("*") {}' -c 'a.out ...'
+  Now the probed process name is inferred from the -c CMD argument.
+  % stap -e 'probe process.function("*") {}' -c 'a.out ...'
 
 - stap -L 'process("PATH").syscall' will now list context variables
 
 - Depends on elfutils 0.142+.
+
+- Deprecated task_backtrace:string (task:long). This function will go
+  away after 1.6. Please run your scripts with stap --check-version.
 
 * What's new in version 1.5, 2011-05-23
 

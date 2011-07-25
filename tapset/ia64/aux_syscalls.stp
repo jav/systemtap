@@ -20,7 +20,7 @@ function _arch_ptrace_argstr(request, pid, addr, data)
 		return sprintf ("PTRACE_OLDSETOPTIONS, %d, %s", pid, _ptrace_options_str (data))
 }
 
-function _ptrace_return_arch_prctl_addr(request, addr, data)
+function _ptrace_return_arch_prctl_addr:long(request:long, addr:long, data:long)
 {
 	return 0
 }

@@ -187,12 +187,13 @@ function is_myproc:long ()
 %}
 
 
-/*
+%( systemtap_v <= "1.4" %?
+/**
  * sfunction cpuid - Returns the current cpu number
  * 
  * Description: This function returns the current cpu number.
+ * Deprecated in SystemTap 1.4 and removed in SystemTap 1.5.
  */
-%( systemtap_v <= "1.4" %?
 function cpuid:long ()
 %{ /* pure */
 	THIS->__retvalue = smp_processor_id();

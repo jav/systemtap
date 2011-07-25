@@ -766,33 +766,6 @@ extern void __store_deref_bad(void);
 	: "r" (x), "r" (__pu_addr), "i" (-EFAULT)		\
 	: "cc")
 
-#ifndef __ARMEB__
-#define	__reg_oper0	"%R2"
-#define	__reg_oper1	"%Q2"
-#else
-#define	__reg_oper0	"%Q2"
-#define	__reg_oper1	"%R2"
-#endif
-
-#define __stp_put_user_asm_dword(x,__pu_addr,err)		\
-	__asm__ __volatile__(					\
-	"1:	str	" __reg_oper1 ", [%1], #4\n"		\
-	"2:	str	" __reg_oper0 ", [%1], #0\n"		\
-	"3:\n"							\
-	"	.section .fixup,\"ax\"\n"			\
-	"	.align	2\n"					\
-	"4:	mov	%0, %3\n"				\
-	"	b	3b\n"					\
-	"	.previous\n"					\
-	"	.section __ex_table,\"a\"\n"			\
-	"	.align	3\n"					\
-	"	.long	1b, 4b\n"				\
-	"	.long	2b, 4b\n"				\
-	"	.previous"					\
-	: "+r" (err), "+r" (__pu_addr)				\
-	: "r" (x), "i" (-EFAULT)				\
-	: "cc")
-
 #define deref(size, addr)						\
   ({									\
      int _bad = 0;							\
@@ -821,7 +794,6 @@ extern void __store_deref_bad(void);
       case 1: __stp_put_user_asm_byte(value, addr, _bad); break;	\
       case 2: __stp_put_user_asm_half(value, addr, _bad); break;	\
       case 4: __stp_put_user_asm_word(value, addr, _bad); break;	\
-      case 8: __stp_put_user_asm_dword(value, addr, _bad); break;	\
       default: __put_user_bad(); break;                                 \
       }                                                                 \
     if (_bad)								\
@@ -939,9 +911,9 @@ extern void __store_deref_bad(void);
 #endif /* (s390) || (s390x) */
 
 
-#if defined __i386__
+#if defined (__i386__) || defined (__arm__)
 
-/* x86 can't do 8-byte put/get_user_asm, so we have to split it */
+/* x86 and arm can't do 8-byte put/get_user_asm, so we have to split it */
 
 #define kread(ptr)					\
   ((sizeof(*(ptr)) == 8) ?				\

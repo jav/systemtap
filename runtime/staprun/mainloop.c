@@ -578,6 +578,8 @@ int stp_main_loop(void)
       break;
 #endif
     case STP_OOB_DATA:
+      /* Note that "WARNING:" should not be translated, since it is
+       * part of the module cmd protocol. */
       if (strncmp(recvbuf.payload.data, "WARNING:", 7) == 0) {
               if (suppress_warnings) break;
               if (verbose) { /* don't eliminate duplicates */
@@ -629,6 +631,8 @@ int stp_main_loop(void)
                               free (dupstr);
                       }
               } /* duplicate elimination */
+      /* Note that "ERROR:" should not be translated, since it is
+       * part of the module cmd protocol. */
       } else if (strncmp(recvbuf.payload.data, "ERROR:", 5) == 0) {
               eprintf("%.*s", (int) nb, recvbuf.payload.data);
               error_detected = 1;

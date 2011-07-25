@@ -64,7 +64,7 @@ extern "C" {
 
 using namespace std;
 
-#define STAP_CSC_01 _("WARNING: The domain name, \%s, does not match the DNS name(s) on the server certificate:\n")
+#define STAP_CSC_01 _("WARNING: The domain name, %s, does not match the DNS name(s) on the server certificate:\n")
 #define STAP_CSC_02 _("could not find input file %s\n")
 #define STAP_CSC_03 _("could not open input file %s\n")
 #define STAP_CSC_04 _("Unable to open output file %s\n")
@@ -990,7 +990,7 @@ compile_server_client::add_package_arg (const string &arg)
 // directory under the given subdirectory.
 int
 compile_server_client::include_file_or_directory (
-  const string &subdir, const string &path, const char *option
+  const string &subdir, const string &path
 )
 {
   // Must predeclare these because we do use 'goto done' to
@@ -1022,6 +1022,16 @@ compile_server_client::include_file_or_directory (
       rpath = cpath;
       free (cpath);
 
+      // Including / would require special handling in the code below and
+      // is a bad idea anyway. Let's not allow it.
+      if (rpath == "/")
+	{
+	  if (rpath != path)
+	    clog << _F("%s resolves to %s\n", path.c_str (), rpath.c_str ());
+	  clog << _F("Unable to send %s to the server\n", path.c_str ());
+	  return 1;
+	}
+
       // First create the requested subdirectory.
       name = client_tmpdir + "/" + subdir;
       rc = create_dir (name.c_str ());
@@ -1048,14 +1058,7 @@ compile_server_client::include_file_or_directory (
       if (rc) goto done;
     }
 
-  // Name this file or directory in the packaged arguments along with any
-  // associated option.
-  if (option)
-    {
-      rc = add_package_arg (option);
-      if (rc) goto done;
-    }
-
+  // Name this file or directory in the packaged arguments.
   rc = add_package_arg (subdir + "/" + rpath.substr (1));
 
  done:

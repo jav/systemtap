@@ -133,3 +133,10 @@ probe syscall.open {
         exit();
     }
 }
+
+probe timer.s(10) {
+      // If the script runs this long, something has gone wrong with providing
+      // a syscall.read-generating workload.
+      println ("syscall.read timeout")
+      exit()
+}
