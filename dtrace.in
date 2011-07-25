@@ -62,8 +62,13 @@ class _provider(object):
         self.semaphores_def += '#define %s_%s_semaphore %s_semaphore\n' % \
             (self.provider,this_probe,this_probe)
         self.semaphores_def += '#endif\n'
+        self.semaphores_def += '#if defined STAP_SDT_V1 || defined STAP_SDT_V2 \n'
+        self.semaphores_def += "__extension__ unsigned short %s_%s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % \
+            (self.provider,this_probe)
+        self.semaphores_def += '#else\n'
         self.semaphores_def += "__extension__ unsigned short %s_%s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\"))) __attribute__ ((visibility (\"hidden\")));\n" % \
             (self.provider,this_probe)
+        self.semaphores_def += '#endif\n'
 
     def semaphore_def_write(self, file):
         file.write(self.semaphores_def)
