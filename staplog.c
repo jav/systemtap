@@ -1,7 +1,7 @@
 /*
  crash shared object for retrieving systemtap buffer
  Copyright (c) 2007, Hitachi, Ltd.,
- Copyright (C) 2009, Red Hat Inc.
+ Copyright (C) 2009-2011, Red Hat Inc.
  Created by Satoru Moriya <satoru.moriya.br@hitachi.com>
  Updated by Masami Hiramatsu <mhiramat@redhat.com>
 

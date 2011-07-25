@@ -1,5 +1,5 @@
 // recursive descent parser for systemtap scripts
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 // Copyright (C) 2007 Bull S.A.S
 //
