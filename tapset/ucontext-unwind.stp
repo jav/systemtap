@@ -42,7 +42,7 @@ function print_ubacktrace () %{ /* pragma:unwind */
 
       if (uregs)
 	{
-	  _stp_stack_print(uregs, _STP_SYM_FULL, CONTEXT->pi, MAXTRACE,
+	  _stp_stack_print(uregs, _STP_SYM_FULL, CONTEXT->pi,
 			   current, &CONTEXT->uwcontext, CONTEXT->ri, valid);
 	  return;
 	}
@@ -91,7 +91,7 @@ function sprint_ubacktrace:string () %{ /* pragma:unwind */
       if (uregs)
 	{
 	  _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, _STP_SYM_SIMPLE,
-			     uregs, CONTEXT->pi, MAXTRACE,
+			     uregs, CONTEXT->pi,
 			     current, &CONTEXT->uwcontext, CONTEXT->ri, valid);
 	  return;
 	}
@@ -131,7 +131,7 @@ function print_ubacktrace_brief () %{ /* pragma:unwind */
 
       if (uregs)
 	{
-	  _stp_stack_print(uregs, _STP_SYM_BRIEF, CONTEXT->pi, MAXTRACE,
+	  _stp_stack_print(uregs, _STP_SYM_BRIEF, CONTEXT->pi,
 			   current, &CONTEXT->uwcontext, CONTEXT->ri, valid);
 	  return;
 	}
@@ -173,7 +173,7 @@ function ubacktrace:string () %{ /* pragma:unwind */
       if (uregs)
 	{
 	  _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, _STP_SYM_NONE,
-			     uregs, CONTEXT->pi, MAXTRACE,
+			     uregs, CONTEXT->pi,
 			     current, &CONTEXT->uwcontext, CONTEXT->ri, valid);
 	  return;
 	}

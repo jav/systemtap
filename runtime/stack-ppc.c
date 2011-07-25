@@ -13,7 +13,6 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 			       struct uretprobe_instance *ri, int uregs_valid)
 {
 	unsigned long ip, newsp, lr = 0;
-	int count = 0;
 	int firstframe = 1;
 	unsigned long *_sp = (unsigned long *)&REG_SP(regs);	
 	unsigned long sp = (unsigned long)_sp;
@@ -73,5 +72,5 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels,
 		}
 
 		sp = newsp;
-	} while (count++ < MAXBACKTRACE);
+	} while (--level);
 }

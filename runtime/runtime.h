@@ -106,10 +106,6 @@ static struct
 #define MAXSTRINGLEN 128
 #endif
 
-#ifndef MAXTRACE
-#define MAXTRACE 20
-#endif
-
 /* dwarf unwinder only tested so far on i386 and x86_64.
    Only define STP_USE_DWARF_UNWINDER when STP_NEED_UNWIND_DATA,
    as set through a pragma:unwind in one of the [u]context-unwind.stp

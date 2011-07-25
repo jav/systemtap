@@ -19,6 +19,11 @@
 #ifndef _STACK_C_
 #define _STACK_C_
 
+/* Maximum number of backtrace levels. */
+#ifndef MAXBACKTRACE
+#define MAXBACKTRACE 20
+#endif
+
 /** @file stack.c
  * @brief Stack Tracing Functions
  */
@@ -151,7 +156,7 @@ static void _stp_stack_print_fallback(unsigned long s, int v, int l) {
  */
 
 static void _stp_stack_print(struct pt_regs *regs, int verbose,
-			     struct kretprobe_instance *pi, int levels,
+			     struct kretprobe_instance *pi,
 			     struct task_struct *tsk,
 			     struct unwind_context *context,
 			     struct uretprobe_instance *ri, int uregs_valid)
@@ -181,7 +186,7 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose,
 	}
 
 	/* print rest of stack... */
-	__stp_stack_print(regs, verbose, levels, tsk,
+	__stp_stack_print(regs, verbose, MAXBACKTRACE, tsk,
 			  context, ri, uregs_valid);
 }
 
@@ -194,7 +199,7 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose,
 static void _stp_stack_sprint(char *str, int size, int flags,
 			      struct pt_regs *regs,
 			      struct kretprobe_instance *pi,
-			      int levels, struct task_struct *tsk,
+			      struct task_struct *tsk,
 			      struct unwind_context *context,
 			      struct uretprobe_instance *ri, int uregs_valid)
 {
@@ -211,7 +216,7 @@ static void _stp_stack_sprint(char *str, int size, int flags,
 				flags, tsk);
 
 	_stp_print_addr((int64_t) REG_IP(regs), flags, tsk);
-	__stp_stack_print(regs, flags, levels, tsk,
+	__stp_stack_print(regs, flags, MAXBACKTRACE, tsk,
 			  context, ri, uregs_valid);
 
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);

@@ -27,7 +27,7 @@
 function print_backtrace () %{ /* pragma:unwind */
 	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG)) {
 		_stp_stack_print(CONTEXT->regs, _STP_SYM_FULL,
-				 CONTEXT->pi, MAXTRACE, NULL,
+				 CONTEXT->pi, NULL,
 				 &CONTEXT->uwcontext, NULL, 0);
 	} else {
 		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
@@ -53,7 +53,7 @@ function sprint_backtrace:string () %{ /* pure */ /* pragma:unwind */
 	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG))
 		_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
 				   _STP_SYM_SIMPLE, CONTEXT->regs,
-				   CONTEXT->pi, MAXTRACE, NULL,
+				   CONTEXT->pi, NULL,
 				   &CONTEXT->uwcontext, NULL, 0);
 	else
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
@@ -70,7 +70,7 @@ function backtrace:string () %{ /* pure */ /* pragma:unwind */
 	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG))
 		_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
 				   _STP_SYM_NONE, CONTEXT->regs,
-				   CONTEXT->pi, MAXTRACE, NULL,
+				   CONTEXT->pi, NULL,
 				   &CONTEXT->uwcontext, NULL, 0);
 	else 
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
