@@ -86,12 +86,9 @@ function backtrace:string () %{ /* pure */ /* pragma:unwind */
  *  Output may be truncated as per maximum string length.
  *  Deprecated in SystemTap 1.6.
  */
-function task_backtrace:string (task:long) %{ /* pure */
-	/* Note this doesn't currently use the dwarf unwinder, so no pragma. */
-	 _stp_stack_snprint_tsk(THIS->__retvalue, MAXSTRINGLEN,
-				(struct task_struct *)(unsigned long)THIS->task,
-				_STP_SYM_NONE, MAXTRACE);
-%}
+function task_backtrace:string (task:long) {
+	warn("task_backtrace unsupported")
+}
 %)
 
 /**

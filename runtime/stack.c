@@ -213,38 +213,4 @@ static void _stp_stack_sprint(char *str, int size, int flags,
 
 #endif /* CONFIG_KPROBES */
 
-static void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int levels)
-{
-#if defined(STAPCONF_KERNEL_STACKTRACE)
-        int i;
-        unsigned long backtrace[MAXBACKTRACE];
-        struct stack_trace trace;
-        int maxLevels = min(levels, MAXBACKTRACE);
-        memset(&trace, 0, sizeof(trace));
-        trace.entries = &backtrace[0];
-        trace.max_entries = maxLevels;
-        trace.skip = 0;
-        save_stack_trace_tsk(tsk, &trace);
-        for (i = 0; i < maxLevels; ++i) {
-                if (backtrace[i] == 0 || backtrace[i] == ULONG_MAX)
-                        break;
-		_stp_print_addr(backtrace[i], verbose, tsk);
-        }
-#endif
-}
-
-/** Writes a task stack backtrace to a string
- *
- * @param str string
- * @param tsk A pointer to the task_struct
- * @returns void
- */
-static void _stp_stack_snprint_tsk(char *str, int size, struct task_struct *tsk, int verbose, int levels)
-{
-	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
-	_stp_print_flush();
-	_stp_stack_print_tsk(tsk, verbose, levels);
-	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
-	pb->len = 0;
-}
 #endif /* _STACK_C_ */
