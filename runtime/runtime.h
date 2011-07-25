@@ -102,10 +102,6 @@ static struct
 
 #define _stp_seq_inc() (atomic_inc_return(&_stp_seq.seq))
 
-#ifndef MAXSTRINGLEN
-#define MAXSTRINGLEN 128
-#endif
-
 /* dwarf unwinder only tested so far on i386 and x86_64.
    Only define STP_USE_DWARF_UNWINDER when STP_NEED_UNWIND_DATA,
    as set through a pragma:unwind in one of the [u]context-unwind.stp
