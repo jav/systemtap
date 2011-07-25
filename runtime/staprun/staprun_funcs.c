@@ -519,8 +519,10 @@ check_stap_module_path(const char *module_path, int module_fd)
 }
 
 /*
- * Members of the 'stapusr' group can load the uprobes module freely,
- * since it is loaded from a fixed path in the installed runtime.
+ * Don't allow path-based authorization for the uprobes module at all.
+ * Members of the 'stapusr' group can load a signed uprobes module, but
+ * nothing else.  Later we could consider allowing specific paths, like
+ * the installed runtime or /lib/modules/...
  *
  * Returns: -1 on errors, 0 on failure, 1 on success.
  */
@@ -530,7 +532,7 @@ check_uprobes_module_path (
   int module_fd __attribute__ ((unused))
 )
 {
-  return 1;
+  return 0;
 }
 
 /*
@@ -727,10 +729,8 @@ void assert_uprobes_module_permissions(
 	if (check_signature_rc == MODULE_ALTERED)
 		exit(-1);
 #else
-	/* If we don't have NSS, then the uprobes module is considered trusted.
-	   Otherwise a member of the group 'stapusr' will not be able to load it.
-	 */
-	check_signature_rc = MODULE_OK;
+	/* If we don't have NSS, the uprobes module is considered untrusted. */
+	check_signature_rc = MODULE_UNTRUSTED;
 #endif
 
 	/* root can still load this module.  */
