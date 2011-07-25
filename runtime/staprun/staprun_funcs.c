@@ -7,7 +7,7 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2007-2009 Red Hat Inc.
+ * Copyright (C) 2007-2011 Red Hat Inc.
  */
 
 #include "config.h"
@@ -58,7 +58,7 @@ int insert_module(
   assert_permissions_func assert_permissions
 ) {
 	int i;
-	long ret;
+	long ret, module_read;
 	void *module_file;
 	char *opts;
 	int saved_errno;
@@ -124,16 +124,38 @@ int insert_module(
 		return -1;
 	}
 
-	/* mmap in the entire module. Work with the memory mapped data from this
-	   point on to avoid a TOCTOU race between path and signature checking
-	   below and module loading.  */
-	module_file = mmap(NULL, sbuf.st_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, module_fd, 0);
-	if (module_file == MAP_FAILED) {
-		_perr("Error mapping '%s'", module_realpath);
+        /* Allocate memory for the entire module. */
+        module_file = calloc(1, sbuf.st_size);
+        if (module_file == NULL) {
+                _perr("Error allocating memory to read '%s'", module_realpath);
 		close(module_fd);
 		free(opts);
 		return -1;
 	}
+
+        /* Read in the entire module.  Work with this copy of the data from this
+           point on to avoid a TOCTOU race between path and signature checking
+           below and module loading.  */
+        module_read = 0;
+        while (module_read < sbuf.st_size) {
+                ret = read(module_fd, module_file + module_read,
+                           sbuf.st_size - module_read);
+                if (ret > 0)
+                        module_read += ret;
+                else if (ret == 0) {
+                        _err("Unexpected EOF reading '%s'", module_realpath);
+                        free(module_file);
+                        close(module_fd);
+                        free(opts);
+                        return -1;
+                } else if (errno != EINTR) {
+                        _perr("Error reading '%s'", module_realpath);
+                        free(module_file);
+                        close(module_fd);
+                        free(opts);
+                        return -1;
+                }
+        }
 
 	/* Check whether this module can be loaded by the current user.
 	 * check_permissions will exit(-1) if permissions are insufficient*/
@@ -159,7 +181,7 @@ int insert_module(
 
 	/* Cleanup. */
 	free(opts);
-	munmap(module_file, sbuf.st_size);
+	free(module_file);
 	close(module_fd);
 
 	if (ret != 0) {
