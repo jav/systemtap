@@ -99,27 +99,4 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
 	}
 }
 
-static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
-{
-	memset(&info->regs, 0, sizeof(info->regs));
-#ifdef STAPCONF_X86_UNIREGS	
-	info->regs.ip = info->task->thread.ip;
-	info->regs.cs = __KERNEL_CS;
-	__get_user(info->regs.bp, (long *)info->task->thread.sp);
-	info->regs.sp = info->task->thread.sp;
-	info->regs.ss = __KERNEL_DS;
-	info->regs.ds = __USER_DS;
-	info->regs.es = __USER_DS;
-#else
-	info->regs.eip = info->task->thread.eip;
-	info->regs.xcs = __KERNEL_CS;
-	__get_user(info->regs.ebp, (long *)info->task->thread.esp);
-	info->regs.esp = info->task->thread.esp;
-	info->regs.xss = __KERNEL_DS;
-	info->regs.xds = __USER_DS;
-	info->regs.xes = __USER_DS;
-#endif
-	
-}
-
 #endif /* _STP_I386_UNWIND_H */

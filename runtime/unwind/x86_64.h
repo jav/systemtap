@@ -131,23 +131,4 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
 	}
 }
 
-static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
-{
-	extern const char thread_return[];
-
-	memset(&info->regs, 0, sizeof(info->regs));
-	info->regs.cs = __KERNEL_CS;
-	info->regs.ss = __KERNEL_DS;	
-	
-#ifdef STAPCONF_X86_UNIREGS	
-	info->regs.ip = (unsigned long)thread_return;
-	__get_user(info->regs.bp, (unsigned long *)info->task->thread.sp);
-	info->regs.sp = info->task->thread.sp;
-#else
-	info->regs.rip = (unsigned long)thread_return;
-	__get_user(info->regs.rbp, (unsigned long *)info->task->thread.rsp);
-	info->regs.rsp = info->task->thread.rsp;
-#endif
-}
-
 #endif /* _STP_X86_64_UNWIND_H */
