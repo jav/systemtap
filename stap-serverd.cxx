@@ -1024,6 +1024,30 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
     envVec.push_back(it->first + "=" + it->second);
 }
 
+// Filter paths prefixed with the server's home directory from the given file.
+//
+static void
+filter_response_file (const string &file_name, const string &responseDirName)
+{
+  vector<string> cmd;
+
+  // Filter the server's home directory name
+  cmd.clear();
+  cmd.push_back ("sed");
+  cmd.push_back ("-i");
+  cmd.push_back (string ("s,") + get_home_directory () + ",<server>,g");
+  cmd.push_back (file_name);
+  stap_system (0, cmd);
+
+  // Filter the server's response directory name
+  cmd.clear();
+  cmd.push_back ("sed");
+  cmd.push_back ("-i");
+  cmd.push_back (string ("s,") + responseDirName + ",<server>,g");
+  cmd.push_back (file_name);
+  stap_system (0, cmd);
+}
+
 /* Run the translator on the data in the request directory, and produce output
    in the given output directory. */
 static void
@@ -1225,6 +1249,11 @@ handleRequest (const string &requestDirName, const string &responseDirName)
   /* Free up all the arg string copies.  Note that the first few were alloc'd
      by wordexp(), which wordfree() frees; others were hand-set to literal strings. */
   wordfree (& words);
+
+  // Filter paths prefixed with the server's home directory from the stdout and stderr
+  // files in the response.
+  filter_response_file (stapstdout, responseDirName);
+  filter_response_file (stapstderr, responseDirName);
 
   /* Sorry about the inconvenience.  C string/file processing is such a pleasure. */
 }
@@ -1460,7 +1489,7 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   argv.push_back (requestDirName);
   argv.push_back (requestFileName);
   rc = stap_system (0, argv);
-  if (rc != PR_SUCCESS)
+  if (rc != 0)
     {
       server_error (_("Unable to extract client request"));
       goto cleanup;
@@ -1507,7 +1536,7 @@ cleanup:
 	  argv.push_back ("-r");
 	  argv.push_back (tmpdir);
 	  rc = stap_system (0, argv);
-	  if (rc != PR_SUCCESS)
+	  if (rc != 0)
 	    server_error (_("Error in tmpdir cleanup"));
 	}
     }
