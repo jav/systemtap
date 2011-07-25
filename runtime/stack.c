@@ -9,6 +9,13 @@
  * later version.
  */
 
+/*
+  The translator will only include this file if the session needs any
+  of the backtrace functions.  Currently indicated by having the session
+  need_unwind flag, which is set by tapset functions marked with
+  pragme:unwind.
+*/
+
 #ifndef _STACK_C_
 #define _STACK_C_
 
