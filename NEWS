@@ -1,4 +1,6 @@
-* What's new in version 1.6
+* What's new in version 1.7
+
+* What's new in version 1.6, 2011-06-25
 
 - The systemtap compile-server no longer uses the -k option when calling the
   translator (stap). As a result, the server will now take advantage of the

@@ -11,7 +11,7 @@
 %{!?publican_brand: %global publican_brand fedora}
 
 Name: systemtap
-Version: 1.6
+Version: 1.7
 Release: 1%{?dist}
 # for version, see also configure.ac
 Summary: Instrumentation System
