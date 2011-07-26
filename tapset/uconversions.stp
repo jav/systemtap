@@ -411,8 +411,8 @@ function user_uint32:long (addr:long) %{ /* pure */ /* myproc-unprivileged */
  * address.  Returns zero when user space data is not accessible.
  */
 function user_int64:long (addr:long) %{ /* pure */ /* myproc-unprivileged */
-#if defined __i386__
-	/* As with kread() on i386, we must split 64-bit in two.
+#if defined (__i386__) || defined (__arm__)
+	/* As with kread() on i386 and arm, we must split 64-bit in two.
 	 * STP_GET_USER isn't well designed for that, but I don't
 	 * want to complicate all the other callers. */
 	uint32_t value[2];
