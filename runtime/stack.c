@@ -144,36 +144,72 @@ static void _stp_stack_print_fallback(unsigned long s, int v, int l) {
  * @param verbose _STP_SYM_FULL or _STP_SYM_BRIEF
  */
 
-static void _stp_stack_print(struct pt_regs *regs, struct context *c,
-			     int verbose, struct task_struct *tsk,
-			     int uregs_valid)
+static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 {
+	struct pt_regs *regs = NULL;
+	struct task_struct *tsk = NULL;
+	int uregs_valid = 0;
+
+	if (stack_flags == _STP_STACK_KERNEL) {
+		if (! c->regs || (c->regflags & _STP_REGS_USER_FLAG)) {
+			if (sym_flags & _STP_SYM_SYMBOL)
+				_stp_printf("<no kernel backtrace at %s>\n",
+					    c->probe_point);
+			else
+				_stp_print("\n");
+			return;
+		} else {
+			regs = c->regs;
+		}
+	} else if (stack_flags == _STP_STACK_USER) {
+		/* use task_pt_regs, regs might be kernel regs, or not set. */
+		if (c->regs && (c->regflags & _STP_REGS_USER_FLAG)) {
+			regs = c->regs;
+			uregs_valid = 1;
+		} else {
+			regs = task_pt_regs(current);
+			uregs_valid = _stp_task_pt_regs_valid(current, regs);
+		}
+
+		if (! current->mm || ! regs) {
+			if (sym_flags & _STP_SYM_SYMBOL)
+				_stp_printf("<no user backtrace at %s>\n",
+					    c->probe_point);
+			else
+				_stp_print("\n");
+			return;
+		} else {
+			tsk = current;
+		}
+	}
+
 	/* print the current address */
 	if (c->pi) {
-		if ((verbose & _STP_SYM_FULL) == _STP_SYM_FULL) {
+		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			_stp_print_addr((unsigned long)_stp_probe_addr_r(c->pi),
-					verbose, tsk);
+					sym_flags, tsk);
 			_stp_print("Returning to  : ");
 		}
-		_stp_print_addr((unsigned long)_stp_ret_addr_r(c->pi), verbose, tsk);
+		_stp_print_addr((unsigned long)_stp_ret_addr_r(c->pi),
+				sym_flags, tsk);
 #ifdef STAPCONF_UPROBE_GET_PC
 	} else if (c->ri && c->ri != GET_PC_URETPROBE_NONE) {
-		if ((verbose & _STP_SYM_FULL) == _STP_SYM_FULL) {
+		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			/* ... otherwise this dereference fails */
-			_stp_print_addr(c->ri->rp->u.vaddr, verbose, tsk);
+			_stp_print_addr(c->ri->rp->u.vaddr, sym_flags, tsk);
 			_stp_print("Returning to  : ");
-			_stp_print_addr(c->ri->ret_addr, verbose, tsk);
+			_stp_print_addr(c->ri->ret_addr, sym_flags, tsk);
 		} else
-			_stp_print_addr(c->ri->ret_addr, verbose, tsk);
+			_stp_print_addr(c->ri->ret_addr, sym_flags, tsk);
 #endif
 	} else {
-		_stp_print_addr(REG_IP(regs), verbose, tsk);
+		_stp_print_addr(REG_IP(regs), sym_flags, tsk);
 	}
 
 	/* print rest of stack... */
-	__stp_stack_print(regs, verbose, MAXBACKTRACE, tsk,
+	__stp_stack_print(regs, sym_flags, MAXBACKTRACE, tsk,
 			  &c->uwcontext, c->ri, uregs_valid);
 }
 
@@ -183,11 +219,8 @@ static void _stp_stack_print(struct pt_regs *regs, struct context *c,
  * @param regs A pointer to the struct pt_regs.
  * @returns void
  */
-static void _stp_stack_sprint(char *str, int size, int flags,
-			      struct pt_regs *regs,
-			      struct context* c,
-			      struct task_struct *tsk,
-			      int uregs_valid)
+static void _stp_stack_sprint(char *str, int size, struct context* c,
+			      int sym_flags, int stack_flags)
 {
 	/* To get an hex string, we use a simple trick.
 	 * First flush the print buffer,
@@ -197,13 +230,7 @@ static void _stp_stack_sprint(char *str, int size, int flags,
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	_stp_print_flush();
 
-	if (c->pi)
-		_stp_print_addr((int64_t) (long) _stp_ret_addr_r(c->pi),
-				flags, tsk);
-
-	_stp_print_addr((int64_t) REG_IP(regs), flags, tsk);
-	__stp_stack_print(regs, flags, MAXBACKTRACE, tsk,
-			  &c->uwcontext, c->ri, uregs_valid);
+	_stp_stack_print(c, sym_flags, stack_flags);
 
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;

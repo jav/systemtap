@@ -52,6 +52,11 @@
 #define _STP_SYM_DATA   (_STP_SYM_SYMBOL | _STP_SYM_MODULE \
 			 | _STP_SYM_OFFSET | _STP_SYM_SIZE)
 
+/* The backtrace requested from the _stp_stack_print functions. */
+#define _STP_STACK_KERNEL 0
+#define _STP_STACK_USER   1
+#define _STP_STACK_BOTH   2
+
 struct _stp_symbol {
 	unsigned long addr;
 	const char *symbol;

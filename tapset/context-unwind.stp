@@ -1,5 +1,5 @@
 // context-unwind tapset
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -20,17 +20,12 @@
 /**
  *  sfunction print_backtrace - Print stack back trace
  * 
- *  Description: This function isEquivalent to print_stack(backtrace()), 
+ *  Description: This function is equivalent to print_stack(backtrace()), 
  *  except that deeper stack nesting may be supported.
  *  The function does not return a value.
  */
 function print_backtrace () %{ /* pragma:unwind */
-	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG)) {
-		_stp_stack_print(CONTEXT->regs, CONTEXT,
-				 _STP_SYM_FULL, NULL, 0);
-	} else {
-		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
-	}
+	_stp_stack_print(CONTEXT, _STP_SYM_FULL, _STP_STACK_KERNEL);
 %}
 
 /**
@@ -49,12 +44,8 @@ function print_backtrace () %{ /* pragma:unwind */
  * final backtrace string).
  */
 function sprint_backtrace:string () %{ /* pure */ /* pragma:unwind */
-	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-		_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
-				   _STP_SYM_SIMPLE, CONTEXT->regs,
-				   CONTEXT, NULL, 0);
-	else
-		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
+	_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
+			   CONTEXT, _STP_SYM_SIMPLE, _STP_STACK_KERNEL);
 %}
 
 /**
@@ -65,12 +56,8 @@ function sprint_backtrace:string () %{ /* pure */ /* pragma:unwind */
  * as per maximum string length (MAXSTRINGLEN).
  */
 function backtrace:string () %{ /* pure */ /* pragma:unwind */
-	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-		_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
-				   _STP_SYM_NONE, CONTEXT->regs,
-				   CONTEXT, NULL, 0);
-	else 
-		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
+	_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
+			   CONTEXT, _STP_SYM_NONE, _STP_STACK_KERNEL);
 %}
 
 %( systemtap_v <= "1.6" %?

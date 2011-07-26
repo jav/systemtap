@@ -24,30 +24,7 @@
  */
 function print_ubacktrace () %{ /* pragma:unwind */
 /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-  /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
-  if (current->mm)
-    {
-      struct pt_regs *uregs;
-      int valid;
-      if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-	{
-	  uregs = CONTEXT->regs;
-	  valid = 1;
-	}
-      else
-	{
-	  uregs = task_pt_regs(current);
-	  valid = _stp_task_pt_regs_valid(current, uregs);
-	}
-
-      if (uregs)
-	{
-	  _stp_stack_print(uregs, CONTEXT, _STP_SYM_FULL, current, valid);
-	  return;
-	}
-    }
-
-    _stp_printf("<no ubacktrace: %s>\n", CONTEXT->probe_point);
+    _stp_stack_print(CONTEXT, _STP_SYM_FULL, _STP_STACK_USER);
 %}
 
 /**
@@ -71,31 +48,8 @@ function print_ubacktrace () %{ /* pragma:unwind */
  */
 function sprint_ubacktrace:string () %{ /* pragma:unwind */
 /* pure */ /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-  /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
-  if (current->mm)
-    {
-      struct pt_regs *uregs;
-      int valid;
-      if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-	{
-	  uregs = CONTEXT->regs;
-	  valid = 1;
-	}
-      else
-	{
-	  uregs = task_pt_regs(current);
-	  valid = _stp_task_pt_regs_valid(current, uregs);
-	}
-
-      if (uregs)
-	{
-	  _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, _STP_SYM_SIMPLE,
-			     uregs, CONTEXT, current, valid);
-	  return;
-	}
-    }
-
-    strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
+    _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT,
+                       _STP_SYM_SIMPLE, _STP_STACK_USER);
 %}
 
 /**
@@ -111,30 +65,7 @@ function sprint_ubacktrace:string () %{ /* pragma:unwind */
  */
 function print_ubacktrace_brief () %{ /* pragma:unwind */
 /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-  /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
-  if (current->mm)
-    {
-      struct pt_regs *uregs;
-      int valid;
-      if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-	{
-	  uregs = CONTEXT->regs;
-	  valid = 1;
-	}
-      else
-	{
-	  uregs = task_pt_regs(current);
-	  valid = _stp_task_pt_regs_valid(current, uregs);
-	}
-
-      if (uregs)
-	{
-	  _stp_stack_print(uregs, CONTEXT, _STP_SYM_BRIEF, current, valid);
-	  return;
-	}
-    }
-
-    _stp_printf("<no ubacktrace: %s>\n", CONTEXT->probe_point);
+    _stp_stack_print(CONTEXT, _STP_SYM_BRIEF, _STP_STACK_USER);
 %}
 
 /**
@@ -151,29 +82,6 @@ function print_ubacktrace_brief () %{ /* pragma:unwind */
  */
 function ubacktrace:string () %{ /* pragma:unwind */
 /* pure */ /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-  /* use task_pt_regs, CONTEXT->regs might be kernel regs, or not set. */
-  if (current->mm)
-    {
-      struct pt_regs *uregs;
-      int valid;
-      if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-	{
-	  uregs = CONTEXT->regs;
-	  valid = 1;
-	}
-      else
-	{
-	  uregs = task_pt_regs(current);
-	  valid = _stp_task_pt_regs_valid(current, uregs);
-	}
-
-      if (uregs)
-	{
-	  _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, _STP_SYM_NONE,
-			     uregs, CONTEXT, current, valid);
-	  return;
-	}
-    }
-
-    strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
+    _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT,
+                       _STP_SYM_NONE, _STP_STACK_USER);
 %}
