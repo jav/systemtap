@@ -445,7 +445,7 @@ void cleanup_and_exit(int detach, int rc)
     _exit(0);
   }
   else if (rename_mod)
-    dbug(2, "\nRenamed module to: %s", modname);
+    dbug(2, "\nRenamed module to: %s\n", modname);
 
   /* At this point, we're committed to calling staprun -d MODULE to
    * unload the thing and exit. */
