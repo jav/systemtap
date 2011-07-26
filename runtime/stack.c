@@ -36,17 +36,6 @@
 #include "sym.c"
 #include "regs.h"
 
-/* DWARF unwinder only tested so far on i386 and x86_64.
-   We only need to compile in the unwinder when both STP_NEED_UNWIND_DATA
-   (set when a stap script defines pragma:unwind, as done in
-   [u]context-unwind.stp) is defined and the architecture actually supports
-   dwarf unwinding (as defined by STP_USE_DWARF_UNWINDER in runtime.h).  */
-#ifdef STP_USE_DWARF_UNWINDER
-#include "unwind.c"
-#else
-struct unwind_context { };
-#endif
-
 #define MAXBACKTRACE 20
 
 /* If uprobes isn't in the kernel, pull it in from the runtime. */
@@ -155,31 +144,29 @@ static void _stp_stack_print_fallback(unsigned long s, int v, int l) {
  * @param verbose _STP_SYM_FULL or _STP_SYM_BRIEF
  */
 
-static void _stp_stack_print(struct pt_regs *regs, int verbose,
-			     struct kretprobe_instance *pi,
-			     struct task_struct *tsk,
-			     struct unwind_context *context,
-			     struct uretprobe_instance *ri, int uregs_valid)
+static void _stp_stack_print(struct pt_regs *regs, struct context *c,
+			     int verbose, struct task_struct *tsk,
+			     int uregs_valid)
 {
 	/* print the current address */
-	if (pi) {
+	if (c->pi) {
 		if ((verbose & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
-			_stp_print_addr((unsigned long)_stp_probe_addr_r(pi),
+			_stp_print_addr((unsigned long)_stp_probe_addr_r(c->pi),
 					verbose, tsk);
 			_stp_print("Returning to  : ");
 		}
-		_stp_print_addr((unsigned long)_stp_ret_addr_r(pi), verbose, tsk);
+		_stp_print_addr((unsigned long)_stp_ret_addr_r(c->pi), verbose, tsk);
 #ifdef STAPCONF_UPROBE_GET_PC
-	} else if (ri && ri != GET_PC_URETPROBE_NONE) {
+	} else if (c->ri && c->ri != GET_PC_URETPROBE_NONE) {
 		if ((verbose & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			/* ... otherwise this dereference fails */
-			_stp_print_addr(ri->rp->u.vaddr, verbose, tsk);
+			_stp_print_addr(c->ri->rp->u.vaddr, verbose, tsk);
 			_stp_print("Returning to  : ");
-			_stp_print_addr(ri->ret_addr, verbose, tsk);
+			_stp_print_addr(c->ri->ret_addr, verbose, tsk);
 		} else
-			_stp_print_addr(ri->ret_addr, verbose, tsk);
+			_stp_print_addr(c->ri->ret_addr, verbose, tsk);
 #endif
 	} else {
 		_stp_print_addr(REG_IP(regs), verbose, tsk);
@@ -187,7 +174,7 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose,
 
 	/* print rest of stack... */
 	__stp_stack_print(regs, verbose, MAXBACKTRACE, tsk,
-			  context, ri, uregs_valid);
+			  &c->uwcontext, c->ri, uregs_valid);
 }
 
 /** Writes stack backtrace to a string
@@ -198,10 +185,9 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose,
  */
 static void _stp_stack_sprint(char *str, int size, int flags,
 			      struct pt_regs *regs,
-			      struct kretprobe_instance *pi,
+			      struct context* c,
 			      struct task_struct *tsk,
-			      struct unwind_context *context,
-			      struct uretprobe_instance *ri, int uregs_valid)
+			      int uregs_valid)
 {
 	/* To get an hex string, we use a simple trick.
 	 * First flush the print buffer,
@@ -211,13 +197,13 @@ static void _stp_stack_sprint(char *str, int size, int flags,
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	_stp_print_flush();
 
-	if (pi)
-		_stp_print_addr((int64_t) (long) _stp_ret_addr_r(pi),
+	if (c->pi)
+		_stp_print_addr((int64_t) (long) _stp_ret_addr_r(c->pi),
 				flags, tsk);
 
 	_stp_print_addr((int64_t) REG_IP(regs), flags, tsk);
 	__stp_stack_print(regs, flags, MAXBACKTRACE, tsk,
-			  context, ri, uregs_valid);
+			  &c->uwcontext, c->ri, uregs_valid);
 
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;

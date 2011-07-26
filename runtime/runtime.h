@@ -131,6 +131,17 @@ static struct
 #endif
 #include "addr-map.c"
 
+/* DWARF unwinder only tested so far on i386 and x86_64.
+   We only need to compile in the unwinder when both STP_NEED_UNWIND_DATA
+   (set when a stap script defines pragma:unwind, as done in
+   [u]context-unwind.stp) is defined and the architecture actually supports
+   dwarf unwinding (as defined by STP_USE_DWARF_UNWINDER in runtime.h).  */
+#ifdef STP_USE_DWARF_UNWINDER
+#include "unwind.c"
+#else
+struct unwind_context { };
+#endif
+
 #ifdef module_param_cb			/* kernels >= 2.6.36 */
 #define _STP_KERNEL_PARAM_ARG const struct kernel_param
 #else
