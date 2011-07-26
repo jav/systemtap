@@ -149,6 +149,7 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 	struct pt_regs *regs = NULL;
 	struct task_struct *tsk = NULL;
 	int uregs_valid = 0;
+	struct uretprobe_instance *ri = c->ri;
 
 	if (stack_flags == _STP_STACK_KERNEL) {
 		if (! c->regs || (c->regflags & _STP_REGS_USER_FLAG)) {
@@ -160,6 +161,9 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 			return;
 		} else {
 			regs = c->regs;
+			ri = NULL; /* This is a hint for GCC so that it can
+				      eliminate the call to uprobe_get_pc()
+				      in __stp_stack_print() below. */
 		}
 	} else if (stack_flags == _STP_STACK_USER) {
 		/* use task_pt_regs, regs might be kernel regs, or not set. */
@@ -194,15 +198,15 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 		_stp_print_addr((unsigned long)_stp_ret_addr_r(c->pi),
 				sym_flags, tsk);
 #ifdef STAPCONF_UPROBE_GET_PC
-	} else if (c->ri && c->ri != GET_PC_URETPROBE_NONE) {
+	} else if (ri && ri != GET_PC_URETPROBE_NONE) {
 		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			/* ... otherwise this dereference fails */
-			_stp_print_addr(c->ri->rp->u.vaddr, sym_flags, tsk);
+			_stp_print_addr(ri->rp->u.vaddr, sym_flags, tsk);
 			_stp_print("Returning to  : ");
-			_stp_print_addr(c->ri->ret_addr, sym_flags, tsk);
+			_stp_print_addr(ri->ret_addr, sym_flags, tsk);
 		} else
-			_stp_print_addr(c->ri->ret_addr, sym_flags, tsk);
+			_stp_print_addr(ri->ret_addr, sym_flags, tsk);
 #endif
 	} else {
 		_stp_print_addr(REG_IP(regs), sym_flags, tsk);
@@ -210,7 +214,7 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 
 	/* print rest of stack... */
 	__stp_stack_print(regs, sym_flags, MAXBACKTRACE, tsk,
-			  &c->uwcontext, c->ri, uregs_valid);
+			  &c->uwcontext, ri, uregs_valid);
 }
 
 /** Writes stack backtrace to a string
