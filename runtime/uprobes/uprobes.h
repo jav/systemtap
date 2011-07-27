@@ -1,5 +1,11 @@
 #ifndef _LINUX_UPROBES_H
 
+#ifdef STP_TASK_FINDER2
+
+#define _LINUX_UPROBES_H
+
+#else
+
 #include <linux/utrace.h>
 #ifndef UTRACE_ACTION_RESUME
 
@@ -441,5 +447,7 @@ static int uprobe_emulate_insn(struct pt_regs *regs,
 #endif	/* UPROBES_IMPLEMENTATION */
 
 #endif	/* uprobes 1 (based on original utrace) */
+
+#endif
 
 #endif	/* _LINUX_UPROBES_H */

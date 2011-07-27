@@ -1,29 +1,8 @@
-#ifndef TASK_FINDER_C
-#define TASK_FINDER_C
+#ifndef TASK_FINDER2_C
+#define TASK_FINDER2_C
 
-#if ! defined(CONFIG_UTRACE)
-/* Dummy definitions for use in sym.c */
-struct stap_task_finder_target { };
-static int stap_start_task_finder(void) { return 0; }
-static void stap_stop_task_finder(void) { }
+#include "stp_utrace.c"
 
-#else  /* defined(CONFIG_UTRACE) */
-
-#ifdef STP_TASK_FINDER2
-#ifdef CONFIG_UTRACE
-/* We don't want any inclusion of <linux/utrace.h> */
-#undef CONFIG_UTRACE
-
-/* FIXME: We have to Override this autconf since we just undefined
- * CONFIG_UTRACE and it would have failed. */
-#ifdef STAPCONF_UPROBE_GET_PC
-#undef STAPCONF_UPROBE_GET_PC
-#endif
-
-#endif
-#include "task_finder2.c"
-#else 
-#include <linux/utrace.h>
 #include <linux/list.h>
 #include <linux/binfmts.h>
 #include <linux/mount.h>
@@ -31,7 +10,6 @@ static void stap_stop_task_finder(void) { }
 #include <linux/cred.h>
 #endif
 #include "syscall.h"
-#include "utrace_compatibility.h"
 #include "task_finder_map.c"
 
 static LIST_HEAD(__stp_task_finder_list);
@@ -45,6 +23,8 @@ struct stap_task_finder_target;
 #define __STP_TF_STOPPED	4
 static atomic_t __stp_task_finder_state = ATOMIC_INIT(__STP_TF_UNITIALIZED);
 static atomic_t __stp_inuse_count = ATOMIC_INIT (0);
+
+static struct utrace_engine *__stp_utrace_task_finder_engine;
 
 #define __stp_tf_handler_start() (atomic_inc(&__stp_inuse_count))
 #define __stp_tf_handler_end() (atomic_dec(&__stp_inuse_count))
@@ -98,6 +78,7 @@ struct stap_task_finder_target {
 	struct list_head callback_list;
 	struct utrace_engine_ops ops;
 	size_t pathlen;
+    /* FIXME:  Is 'engine_attached' needed? */
 	unsigned engine_attached:1;
 	unsigned mmap_events:1;
 	unsigned munmap_events:1;
@@ -112,21 +93,6 @@ struct stap_task_finder_target {
 	stap_task_finder_mprotect_callback mprotect_callback;
 };
 
-#ifdef UTRACE_ORIG_VERSION
-static u32
-__stp_utrace_task_finder_target_exec(struct utrace_engine *engine,
-				     struct task_struct *tsk,
-				     const struct linux_binprm *bprm,
-				     struct pt_regs *regs);
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-static u32
-__stp_utrace_task_finder_target_exec(u32 action,
-				     struct utrace_engine *engine,
-				     const struct linux_binfmt *fmt,
-				     const struct linux_binprm *bprm,
-				     struct pt_regs *regs);
-#else
 static u32
 __stp_utrace_task_finder_target_exec(enum utrace_resume_action action,
 				     struct utrace_engine *engine,
@@ -134,84 +100,32 @@ __stp_utrace_task_finder_target_exec(enum utrace_resume_action action,
 				     const struct linux_binfmt *fmt,
 				     const struct linux_binprm *bprm,
 				     struct pt_regs *regs);
-#endif
-#endif
 
-#ifdef UTRACE_ORIG_VERSION
 static u32
-__stp_utrace_task_finder_target_death(struct utrace_engine *engine,
-				      struct task_struct *tsk);
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-static u32
-__stp_utrace_task_finder_target_death(struct utrace_engine *engine,
-				      bool group_dead, int signal);
-#else
-static u32
-__stp_utrace_task_finder_target_death(struct utrace_engine *engine,
-				      struct task_struct *tsk,
-				      bool group_dead, int signal);
-#endif
-#endif
+__stp_utrace_task_finder_target_exit(u32 action, struct utrace_engine *engine,
+				     long code);
 
-#ifdef UTRACE_ORIG_VERSION
-static u32
-__stp_utrace_task_finder_target_quiesce(struct utrace_engine *engine,
-					struct task_struct *tsk);
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-static u32
-__stp_utrace_task_finder_target_quiesce(u32 action,
-					struct utrace_engine *engine,
-					unsigned long event);
-#else
 static u32
 __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 					struct utrace_engine *engine,
 					struct task_struct *tsk,
 					unsigned long event);
-#endif
-#endif
 
-#ifdef UTRACE_ORIG_VERSION
-static u32
-__stp_utrace_task_finder_target_syscall_entry(struct utrace_engine *engine,
-					      struct task_struct *tsk,
-					      struct pt_regs *regs);
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-static u32
-__stp_utrace_task_finder_target_syscall_entry(u32 action,
-					      struct utrace_engine *engine,
-					      struct pt_regs *regs);
-#else
 static u32
 __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 					      struct utrace_engine *engine,
 					      struct task_struct *tsk,
 					      struct pt_regs *regs);
-#endif
-#endif
 
-#ifdef UTRACE_ORIG_VERSION
-static u32
-__stp_utrace_task_finder_target_syscall_exit(struct utrace_engine *engine,
-					     struct task_struct *tsk,
-					     struct pt_regs *regs);
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-static u32
-__stp_utrace_task_finder_target_syscall_exit(u32 action,
-					     struct utrace_engine *engine,
-					     struct pt_regs *regs);
-#else
 static u32
 __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 					     struct utrace_engine *engine,
 					     struct task_struct *tsk,
 					     struct pt_regs *regs);
-#endif
-#endif
+
+static void
+__stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
+				   struct task_struct *tsk);
 
 static int
 stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
@@ -237,18 +151,24 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 		new_tgt->pathlen = 0;
 
 	// Make sure everything is initialized properly.
+#if 0
 	new_tgt->engine_attached = 0;
+#endif
 	new_tgt->mmap_events = 0;
 	new_tgt->munmap_events = 0;
 	new_tgt->mprotect_events = 0;
 	memset(&new_tgt->ops, 0, sizeof(new_tgt->ops));
+#if 0
 	new_tgt->ops.report_exec = &__stp_utrace_task_finder_target_exec;
-	new_tgt->ops.report_death = &__stp_utrace_task_finder_target_death;
+#endif
+	new_tgt->ops.report_exit = &__stp_utrace_task_finder_target_exit;
+#if 0
 	new_tgt->ops.report_quiesce = &__stp_utrace_task_finder_target_quiesce;
 	new_tgt->ops.report_syscall_entry = \
 		&__stp_utrace_task_finder_target_syscall_entry;
 	new_tgt->ops.report_syscall_exit = \
 		&__stp_utrace_task_finder_target_syscall_exit;
+#endif
 
 	// Search the list for an existing entry for procname/pid.
 	list_for_each(node, &__stp_task_finder_list) {
@@ -312,6 +232,8 @@ stap_utrace_detach(struct task_struct *tsk,
 		return 0;
 #endif
 
+	/* FIXME: for now do nothing. */
+#if 0
 	// Notice we're not calling get_task_mm() here.  Normally we
 	// avoid tasks with no mm, because those are kernel threads.
 	// So, why is this function different?  When a thread is in
@@ -370,6 +292,7 @@ stap_utrace_detach(struct task_struct *tsk,
 		}
 		utrace_engine_put(engine);
 	}
+#endif
 	return rc;
 }
 
@@ -424,6 +347,50 @@ __stp_task_finder_cleanup(void)
 	struct list_head *tgt_node, *tgt_next;
 	struct stap_task_finder_target *tgt;
 
+#if 0
+	if (unlikely(!__stp_utrace_task_finder_engine)) {
+		int rc = utrace_control(NULL, __stp_utrace_task_finder_engine,
+					UTRACE_DETACH);
+		switch (rc) {
+		case 0:			/* success */
+			debug_task_finder_detach();
+			break;
+		case -ESRCH:	    /* REAP callback already begun */
+		case -EALREADY:	    /* DEATH callback already begun */
+			rc = 0;	    /* ignore these errors */
+			break;
+		case -EINPROGRESS:
+			do {
+				rc = utrace_barrier(NULL, __stp_utrace_task_finder_engine);
+			} while (rc == -ERESTARTSYS);
+			if (rc == 0 || rc == -ESRCH || rc == -EALREADY) {
+				rc = 0;
+				debug_task_finder_detach();
+			} else {
+				rc = -rc;
+				_stp_error("utrace_barrier returned error %d",
+					   rc);
+			}
+			break;
+		default:
+			rc = -rc;
+			_stp_error("utrace_control returned error %d", rc);
+			break;
+		}
+		utrace_engine_put(__stp_utrace_task_finder_engine);
+	}
+#else
+	utrace_shutdown();
+#endif
+
+
+#if 0
+	/* FIXME: in the brave new world, we should be able to
+	 * cleanup by shutting down the new utrace (by removing its
+	 * global handlers), instead of by removing each individual
+	 * engine.  Hmm, we'd also have to free all the data we've
+	 * allocated. */
+
 	// Walk the main list, cleaning up as we go.
 	list_for_each_safe(tgt_node, tgt_next, &__stp_task_finder_list) {
 		tgt = list_entry(tgt_node, struct stap_task_finder_target,
@@ -442,6 +409,7 @@ __stp_task_finder_cleanup(void)
 
 		list_del(&tgt->list);
 	}
+#endif
 }
 
 static char *
@@ -480,7 +448,7 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
  */
 #define __STP_TASK_FINDER_EVENTS (UTRACE_EVENT(CLONE)		\
 				  | UTRACE_EVENT(EXEC)		\
-				  | UTRACE_EVENT(DEATH))
+				  | UTRACE_EVENT(EXIT))
 
 /*
  * __STP_TASK_BASE_EVENTS: base events for stap_task_finder_target's
@@ -489,7 +457,7 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
  * __STP_TASK_VM_BASE_EVENTS: base events for
  * stap_task_finder_target's with map callback's
  */
-#define __STP_TASK_BASE_EVENTS	(UTRACE_EVENT(DEATH)|UTRACE_EVENT(EXEC))
+#define __STP_TASK_BASE_EVENTS	(UTRACE_EVENT(EXIT)|UTRACE_EVENT(EXEC))
 
 #define __STP_TASK_VM_BASE_EVENTS (__STP_TASK_BASE_EVENTS	\
 				   | UTRACE_EVENT(SYSCALL_ENTRY)\
@@ -501,7 +469,7 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
  * quiesces, we reset the events to __STP_ATTACHED_TASK_BASE_EVENTS
  * events.
  */
-#define __STP_ATTACHED_TASK_EVENTS (UTRACE_EVENT(DEATH)		\
+#define __STP_ATTACHED_TASK_EVENTS (UTRACE_EVENT(EXIT)		\
 				    | UTRACE_EVENT(QUIESCE))
 
 #define __STP_ATTACHED_TASK_BASE_EVENTS(tgt)			\
@@ -509,11 +477,14 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 	  || (tgt)->mprotect_events)				\
 	 ? __STP_TASK_VM_BASE_EVENTS : __STP_TASK_BASE_EVENTS)
 
+/*
+ * FIXME: removed 'enum utrace_resume_action action' from the
+ * parameter list.  Needed to maintain compatibility?
+ */
 static int
 __stp_utrace_attach(struct task_struct *tsk,
 		    const struct utrace_engine_ops *ops, void *data,
-		    unsigned long event_flags,
-		    enum utrace_resume_action action)
+		    unsigned long event_flags)
 {
 	struct utrace_engine *engine;
 	struct mm_struct *mm;
@@ -536,6 +507,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 		return EPERM;
 	mmput(mm);
 
+	/* FIXME: for now do nothing. */
 	engine = utrace_attach_task(tsk, UTRACE_ATTACH_CREATE, ops, data);
 	if (IS_ERR(engine)) {
 		int error = -PTR_ERR(engine);
@@ -590,15 +562,18 @@ __stp_utrace_attach(struct task_struct *tsk,
 				   rc, (int)tsk->pid);
 		utrace_engine_put(engine);
 	}
+#endif
 	return rc;
 }
 
+/* FIXME: at this point, there really isn't any need for
+ * __stp_utrace_attach()... */
 static int
 stap_utrace_attach(struct task_struct *tsk,
 		   const struct utrace_engine_ops *ops, void *data,
 		   unsigned long event_flags)
 {
-	return __stp_utrace_attach(tsk, ops, data, event_flags, UTRACE_RESUME);
+	return __stp_utrace_attach(tsk, ops, data, event_flags);
 }
 
 static inline void
@@ -817,6 +792,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 	struct stap_task_finder_target *tgt;
 	uid_t tsk_euid;
 
+	printk(KERN_ERR "%s:%d entry\n", __FUNCTION__, __LINE__);
 #ifdef STAPCONF_TASK_UID
 	tsk_euid = tsk->euid;
 #else
@@ -862,20 +838,43 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 		// quiesced.  When register_p isn't set, we can go
 		// ahead and call the callbacks.
 		if (register_p) {
+			/* FIXME: This is a first stab here. In the
+			 * brave new world we won't stop the task,
+			 * we'll go ahead and call the callbacks and
+			 * add it to the task's list of callbacks. */
+#if 1
+			// Call the callbacks
+			__stp_call_callbacks(tgt, tsk, register_p, process_p);
+
+			/* If this is just a thread other than the
+			   thread group leader, don't bother inform
+			   map callback clients about its memory map,
+			   since they will simply duplicate each
+			   other. */
+			if (tgt->mmap_events == 1 && tsk->tgid == tsk->pid) {
+				__stp_call_mmap_callbacks_for_task(tgt, tsk);
+			}
+#else
 			rc = __stp_utrace_attach(tsk, &tgt->ops,
 						 tgt,
 						 __STP_ATTACHED_TASK_EVENTS,
 						 UTRACE_STOP);
 			if (rc != 0 && rc != EPERM)
 				break;
+#endif
 			tgt->engine_attached = 1;
 		}
 		else {
 			// Call the callbacks, then detach.
 			__stp_call_callbacks(tgt, tsk, register_p, process_p);
+			/* FIXME: Here we need to remove this from
+			 * the task's list of callbacks
+			 */
+#if 0
 			rc = stap_utrace_detach(tsk, &tgt->ops);
 			if (rc != 0)
 				break;
+#endif
 
 			// Note that we don't want to set
 			// engine_attached to 0 here - only
@@ -903,6 +902,7 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	char *mmpath_buf;
 	char *mmpath;
 
+	printk(KERN_ERR "%s:%d entry\n", __FUNCTION__, __LINE__);
 	if (path_tsk == NULL || path_tsk->pid <= 0
 	    || match_tsk == NULL || match_tsk->pid <= 0)
 		return;
@@ -941,34 +941,15 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	return;
 }
 
-#ifdef UTRACE_ORIG_VERSION
-static u32
-__stp_utrace_task_finder_report_clone(struct utrace_engine *engine,
-				      struct task_struct *parent,
-				      unsigned long clone_flags,
-				      struct task_struct *child)
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
 static u32
 __stp_utrace_task_finder_report_clone(u32 action,
 				      struct utrace_engine *engine,
 				      unsigned long clone_flags,
 				      struct task_struct *child)
-#else
-static u32
-__stp_utrace_task_finder_report_clone(enum utrace_resume_action action,
-				      struct utrace_engine *engine,
-				      struct task_struct *parent,
-				      unsigned long clone_flags,
-				      struct task_struct *child)
-#endif
-#endif
 {
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-	struct task_struct *parent = current;
-#endif
 	int rc;
 
+	printk(KERN_ERR "%s:%d entry\n", __FUNCTION__, __LINE__);
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
 		return UTRACE_DETACH;
@@ -976,6 +957,9 @@ __stp_utrace_task_finder_report_clone(enum utrace_resume_action action,
 
 	__stp_tf_handler_start();
 
+	/* In the brave new world, we're already attached to
+	 * the child via the global handlers. */
+#if 0
 	// On clone, attach to the child.
 	rc = __stp_utrace_attach(child, engine->ops, 0,
 				 __STP_TASK_FINDER_EVENTS, UTRACE_RESUME);
@@ -983,41 +967,21 @@ __stp_utrace_task_finder_report_clone(enum utrace_resume_action action,
 		__stp_tf_handler_end();
 		return UTRACE_RESUME;
 	}
+#endif
 
-	__stp_utrace_attach_match_tsk(parent, child, 1,
+	__stp_utrace_attach_match_tsk(current, child, 1,
 				      (clone_flags & CLONE_THREAD) == 0);
 	__stp_tf_handler_end();
 	return UTRACE_RESUME;
 }
 
-#ifdef UTRACE_ORIG_VERSION
-static u32
-__stp_utrace_task_finder_report_exec(struct utrace_engine *engine,
-				     struct task_struct *tsk,
-				     const struct linux_binprm *bprm,
-				     struct pt_regs *regs)
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
 static u32
 __stp_utrace_task_finder_report_exec(u32 action,
 				     struct utrace_engine *engine,
 				     const struct linux_binfmt *fmt,
 				     const struct linux_binprm *bprm,
 				     struct pt_regs *regs)
-#else
-static u32
-__stp_utrace_task_finder_report_exec(enum utrace_resume_action action,
-				     struct utrace_engine *engine,
-				     struct task_struct *tsk,
-				     const struct linux_binfmt *fmt,
-				     const struct linux_binprm *bprm,
-				     struct pt_regs *regs)
-#endif
-#endif
 {
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-	struct task_struct *tsk = current;
-#endif
 	size_t filelen;
 	struct list_head *tgt_node;
 	struct stap_task_finder_target *tgt;
@@ -1037,48 +1001,20 @@ __stp_utrace_task_finder_report_exec(enum utrace_resume_action action,
 	// We assume that all exec's are exec'ing a new process.  Note
 	// that we don't use bprm->filename, since that path can be
 	// relative.
-	__stp_utrace_attach_match_tsk(tsk, tsk, 1, 1);
+	__stp_utrace_attach_match_tsk(current, current, 1, 1);
 
 	__stp_tf_handler_end();
 	return UTRACE_RESUME;
 }
 
-#ifdef UTRACE_ORIG_VERSION
 static u32
-stap_utrace_task_finder_report_death(struct utrace_engine *engine,
-				     struct task_struct *tsk)
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-static u32
-stap_utrace_task_finder_report_death(struct utrace_engine *engine,
-				     bool group_dead, int signal)
-#else
-static u32
-stap_utrace_task_finder_report_death(struct utrace_engine *engine,
-				     struct task_struct *tsk,
-				     bool group_dead, int signal)
-#endif
-#endif
+stap_utrace_task_finder_report_exit(u32 action, struct utrace_engine *engine,
+				    long code)
 {
 	debug_task_finder_detach();
 	return UTRACE_DETACH;
 }
 
-#ifdef UTRACE_ORIG_VERSION
-static u32
-__stp_utrace_task_finder_target_exec(struct utrace_engine *engine,
-				     struct task_struct *tsk,
-				     const struct linux_binprm *bprm,
-				     struct pt_regs *regs)
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-static u32
-__stp_utrace_task_finder_target_exec(u32 action,
-				     struct utrace_engine *engine,
-				     const struct linux_binfmt *fmt,
-				     const struct linux_binprm *bprm,
-				     struct pt_regs *regs)
-#else
 static u32
 __stp_utrace_task_finder_target_exec(enum utrace_resume_action action,
 				     struct utrace_engine *engine,
@@ -1086,12 +1022,7 @@ __stp_utrace_task_finder_target_exec(enum utrace_resume_action action,
 				     const struct linux_binfmt *fmt,
 				     const struct linux_binprm *bprm,
 				     struct pt_regs *regs)
-#endif
-#endif
 {
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-	struct task_struct *tsk = current;
-#endif
 	struct stap_task_finder_target *tgt = engine->data;
 	int rc;
 
@@ -1122,26 +1053,11 @@ __stp_utrace_task_finder_target_exec(enum utrace_resume_action action,
 	return UTRACE_DETACH;
 }
 
-#ifdef UTRACE_ORIG_VERSION
 static u32
-__stp_utrace_task_finder_target_death(struct utrace_engine *engine,
-				      struct task_struct *tsk)
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-static u32
-__stp_utrace_task_finder_target_death(struct utrace_engine *engine,
-				      bool group_dead, int signal)
-#else
-static u32
-__stp_utrace_task_finder_target_death(struct utrace_engine *engine,
-				      struct task_struct *tsk,
-				      bool group_dead, int signal)
-#endif
-#endif
+__stp_utrace_task_finder_target_exit(u32 action, struct utrace_engine *engine,
+				     long code)
 {
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
 	struct task_struct *tsk = current;
-#endif
 	struct stap_task_finder_target *tgt = engine->data;
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
@@ -1151,13 +1067,13 @@ __stp_utrace_task_finder_target_death(struct utrace_engine *engine,
 
 	__stp_tf_handler_start();
 	// The first implementation of this added a
-	// UTRACE_EVENT(DEATH) handler to
+	// UTRACE_EVENT(EXIT) handler to
 	// __stp_utrace_task_finder_ops.  However, dead threads don't
 	// have a mm_struct, so we can't find the exe's path.  So, we
 	// don't know which callback(s) to call.
 	//
 	// So, now when an "interesting" thread is found, we add a
-	// separate UTRACE_EVENT(DEATH) handler for each attached
+	// separate UTRACE_EVENT(EXIT) handler for each attached
 	// handler.
 	if (tgt != NULL && tsk != NULL) {
 		__stp_call_callbacks(tgt, tsk, 0,
@@ -1381,29 +1297,15 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
 }
 
 
-#ifdef UTRACE_ORIG_VERSION
-static u32
-__stp_utrace_task_finder_target_syscall_entry(struct utrace_engine *engine,
-					      struct task_struct *tsk,
-					      struct pt_regs *regs)
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-static u32
-__stp_utrace_task_finder_target_syscall_entry(u32 action,
-					      struct utrace_engine *engine,
-					      struct pt_regs *regs)
-#else
+/* FIXME: in the brave new world, we'll use target individual
+ * syscalls, instead of tracing all syscalls for the map stuff.
+ * However, process.syscall will still need to target all syscalls. */
 static u32
 __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 					      struct utrace_engine *engine,
 					      struct task_struct *tsk,
 					      struct pt_regs *regs)
-#endif
-#endif
 {
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-	struct task_struct *tsk = current;
-#endif
 	struct stap_task_finder_target *tgt = engine->data;
 	long syscall_no;
 	unsigned long args[3] = { 0L };
@@ -1468,29 +1370,12 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 	return UTRACE_RESUME;
 }
 
-#ifdef UTRACE_ORIG_VERSION
-static u32
-__stp_utrace_task_finder_target_syscall_exit(struct utrace_engine *engine,
-					     struct task_struct *tsk,
-					     struct pt_regs *regs)
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-static u32
-__stp_utrace_task_finder_target_syscall_exit(u32 action,
-					     struct utrace_engine *engine,
-					     struct pt_regs *regs)
-#else
 static u32
 __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 					     struct utrace_engine *engine,
 					     struct task_struct *tsk,
 					     struct pt_regs *regs)
-#endif
-#endif
 {
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
-	struct task_struct *tsk = current;
-#endif
 	struct stap_task_finder_target *tgt = engine->data;
 	unsigned long rv;
 	struct __stp_tf_map_entry *entry;
@@ -1551,7 +1436,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 static struct utrace_engine_ops __stp_utrace_task_finder_ops = {
 	.report_clone = __stp_utrace_task_finder_report_clone,
 	.report_exec = __stp_utrace_task_finder_report_exec,
-	.report_death = stap_utrace_task_finder_report_death,
+	.report_exit = stap_utrace_task_finder_report_exit,
 };
 
 static int
@@ -1568,110 +1453,166 @@ stap_start_task_finder(void)
 		return EBUSY;
 	}
 
+	utrace_init();
+
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
 	if (mmpath_buf == NULL) {
 		_stp_error("Unable to allocate space for path");
 		return ENOMEM;
 	}
 
+#ifdef STP_TF_MAP
         __stp_tf_map_initialize();
+#endif
 
 	atomic_set(&__stp_task_finder_state, __STP_TF_RUNNING);
 
+	/* Here we need to set up our system-wide handlers. */
+	__stp_utrace_task_finder_engine
+		= utrace_attach_task(NULL, UTRACE_ATTACH_CREATE,
+				     &__stp_utrace_task_finder_ops, NULL);
+	if (IS_ERR(__stp_utrace_task_finder_engine)) {
+		int error = -PTR_ERR(__stp_utrace_task_finder_engine);
+		_stp_error("utrace_attach_task returned error %d", error);
+		rc = error;
+	}
+	else if (unlikely(__stp_utrace_task_finder_engine == NULL)) {
+		_stp_error("utrace_attach_task returned NULL");
+		rc = EFAULT;
+	}
+	else {
+		/* FIXME: more code here!!! */
+		/* set_events()... */
+		rc = utrace_set_events(NULL, __stp_utrace_task_finder_engine,
+				       __STP_TASK_FINDER_EVENTS);
+		/* FIXME: could a global one be EINPROGRESS.  Hmm, I
+		 * guess it could in the general case, but here this
+		 * is really the 1st global one added... */
+#if 0
+		if (rc == -EINPROGRESS) {
+			/*
+			 * It's running our callback, so we have to
+			 * synchronize.  We can't keep rcu_read_lock,
+			 * so the task pointer might die.  But it's
+			 * safe to call utrace_barrier() even with a
+			 * stale task pointer, if we have an engine
+			 * ref.
+			 */
+			do {
+				rc = utrace_barrier(tsk, engine);
+			} while (rc == -ERESTARTSYS);
+			if (rc != 0 && rc != -ESRCH && rc != -EALREADY)
+				_stp_error("utrace_barrier returned error %d on pid %d",
+					   rc, (int)tsk->pid);
+		}
+#endif
+		if (rc == 0) {
+			debug_task_finder_attach();
+		}
+		else if (rc != -ESRCH && rc != -EALREADY)
+			_stp_error("utrace_set_events returned error %d",
+				   rc);
+		utrace_engine_put(__stp_utrace_task_finder_engine);
+	}
+
+	/* FIXME: Here we will still need to go through all the
+	 * threads, so we can report on their memory maps. But, for now... */
+#if 0
 	rcu_read_lock();
 	do_each_thread(grp, tsk) {
-		struct mm_struct *mm;
-		char *mmpath;
-		size_t mmpathlen;
-		struct list_head *tgt_node;
+	    struct mm_struct *mm;
+	    char *mmpath;
+	    size_t mmpathlen;
+	    struct list_head *tgt_node;
 
-		/* Skip over processes other than that specified with
-		 * stap -c or -x. */
-		if (_stp_target && tsk->tgid != _stp_target)
-			continue;
+	    /* Skip over processes other than that specified with
+	     * stap -c or -x. */
+	    if (_stp_target && tsk->tgid != _stp_target)
+		continue;
 
-		rc = __stp_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
-					 __STP_TASK_FINDER_EVENTS,
-					 UTRACE_RESUME);
-		if (rc == EPERM) {
-			/* Ignore EPERM errors, which mean this wasn't
-			 * a thread we can attach to. */
-			rc = 0;
-			continue;
-		}
-		else if (rc != 0) {
-			/* If we get a real error, quit. */
-			goto stf_err;
-		}
+	    rc = __stp_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
+				     __STP_TASK_FINDER_EVENTS,
+				     UTRACE_RESUME);
+	    if (rc == EPERM) {
+		/* Ignore EPERM errors, which mean this wasn't
+		 * a thread we can attach to. */
+		rc = 0;
+		continue;
+	    }
+	    else if (rc != 0) {
+		/* If we get a real error, quit. */
+		goto stf_err;
+	    }
 
-		/* Grab the path associated with this task. */
-		mm = get_task_mm(tsk);
-		if (! mm) {
-		    /* If the thread doesn't have a mm_struct, it is
-		     * a kernel thread which we need to skip. */
+	    /* Grab the path associated with this task. */
+	    mm = get_task_mm(tsk);
+	    if (! mm) {
+		/* If the thread doesn't have a mm_struct, it is
+		 * a kernel thread which we need to skip. */
+		continue;
+	    }
+	    mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
+	    mmput(mm);		/* We're done with mm */
+	    if (mmpath == NULL || IS_ERR(mmpath)) {
+		rc = -PTR_ERR(mmpath);
+		if (rc == ENOENT) {
 		    continue;
 		}
-		mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
-		mmput(mm);		/* We're done with mm */
-		if (mmpath == NULL || IS_ERR(mmpath)) {
-			rc = -PTR_ERR(mmpath);
-			if (rc == ENOENT) {
-				continue;
-			}
-			else {
-				_stp_error("Unable to get path (error %d) for pid %d",
-					   rc, (int)tsk->pid);
-				goto stf_err;
-			}
+		else {
+		    _stp_error("Unable to get path (error %d) for pid %d",
+			       rc, (int)tsk->pid);
+		    goto stf_err;
 		}
+	    }
 
-		/* Check the thread's exe's path/pid against our list. */
+	    /* Check the thread's exe's path/pid against our list. */
 #ifdef STAPCONF_TASK_UID
-		tsk_euid = tsk->euid;
+	    tsk_euid = tsk->euid;
 #else
-		tsk_euid = task_euid(tsk);
+	    tsk_euid = task_euid(tsk);
 #endif
-		mmpathlen = strlen(mmpath);
-		list_for_each(tgt_node, &__stp_task_finder_list) {
-			struct stap_task_finder_target *tgt;
+	    mmpathlen = strlen(mmpath);
+	    list_for_each(tgt_node, &__stp_task_finder_list) {
+		struct stap_task_finder_target *tgt;
 
-			tgt = list_entry(tgt_node,
-					 struct stap_task_finder_target, list);
-			if (tgt == NULL)
-				continue;
-			/* procname-based target */
-			else if (tgt->pathlen > 0
-				 && (tgt->pathlen != mmpathlen
-				     || strcmp(tgt->procname, mmpath) != 0))
-				 continue;
-			/* pid-based target */
-			else if (tgt->pid != 0 && tgt->pid != tsk->pid)
-				continue;
-			/* Notice that "pid == 0" (which means to
-			 * probe all threads) falls through. */
+		tgt = list_entry(tgt_node,
+				 struct stap_task_finder_target, list);
+		if (tgt == NULL)
+		    continue;
+		/* procname-based target */
+		else if (tgt->pathlen > 0
+			 && (tgt->pathlen != mmpathlen
+			     || strcmp(tgt->procname, mmpath) != 0))
+		    continue;
+		/* pid-based target */
+		else if (tgt->pid != 0 && tgt->pid != tsk->pid)
+		    continue;
+		/* Notice that "pid == 0" (which means to
+		 * probe all threads) falls through. */
 
 #ifndef STP_PRIVILEGED
-			/* Make sure unprivileged users only probe their own threads.  */
-			if (_stp_uid != tsk_euid) {
-				if (tgt->pid != 0 || _stp_target) {
-					_stp_warn("Process %d does not belong to unprivileged user %d",
-						  tsk->pid, _stp_uid);
-				}
-				continue;
-			}
+		/* Make sure unprivileged users only probe their own threads.  */
+		if (_stp_uid != tsk_euid) {
+		    if (tgt->pid != 0 || _stp_target) {
+			_stp_warn("Process %d does not belong to unprivileged user %d",
+				  tsk->pid, _stp_uid);
+		    }
+		    continue;
+		}
 #endif
 
-			// Set up events we need for attached tasks.
-			rc = __stp_utrace_attach(tsk, &tgt->ops, tgt,
-						 __STP_ATTACHED_TASK_EVENTS,
-						 UTRACE_STOP);
-			if (rc != 0 && rc != EPERM)
-				goto stf_err;
-			tgt->engine_attached = 1;
+		// Set up events we need for attached tasks.
+		rc = __stp_utrace_attach(tsk, &tgt->ops, tgt,
+					 __STP_ATTACHED_TASK_EVENTS,
+					 UTRACE_STOP);
+		if (rc != 0 && rc != EPERM)
+		    goto stf_err;
+		tgt->engine_attached = 1;
 		}
 	} while_each_thread(grp, tsk);
 stf_err:
 	rcu_read_unlock();
+#endif
 	_stp_kfree(mmpath_buf);
 	debug_task_finder_report(); // report at end for utrace engine counting
 	return rc;
@@ -1688,12 +1629,14 @@ stap_stop_task_finder(void)
 		return;
 
 	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPING);
+
 	debug_task_finder_report();
 	stap_utrace_detach_ops(&__stp_utrace_task_finder_ops);
 	__stp_task_finder_cleanup();
 	debug_task_finder_report();
 	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPED);
 
+#if 0
 	/* Now that all the engines are detached, make sure
 	 * all the callbacks are finished.  If they aren't, we'll
 	 * crash the kernel when the module is removed. */
@@ -1708,8 +1651,9 @@ stap_stop_task_finder(void)
 		printk(KERN_ERR "it took %d polling loops to quit.\n", i);
 #endif
 	debug_task_finder_report();
+#endif
+
+	utrace_exit();
 }
 
-#endif /* STP_USE_TRACEPOINT_TASK_FINDER */
-#endif /* defined(CONFIG_UTRACE) */
-#endif /* TASK_FINDER_C */
+#endif /* TASK_FINDER2_C */
