@@ -543,6 +543,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 		if (rc == 0) {
 			debug_task_finder_attach();
 
+#if 0
 			if (action != UTRACE_RESUME) {
 				rc = utrace_control(tsk, engine, UTRACE_STOP);
 				if (rc == -EINPROGRESS)
@@ -555,6 +556,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 					_stp_error("utrace_control returned error %d on pid %d",
 						   rc, (int)tsk->pid);
 			}
+#endif
 
 		}
 		else if (rc != -ESRCH && rc != -EALREADY)
@@ -562,7 +564,6 @@ __stp_utrace_attach(struct task_struct *tsk,
 				   rc, (int)tsk->pid);
 		utrace_engine_put(engine);
 	}
-#endif
 	return rc;
 }
 

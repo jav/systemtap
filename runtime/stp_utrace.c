@@ -721,6 +721,7 @@ int utrace_set_events(struct task_struct *target,
 		goto unlock;
 #endif
 
+#if 0
 	/*
 	 * When setting these flags, it's essential that we really
 	 * synchronize with exit_notify().  They cannot be set after
@@ -740,6 +741,7 @@ int utrace_set_events(struct task_struct *target,
 		utrace->utrace_flags |= events;
 		read_unlock(&tasklist_lock);
 	}
+#endif
 
 	engine->flags = events | (engine->flags & ENGINE_STOP);
 	utrace->utrace_flags |= events;
