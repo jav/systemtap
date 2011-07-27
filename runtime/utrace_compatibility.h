@@ -14,8 +14,8 @@
 #include <linux/utrace.h>
 
 /* PR9974: Adapt to struct renaming. */
-#ifdef UTRACE_API_VERSION
-#define utrace_attached_engine utrace_engine
+#ifndef UTRACE_API_VERSION
+#define utrace_engine utrace_attached_engine
 #endif
 
 #ifdef UTRACE_ACTION_RESUME
@@ -37,7 +37,7 @@ enum utrace_resume_action {
 	UTRACE_BLOCKSTEP = UTRACE_ACTION_BLOCKSTEP,
 };
 
-static inline struct utrace_attached_engine *
+static inline struct utrace_engine *
 utrace_attach_task(struct task_struct *target, int flags,
 		   const struct utrace_engine_ops *ops, void *data)
 {
@@ -46,7 +46,7 @@ utrace_attach_task(struct task_struct *target, int flags,
 
 static inline int __must_check
 utrace_control(struct task_struct *target,
-	       struct utrace_attached_engine *engine,
+	       struct utrace_engine *engine,
 	       enum utrace_resume_action action)
 {
 	switch (action) {
@@ -67,21 +67,21 @@ utrace_control(struct task_struct *target,
 
 static inline int __must_check
 utrace_set_events(struct task_struct *target,
-		  struct utrace_attached_engine *engine,
+		  struct utrace_engine *engine,
 		  unsigned long eventmask)
 {
 	return utrace_set_flags(target, engine, eventmask);
 }
 
 static inline void
-utrace_engine_put(struct utrace_attached_engine *engine)
+utrace_engine_put(struct utrace_engine *engine)
 {
 	return;
 }
 
 static inline int __must_check
 utrace_barrier(struct task_struct *target,
-	       struct utrace_attached_engine *engine)
+	       struct utrace_engine *engine)
 {
 	return 0;
 }
@@ -94,14 +94,14 @@ utrace_barrier(struct task_struct *target,
  */
 #define utrace_attach_task utrace_attach
 static inline void
-utrace_engine_put(struct utrace_attached_engine *engine)
+utrace_engine_put(struct utrace_engine *engine)
 {
 	return;
 }
 
 static inline int __must_check
 utrace_barrier(struct task_struct *target,
-	       struct utrace_attached_engine *engine)
+	       struct utrace_engine *engine)
 {
 	return 0;
 }
