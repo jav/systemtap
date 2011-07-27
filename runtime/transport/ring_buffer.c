@@ -252,7 +252,11 @@ static void _stp_ring_buffer_consume(struct _stp_iterator *iter)
 {
 	_stp_ring_buffer_iterator_increment(iter);
 	_stp_ring_buffer_disable_cpu();
+#ifdef STAPCONF_RING_BUFFER_LOST_EVENTS
+	ring_buffer_consume(_stp_relay_data.rb, iter->cpu, &iter->ts, NULL);
+#else
 	ring_buffer_consume(_stp_relay_data.rb, iter->cpu, &iter->ts);
+#endif
 	_stp_ring_buffer_enable_cpu();
 	atomic_dec(&iter->nr_events);
 }
@@ -288,7 +292,11 @@ _stp_peek_next_event(struct _stp_iterator *iter, int cpu, u64 *ts)
 	if (iter->buffer_iter[cpu])
 		event = ring_buffer_iter_peek(iter->buffer_iter[cpu], ts);
 	else
+#ifdef STAPCONF_RING_BUFFER_LOST_EVENTS
+		event = ring_buffer_peek(_stp_relay_data.rb, cpu, ts, NULL);
+#else
 		event = ring_buffer_peek(_stp_relay_data.rb, cpu, ts);
+#endif
 	_stp_ring_buffer_enable_cpu();
 	return event;
 }
