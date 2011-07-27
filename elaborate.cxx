@@ -1202,7 +1202,7 @@ semantic_pass_conditions (systemtap_session & sess)
 
 // This is only for pragmas that don't have any other side-effect than
 // needing some initialization at module init time. Currently only handles
-// /* pragma:vma */.
+// /* pragma:vma */ and /* pragma:unwind */.
 
 // /* pragma:uprobes */ is handled during the typeresolution_info pass.
 // /* pure */, /* unprivileged */. /* myproc-unprivileged */ and /* guru */
@@ -1226,6 +1226,15 @@ public:
           clog << _F("Turning on task_finder vma_tracker, pragma:vma found in %s",
                      current_function->name.c_str()) << endl;
       }
+
+    if (! session.need_unwind
+	&& c->code.find("/* pragma:unwind */") != string::npos)
+      {
+	if (session.verbose > 2)
+	  clog << _F("Turning on unwind support, pragma:unwind found in %s",
+		    current_function->name.c_str()) << endl;
+      session.need_unwind = true;
+    }
   }
 };
 

@@ -1415,6 +1415,11 @@ Maximum number of statements to execute during any single probe hit
 which is executed with interrupts enabled (such as begin/end probes),
 default (MAXACTION * 10).
 .TP
+MAXBACKTRACE
+Maximum number of stack frames that will be be processed by the stap
+runtime unwinder as produced by the backtrace functions in the
+[u]context-unwind.stp tapsets, default 20.
+.TP
 MAXMAPENTRIES
 Default maximum number of rows in any single global array, default 2048.
 Individual arrays may be declared with a larger or smaller limit instead:

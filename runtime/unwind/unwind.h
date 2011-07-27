@@ -13,8 +13,6 @@
 #ifndef _STP_UNWIND_H_
 #define _STP_UNWIND_H_
 
-#ifdef STP_USE_DWARF_UNWINDER
-
 #if defined (__x86_64__)
 #include "x86_64.h"
 #elif  defined (__i386__)
@@ -284,5 +282,4 @@ struct unwind_state {
 
 static const struct cfa badCFA = { ARRAY_SIZE(reg_info), 1 };
 
-#endif /* STP_USE_DWARF_UNWINDER */
 #endif /*_STP_UNWIND_H_*/

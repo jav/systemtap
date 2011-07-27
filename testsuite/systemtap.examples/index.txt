@@ -630,16 +630,6 @@ keywords: process scheduler time tracepoint interrupt
   # stap cycle_thief.stp -c "sleep 0.2"
 
 
-process/dumpstack.stp - Print the kernel stack of a hung task
-keywords: process backtrace
-
-  The script prints the kernel stack of any non-running pid in the
-  system.  This is useful for diagnosing the reason that a task is
-  hung.
-
-  # stap dumpstack.stp -x $$
-
-
 process/errsnoop.stp - tabulate system call errors
 keywords: process syscall
 

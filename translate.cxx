@@ -5862,10 +5862,12 @@ translate_pass (systemtap_session& s)
 	  s.op->newline() << "#define STP_BULKMODE";
 
       if (s.timing)
-      s.op->newline() << "#define STP_TIMING";
+	s.op->newline() << "#define STP_TIMING";
+
+      if (s.need_unwind)
+	s.op->newline() << "#define STP_NEED_UNWIND_DATA 1";
 
       s.op->newline() << "#include \"runtime.h\"";
-      s.op->newline() << "#include \"stack.c\"";
       s.op->newline() << "#include \"stat.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
@@ -5888,6 +5890,9 @@ translate_pass (systemtap_session& s)
         }
 
       s.up->emit_common_header (); // context etc.
+
+      if (s.need_unwind)
+	s.op->newline() << "#include \"stack.c\"";
 
       s.op->newline() << "#include \"probe_lock.h\" ";
 

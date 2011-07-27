@@ -123,6 +123,7 @@ systemtap_session::systemtap_session ():
   poison_cache = false;
   tapset_compile_coverage = false;
   need_uprobes = false;
+  need_unwind = false;
   uprobes_path = "";
   consult_symtab = false;
   ignore_vmlinux = false;
@@ -282,6 +283,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   poison_cache = other.poison_cache;
   tapset_compile_coverage = other.tapset_compile_coverage;
   need_uprobes = false;
+  need_unwind = false;
   uprobes_path = "";
   consult_symtab = other.consult_symtab;
   ignore_vmlinux = other.ignore_vmlinux;

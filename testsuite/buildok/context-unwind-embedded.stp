@@ -4,7 +4,6 @@ probe begin {
 	print_backtrace()
 	printf("%s\n", backtrace())
 	printf("%s\n", sprint_backtrace())
-	printf("%s\n", task_backtrace(0))
 	printf("%s\n", caller())
 	printf("%d\n", caller_addr())
 }

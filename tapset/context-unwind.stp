@@ -1,5 +1,5 @@
 // context-unwind tapset
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -12,9 +12,6 @@
 //processor.
 // </tapsetdescription>
 %{
-#ifndef STP_NEED_UNWIND_DATA
-#define STP_NEED_UNWIND_DATA 1
-#endif
 #ifndef STP_NEED_SYMBOL_DATA
 #define STP_NEED_SYMBOL_DATA 1
 #endif
@@ -23,18 +20,12 @@
 /**
  *  sfunction print_backtrace - Print stack back trace
  * 
- *  Description: This function isEquivalent to print_stack(backtrace()), 
+ *  Description: This function is equivalent to print_stack(backtrace()), 
  *  except that deeper stack nesting may be supported.
  *  The function does not return a value.
  */
-function print_backtrace () %{
-	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG)) {
-		_stp_stack_print(CONTEXT->regs, _STP_SYM_FULL,
-				 CONTEXT->pi, MAXTRACE, NULL,
-				 &CONTEXT->uwcontext, NULL, 0);
-	} else {
-		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
-	}
+function print_backtrace () %{ /* pragma:unwind */
+	_stp_stack_print(CONTEXT, _STP_SYM_FULL, _STP_STACK_KERNEL);
 %}
 
 /**
@@ -52,14 +43,9 @@ function print_backtrace () %{
  * but more efficient (no need to translate between hex strings and
  * final backtrace string).
  */
-function sprint_backtrace:string () %{ /* pure */
-	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-		_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
-				   _STP_SYM_SIMPLE, CONTEXT->regs,
-				   CONTEXT->pi, MAXTRACE, NULL,
-				   &CONTEXT->uwcontext, NULL, 0);
-	else
-		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
+function sprint_backtrace:string () %{ /* pure */ /* pragma:unwind */
+	_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
+			   CONTEXT, _STP_SYM_SIMPLE, _STP_STACK_KERNEL);
 %}
 
 /**
@@ -69,14 +55,9 @@ function sprint_backtrace:string () %{ /* pure */
  * that are a backtrace of the stack. Output may be truncated as 
  * as per maximum string length (MAXSTRINGLEN).
  */
-function backtrace:string () %{ /* pure */
-	if (CONTEXT->regs && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG))
-		_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
-				   _STP_SYM_NONE, CONTEXT->regs,
-				   CONTEXT->pi, MAXTRACE, NULL,
-				   &CONTEXT->uwcontext, NULL, 0);
-	else 
-		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
+function backtrace:string () %{ /* pure */ /* pragma:unwind */
+	_stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN,
+			   CONTEXT, _STP_SYM_NONE, _STP_STACK_KERNEL);
 %}
 
 %( systemtap_v <= "1.6" %?
@@ -89,11 +70,9 @@ function backtrace:string () %{ /* pure */
  *  Output may be truncated as per maximum string length.
  *  Deprecated in SystemTap 1.6.
  */
-function task_backtrace:string (task:long) %{ /* pure */
-	 _stp_stack_snprint_tsk(THIS->__retvalue, MAXSTRINGLEN,
-				(struct task_struct *)(unsigned long)THIS->task,
-				_STP_SYM_NONE, MAXTRACE);
-%}
+function task_backtrace:string (task:long) {
+	warn("task_backtrace unsupported")
+}
 %)
 
 /**

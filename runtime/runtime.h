@@ -102,25 +102,15 @@ static struct
 
 #define _stp_seq_inc() (atomic_inc_return(&_stp_seq.seq))
 
-#ifndef MAXSTRINGLEN
-#define MAXSTRINGLEN 128
-#endif
-
-#ifndef MAXTRACE
-#define MAXTRACE 20
-#endif
-
-/* dwarf unwinder only tested so far on i386 and x86_64. */
+/* dwarf unwinder only tested so far on i386 and x86_64.
+   Only define STP_USE_DWARF_UNWINDER when STP_NEED_UNWIND_DATA,
+   as set through a pragma:unwind in one of the [u]context-unwind.stp
+   functions. */
 #if (defined(__i386__) || defined(__x86_64__))
+#ifdef STP_NEED_UNWIND_DATA
 #ifndef STP_USE_DWARF_UNWINDER
 #define STP_USE_DWARF_UNWINDER
 #endif
-#endif
-
-#ifdef CONFIG_FRAME_POINTER
-/* Just because frame pointers are available does not mean we can trust them. */
-#ifndef STP_USE_DWARF_UNWINDER
-#define STP_USE_FRAME_POINTER
 #endif
 #endif
 
@@ -140,6 +130,17 @@ static struct
 #include "perf.c"
 #endif
 #include "addr-map.c"
+
+/* DWARF unwinder only tested so far on i386 and x86_64.
+   We only need to compile in the unwinder when both STP_NEED_UNWIND_DATA
+   (set when a stap script defines pragma:unwind, as done in
+   [u]context-unwind.stp) is defined and the architecture actually supports
+   dwarf unwinding (as defined by STP_USE_DWARF_UNWINDER in runtime.h).  */
+#ifdef STP_USE_DWARF_UNWINDER
+#include "unwind.c"
+#else
+struct unwind_context { };
+#endif
 
 #ifdef module_param_cb			/* kernels >= 2.6.36 */
 #define _STP_KERNEL_PARAM_ARG const struct kernel_param

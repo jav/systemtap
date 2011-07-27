@@ -15,8 +15,6 @@
 
 #include "unwind/unwind.h"
 
-#ifdef STP_USE_DWARF_UNWINDER
-
 struct unwind_context {
     struct unwind_frame_info info;
     struct unwind_state state;
@@ -1374,9 +1372,3 @@ static int unwind(struct unwind_context *context,
 
 	return res;
 }
-
-#else
-
-struct unwind_context { };
-
-#endif /* STP_USE_DWARF_UNWINDER */
