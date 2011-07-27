@@ -391,11 +391,19 @@ _stp_buffer_iter_start(struct _stp_iterator *iter)
 	int cpu_file = iter->cpu_file;
 
 	iter->buffer_iter[cpu_file]
+#ifdef STAPCONF_RING_BUFFER_READ_PREPARE
+	    = ring_buffer_read_prepare(_stp_relay_data.rb, cpu_file);
+#else
 	    = ring_buffer_read_start(_stp_relay_data.rb, cpu_file);
+#endif
 	if (iter->buffer_iter[cpu_file] == NULL) {
 		dbug_trans(0, "buffer_iter[%d] was NULL\n", cpu_file);
 		return 1;
 	}
+#ifdef STAPCONF_RING_BUFFER_READ_PREPARE
+	ring_buffer_read_prepare_sync();
+	ring_buffer_read_start(iter->buffer_iter[cpu_file]);
+#endif
 	dbug_trans(0, "iterator(s) started\n");
 	return 0;
 #else
@@ -403,13 +411,23 @@ _stp_buffer_iter_start(struct _stp_iterator *iter)
 
 	for_each_online_cpu(cpu) {
 		iter->buffer_iter[cpu]
+#ifdef STAPCONF_RING_BUFFER_READ_PREPARE
+		    = ring_buffer_read_prepare(_stp_relay_data.rb, cpu);
+#else
 		    = ring_buffer_read_start(_stp_relay_data.rb, cpu);
+#endif
 		if (iter->buffer_iter[cpu] == NULL) {
 			dbug_trans(0, "buffer_iter[%d] was NULL\n", cpu);
 			_stp_buffer_iter_finish(iter);
 			return 1;
 		}
 	}
+#ifdef STAPCONF_RING_BUFFER_READ_PREPARE
+	ring_buffer_read_prepare_sync();
+	for_each_online_cpu(cpu) {
+		ring_buffer_read_start(iter->buffer_iter[cpu]);
+	}
+#endif
 	dbug_trans(0, "iterator(s) started\n");
 	return 0;
 #endif
