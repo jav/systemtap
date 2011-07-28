@@ -1346,6 +1346,9 @@ systemtap_session::register_library_aliases()
                                                 comp->functor.c_str()));
                       mn = mn->bind(comp->functor);
                     }
+		  // PR 12916: All probe aliases are OK for unprivileged users. The actual
+		  // referenced probe points will be checked when the alias is resolved.
+		  mn->bind_unprivileged ();
                   mn->bind(new alias_expansion_builder(alias));
                 }
             }
