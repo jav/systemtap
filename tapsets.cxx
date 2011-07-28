@@ -6236,9 +6236,9 @@ dwarf_builder::build(systemtap_session & sess,
          script_file.close();
       }
 
-      get_param (parameters, TOK_LIBRARY, user_lib);
-      if (user_lib.length() && ! contains_glob_chars (user_lib))
-        module_name = find_executable (user_lib, "LD_LIBRARY_PATH");
+      if(get_param (parameters, TOK_LIBRARY, user_lib)
+	  && user_lib.length() && ! contains_glob_chars (user_lib))
+	module_name = find_executable (user_lib, "LD_LIBRARY_PATH");
       else
 	module_name = user_path; // canonicalize it
 
