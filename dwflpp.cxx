@@ -2985,15 +2985,24 @@ dwflpp::build_blacklist()
   blfn += "|unknown_nmi_error";
 
   // Lots of locks
-  blfn += "|.*raw_.*lock.*";
-  blfn += "|.*read_.*lock.*";
-  blfn += "|.*write_.*lock.*";
-  blfn += "|.*spin_.*lock.*";
-  blfn += "|.*rwlock_.*lock.*";
-  blfn += "|.*rwsem_.*lock.*";
+  blfn += "|.*raw_.*_lock.*";
+  blfn += "|.*raw_.*_unlock.*";
+  blfn += "|.*raw_.*_trylock.*";
+  blfn += "|.*read_lock.*";
+  blfn += "|.*read_unlock.*";
+  blfn += "|.*read_trylock.*";
+  blfn += "|.*write_lock.*";
+  blfn += "|.*write_unlock.*";
+  blfn += "|.*write_trylock.*";
+  blfn += "|.*write_seqlock.*";
+  blfn += "|.*write_sequnlock.*";
+  blfn += "|.*spin_lock.*";
+  blfn += "|.*spin_unlock.*";
+  blfn += "|.*spin_trylock.*";
+  blfn += "|.*spin_is_locked.*";
+  blfn += "|rwsem_.*lock.*";
   blfn += "|.*mutex_.*lock.*";
   blfn += "|raw_.*";
-  blfn += "|.*seq_.*lock.*";
 
   // atomic functions
   blfn += "|atomic_.*";
