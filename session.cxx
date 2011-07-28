@@ -528,7 +528,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
   client_options_disallowed = "";
   while (true)
     {
-      int long_opt;
+      int long_opt = 0;
       char * num_endptr;
 
       // NB: when adding new options, consider very carefully whether they
@@ -1230,7 +1230,7 @@ systemtap_session::check_options (int argc, char * const argv [])
   // Abnormal characters in our temp path can break us, including parts out
   // of our control like Kbuild.  Let's enforce nice, safe characters only.
   const char *tmpdir = getenv("TMPDIR");
-  if (tmpdir)
+  if (tmpdir != NULL)
     assert_regexp_match("TMPDIR", tmpdir, "^[-/._0-9a-z]+$");
 }
 
