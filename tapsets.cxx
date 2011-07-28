@@ -162,7 +162,9 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->pi = 0;";
   o->newline() << "c->pi_longs = 0;";
   o->newline() << "c->regflags = 0;";
+  o->newline() << "#ifdef STAP_NEED_REGPARM"; // i386 or x86_64 register.stp
   o->newline() << "c->regparm = 0;";
+  o->newline() << "#endif";
   o->newline() << "c->marker_name = NULL;";
   o->newline() << "c->marker_format = NULL;";
 

@@ -156,6 +156,8 @@ regparm:unknown (n:long)
 The probed function was built with the gcc \-mregparm=n option.
 (The i386 kernel is built with \-mregparm=3, so systemtap considers
 regparm(3) the default for kernel functions on that architecture.)
+Only valid on i386 and x86_64 (when probing 32bit applications).
+Produces an error on other architectures.
 
 For some architectures, the *_arg functions may reject unusually high
 values of n.
