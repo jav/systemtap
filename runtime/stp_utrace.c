@@ -181,7 +181,7 @@ void utrace_shutdown(void)
 	int i;
 	struct utrace *utrace;
 	struct hlist_head *head;
-	struct hlist_node *node;
+	struct hlist_node *node, *node2;
 
 	if (atomic_dec_and_test(&utrace_state) != __UTRACE_UNREGISTERED)
 		return;
@@ -202,12 +202,15 @@ void utrace_shutdown(void)
 	}
 
 	printk(KERN_ERR "%s:%d - freeing task-specific\n", __FUNCTION__, __LINE__);
+	mutex_lock(&task_utrace_mutex);
 	for (i = 0; i < TASK_UTRACE_TABLE_SIZE; i++) {
 		head = &task_utrace_table[i];
-		hlist_for_each_entry(utrace, node, head, hlist) {
+		hlist_for_each_entry_safe(utrace, node, node2, head, hlist) {
+			hlist_del(&utrace->hlist);
 			utrace_free(utrace);
 		}
 	}
+	mutex_unlock(&task_utrace_mutex);
 }
 
 static struct utrace *utrace_alloc(void)
@@ -250,10 +253,10 @@ static struct utrace *__task_utrace_struct(struct task_struct *task)
  */
 static bool utrace_task_alloc(struct task_struct *task)
 {
+#if 0
 	struct utrace *utrace = utrace_alloc();
 	if (unlikely(!utrace))
 		return false;
-#if 0
 	task_lock(task);
 	if (likely(!task->utrace)) {
 		/*
@@ -269,20 +272,28 @@ static bool utrace_task_alloc(struct task_struct *task)
 	if (unlikely(task->utrace != utrace))
 		kmem_cache_free(utrace_cachep, utrace);
 #else
-	if (task != NULL) {
-		struct utrace *u;
+	struct utrace *utrace;
+	struct utrace *u;
 
-		mutex_lock(&task_utrace_mutex);
-		u = __task_utrace_struct(task);
-		if (u == NULL) {
-			hlist_add_head(&utrace->hlist,
-				       &task_utrace_table[hash_ptr(task, TASK_UTRACE_HASH_BITS)]);
-			mutex_unlock(&task_utrace_mutex);
-		}
-		else {
-			mutex_unlock(&task_utrace_mutex);
-			kmem_cache_free(utrace_cachep, utrace);
-		}
+	/* The global utrace is allocated at startup. */
+	if (task == NULL)
+		return true;
+
+	utrace = utrace_alloc();
+	if (unlikely(!utrace))
+		return false;
+
+	mutex_lock(&task_utrace_mutex);
+	u = __task_utrace_struct(task);
+	if (u == NULL) {
+		utrace->task = task;
+		hlist_add_head(&utrace->hlist,
+			       &task_utrace_table[hash_ptr(task, TASK_UTRACE_HASH_BITS)]);
+		mutex_unlock(&task_utrace_mutex);
+	}
+	else {
+		mutex_unlock(&task_utrace_mutex);
+		kmem_cache_free(utrace_cachep, utrace);
 	}
 #endif
 	return true;
@@ -449,6 +460,9 @@ struct utrace_engine *utrace_attach_task(
 	struct utrace_engine *engine;
 	int ret;
 
+	printk(KERN_ERR "%s:%d - target %p, utrace %p\n", __FUNCTION__, __LINE__,
+	       target, utrace);
+
 	/*
 	 * FIXME: Hmm, if this engine is global, we need to plan for
 	 * the fact that we've already registered a global engine.
@@ -482,12 +496,13 @@ struct utrace_engine *utrace_attach_task(
 			 * Silly kernel, utrace is for users!
 			 */
 			return ERR_PTR(-EPERM);
-	
-		if (!utrace) {
-			if (unlikely(!utrace_task_alloc(target)))
-				return ERR_PTR(-ENOMEM);
-			utrace = task_utrace_struct(target);
-		}
+	}	
+	if (!utrace) {
+		if (unlikely(!utrace_task_alloc(target)))
+			return ERR_PTR(-ENOMEM);
+		utrace = task_utrace_struct(target);
+		printk(KERN_ERR "%s:%d - target %p, utrace %p\n", __FUNCTION__,
+		       __LINE__, target, utrace);
 	}
 
 	engine = kmem_cache_alloc(utrace_engine_cachep, GFP_KERNEL);
@@ -1639,8 +1654,8 @@ utrace_report_clone(void *cb_data __attribute__ ((unused)),
 	struct utrace_engine *engine;
 	INIT_REPORT(report);
 
-	printk(KERN_ERR "%s:%d - parent %p, child %p\n", __FUNCTION__,
-	       __LINE__, parent, child);
+	printk(KERN_ERR "%s:%d - parent %p, child %p, current %p\n",
+	       __FUNCTION__, __LINE__, parent, child, current);
 
 	/* FIXME: Figure out what the clone_flags were. For
 	 * task_finder's purposes, all we need is CLONE_THREAD. */

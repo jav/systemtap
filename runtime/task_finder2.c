@@ -843,7 +843,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 			 * brave new world we won't stop the task,
 			 * we'll go ahead and call the callbacks and
 			 * add it to the task's list of callbacks. */
-#if 1
+
 			// Call the callbacks
 			__stp_call_callbacks(tgt, tsk, register_p, process_p);
 
@@ -855,14 +855,11 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 			if (tgt->mmap_events == 1 && tsk->tgid == tsk->pid) {
 				__stp_call_mmap_callbacks_for_task(tgt, tsk);
 			}
-#else
 			rc = __stp_utrace_attach(tsk, &tgt->ops,
 						 tgt,
-						 __STP_ATTACHED_TASK_EVENTS,
-						 UTRACE_STOP);
+						 __STP_ATTACHED_TASK_EVENTS);
 			if (rc != 0 && rc != EPERM)
 				break;
-#endif
 			tgt->engine_attached = 1;
 		}
 		else {
@@ -934,6 +931,9 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 				   rc, (int)path_tsk->pid);
 	}
 	else {
+		_stp_dbug(__FUNCTION__, __LINE__,
+			  "calling __stp_utrace_attach_match_filename(%p, %s, %d, %d)\n",
+			  match_tsk, mmpath, register_p, process_p);
 		__stp_utrace_attach_match_filename(match_tsk, mmpath,
 						   register_p, process_p);
 	}
@@ -1002,6 +1002,9 @@ __stp_utrace_task_finder_report_exec(u32 action,
 	// We assume that all exec's are exec'ing a new process.  Note
 	// that we don't use bprm->filename, since that path can be
 	// relative.
+	_stp_dbug(__FUNCTION__, __LINE__,
+		  "calling __stp_utrace_attach_match_tsk(%p, %p, 1, 1)\n",
+		  current, current);
 	__stp_utrace_attach_match_tsk(current, current, 1, 1);
 
 	__stp_tf_handler_end();
