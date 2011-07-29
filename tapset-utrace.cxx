@@ -846,12 +846,12 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (flags_seen[UDPF_SYSCALL] || flags_seen[UDPF_SYSCALL_RETURN])
     {
       s.op->newline() << "#ifdef UTRACE_ORIG_VERSION";
-      s.op->newline() << "static u32 stap_utrace_probe_syscall(struct utrace_attached_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
+      s.op->newline() << "static u32 stap_utrace_probe_syscall(struct utrace_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
       s.op->newline() << "#else";
       s.op->newline() << "#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)";
-      s.op->newline() << "static u32 stap_utrace_probe_syscall(u32 action, struct utrace_attached_engine *engine, struct pt_regs *regs) {";
+      s.op->newline() << "static u32 stap_utrace_probe_syscall(u32 action, struct utrace_engine *engine, struct pt_regs *regs) {";
       s.op->newline() << "#else";
-      s.op->newline() << "static u32 stap_utrace_probe_syscall(enum utrace_resume_action action, struct utrace_attached_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
+      s.op->newline() << "static u32 stap_utrace_probe_syscall(enum utrace_resume_action action, struct utrace_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
       s.op->newline() << "#endif";
       s.op->newline() << "#endif";
 
@@ -881,7 +881,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "struct stap_utrace_probe *p = container_of(tgt, struct stap_utrace_probe, tgt);";
-  s.op->newline() << "struct utrace_attached_engine *engine;";
+  s.op->newline() << "struct utrace_engine *engine;";
 
   s.op->newline() << "if (register_p) {";
   s.op->indent(1);
