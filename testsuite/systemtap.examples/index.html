@@ -74,6 +74,10 @@ keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keywor
 keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
 <p>This script places a set of probes (specified by $1), each of which monitors the state of some context $variable expression (specified by $2).  Whenever the value changes, with respect to the active thread, the event is traced.<p><font size="-2"><pre># stap -w varwatch.stp &#39;kernel.statement(&quot;do_sys_open@fs/open.c:*&quot;)&#39; \
 &#39;$$vars&#39; -c &quot;sleep 0.2&quot;</pre></font></p></li>
+<li><a href="general/watchdog.stp">general/watchdog.stp</a> - Watchdog timer<br>
+keywords: <a href="keyword-index.html#WATCHDOG">WATCHDOG</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
+<p>The watchdog.stp script provides a watchdog timer mechanism for arbitrary events. The script takes three arguments: the events to start watchdog timer, the event to stop the watchdog timer, and the time in millseconds for the watchdog. If the watchdog timer is exceed, the script will trigger a stack backtrace of the user-process that timed out using pstack. This script can be used to diagnose what the userspace application is doing when a slower than expected operation occurs.<p><font size="-2"><pre># stap watchdog.stp &#39;syscall.nanosleep&#39; &#39;syscall.nanosleep.return&#39; 1000 \
+-c &quot;sleep 0.2&quot;</pre></font></p></li>
 <li><a href="interrupt/interrupts-by-dev.stp">interrupt/interrupts-by-dev.stp</a> - Record interrupts on a per-device basis.<br>
 keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <br>
 <p>The interrupts-by-dev.stp script profiles interrupts received by each device per 100 ms.<p><font size="-2"><pre># stap interrupts-by-dev.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>

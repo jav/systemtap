@@ -39,7 +39,7 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#ALLOCATOR">ALLOCATOR</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#COUNTER">COUNTER</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#EVENT">EVENT</a> <a href="#FILES">FILES</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#HACK">HACK</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITORING">MONITORING</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PID">PID</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SECURITY">SECURITY</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TID">TID</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WATCHPOINT">WATCHPOINT</a> <a href="#WRITE">WRITE</a> </tt></p>
+<p><tt><a href="#ALLOCATOR">ALLOCATOR</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#COUNTER">COUNTER</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#EVENT">EVENT</a> <a href="#FILES">FILES</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#HACK">HACK</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITORING">MONITORING</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PID">PID</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SECURITY">SECURITY</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TID">TID</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WATCHDOG">WATCHDOG</a> <a href="#WATCHPOINT">WATCHPOINT</a> <a href="#WRITE">WRITE</a> </tt></p>
 <h3><a name="ALLOCATOR">ALLOCATOR</a></h3>
 <ul>
 <li><a href="memory/vm.tracepoints.stp">memory/vm.tracepoints.stp</a> - Collect slab allocation statistics<br>
@@ -54,6 +54,10 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 </ul>
 <h3><a name="BACKTRACE">BACKTRACE</a></h3>
 <ul>
+<li><a href="general/watchdog.stp">general/watchdog.stp</a> - Watchdog timer<br>
+keywords: <a href="keyword-index.html#WATCHDOG">WATCHDOG</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
+<p>The watchdog.stp script provides a watchdog timer mechanism for arbitrary events. The script takes three arguments: the events to start watchdog timer, the event to stop the watchdog timer, and the time in millseconds for the watchdog. If the watchdog timer is exceed, the script will trigger a stack backtrace of the user-process that timed out using pstack. This script can be used to diagnose what the userspace application is doing when a slower than expected operation occurs.<p><font size="-2"><pre># stap watchdog.stp &#39;syscall.nanosleep&#39; &#39;syscall.nanosleep.return&#39; 1000 \
+-c &quot;sleep 0.2&quot;</pre></font></p></li>
 <li><a href="interrupt/scf.stp">interrupt/scf.stp</a> - Tally Backtraces for Inter-Processor Interrupt (IPI)<br>
 keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The Linux kernel function smp_call_function causes expensive inter-processor interrupts (IPIs). The scf.stp script tallies the processes and backtraces causing the interprocessor interrupts to identify the cause of the expensive IPI. On exit the script prints the tallies in descending frequency.<p><font size="-2"><pre># stap scf.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
@@ -652,6 +656,13 @@ keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html
 <li><a href="process/wait4time.stp">process/wait4time.stp</a> - Trace Time Spent in wait4 Syscalls<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#WAIT4">WAIT4</a> <br>
 <p>The script watches each wait4 syscall on the system. At the end of each wait4 syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in parentheses, the &quot;wait4:&quot; key, the duration of the wait and the PID that the wait4 was waiting for. If the waited for PID is not specified , it is &quot;-1&quot;.<p><font size="-2"><pre># stap wait4time.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+</ul>
+<h3><a name="WATCHDOG">WATCHDOG</a></h3>
+<ul>
+<li><a href="general/watchdog.stp">general/watchdog.stp</a> - Watchdog timer<br>
+keywords: <a href="keyword-index.html#WATCHDOG">WATCHDOG</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
+<p>The watchdog.stp script provides a watchdog timer mechanism for arbitrary events. The script takes three arguments: the events to start watchdog timer, the event to stop the watchdog timer, and the time in millseconds for the watchdog. If the watchdog timer is exceed, the script will trigger a stack backtrace of the user-process that timed out using pstack. This script can be used to diagnose what the userspace application is doing when a slower than expected operation occurs.<p><font size="-2"><pre># stap watchdog.stp &#39;syscall.nanosleep&#39; &#39;syscall.nanosleep.return&#39; 1000 \
+-c &quot;sleep 0.2&quot;</pre></font></p></li>
 </ul>
 <h3><a name="WATCHPOINT">WATCHPOINT</a></h3>
 <ul>
