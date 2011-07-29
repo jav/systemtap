@@ -6,5 +6,5 @@
 "   It would be nice to find a way to intelligently detect this.
 
 " SystemTap scripts
-au BufNewFile,BufRead *.stp			setf stap
+au BufNewFile,BufRead *.stp			set ft=stap
 
