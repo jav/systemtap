@@ -2,9 +2,27 @@
    Defines all common fields and probe flags for struct context.
    Available to C-based probe handlers as fields of the CONTEXT ptr.  */
 
+/* Used to indicate whether a probe context is in use.
+   Tested in the code entering the probe setup by common_probe_entry_prologue
+   and cleared by the common_probe_entry_epilogue code. When an early error
+   forces a goto probe_epilogue then needs an explicitly atomic_dec() first.
+   All context busy flags are tested on module unload to prevent unloading
+   while some probe is still running.  */
 atomic_t busy;
+
+/* The fully-resolved probe point associated with a currently running probe
+   handler, including alias and wild-card expansion effects.
+   aka stap_probe->pp.  Setup by common_probe_entryfn_prologue.
+   Used in warning/error messages and accessible by pp() tapset function.  */
 const char *probe_point;
-const char *probe_name; /* as per 'stap -l' */
+
+/* The script-level probe point associated with a currently running probe
+   handler, including  wild-card expansion effects as per 'stap -l'.
+   Guarded by STP_NEED_PROBE_NAME as setup in pn() tapset function.  */
+#ifdef STP_NEED_PROBE_NAME
+const char *probe_name;
+#endif
+
 int actionremaining;
 int nesting;
 string_t error_buffer;
