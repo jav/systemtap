@@ -67,9 +67,6 @@ struct utrace {
 	struct task_struct *task;
 };
 
-/* utrace data for global handlers */
-static struct utrace *global_utrace;
-
 #define TASK_UTRACE_HASH_BITS 5
 #define TASK_UTRACE_TABLE_SIZE (1 << TASK_UTRACE_HASH_BITS)
 
@@ -80,7 +77,6 @@ static struct kmem_cache *utrace_cachep;
 static struct kmem_cache *utrace_engine_cachep;
 static const struct utrace_engine_ops utrace_detached_ops; /* forward decl */
 
-static struct utrace *utrace_alloc(void);
 static void
 utrace_report_clone(void *cb_data __attribute__ ((unused)),
 		    struct task_struct *parent, struct task_struct *child);
@@ -105,9 +101,6 @@ int /* __init */ utrace_init(void)
 	utrace_cachep = KMEM_CACHE(utrace, SLAB_PANIC);
 	if (unlikely(!utrace_cachep))
 		goto error;
-	global_utrace = utrace_alloc();
-	if (unlikely(!global_utrace))
-		goto error;
 	utrace_engine_cachep = KMEM_CACHE(utrace_engine, SLAB_PANIC);
 	if (unlikely(!utrace_engine_cachep))
 		goto error;
@@ -130,8 +123,6 @@ tp_error1:
 	unregister_trace_sched_process_fork(utrace_report_clone, NULL);
 	tracepoint_synchronize_unregister();
 error:
-	if (global_utrace)
-		kmem_cache_free(utrace_cachep, global_utrace);
 	if (utrace_cachep)
 		kmem_cache_destroy(utrace_cachep);
 	if (utrace_engine_cachep)
@@ -195,12 +186,6 @@ void utrace_shutdown(void)
 	 * sure there are no outstanding tracepoint probes being
 	 * called.  So, now would be a great time to free everything. */
 	
-	if (global_utrace) {
-		printk(KERN_ERR "%s:%d - freeing global\n", __FUNCTION__, __LINE__);
-		utrace_free(global_utrace);
-		global_utrace = NULL;
-	}
-
 	printk(KERN_ERR "%s:%d - freeing task-specific\n", __FUNCTION__, __LINE__);
 	mutex_lock(&task_utrace_mutex);
 	for (i = 0; i < TASK_UTRACE_TABLE_SIZE; i++) {
@@ -211,19 +196,6 @@ void utrace_shutdown(void)
 		}
 	}
 	mutex_unlock(&task_utrace_mutex);
-}
-
-static struct utrace *utrace_alloc(void)
-{
-	struct utrace *utrace = kmem_cache_zalloc(utrace_cachep, GFP_KERNEL);
-	if (unlikely(!utrace))
-		return NULL;
-	spin_lock_init(&utrace->lock);
-	INIT_LIST_HEAD(&utrace->attached);
-	INIT_LIST_HEAD(&utrace->attaching);
-	INIT_HLIST_NODE(&utrace->hlist);
-	utrace->resume = UTRACE_RESUME;
-	return utrace;
 }
 
 /*
@@ -253,35 +225,16 @@ static struct utrace *__task_utrace_struct(struct task_struct *task)
  */
 static bool utrace_task_alloc(struct task_struct *task)
 {
-#if 0
-	struct utrace *utrace = utrace_alloc();
-	if (unlikely(!utrace))
-		return false;
-	task_lock(task);
-	if (likely(!task->utrace)) {
-		/*
-		 * This barrier makes sure the initialization of the struct
-		 * precedes the installation of the pointer.  This pairs
-		 * with smp_read_barrier_depends() in task_utrace_struct().
-		 */
-		smp_wmb();
-		task->utrace = utrace;
-	}
-	task_unlock(task);
-
-	if (unlikely(task->utrace != utrace))
-		kmem_cache_free(utrace_cachep, utrace);
-#else
-	struct utrace *utrace;
+	struct utrace *utrace = kmem_cache_zalloc(utrace_cachep, GFP_KERNEL);
 	struct utrace *u;
 
-	/* The global utrace is allocated at startup. */
-	if (task == NULL)
-		return true;
-
-	utrace = utrace_alloc();
 	if (unlikely(!utrace))
-		return false;
+		return NULL;
+	spin_lock_init(&utrace->lock);
+	INIT_LIST_HEAD(&utrace->attached);
+	INIT_LIST_HEAD(&utrace->attaching);
+	INIT_HLIST_NODE(&utrace->hlist);
+	utrace->resume = UTRACE_RESUME;
 
 	mutex_lock(&task_utrace_mutex);
 	u = __task_utrace_struct(task);
@@ -295,7 +248,7 @@ static bool utrace_task_alloc(struct task_struct *task)
 		mutex_unlock(&task_utrace_mutex);
 		kmem_cache_free(utrace_cachep, utrace);
 	}
-#endif
+
 	return true;
 }
 
@@ -303,32 +256,9 @@ static struct utrace *task_utrace_struct(struct task_struct *task)
 {
 	struct utrace *utrace;
 
-	/* FIXME */
-#if 0
-	/*
-	 * This barrier ensures that any prior load of task->utrace_flags
-	 * is ordered before this load of task->utrace.  We use those
-	 * utrace_flags checks in the hot path to decide to call into
-	 * the utrace code.  The first attach installs task->utrace before
-	 * setting task->utrace_flags nonzero with implicit barrier in
-	 * between, see utrace_add_engine().
-	 */
-	smp_rmb();
-#endif
-	/* FIXME: in the non-NULL task case, we should look up task
-	 * in the hashed list.  But, for now... */
-	if (task == NULL) 
-		utrace = global_utrace;
-	else {
-		mutex_lock(&task_utrace_mutex);
-		utrace = __task_utrace_struct(task);
-		mutex_unlock(&task_utrace_mutex);
-	}
-
-	/* FIXME */
-#if 0
-	smp_read_barrier_depends(); /* See utrace_task_alloc().  */
-#endif
+	mutex_lock(&task_utrace_mutex);
+	utrace = __task_utrace_struct(task);
+	mutex_unlock(&task_utrace_mutex);
 	return utrace;
 }
 
@@ -428,9 +358,15 @@ unlock:
 
 /**
  * utrace_attach_task - attach new engine, or look up an attached engine
+ * @target:	thread to attach to
  * @flags:	flag bits combined with OR, see below
  * @ops:	callback table for new engine
  * @data:	engine private data pointer
+ *
+ * The caller must ensure that the @target thread does not get freed,
+ * i.e. hold a ref or be its parent.  It is always safe to call this
+ * on @current, or on the @child pointer in a @report_clone callback.
+ * For most other cases, it's easier to use utrace_attach_pid() instead.
  *
  * UTRACE_ATTACH_CREATE:
  * Create a new engine.  If %UTRACE_ATTACH_CREATE is not specified, you
@@ -441,16 +377,14 @@ unlock:
  * Attempting to attach a second (matching) engine fails with -%EEXIST.
  *
  * *** FIXME: needed??? ***
- * UTRACE_ATTACH_MATCH_OPS:
- * Only consider engines matching @ops.
- * UTRACE_ATTACH_MATCH_DATA:
- * Only consider engines matching @data.
+ * UTRACE_ATTACH_MATCH_OPS: Only consider engines matching @ops.
+ * UTRACE_ATTACH_MATCH_DATA: Only consider engines matching @data.
  *
  * *** FIXME: need exclusive processing??? ***
- * Calls with neither %UTRACE_ATTACH_MATCH_OPS nor
- * %UTRACE_ATTACH_MATCH_DATA match the first global engine.  That
- * means that %UTRACE_ATTACH_EXCLUSIVE in such a call fails with
- * -%EEXIST if global engines exit.
+ * Calls with neither %UTRACE_ATTACH_MATCH_OPS nor %UTRACE_ATTACH_MATCH_DATA
+ * match the first among any engines attached to @target.  That means that
+ * %UTRACE_ATTACH_EXCLUSIVE in such a call fails with -%EEXIST if there
+ * are any engines on @target at all.
  */
 struct utrace_engine *utrace_attach_task(
 	struct task_struct *target, int flags,
@@ -462,13 +396,6 @@ struct utrace_engine *utrace_attach_task(
 
 	printk(KERN_ERR "%s:%d - target %p, utrace %p\n", __FUNCTION__, __LINE__,
 	       target, utrace);
-
-	/*
-	 * FIXME: Hmm, if this engine is global, we need to plan for
-	 * the fact that we've already registered a global engine.
-	 * Probaly should fail for now if there is already a global
-	 * engine.
-	 */
 
 	/* FIXME: for now, ignore non-ATTACH_CREATE... */
 	if (!(flags & UTRACE_ATTACH_CREATE)) {
@@ -484,19 +411,19 @@ struct utrace_engine *utrace_attach_task(
 #else
 		printk(KERN_ERR "%s:%d ***UNHANDLED***\n", __FUNCTION__,
 		       __LINE__);
+		return ERR_PTR(-EINVAL);
 #endif
 	}
 
 	if (unlikely(!ops) || unlikely(ops == &utrace_detached_ops))
 		return ERR_PTR(-EINVAL);
 
-	if (target != NULL) {
-		if (unlikely(target->flags & PF_KTHREAD))
-			/*
-			 * Silly kernel, utrace is for users!
-			 */
-			return ERR_PTR(-EPERM);
-	}	
+	if (unlikely(target->flags & PF_KTHREAD))
+		/*
+		 * Silly kernel, utrace is for users!
+		 */
+		return ERR_PTR(-EPERM);
+
 	if (!utrace) {
 		if (unlikely(!utrace_task_alloc(target)))
 			return ERR_PTR(-ENOMEM);
@@ -521,13 +448,6 @@ struct utrace_engine *utrace_attach_task(
 	engine->release = ops->release;
 
 	ret = utrace_add_engine(target, utrace, engine, flags, ops, data);
-
-	/* If this engine is global, go ahead an increment it (so the
-	 * engine won't get deleted from copies of the attached
-	 * list). */
-	if (target == NULL) {
-		utrace_engine_get(engine);
-	}
 
 	if (unlikely(ret)) {
 		kmem_cache_free(utrace_engine_cachep, engine);
@@ -1535,7 +1455,6 @@ static const struct utrace_engine_ops *start_callback(
 	 * utrace_control() and utrace_set_events() calls is in place
 	 * by the time utrace->reporting can be seen to be NULL.
 	 */
-	/* FIXME: yuck! One field, doesn't bode well for global stuff. */
 	utrace->reporting = engine;
 	smp_mb();
 
@@ -1649,32 +1568,34 @@ utrace_report_clone(void *cb_data __attribute__ ((unused)),
 		    struct task_struct *parent, struct task_struct *child)
 {
 	struct task_struct *task = parent;
-	struct utrace *utrace;
-	unsigned long clone_flags = 0;
-	struct utrace_engine *engine;
-	INIT_REPORT(report);
+	struct utrace *utrace = task_utrace_struct(task);
 
 	printk(KERN_ERR "%s:%d - parent %p, child %p, current %p\n",
 	       __FUNCTION__, __LINE__, parent, child, current);
 
-	/* FIXME: Figure out what the clone_flags were. For
-	 * task_finder's purposes, all we need is CLONE_THREAD. */
-	if (task->mm == child->mm)
-	    clone_flags |= CLONE_VM;
-	if (task->fs == child->fs)
-	    clone_flags |= CLONE_FS;
-	if (task->files == child->files)
-	    clone_flags |= CLONE_FILES;
-	if (task->sighand == child->sighand)
-	    clone_flags |= CLONE_SIGHAND;
+	if (utrace && utrace->utrace_flags & UTRACE_EVENT(CLONE)) {
+		unsigned long clone_flags = 0;
+		INIT_REPORT(report);
+
+
+		/* FIXME: Figure out what the clone_flags were. For
+		 * task_finder's purposes, all we need is CLONE_THREAD. */
+		if (task->mm == child->mm)
+			clone_flags |= CLONE_VM;
+		if (task->fs == child->fs)
+			clone_flags |= CLONE_FS;
+		if (task->files == child->files)
+			clone_flags |= CLONE_FILES;
+		if (task->sighand == child->sighand)
+			clone_flags |= CLONE_SIGHAND;
 
 #if 0
 #define CLONE_PTRACE	0x00002000	/* set if we want to let tracing continue on the child too */
 #define CLONE_VFORK	0x00004000	/* set if the parent wants the child to wake it up on mm_release */
 #define CLONE_PARENT	0x00008000	/* set if we want to have the same parent as the cloner */
 #endif
-	if (! thread_group_leader(child)) /* Same thread group? */
-	    clone_flags |= CLONE_THREAD;
+		if (! thread_group_leader(child)) /* Same thread group? */
+			clone_flags |= CLONE_THREAD;
 
 #if 0
 #define CLONE_NEWNS	0x00020000	/* New namespace group? */
@@ -1695,117 +1616,25 @@ utrace_report_clone(void *cb_data __attribute__ ((unused)),
 #define CLONE_IO		0x80000000	/* Clone io context */
 #endif
 
-	/* 1) REPORT_CALLBACKS on the global utrace (if any). */
-	utrace = task_utrace_struct(NULL);
-	if (utrace != NULL && utrace->utrace_flags & UTRACE_EVENT(CLONE)) {
-		struct utrace *utrace_copy;
 
-		/* Copy the global utrace and act on it. There is too
-		 * much state information present in the utrace
-		 * structure to share it among simultaneous clone
-		 * events. */
-		utrace_copy = utrace_alloc();
-		if (unlikely(!utrace_copy)) {
-			printk(KERN_ERR "%s:%d - utrace_alloc failed!\n",
-			       __FUNCTION__, __LINE__);
-			return;
-		}
-
-		memcpy(utrace_copy, utrace, sizeof(*utrace));
-		spin_lock_init(&utrace_copy->lock);
-		INIT_LIST_HEAD(&utrace_copy->attached);
-		INIT_LIST_HEAD(&utrace_copy->attaching);
-		INIT_HLIST_NODE(&utrace_copy->hlist);
-
-		/*
-		 * We don't use the REPORT() macro here, because we
-		 * need to clear utrace->cloning before
-		 * finish_report().  After finish_report(), utrace can
-		 * be a stale pointer in cases when report.action is
-		 * still UTRACE_RESUME.
-		 */
-		printk(KERN_ERR "%s:%d\n", __FUNCTION__, __LINE__);
-		/* FIXME: utrace or utrace_copy?  If utrace, update
-		 * utrace_copy after start_report()? */
-		start_report(utrace);
-		printk(KERN_ERR "%s:%d\n", __FUNCTION__, __LINE__);
-
-		{
-		    struct utrace_engine *engine, *next;
-		    int i = 0;
-		    
-		    list_for_each_entry_safe(engine, next, &utrace->attached, entry) {
-
-			printk(KERN_ERR "%s:%d - %p, %p\n", __FUNCTION__, __LINE__, engine->entry.prev, engine->entry.next);
-			i++;
-		    }
-		    printk(KERN_ERR "%s:%d - %d attached entries\n", __FUNCTION__, __LINE__, i);
-		}
-
-		/* Now that we've (potentially) updated
-		 * utrace->attached, update utrace_copy's version. */
-		printk(KERN_ERR "%s:%d - locking %p\n", __FUNCTION__, __LINE__, utrace);
-		spin_lock(&utrace->lock);
-		if (utrace_copy_engine_list(&utrace_copy->attached, &utrace->attached) != 0) {
-			spin_unlock(&utrace->lock);
-			printk(KERN_ERR "%s:%d - unlocking %p\n", __FUNCTION__, __LINE__, utrace);
-			kmem_cache_free(utrace_cachep, utrace_copy);
-			return;
-		}
-		spin_unlock(&utrace->lock);
-		printk(KERN_ERR "%s:%d - unlocking %p\n", __FUNCTION__, __LINE__, utrace);
-
-		/* FIXME: Gack!  There could be multiple clones happening
-		 * simultaneously, and here we've got 1 field.  Hmm, why do
-		 * we need this anyway?  Aren't we passing child down? */
-		REPORT_CALLBACKS(, task, utrace_copy, &report,
-				 UTRACE_EVENT(CLONE), report_clone,
-				 report.action, engine, clone_flags, child);
-	
-		printk(KERN_ERR "%s:%d\n", __FUNCTION__, __LINE__);
-		/* FIXME: utrace or utrace_copy?  If utrace, update
-		 * utrace_copy after finish_report()? */
-		finish_report(task, utrace_copy, &report, !(clone_flags & CLONE_VFORK));
-		printk(KERN_ERR "%s:%d\n", __FUNCTION__, __LINE__);
+		REPORT(task, utrace, &report, UTRACE_EVENT(CLONE),
+		       report_clone, clone_flags, child);
 	
 #if 0
 		/*
-		 * For a vfork, we will go into an uninterruptible block waiting
-		 * for the child.  We need UTRACE_STOP to happen before this, not
-		 * after.  For CLONE_VFORK, utrace_finish_vfork() will be called.
+		 * For a vfork, we will go into an uninterruptible
+		 * block waiting for the child.  We need UTRACE_STOP
+		 * to happen before this, not after.  For CLONE_VFORK,
+		 * utrace_finish_vfork() will be called.
 		 */
-		if (report.action == UTRACE_STOP && (clone_flags & CLONE_VFORK)) {
-			printk(KERN_ERR "%s:%d - locking %p\n", __FUNCTION__, __LINE__, utrace);
+		if (report.action == UTRACE_STOP
+		    && (clone_flags & CLONE_VFORK)) {
 			spin_lock(&utrace->lock);
 			utrace->vfork_stop = 1;
 			spin_unlock(&utrace->lock);
 		}
 #endif
-		printk(KERN_ERR "%s:%d - freeing global copy\n", __FUNCTION__, __LINE__);
-		utrace_free(utrace_copy);
 	}
-
-	/* 2) REPORT_CALLBACKS on the task-specific utrace (if any) */
-	utrace = task_utrace_struct(task);
-	if (utrace && utrace->utrace_flags & UTRACE_EVENT(CLONE)) {
-	    INIT_REPORT(report);
-
-	    REPORT(task, utrace, &report, UTRACE_EVENT(CLONE),
-		   report_clone, clone_flags, child);
-	}
-	
-#if 0
-	/*
-	 * For a vfork, we will go into an uninterruptible block waiting
-	 * for the child.  We need UTRACE_STOP to happen before this, not
-	 * after.  For CLONE_VFORK, utrace_finish_vfork() will be called.
-	 */
-	if (report.action == UTRACE_STOP && (clone_flags & CLONE_VFORK)) {
-		spin_lock(&utrace->lock);
-		utrace->vfork_stop = 1;
-		spin_unlock(&utrace->lock);
-	}
-#endif
 }
 
 static void
@@ -1845,88 +1674,12 @@ utrace_report_exit(void *cb_data __attribute__ ((unused)),
 	utrace_maybe_reap(task, utrace, false);
 #endif
 #if 1					/* utrace_report_exit */
-	long exit_code = task->exit_code;
-	struct utrace *utrace;
+	struct utrace *utrace = task_utrace_struct(task);
 	INIT_REPORT(report);
+	long exit_code = task->exit_code;
 
 	printk(KERN_ERR "%s:%d - task %p\n", __FUNCTION__, __LINE__, task);
 
-	/* 1) REPORT_CALLBACKS on the global utrace (if any). */
-	utrace = task_utrace_struct(NULL);
-	if (utrace != NULL && utrace->utrace_flags & UTRACE_EVENT(EXIT)) {
-		struct utrace *utrace_copy;
-
-		/* Copy the global utrace and act on it. There is too
-		 * much state information present in the utrace
-		 * structure to share it among simultaneous events. */
-		utrace_copy = utrace_alloc();
-		if (unlikely(!utrace_copy)) {
-			printk(KERN_ERR "%s:%d - utrace_alloc failed!\n",
-			       __FUNCTION__, __LINE__);
-			return;
-		}
-
-		memcpy(utrace_copy, utrace, sizeof(*utrace));
-		spin_lock_init(&utrace_copy->lock);
-		INIT_LIST_HEAD(&utrace_copy->attached);
-		INIT_LIST_HEAD(&utrace_copy->attaching);
-		INIT_HLIST_NODE(&utrace_copy->hlist);
-
-		/*
-		 * We don't use the REPORT() macro here, because we
-		 * need to clear utrace->cloning before
-		 * finish_report().  After finish_report(), utrace can
-		 * be a stale pointer in cases when report.action is
-		 * still UTRACE_RESUME.
-		 */
-		printk(KERN_ERR "%s:%d\n", __FUNCTION__, __LINE__);
-		/* FIXME: utrace or utrace_copy?  If utrace, update
-		 * utrace_copy after start_report()? */
-		start_report(utrace);
-		printk(KERN_ERR "%s:%d\n", __FUNCTION__, __LINE__);
-
-		{
-		    struct utrace_engine *engine, *next;
-		    int i = 0;
-		    
-		    list_for_each_entry_safe(engine, next, &utrace->attached, entry) {
-
-			printk(KERN_ERR "%s:%d - %p, %p\n", __FUNCTION__, __LINE__, engine->entry.prev, engine->entry.next);
-			i++;
-		    }
-		    printk(KERN_ERR "%s:%d - %d attached entries\n", __FUNCTION__, __LINE__, i);
-		}
-
-		/* Now that we've (potentially) updated
-		 * utrace->attached, update utrace_copy's version. */
-		printk(KERN_ERR "%s:%d - locking %p\n", __FUNCTION__, __LINE__, utrace);
-		spin_lock(&utrace->lock);
-		if (utrace_copy_engine_list(&utrace_copy->attached, &utrace->attached) != 0) {
-			spin_unlock(&utrace->lock);
-			printk(KERN_ERR "%s:%d - unlocking %p\n", __FUNCTION__, __LINE__, utrace);
-			kmem_cache_free(utrace_cachep, utrace_copy);
-			return;
-		}
-		spin_unlock(&utrace->lock);
-		printk(KERN_ERR "%s:%d - unlocking %p\n", __FUNCTION__, __LINE__, utrace);
-
-		REPORT_CALLBACKS(, task, utrace_copy, &report,
-				 UTRACE_EVENT(EXIT), report_exit,
-				 report.action, engine, exit_code);
-
-
-	
-		printk(KERN_ERR "%s:%d\n", __FUNCTION__, __LINE__);
-		/* FIXME: utrace or utrace_copy?  If utrace, update
-		 * utrace_copy after finish_report()? */
-		finish_report(task, utrace_copy, &report, true);
-	
-		printk(KERN_ERR "%s:%d - freeing global copy\n", __FUNCTION__, __LINE__);
-		utrace_free(utrace_copy);
-	}
-
-	/* 2) REPORT_CALLBACKS on the task-specific utrace (if any) */
-	utrace = task_utrace_struct(task);
 	if (utrace && utrace->utrace_flags & UTRACE_EVENT(EXIT)) {
 		printk(KERN_ERR "%s:%d - reporting...\n", __FUNCTION__,
 		       __LINE__);

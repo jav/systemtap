@@ -24,8 +24,6 @@ struct stap_task_finder_target;
 static atomic_t __stp_task_finder_state = ATOMIC_INIT(__STP_TF_UNITIALIZED);
 static atomic_t __stp_inuse_count = ATOMIC_INIT (0);
 
-static struct utrace_engine *__stp_utrace_task_finder_engine;
-
 #define __stp_tf_handler_start() (atomic_inc(&__stp_inuse_count))
 #define __stp_tf_handler_end() (atomic_dec(&__stp_inuse_count))
 
@@ -347,42 +345,7 @@ __stp_task_finder_cleanup(void)
 	struct list_head *tgt_node, *tgt_next;
 	struct stap_task_finder_target *tgt;
 
-#if 0
-	if (unlikely(!__stp_utrace_task_finder_engine)) {
-		int rc = utrace_control(NULL, __stp_utrace_task_finder_engine,
-					UTRACE_DETACH);
-		switch (rc) {
-		case 0:			/* success */
-			debug_task_finder_detach();
-			break;
-		case -ESRCH:	    /* REAP callback already begun */
-		case -EALREADY:	    /* DEATH callback already begun */
-			rc = 0;	    /* ignore these errors */
-			break;
-		case -EINPROGRESS:
-			do {
-				rc = utrace_barrier(NULL, __stp_utrace_task_finder_engine);
-			} while (rc == -ERESTARTSYS);
-			if (rc == 0 || rc == -ESRCH || rc == -EALREADY) {
-				rc = 0;
-				debug_task_finder_detach();
-			} else {
-				rc = -rc;
-				_stp_error("utrace_barrier returned error %d",
-					   rc);
-			}
-			break;
-		default:
-			rc = -rc;
-			_stp_error("utrace_control returned error %d", rc);
-			break;
-		}
-		utrace_engine_put(__stp_utrace_task_finder_engine);
-	}
-#else
 	utrace_shutdown();
-#endif
-
 
 #if 0
 	/* FIXME: in the brave new world, we should be able to
@@ -477,14 +440,11 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 	  || (tgt)->mprotect_events)				\
 	 ? __STP_TASK_VM_BASE_EVENTS : __STP_TASK_BASE_EVENTS)
 
-/*
- * FIXME: removed 'enum utrace_resume_action action' from the
- * parameter list.  Needed to maintain compatibility?
- */
 static int
 __stp_utrace_attach(struct task_struct *tsk,
 		    const struct utrace_engine_ops *ops, void *data,
-		    unsigned long event_flags)
+		    unsigned long event_flags,
+		    enum utrace_resume_action action)
 {
 	struct utrace_engine *engine;
 	struct mm_struct *mm;
@@ -543,7 +503,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 		if (rc == 0) {
 			debug_task_finder_attach();
 
-#if 0
+#if 1
 			if (action != UTRACE_RESUME) {
 				rc = utrace_control(tsk, engine, UTRACE_STOP);
 				if (rc == -EINPROGRESS)
@@ -567,14 +527,12 @@ __stp_utrace_attach(struct task_struct *tsk,
 	return rc;
 }
 
-/* FIXME: at this point, there really isn't any need for
- * __stp_utrace_attach()... */
 static int
 stap_utrace_attach(struct task_struct *tsk,
 		   const struct utrace_engine_ops *ops, void *data,
 		   unsigned long event_flags)
 {
-	return __stp_utrace_attach(tsk, ops, data, event_flags);
+	return __stp_utrace_attach(tsk, ops, data, event_flags, UTRACE_RESUME);
 }
 
 static inline void
@@ -839,6 +797,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 		// quiesced.  When register_p isn't set, we can go
 		// ahead and call the callbacks.
 		if (register_p) {
+#if 0
 			/* FIXME: This is a first stab here. In the
 			 * brave new world we won't stop the task,
 			 * we'll go ahead and call the callbacks and
@@ -858,6 +817,12 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 			rc = __stp_utrace_attach(tsk, &tgt->ops,
 						 tgt,
 						 __STP_ATTACHED_TASK_EVENTS);
+#else
+			rc = __stp_utrace_attach(tsk, &tgt->ops,
+						 tgt,
+						 __STP_ATTACHED_TASK_EVENTS,
+						 UTRACE_STOP);
+#endif
 			if (rc != 0 && rc != EPERM)
 				break;
 			tgt->engine_attached = 1;
@@ -872,6 +837,9 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 			rc = stap_utrace_detach(tsk, &tgt->ops);
 			if (rc != 0)
 				break;
+#else
+			printk(KERN_ERR "%s:%d ***UNHANDLED***\n", __FUNCTION__,
+			       __LINE__);
 #endif
 
 			// Note that we don't want to set
@@ -958,9 +926,6 @@ __stp_utrace_task_finder_report_clone(u32 action,
 
 	__stp_tf_handler_start();
 
-	/* In the brave new world, we're already attached to
-	 * the child via the global handlers. */
-#if 0
 	// On clone, attach to the child.
 	rc = __stp_utrace_attach(child, engine->ops, 0,
 				 __STP_TASK_FINDER_EVENTS, UTRACE_RESUME);
@@ -968,7 +933,6 @@ __stp_utrace_task_finder_report_clone(u32 action,
 		__stp_tf_handler_end();
 		return UTRACE_RESUME;
 	}
-#endif
 
 	__stp_utrace_attach_match_tsk(current, child, 1,
 				      (clone_flags & CLONE_THREAD) == 0);
@@ -1471,6 +1435,7 @@ stap_start_task_finder(void)
 
 	atomic_set(&__stp_task_finder_state, __STP_TF_RUNNING);
 
+#if 0
 	/* Here we need to set up our system-wide handlers. */
 	__stp_utrace_task_finder_engine
 		= utrace_attach_task(NULL, UTRACE_ATTACH_CREATE,
@@ -1518,10 +1483,10 @@ stap_start_task_finder(void)
 				   rc);
 		utrace_engine_put(__stp_utrace_task_finder_engine);
 	}
+#endif
 
 	/* FIXME: Here we will still need to go through all the
 	 * threads, so we can report on their memory maps. But, for now... */
-#if 0
 	rcu_read_lock();
 	do_each_thread(grp, tsk) {
 	    struct mm_struct *mm;
@@ -1616,7 +1581,6 @@ stap_start_task_finder(void)
 	} while_each_thread(grp, tsk);
 stf_err:
 	rcu_read_unlock();
-#endif
 	_stp_kfree(mmpath_buf);
 	debug_task_finder_report(); // report at end for utrace engine counting
 	return rc;
