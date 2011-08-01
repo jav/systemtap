@@ -12,4 +12,8 @@ probe process("inherit.exe").function("main")
   // NB: We can't treat a struct as a scalar, so this will fail if it
   //     tries to go through A::foo.  B::foo should be fine as an int.
   println($b->foo)
+
+  // Pretty-printing should skip the masked A::foo altogether
+  println($b$)
+  println($b$$)
 }

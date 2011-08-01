@@ -2580,65 +2580,78 @@ void
 dwarf_pretty_print::recurse_struct_members (Dwarf_Die* type, target_symbol* e,
                                             print_format* pf, int& count)
 {
-  Dwarf_Die child, childtype;
-  if (dwarf_child (type, &child) == 0)
-    do
-      {
-        target_symbol* e2 = e;
-
-        // skip static members
-        if (dwarf_hasattr(&child, DW_AT_declaration))
-          continue;
-
-        int tag = dwarf_tag (&child);
-
-        if (tag != DW_TAG_member && tag != DW_TAG_inheritance)
-          continue;
-
-        dwarf_attr_die (&child, DW_AT_type, &childtype);
-
-        if (tag == DW_TAG_inheritance)
+  /* With inheritance, a subclass may mask member names of parent classes, so
+   * our search among the inheritance tree must be breadth-first rather than
+   * depth-first (recursive).  The type die is still our starting point.  When
+   * we encounter a masked name, just skip it. */
+  set<string> dupes;
+  deque<Dwarf_Die> inheritees(1, *type);
+  for (; !inheritees.empty(); inheritees.pop_front())
+    {
+      Dwarf_Die child, childtype;
+      if (dwarf_child (&inheritees.front(), &child) == 0)
+        do
           {
-            recurse_struct_members (&childtype, e, pf, count);
-            continue;
+            target_symbol* e2 = e;
+
+            // skip static members
+            if (dwarf_hasattr(&child, DW_AT_declaration))
+              continue;
+
+            int tag = dwarf_tag (&child);
+
+            if (tag != DW_TAG_member && tag != DW_TAG_inheritance)
+              continue;
+
+            dwarf_attr_die (&child, DW_AT_type, &childtype);
+
+            if (tag == DW_TAG_inheritance)
+              {
+                inheritees.push_back(childtype);
+                continue;
+              }
+
+            int childtag = dwarf_tag (&childtype);
+            const char *member = dwarf_diename (&child);
+
+            // "_vptr.foo" members are C++ virtual function tables,
+            // which (generally?) aren't interesting for users.
+            if (member && startswith(member, "_vptr."))
+              continue;
+
+            // skip inheritance-masked duplicates
+            if (member && !dupes.insert(member).second)
+              continue;
+
+            if (++count > 1)
+              pf->raw_components.append(", ");
+
+            // NB: limit to 32 args; see PR10750 and c_unparser::visit_print_format.
+            if (pf->args.size() >= 32)
+              {
+                pf->raw_components.append("...");
+                break;
+              }
+
+            if (member)
+              {
+                pf->raw_components.append(".");
+                pf->raw_components.append(member);
+
+                e2 = new target_symbol(*e);
+                e2->components.push_back (target_symbol::component(e->tok, member));
+              }
+            else if (childtag == DW_TAG_union_type)
+              pf->raw_components.append("<union>");
+            else if (childtag == DW_TAG_structure_type)
+              pf->raw_components.append("<class>");
+            else if (childtag == DW_TAG_class_type)
+              pf->raw_components.append("<struct>");
+            pf->raw_components.append("=");
+            recurse (&childtype, e2, pf);
           }
-
-        int childtag = dwarf_tag (&childtype);
-        const char *member = dwarf_diename (&child);
-
-        // "_vptr.foo" members are C++ virtual function tables,
-        // which (generally?) aren't interesting for users.
-        if (member && startswith(member, "_vptr."))
-          continue;
-
-        if (++count > 1)
-          pf->raw_components.append(", ");
-
-        // NB: limit to 32 args; see PR10750 and c_unparser::visit_print_format.
-        if (pf->args.size() >= 32)
-          {
-            pf->raw_components.append("...");
-            break;
-          }
-
-        if (member)
-          {
-            pf->raw_components.append(".");
-            pf->raw_components.append(member);
-
-            e2 = new target_symbol(*e);
-            e2->components.push_back (target_symbol::component(e->tok, member));
-          }
-        else if (childtag == DW_TAG_union_type)
-          pf->raw_components.append("<union>");
-        else if (childtag == DW_TAG_structure_type)
-          pf->raw_components.append("<class>");
-        else if (childtag == DW_TAG_class_type)
-          pf->raw_components.append("<struct>");
-        pf->raw_components.append("=");
-        recurse (&childtype, e2, pf);
-      }
-    while (dwarf_siblingof (&child, &child) == 0);
+        while (dwarf_siblingof (&child, &child) == 0);
+    }
 }
 
 
