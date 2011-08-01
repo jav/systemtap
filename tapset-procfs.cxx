@@ -252,8 +252,8 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
 
       s.op->newline() << "pdata.buffer = spp->buffer;";
       s.op->newline() << "pdata.bufsize = spp->bufsize;";
-      s.op->newline() << "if (c->data == NULL)";
-      s.op->newline(1) << "c->data = &pdata;";
+      s.op->newline() << "if (c->procfs_data == NULL)";
+      s.op->newline(1) << "c->procfs_data = &pdata;";
       s.op->newline(-1) << "else {";
 
       s.op->newline(1) << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
@@ -268,7 +268,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "(*spp->read_probe->ph) (c);";
 
       // Note that _procfs_value_set copied string data into spp->buffer
-      s.op->newline() << "c->data = NULL;";
+      s.op->newline() << "c->procfs_data = NULL;";
       s.op->newline() << "spp->needs_fill = 0;";
       s.op->newline() << "spp->count = strlen(spp->buffer);";
 
@@ -308,8 +308,8 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "pdata.buffer = (char *)buf;";
       s.op->newline() << "pdata.count = count;";
 
-      s.op->newline() << "if (c->data == NULL)";
-      s.op->newline(1) << "c->data = &pdata;";
+      s.op->newline() << "if (c->procfs_data == NULL)";
+      s.op->newline(1) << "c->procfs_data = &pdata;";
       s.op->newline(-1) << "else {";
 
       s.op->newline(1) << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
@@ -323,7 +323,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       // call probe function
       s.op->newline() << "(*spp->write_probe->ph) (c);";
 
-      s.op->newline() << "c->data = NULL;";
+      s.op->newline() << "c->procfs_data = NULL;";
       s.op->newline() << "if (c->last_error == 0) {";
       s.op->newline(1) << "retval = count;";
       s.op->newline(-1) << "}";
@@ -428,7 +428,7 @@ procfs_var_expanding_visitor::visit_target_symbol (target_symbol* e)
       ec->tok = e->tok;
 
       string fname;
-      string locvalue = "CONTEXT->data";
+      string locvalue = "CONTEXT->procfs_data";
 
       if (! lvalue)
         {

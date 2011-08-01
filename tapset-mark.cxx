@@ -516,7 +516,6 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "c->mark_va_list = args;";
   s.op->newline() << "(*smp->probe->ph) (c);";
   s.op->newline() << "c->mark_va_list = NULL;";
-  s.op->newline() << "c->data = NULL;";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
