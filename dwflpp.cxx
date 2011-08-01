@@ -2143,42 +2143,55 @@ dwflpp::find_struct_member(const target_symbol::component& c,
   Dwarf_Attribute attr;
   Dwarf_Die die;
 
-  switch (dwarf_child (parentdie, &die))
+  /* With inheritance, a subclass may mask member names of parent classes, so
+   * our search among the inheritance tree must be breadth-first rather than
+   * depth-first (recursive).  The parentdie is still our starting point. */
+  deque<Dwarf_Die> inheritees(1, *parentdie);
+  for (; !inheritees.empty(); inheritees.pop_front())
     {
-    case 0:		/* First child found.  */
-      break;
-    case 1:		/* No children.  */
-      return false;
-    case -1:		/* Error.  */
-    default:		/* Shouldn't happen */
-      throw semantic_error (dwarf_type_name(parentdie) + ": "
-                            + string (dwarf_errmsg (-1)),
-                            c.tok);
-    }
-
-  do
-    {
-      int tag = dwarf_tag(&die);
-      if (tag != DW_TAG_member && tag != DW_TAG_inheritance)
-        continue;
-
-      const char *name = dwarf_diename(&die);
-      if (name == NULL || tag == DW_TAG_inheritance)
+      switch (dwarf_child (&inheritees.front(), &die))
         {
-          // need to recurse for anonymous structs/unions and
-          // for inherited members
-          Dwarf_Die subdie;
-          if (dwarf_attr_die (&die, DW_AT_type, &subdie) &&
-              find_struct_member(c, &subdie, memberdie, dies, locs))
-            goto success;
+        case 0:		/* First child found.  */
+          break;
+        case 1:		/* No children.  */
+          continue;
+        case -1:	/* Error.  */
+        default:	/* Shouldn't happen */
+          throw semantic_error (dwarf_type_name(&inheritees.front()) + ": "
+                                + string (dwarf_errmsg (-1)),
+                                c.tok);
         }
-      else if (name == c.member)
+
+      do
         {
-          *memberdie = die;
-          goto success;
+          int tag = dwarf_tag(&die);
+          if (tag != DW_TAG_member && tag != DW_TAG_inheritance)
+            continue;
+
+          const char *name = dwarf_diename(&die);
+          if (tag == DW_TAG_inheritance)
+            {
+              /* Remember inheritee for breadth-first search. */
+              Dwarf_Die inheritee;
+              if (dwarf_attr_die (&die, DW_AT_type, &inheritee))
+                inheritees.push_back(inheritee);
+            }
+          else if (name == NULL)
+            {
+              /* Need to recurse for anonymous structs/unions. */
+              Dwarf_Die subdie;
+              if (dwarf_attr_die (&die, DW_AT_type, &subdie) &&
+                  find_struct_member(c, &subdie, memberdie, dies, locs))
+                goto success;
+            }
+          else if (name == c.member)
+            {
+              *memberdie = die;
+              goto success;
+            }
         }
+      while (dwarf_siblingof (&die, &die) == 0);
     }
-  while (dwarf_siblingof (&die, &die) == 0);
 
   return false;
 
