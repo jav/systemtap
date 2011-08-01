@@ -2070,7 +2070,7 @@ dwflpp::translate_location(struct obstack *pool,
 
 
 void
-dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
+dwflpp::print_members(Dwarf_Die *vardie, ostream &o, set<string> &dupes)
 {
   const int typetag = dwarf_tag (vardie);
 
@@ -2111,7 +2111,11 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
       const char *member = dwarf_diename (die) ;
 
       if ( tag == DW_TAG_member && member != NULL )
-        o << " " << member;
+        {
+          // Only output if this is new, to avoid inheritance dupes.
+          if (dupes.insert(member).second)
+            o << " " << member;
+        }
       else
         {
           Dwarf_Die temp_die;
@@ -2125,7 +2129,7 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
               return;
             }
 
-          print_members(&temp_die,o);
+          print_members(&temp_die, o, dupes);
         }
 
     }
@@ -2333,7 +2337,8 @@ dwflpp::translate_components(struct obstack *pool,
 
                   string alternatives;
                   stringstream members;
-                  print_members(typedie, members);
+                  set<string> member_dupes;
+                  print_members(typedie, members, member_dupes);
                   if (members.str().size() != 0)
                     alternatives = " (alternatives:" + members.str() + ")";
                   throw semantic_error(_F("unable to find member '%s' for %s%s%s", c.member.c_str(),
