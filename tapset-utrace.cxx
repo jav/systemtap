@@ -832,7 +832,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "static void stap_utrace_probe_handler(struct task_struct *tsk, struct stap_utrace_probe *p) {";
       s.op->indent(1);
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe",
+				     "_STP_PROBE_HANDLER_UTRACE");
 
       // call probe function
       s.op->newline() << "(*p->probe->ph) (c);";
@@ -858,7 +859,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->indent(1);
       s.op->newline() << "struct stap_utrace_probe *p = (struct stap_utrace_probe *)engine->data;";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe",
+				     "_STP_PROBE_HANDLER_UTRACE_SYSCALL");
       s.op->newline() << "c->regs = regs;";
       s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
 

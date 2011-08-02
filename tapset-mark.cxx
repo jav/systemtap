@@ -510,7 +510,8 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "static void enter_marker_probe (void *probe_data, void *call_data, const char *fmt, va_list *args) {";
   s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)probe_data;";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "smp->probe");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "smp->probe",
+				 "_STP_PROBE_HANDLER_MARKER");
   s.op->newline() << "c->marker_name = smp->name;";
   s.op->newline() << "c->marker_format = smp->format;";
   s.op->newline() << "c->mark_va_list = args;";

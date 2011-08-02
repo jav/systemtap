@@ -80,7 +80,8 @@ common_probe_init (derived_probe* p)
 
 void
 common_probe_entryfn_prologue (translator_output* o, string statestr,
-                               string probe, bool overload_processing)
+                               string probe, string probe_type,
+			       bool overload_processing)
 {
   o->newline() << "#ifdef STP_ALIBI";
   o->newline() << "atomic_inc(&(" << probe << "->alibi));";
@@ -156,6 +157,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "#ifdef STP_NEED_PROBE_NAME";
   o->newline() << "c->probe_name = " << probe << "->pn;";
   o->newline() << "#endif";
+  o->newline() << "c->probe_type = " << probe_type << ";";
   // reset unwound address cache
   o->newline() << "c->pi = 0;";
   o->newline() << "c->pi_longs = 0;";
@@ -243,6 +245,7 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->newline() << "#ifdef STP_NEED_PROBE_NAME";
   o->newline() << "c->probe_name = 0;";
   o->newline() << "#endif";
+  o->newline() << "c->probe_type = 0;";
   o->newline() << "if (unlikely (c->last_error && c->last_error[0])) {";
   o->newline(1) << "if (c->last_stmt != NULL)";
   o->newline(1) << "_stp_softerror (\"%s near %s\", c->last_error, c->last_stmt);";
@@ -4453,7 +4456,8 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << "kprobe_idx:0)"; // NB: at least we avoid memory corruption
   // XXX: it would be nice to give a more verbose error though; BUG_ON later?
   s.op->line() << "];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
+				 "_STP_PROBE_HANDLER_KPROBE");
   s.op->newline() << "c->regs = regs;";
 
   // Make it look like the IP is set as it wouldn't have been replaced
@@ -4489,7 +4493,8 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "struct stap_probe *sp = entry ? sdp->entry_probe : sdp->probe;";
   s.op->newline() << "if (sp) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sp");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sp",
+				 "_STP_PROBE_HANDLER_KRETPROBE");
   s.op->newline() << "c->regs = regs;";
 
   // for assisting runtime's backtrace logic and accessing kretprobe data packets
@@ -6904,7 +6909,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static void enter_uprobe_probe (struct uprobe *inst, struct pt_regs *regs) {";
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst, struct stap_uprobe, up);";
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->probe");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->probe",
+				 "_STP_PROBE_HANDLER_UPROBE");
   s.op->newline() << "if (sup->spec_index < 0 || "
                   << "sup->spec_index >= " << probes.size() << ") {";
   s.op->newline(1) << "_stp_error (\"bad spec_index %d (max " << probes.size()
@@ -6933,7 +6939,8 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static void enter_uretprobe_probe (struct uretprobe_instance *inst, struct pt_regs *regs) {";
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst->rp, struct stap_uprobe, urp);";
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->probe");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->probe",
+				 "_STP_PROBE_HANDLER_URETPROBE");
   s.op->newline() << "c->ri = inst;";
   s.op->newline() << "if (sup->spec_index < 0 || "
                   << "sup->spec_index >= " << probes.size() << ") {";
@@ -7318,7 +7325,8 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << "kprobe_idx:0)"; // NB: at least we avoid memory corruption
   // XXX: it would be nice to give a more verbose error though; BUG_ON later?
   s.op->line() << "];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
+				 "_STP_PROBE_HANDLER_KPROBE");
   s.op->newline() << "c->regs = regs;";
 
   // Make it look like the IP is set as it wouldn't have been replaced
@@ -7351,7 +7359,8 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // XXX: it would be nice to give a more verbose error though; BUG_ON later?
   s.op->line() << "];";
 
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
+				 "_STP_PROBE_HANDLER_KRETPROBE");
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->pi = inst;"; // for assisting runtime's backtrace logic
 
@@ -7819,7 +7828,8 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
   // XXX: why not match stap_hwbkpt_ret_array[i] against bp instead?
   s.op->newline() << "if (bp->attr.bp_addr==hp->bp_addr && bp->attr.bp_type==hp->bp_type && bp->attr.bp_len==hp->bp_len) {";
   s.op->newline(1) << "struct stap_hwbkpt_probe *sdp = &stap_hwbkpt_probes[i];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
+				 "_STP_PROBE_HANDLER_HWBKPT");
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "(*sdp->probe->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
@@ -8525,7 +8535,8 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 
       s.op->newline(1) << "struct stap_probe * const probe = "
                        << common_probe_init (p) << ";";
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "probe");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "probe",
+				     "_STP_PROBE_HANDLER_TRACEPOINT");
       s.op->newline() << "c->marker_name = "
                       << lex_cast_qstring (p->tracepoint_name)
                       << ";";

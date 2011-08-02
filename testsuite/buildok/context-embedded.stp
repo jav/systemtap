@@ -29,4 +29,5 @@ probe begin {
 	log(cmdline_arg(0))
 	log(cmdline_str())
 	log(env_var("TERM"))
+	log(probe_type())
 }
