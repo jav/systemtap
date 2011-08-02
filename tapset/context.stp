@@ -362,7 +362,7 @@ function addr:long ()
  * isn't a user space thread, or the address cannot be found, zero
  * is returned. Can be used to see where the current task is combined
  * with usymname() or symdata(). Often the task will be in the VDSO
- * where it entered the kernel. FIXME - need VDSO tracking support #10080.
+ * where it entered the kernel.
  */
 function uaddr:long ()
 %{ /* pure */ /* myproc-unprivileged */
