@@ -2259,6 +2259,7 @@ struct dwarf_pretty_print
   }
 
   functioncall* expand ();
+  ~dwarf_pretty_print () { delete ts; }
 
 private:
   dwflpp& dw;
