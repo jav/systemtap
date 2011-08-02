@@ -6942,7 +6942,6 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "goto probe_epilogue;";
   s.op->newline(-1) << "}";
 
-  // XXX: kretprobes saves "c->pi = inst;" too
   s.op->newline() << "c->regs = regs;";
   s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
 
