@@ -94,8 +94,10 @@ function caller:string() {
  *  Works only for return probes at this time.
  */
 function caller_addr:long () %{ /* pure */
-        if (CONTEXT->pi)
-		THIS->__retvalue = (int64_t)(long)_stp_ret_addr_r(CONTEXT->pi);
+        if (CONTEXT->probe_type == _STP_PROBE_HANDLER_KRETPROBE)
+		THIS->__retvalue = (int64_t)(long)_stp_ret_addr_r(CONTEXT->ips.krp.pi);
+	else if (CONTEXT->probe_type == _STP_PROBE_HANDLER_URETPROBE)
+		THIS->__retvalue = (int64_t)(long)_stp_ret_addr_r(CONTEXT->ips.ri);
         else
 		THIS->__retvalue = 0;
 %}

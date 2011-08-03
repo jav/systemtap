@@ -158,22 +158,18 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->probe_name = " << probe << "->pn;";
   o->newline() << "#endif";
   o->newline() << "c->probe_type = " << probe_type << ";";
-  // reset unwound address cache
-  o->newline() << "c->pi = 0;";
-  o->newline() << "c->pi_longs = 0;";
+  // reset Individual Probe State union
+  o->newline() << "memset(&c->ips, 0, sizeof(c->ips));";
   o->newline() << "c->regflags = 0;";
   o->newline() << "#ifdef STAP_NEED_REGPARM"; // i386 or x86_64 register.stp
   o->newline() << "c->regparm = 0;";
   o->newline() << "#endif";
-  o->newline() << "c->marker_name = NULL;";
-  o->newline() << "c->marker_format = NULL;";
 
   o->newline() << "#if INTERRUPTIBLE";
   o->newline() << "c->actionremaining = MAXACTION_INTERRUPTIBLE;";
   o->newline() << "#else";
   o->newline() << "c->actionremaining = MAXACTION;";
   o->newline() << "#endif";
-  o->newline() << "c->ri = 0;";
   // NB: The following would actually be incorrect.
   // That's because cycles_sum/cycles_base values are supposed to survive
   // between consecutive probes.  Periodically (STP_OVERLOAD_INTERVAL
@@ -4498,8 +4494,8 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "c->regs = regs;";
 
   // for assisting runtime's backtrace logic and accessing kretprobe data packets
-  s.op->newline() << "c->pi = inst;";
-  s.op->newline() << "c->pi_longs = sdp->saved_longs;";
+  s.op->newline() << "c->ips.krp.pi = inst;";
+  s.op->newline() << "c->ips.krp.pi_longs = sdp->saved_longs;";
 
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
@@ -6919,7 +6915,6 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "goto probe_epilogue;";
   s.op->newline(-1) << "}";
   s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "c->ri = GET_PC_URETPROBE_NONE;";
   s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
 
   // Make it look like the IP is set as it would in the actual user
@@ -6941,7 +6936,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "const struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sups->probe",
 				 "_STP_PROBE_HANDLER_URETPROBE");
-  s.op->newline() << "c->ri = inst;";
+  s.op->newline() << "c->ips.ri = inst;";
   s.op->newline() << "if (sup->spec_index < 0 || "
                   << "sup->spec_index >= " << probes.size() << ") {";
   s.op->newline(1) << "_stp_error (\"bad spec_index %d (max " << probes.size()
@@ -7362,7 +7357,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
 				 "_STP_PROBE_HANDLER_KRETPROBE");
   s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "c->pi = inst;"; // for assisting runtime's backtrace logic
+  s.op->newline() << "c->ips.krp.pi = inst;"; // for assisting runtime's backtrace logic
 
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
@@ -8201,7 +8196,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
       embedded_expr *expr = new embedded_expr;
       expr->tok = e->tok;
       expr->code = string("/* string */ /* pure */ ")
-	+ string("c->marker_name ? c->marker_name : \"\"");
+	+ string("c->ips.tracepoint_name ? c->ips.tracepoint_name : \"\"");
       provide (expr);
     }
   else if (e->name == "$$vars" || e->name == "$$parms")
@@ -8537,7 +8532,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
                        << common_probe_init (p) << ";";
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "probe",
 				     "_STP_PROBE_HANDLER_TRACEPOINT");
-      s.op->newline() << "c->marker_name = "
+      s.op->newline() << "c->ips.tracepoint_name = "
                       << lex_cast_qstring (p->tracepoint_name)
                       << ";";
       for (unsigned j = 0; j < p->args.size(); ++j)

@@ -72,33 +72,46 @@ struct pt_regs *regs;
 unsigned long *unwaddr;
 #endif
 
-/* non-NULL when this probe was a kretprobe. */
-struct kretprobe_instance *pi;
-/* int64_t count in pi->data, the rest is string_t.
-   See the kretprobe.stp data tapset.  */
-int pi_longs;
+/* Individual Probe State (ips).
+   A union since only one can be active at a time.  */
+union {
+
+  /* kretprobe state. */
+  struct {
+    struct kretprobe_instance *pi;
+    /* int64_t count in pi->data, the rest is string_t.
+       See the kretprobe.stp tapset.  */
+    int pi_longs;
+  } krp;
+
+  /* State for mark_derived_probes.  */
+  struct {
+    va_list *mark_va_list;
+    const char *marker_name;
+    const char *marker_format;
+  } kmark;
+
+  /* State for tracepoint probes. */
+  const char *tracepoint_name;
+
+  /* uretprobe state */
+  struct uretprobe_instance *ri;
+
+  /* State for procfs probes, see tapset-procfs.cxx.  */
+  void *procfs_data;
+} ips;
+
 
 /* Only used when stap script uses the i386 or x86_64 register.stp tapset. */
 #ifdef STAP_NEED_REGPARM
 int regparm;
 #endif
 
-/* State for mark_derived_probes.  */
-va_list *mark_va_list;
-const char * marker_name;
-const char * marker_format;
-
-/* State for procfs probes, see tapset-procfs.cxx.  */
-void *procfs_data;
-
 /* Only used for overload processing. */
 #ifdef STP_OVERLOAD
 cycles_t cycles_base;
 cycles_t cycles_sum;
 #endif
-
-/* non-NULL when this probe was a uretprobe. */
-struct uretprobe_instance *ri;
 
 /* Current state of the unwinder (as used in the unwind.c dwarf unwinder). */
 #if defined(STP_NEED_UNWIND_DATA)

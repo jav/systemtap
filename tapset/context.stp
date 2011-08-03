@@ -257,7 +257,8 @@ function user_mode:long ()
  */
 function is_return:long ()
 %{ /* pure */
-	if (CONTEXT->pi)
+	if (CONTEXT->probe_type == _STP_PROBE_HANDLER_KRETPROBE
+	    || CONTEXT->probe_type == _STP_PROBE_HANDLER_URETPROBE)
 		THIS->__retvalue = 1;
 	else
 		THIS->__retvalue = 0;
