@@ -14,6 +14,8 @@
 
 static LIST_HEAD(__stp_task_finder_list);
 
+static void *path_percpu = NULL;
+
 struct stap_task_finder_target;
 
 #define __STP_TF_UNITIALIZED	0
@@ -92,9 +94,8 @@ struct stap_task_finder_target {
 };
 
 static u32
-__stp_utrace_task_finder_target_exec(enum utrace_resume_action action,
+__stp_utrace_task_finder_target_exec(u32 action,
 				     struct utrace_engine *engine,
-				     struct task_struct *tsk,
 				     const struct linux_binfmt *fmt,
 				     const struct linux_binprm *bprm,
 				     struct pt_regs *regs);
@@ -104,21 +105,18 @@ __stp_utrace_task_finder_target_exit(u32 action, struct utrace_engine *engine,
 				     long code);
 
 static u32
-__stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
+__stp_utrace_task_finder_target_quiesce(u32 action,
 					struct utrace_engine *engine,
-					struct task_struct *tsk,
 					unsigned long event);
 
 static u32
-__stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
+__stp_utrace_task_finder_target_syscall_entry(u32 action,
 					      struct utrace_engine *engine,
-					      struct task_struct *tsk,
 					      struct pt_regs *regs);
 
 static u32
-__stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
+__stp_utrace_task_finder_target_syscall_exit(u32 action,
 					     struct utrace_engine *engine,
-					     struct task_struct *tsk,
 					     struct pt_regs *regs);
 
 static void
@@ -149,18 +147,18 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 		new_tgt->pathlen = 0;
 
 	// Make sure everything is initialized properly.
-#if 0
+#if 1
 	new_tgt->engine_attached = 0;
 #endif
 	new_tgt->mmap_events = 0;
 	new_tgt->munmap_events = 0;
 	new_tgt->mprotect_events = 0;
 	memset(&new_tgt->ops, 0, sizeof(new_tgt->ops));
-#if 0
+#if 1
 	new_tgt->ops.report_exec = &__stp_utrace_task_finder_target_exec;
 #endif
 	new_tgt->ops.report_exit = &__stp_utrace_task_finder_target_exit;
-#if 0
+#if 1
 	new_tgt->ops.report_quiesce = &__stp_utrace_task_finder_target_quiesce;
 	new_tgt->ops.report_syscall_entry = \
 		&__stp_utrace_task_finder_target_syscall_entry;
@@ -882,7 +880,11 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	}
 
 	// Allocate space for a path
+#if 0
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
+#else
+	mmpath_buf = per_cpu_ptr(path_percpu, smp_processor_id());
+#endif
 	if (mmpath_buf == NULL) {
 		mmput(mm);
 		_stp_error("Unable to allocate space for path");
@@ -906,7 +908,9 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 						   register_p, process_p);
 	}
 
+#if 0
 	_stp_kfree(mmpath_buf);
+#endif
 	return;
 }
 
@@ -984,13 +988,13 @@ stap_utrace_task_finder_report_exit(u32 action, struct utrace_engine *engine,
 }
 
 static u32
-__stp_utrace_task_finder_target_exec(enum utrace_resume_action action,
+__stp_utrace_task_finder_target_exec(u32 action,
 				     struct utrace_engine *engine,
-				     struct task_struct *tsk,
 				     const struct linux_binfmt *fmt,
 				     const struct linux_binprm *bprm,
 				     struct pt_regs *regs)
 {
+	struct task_struct *tsk = current;
 	struct stap_task_finder_target *tgt = engine->data;
 	int rc;
 
@@ -1185,28 +1189,12 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 	_stp_kfree(mmpath_buf);
 }
 
-#ifdef UTRACE_ORIG_VERSION
-static u32
-__stp_utrace_task_finder_target_quiesce(struct utrace_engine *engine,
-					struct task_struct *tsk)
-#else
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
 static u32
 __stp_utrace_task_finder_target_quiesce(u32 action,
 					struct utrace_engine *engine,
 					unsigned long event)
-#else
-static u32
-__stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
-					struct utrace_engine *engine,
-					struct task_struct *tsk,
-					unsigned long event)
-#endif
-#endif
 {
-#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)
 	struct task_struct *tsk = current;
-#endif
 	struct stap_task_finder_target *tgt = engine->data;
 	int rc;
 
@@ -1269,11 +1257,11 @@ __stp_utrace_task_finder_target_quiesce(enum utrace_resume_action action,
  * syscalls, instead of tracing all syscalls for the map stuff.
  * However, process.syscall will still need to target all syscalls. */
 static u32
-__stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
+__stp_utrace_task_finder_target_syscall_entry(u32 action,
 					      struct utrace_engine *engine,
-					      struct task_struct *tsk,
 					      struct pt_regs *regs)
 {
+	struct task_struct *tsk = current;
 	struct stap_task_finder_target *tgt = engine->data;
 	long syscall_no;
 	unsigned long args[3] = { 0L };
@@ -1287,7 +1275,7 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 		return UTRACE_DETACH;
 	}
 
-	if (tgt == NULL)
+	if (unlikely(tgt == NULL))
 		return UTRACE_RESUME;
 
 	// See if syscall is one we're interested in.  On x86_64, this
@@ -1339,11 +1327,11 @@ __stp_utrace_task_finder_target_syscall_entry(enum utrace_resume_action action,
 }
 
 static u32
-__stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
+__stp_utrace_task_finder_target_syscall_exit(u32 action,
 					     struct utrace_engine *engine,
-					     struct task_struct *tsk,
 					     struct pt_regs *regs)
 {
+	struct task_struct *tsk = current;
 	struct stap_task_finder_target *tgt = engine->data;
 	unsigned long rv;
 	struct __stp_tf_map_entry *entry;
@@ -1423,11 +1411,21 @@ stap_start_task_finder(void)
 
 	utrace_init();
 
+	path_percpu = _stp_alloc_percpu(PATH_MAX);
+	if (path_percpu == NULL) {
+		_stp_error("Unable to allocate space for paths");
+		return ENOMEM;
+	}
+
+#if 0
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
 	if (mmpath_buf == NULL) {
 		_stp_error("Unable to allocate space for path");
 		return ENOMEM;
 	}
+#else
+	mmpath_buf = per_cpu_ptr(path_percpu, smp_processor_id());
+#endif
 
 #ifdef STP_TF_MAP
         __stp_tf_map_initialize();
@@ -1581,7 +1579,7 @@ stap_start_task_finder(void)
 	} while_each_thread(grp, tsk);
 stf_err:
 	rcu_read_unlock();
-	_stp_kfree(mmpath_buf);
+//	_stp_kfree(mmpath_buf);
 	debug_task_finder_report(); // report at end for utrace engine counting
 	return rc;
 }
@@ -1599,7 +1597,11 @@ stap_stop_task_finder(void)
 	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPING);
 
 	debug_task_finder_report();
+#if 0
+	/* We don't need this since __stp_task_finder_cleanup()
+	 * removes everything by calling utrace_shutdown(). */
 	stap_utrace_detach_ops(&__stp_utrace_task_finder_ops);
+#endif
 	__stp_task_finder_cleanup();
 	debug_task_finder_report();
 	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPED);
@@ -1621,6 +1623,8 @@ stap_stop_task_finder(void)
 	debug_task_finder_report();
 #endif
 
+	if (likely(path_percpu))
+		_stp_free_percpu(path_percpu);
 	utrace_exit();
 }
 

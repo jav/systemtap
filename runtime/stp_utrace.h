@@ -16,7 +16,7 @@ enum utrace_events {
 	_UTRACE_EVENT_CLONE,	/* Successful clone/fork/vfork just done.  */
 	_UTRACE_EVENT_EXEC,	/* Successful execve just completed.  */
 	_UTRACE_EVENT_EXIT,	/* Thread exit in progress.  */
-#if 0
+#if 1
 	_UTRACE_EVENT_DEATH,	/* Thread has died.  */
 #endif
 	_UTRACE_EVENT_SYSCALL_ENTRY, /* User entered kernel for system call. */
@@ -41,13 +41,14 @@ enum utrace_events {
 				 | UTRACE_EVENT(SIGNAL_STOP) \
 				 | UTRACE_EVENT(SIGNAL_TERM) \
 				 | UTRACE_EVENT(SIGNAL_CORE))
+#endif
+
 /*
  * Both kinds of syscall events; these call the @report_syscall_entry()
  * and @report_syscall_exit() callbacks, respectively.
  */
 #define UTRACE_EVENT_SYSCALL	\
 	(UTRACE_EVENT(SYSCALL_ENTRY) | UTRACE_EVENT(SYSCALL_EXIT))
-#endif
 
 /*
  * The event reports triggered synchronously by task death.
@@ -321,7 +322,7 @@ static inline void utrace_engine_put(struct utrace_engine *engine)
  *	the engine's @data member.
  */
 struct utrace_engine_ops {
-#if 0
+#if 1
 	u32 (*report_quiesce)(u32 action, struct utrace_engine *engine,
 			      unsigned long event);
 	u32 (*report_signal)(u32 action, struct utrace_engine *engine,
@@ -333,7 +334,7 @@ struct utrace_engine_ops {
 	u32 (*report_clone)(u32 action, struct utrace_engine *engine,
 			    unsigned long clone_flags,
 			    struct task_struct *child);
-#if 0
+#if 1
 	u32 (*report_jctl)(u32 action, struct utrace_engine *engine,
 			   int type, int notify);
 #endif
@@ -347,7 +348,7 @@ struct utrace_engine_ops {
 				   struct pt_regs *regs);
 	u32 (*report_exit)(u32 action, struct utrace_engine *engine,
 			   long code);
-#if 0
+#if 1
 	u32 (*report_death)(struct utrace_engine *engine,
 			    bool group_dead, int signal);
 #endif
