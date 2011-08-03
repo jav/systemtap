@@ -332,6 +332,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
 systemtap_session::~systemtap_session ()
 {
   delete_map(subsessions);
+  delete pattern_root;
 }
 
 #if HAVE_NSS
