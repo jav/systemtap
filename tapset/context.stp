@@ -444,7 +444,9 @@ function probe_type:string()
       break;
     default:
       /* This should never happen. */
-      strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+      snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+               "Unknown probe-type state %d", CONTEXT->probe_type);
+      CONTEXT->last_error = CONTEXT->error_buffer;
       break;
   }
 %}
