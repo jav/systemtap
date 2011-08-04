@@ -2070,7 +2070,7 @@ dwflpp::translate_location(struct obstack *pool,
 
 
 void
-dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
+dwflpp::print_members(Dwarf_Die *vardie, ostream &o, set<string> &dupes)
 {
   const int typetag = dwarf_tag (vardie);
 
@@ -2111,7 +2111,11 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
       const char *member = dwarf_diename (die) ;
 
       if ( tag == DW_TAG_member && member != NULL )
-        o << " " << member;
+        {
+          // Only output if this is new, to avoid inheritance dupes.
+          if (dupes.insert(member).second)
+            o << " " << member;
+        }
       else
         {
           Dwarf_Die temp_die;
@@ -2125,7 +2129,7 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
               return;
             }
 
-          print_members(&temp_die,o);
+          print_members(&temp_die, o, dupes);
         }
 
     }
@@ -2143,42 +2147,55 @@ dwflpp::find_struct_member(const target_symbol::component& c,
   Dwarf_Attribute attr;
   Dwarf_Die die;
 
-  switch (dwarf_child (parentdie, &die))
+  /* With inheritance, a subclass may mask member names of parent classes, so
+   * our search among the inheritance tree must be breadth-first rather than
+   * depth-first (recursive).  The parentdie is still our starting point. */
+  deque<Dwarf_Die> inheritees(1, *parentdie);
+  for (; !inheritees.empty(); inheritees.pop_front())
     {
-    case 0:		/* First child found.  */
-      break;
-    case 1:		/* No children.  */
-      return false;
-    case -1:		/* Error.  */
-    default:		/* Shouldn't happen */
-      throw semantic_error (dwarf_type_name(parentdie) + ": "
-                            + string (dwarf_errmsg (-1)),
-                            c.tok);
-    }
-
-  do
-    {
-      int tag = dwarf_tag(&die);
-      if (tag != DW_TAG_member && tag != DW_TAG_inheritance)
-        continue;
-
-      const char *name = dwarf_diename(&die);
-      if (name == NULL || tag == DW_TAG_inheritance)
+      switch (dwarf_child (&inheritees.front(), &die))
         {
-          // need to recurse for anonymous structs/unions and
-          // for inherited members
-          Dwarf_Die subdie;
-          if (dwarf_attr_die (&die, DW_AT_type, &subdie) &&
-              find_struct_member(c, &subdie, memberdie, dies, locs))
-            goto success;
+        case 0:		/* First child found.  */
+          break;
+        case 1:		/* No children.  */
+          continue;
+        case -1:	/* Error.  */
+        default:	/* Shouldn't happen */
+          throw semantic_error (dwarf_type_name(&inheritees.front()) + ": "
+                                + string (dwarf_errmsg (-1)),
+                                c.tok);
         }
-      else if (name == c.member)
+
+      do
         {
-          *memberdie = die;
-          goto success;
+          int tag = dwarf_tag(&die);
+          if (tag != DW_TAG_member && tag != DW_TAG_inheritance)
+            continue;
+
+          const char *name = dwarf_diename(&die);
+          if (tag == DW_TAG_inheritance)
+            {
+              /* Remember inheritee for breadth-first search. */
+              Dwarf_Die inheritee;
+              if (dwarf_attr_die (&die, DW_AT_type, &inheritee))
+                inheritees.push_back(inheritee);
+            }
+          else if (name == NULL)
+            {
+              /* Need to recurse for anonymous structs/unions. */
+              Dwarf_Die subdie;
+              if (dwarf_attr_die (&die, DW_AT_type, &subdie) &&
+                  find_struct_member(c, &subdie, memberdie, dies, locs))
+                goto success;
+            }
+          else if (name == c.member)
+            {
+              *memberdie = die;
+              goto success;
+            }
         }
+      while (dwarf_siblingof (&die, &die) == 0);
     }
-  while (dwarf_siblingof (&die, &die) == 0);
 
   return false;
 
@@ -2320,7 +2337,8 @@ dwflpp::translate_components(struct obstack *pool,
 
                   string alternatives;
                   stringstream members;
-                  print_members(typedie, members);
+                  set<string> member_dupes;
+                  print_members(typedie, members, member_dupes);
                   if (members.str().size() != 0)
                     alternatives = " (alternatives:" + members.str() + ")";
                   throw semantic_error(_F("unable to find member '%s' for %s%s%s", c.member.c_str(),
@@ -2985,15 +3003,24 @@ dwflpp::build_blacklist()
   blfn += "|unknown_nmi_error";
 
   // Lots of locks
-  blfn += "|.*raw_.*lock.*";
-  blfn += "|.*read_.*lock.*";
-  blfn += "|.*write_.*lock.*";
-  blfn += "|.*spin_.*lock.*";
-  blfn += "|.*rwlock_.*lock.*";
-  blfn += "|.*rwsem_.*lock.*";
+  blfn += "|.*raw_.*_lock.*";
+  blfn += "|.*raw_.*_unlock.*";
+  blfn += "|.*raw_.*_trylock.*";
+  blfn += "|.*read_lock.*";
+  blfn += "|.*read_unlock.*";
+  blfn += "|.*read_trylock.*";
+  blfn += "|.*write_lock.*";
+  blfn += "|.*write_unlock.*";
+  blfn += "|.*write_trylock.*";
+  blfn += "|.*write_seqlock.*";
+  blfn += "|.*write_sequnlock.*";
+  blfn += "|.*spin_lock.*";
+  blfn += "|.*spin_unlock.*";
+  blfn += "|.*spin_trylock.*";
+  blfn += "|.*spin_is_locked.*";
+  blfn += "|rwsem_.*lock.*";
   blfn += "|.*mutex_.*lock.*";
   blfn += "|raw_.*";
-  blfn += "|.*seq_.*lock.*";
 
   // atomic functions
   blfn += "|atomic_.*";

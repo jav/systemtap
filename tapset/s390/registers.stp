@@ -215,7 +215,7 @@ function asmlinkage() %{ /* pure */ %}
 
 function fastcall() %{ /* pure */ %}
 
-function regparm() %{
+function regparm(n:long) %{
 	snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
 		"regparm is invalid on s390.");
 	CONTEXT->last_error = CONTEXT->error_buffer;

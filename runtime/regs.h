@@ -11,6 +11,10 @@
 #ifndef _REGS_H_ /* -*- linux-c -*- */
 #define _REGS_H_
 
+/* Defines for the struct context regsflags field.
+   _STP_REGS_USER regsflags bit to indicate regs fully from user.  */
+#define _STP_REGS_USER_FLAG 1
+
 #if defined  (STAPCONF_X86_UNIREGS) && (defined (__x86_64__) || defined (__i386__))
 
 #define REG_IP(regs) regs->ip

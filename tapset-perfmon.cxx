@@ -131,7 +131,8 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static void handle_perf_probe (unsigned i, struct pt_regs *regs)";
   s.op->newline() << "{";
   s.op->newline(1) << "struct stap_perf_probe* stp = & stap_perf_probes [i];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->probe");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->probe",
+				 "_STP_PROBE_HANDLER_PERF");
   s.op->newline() << "c->regs = regs;";
   // If it was a hardware perf event type then if it occured in user space
   // we can assume the user registers are all given by task_pt_regs.

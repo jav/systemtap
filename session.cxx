@@ -332,6 +332,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
 systemtap_session::~systemtap_session ()
 {
   delete_map(subsessions);
+  delete pattern_root;
 }
 
 #if HAVE_NSS
@@ -528,7 +529,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
   client_options_disallowed = "";
   while (true)
     {
-      int long_opt;
+      int long_opt = 0;
       char * num_endptr;
 
       // NB: when adding new options, consider very carefully whether they
@@ -1230,7 +1231,7 @@ systemtap_session::check_options (int argc, char * const argv [])
   // Abnormal characters in our temp path can break us, including parts out
   // of our control like Kbuild.  Let's enforce nice, safe characters only.
   const char *tmpdir = getenv("TMPDIR");
-  if (tmpdir)
+  if (tmpdir != NULL)
     assert_regexp_match("TMPDIR", tmpdir, "^[-/._0-9a-z]+$");
 }
 
@@ -1346,6 +1347,9 @@ systemtap_session::register_library_aliases()
                                                 comp->functor.c_str()));
                       mn = mn->bind(comp->functor);
                     }
+		  // PR 12916: All probe aliases are OK for unprivileged users. The actual
+		  // referenced probe points will be checked when the alias is resolved.
+		  mn->bind_unprivileged ();
                   mn->bind(new alias_expansion_builder(alias));
                 }
             }

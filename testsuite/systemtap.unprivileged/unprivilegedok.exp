@@ -10,6 +10,7 @@ set valid_probes [list \
   {%(CONFIG_UTRACE=="y" %? process("foo").function("bar") %: end %)} \
   {%(CONFIG_UTRACE=="y" %? process("foo").function("bar").call %: end %)} \
   {%(CONFIG_UTRACE=="y" %? process("foo").function("bar").return %: end %)} \
+  {myalias = %(CONFIG_UTRACE=="y" %? process("foo").function("bar").return %: end %) {} probe myalias} \
 ]
 
 foreach probe $valid_probes {

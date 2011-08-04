@@ -913,67 +913,17 @@ translator_output::line ()
 void
 c_unparser::emit_common_header ()
 {
+  // Common (static atomic) state of the stap session.
   o->newline();
-  o->newline() << "typedef char string_t[MAXSTRINGLEN];";
-  o->newline();
-  o->newline() << "#define STAP_SESSION_STARTING 0";
-  o->newline() << "#define STAP_SESSION_RUNNING 1";
-  o->newline() << "#define STAP_SESSION_ERROR 2";
-  o->newline() << "#define STAP_SESSION_STOPPING 3";
-  o->newline() << "#define STAP_SESSION_STOPPED 4";
-  o->newline() << "static atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
-  o->newline() << "static atomic_t error_count = ATOMIC_INIT (0);";
-  o->newline() << "static atomic_t skipped_count = ATOMIC_INIT (0);";
-  o->newline() << "static atomic_t skipped_count_lowstack = ATOMIC_INIT (0);";
-  o->newline() << "static atomic_t skipped_count_reentrant = ATOMIC_INIT (0);";
-  o->newline() << "static atomic_t skipped_count_uprobe_reg = ATOMIC_INIT (0);";
-  o->newline() << "static atomic_t skipped_count_uprobe_unreg = ATOMIC_INIT (0);";
+  o->newline() << "#include \"common_session_state.h\"";
 
-  // Defines for the regsflags field. Maybe merge with regparm field?
-  // _STP_REGS_USER regsflags bit to indicate regs fully from user.
-  o->newline();
-  o->newline() << "#define _STP_REGS_USER_FLAG 1";
-  o->newline();
-
+  // Per CPU context for probes. Includes common shared state held for
+  // all probes (defined in common_probe_context), the probe locals (union)
+  // and the function locals (union).
   o->newline() << "struct context {";
-  o->newline(1) << "atomic_t busy;";
-  o->newline() << "const char *probe_point;";
-  o->newline() << "const char *probe_name;"; // as per 'stap -l'
-  o->newline() << "int actionremaining;";
-  o->newline() << "int nesting;";
-  o->newline() << "string_t error_buffer;";
-  o->newline() << "#ifdef STAP_NEED_CONTEXT_TOKENIZE";
-  o->newline() << "string_t tok_str;";
-  o->newline() << "char *tok_start;";
-  o->newline() << "char *tok_end;";
-  o->newline() << "#endif";
-  o->newline() << "const char *last_error;";
-  // NB: last_error is used as a health flag within a probe.
-  // While it's 0, execution continues
-  // When it's "something", probe code unwinds, _stp_error's, sets error state
-  o->newline() << "const char *last_stmt;";
-  o->newline() << "struct pt_regs *regs;";
-  o->newline() << "#if defined __ia64__";
-  o->newline() << "unsigned long *unwaddr;";
-  // unwaddr is caching unwound address in each probe handler on ia64.
-  o->newline() << "#endif";
-  o->newline() << "struct kretprobe_instance *pi;";
-  o->newline() << "int pi_longs;"; // int64_t count in pi->data, the rest is string_t
-  o->newline() << "int regflags;"; // status of pt_regs regs field.
-  o->newline() << "int regparm;";
-  o->newline() << "va_list *mark_va_list;";
-  o->newline() << "const char * marker_name;";
-  o->newline() << "const char * marker_format;";
-  o->newline() << "void *data;";
-  o->newline() << "#ifdef STP_OVERLOAD";
-  o->newline() << "cycles_t cycles_base;";
-  o->newline() << "cycles_t cycles_sum;";
-  o->newline() << "#endif";
-  o->newline() << "struct uretprobe_instance *ri;";
 
-  o->newline() << "#if defined(STP_NEED_UNWIND_DATA)";
-  o->newline() << "struct unwind_context uwcontext;";
-  o->newline() << "#endif";
+  // Common state held shared by probes.
+  o->newline(1) << "#include \"common_probe_context.h\"";
 
   // PR10516: probe locals
   o->newline() << "union {";
@@ -5797,63 +5747,14 @@ translate_pass (systemtap_session& s)
       if (ri.recursive) nesting += 10;
 
       // This is at the very top of the file.
+      // All "static" defines (not dependend on session state).
+      s.op->newline() << "#include\"runtime_defines.h\"";
+
       if (! s.unprivileged)
 	s.op->newline() << "#define STP_PRIVILEGED 1";
+
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING " << nesting;
-      s.op->newline() << "#endif";
-
-      // Strings are used for storing backtraces, they are larger on 64bit
-      // so raise the size on 64bit architectures. PR10486
-      s.op->newline() << "#include <asm/types.h>";
-      s.op->newline() << "#ifndef MAXSTRINGLEN";
-      s.op->newline() << "#if BITS_PER_LONG == 32";
-      s.op->newline() << "#define MAXSTRINGLEN 256";
-      s.op->newline() << "#else";
-      s.op->newline() << "#define MAXSTRINGLEN 512";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#endif";
-
-      s.op->newline() << "#ifndef MAXACTION";
-      s.op->newline() << "#define MAXACTION 1000";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXACTION_INTERRUPTIBLE";
-      s.op->newline() << "#define MAXACTION_INTERRUPTIBLE (MAXACTION * 10)";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef TRYLOCKDELAY";
-      s.op->newline() << "#define TRYLOCKDELAY 10 /* microseconds */";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXTRYLOCK";
-      s.op->newline() << "#define MAXTRYLOCK 100 /* 1 millisecond total */";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXMAPENTRIES";
-      s.op->newline() << "#define MAXMAPENTRIES 2048";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXERRORS";
-      s.op->newline() << "#define MAXERRORS 0";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXSKIPPED";
-      s.op->newline() << "#define MAXSKIPPED 100";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MINSTACKSPACE";
-      s.op->newline() << "#define MINSTACKSPACE 1024";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef INTERRUPTIBLE";
-      s.op->newline() << "#define INTERRUPTIBLE 1";
-      s.op->newline() << "#endif";
-
-      // Overload processing
-      s.op->newline() << "#ifndef STP_OVERLOAD_INTERVAL";
-      s.op->newline() << "#define STP_OVERLOAD_INTERVAL 1000000000LL";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef STP_OVERLOAD_THRESHOLD";
-      s.op->newline() << "#define STP_OVERLOAD_THRESHOLD 500000000LL";
-      s.op->newline() << "#endif";
-      // We allow the user to completely turn overload processing off
-      // (as opposed to tuning it by overriding the values above) by
-      // running:  stap -DSTP_NO_OVERLOAD {other options}
-      s.op->newline() << "#if !defined(STP_NO_OVERLOAD) && !defined(STAP_NO_OVERLOAD)";
-      s.op->newline() << "#define STP_OVERLOAD";
       s.op->newline() << "#endif";
 
       s.op->newline() << "#define STP_SKIP_BADVARS " << (s.skip_badvars ? 1 : 0);

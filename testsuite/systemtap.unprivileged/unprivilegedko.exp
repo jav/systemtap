@@ -7,15 +7,18 @@ set invalid_probes [list \
   {module("*scsi*").function("*") {}} \
   {kernel.mark("*") {}} \
   {kernel.mark("*").format("*") {}} \
+  {syscall.open {}} \
+  {myalias = syscall.open {} probe myalias {}} \
 ]
 
-set error_regexp ".*semantic error: probe point is not allowed for unprivileged users.*"
+set error_regexp1 ".*semantic error: probe point is not allowed for unprivileged users.*"
+set error_regexp2 ".*semantic error: no match while resolving probe point syscall.open.*"
 foreach probe $invalid_probes {
     set cmd [list stap --unprivileged -p2 -e "probe $probe" ]
     verbose -log "eval exec $cmd"
     catch {eval exec $cmd} res_stap
     verbose -log $res_stap
-    if {[regexp $error_regexp $res_stap]} {
+    if {[regexp $error_regexp1 $res_stap] || [regexp $error_regexp2 $res_stap]} {
 	pass "$test: $probe"
     } else {
 	fail "$test: $probe"

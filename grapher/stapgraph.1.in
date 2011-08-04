@@ -82,7 +82,7 @@ displayed pause button restarts the display of new data.
 The scroll wheel can be used to zoom in and out on the graph.
 
 .SH SCRIPT OUTPUT SYNTAX
-Scripts can output  Comma Seperated Values (CSV) which will be interpreted by
+Scripts can output  Comma Separated Values (CSV) which will be interpreted by
 .IR stapgraph.
 The first value is the X coordinate of the graph, usually a time value.
 .IR stapgraph

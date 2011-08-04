@@ -3010,7 +3010,7 @@ static int __access_process_vm(struct task_struct *tsk, unsigned long addr, void
 		return 0;
 
 	down_read(&mm->mmap_sem);
-	/* ignore errors, just check how much was sucessfully transfered */
+	/* ignore errors, just check how much was successfully transfered */
 	while (len) {
 		int bytes, ret, offset;
 		void *maddr;

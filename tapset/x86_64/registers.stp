@@ -1,3 +1,10 @@
+%{
+/* Set to include regparm field in probe context in translate.cxx. */
+#ifndef STAP_NEED_REGPARM
+#define STAP_NEED_REGPARM 1
+#endif
+%}
+
 global _reg_offsets, _r32_offsets, _stp_regs_registered
 
 function _stp_register_regs() {

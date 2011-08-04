@@ -367,7 +367,8 @@ private:
                                   Dwarf_Addr address);
 
   void print_locals(std::vector<Dwarf_Die>& scopes, std::ostream &o);
-  void print_members(Dwarf_Die *vardie, std::ostream &o);
+  void print_members(Dwarf_Die *vardie, std::ostream &o,
+                     std::set<std::string> &dupes);
 
   Dwarf_Attribute *find_variable_and_frame_base (std::vector<Dwarf_Die>& scopes,
                                                  Dwarf_Addr pc,

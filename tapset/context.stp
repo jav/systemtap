@@ -257,7 +257,8 @@ function user_mode:long ()
  */
 function is_return:long ()
 %{ /* pure */
-	if (CONTEXT->pi)
+	if (CONTEXT->probe_type == _STP_PROBE_HANDLER_KRETPROBE
+	    || CONTEXT->probe_type == _STP_PROBE_HANDLER_URETPROBE)
 		THIS->__retvalue = 1;
 	else
 		THIS->__retvalue = 0;
@@ -362,7 +363,7 @@ function addr:long ()
  * isn't a user space thread, or the address cannot be found, zero
  * is returned. Can be used to see where the current task is combined
  * with usymname() or symdata(). Often the task will be in the VDSO
- * where it entered the kernel. FIXME - need VDSO tracking support #10080.
+ * where it entered the kernel.
  */
 function uaddr:long ()
 %{ /* pure */ /* myproc-unprivileged */
@@ -375,6 +376,79 @@ function uaddr:long ()
         addr = (int64_t) REG_IP(uregs);
     }
   THIS->__retvalue = addr;
+%}
+
+
+/**
+ * sfunction probe_type - The low level probe handler type of the current probe.
+ *
+ * Description: Returns a short string describing the low level probe handler
+ * type for the current probe point. This is for informational purposes only.
+ * Depending on the low level probe handler different context functions can
+ * or cannot provide information about the current event (for example some
+ * probe handlers only trigger in user space and have no associated kernel
+ * context). High-level probes might map to the same or different low-level
+ * probes (depending on systemtap version and/or kernel used).
+ */
+function probe_type:string()
+%{ /* pure */ /* unprivileged */
+  switch (CONTEXT->probe_type)
+  {
+    case _STP_PROBE_HANDLER_BEEN:
+      strlcpy (THIS->__retvalue, "begin_end", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_ITRACE:
+      strlcpy (THIS->__retvalue, "itrace", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_MARKER:
+      strlcpy (THIS->__retvalue, "kernel_marker", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_PERF:
+      strlcpy (THIS->__retvalue, "perf_event", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_PROCFS:
+      strlcpy (THIS->__retvalue, "procfs", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_TIMER:
+      strlcpy (THIS->__retvalue, "timer", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_HRTIMER:
+      strlcpy (THIS->__retvalue, "hrtimer", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_PROFILE_TIMER:
+      strlcpy (THIS->__retvalue, "profile_timer", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_UTRACE:
+      strlcpy (THIS->__retvalue, "utrace", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_UTRACE_SYSCALL:
+      strlcpy (THIS->__retvalue, "utrace_syscall", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_KPROBE:
+      strlcpy (THIS->__retvalue, "kprobe", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_KRETPROBE:
+      strlcpy (THIS->__retvalue, "kretprobe", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_UPROBE:
+      strlcpy (THIS->__retvalue, "uprobe", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_URETPROBE:
+      strlcpy (THIS->__retvalue, "uretprobe", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_HWBKPT:
+      strlcpy (THIS->__retvalue, "hardware_data_breakpoint", MAXSTRINGLEN);
+      break;
+    case _STP_PROBE_HANDLER_TRACEPOINT:
+      strlcpy (THIS->__retvalue, "kernel_tracepoint", MAXSTRINGLEN);
+      break;
+    default:
+      /* This should never happen. */
+      snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+               "Unknown probe-type state %d", CONTEXT->probe_type);
+      CONTEXT->last_error = CONTEXT->error_buffer;
+      break;
+  }
 %}
 
 /**

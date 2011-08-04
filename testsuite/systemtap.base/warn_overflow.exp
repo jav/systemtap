@@ -23,7 +23,9 @@ expect {
     eof { }
 }
 wait
-if {$ok == 3 && $warn == 3} {
+# There can be more than 3 "too many pending" messages in case
+# stap recovered quick enough and then overflowed again.
+if {$ok == 3 && $warn >= 3} {
     pass "$test ($ok,$warn)"
 } {
     fail "$test ($ok,$warn)"

@@ -175,7 +175,7 @@ parse_options (int argc, char **argv)
   // parse all options in order to discover the ones we're interested in.
   while (true)
     {
-      int long_opt;
+      int long_opt = 0;
       char *num_endptr;
 #define LONG_OPT_PORT 1
 #define LONG_OPT_SSL 2

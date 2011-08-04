@@ -9,5 +9,6 @@ stapgraph_CPPFLAGS = -DPKGDATADIR='"${pkgdatadir}"'
 stapgraph_CXXFLAGS = $(libglade_CFLAGS) -Wall -Werror
 stapgraph_SOURCES = grapher.cxx StapParser.cxx Graph.cxx GraphWidget.cxx CairoWidget.cxx GraphStyle.cxx
 stapgraph_LDADD = $(libglade_LIBS)
+stapgraph_LDFLAGS = -Wl,--as-needed
 dist_pkgdata_DATA = graph-dialog.glade stap-start.glade processwindow.glade
 endif
