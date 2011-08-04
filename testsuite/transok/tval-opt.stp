@@ -3,7 +3,7 @@
 set -e
 set -o pipefail
 
-script='probe kernel.function("do_filp_open") { if ($mode==50) $mode=49 next }'
+script='probe kernel.function("do_filp_open") { if ($dfd==50) $dfd=49 next }'
 s1=`stap -p3 -g    -e "$script" | sum`
 s2=`stap -p3 -g -u -e "$script" | sum`
 
