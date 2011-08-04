@@ -1,7 +1,7 @@
 " Vim filetype plugin file
 " Language:	SystemTap
-" Maintainer:	Josh Stone <joshua.i.stone@intel.com>
-" Last Change:	2005 Dec 15
+" Maintainer:	SystemTap Developers <systemtap@sourceware.org>
+" Last Change:	2011 Aug 4
 
 " Only do this when not done yet for this buffer
 if exists("b:did_ftplugin")

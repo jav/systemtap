@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language:     SystemTap
-" Maintainer:   Josh Stone <joshua.i.stone@intel.com>
-" Last Change:  2008 Apr 17
+" Maintainer:   SystemTap Developers <systemtap@sourceware.org>
+" Last Change:  2011 Aug 4
 
 " For version 5.x: Clear all syntax items
 " For version 6.x: Quit when a syntax file was already loaded
