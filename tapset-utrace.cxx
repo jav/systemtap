@@ -769,13 +769,29 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
     // stops the thread, that works around bug 6841.
     case UDPF_SYSCALL:
       s.op->line() << " .flags=(UDPF_SYSCALL),";
+      s.op->newline() << "#ifdef STP_TASK_FINDER2";
+      s.op->newline();
+      s.op->line() << " .ops={ .report_syscall_entry=stap_utrace_probe_syscall,  .report_exit=stap_utrace_task_finder_report_exit },";
+      s.op->line() << " .events=(UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(EXIT)),";
+      s.op->newline() << "#else";
+      s.op->newline();
       s.op->line() << " .ops={ .report_syscall_entry=stap_utrace_probe_syscall,  .report_death=stap_utrace_task_finder_report_death },";
       s.op->line() << " .events=(UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(DEATH)),";
+      s.op->newline() << "#endif";
+      s.op->newline();
       break;
     case UDPF_SYSCALL_RETURN:
       s.op->line() << " .flags=(UDPF_SYSCALL_RETURN),";
+      s.op->newline() << "#ifdef STP_TASK_FINDER2";
+      s.op->newline();
+      s.op->line() << " .ops={ .report_syscall_exit=stap_utrace_probe_syscall, .report_exit=stap_utrace_task_finder_report_exit },";
+      s.op->line() << " .events=(UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(EXIT)),";
+      s.op->newline() << "#else";
+      s.op->newline();
       s.op->line() << " .ops={ .report_syscall_exit=stap_utrace_probe_syscall, .report_death=stap_utrace_task_finder_report_death },";
       s.op->line() << " .events=(UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH)),";
+      s.op->newline() << "#endif";
+      s.op->newline();
       break;
 
     case UDPF_NONE:
@@ -849,7 +865,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "#ifdef UTRACE_ORIG_VERSION";
       s.op->newline() << "static u32 stap_utrace_probe_syscall(struct utrace_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
       s.op->newline() << "#else";
-      s.op->newline() << "#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)";
+      s.op->newline() << "#if (defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)) || defined(STP_TASK_FINDER2)";
       s.op->newline() << "static u32 stap_utrace_probe_syscall(u32 action, struct utrace_engine *engine, struct pt_regs *regs) {";
       s.op->newline() << "#else";
       s.op->newline() << "static u32 stap_utrace_probe_syscall(enum utrace_resume_action action, struct utrace_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";

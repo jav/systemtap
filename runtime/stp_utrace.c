@@ -31,7 +31,7 @@
 #if 0
 #include <linux/seq_file.h>
 #endif
-#include <linux/kprobes.h>
+#include <linux/ftrace.h>
 #include <linux/spinlock.h>
 #include <trace/events/sched.h>
 #include <trace/events/syscalls.h>
@@ -107,10 +107,12 @@ static void utrace_report_syscall_entry(void *cb_data __attribute__ ((unused)),
 static void utrace_report_syscall_exit(void *cb_data __attribute__ ((unused)),
 				       struct pt_regs *regs, long ret);
 
-static int utrace_report_exec(struct kprobe *p, struct pt_regs *regs);
-// "perf_event_comm" was too early...
-static struct kprobe utrace_exec_kp = { .symbol_name="proc_exec_connector",
-					.pre_handler=utrace_report_exec };
+static void utrace_report_exec(unsigned long ip, unsigned long parent_ip);
+
+static struct ftrace_ops utrace_report_exec_ops __read_mostly =
+{
+    .func = utrace_report_exec,
+};
 
 #define __UTRACE_UNREGISTERED	0
 #define __UTRACE_REGISTERED	1
@@ -120,6 +122,7 @@ int /* __init */ utrace_init(void)
 {
 	int i;
 	int rc = -1;
+	char *report_exec_name;
 
 	/* initialize the list heads */
 	for (i = 0; i < TASK_UTRACE_TABLE_SIZE; i++) {
@@ -154,9 +157,12 @@ int /* __init */ utrace_init(void)
 		goto error4;
 	}
 
-	rc = register_kprobe(&utrace_exec_kp);
+	report_exec_name = "*" __stringify(proc_exec_connector);
+	ftrace_set_filter(&utrace_report_exec_ops, report_exec_name,
+			  strlen(report_exec_name), 1);
+	rc = register_ftrace_function(&utrace_report_exec_ops);
 	if (unlikely(rc != 0)) {
-		_stp_error("register_kprobe failed: %d", rc);
+		_stp_error("register_ftrace_function failed: %d", rc);
 		goto error5;
 	}
 
@@ -239,7 +245,7 @@ void utrace_shutdown(void)
 #ifdef STP_TF_DEBUG
 	printk(KERN_ERR "%s:%d entry\n", __FUNCTION__, __LINE__);
 #endif
-	unregister_kprobe(&utrace_exec_kp);
+	unregister_ftrace_function(&utrace_report_exec_ops);
 	unregister_trace_sched_process_fork(utrace_report_clone, NULL);
 	unregister_trace_sched_process_exit(utrace_report_exit, NULL);
 	unregister_trace_sys_enter(utrace_report_syscall_entry, NULL);
@@ -1831,7 +1837,7 @@ static const struct utrace_engine_ops *start_callback(
  */
 //void utrace_report_exec(struct linux_binfmt *fmt, struct linux_binprm *bprm,
 //			struct pt_regs *regs)
-static int utrace_report_exec(struct kprobe *p, struct pt_regs *regs)
+static void utrace_report_exec(unsigned long ip, unsigned long parent_ip)
 {
 	struct task_struct *task = current;
 	struct utrace *utrace = task_utrace_struct(task);
@@ -1839,10 +1845,10 @@ static int utrace_report_exec(struct kprobe *p, struct pt_regs *regs)
 	if (utrace && utrace->utrace_flags & UTRACE_EVENT(EXEC)) {
 		INIT_REPORT(report);
 
+		/* FIXME: Hmm, can we get regs another way? */
 		REPORT(task, utrace, &report, UTRACE_EVENT(EXEC),
-		       report_exec, NULL, NULL, regs);
+		       report_exec, NULL, NULL, NULL /* regs */);
 	}
-	return 0;
 }
 
 #if 0

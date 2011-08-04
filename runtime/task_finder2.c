@@ -14,8 +14,6 @@
 
 static LIST_HEAD(__stp_task_finder_list);
 
-static void *path_percpu = NULL;
-
 struct stap_task_finder_target;
 
 #define __STP_TF_UNITIALIZED	0
@@ -749,7 +747,9 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 	struct stap_task_finder_target *tgt;
 	uid_t tsk_euid;
 
+#if 0
 	printk(KERN_ERR "%s:%d entry\n", __FUNCTION__, __LINE__);
+#endif
 #ifdef STAPCONF_TASK_UID
 	tsk_euid = tsk->euid;
 #else
@@ -866,7 +866,9 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	char *mmpath_buf;
 	char *mmpath;
 
+#if 0
 	printk(KERN_ERR "%s:%d entry\n", __FUNCTION__, __LINE__);
+#endif
 	if (path_tsk == NULL || path_tsk->pid <= 0
 	    || match_tsk == NULL || match_tsk->pid <= 0)
 		return;
@@ -880,11 +882,7 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	}
 
 	// Allocate space for a path
-#if 0
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
-#else
-	mmpath_buf = per_cpu_ptr(path_percpu, smp_processor_id());
-#endif
 	if (mmpath_buf == NULL) {
 		mmput(mm);
 		_stp_error("Unable to allocate space for path");
@@ -901,16 +899,16 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 				   rc, (int)path_tsk->pid);
 	}
 	else {
+#if 0
 		_stp_dbug(__FUNCTION__, __LINE__,
 			  "calling __stp_utrace_attach_match_filename(%p, %s, %d, %d)\n",
 			  match_tsk, mmpath, register_p, process_p);
+#endif
 		__stp_utrace_attach_match_filename(match_tsk, mmpath,
 						   register_p, process_p);
 	}
 
-#if 0
 	_stp_kfree(mmpath_buf);
-#endif
 	return;
 }
 
@@ -922,7 +920,9 @@ __stp_utrace_task_finder_report_clone(u32 action,
 {
 	int rc;
 
+#if 0
 	printk(KERN_ERR "%s:%d entry\n", __FUNCTION__, __LINE__);
+#endif
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
 		return UTRACE_DETACH;
@@ -970,9 +970,11 @@ __stp_utrace_task_finder_report_exec(u32 action,
 	// We assume that all exec's are exec'ing a new process.  Note
 	// that we don't use bprm->filename, since that path can be
 	// relative.
+#if 0
 	_stp_dbug(__FUNCTION__, __LINE__,
 		  "calling __stp_utrace_attach_match_tsk(%p, %p, 1, 1)\n",
 		  current, current);
+#endif
 	__stp_utrace_attach_match_tsk(current, current, 1, 1);
 
 	__stp_tf_handler_end();
@@ -1411,21 +1413,11 @@ stap_start_task_finder(void)
 
 	utrace_init();
 
-	path_percpu = _stp_alloc_percpu(PATH_MAX);
-	if (path_percpu == NULL) {
-		_stp_error("Unable to allocate space for paths");
-		return ENOMEM;
-	}
-
-#if 0
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
 	if (mmpath_buf == NULL) {
 		_stp_error("Unable to allocate space for path");
 		return ENOMEM;
 	}
-#else
-	mmpath_buf = per_cpu_ptr(path_percpu, smp_processor_id());
-#endif
 
 #ifdef STP_TF_MAP
         __stp_tf_map_initialize();
@@ -1579,7 +1571,7 @@ stap_start_task_finder(void)
 	} while_each_thread(grp, tsk);
 stf_err:
 	rcu_read_unlock();
-//	_stp_kfree(mmpath_buf);
+	_stp_kfree(mmpath_buf);
 	debug_task_finder_report(); // report at end for utrace engine counting
 	return rc;
 }
@@ -1623,8 +1615,6 @@ stap_stop_task_finder(void)
 	debug_task_finder_report();
 #endif
 
-	if (likely(path_percpu))
-		_stp_free_percpu(path_percpu);
 	utrace_exit();
 }
 
