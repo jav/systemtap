@@ -12,6 +12,7 @@
 #include "dwarf_wrappers.h"
 #include "dwflpp.h"
 #include "session.h"
+#include "util.h"
 
 #include <algorithm>
 #include <iostream>
@@ -23,6 +24,7 @@
 extern "C" {
 #include <fnmatch.h>
 #include <stdlib.h>
+#include <assert.h>
 }
 
 // XXX: also consider adding $HOME/.debug/ for perf build-id-cache
@@ -37,6 +39,15 @@ static const char *debuginfo_usr_path_arr = "+:.debug:/usr/lib/debug:/var/cache/
 static const char *debuginfo_usr_path = (debuginfo_env_arr
 					 ?: debuginfo_usr_path_arr);
 
+// A pointer to the current systemtap session for use only by a few
+// dwfl calls. DO NOT rely on this, as it is cleared after use.
+// This is a kludge.
+static systemtap_session* current_session_for_find_debuginfo;
+
+// The path to the abrt-action-install-debuginfo-to-abrt-cache
+// program.
+#define ABRT_PATH "/usr/bin/abrt-action-install-debuginfo-to-abrt-cache"
+
 static const Dwfl_Callbacks kernel_callbacks =
   {
     dwfl_linux_kernel_find_elf,
@@ -48,7 +59,7 @@ static const Dwfl_Callbacks kernel_callbacks =
 static const Dwfl_Callbacks user_callbacks =
   {
     NULL,
-    dwfl_standard_find_debuginfo,
+    internal_find_debuginfo,
     NULL, /* ET_REL not supported for user space, only ET_EXEC and ET_DYN.
 	     dwfl_offline_section_address, */
     (char **) & debuginfo_usr_path
@@ -402,7 +413,7 @@ setup_dwfl_user(const std::string &name)
 DwflPtr
 setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
 		const std::vector<std::string>::const_iterator &end,
-		bool all_needed)
+		bool all_needed, systemtap_session &s)
 {
   // See if we have this dwfl already cached
   set<string> modset(begin, end);
@@ -411,6 +422,7 @@ setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
 
   user_modset = modset;
 
+  current_session_for_find_debuginfo = &s;
   Dwfl *dwfl = dwfl_begin (&user_callbacks);
   dwfl_assert("dwfl_begin", dwfl);
   dwfl_report_begin (dwfl);
@@ -440,4 +452,84 @@ bool
 is_user_module(const std::string &m)
 {
   return m[0] == '/' && m.rfind(".ko", m.length() - 1) != m.length() - 3;
+}
+
+int
+internal_find_debuginfo (Dwfl_Module *mod,
+      void **userdata __attribute__ ((unused)),
+      const char *modname __attribute__ ((unused)),
+      GElf_Addr base __attribute__ ((unused)),
+      const char *file_name,
+      const char *debuglink_file,
+      GElf_Word debuglink_crc,
+      char **debuginfo_file_name)
+{
+  /* To Keep track of whether the abrt successfully installed the debuginfo */
+  static int install_dbinfo_failed = 0;
+
+  /* Make sure the current session variable is not null */
+  assert(current_session_for_find_debuginfo != NULL);
+
+  /* Check that we haven't already run this */
+  if (install_dbinfo_failed < 0)
+    {
+      if(current_session_for_find_debuginfo->verbose > 1)
+        clog << _F("We already tried running '%s'", ABRT_PATH) << endl;
+      return -1;
+    }
+
+  /* Extract the build ID */
+  const unsigned char *bits;
+  GElf_Addr vaddr;
+  if(current_session_for_find_debuginfo->verbose > 2)
+    clog << _("Extracting build ID.") << endl;
+  int bits_length = dwfl_module_build_id(mod, &bits, &vaddr);
+
+  /* Convert the binary bits to a hex string */
+    string hex = hex_dump(bits, bits_length);
+
+  /* Search for the debuginfo with the build ID */
+  if(current_session_for_find_debuginfo->verbose > 2)
+    clog << _F("Searching for debuginfo with build ID: '%s'.", hex.c_str()) << endl;
+  if (bits_length > 0)
+    {
+      int fd = dwfl_build_id_find_debuginfo(mod,
+             NULL, NULL, 0,
+             NULL, NULL, 0,
+             debuginfo_file_name);
+      if (fd >= 0)
+        return fd;
+    }
+
+  /* The above failed, so call abrt-action-install-debuginfo-to-abrt-cache
+  to download and install the debuginfo */
+  if(current_session_for_find_debuginfo->verbose > 1)
+    clog << _F("Downloading and installing debuginfo with build ID: '%s' using %s.", hex.c_str(), ABRT_PATH) << endl;
+  if(execute_abrt_action_install_debuginfo_to_abrt_cache (hex) < 0)
+    {
+      install_dbinfo_failed = -1;
+      if (!current_session_for_find_debuginfo->suppress_warnings)
+        current_session_for_find_debuginfo->print_warning(ABRT_PATH " failed");
+    }
+
+  /* Call the original dwfl_standard_find_debuginfo */
+  return dwfl_standard_find_debuginfo(mod, userdata, modname, base,
+              file_name, debuglink_file,
+              debuglink_crc, debuginfo_file_name);
+
+}
+
+int
+execute_abrt_action_install_debuginfo_to_abrt_cache (string hex)
+{
+  /* Check that abrt exists */
+  if(access (ABRT_PATH, X_OK) < 0)
+      return -1;
+
+  /* Execute abrt-action-install-debuginfo-to-abrt-cache */
+  vector<string> cmd;
+  cmd.push_back ("/bin/sh");
+  cmd.push_back ("-c");
+  cmd.push_back ("echo " + hex + " | " + ABRT_PATH + " -y --ids=-");
+  return stap_system (current_session_for_find_debuginfo->verbose, cmd, true, false);
 }
