@@ -1534,8 +1534,14 @@ void add_global_var_display (systemtap_session& s)
 	  for (int i=0; i < idx_count; i++)
 	    {
 	      char *idx_name;
-	      if (asprintf (&idx_name, "idx%d", i) < 0)
-		return;
+	      if (asprintf (&idx_name, "idx%d", i) < 0) {
+               delete pf;
+               delete b;
+               delete p;
+               delete g_sym;
+               delete fe;
+               return;
+	      }
 	      idx_sym[i] = new symbol;
 	      idx_sym[i]->name = idx_name;
 	      idx_sym[i]->tok = l->tok;
