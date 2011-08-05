@@ -1,11 +1,18 @@
 #ifndef TASK_FINDER_C
 #define TASK_FINDER_C
 
+#define STP_TASK_FINDER2
+
 #if ! defined(CONFIG_UTRACE)
+
+#ifdef STP_TASK_FINDER2
+#include "task_finder2.c"
+#else
 /* Dummy definitions for use in sym.c */
 struct stap_task_finder_target { };
 static int stap_start_task_finder(void) { return 0; }
 static void stap_stop_task_finder(void) { }
+#endif
 
 #else  /* defined(CONFIG_UTRACE) */
 

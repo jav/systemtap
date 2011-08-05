@@ -6259,8 +6259,12 @@ dwarf_builder::build(systemtap_session & sess,
       else
 	module_name = user_path; // canonicalize it
 
+      // FIXME: Hmm, how to test for the new utrace?
+#if 0
       if (sess.kernel_config["CONFIG_UTRACE"] != string("y"))
+
         throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE"));
+#endif
 
       // user-space target; we use one dwflpp instance per module name
       // (= program or shared library)

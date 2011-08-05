@@ -17,12 +17,12 @@ proc use_server_p {} {
 
 
 proc utrace_p {} {
+    # FIXME: Is this the best way to test for 'utrace' in the new world?
     set path "/proc/kallsyms"
-    if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+    if {! [catch {exec grep -q utrace_attach $path} dummy] || (! [catch {exec grep -q sched_process_exit $path} dummy] && ! [catch {exec grep -q ftrace_set_filter $path} dummy]) } {
         return 1
-    } else {
-        return 0
     }
+    return 0
 }
 
 

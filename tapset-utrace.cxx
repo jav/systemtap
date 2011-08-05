@@ -124,8 +124,11 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
   has_path(hp), path(pn), pid(pd), flags(f),
   target_symbol_seen(false)
 {
+    // FIXME: How to test for new utrace?
+#if 0
   if (s.kernel_config["CONFIG_UTRACE"] != string("y"))
     throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE"));
+#endif
 
   // Expand local variables in the probe body
   utrace_var_expanding_visitor v (s, l, name, flags);
