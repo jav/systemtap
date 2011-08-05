@@ -1638,7 +1638,7 @@ c_unparser::emit_probe (derived_probe* v)
       // NB: Elision of context variable structs is a separate
       // operation which has already taken place by now.
       if (session->verbose > 1)
-        clog << _F("%s elided, duplicates %s", v->name.c_str(), dupe.c_str());
+        clog << _F("%s elided, duplicates %s\n", v->name.c_str(), dupe.c_str());
 
 #if DUPMETHOD_CALL
       // This one emits a direct call to the first copy.
