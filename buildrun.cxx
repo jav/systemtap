@@ -228,6 +228,8 @@ compile_pass (systemtap_session& s)
   output_exportconf(s, o, "add_timer_on", "STAPCONF_ADD_TIMER_ON");
 
   output_autoconf(s, o, "autoconf-probe-kernel.c", "STAPCONF_PROBE_KERNEL", NULL);
+  output_autoconf(s, o, "autoconf-hw_breakpoint_context.c",
+		  "STAPCONF_HW_BREAKPOINT_CONTEXT", NULL);
   output_autoconf(s, o, "autoconf-save-stack-trace.c",
                   "STAPCONF_KERNEL_STACKTRACE", NULL);
   output_autoconf(s, o, "autoconf-asm-syscall.c",
