@@ -91,10 +91,19 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
   /* declarations */
   s.op->newline() << "static void handle_perf_probe (unsigned i, struct pt_regs *regs);";
   for (unsigned i=0; i < probes.size(); i++)
-    s.op->newline() << "static void enter_perf_probe_" << i
-                    << " (struct perf_event *e, int nmi, "
-                    << "struct perf_sample_data *data, "
-                    << "struct pt_regs *regs);";
+    {
+      s.op->newline() << "#ifdef STAPCONF_PERF_HANDLER_NMI";
+      s.op->newline() << "static void enter_perf_probe_" << i
+                      << " (struct perf_event *e, int nmi, "
+                      << "struct perf_sample_data *data, "
+                      << "struct pt_regs *regs);";
+      s.op->newline() << "#else";
+      s.op->newline() << "static void enter_perf_probe_" << i
+                      << " (struct perf_event *e, "
+                      << "struct perf_sample_data *data, "
+                      << "struct pt_regs *regs);";
+      s.op->newline() << "#endif";
+    }
   s.op->newline();
 
   /* data structures */
@@ -118,10 +127,17 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
   /* wrapper functions */
   for (unsigned i=0; i < probes.size(); i++)
     {
+      s.op->newline() << "#ifdef STAPCONF_PERF_HANDLER_NMI";
       s.op->newline() << "static void enter_perf_probe_" << i
                       << " (struct perf_event *e, int nmi, "
                       << "struct perf_sample_data *data, "
                       << "struct pt_regs *regs)";
+      s.op->newline() << "#else";
+      s.op->newline() << "static void enter_perf_probe_" << i
+                      << " (struct perf_event *e, "
+                      << "struct perf_sample_data *data, "
+                      << "struct pt_regs *regs)";
+      s.op->newline() << "#endif";
       s.op->newline() << "{";
       s.op->newline(1) << "handle_perf_probe(" << i << ", regs);";
       s.op->newline(-1) << "}";

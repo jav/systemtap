@@ -244,6 +244,10 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-mm-context-vdso.c", "STAPCONF_MM_CONTEXT_VDSO", NULL);
   output_autoconf(s, o, "autoconf-blk-types.c", "STAPCONF_BLK_TYPES", NULL);
   output_autoconf(s, o, "autoconf-perf-structpid.c", "STAPCONF_PERF_STRUCTPID", NULL);
+  output_autoconf(s, o, "perf_event_counter_context.c",
+		  "STAPCONF_PERF_COUNTER_CONTEXT", NULL);
+  output_autoconf(s, o, "perf_probe_handler_nmi.c",
+		  "STAPCONF_PERF_HANDLER_NMI", NULL);
   output_autoconf(s, o, "autoconf-kern-path-parent.c",
 		  "STAPCONF_KERN_PATH_PARENT", NULL);
 
