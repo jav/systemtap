@@ -464,19 +464,21 @@ internal_find_debuginfo (Dwfl_Module *mod,
       GElf_Word debuglink_crc,
       char **debuginfo_file_name)
 {
+  int bits_length;
+  string hex;
   /* To Keep track of whether the abrt successfully installed the debuginfo */
   static int install_dbinfo_failed = 0;
 
   /* Make sure the current session variable is not null */
   if(current_session_for_find_debuginfo == NULL)
-    return -1;
+    goto call_dwfl_standard_find_debuginfo;
 
   /* Check that we haven't already run this */
   if (install_dbinfo_failed < 0)
     {
       if(current_session_for_find_debuginfo->verbose > 1)
         clog << _F("We already tried running '%s'", ABRT_PATH) << endl;
-      return -1;
+      goto call_dwfl_standard_find_debuginfo;
     }
 
   /* Extract the build ID */
@@ -484,10 +486,10 @@ internal_find_debuginfo (Dwfl_Module *mod,
   GElf_Addr vaddr;
   if(current_session_for_find_debuginfo->verbose > 2)
     clog << _("Extracting build ID.") << endl;
-  int bits_length = dwfl_module_build_id(mod, &bits, &vaddr);
+  bits_length = dwfl_module_build_id(mod, &bits, &vaddr);
 
   /* Convert the binary bits to a hex string */
-    string hex = hex_dump(bits, bits_length);
+  hex = hex_dump(bits, bits_length);
 
   /* Search for the debuginfo with the build ID */
   if(current_session_for_find_debuginfo->verbose > 2)
@@ -512,6 +514,8 @@ internal_find_debuginfo (Dwfl_Module *mod,
       if (!current_session_for_find_debuginfo->suppress_warnings)
         current_session_for_find_debuginfo->print_warning(ABRT_PATH " failed");
     }
+
+  call_dwfl_standard_find_debuginfo:
 
   /* Call the original dwfl_standard_find_debuginfo */
   return dwfl_standard_find_debuginfo(mod, userdata, modname, base,
