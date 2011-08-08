@@ -415,6 +415,7 @@ setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
 		const std::vector<std::string>::const_iterator &end,
 		bool all_needed, systemtap_session &s)
 {
+  current_session_for_find_debuginfo = &s;
   // See if we have this dwfl already cached
   set<string> modset(begin, end);
   if (user_dwfl != NULL && modset == user_modset)
@@ -422,7 +423,6 @@ setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
 
   user_modset = modset;
 
-  current_session_for_find_debuginfo = &s;
   Dwfl *dwfl = dwfl_begin (&user_callbacks);
   dwfl_assert("dwfl_begin", dwfl);
   dwfl_report_begin (dwfl);
@@ -468,7 +468,8 @@ internal_find_debuginfo (Dwfl_Module *mod,
   static int install_dbinfo_failed = 0;
 
   /* Make sure the current session variable is not null */
-  assert(current_session_for_find_debuginfo != NULL);
+  if(current_session_for_find_debuginfo == NULL)
+    return -1;
 
   /* Check that we haven't already run this */
   if (install_dbinfo_failed < 0)
