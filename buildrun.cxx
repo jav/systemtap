@@ -251,6 +251,10 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-kern-path-parent.c",
 		  "STAPCONF_KERN_PATH_PARENT", NULL);
 
+  // used by tapset/timestamp_monotonic.stp
+  output_exportconf(s, o, "cpu_clock", "STAPCONF_CPU_CLOCK");
+  output_exportconf(s, o, "local_clock", "STAPCONF_LOCAL_CLOCK");
+
   o << module_cflags << " += -include $(STAPCONF_HEADER)" << endl;
 
   for (unsigned i=0; i<s.macros.size(); i++)
