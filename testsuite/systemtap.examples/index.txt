@@ -1,6 +1,18 @@
 SYSTEMTAP EXAMPLES INDEX
 (see also keyword-index.txt)
 
+func_time_stats.stp - Function time statistics
+keywords: function wall-clock time
+
+  The func_time_stats.stp script tracks the wall clock time for each
+  invocation of a function probe listed as the first command line
+  argument. When the script exits it prints out the minimum, average,
+  and maximum times in microseconds. It also prints out a count of
+  times that the function was called.
+
+  # stap func_time_stats.stp 'syscall.nanosleep' -c "sleep 0.2"
+
+
 general/ansi_colors.stp - Color Table for ansi_set_color2() and ansi_set_color3()
 keywords: format
 
@@ -38,6 +50,19 @@ keywords: event counter tid pid
   over the course of execution.
 
   # stap eventcount.stp syscall.* -c 'sleep 0.2'
+
+
+general/func_time_stats.stp - Function time statistics
+keywords: function wall-clock time
+
+  The func_time_stats.stp script tracks the wall clock time for each
+  invocation of the function probe listed as the first command line
+  argument. When the script exits it prints out the minimum, average,
+  and maximum times in microseconds followed by a count of times that
+  the function was called and a histogram showing the distributions of
+  times.
+
+  # stap func_time_stats.stp 'syscall.nanosleep' -c "sleep 0.2"
 
 
 general/graphs.stp - Graphing Disk and CPU Utilization
@@ -526,6 +551,16 @@ keywords: network traffic per-process
   interval.
 
   # stap nettop.stp -c "sleep 0.2"
+
+
+network/nfsd_unlink.stp - Find which client is removing nfs files on server
+keywords: nfs disk
+
+  The nfsd_unlink.stp script lists the ip address and file name each
+  time time a file is being removed or unlinked by the nfsd. This
+  script is run on the nfs server.
+
+  # stap nfsd_unlink.stp -c "sleep 0.2"
 
 
 network/sk_stream_wait_memory.stp - Track Start and Stop of Processes Due to Network Buffer Space
