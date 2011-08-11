@@ -1329,11 +1329,12 @@ static int unwind(struct unwind_context *context,
 	  }
 	else
           {
-            preempt_disable(); /* probably redundant */
             m = _stp_kmod_sec_lookup (pc, &s);
             if (!m) {
 #ifdef STAPCONF_MODULE_TEXT_ADDRESS
-                struct module *ko = __module_text_address (pc);
+                struct module *ko;
+                preempt_disable();
+                ko = __module_text_address (pc);
                 if (ko) { module_name = ko->name; }
                 else { 
                   /* Possible heuristic: we could assume we're talking
@@ -1341,9 +1342,9 @@ static int unwind(struct unwind_context *context,
                      were SYMBOL_EXPORT'd, we could call that and be
                      more sure. */
                 } 
+                preempt_enable_no_resched();
 #endif
             }
-            preempt_enable_no_resched();
           }
 
 	if (unlikely(m == NULL)) {
