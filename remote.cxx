@@ -312,8 +312,7 @@ class stapsh : public remote {
         // Send the staprun args
         // NB: The remote is left to decide its own staprun path
         ostringstream run("run", ios::out | ios::ate);
-        vector<string> cmd = make_run_command(*s, s->module_name + ".ko",
-                                              remote_version);
+        vector<string> cmd = make_run_command(*s, ".", remote_version);
         for (unsigned i = 1; i < cmd.size(); ++i)
           run << ' ' << qpencode(cmd[i]);
         run << '\n';
@@ -673,23 +672,44 @@ class ssh_legacy_remote : public remote {
           tmpmodule = tmpdir + "/" + s->module_name + ".ko";
         }
 
-        // Transfer the module.  XXX and uprobes.ko, sigs, etc.
-        if (rc == 0) {
-          vector<string> cmd = scp_args;
-          cmd.push_back(localmodule);
-          cmd.push_back(host + ":" + tmpmodule);
-          rc = stap_system(s->verbose, cmd);
-          if (rc != 0)
-            cerr << _F("failed to copy the module to %s : rc=%d",
-                       host.c_str(), rc) << endl;
-        }
+        // Transfer the module.
+        if (rc == 0)
+          {
+            vector<string> cmd = scp_args;
+            cmd.push_back(localmodule);
+            cmd.push_back(host + ":" + tmpmodule);
+            rc = stap_system(s->verbose, cmd);
+            if (rc != 0)
+              cerr << _F("failed to copy the module to %s : rc=%d",
+                         host.c_str(), rc) << endl;
+          }
+
+        // Transfer the module signature.
+        if (rc == 0 && file_exists(localmodule + ".sgn"))
+          {
+            vector<string> cmd = scp_args;
+            cmd.push_back(localmodule + ".sgn");
+            cmd.push_back(host + ":" + tmpmodule + ".sgn");
+            rc = stap_system(s->verbose, cmd);
+            if (rc != 0)
+              cerr << _F("failed to copy the module signature to %s : rc=%d",
+                         host.c_str(), rc) << endl;
+          }
+
+        // What about transfering uprobes.ko?  In this ssh "legacy" mode, we
+        // don't the remote systemtap version, but -uPATH wasn't added until
+        // 1.4.  Rather than risking a getopt error, we'll just assume that
+        // this isn't supported.  The remote will just have to provide its own
+        // uprobes.ko in SYSTEMTAP_RUNTIME or already loaded.
 
         // Run the module on the remote.
         if (rc == 0) {
           vector<string> cmd = ssh_args;
           cmd.push_back("-t");
           // We don't know the actual version, but all <=1.3 are approx equal.
-          cmd.push_back(cmdstr_join(make_run_command(*s, tmpmodule, "1.3")));
+          vector<string> staprun_cmd = make_run_command(*s, tmpdir, "1.3");
+          staprun_cmd[0] = "staprun"; // NB: The remote decides its own path
+          cmd.push_back(cmdstr_join(staprun_cmd));
           pid_t pid = stap_spawn(s->verbose, cmd);
           if (pid > 0)
             child = pid;

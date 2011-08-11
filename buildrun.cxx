@@ -449,7 +449,7 @@ uprobes_pass (systemtap_session& s)
 }
 
 vector<string>
-make_run_command (systemtap_session& s, const string& module,
+make_run_command (systemtap_session& s, const string& remotedir,
                   const string& version)
 {
   // for now, just spawn staprun
@@ -488,9 +488,16 @@ make_run_command (systemtap_session& s, const string& module,
 
   if (s.need_uprobes)
     {
-      staprun_cmd.push_back("-u");
-      if (!s.uprobes_path.empty())
-        staprun_cmd.back().append(s.uprobes_path);
+      string opt_u = "-u";
+      if (!s.uprobes_path.empty() &&
+          strverscmp("1.4", version.c_str()) <= 0)
+        {
+          if (remotedir.empty())
+            opt_u.append(s.uprobes_path);
+          else
+            opt_u.append(remotedir + "/" + basename(s.uprobes_path.c_str()));
+        }
+      staprun_cmd.push_back(opt_u);
     }
 
   if (s.load_only)
@@ -505,10 +512,8 @@ make_run_command (systemtap_session& s, const string& module,
       staprun_cmd.push_back(s.size_option);
     }
 
-  if (module.empty())
-    staprun_cmd.push_back(s.tmpdir + "/" + s.module_name + ".ko");
-  else
-    staprun_cmd.push_back(module);
+  staprun_cmd.push_back((remotedir.empty() ? s.tmpdir : remotedir)
+                        + "/" + s.module_name + ".ko");
 
   // add module arguments
   staprun_cmd.insert(staprun_cmd.end(),
