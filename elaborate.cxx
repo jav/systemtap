@@ -1201,8 +1201,8 @@ semantic_pass_conditions (systemtap_session & sess)
 // necessary initialization of code needed by the embedded code functions.
 
 // This is only for pragmas that don't have any other side-effect than
-// needing some initialization at module init time. Currently only handles
-// /* pragma:vma */ and /* pragma:unwind */.
+// needing some initialization at module init time. Currently handles
+// /* pragma:vma */ /* pragma:unwind */ /* pragma:symbol */
 
 // /* pragma:uprobes */ is handled during the typeresolution_info pass.
 // /* pure */, /* unprivileged */. /* myproc-unprivileged */ and /* guru */
@@ -1233,8 +1233,17 @@ public:
 	if (session.verbose > 2)
 	  clog << _F("Turning on unwind support, pragma:unwind found in %s",
 		    current_function->name.c_str()) << endl;
-      session.need_unwind = true;
-    }
+	session.need_unwind = true;
+      }
+
+    if (! session.need_symbols
+	&& c->code.find("/* pragma:symbols */") != string::npos)
+      {
+	if (session.verbose > 2)
+	  clog << _F("Turning on symbol data collecting, pragma:symbols found in %s",
+		    current_function->name.c_str()) << endl;
+	session.need_symbols = true;
+      }
   }
 };
 

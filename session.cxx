@@ -124,6 +124,7 @@ systemtap_session::systemtap_session ():
   tapset_compile_coverage = false;
   need_uprobes = false;
   need_unwind = false;
+  need_symbols = false;
   uprobes_path = "";
   consult_symtab = false;
   ignore_vmlinux = false;
@@ -284,6 +285,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   tapset_compile_coverage = other.tapset_compile_coverage;
   need_uprobes = false;
   need_unwind = false;
+  need_symbols = false;
   uprobes_path = "";
   consult_symtab = other.consult_symtab;
   ignore_vmlinux = other.ignore_vmlinux;

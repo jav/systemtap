@@ -5075,7 +5075,11 @@ dump_unwindsyms (Dwfl_Module *m,
                   seclist.push_back (make_pair(secname,size));
 		}
 
-              (addrmap[secidx])[sym_addr] = name;
+              // If we don't actually need the symbols then we did all
+              // of the above just to get the section names... we can
+              // probably do that in some more efficient way...
+              if (c->session.need_symbols)
+                (addrmap[secidx])[sym_addr] = name;
             }
         }
     }
@@ -5193,19 +5197,22 @@ dump_unwindsyms (Dwfl_Module *m,
                 << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {\n";
 
       // Only include symbols if they will be used
-      c->output << "#ifdef STP_NEED_SYMBOL_DATA\n";
+      if (c->session.need_symbols)
+	{
 
-      // We write out a *sorted* symbol table, so the runtime doesn't have to sort them later.
-      for (addrmap_t::iterator it = addrmap[secidx].begin(); it != addrmap[secidx].end(); it++)
-        {
-          if (it->first < extra_offset)
-            continue; // skip symbols that occur before our chosen base address
+	  // We write out a *sorted* symbol table, so the runtime doesn't
+	  // have to sort them later.
+	  for (addrmap_t::iterator it = addrmap[secidx].begin();
+	       it != addrmap[secidx].end(); it++)
+	    {
+	      // skip symbols that occur before our chosen base address
+	      if (it->first < extra_offset)
+		continue;
 
-          c->output << "  { 0x" << hex << it->first-extra_offset << dec
-                    << ", " << lex_cast_qstring (it->second) << " },\n";
-        }
-
-      c->output << "#endif /* STP_NEED_SYMBOL_DATA */\n";
+	      c->output << "  { 0x" << hex << it->first-extra_offset << dec
+			<< ", " << lex_cast_qstring (it->second) << " },\n";
+	    }
+	}
 
       c->output << "};\n";
 

@@ -6,12 +6,6 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-%{
-#ifndef STP_NEED_SYMBOL_DATA
-#define STP_NEED_SYMBOL_DATA 1
-#endif
-%}
-
 /**
  * sfunction print_ubacktrace - Print stack back trace for current task. EXPERIMENTAL!
  *
@@ -22,7 +16,7 @@
  * shared libraries not mentioned in the current script run stap with
  * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
-function print_ubacktrace () %{ /* pragma:unwind */
+function print_ubacktrace () %{ /* pragma:unwind */ /* pragma:symbols */
 /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
     _stp_stack_print(CONTEXT, _STP_SYM_FULL, _STP_STACK_USER);
 %}
@@ -46,7 +40,7 @@ function print_ubacktrace () %{ /* pragma:unwind */
  * shared libraries not mentioned in the current script run stap with
  * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
-function sprint_ubacktrace:string () %{ /* pragma:unwind */
+function sprint_ubacktrace:string () %{ /* pragma:unwind */ /* pragma:symbols */
 /* pure */ /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
     _stp_stack_sprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT,
                        _STP_SYM_SIMPLE, _STP_STACK_USER);
@@ -63,7 +57,7 @@ function sprint_ubacktrace:string () %{ /* pragma:unwind */
  * shared libraries not mentioned in the current script run stap with
  * -d /path/to/exe-or-so and/or add --ldd to load all needed unwind data.
  */
-function print_ubacktrace_brief () %{ /* pragma:unwind */
+function print_ubacktrace_brief () %{ /* pragma:unwind */ /* pragma:symbols */
 /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
     _stp_stack_print(CONTEXT, _STP_SYM_BRIEF, _STP_STACK_USER);
 %}
