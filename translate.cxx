@@ -5096,10 +5096,13 @@ dump_unwindsyms (Dwfl_Module *m,
   size_t eh_frame_hdr_len = 0;
   Dwarf_Addr eh_addr = 0;
   Dwarf_Addr eh_frame_hdr_addr = 0;
-  get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr,
-                   &eh_frame_hdr, &eh_frame_hdr_len, &debug_frame_hdr,
-                   &debug_frame_hdr_len, &debug_frame_off, &eh_frame_hdr_addr,
-                   c->session, m);
+
+  if (c->session.need_unwind)
+    get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr,
+                     &eh_frame_hdr, &eh_frame_hdr_len, &debug_frame_hdr,
+                     &debug_frame_hdr_len, &debug_frame_off, &eh_frame_hdr_addr,
+                     c->session, m);
+
   if (debug_frame != NULL && debug_len > 0)
     {
       c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
@@ -5173,7 +5176,7 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
     }
   
-  if (debug_frame == NULL && eh_frame == NULL)
+  if (c->session.need_unwind && debug_frame == NULL && eh_frame == NULL)
     {
       // There would be only a small benefit to warning.  A user
       // likely can't do anything about this; backtraces for the
