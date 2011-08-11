@@ -7,7 +7,7 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2007-2009 Red Hat Inc.
+ * Copyright (C) 2007-2011 Red Hat Inc.
  */
 
 #include "config.h"
@@ -18,6 +18,15 @@
 #include <grp.h>
 #include <pwd.h>
 #include <assert.h>
+
+/* The module-renaming facility only works with new enough
+   elfutils: 0.142+. */
+#ifdef HAVE_LIBELF_H
+#include <libelf.h>
+#include <gelf.h>
+#endif
+
+#include <math.h>
 
 #include "modverify.h"
 
@@ -49,15 +58,21 @@ int insert_module(
   assert_permissions_func assert_permissions
 ) {
 	int i;
-	long ret;
+	long ret, module_read;
 	void *module_file;
 	char *opts;
 	int saved_errno;
 	char module_realpath[PATH_MAX];
 	int module_fd;
 	struct stat sbuf;
+	int rename_this_module;
 
-	dbug(2, "inserting module\n");
+	dbug(2, "inserting module %s\n", path);
+
+	/* Rename the script module if '-R' was passed, but not other modules
+	 * like uprobes.  We can tell which this is by comparing to the global
+	 * modpath, but we must do it before it's transformed by realpath.  */
+	rename_this_module = rename_mod && (strcmp(path, modpath) == 0);
 
 	if (special_options)
 		opts = strdup(special_options);
@@ -109,20 +124,55 @@ int insert_module(
 		return -1;
 	}
 
-	/* mmap in the entire module. Work with the memory mapped data from this
-	   point on to avoid a TOCTOU race between path and signature checking
-	   below and module loading.  */
-	module_file = mmap(NULL, sbuf.st_size, PROT_READ, MAP_PRIVATE, module_fd, 0);
-	if (module_file == MAP_FAILED) {
-		_perr("Error mapping '%s'", module_realpath);
+        /* Allocate memory for the entire module. */
+        module_file = calloc(1, sbuf.st_size);
+        if (module_file == NULL) {
+                _perr("Error allocating memory to read '%s'", module_realpath);
 		close(module_fd);
 		free(opts);
 		return -1;
 	}
 
+        /* Read in the entire module.  Work with this copy of the data from this
+           point on to avoid a TOCTOU race between path and signature checking
+           below and module loading.  */
+        module_read = 0;
+        while (module_read < sbuf.st_size) {
+                ret = read(module_fd, module_file + module_read,
+                           sbuf.st_size - module_read);
+                if (ret > 0)
+                        module_read += ret;
+                else if (ret == 0) {
+                        _err("Unexpected EOF reading '%s'", module_realpath);
+                        free(module_file);
+                        close(module_fd);
+                        free(opts);
+                        return -1;
+                } else if (errno != EINTR) {
+                        _perr("Error reading '%s'", module_realpath);
+                        free(module_file);
+                        close(module_fd);
+                        free(opts);
+                        return -1;
+                }
+        }
+
 	/* Check whether this module can be loaded by the current user.
 	 * check_permissions will exit(-1) if permissions are insufficient*/
 	assert_permissions (module_realpath, module_fd, module_file, sbuf.st_size);
+
+	/* Rename Module if '-R' was passed */
+	if (rename_this_module) {
+		dbug(2,"Renaming module '%s'\n", modname);
+		if(rename_module(module_file, sbuf.st_size) < 0) {
+
+			  _err("Error renaming module");
+			  close(module_fd);
+			  free(opts);
+			  return -1;
+		}
+		dbug(2,"Renamed module to '%s'\n", modname);
+	}
 
 	PROBE1(staprun, insert__module, (char*)module_realpath);
 	/* Actually insert the module */
@@ -131,7 +181,7 @@ int insert_module(
 
 	/* Cleanup. */
 	free(opts);
-	munmap(module_file, sbuf.st_size);
+	free(module_file);
 	close(module_fd);
 
 	if (ret != 0) {
@@ -140,6 +190,109 @@ int insert_module(
 		return -1;
 	}
 	return 0;
+}
+
+int
+rename_module(void* module_file, const __off_t st_size)
+{
+#ifdef HAVE_ELF_GETSHDRSTRNDX
+	int found = 0;
+	int length_to_replace;
+	char *name;
+	char newname[MODULE_NAME_LEN];
+	char *p;
+	size_t shstrndx;
+	pid_t pid;
+	Elf* elf;
+	Elf_Scn *scn = 0;
+	Elf_Data *data = 0;
+	GElf_Shdr shdr_mem;
+
+  	/* Create descriptor for memory region.  */
+  	if((elf = elf_memory (module_file, st_size))== NULL) {
+  		_err("Error creating Elf object.\n");
+  		return -1;
+  	}
+
+  	/* Get the string section index */
+  	if(elf_getshdrstrndx (elf, &shstrndx) < 0) {
+  		_err("Error getting section index.\n");
+  		return -1;
+  	}
+
+  	/* Go through the sections looking for ".gnu.linkonce.this_module" */
+  	while ((scn = elf_nextscn (elf, scn))) {
+  		 if((gelf_getshdr (scn, &shdr_mem))==NULL) {
+  		 	 _err("Error getting section header.\n");
+  		 	 return -1;
+  		 }
+  		 name = elf_strptr (elf, shstrndx, shdr_mem.sh_name);
+  		 if (name == NULL) {
+  			 _err("Error getting section name.\n");
+  			 return -1;
+  		 }
+  		 if(strcmp(name, ".gnu.linkonce.this_module") == 0) {
+  			 found = 1;
+  			 break;
+  		 }
+  	}
+  	if(!found) {
+  		_err("Section name \".gnu.linkonce.this_module\" not found in module.\n");
+  		return -1;
+  	}
+
+  	/* Get access to raw data from section; do not translate/copy. */
+  	if ((data = elf_rawdata (scn, data)) == NULL) {
+  		_err("Error getting Elf data from section.\n");
+  		return -1;
+  	}
+
+  	/* Generate new module name with the same length as the old name.
+    	   The new name is of the form: stap_<FirstPartOfOldname>_<pid>*/
+  	pid = getpid();
+  	if (strlen(modname) >= MODULE_NAME_LEN) {
+  		_err("Old module name is too long.\n");
+  		return -1;
+  	}
+  	length_to_replace = (int)strlen(modname)-((int)log10(pid)+1) - 1;
+  	if(length_to_replace < 0 || length_to_replace > (int)strlen(modname)) {
+  		_err("Error getting length of oldname to replace in newname.\n");
+  		return -1;
+  	}
+  	if (snprintf(newname, sizeof(newname), "%.*s_%d", length_to_replace, modname, pid) < 0) {
+  	    	_err("Creating newname failed./n");
+  	    	return -1;
+  	}
+
+	/* Find where it is in the module structure.
+	   To our knowledge, this section is always completely zeroed apart
+	   from the module name, so a simple search and replace should suffice.
+	   A signed module from any stapusr will already have been proven
+	   untampered.  An unsigned module from a stapdev could try to do
+	   naughty things, but we're already trusting these users so much
+	   that they can shoot their feet however they like.
+	   */
+	for (p = data->d_buf; p < (char *)data->d_buf + data->d_size - strlen(modname); p++) {
+		if (memcmp(p, modname, strlen(modname)) == 0) {
+			strncpy(p, newname, strlen(p)); /* Actually replace the oldname in memory with the newname */
+			modname = strdup(newname); /* This is just to update the global variable containing the current module name */
+			if (modname == NULL) {
+				_perr("allocating memory failed");
+				return -1;
+			}
+			return 0;
+		}
+	}
+	_err("Could not find old name to replace!\n");
+	return -1;
+#else
+        /* Old or no elfutils?  Pretend to have renamed.  This means a
+           greater likelihood for module-name collisions, but so be
+           it. */
+        (void) module_file;
+        (void) st_size;
+        return 0; 
+#endif
 }
 
 int mountfs(void)
@@ -388,8 +541,10 @@ check_stap_module_path(const char *module_path, int module_fd)
 }
 
 /*
- * Members of the 'stapusr' group can load the uprobes module freely,
- * since it is loaded from a fixed path in the installed runtime.
+ * Don't allow path-based authorization for the uprobes module at all.
+ * Members of the 'stapusr' group can load a signed uprobes module, but
+ * nothing else.  Later we could consider allowing specific paths, like
+ * the installed runtime or /lib/modules/...
  *
  * Returns: -1 on errors, 0 on failure, 1 on success.
  */
@@ -399,7 +554,7 @@ check_uprobes_module_path (
   int module_fd __attribute__ ((unused))
 )
 {
-  return 1;
+  return 0;
 }
 
 /*
@@ -482,7 +637,6 @@ check_groups (
 				gid = stapusr_gid;
 		}
 		if (gid != stapusr_gid) {
-			unprivileged_user = 1;
 			return 0;
 		}
 	}
@@ -558,10 +712,10 @@ void assert_stap_module_permissions(
 		return;
 
 	/* Are we are an ordinary user?.  */
-	if (check_groups_rc == 0) {
+	if (check_groups_rc == 0 || check_groups_rc == -2) {
 		err("ERROR: You are trying to run systemtap as a normal user.\n"
-		    "You should either be root, or be part of either "
-		    "group \"stapdev\" or group \"stapusr\".\n");
+		    "You should either be root, or be part of "
+		    "group \"stapusr\" and possibly group \"stapdev\".\n");
 		if (check_groups_rc == -2)
 			err("Your system doesn't seem to have either group.\n");
 	}
@@ -597,10 +751,8 @@ void assert_uprobes_module_permissions(
 	if (check_signature_rc == MODULE_ALTERED)
 		exit(-1);
 #else
-	/* If we don't have NSS, then the uprobes module is considered trusted.
-	   Otherwise a member of the group 'stapusr' will not be able to load it.
-	 */
-	check_signature_rc = MODULE_OK;
+	/* If we don't have NSS, the uprobes module is considered untrusted. */
+	check_signature_rc = MODULE_UNTRUSTED;
 #endif
 
 	/* root can still load this module.  */
@@ -613,10 +765,10 @@ void assert_uprobes_module_permissions(
 		return;
 
 	/* Check permissions for group membership.  */
-	if (check_groups_rc == 0) {
+	if (check_groups_rc == 0 || check_groups_rc == -2) {
 		err("ERROR: You are trying to load the module %s as a normal user.\n"
-		    "You should either be root, or be part of either "
-		    "group \"stapdev\" or group \"stapusr\".\n", module_path);
+		    "You should either be root, or be part of "
+		    "group \"stapusr\" and possible group \"stapusr\".\n", module_path);
 		if (check_groups_rc == -2)
 			err("Your system doesn't seem to have either group.\n");
 	}

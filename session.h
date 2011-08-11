@@ -156,6 +156,7 @@ public:
   unsigned verbose;
   bool timing;
   bool save_module;
+  bool modname_given;
   bool keep_tmpdir;
   bool guru_mode;
   bool listing_mode;
@@ -168,22 +169,29 @@ public:
   bool prologue_searching;
   bool tapset_compile_coverage;
   bool need_uprobes;
+  bool need_unwind;
+  bool need_symbols;
   std::string uprobes_path;
+  std::string uprobes_hash;
   bool load_only; // flight recorder mode
   bool omit_werror;
   bool unprivileged;
   bool systemtap_v_check;
+  bool tmpdir_opt_set;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).
 
   // Client/server
+#if HAVE_NSS
   static bool NSPR_Initialized; // only once for all sessions
   void NSPR_init ();
+#endif
   bool client_options;
   std::string client_options_disallowed;
   std::vector<std::string> server_status_strings;
   std::vector<std::string> specified_servers;
+  bool automatic_server_mode;
   std::string server_trust_spec;
   std::vector<std::string> server_args;
   std::string winning_server;

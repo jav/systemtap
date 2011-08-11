@@ -1,4 +1,0 @@
-#! /bin/sh
-
-# This probe should be ok
-stap --unprivileged -p2 -t -e 'probe %(CONFIG_UTRACE=="y" %? process("foo").function("bar").call %: never %) { }' -c ./foo

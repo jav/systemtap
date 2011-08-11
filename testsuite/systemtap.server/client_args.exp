@@ -13,19 +13,22 @@ set invalid_options [list \
   "--unprivileged --client-options -I $srcdir/tmp" \
   "--unprivileged --client-options -m test" \
   "--unprivileged --client-options -R $srcdir/tmp" \
-  "--unprivileged --client-options -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -r [exec uname -r]" \
+  "--unprivileged --client-options -k" \
+  "--unprivileged --client-options -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -k -r [exec uname -r]" \
   "--client-options --unprivileged -B X=Y" \
   "--client-options --unprivileged -D X=Y" \
   "--client-options --unprivileged -I $srcdir/tmp" \
   "--client-options --unprivileged -m test" \
   "--client-options --unprivileged -R $srcdir/tmp" \
-  "--client-options --unprivileged -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -r [exec uname -r]" \
+  "--client-options --unprivileged -k" \
+  "--client-options --unprivileged -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -k -r [exec uname -r]" \
   "--client-options -B X=Y --unprivileged" \
   "--client-options -D X=Y --unprivileged" \
   "--client-options -I $srcdir/tmp --unprivileged" \
   "--client-options -m test --unprivileged" \
   "--client-options -R $srcdir/tmp --unprivileged" \
-  "--client-options -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -r [exec uname -r] --unprivileged" \
+  "--client-options -k --unprivileged" \
+  "--client-options -B X=Y -D X=Y -I $srcdir/tmp -m test -R $srcdir/tmp -k -r [exec uname -r] --unprivileged" \
   "--client-options -R /path" \
   "-D \"foo;bar\"" \
   "-D 2=4" \
@@ -33,6 +36,7 @@ set invalid_options [list \
   "--client-options -r /path" \
   "-S /path" \
   "--client-options -q" \
+  "--client-options -k" \
 ]
 
 foreach options $invalid_options {

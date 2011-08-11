@@ -1,7 +1,7 @@
 " Vim indent file
 " Language:	SystemTap
-" Maintainer:	Josh Stone <joshua.i.stone@intel.com>
-" Last Change:	2005 Dec 15
+" Maintainer:	SystemTap Developers <systemtap@sourceware.org>
+" Last Change:	2011 Aug 4
 
 " Only load this indent file when no other was loaded.
 if exists("b:did_indent")

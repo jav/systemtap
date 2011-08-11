@@ -35,17 +35,21 @@ catch {close}; catch {wait}
 
 if {$ok == 12} { pass "$test ($ok)" } { fail "$test ($ok)" }
 
+# test PR6954
 set test "global_end_var"
 spawn stap $srcdir/$subdir/global_end_var.stp
 set ok 0
 expect {
     -timeout 180
-    -re {var=0x1} { incr ok; exp_continue }
+    -re {gs0_save=0x29} { incr ok; exp_continue }
+    -re {gs2=0x4} { incr ok; exp_continue }
+    -re {gs3=0x4} { incr ok; exp_continue }
+    -re {gs4=0x5} { incr ok; exp_continue }
+    -re {ga1."foo".=0x2} { incr ok; exp_continue }
+    -re {ga2."foo".=0x1} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
-    eof { }
-}
+    eof { }}
+
 catch {close}; catch {wait}
 
-# PR6954
-setup_kfail 6954 "*-*-*"
-if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
+if {$ok == 6} { pass "$test ($ok)" } { fail "$test ($ok)" }

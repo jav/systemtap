@@ -3,7 +3,7 @@
 %{!?with_crash: %global with_crash 1}
 %{!?with_rpm: %global with_rpm 1}
 %{!?with_bundled_elfutils: %global with_bundled_elfutils 0}
-%{!?elfutils_version: %global elfutils_version 0.127}
+%{!?elfutils_version: %global elfutils_version 0.142}
 %{!?pie_supported: %global pie_supported 1}
 %{!?with_grapher: %global with_grapher 1}
 %{!?with_boost: %global with_boost 0}
@@ -11,7 +11,7 @@
 %{!?publican_brand: %global publican_brand fedora}
 
 Name: systemtap
-Version: 1.6
+Version: 1.7
 Release: 1%{?dist}
 # for version, see also configure.ac
 Summary: Instrumentation System
@@ -106,7 +106,9 @@ Summary: Instrumentation System Testsuite
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap systemtap-sdt-devel dejagnu which prelink
+Requires: systemtap = %{version}-%{release}
+Requires: systemtap-sdt-devel = %{version}-%{release}
+Requires: dejagnu which prelink
 
 %description testsuite
 The testsuite allows testing of the entire SystemTap toolchain
@@ -117,7 +119,7 @@ Summary: Instrumentation System Server
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap
+Requires: systemtap = %{version}-%{release}
 Requires: avahi avahi-tools nss mktemp
 Requires: zip unzip
 Requires(post): chkconfig
@@ -144,7 +146,7 @@ Summary: Systemtap Initscripts
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap-runtime
+Requires: systemtap-runtime = %{version}-%{release}
 Requires(post): chkconfig
 Requires(preun): chkconfig
 Requires(preun): initscripts
@@ -159,7 +161,7 @@ Summary: Instrumentation System Grapher
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap-runtime
+Requires: systemtap-runtime = %{version}-%{release}
 
 %description grapher
 SystemTap grapher is a utility for real-time visualization of
@@ -396,7 +398,7 @@ exit 0
 %files -f %{name}.lang
 %defattr(-,root,root)
 
-%doc README AUTHORS NEWS COPYING examples
+%doc README README.unprivileged AUTHORS NEWS COPYING examples
 %if %{with_docs}
 %doc docs.installed/*.pdf
 %doc docs.installed/tapsets
@@ -409,7 +411,6 @@ exit 0
 %{_bindir}/stap-prep
 %{_bindir}/stap-report
 %{_mandir}/man1/stap.1*
-%{_mandir}/man1/stapgraph.1*
 %{_mandir}/man1/stap-merge.1*
 %{_mandir}/man3/*
 %{_mandir}/man7/stappaths.7*
@@ -440,7 +441,7 @@ exit 0
 %{_mandir}/man7/stappaths.7*
 %{_mandir}/man8/staprun.8*
 
-%doc README AUTHORS NEWS COPYING
+%doc README README.security AUTHORS NEWS COPYING
 
 %files testsuite
 %defattr(-,root,root)
@@ -490,10 +491,17 @@ exit 0
 %defattr(-,root,root)
 %{_bindir}/stapgraph
 %{_datadir}/%{name}/*.glade
+%{_mandir}/man1/stapgraph.1*
 %endif
 
 
 %changelog
+* Mon Jul 25 2011 Stan Cox <scox@redhat.com> - 1.6-1
+- Upstream release.
+
+* Tue May 23 2011 Stan Cox <scox@redhat.com> - 1.5-1
+- Upstream release.
+
 * Mon Jan 17 2011 Frank Ch. Eigler <fche@redhat.com> - 1.4-1
 - Upstream release.
 

@@ -47,7 +47,9 @@ extern int optind;
 
 #define PATH_TBD string("__TBD__")
 
+#if HAVE_NSS
 bool systemtap_session::NSPR_Initialized = false;
+#endif
 
 systemtap_session::systemtap_session ():
   // NB: pointer members must be manually initialized!
@@ -110,7 +112,9 @@ systemtap_session::systemtap_session ():
   module_name = "stap_" + lex_cast(getpid());
   stapconf_name = "stapconf_" + lex_cast(getpid()) + ".h";
   output_file = ""; // -o FILE
+  tmpdir_opt_set = false;
   save_module = false;
+  modname_given = false;
   keep_tmpdir = false;
   cmd = "";
   target_pid = 0;
@@ -119,6 +123,8 @@ systemtap_session::systemtap_session ():
   poison_cache = false;
   tapset_compile_coverage = false;
   need_uprobes = false;
+  need_unwind = false;
+  need_symbols = false;
   uprobes_path = "";
   consult_symtab = false;
   ignore_vmlinux = false;
@@ -131,6 +137,7 @@ systemtap_session::systemtap_session ():
   unwindsym_ldd = false;
   client_options = false;
   server_cache = NULL;
+  automatic_server_mode = false;
   use_server_on_error = false;
   try_server_status = try_server_unset;
   use_remote_prefix = false;
@@ -266,7 +273,9 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   module_name = other.module_name;
   stapconf_name = other.stapconf_name;
   output_file = other.output_file; // XXX how should multiple remotes work?
+  tmpdir_opt_set = false;
   save_module = other.save_module;
+  modname_given = other.modname_given;
   keep_tmpdir = other.keep_tmpdir;
   cmd = other.cmd;
   target_pid = other.target_pid; // XXX almost surely nonsense for multiremote
@@ -275,6 +284,8 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   poison_cache = other.poison_cache;
   tapset_compile_coverage = other.tapset_compile_coverage;
   need_uprobes = false;
+  need_unwind = false;
+  need_symbols = false;
   uprobes_path = "";
   consult_symtab = other.consult_symtab;
   ignore_vmlinux = other.ignore_vmlinux;
@@ -323,29 +334,31 @@ systemtap_session::systemtap_session (const systemtap_session& other,
 systemtap_session::~systemtap_session ()
 {
   delete_map(subsessions);
+  delete pattern_root;
 }
 
+#if HAVE_NSS
 void
 systemtap_session::NSPR_init ()
 {
-#if HAVE_NSS
   if (! NSPR_Initialized)
     {
       PR_Init (PR_SYSTEM_THREAD, PR_PRIORITY_NORMAL, 1);
       NSPR_Initialized = true;
     }
-#endif // HAVE_NSS
 }
+#endif // HAVE_NSS
 
 systemtap_session*
 systemtap_session::clone(const string& arch, const string& release)
 {
-  if (this->architecture == arch && this->kernel_release == release)
+  const string norm_arch = normalize_machine(arch);
+  if (this->architecture == norm_arch && this->kernel_release == release)
     return this;
 
-  systemtap_session*& s = subsessions[make_pair(arch, release)];
+  systemtap_session*& s = subsessions[make_pair(norm_arch, release)];
   if (!s)
-    s = new systemtap_session(*this, arch, release);
+    s = new systemtap_session(*this, norm_arch, release);
   return s;
 }
 
@@ -497,7 +510,9 @@ systemtap_session::usage (int exitcode)
     "              run pass 5 on the specified ssh host.\n"
     "              may be repeated for targeting multiple hosts.\n"
     "   --remote-prefix\n"
-    "              prefix each line of remote output with a host index."
+    "              prefix each line of remote output with a host index.\n"
+    "   --tmpdir=NAME\n"
+    "              specify name of temporary directory to be used."
     , compatible.c_str()) << endl
   ;
 
@@ -516,7 +531,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
   client_options_disallowed = "";
   while (true)
     {
-      int long_opt;
+      int long_opt = 0;
       char * num_endptr;
 
       // NB: when adding new options, consider very carefully whether they
@@ -545,6 +560,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_USE_SERVER_ON_ERROR 22
 #define LONG_OPT_VERSION 23
 #define LONG_OPT_REMOTE_PREFIX 24
+#define LONG_OPT_TMPDIR 25
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -577,6 +593,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "remote-prefix", 0, &long_opt, LONG_OPT_REMOTE_PREFIX },
         { "check-version", 0, &long_opt, LONG_OPT_CHECK_VERSION },
         { "version", 0, &long_opt, LONG_OPT_VERSION },
+        { "tmpdir", 1, &long_opt, LONG_OPT_TMPDIR },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -604,7 +621,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         case 'G':
           // Make sure the global option is only composed of the
           // following chars: [_=a-zA-Z0-9]
-          assert_regexp_match("-G parameter", optarg, "^[a-z_][a-z0-9_]+=[a-z0-9_-]+$");
+          assert_regexp_match("-G parameter", optarg, "^[a-z_][a-z0-9_]*=[a-z0-9_-]+$");
 
           globalopts.push_back (string(optarg));
           break;
@@ -696,6 +713,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    client_options_disallowed += client_options_disallowed.empty () ? "-m" : ", -m";
           module_name = string (optarg);
 	  save_module = true;
+	  modname_given = true;
 	  {
 	    // If the module name ends with '.ko', chop it off since
 	    // modutils doesn't like modules named 'foo.ko.ko'.
@@ -742,7 +760,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
           break;
 
         case 'k':
-	  push_server_opt = true;
+          if (client_options) { cerr << _F("ERROR: %s invalid with %s", "-k", "--client-options") << endl; return 1; } 
           keep_tmpdir = true;
           use_script_cache = false; /* User wants to keep a usable build tree. */
           break;
@@ -924,6 +942,12 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    case LONG_OPT_CLIENT_OPTIONS:
 	      client_options = true;
 	      break;
+	    case LONG_OPT_TMPDIR:
+              if (client_options)
+                client_options_disallowed += client_options_disallowed.empty() ? "--tmpdir" : ", --tmpdir";
+              tmpdir_opt_set = true;
+              tmpdir = optarg;
+              break;
 	    case LONG_OPT_USE_SERVER:
 	      if (client_options)
 		client_options_disallowed += client_options_disallowed.empty () ? "--use-server" : ", --use-server";
@@ -1104,9 +1128,7 @@ systemtap_session::check_options (int argc, char * const argv [])
 #if ! HAVE_NSS
   if (client_options)
     cerr << _("WARNING: --client-options is not supported by this version of systemtap") << endl;
-#endif
 
-#if ! HAVE_NSS
   if (! server_trust_spec.empty ())
     {
       cerr << _("WARNING: --trust-servers is not supported by this version of systemtap") << endl;
@@ -1124,7 +1146,6 @@ systemtap_session::check_options (int argc, char * const argv [])
     {
       last_pass = 4; /* Quietly downgrade.  Server passed through -p5 naively. */
     }
-
   // If phase 5 has been requested and the user is a member of stapusr but not
   // stapdev, then add --unprivileged and --use-server to the invocation,
   // if not already specified.
@@ -1137,6 +1158,7 @@ systemtap_session::check_options (int argc, char * const argv [])
 	  stgr = getgrnam ("stapdev");
 	  if (! stgr || ! in_group_id (stgr->gr_gid))
 	    {
+              automatic_server_mode = true;
 	      if (! unprivileged)
 		{
                   if (perpass_verbose[0] > 1)
@@ -1181,6 +1203,13 @@ systemtap_session::check_options (int argc, char * const argv [])
       if (kernel_symtab_path == PATH_TBD)
         kernel_symtab_path = string("/boot/System.map-") + kernel_release;
     }
+  // Can't use --remote and --tmpdir together because with --remote,
+  // there may be more than one tmpdir needed.
+  if (!remote_uris.empty() && tmpdir_opt_set)
+    {
+      cerr << _F("You can't specify %s and %s together.", "--remote", "--tmpdir") << endl;
+      usage(1);
+    }
   // Warn in case the target kernel release doesn't match the running one.
   if (last_pass > 4 &&
       (release != kernel_release ||
@@ -1204,7 +1233,7 @@ systemtap_session::check_options (int argc, char * const argv [])
   // Abnormal characters in our temp path can break us, including parts out
   // of our control like Kbuild.  Let's enforce nice, safe characters only.
   const char *tmpdir = getenv("TMPDIR");
-  if (tmpdir)
+  if (tmpdir != NULL)
     assert_regexp_match("TMPDIR", tmpdir, "^[-/._0-9a-z]+$");
 }
 
@@ -1320,6 +1349,9 @@ systemtap_session::register_library_aliases()
                                                 comp->functor.c_str()));
                       mn = mn->bind(comp->functor);
                     }
+		  // PR 12916: All probe aliases are OK for unprivileged users. The actual
+		  // referenced probe points will be checked when the alias is resolved.
+		  mn->bind_unprivileged ();
                   mn->bind(new alias_expansion_builder(alias));
                 }
             }

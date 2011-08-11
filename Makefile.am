@@ -52,7 +52,7 @@ stap_SOURCES = main.cxx session.cxx \
 	tapset-been.cxx tapset-procfs.cxx tapset-timers.cxx \
 	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
 	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx \
-	setupdwfl.cxx csclient.cxx remote.cxx
+	setupdwfl.cxx csclient.cxx cscommon.cxx remote.cxx
 noinst_HEADERS = sdt_types.h
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ @LIBINTL@
 stap_DEPENDENCIES =
@@ -116,8 +116,6 @@ stap_CFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS) -DSTAP
 stap_CXXFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_CPPFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_LDADD += -lssl3 -lnss3 -lnspr4 -lplc4 -lsmime3
-stap_sign_module_LDFLAGS = $(AM_LDFLAGS)
-stap_authorize_cert_LDFLAGS = $(AM_LDFLAGS)
 
 install-exec-local: install-scripts
 
@@ -145,6 +143,7 @@ stamp-elfutils: config.status
 	for dir in libelf libebl libdw libdwfl backends; do \
 	  $(MAKE) $(AM_MAKEFLAGS) -j1 -C build-elfutils/$$dir bin_PROGRAMS= install; \
 	done
+	$(MAKE) $(AM_MAKEFLAGS) -j1 -C build-elfutils install-pkgincludeHEADERS;
 	touch $@
 stap_DEPENDENCIES += lib-elfutils/libdw.so
 lib-elfutils/libdw.so: stamp-elfutils ;
@@ -167,18 +166,21 @@ stap_sign_module_SOURCES = stap-sign-module.cxx nsscommon.cxx util.cxx
 stap_sign_module_CPPFLAGS = $(AM_CPPFLAGS)
 stap_sign_module_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_sign_module_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_sign_module_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stap_sign_module_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
 
 stap_authorize_cert_SOURCES = stap-authorize-cert.cxx nsscommon.cxx util.cxx
 stap_authorize_cert_CPPFLAGS = $(AM_CPPFLAGS)
 stap_authorize_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_authorize_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_authorize_cert_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stap_authorize_cert_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
 
 if BUILD_SERVER
-stap_serverd_SOURCES = stap-serverd.cxx util.cxx nsscommon.cxx
+stap_serverd_SOURCES = stap-serverd.cxx cscommon.cxx util.cxx nsscommon.cxx
 stap_serverd_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_serverd_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_serverd_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stap_serverd_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4 -lsmime3 -lpthread
 if HAVE_AVAHI
 stap_serverd_LDADD += -lavahi-client -lavahi-common
@@ -187,6 +189,7 @@ endif
 stap_gen_cert_SOURCES = stap-gen-cert.cxx util.cxx nsscommon.cxx
 stap_gen_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
 stap_gen_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_gen_cert_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stap_gen_cert_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
 endif
 endif

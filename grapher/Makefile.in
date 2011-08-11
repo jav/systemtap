@@ -40,7 +40,11 @@ subdir = grapher
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(srcdir)/stapgraph.1.in $(am__dist_pkgdata_DATA_DIST)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/gettext.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/lib-ld.m4 \
+	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
+	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/po.m4 \
+	$(top_srcdir)/m4/progtest.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -61,7 +65,7 @@ stapgraph_OBJECTS = $(am_stapgraph_OBJECTS)
 am__DEPENDENCIES_1 =
 @BUILD_GRAPHER_TRUE@stapgraph_DEPENDENCIES = $(am__DEPENDENCIES_1)
 stapgraph_LINK = $(CXXLD) $(stapgraph_CXXFLAGS) $(CXXFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+	$(stapgraph_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -152,7 +156,6 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INTLLIBS = @INTLLIBS@
-INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
 LIBINTL = @LIBINTL@
@@ -182,6 +185,8 @@ PIECFLAGS = @PIECFLAGS@
 PIECXXFLAGS = @PIECXXFLAGS@
 PIELDFLAGS = @PIELDFLAGS@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSUB = @POSUB@
 PUBLICAN_BRAND = @PUBLICAN_BRAND@
 RANLIB = @RANLIB@
@@ -273,6 +278,7 @@ top_srcdir = @top_srcdir@
 @BUILD_GRAPHER_TRUE@stapgraph_CXXFLAGS = $(libglade_CFLAGS) -Wall -Werror
 @BUILD_GRAPHER_TRUE@stapgraph_SOURCES = grapher.cxx StapParser.cxx Graph.cxx GraphWidget.cxx CairoWidget.cxx GraphStyle.cxx
 @BUILD_GRAPHER_TRUE@stapgraph_LDADD = $(libglade_LIBS)
+@BUILD_GRAPHER_TRUE@stapgraph_LDFLAGS = -Wl,--as-needed
 @BUILD_GRAPHER_TRUE@dist_pkgdata_DATA = graph-dialog.glade stap-start.glade processwindow.glade
 all: all-am
 

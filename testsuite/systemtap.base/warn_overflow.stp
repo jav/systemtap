@@ -1,0 +1,7 @@
+global i;
+probe begin {while (++i < 128) warn("begin..."); log("stap_begin");}
+
+probe syscall.* {system("echo syscall: " . name);
+		 if (++i == 256) { log("stap_syscall"); exit(); }}
+
+probe end {while (--i > 0) warn("end..."); log("stap_end");}

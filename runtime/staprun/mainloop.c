@@ -33,7 +33,7 @@ static int target_pid_failed_p = 0;
 static void *signal_thread(void *arg)
 {
   sigset_t *s = (sigset_t *) arg;
-  int signum;
+  int signum = 0;
 
   while (1) {
     if (sigwait(s, &signum) < 0) {
@@ -444,6 +444,8 @@ void cleanup_and_exit(int detach, int rc)
     err(_("\nDisconnecting from systemtap module.\n" "To reconnect, type \"staprun -A %s\"\n"), modname);
     _exit(0);
   }
+  else if (rename_mod)
+    dbug(2, "\nRenamed module to: %s\n", modname);
 
   /* At this point, we're committed to calling staprun -d MODULE to
    * unload the thing and exit. */
@@ -576,7 +578,9 @@ int stp_main_loop(void)
       break;
 #endif
     case STP_OOB_DATA:
-      if (strncmp(recvbuf.payload.data, _("WARNING:"), 7) == 0) {
+      /* Note that "WARNING:" should not be translated, since it is
+       * part of the module cmd protocol. */
+      if (strncmp(recvbuf.payload.data, "WARNING:", 7) == 0) {
               if (suppress_warnings) break;
               if (verbose) { /* don't eliminate duplicates */
                       eprintf("%.*s", (int) nb, recvbuf.payload.data);
@@ -627,6 +631,8 @@ int stp_main_loop(void)
                               free (dupstr);
                       }
               } /* duplicate elimination */
+      /* Note that "ERROR:" should not be translated, since it is
+       * part of the module cmd protocol. */
       } else if (strncmp(recvbuf.payload.data, "ERROR:", 5) == 0) {
               eprintf("%.*s", (int) nb, recvbuf.payload.data);
               error_detected = 1;

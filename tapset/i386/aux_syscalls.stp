@@ -2,6 +2,12 @@
 # = like tapset/x86_64/syscalls.stp but without PTRACE_ARCH_PRCTL
 #
 %{
+#ifndef PTRACE_SYSEMU
+# define PTRACE_SYSEMU 31
+#endif
+#ifndef PTRACE_SYSEMU_SINGLESTEP
+# define PTRACE_SYSEMU_SINGLESTEP 32
+#endif
 #ifndef PTRACE_SINGLEBLOCK
 # define PTRACE_SINGLEBLOCK 33
 #endif
@@ -42,7 +48,7 @@ function _arch_ptrace_argstr(request, pid, addr, data)
 		return sprintf ("PTRACE_SINGLEBLOCK, %d, %s", pid, _signal_name (data))
 }
 
-function _ptrace_return_arch_prctl_addr(request, addr, data)
+function _ptrace_return_arch_prctl_addr:long(request:long, addr:long, data:long)
 {
 	return 0
 }

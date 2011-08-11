@@ -378,18 +378,16 @@ create_temp_dir (systemtap_session &s)
 
   // Create a temporary directory to build within.
   // Be careful with this, as "tmpdir" is "rm -rf"'d at the end.
-  const char* tmpdir_env = getenv("TMPDIR");
-  if (! tmpdir_env)
+  const char * tmpdir_env = getenv("TMPDIR");
+  if (!tmpdir_env)
     tmpdir_env = "/tmp";
 
   string stapdir = "/stapXXXXXX";
   string tmpdirt = tmpdir_env + stapdir;
-  mode_t mask = umask(0);
   const char *tmpdir_name = mkdtemp((char *)tmpdirt.c_str());
-  umask(mask);
   if (! tmpdir_name)
     {
-      const char* e = strerror (errno);
+      const char* e = strerror(errno);
       //TRANSLATORS: we can't make the directory due to the error
       cerr << _F("ERROR: cannot create temporary directory (\" %s \"): %s", tmpdirt.c_str(), e) << endl;
       return 1;
@@ -403,26 +401,24 @@ create_temp_dir (systemtap_session &s)
 }
 
 static void
-remove_temp_dir (systemtap_session &s)
+remove_temp_dir(systemtap_session &s)
 {
   if (!s.tmpdir.empty())
     {
-      if (s.keep_tmpdir)
-        // NB: the format of this message needs to match the expectations
-        // of stap-serverd.cxx.
-        clog << _F("Keeping temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
-      else
+      if (s.keep_tmpdir && !s.tmpdir_opt_set)
+          clog << _F("Keeping temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
+      else if (!s.tmpdir_opt_set)
         {
-	  // Mask signals while we're deleting the temporary directory.
-	  stap_sigmasker masked;
+          // Mask signals while we're deleting the temporary directory.
+          stap_sigmasker masked;
 
-	  // Remove the temporary directory.
-	  vector<string> cleanupcmd;
-	  cleanupcmd.push_back("rm");
-	  cleanupcmd.push_back("-rf");
-	  cleanupcmd.push_back(s.tmpdir);
+          // Remove the temporary directory.
+          vector<string> cleanupcmd;
+          cleanupcmd.push_back("rm");
+          cleanupcmd.push_back("-rf");
+          cleanupcmd.push_back(s.tmpdir);
 
-	  (void) stap_system (s.verbose, cleanupcmd);
+          (void) stap_system(s.verbose, cleanupcmd);
           s.tmpdir.clear();
         }
     }
@@ -456,7 +452,13 @@ passes_0_4 (systemtap_session &s)
     {
 #if HAVE_NSS
       compile_server_client client (s);
-      return client.passes_0_4 ();
+      int rc = client.passes_0_4 ();
+      // Need to give a user a better diagnostic, if she didn't
+      // even ask for a server
+      if (rc && s.automatic_server_mode) {
+        cerr << _("Note: --use-server --unprivileged was selected because of stapusr membership.") << endl;
+      }
+      return rc;
 #else
       cerr << _("WARNING: Without NSS, using a compile-server is not supported by this version of systemtap") << endl;
       // This cannot be an attempt to use a server after a local compile failed
@@ -735,9 +737,14 @@ passes_0_4 (systemtap_session &s)
       // See if we can use cached source/module.
       if (get_script_from_cache(s))
         {
+	  // We may still need to build uprobes, if it's not also cached.
+	  if (s.need_uprobes)
+	    rc = uprobes_pass(s);
+
 	  // If our last pass isn't 5, we're done (since passes 3 and
 	  // 4 just generate what we just pulled out of the cache).
-	  if (s.last_pass < 5 || pending_interrupts) return rc;
+	  if (rc || s.last_pass < 5 || pending_interrupts)
+            return rc;
 
 	  // Short-circuit to pass 5.
 	  return 0;

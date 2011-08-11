@@ -501,7 +501,7 @@ send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
     -timeout 150
-    -re {^stap_[0-9]*\.ko\r\n} {
+    -re {^stap_[^ \t\r\n]*\.ko\r\n} {
 	set module_name [string trim "$expect_out(0,string)" \r\n]
 	set failed 0
     }

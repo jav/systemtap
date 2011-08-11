@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -545,6 +545,7 @@ struct block: public statement
   void visit (visitor* u);
   block () {}
   block (statement* car, statement* cdr);
+  virtual ~block () {}
 };
 
 
@@ -840,12 +841,15 @@ struct varuse_collecting_visitor: public functioncall_traversing_visitor
   systemtap_session& session;
   std::set<vardecl*> read;
   std::set<vardecl*> written;
+  std::set<vardecl*> used;
   bool embedded_seen;
+  bool current_lvalue_read;
   expression* current_lvalue;
   expression* current_lrvalue;
   varuse_collecting_visitor(systemtap_session& s):
     session (s),
     embedded_seen (false),
+    current_lvalue_read (false),
     current_lvalue(0),
     current_lrvalue(0) {}
   void visit_embeddedcode (embeddedcode *s);

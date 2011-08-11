@@ -3,6 +3,7 @@
 # Simple script for checking the known failures of buildok.exp. Used by
 #   systemtap.pass1-4/buildok.exp and
 #   systemtap.server/server.exp
+#   systemtap.unprivileged/unprivileged_build.exp
 #
 # Use setup_kfail <pr number> <target triplet> for known bugs
 # Use setup_xfail <target triplet> for other expected failures

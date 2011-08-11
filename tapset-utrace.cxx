@@ -832,7 +832,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "static void stap_utrace_probe_handler(struct task_struct *tsk, struct stap_utrace_probe *p) {";
       s.op->indent(1);
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe",
+				     "_STP_PROBE_HANDLER_UTRACE");
 
       // call probe function
       s.op->newline() << "(*p->probe->ph) (c);";
@@ -846,19 +847,20 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (flags_seen[UDPF_SYSCALL] || flags_seen[UDPF_SYSCALL_RETURN])
     {
       s.op->newline() << "#ifdef UTRACE_ORIG_VERSION";
-      s.op->newline() << "static u32 stap_utrace_probe_syscall(struct utrace_attached_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
+      s.op->newline() << "static u32 stap_utrace_probe_syscall(struct utrace_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
       s.op->newline() << "#else";
       s.op->newline() << "#if defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216)";
-      s.op->newline() << "static u32 stap_utrace_probe_syscall(u32 action, struct utrace_attached_engine *engine, struct pt_regs *regs) {";
+      s.op->newline() << "static u32 stap_utrace_probe_syscall(u32 action, struct utrace_engine *engine, struct pt_regs *regs) {";
       s.op->newline() << "#else";
-      s.op->newline() << "static u32 stap_utrace_probe_syscall(enum utrace_resume_action action, struct utrace_attached_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
+      s.op->newline() << "static u32 stap_utrace_probe_syscall(enum utrace_resume_action action, struct utrace_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
       s.op->newline() << "#endif";
       s.op->newline() << "#endif";
 
       s.op->indent(1);
       s.op->newline() << "struct stap_utrace_probe *p = (struct stap_utrace_probe *)engine->data;";
 
-      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe");
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe",
+				     "_STP_PROBE_HANDLER_UTRACE_SYSCALL");
       s.op->newline() << "c->regs = regs;";
       s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
 
@@ -881,7 +883,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "struct stap_utrace_probe *p = container_of(tgt, struct stap_utrace_probe, tgt);";
-  s.op->newline() << "struct utrace_attached_engine *engine;";
+  s.op->newline() << "struct utrace_engine *engine;";
 
   s.op->newline() << "if (register_p) {";
   s.op->indent(1);

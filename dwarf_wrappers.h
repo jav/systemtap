@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2008 Red Hat Inc.
+// Copyright (C) 2008-2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -13,22 +13,11 @@
 
 extern "C" {
 #include <elfutils/libdw.h>
-#ifdef HAVE_ELFUTILS_VERSION_H
 #include <elfutils/version.h>
-#endif
 #include <dwarf.h>
 }
 
 #include <string>
-
-#if !defined(_ELFUTILS_PREREQ)
-// make a dummy PREREQ check for elfutils < 0.138
-#define _ELFUTILS_PREREQ(major, minor) (0 >= 1)
-#endif
-
-#if ! _ELFUTILS_PREREQ(0,142)
-#define DW_TAG_rvalue_reference_type 0x42
-#endif
 
 #if ! _ELFUTILS_PREREQ(0, 148)
 #define DW_AT_linkage_name 0x6e

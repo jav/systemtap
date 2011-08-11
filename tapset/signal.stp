@@ -134,7 +134,7 @@ probe __signal.send.specific_send_sig_info =
  * Possible __group_send_sig_info and
  * specific_send_sig_info return values are as follows;
  *
- * 0 -- The signal is sucessfully sent to a process,
+ * 0 -- The signal is successfully sent to a process,
  * which means that:
  * (1) the signal was ignored by the receiving process,
  * (2) this is a non-RT signal and the system already has one queued, and
@@ -147,7 +147,7 @@ probe __signal.send.specific_send_sig_info =
  * Possible send_group_sigqueue and
  * send_sigqueue return values are as follows;
  *
- * 0 -- The signal was either sucessfully added into the
+ * 0 -- The signal was either successfully added into the
  * sigqueue of the receiving process, or a SI_TIMER entry is already
  * queued (in which case, the overrun count will be simply incremented).
  *
@@ -204,7 +204,7 @@ probe __signal.send.send_signal.return =
 
 // Return values for "__group_send_sig_info" and "specific_send_sig_info"
 //
-// - return 0 if  the signal is sucessfully sent to a process,
+// - return 0 if  the signal is successfully sent to a process,
 //   which means the following:
 //     <1> the signal is ignored by receiving process
 //     <2> this is a non-RT signal and we already have one queued
@@ -230,7 +230,7 @@ probe __signal.send.specific_send_sig_info.return =
     send2queue = 0
 }
 
-// - return 0 if the signal is either sucessfully added into the
+// - return 0 if the signal is either successfully added into the
 //   sigqueue of receiving process or a SI_TIMER entry is already
 //   queued so just increment the overrun count
 //

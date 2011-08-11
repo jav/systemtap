@@ -29,9 +29,9 @@ struct addr_map
 };
 
 #ifdef CONFIG_PREEMPT_RT
-static DEFINE_RAW_SPINLOCK(addr_map_lock);
+static DEFINE_RAW_RWLOCK(addr_map_lock);
 #else
-static DEFINE_SPINLOCK(addr_map_lock);
+static DEFINE_RWLOCK(addr_map_lock);
 #endif
 static struct addr_map* blackmap;
 
@@ -128,9 +128,9 @@ lookup_bad_addr(unsigned long addr, size_t size)
 #endif
 
   /* Search for the given range in the black-listed map.  */
-  spin_lock(&addr_map_lock);
+  read_lock(&addr_map_lock);
   result = lookup_addr_aux(addr, size, blackmap);
-  spin_unlock(&addr_map_lock);
+  read_unlock(&addr_map_lock);
   if (result)
     return 1;
   else
@@ -154,7 +154,7 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
   while (1)
     {
       size_t old_size = 0;
-      spin_lock(&addr_map_lock);
+      write_lock(&addr_map_lock);
       old_map = blackmap;
       if (old_map)
         old_size = old_map->size;
@@ -163,7 +163,7 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
          added an entry while we were sleeping. */
       if (!new_map || (new_map && new_map->size < old_size + 1))
         {
-          spin_unlock(&addr_map_lock);
+          write_unlock(&addr_map_lock);
           if (new_map)
             {
 	      _stp_kfree(new_map);
@@ -192,7 +192,7 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
             *existing_min = min_entry;
           if (existing_max)
             *existing_max = max_entry;
-          spin_unlock(&addr_map_lock);
+          write_unlock(&addr_map_lock);
           _stp_kfree(new_map);
           return 1;
         }
@@ -210,7 +210,7 @@ add_bad_addr_entry(unsigned long min_addr, unsigned long max_addr,
                (old_map->size - existing) * sizeof(*new_entry));
     }
   blackmap = new_map;
-  spin_unlock(&addr_map_lock);
+  write_unlock(&addr_map_lock);
   if (old_map)
     _stp_kfree(old_map);
   return 0;

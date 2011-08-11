@@ -1,5 +1,5 @@
 // Copyright (C) Andrew Tridgell 2002 (original file)
-// Copyright (C) 2006-2010 Red Hat Inc. (systemtap changes)
+// Copyright (C) 2006-2011 Red Hat Inc. (systemtap changes)
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -359,6 +359,31 @@ find_typequery_hash (systemtap_session& s, const string& name)
                   hashdir + "/typequery_" + result + "_hash.log");
   return hashdir + "/typequery_" + result
     + (name[0] == 'k' ? ".ko" : ".so");
+}
+
+
+string
+find_uprobes_hash (systemtap_session& s)
+{
+  hash h(get_base_hash(s));
+
+  // Hash runtime uprobes paths
+  h.add_path(s.runtime_path + "/uprobes");
+  h.add_path(s.runtime_path + "/uprobes2");
+
+  // Add any custom kbuild flags
+  for (unsigned i = 0; i < s.kbuildflags.size(); i++)
+    h.add(s.kbuildflags[i]);
+
+  // Get the directory path to store our cached module
+  string result, hashdir;
+  h.result(result);
+  if (!create_hashdir(s, result, hashdir))
+    return "";
+
+  create_hash_log(string("uprobes_hash"), h.get_parms(), result,
+                  hashdir + "/uprobes_" + result + "_hash.log");
+  return hashdir + "/uprobes_" + result;
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

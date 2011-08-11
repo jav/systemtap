@@ -1,0 +1,125 @@
+########## Inserting 2 Identical Modules: Basic Stap call #################
+# Should not give an error when inserting 2 identical modules
+set test "Inserting 2 Identical Modules: Basic Stap Call"
+
+set failed1 1
+set failed2 1
+
+# Run first module. Stays running since no exit() call.
+# Also keep track of its PID, so we can kill it later.
+spawn stap -e {probe begin{printf("Hello\n");}}
+set firstid $spawn_id
+
+# Run second, identical module. Before, it would cause an
+# error, since it would have the same name as the previous
+# one, but now it inserts without a problem, since it is
+# renamed.
+# Note: The outputs must also be the same - they will have 
+# different names to begin with otherwise.
+spawn stap -e {probe begin{printf("Hello\n");}}
+set secondid $spawn_id
+
+# Make sure they both output "Hello"
+expect {
+	-i $firstid Hello {
+		set failed1 0
+		exp_continue
+	} 
+	-i $secondid Hello {
+		set failed2 0
+		exp_continue
+	}
+}
+
+# Kill both of the hanging processes
+set firstpid [exp_pid -i $firstid]
+set secondpid [exp_pid -i $secondid]
+exec kill $firstpid
+exec kill $secondpid
+catch { wait -i $firstid; wait -i $secondid; close }
+
+if {$failed1 == 1 || $failed2 == 1} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########## Inserting 2 Identical Modules: Staprun without -R #################
+# Should give an error when inserting 2 identical modules 
+# when calling staprun directly without using -R
+set test "Inserting 2 Identical Modules: Staprun without -R"
+set failed 0
+set compile { exec stap -e {probe begin{printf("Hello\n");}} -p4 }
+set module [eval $compile] 
+
+spawn staprun $module
+set firstid $spawn_id
+
+spawn staprun $module
+set secondid $spawn_id
+
+# Make sure it fails
+expect {
+	-re {^Error inserting module .*: File exists\r\n} {
+		exp_continue
+	}
+	-re {^Rerun with staprun option '\-R' to rename this module.\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1		
+	}
+}
+
+# Kill both of the hanging processes
+set firstpid [exp_pid -i $firstid]
+set secondpid [exp_pid -i $secondid]
+exec kill $firstpid
+exec kill $secondpid
+catch { wait -i $firstid; wait -i $secondid; close }
+if {$failed} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+
+########## Inserting 2 Identical Modules: Staprun with -R #################
+# Should not give an error when inserting 2 identical modules
+# when calling staprun directly with -R
+set test "Inserting 2 Identical Modules: Staprun with -R"
+set failed1 1
+set failed2 1
+set compile { exec stap -e {probe begin{printf("Hello\n");}} -p4 }
+set module [eval $compile] 
+
+spawn staprun -R $module
+set firstid $spawn_id
+
+spawn staprun -R $module
+set secondid $spawn_id
+
+# Make sure they both output "Hello"
+expect {
+	-i $firstid Hello {
+		set failed1 0
+		exp_continue
+	} 
+	-i $secondid Hello {
+		set failed2 0
+		exp_continue
+	}
+}
+
+# Kill both of the hanging processes
+set firstpid [exp_pid -i $firstid]
+set secondpid [exp_pid -i $secondid]
+exec kill $firstpid
+exec kill $secondpid
+catch { wait -i $firstid; wait -i $secondid; close }
+
+if {$failed1 || $failed2} {
+	fail "$test"
+    } else {
+	pass "$test"
+}

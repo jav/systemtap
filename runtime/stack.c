@@ -9,8 +9,20 @@
  * later version.
  */
 
+/*
+  The translator will only include this file if the session needs any
+  of the backtrace functions.  Currently indicated by having the session
+  need_unwind flag, which is set by tapset functions marked with
+  pragme:unwind.
+*/
+
 #ifndef _STACK_C_
 #define _STACK_C_
+
+/* Maximum number of backtrace levels. */
+#ifndef MAXBACKTRACE
+#define MAXBACKTRACE 20
+#endif
 
 /** @file stack.c
  * @brief Stack Tracing Functions
@@ -23,7 +35,6 @@
 
 #include "sym.c"
 #include "regs.h"
-#include "unwind.c"
 
 #define MAXBACKTRACE 20
 
@@ -48,12 +59,10 @@ struct uretprobe_instance;
 
 static void _stp_stack_print_fallback(unsigned long, int, int);
 
-#if defined (__x86_64__)
-#include "stack-x86_64.c"
+#if (defined(__i386__) || defined(__x86_64__))
+#include "stack-x86.c"
 #elif defined (__ia64__)
 #include "stack-ia64.c"
-#elif  defined (__i386__)
-#include "stack-i386.c"
 #elif defined (__powerpc__)
 #include "stack-ppc.c"
 #elif defined (__arm__)
@@ -108,6 +117,7 @@ static const struct stacktrace_ops print_stack_ops = {
 #endif
 };
 
+/* Currently only used by the stack-x64.c code when dwarf unwinding fails. */
 static void _stp_stack_print_fallback(unsigned long stack, int verbose, int levels)
 {
         struct print_stack_data print_data;
@@ -117,7 +127,12 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
         dump_trace(current, NULL, (long *)stack, 0, &print_stack_ops,
                    &print_data);
 }
-#endif
+#else
+static void _stp_stack_print_fallback(unsigned long s, int v, int l) {
+	/* Don't guess, just give up. */
+	_stp_print_addr(0, v | _STP_SYM_INEXACT, NULL);
+}
+#endif /* defined(STAPCONF_KERNEL_STACKTRACE) */
 
 // Without KPROBES very little works atm.
 // But this file is unconditionally imported, while these two functions are only
@@ -129,39 +144,86 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose, int leve
  * @param verbose _STP_SYM_FULL or _STP_SYM_BRIEF
  */
 
-static void _stp_stack_print(struct pt_regs *regs, int verbose,
-			     struct kretprobe_instance *pi, int levels,
-			     struct task_struct *tsk,
-			     struct unwind_context *context,
-			     struct uretprobe_instance *ri, int uregs_valid)
+static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 {
+	struct pt_regs *regs = NULL;
+	struct task_struct *tsk = NULL;
+	int uregs_valid = 0;
+	struct uretprobe_instance *ri;
+
+	if (c->probe_type == _STP_PROBE_HANDLER_URETPROBE)
+		ri = c->ips.ri;
+#ifdef STAPCONF_UPROBE_GET_PC
+	else if (c->probe_type == _STP_PROBE_HANDLER_UPROBE)
+		ri = GET_PC_URETPROBE_NONE;
+#endif
+	else
+		ri = NULL;
+
+	if (stack_flags == _STP_STACK_KERNEL) {
+		if (! c->regs || (c->regflags & _STP_REGS_USER_FLAG)) {
+			if (sym_flags & _STP_SYM_SYMBOL)
+				_stp_printf("<no kernel backtrace at %s>\n",
+					    c->probe_point);
+			else
+				_stp_print("\n");
+			return;
+		} else {
+			regs = c->regs;
+			ri = NULL; /* This is a hint for GCC so that it can
+				      eliminate the call to uprobe_get_pc()
+				      in __stp_stack_print() below. */
+		}
+	} else if (stack_flags == _STP_STACK_USER) {
+		/* use task_pt_regs, regs might be kernel regs, or not set. */
+		if (c->regs && (c->regflags & _STP_REGS_USER_FLAG)) {
+			regs = c->regs;
+			uregs_valid = 1;
+		} else {
+			regs = task_pt_regs(current);
+			uregs_valid = _stp_task_pt_regs_valid(current, regs);
+		}
+
+		if (! current->mm || ! regs) {
+			if (sym_flags & _STP_SYM_SYMBOL)
+				_stp_printf("<no user backtrace at %s>\n",
+					    c->probe_point);
+			else
+				_stp_print("\n");
+			return;
+		} else {
+			tsk = current;
+		}
+	}
+
 	/* print the current address */
-	if (pi) {
-		if ((verbose & _STP_SYM_FULL) == _STP_SYM_FULL) {
+	if (c->probe_type == _STP_PROBE_HANDLER_KRETPROBE && c->ips.krp.pi) {
+		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
-			_stp_print_addr((unsigned long)_stp_probe_addr_r(pi),
-					verbose, tsk);
+			_stp_print_addr((unsigned long)_stp_probe_addr_r(c->ips.krp.pi),
+					sym_flags, tsk);
 			_stp_print("Returning to  : ");
 		}
-		_stp_print_addr((unsigned long)_stp_ret_addr_r(pi), verbose, tsk);
+		_stp_print_addr((unsigned long)_stp_ret_addr_r(c->ips.krp.pi),
+				sym_flags, tsk);
 #ifdef STAPCONF_UPROBE_GET_PC
-	} else if (ri && ri != GET_PC_URETPROBE_NONE) {
-		if ((verbose & _STP_SYM_FULL) == _STP_SYM_FULL) {
+	} else if (c->probe_type == _STP_PROBE_HANDLER_URETPROBE && ri) {
+		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			/* ... otherwise this dereference fails */
-			_stp_print_addr(ri->rp->u.vaddr, verbose, tsk);
+			_stp_print_addr(ri->rp->u.vaddr, sym_flags, tsk);
 			_stp_print("Returning to  : ");
-			_stp_print_addr(ri->ret_addr, verbose, tsk);
+			_stp_print_addr(ri->ret_addr, sym_flags, tsk);
 		} else
-			_stp_print_addr(ri->ret_addr, verbose, tsk);
+			_stp_print_addr(ri->ret_addr, sym_flags, tsk);
 #endif
 	} else {
-		_stp_print_addr(REG_IP(regs), verbose, tsk);
+		_stp_print_addr(REG_IP(regs), sym_flags, tsk);
 	}
 
 	/* print rest of stack... */
-	__stp_stack_print(regs, verbose, levels, tsk,
-			  context, ri, uregs_valid);
+	__stp_stack_print(regs, sym_flags, MAXBACKTRACE, tsk,
+			  &c->uwcontext, ri, uregs_valid);
 }
 
 /** Writes stack backtrace to a string
@@ -170,12 +232,8 @@ static void _stp_stack_print(struct pt_regs *regs, int verbose,
  * @param regs A pointer to the struct pt_regs.
  * @returns void
  */
-static void _stp_stack_sprint(char *str, int size, int flags,
-			      struct pt_regs *regs,
-			      struct kretprobe_instance *pi,
-			      int levels, struct task_struct *tsk,
-			      struct unwind_context *context,
-			      struct uretprobe_instance *ri, int uregs_valid)
+static void _stp_stack_sprint(char *str, int size, struct context* c,
+			      int sym_flags, int stack_flags)
 {
 	/* To get an hex string, we use a simple trick.
 	 * First flush the print buffer,
@@ -185,13 +243,7 @@ static void _stp_stack_sprint(char *str, int size, int flags,
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	_stp_print_flush();
 
-	if (pi)
-		_stp_print_addr((int64_t) (long) _stp_ret_addr_r(pi),
-				flags, tsk);
-
-	_stp_print_addr((int64_t) REG_IP(regs), flags, tsk);
-	__stp_stack_print(regs, flags, levels, tsk,
-			  context, ri, uregs_valid);
+	_stp_stack_print(c, sym_flags, stack_flags);
 
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;
@@ -199,38 +251,4 @@ static void _stp_stack_sprint(char *str, int size, int flags,
 
 #endif /* CONFIG_KPROBES */
 
-static void _stp_stack_print_tsk(struct task_struct *tsk, int verbose, int levels)
-{
-#if defined(STAPCONF_KERNEL_STACKTRACE)
-        int i;
-        unsigned long backtrace[MAXBACKTRACE];
-        struct stack_trace trace;
-        int maxLevels = min(levels, MAXBACKTRACE);
-        memset(&trace, 0, sizeof(trace));
-        trace.entries = &backtrace[0];
-        trace.max_entries = maxLevels;
-        trace.skip = 0;
-        save_stack_trace_tsk(tsk, &trace);
-        for (i = 0; i < maxLevels; ++i) {
-                if (backtrace[i] == 0 || backtrace[i] == ULONG_MAX)
-                        break;
-		_stp_print_addr(backtrace[i], verbose, tsk);
-        }
-#endif
-}
-
-/** Writes a task stack backtrace to a string
- *
- * @param str string
- * @param tsk A pointer to the task_struct
- * @returns void
- */
-static void _stp_stack_snprint_tsk(char *str, int size, struct task_struct *tsk, int verbose, int levels)
-{
-	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
-	_stp_print_flush();
-	_stp_stack_print_tsk(tsk, verbose, levels);
-	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
-	pb->len = 0;
-}
 #endif /* _STACK_C_ */

@@ -15,7 +15,7 @@ proc stap_run2 { TEST_NAME args } {
     if {[llength $args] == 0} {
       stap_run3 $TEST_NAME $TEST_FILE
     } else {
-      stap_run3 $TEST_NAME $TEST_FILE $args
+        eval stap_run3 "$TEST_NAME $TEST_FILE $args"
     }
 }
 

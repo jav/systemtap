@@ -7,12 +7,15 @@
 #include <sstream>
 #include <stdexcept>
 #include <cctype>
+#include <set>
+#include <iomanip>
 extern "C" {
 #include <libintl.h>
 #include <locale.h>
 #include <signal.h>
 #include <stdint.h>
 #include <spawn.h>
+#include <assert.h>
 }
 
 #if ENABLE_NLS
@@ -47,7 +50,7 @@ const std::string cmdstr_join(const std::vector<std::string>& cmds);
 int stap_waitpid(int verbose, pid_t pid);
 pid_t stap_spawn(int verbose, const std::vector<std::string>& args);
 pid_t stap_spawn(int verbose, const std::vector<std::string>& args,
-		 posix_spawn_file_actions_t* fa);
+		 posix_spawn_file_actions_t* fa, const std::vector<std::string>& envVec = std::vector<std::string> ());
 pid_t stap_spawn_piped(int verbose, const std::vector<std::string>& args,
                        int* child_in=NULL, int* child_out=NULL, int* child_err=NULL);
 int stap_system(int verbose, const std::vector<std::string>& args,
@@ -60,7 +63,7 @@ bool contains_glob_chars (const std::string &str);
 std::string kernel_release_from_build_tree (const std::string &kernel_build_tree, int verbose = 0);
 std::string normalize_machine(const std::string& machine);
 std::string autosprintf(const char* format, ...) __attribute__ ((format (printf, 1, 2)));
-
+const std::set<std::string>& localization_variables();
 
 // stringification generics
 
@@ -110,11 +113,30 @@ inline std::string
 lex_cast_hex(IN const & in)
 {
   std::ostringstream ss;
-  if (!(ss << std::showbase << std::hex << in))
+  if (!(ss << std::showbase << std::hex << in << std::dec))
     throw std::runtime_error(_("bad lexical cast"));
   return ss.str();
 }
 
+//Convert binary data to hex data.
+template <typename IN>
+inline std::string
+hex_dump(IN const & in,  size_t len)
+{
+  std::ostringstream ss;
+  unsigned i;
+  if (!(ss << std::hex << std::setfill('0')))
+    throw std::runtime_error(_("bad lexical cast"));
+
+  for(i = 0; i < len; i++)
+  {
+    int temp = in[i];
+    ss << std::setw(2) << temp;
+  }
+  std::string hex = ss.str();
+  assert(hex.length() == 2 * len);
+  return hex;
+}
 
 // Return as quoted string, so that when compiled as a C literal, it
 // would print to the user out nicely.

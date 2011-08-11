@@ -9,6 +9,7 @@
 */
 #include "config.h"
 #include "session.h"
+#include "cscommon.h"
 #include "csclient.h"
 #include "util.h"
 #include "stap-probe.h"
@@ -16,6 +17,7 @@
 #include <sys/times.h>
 #include <vector>
 #include <fstream>
+#include <sstream>
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
@@ -62,7 +64,7 @@ extern "C" {
 
 using namespace std;
 
-#define STAP_CSC_01 _("WARNING: The domain name, \%s, does not match the DNS name(s) on the server certificate:\n")
+#define STAP_CSC_01 _("WARNING: The domain name, %s, does not match the DNS name(s) on the server certificate:\n")
 #define STAP_CSC_02 _("could not find input file %s\n")
 #define STAP_CSC_03 _("could not open input file %s\n")
 #define STAP_CSC_04 _("Unable to open output file %s\n")
@@ -80,11 +82,12 @@ struct compile_server_info
 {
   compile_server_info () : port (0) {}
 
-  std::string host_name;
-  std::string ip_address;
+  string host_name;
+  string ip_address;
   unsigned short port;
-  std::string sysinfo;
-  std::string certinfo;
+  string version;
+  string sysinfo;
+  string certinfo;
 
   bool empty () const
   {
@@ -106,6 +109,9 @@ struct compile_server_info
     // Compare the other fields only if they have both been set.
     if (this->port != 0 && that.port != 0 && this->port != that.port)
       return false;
+    if (! this->version.empty () && ! that.version.empty () &&
+	this->version != that.version)
+      return false;
     if (! this->sysinfo.empty () && ! that.sysinfo.empty () &&
 	this->sysinfo != that.sysinfo)
       return false;
@@ -114,9 +120,31 @@ struct compile_server_info
       return false;
     return true;
   }
+
+  // Used to sort servers by preference for order of contact. The preferred server is
+  // "less" than the other one.
+  bool operator< (const compile_server_info &that) const
+  {
+    // Prefer servers with a later (higher) version number.
+    cs_protocol_version this_version (this->version.c_str ());
+    cs_protocol_version that_version (that.version.c_str ());
+    return that_version < this_version;
+  }
 };
 
 ostream &operator<< (ostream &s, const compile_server_info &i);
+
+static void
+preferred_order (vector<compile_server_info> &servers)
+{
+  // Sort the given list of servers into the preferred order for contacting.
+  // Don't bother if there are less than 2 servers in the list.
+  if (servers.size () < 2)
+    return;
+
+  // Sort the list using compile_server_info::operator<
+  sort (servers.begin (), servers.end ());
+}
 
 struct compile_server_cache
 {
@@ -168,6 +196,34 @@ static void resolve_host (systemtap_session& s, compile_server_info &server, vec
 #define CA_CERT_INVALID_ERROR     2
 #define SERVER_CERT_EXPIRED_ERROR 3
 
+// Convert the given string to an ip address in host byte order.
+static unsigned
+stringToIpAddress (const string &s)
+{
+  if (s.empty ())
+    return 0; // unknown
+
+  vector<string>components;
+  tokenize (s, components, ".");
+  assert (components.size () >= 1);
+
+  unsigned ip = 0;
+  unsigned i;
+  for (i = 0; i < components.size (); ++i)
+    {
+      const char *ipstr = components[i].c_str ();
+      char *estr;
+      errno = 0;
+      unsigned a = strtoul (ipstr, & estr, 10);
+      if (errno == 0 && *estr == '\0' && a <= UCHAR_MAX)
+	ip = (ip << 8) + a;
+      else
+	return 0;
+    }
+
+  return ip;
+}
+
 #if HAVE_NSS
 // -----------------------------------------------------
 // NSS related code used by the compile server client
@@ -175,6 +231,10 @@ static void resolve_host (systemtap_session& s, compile_server_info &server, vec
 static void add_server_trust (systemtap_session &s, const string &cert_db_path, const vector<compile_server_info> &server_list);
 static void revoke_server_trust (systemtap_session &s, const string &cert_db_path, const vector<compile_server_info> &server_list);
 static void get_server_info_from_db (systemtap_session &s, vector<compile_server_info> &servers, const string &cert_db_path);
+
+static string global_client_cert_db_path () {
+  return SYSCONFDIR "/systemtap/ssl/client";
+}
 
 static string
 private_ssl_cert_db_path ()
@@ -263,7 +323,7 @@ badCertHandler(void *arg, PRFileDesc *sslSocket)
 {
   SECStatus secStatus;
   PRErrorCode errorNumber;
-  CERTCertificate *serverCert;
+  CERTCertificate *serverCert = NULL;
   SECItem subAltName;
   PRArenaPool *tmpArena = NULL;
   CERTGeneralName *nameList, *current;
@@ -353,7 +413,6 @@ badCertHandler(void *arg, PRFileDesc *sslSocket)
 	  if (serverCert != NULL)
 	    {
 	      secStatus = trustNewServer (serverCert);
-	      CERT_DestroyCertificate (serverCert);
 	    }
 	}
       break;
@@ -366,6 +425,11 @@ badCertHandler(void *arg, PRFileDesc *sslSocket)
     PORT_Free (expected);
   if (tmpArena)
     PORT_FreeArena (tmpArena, PR_FALSE);
+
+  if (serverCert != NULL)
+    {
+      CERT_DestroyCertificate (serverCert);
+    }
 
   return secStatus;
 }
@@ -681,29 +745,15 @@ client_connect (const char *hostName, PRUint32 ip,
 
   return errCode;
 }
-#endif // HAVE_NSS
-
-static compile_server_cache*
-cscache(systemtap_session& s)
-{
-  if (!s.server_cache)
-    s.server_cache = new compile_server_cache();
-  return s.server_cache;
-}
 
 int
 compile_server_client::passes_0_4 ()
 {
   PROBE1(stap, client__start, &s);
 
-#if ! HAVE_NSS
-  // This code will never be called, if we don't have NSS, but it must still
-  // compile.
-  return 1; // Failure
-#else
   // arguments parsed; get down to business
   if (s.verbose > 1)
-    clog << _("Using a compile server") << endl;
+    clog << _("Using a compile server.") << endl;
 
   struct tms tms_before;
   times (& tms_before);
@@ -751,10 +801,16 @@ compile_server_client::passes_0_4 ()
   // syntax errors, if any, are already printed
   if (s.verbose)
     {
-      clog << _("Passes: via server ") << s.winning_server << " "
+      string ws = s.winning_server;
+      if (ws == "") ws = "?";
+      clog << _("Passes: via server ") << ws << " "
            << getmemusage()
            << TIMESPRINT
            << endl;
+    }
+  if (rc)
+    {
+      clog << _("Passes: via server failed.  Try again with another '-v' option.") << endl;
     }
 
   if (rc == 0)
@@ -782,10 +838,8 @@ compile_server_client::passes_0_4 ()
   PROBE1(stap, client__end, &s);
 
   return rc;
-#endif // HAVE_NSS
 }
 
-#if HAVE_NSS
 // Initialize a client/server session.
 int
 compile_server_client::initialize ()
@@ -819,7 +873,10 @@ compile_server_client::initialize ()
 int
 compile_server_client::create_request ()
 {
-  int rc = 0;
+  // Add the current protocol version.
+  int rc = write_to_file (client_tmpdir + "/version", CURRENT_CS_PROTOCOL_VERSION);
+  if (rc != 0)
+    return rc;
 
   // Add the script file or script option
   if (s.script_file != "")
@@ -879,6 +936,11 @@ compile_server_client::create_request ()
   // Add the sysinfo file
   string sysinfo = "sysinfo: " + s.kernel_release + " " + s.architecture;
   rc = write_to_file (client_tmpdir + "/sysinfo", sysinfo);
+  if (rc != 0)
+    return rc;
+
+  // Add localization data
+  rc = add_localization_variables();
 
   return rc;
 }
@@ -928,7 +990,7 @@ compile_server_client::add_package_arg (const string &arg)
 // directory under the given subdirectory.
 int
 compile_server_client::include_file_or_directory (
-  const string &subdir, const string &path, const char *option
+  const string &subdir, const string &path
 )
 {
   // Must predeclare these because we do use 'goto done' to
@@ -960,6 +1022,16 @@ compile_server_client::include_file_or_directory (
       rpath = cpath;
       free (cpath);
 
+      // Including / would require special handling in the code below and
+      // is a bad idea anyway. Let's not allow it.
+      if (rpath == "/")
+	{
+	  if (rpath != path)
+	    clog << _F("%s resolves to %s\n", path.c_str (), rpath.c_str ());
+	  clog << _F("Unable to send %s to the server\n", path.c_str ());
+	  return 1;
+	}
+
       // First create the requested subdirectory.
       name = client_tmpdir + "/" + subdir;
       rc = create_dir (name.c_str ());
@@ -986,14 +1058,7 @@ compile_server_client::include_file_or_directory (
       if (rc) goto done;
     }
 
-  // Name this file or directory in the packaged arguments along with any
-  // associated option.
-  if (option)
-    {
-      rc = add_package_arg (option);
-      if (rc) goto done;
-    }
-
+  // Name this file or directory in the packaged arguments.
   rc = add_package_arg (subdir + "/" + rpath.substr (1));
 
  done:
@@ -1006,6 +1071,33 @@ compile_server_client::include_file_or_directory (
 	   << name << ": " << e
 	   << endl;
     }
+  return rc;
+}
+
+// Add the localization variables to the server request
+// package.
+int
+compile_server_client::add_localization_variables()
+{
+  int rc;
+  string envVar;
+  string fname;
+
+  const set<string> &locVars = localization_variables();
+  set<string>::iterator it;
+
+  /* Note: We don't have to check for the contents of the environment
+   * variables here, since they will be checked extensively on the
+   * server.
+   */
+  for (it = locVars.begin(); it != locVars.end(); it++)
+    {
+      char* var = getenv((*it).c_str());
+      if (var)
+        envVar += *it + "=" + (string)var + "\n";
+    }
+  fname = client_tmpdir + "/locale";
+  rc = write_to_file(fname, envVar);
   return rc;
 }
 
@@ -1074,9 +1166,12 @@ compile_server_client::find_and_connect_to_server ()
   unsigned limit = server_list.size ();
   if (limit == 0)
     {
-      clog << _("Unable to find a server") << endl;
+      clog << _("Unable to find a compile server.") << endl;
       return 1;
     }
+
+  // Sort the list of servers into a preferred order.
+  preferred_order (server_list);
 
   // Now try each of the identified servers in turn.
   int rc = compile_using_server (server_list);
@@ -1097,37 +1192,8 @@ compile_server_client::find_and_connect_to_server ()
     }
 
   // We were unable to use any available server
-  clog << _("Unable to connect to a server") << endl;
+  clog << _("Unable to connect to a server.") << endl;
   return 1; // Failure
-}
-#endif // HAVE_NSS
-
-// Convert the given string to an ip address in host byte order.
-static unsigned
-stringToIpAddress (const string &s)
-{
-  if (s.empty ())
-    return 0; // unknown
-
-  vector<string>components;
-  tokenize (s, components, ".");
-  assert (components.size () >= 1);
-
-  unsigned ip = 0;
-  unsigned i;
-  for (i = 0; i < components.size (); ++i)
-    {
-      const char *ipstr = components[i].c_str ();
-      char *estr;
-      errno = 0;
-      unsigned a = strtoul (ipstr, & estr, 10);
-      if (errno == 0 && *estr == '\0' && a <= UCHAR_MAX)
-	ip = (ip << 8) + a;
-      else
-	return 0;
-    }
-
-  return ip;
 }
 
 int 
@@ -1135,9 +1201,6 @@ compile_server_client::compile_using_server (
   const vector<compile_server_info> &servers
 )
 {
-  // This code will never be called if we don't have NSS, but it must still
-  // compile.
-#if HAVE_NSS
   // Make sure NSPR is initialized. Must be done before NSS is initialized
   s.NSPR_init ();
 
@@ -1250,12 +1313,8 @@ compile_server_client::compile_using_server (
     }
 
   return rc;
-#endif // HAVE_NSS
-
-  return GENERAL_ERROR;
 }
 
-#if HAVE_NSS
 int
 compile_server_client::unpack_response ()
 {
@@ -1270,7 +1329,16 @@ compile_server_client::unpack_response ()
   if (rc != 0)
     {
       clog << _F("Unable to unzip the server response '%s'\n", server_zipfile.c_str());
+      return rc;
     }
+
+  // Determine the server protocol version.
+  string filename = server_tmpdir + "/version";
+  if (file_exists (filename))
+    ::read_from_file (filename, server_version);
+
+  // Warn about the shortcomings of this server, if it is down level.
+  show_server_compatibility ();
 
   // If the server's response contains a systemtap temp directory, move
   // its contents to our temp directory.
@@ -1284,7 +1352,8 @@ compile_server_client::unpack_response ()
       if (globbuf.gl_pathc > 1)
 	{
 	  clog << _("Incorrect number of files in server response") << endl;
-	  rc = 1; goto done;
+	  rc = 1;
+	  goto done;
 	}
 
       assert (globbuf.gl_pathc == 1);
@@ -1312,23 +1381,31 @@ compile_server_client::unpack_response ()
 	      if (rc != 0)
 		{
                  clog << _F("Unable to link '%s' to '%s':%s\n",
-                      oldname.c_str(), newname.c_str(), strerror(errno));
+			    oldname.c_str(), newname.c_str(), strerror(errno));
 		  goto done;
 		}
 	    }
 	}
     }
 
-  // Remove the output line due to the synthetic server-side -k
+  // If the server version is less that 1.6, remove the output line due to the synthetic
+  // server-side -k. Look for a message containing the name of the temporary directory.
+  // We can look for the English message since server versions before 1.1 do not support
+  // localization.
+  if (server_version < "1.6")
+    {
+      cmd.clear();
+      cmd.push_back("sed");
+      cmd.push_back("-i");
+      cmd.push_back("/^Keeping temporary directory.*/ d");
+      cmd.push_back(server_tmpdir + "/stderr");
+      stap_system (s.verbose, cmd);
+    }
+
+  // Remove the output line due to the synthetic server-side -p4
   cmd.clear();
   cmd.push_back("sed");
   cmd.push_back("-i");
-  cmd.push_back("/^Keeping temporary directory.*/ d");
-  cmd.push_back(server_tmpdir + "/stderr");
-  stap_system (s.verbose, cmd);
-
-  // Remove the output line due to the synthetic server-side -p4
-  cmd.erase(cmd.end() - 2, cmd.end());
   cmd.push_back("/^.*\\.ko$/ d");
   cmd.push_back(server_tmpdir + "/stdout");
   stap_system (s.verbose, cmd);
@@ -1380,10 +1457,16 @@ compile_server_client::process_response ()
 		}
 
 	      // If a uprobes.ko module was returned, then make note of it.
-	      if (file_exists (s.tmpdir + "/server/uprobes.ko"))
+	      string uprobes_ko;
+	      if (server_version < "1.6")
+		uprobes_ko = s.tmpdir + "/server/uprobes.ko";
+	      else
+		uprobes_ko = s.tmpdir + "/uprobes/uprobes.ko";
+
+	      if (file_exists (uprobes_ko))
 		{
 		  s.need_uprobes = true;
-		  s.uprobes_path = s.tmpdir + "/server/uprobes.ko";
+		  s.uprobes_path = uprobes_ko;
 		}
 	    }
 	}
@@ -1391,7 +1474,7 @@ compile_server_client::process_response ()
 	{
 	  if (rc == 0)
 	    {
-	      clog << _("No module was returned by the server") << endl;
+	      clog << _("No module was returned by the server.") << endl;
 	      rc = 1;
 	    }
 	}
@@ -1442,8 +1525,9 @@ compile_server_client::read_from_file (const string &fname, int &data)
   return 1; // Failure
 }
 
+template <class T>
 int
-compile_server_client::write_to_file (const string &fname, const string &data)
+compile_server_client::write_to_file (const string &fname, const T &data)
 {
   // C++ streams may not set errno in the even of a failure. However if we
   // set it to 0 before each operation and it gets set during the operation,
@@ -1513,338 +1597,18 @@ compile_server_client::flush_to_stream (const string &fname, ostream &o)
     clog << _("unknown error") << endl;
   return 1; // Failure
 }
-#endif // HAVE_NSS
-
-// Utility Functions.
-//-----------------------------------------------------------------------
-ostream &operator<< (ostream &s, const compile_server_info &i)
-{
-  s << " host=";
-  if (! i.host_name.empty ())
-    s << i.host_name;
-  else
-    s << "unknown";
-  s << " ip=";
-  if (! i.ip_address.empty ())
-    s << i.ip_address;
-  else
-    s << "offline";
-  s << " port=";
-  if (i.port != 0)
-    s << i.port;
-  else
-    s << "offline";
-  s << " sysinfo=\"";
-  if (! i.sysinfo.empty ())
-    s << i.sysinfo << '"';
-  else
-    s << "unknown\"";
-  s << " certinfo=\"";
-  if (! i.certinfo.empty ())
-    s << i.certinfo << '"';
-  else
-    s << "unknown\"";
-  return s;
-}
-
-// Return the default server specification, used when none is given on the
-// command line.
-static string
-default_server_spec (const systemtap_session &s)
-{
-  // If the --use-server option has been used
-  //   the default is 'specified'
-  // otherwise if the --unprivileged has been used
-  //   the default is online,trusted,compatible,signer
-  // otherwise
-  //   the default is online,compatible
-  //
-  // Having said that,
-  //   'online' and 'compatible' will only succeed if we have avahi
-  //   'trusted' and 'signer' will only succeed if we have NSS
-  //
-  string working_string = "online,trusted,compatible";
-  if (s.unprivileged)
-    working_string += ",signer";
-  return working_string;
-}
-
-static int
-server_spec_to_pmask (const string &server_spec)
-{
-  // Construct a mask of the server properties that have been requested.
-  // The available properties are:
-  //     trusted    - servers which are trusted SSL peers.
-  //	 online     - online servers.
-  //     compatible - servers which compile for the current kernel release
-  //	 	      and architecture.
-  //     signer     - servers which are trusted module signers.
-  //	 specified  - servers which have been specified using --use-server=XXX.
-  //	 	      If no servers have been specified, then this is
-  //		      equivalent to --list-servers=trusted,online,compatible.
-  //     all        - all trusted servers, trusted module signers,
-  //                  servers currently online and specified servers.
-  string working_spec = server_spec;
-  vector<string> properties;
-  tokenize (working_spec, properties, ",");
-  int pmask = 0;
-  unsigned limit = properties.size ();
-  for (unsigned i = 0; i < limit; ++i)
-    {
-      const string &property = properties[i];
-      // Tolerate (and ignore) empty properties.
-      if (property.empty ())
-	continue;
-      if (property == "all")
-	{
-	  pmask |= compile_server_all;
-	}
-      else if (property == "specified")
-	{
-	  pmask |= compile_server_specified;
-	}
-      else if (property == "trusted")
-	{
-	  pmask |= compile_server_trusted;
-	}
-      else if (property == "online")
-	{
-	  pmask |= compile_server_online;
-	}
-      else if (property == "compatible")
-	{
-	  pmask |= compile_server_compatible;
-	}
-      else if (property == "signer")
-	{
-	  pmask |= compile_server_signer;
-	}
-      else
-	{
-	  clog << _F("Warning: unsupported compile server property: %s", property.c_str())
-	       << endl;
-	}
-    }
-  return pmask;
-}
 
 void
-query_server_status (systemtap_session &s)
+compile_server_client::show_server_compatibility () const
 {
-  // Make sure NSPR is initialized
-  s.NSPR_init ();
-
-  unsigned limit = s.server_status_strings.size ();
-  for (unsigned i = 0; i < limit; ++i)
-    query_server_status (s, s.server_status_strings[i]);
+  // Locale sensitivity was added in version 1.6
+  if (server_version < "1.6")
+    {
+      clog << _F("Server protocol version is %s\n", server_version.v);
+      clog << _("The server does not use localization information passed by the client\n");
+    }
 }
 
-static void
-query_server_status (systemtap_session &s, const string &status_string)
-{
-  // If this string is empty, then the default is "specified"
-  string working_string = status_string;
-  if (working_string.empty ())
-    working_string = "specified";
-
-  // If the query is "specified" and no servers have been specified
-  // (i.e. --use-server not used or used with no argument), then
-  // use the default query.
-  // TODO: This may not be necessary. The underlying queries should handle
-  //       "specified" properly.
-  if (working_string == "specified" &&
-      (s.specified_servers.empty () ||
-       (s.specified_servers.size () == 1 && s.specified_servers[0].empty ())))
-    working_string = default_server_spec (s);
-
-  int pmask = server_spec_to_pmask (working_string);
-
-  // Now obtain a list of the servers which match the criteria.
-  vector<compile_server_info> raw_servers;
-  get_server_info (s, pmask, raw_servers);
-
-  // Augment the listing with as much information as possible by adding
-  // information from known servers.
-  vector<compile_server_info> servers;
-  get_all_server_info (s, servers);
-  keep_common_server_info (raw_servers, servers);
-
-  // Print the server information. Skip the empty entry at the head of the list.
-  clog << _F("Systemtap Compile Server Status for '%s'", working_string.c_str()) << endl;
-  bool found = false;
-  unsigned limit = servers.size ();
-  for (unsigned i = 0; i < limit; ++i)
-    {
-      assert (! servers[i].empty ());
-      // Don't list servers with no cert information. They may not actually
-      // exist.
-      // TODO: Could try contacting the server and obtaining it cert
-      if (servers[i].certinfo.empty ())
-	continue;
-      clog << servers[i] << endl;
-      found = true;
-    }
-  if (! found)
-    clog << _("No servers found") << endl;
-}
-
-// Add or remove trust of the servers specified on the command line.
-void
-manage_server_trust (systemtap_session &s)
-{
-  // This function will never be called if we don't have NSS, but it must
-  // still compile.
-#if HAVE_NSS
-  // Nothing to do if --trust-servers was not specified.
-  if (s.server_trust_spec.empty ())
-    return;
-
-  // Break up and analyze the trust specification. Recognized components are:
-  //   ssl       - trust the specified servers as ssl peers
-  //   signer    - trust the specified servers as module signers
-  //   revoke    - revoke the requested trust
-  //   all-users - apply/revoke the requested trust for all users
-  //   no-prompt - don't prompt the user for confirmation
-  vector<string>components;
-  tokenize (s.server_trust_spec, components, ",");
-  bool ssl = false;
-  bool signer = false;
-  bool revoke = false;
-  bool all_users = false;
-  bool no_prompt = false;
-  bool error = false;
-  for (vector<string>::const_iterator i = components.begin ();
-       i != components.end ();
-       ++i)
-    {
-      if (*i == "ssl")
-	ssl = true;
-      else if (*i == "signer")
-	{
-	  if (geteuid () != 0)
-	    {
-	      clog << _("Only root can specify 'signer' on --trust-servers") << endl;
-	      error = true;
-	    }
-	  else
-	    signer = true;
-	}
-      else if (*i == "revoke")
-	revoke = true;
-      else if (*i == "all-users")
-	{
-	  if (geteuid () != 0)
-	    {
-	      clog << _("Only root can specify 'all-users' on --trust-servers") << endl;
-	      error = true;
-	    }
-	  else
-	    all_users = true;
-	}
-      else if (*i == "no-prompt")
-	no_prompt = true;
-      else
-	clog << _("Warning: Unrecognized server trust specification: ") << *i
-	     << endl;
-    }
-  if (error)
-    return;
-
-  // Make sure NSPR is initialized
-  s.NSPR_init ();
-
-  // Now obtain the list of specified servers.
-  vector<compile_server_info> server_list;
-  get_specified_server_info (s, server_list, true/*no_default*/);
-
-  // Did we identify any potential servers?
-  unsigned limit = server_list.size ();
-  if (limit == 0)
-    {
-      clog << _("No servers identified for trust") << endl;
-      return;
-    }
-
-  // Create a string representing the request in English.
-  // If neither 'ssl' or 'signer' was specified, the default is 'ssl'.
-  if (! ssl && ! signer)
-    ssl = true;
-  ostringstream trustString;
-  if (ssl)
-    {
-      trustString << _("as an SSL peer");
-      if (all_users)
-	trustString << _(" for all users");
-      else
-	trustString << _(" for the current user");
-    }
-  if (signer)
-    {
-      if (ssl)
-	trustString << _(" and ");
-      trustString << _("as a module signer for all users");
-    }
-
-  // Prompt the user to confirm what's about to happen.
-  if (no_prompt)
-    {
-      if (revoke)
-	clog << _("Revoking trust ");
-      else
-	clog << _("Adding trust ");
-    }
-  else
-    {
-      if (revoke)
-	clog << _("Revoke trust ");
-      else
-	clog << _("Add trust ");
-    }
-  clog << _F("in the following servers %s", trustString.str().c_str());
-  if (! no_prompt)
-    clog << '?';
-  clog << endl;
-  for (unsigned i = 0; i < limit; ++i)
-    clog << "  " << server_list[i] << endl;
-  if (! no_prompt)
-    {
-      clog << "[y/N] " << flush;
-
-      // Only carry out the operation if the response is "yes"
-      string response;
-      cin >> response;
-      if (response[0] != 'y' && response [0] != 'Y')
-	{
-	  clog << _("Server trust unchanged") << endl;
-	  return;
-	}
-    }
-
-  // Now add/revoke the requested trust.
-  string cert_db_path;
-  if (ssl)
-    {
-      if (all_users)
-	cert_db_path = global_ssl_cert_db_path ();
-      else
-	cert_db_path = private_ssl_cert_db_path ();
-      if (revoke)
-	revoke_server_trust (s, cert_db_path, server_list);
-      else
-	add_server_trust (s, cert_db_path, server_list);
-    }
-  if (signer)
-    {
-      cert_db_path = signing_cert_db_path ();
-      if (revoke)
-	revoke_server_trust (s, cert_db_path, server_list);
-      else
-	add_server_trust (s, cert_db_path, server_list);
-    }
-#endif // HAVE_NSS
-}
-
-#if HAVE_NSS
 // Issue a status message for when a server's trust is already in place.
 static void
 trust_already_in_place (
@@ -2140,7 +1904,456 @@ revoke_server_trust (
 
   nssCleanup (cert_db_path.c_str ());
 }
+
+// Obtain information about servers from the certificates in the given database.
+static void
+get_server_info_from_db (
+  systemtap_session &s,
+  vector<compile_server_info> &servers,
+  const string &cert_db_path
+)
+{
+  // Make sure the given path exists.
+  if (! file_exists (cert_db_path))
+    {
+      if (s.verbose > 1)
+       clog << _F("Certificate database '%s' does not exist.",
+                  cert_db_path.c_str()) << endl;
+      return;
+    }
+
+  // Make sure NSPR is initialized. Must be done before NSS is initialized
+  s.NSPR_init ();
+
+  // Initialize the NSS libraries -- readonly
+  SECStatus secStatus = nssInit (cert_db_path.c_str ());
+  if (secStatus != SECSuccess)
+    {
+      // Message already issued.
+      return;
+    }
+
+  // Must predeclare this because of jumps to cleanup: below.
+  PRArenaPool *tmpArena = NULL;
+  CERTCertList *certs = get_cert_list_from_db (server_cert_nickname ());
+  if (! certs)
+    {
+      if (s.verbose > 1)
+	clog << _F("No certificate found in database %s", cert_db_path.c_str ()) << endl;
+      goto cleanup;
+    }
+
+  // A memory pool to work in
+  tmpArena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+  if (! tmpArena) 
+    {
+      clog << _("Out of memory:");
+      nssError ();
+      goto cleanup;
+    }
+  for (CERTCertListNode *node = CERT_LIST_HEAD (certs);
+       ! CERT_LIST_END (node, certs);
+       node = CERT_LIST_NEXT (node))
+    {
+      compile_server_info server_info;
+
+      // The certificate we're working with.
+      CERTCertificate *db_cert = node->cert;
+
+      // Get the host name. It is in the alt-name extension of the
+      // certificate.
+      SECItem subAltName;
+      subAltName.data = NULL;
+      secStatus = CERT_FindCertExtension (db_cert,
+					  SEC_OID_X509_SUBJECT_ALT_NAME,
+					  & subAltName);
+      if (secStatus != SECSuccess || ! subAltName.data)
+	{
+	  clog << _("Unable to find alt name extension on server certificate: ") << endl;
+	  nssError ();
+	  continue;
+	}
+
+      // Decode the extension.
+      CERTGeneralName *nameList = CERT_DecodeAltNameExtension (tmpArena, & subAltName);
+      SECITEM_FreeItem(& subAltName, PR_FALSE);
+      if (! nameList)
+	{
+	  clog << _("Unable to decode alt name extension on server certificate: ") << endl;
+	  nssError ();
+	  continue;
+	}
+
+      // We're interested in the first alternate name.
+      assert (nameList->type == certDNSName);
+      server_info.host_name = string ((const char *)nameList->name.other.data,
+				      nameList->name.other.len);
+      // Don't free nameList. It's part of the tmpArena.
+
+      // Get the serial number.
+      server_info.certinfo = get_cert_serial_number (db_cert);
+
+      // Our results will at a minimum contain this server.
+      add_server_info (server_info, servers);
+
+      // Augment the list by querying all online servers and keeping the ones
+      // with the same cert serial number.
+      vector<compile_server_info> online_servers;
+      get_or_keep_online_server_info (s, online_servers, false/*keep*/);
+      keep_server_info_with_cert_and_port (s, server_info, online_servers);
+      add_server_info (online_servers, servers);
+    }
+
+ cleanup:
+  if (certs)
+    CERT_DestroyCertList (certs);
+  if (tmpArena)
+    PORT_FreeArena (tmpArena, PR_FALSE);
+
+  nssCleanup (cert_db_path.c_str ());
+}
 #endif // HAVE_NSS
+
+// Utility Functions.
+//-----------------------------------------------------------------------
+ostream &operator<< (ostream &s, const compile_server_info &i)
+{
+  s << " host=";
+  if (! i.host_name.empty ())
+    s << i.host_name;
+  else
+    s << "unknown";
+  s << " ip=";
+  if (! i.ip_address.empty ())
+    s << i.ip_address;
+  else
+    s << "offline";
+  s << " port=";
+  if (i.port != 0)
+    s << i.port;
+  else
+    s << "offline";
+  s << " sysinfo=\"";
+  if (! i.sysinfo.empty ())
+    s << i.sysinfo << '"';
+  else
+    s << "unknown\"";
+  s << " version=";
+  if (! i.version.empty ())
+    s << i.version;
+  else
+    s << "unknown";
+  s << " certinfo=\"";
+  if (! i.certinfo.empty ())
+    s << i.certinfo << '"';
+  else
+    s << "unknown\"";
+  return s;
+}
+
+// Return the default server specification, used when none is given on the
+// command line.
+static string
+default_server_spec (const systemtap_session &s)
+{
+  // If the --use-server option has been used
+  //   the default is 'specified'
+  // otherwise if the --unprivileged has been used
+  //   the default is online,trusted,compatible,signer
+  // otherwise
+  //   the default is online,compatible
+  //
+  // Having said that,
+  //   'online' and 'compatible' will only succeed if we have avahi
+  //   'trusted' and 'signer' will only succeed if we have NSS
+  //
+  string working_string = "online,trusted,compatible";
+  if (s.unprivileged)
+    working_string += ",signer";
+  return working_string;
+}
+
+static int
+server_spec_to_pmask (const string &server_spec)
+{
+  // Construct a mask of the server properties that have been requested.
+  // The available properties are:
+  //     trusted    - servers which are trusted SSL peers.
+  //	 online     - online servers.
+  //     compatible - servers which compile for the current kernel release
+  //	 	      and architecture.
+  //     signer     - servers which are trusted module signers.
+  //	 specified  - servers which have been specified using --use-server=XXX.
+  //	 	      If no servers have been specified, then this is
+  //		      equivalent to --list-servers=trusted,online,compatible.
+  //     all        - all trusted servers, trusted module signers,
+  //                  servers currently online and specified servers.
+  string working_spec = server_spec;
+  vector<string> properties;
+  tokenize (working_spec, properties, ",");
+  int pmask = 0;
+  unsigned limit = properties.size ();
+  for (unsigned i = 0; i < limit; ++i)
+    {
+      const string &property = properties[i];
+      // Tolerate (and ignore) empty properties.
+      if (property.empty ())
+	continue;
+      if (property == "all")
+	{
+	  pmask |= compile_server_all;
+	}
+      else if (property == "specified")
+	{
+	  pmask |= compile_server_specified;
+	}
+      else if (property == "trusted")
+	{
+	  pmask |= compile_server_trusted;
+	}
+      else if (property == "online")
+	{
+	  pmask |= compile_server_online;
+	}
+      else if (property == "compatible")
+	{
+	  pmask |= compile_server_compatible;
+	}
+      else if (property == "signer")
+	{
+	  pmask |= compile_server_signer;
+	}
+      else
+	{
+	  clog << _F("Warning: unsupported compile server property: %s", property.c_str())
+	       << endl;
+	}
+    }
+  return pmask;
+}
+
+void
+query_server_status (systemtap_session &s)
+{
+  unsigned limit = s.server_status_strings.size ();
+  for (unsigned i = 0; i < limit; ++i)
+    query_server_status (s, s.server_status_strings[i]);
+}
+
+static void
+query_server_status (systemtap_session &s, const string &status_string)
+{
+  // If this string is empty, then the default is "specified"
+  string working_string = status_string;
+  if (working_string.empty ())
+    working_string = "specified";
+
+  // If the query is "specified" and no servers have been specified
+  // (i.e. --use-server not used or used with no argument), then
+  // use the default query.
+  // TODO: This may not be necessary. The underlying queries should handle
+  //       "specified" properly.
+  if (working_string == "specified" &&
+      (s.specified_servers.empty () ||
+       (s.specified_servers.size () == 1 && s.specified_servers[0].empty ())))
+    working_string = default_server_spec (s);
+
+  int pmask = server_spec_to_pmask (working_string);
+
+  // Now obtain a list of the servers which match the criteria.
+  vector<compile_server_info> raw_servers;
+  get_server_info (s, pmask, raw_servers);
+
+  // Augment the listing with as much information as possible by adding
+  // information from known servers.
+  vector<compile_server_info> servers;
+  get_all_server_info (s, servers);
+  keep_common_server_info (raw_servers, servers);
+
+  // Sort the list of servers into a preferred order.
+  preferred_order (servers);
+
+  // Print the server information. Skip the empty entry at the head of the list.
+  clog << _F("Systemtap Compile Server Status for '%s'", working_string.c_str()) << endl;
+  bool found = false;
+  unsigned limit = servers.size ();
+  for (unsigned i = 0; i < limit; ++i)
+    {
+      assert (! servers[i].empty ());
+      // Don't list servers with no cert information. They may not actually
+      // exist.
+      // TODO: Could try contacting the server and obtaining its cert
+      if (servers[i].certinfo.empty ())
+	continue;
+      clog << servers[i] << endl;
+      found = true;
+    }
+  if (! found)
+    clog << _("No servers found") << endl;
+}
+
+// Add or remove trust of the servers specified on the command line.
+void
+manage_server_trust (systemtap_session &s)
+{
+  // This function should do nothing if we don't have NSS.
+#if HAVE_NSS
+  // Nothing to do if --trust-servers was not specified.
+  if (s.server_trust_spec.empty ())
+    return;
+
+  // Break up and analyze the trust specification. Recognized components are:
+  //   ssl       - trust the specified servers as ssl peers
+  //   signer    - trust the specified servers as module signers
+  //   revoke    - revoke the requested trust
+  //   all-users - apply/revoke the requested trust for all users
+  //   no-prompt - don't prompt the user for confirmation
+  vector<string>components;
+  tokenize (s.server_trust_spec, components, ",");
+  bool ssl = false;
+  bool signer = false;
+  bool revoke = false;
+  bool all_users = false;
+  bool no_prompt = false;
+  bool error = false;
+  for (vector<string>::const_iterator i = components.begin ();
+       i != components.end ();
+       ++i)
+    {
+      if (*i == "ssl")
+	ssl = true;
+      else if (*i == "signer")
+	{
+	  if (geteuid () != 0)
+	    {
+	      clog << _("Only root can specify 'signer' on --trust-servers") << endl;
+	      error = true;
+	    }
+	  else
+	    signer = true;
+	}
+      else if (*i == "revoke")
+	revoke = true;
+      else if (*i == "all-users")
+	{
+	  if (geteuid () != 0)
+	    {
+	      clog << _("Only root can specify 'all-users' on --trust-servers") << endl;
+	      error = true;
+	    }
+	  else
+	    all_users = true;
+	}
+      else if (*i == "no-prompt")
+	no_prompt = true;
+      else
+	clog << _("Warning: Unrecognized server trust specification: ") << *i
+	     << endl;
+    }
+  if (error)
+    return;
+
+  // Make sure NSPR is initialized
+  s.NSPR_init ();
+
+  // Now obtain the list of specified servers.
+  vector<compile_server_info> server_list;
+  get_specified_server_info (s, server_list, true/*no_default*/);
+
+  // Did we identify any potential servers?
+  unsigned limit = server_list.size ();
+  if (limit == 0)
+    {
+      clog << _("No servers identified for trust") << endl;
+      return;
+    }
+
+  // Create a string representing the request in English.
+  // If neither 'ssl' or 'signer' was specified, the default is 'ssl'.
+  if (! ssl && ! signer)
+    ssl = true;
+  ostringstream trustString;
+  if (ssl)
+    {
+      trustString << _("as an SSL peer");
+      if (all_users)
+	trustString << _(" for all users");
+      else
+	trustString << _(" for the current user");
+    }
+  if (signer)
+    {
+      if (ssl)
+	trustString << _(" and ");
+      trustString << _("as a module signer for all users");
+    }
+
+  // Prompt the user to confirm what's about to happen.
+  if (no_prompt)
+    {
+      if (revoke)
+	clog << _("Revoking trust ");
+      else
+	clog << _("Adding trust ");
+    }
+  else
+    {
+      if (revoke)
+	clog << _("Revoke trust ");
+      else
+	clog << _("Add trust ");
+    }
+  clog << _F("in the following servers %s", trustString.str().c_str());
+  if (! no_prompt)
+    clog << '?';
+  clog << endl;
+  for (unsigned i = 0; i < limit; ++i)
+    clog << "  " << server_list[i] << endl;
+  if (! no_prompt)
+    {
+      clog << "[y/N] " << flush;
+
+      // Only carry out the operation if the response is "yes"
+      string response;
+      cin >> response;
+      if (response[0] != 'y' && response [0] != 'Y')
+	{
+	  clog << _("Server trust unchanged") << endl;
+	  return;
+	}
+    }
+
+  // Now add/revoke the requested trust.
+  string cert_db_path;
+  if (ssl)
+    {
+      if (all_users)
+	cert_db_path = global_ssl_cert_db_path ();
+      else
+	cert_db_path = private_ssl_cert_db_path ();
+      if (revoke)
+	revoke_server_trust (s, cert_db_path, server_list);
+      else
+	add_server_trust (s, cert_db_path, server_list);
+    }
+  if (signer)
+    {
+      cert_db_path = signing_cert_db_path ();
+      if (revoke)
+	revoke_server_trust (s, cert_db_path, server_list);
+      else
+	add_server_trust (s, cert_db_path, server_list);
+    }
+#endif // HAVE_NSS
+}
+
+static compile_server_cache*
+cscache(systemtap_session& s)
+{
+  if (!s.server_cache)
+    s.server_cache = new compile_server_cache();
+  return s.server_cache;
+}
 
 static void
 get_server_info (
@@ -2164,7 +2377,7 @@ get_server_info (
       get_specified_server_info (s, servers);
       keep = true;
     }
-  // Now filter the or accumulate the list depending on whether a query has
+  // Now filter or accumulate the list depending on whether a query has
   // already been made.
   if ((pmask & compile_server_online))
     {
@@ -2446,115 +2659,6 @@ get_or_keep_signing_server_info (
     }
 }
 
-#if HAVE_NSS
-// Obtain information about servers from the certificates in the given database.
-static void
-get_server_info_from_db (
-  systemtap_session &s,
-  vector<compile_server_info> &servers,
-  const string &cert_db_path
-)
-{
-  // Make sure the given path exists.
-  if (! file_exists (cert_db_path))
-    {
-      if (s.verbose > 1)
-       clog << _F("Certificate database '%s' does not exist.",
-                  cert_db_path.c_str()) << endl;
-      return;
-    }
-
-  // Make sure NSPR is initialized. Must be done before NSS is initialized
-  s.NSPR_init ();
-
-  // Initialize the NSS libraries -- readonly
-  SECStatus secStatus = nssInit (cert_db_path.c_str ());
-  if (secStatus != SECSuccess)
-    {
-      // Message already issued.
-      return;
-    }
-
-  // Must predeclare this because of jumps to cleanup: below.
-  PRArenaPool *tmpArena = NULL;
-  CERTCertList *certs = get_cert_list_from_db (server_cert_nickname ());
-  if (! certs)
-    {
-      if (s.verbose > 1)
-	clog << _F("No certificate found in database %s", cert_db_path.c_str ()) << endl;
-      goto cleanup;
-    }
-
-  // A memory pool to work in
-  tmpArena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-  if (! tmpArena) 
-    {
-      clog << _("Out of memory:");
-      nssError ();
-      goto cleanup;
-    }
-  for (CERTCertListNode *node = CERT_LIST_HEAD (certs);
-       ! CERT_LIST_END (node, certs);
-       node = CERT_LIST_NEXT (node))
-    {
-      compile_server_info server_info;
-
-      // The certificate we're working with.
-      CERTCertificate *db_cert = node->cert;
-
-      // Get the host name. It is in the alt-name extension of the
-      // certificate.
-      SECItem subAltName;
-      subAltName.data = NULL;
-      secStatus = CERT_FindCertExtension (db_cert,
-					  SEC_OID_X509_SUBJECT_ALT_NAME,
-					  & subAltName);
-      if (secStatus != SECSuccess || ! subAltName.data)
-	{
-	  clog << _("Unable to find alt name extension on server certificate: ") << endl;
-	  nssError ();
-	  continue;
-	}
-
-      // Decode the extension.
-      CERTGeneralName *nameList = CERT_DecodeAltNameExtension (tmpArena, & subAltName);
-      SECITEM_FreeItem(& subAltName, PR_FALSE);
-      if (! nameList)
-	{
-	  clog << _("Unable to decode alt name extension on server certificate: ") << endl;
-	  nssError ();
-	  continue;
-	}
-
-      // We're interested in the first alternate name.
-      assert (nameList->type == certDNSName);
-      server_info.host_name = string ((const char *)nameList->name.other.data,
-				      nameList->name.other.len);
-      // Don't free nameList. It's part of the tmpArena.
-
-      // Get the serial number.
-      server_info.certinfo = get_cert_serial_number (db_cert);
-
-      // Our results will at a minimum contain this server.
-      add_server_info (server_info, servers);
-
-      // Augment the list by querying all online servers and keeping the ones
-      // with the same cert serial number.
-      vector<compile_server_info> online_servers;
-      get_or_keep_online_server_info (s, online_servers, false/*keep*/);
-      keep_server_info_with_cert_and_port (s, server_info, online_servers);
-      add_server_info (online_servers, servers);
-    }
-
- cleanup:
-  if (certs)
-    CERT_DestroyCertList (certs);
-  if (tmpArena)
-    PORT_FreeArena (tmpArena, PR_FALSE);
-
-  nssCleanup (cert_db_path.c_str ());
-}
-#endif // HAVE_NSS
 
 static void
 get_or_keep_compatible_server_info (
@@ -2811,6 +2915,9 @@ void resolve_callback(
 		t = avahi_string_list_to_string(txt);
 		info.sysinfo = extract_field_from_avahi_txt ("sysinfo=", t);
 		info.certinfo = extract_field_from_avahi_txt ("certinfo=", t);
+		info.version = extract_field_from_avahi_txt ("version=", t);
+		if (info.version.empty ())
+		  info.version = "1.0"; // default version is 1.0
 		avahi_free(t);
 
 		// Add this server to the list of discovered servers.
@@ -3137,6 +3244,8 @@ merge_server_info (
     target.port = source.port;
   if (target.sysinfo.empty ())
     target.sysinfo = source.sysinfo;
+  if (target.version.empty ())
+    target.version = source.version;
   if (target.certinfo.empty ())
     target.certinfo = source.certinfo;
 }

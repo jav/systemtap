@@ -187,7 +187,10 @@ static void _stp_attach(void)
 
 /*
  *	_stp_ctl_work_callback - periodically check for IO or exit
- *	This is run by a kernel thread and may sleep.
+ *	This IO comes from ERRORs or WARNINGs which are send with
+ *	_stp_ctl_write as type STP_OOB_DATA, so don't immediately
+ *	trigger a wake_up of _stp_ctl_wq.
+ *	This is run by a kernel thread and may NOT sleep.
  */
 static void _stp_ctl_work_callback(unsigned long val)
 {
@@ -273,7 +276,10 @@ static int _stp_transport_init(void)
 	/* start transport */
 	_stp_transport_data_fs_start();
 
-        /* Signal stapio to send us STP_START back (XXX: ?!?!?!).  */
+        /* Signal stapio to send us STP_START back.
+           This is an historic convention. This was called
+	   STP_TRANSPORT_INFO and had a payload that described the
+	   transport buffering, this is no longer the case.  */
 	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
 
 	dbug_trans(1, "returning 0...\n");
@@ -465,6 +471,12 @@ static int _stp_transport_fs_init(const char *module_name)
 	}
 
 	if (_stp_transport_data_fs_init() != 0) {
+#if STP_TRANSPORT_VERSION == 1
+		relayfs_remove_dir(__stp_module_dir);
+#else
+		debugfs_remove(__stp_module_dir);
+#endif
+		__stp_module_dir = NULL;
 		_stp_remove_root_dir();
 		_stp_unlock_transport_dir();
 		return -1;

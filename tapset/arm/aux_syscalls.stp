@@ -1,0 +1,40 @@
+# arch-specific requests of ptrace ___________________________
+#
+function _arch_ptrace_argstr(request, pid, addr, data)
+{
+	if (request == %{ PTRACE_GETREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GETFPREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETFPREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETFPREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETFPREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_GETWMMXREGS %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GETWMMXREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_SETWMMXREGS %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SETWMMXREGS, %d, data=%p", pid, data)
+	if (request == %{ PTRACE_OLDSETOPTIONS %})
+		return sprintf ("PTRACE_OLDSETOPTIONS, %d, %s", pid, _ptrace_options_str (data))
+	if (request == %{ PTRACE_GET_THREAD_AREA %})
+		// TODO: Retrieve *data in .return
+		return sprintf ("PTRACE_GET_THREAD_AREA, %d, index=%d, data=%p", pid, addr, data)
+	if (request == %{ PTRACE_SET_SYSCALL %})
+		// TODO: Retrieve *data here
+		return sprintf ("PTRACE_SET_SYSCALL, %d, index=%p, data=%p", pid, addr, data)
+	if (request == %{ PTRACE_GETCRUNCHREGS %})
+		return sprintf ("PTRACE_GETCRUNCHREGS, %d, %s", pid, _signal_name (data))
+	if (request == %{ PTRACE_SETCRUNCHREGS %})
+		return sprintf ("PTRACE_SETCRUNCHREGS, %d, %s", pid, _signal_name (data))
+}
+
+function _ptrace_return_arch_prctl_addr:long(request:long, addr:long, data:long)
+{
+	return 0
+}

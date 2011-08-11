@@ -20,10 +20,13 @@
 */
 #include "config.h"
 
+#include <fstream>
 #include <string>
 #include <cerrno>
 #include <cassert>
 #include <climits>
+#include <iostream>
+#include <map>
 
 extern "C" {
 #include <getopt.h>
@@ -38,6 +41,7 @@ extern "C" {
 #include <ssl.h>
 #include <nss.h>
 #include <keyhi.h>
+#include <regex.h>
 
 #if HAVE_AVAHI
 #include <avahi-client/publish.h>
@@ -50,18 +54,20 @@ extern "C" {
 
 #include "util.h"
 #include "nsscommon.h"
+#include "cscommon.h"
 
 using namespace std;
 
 static void cleanup ();
 static PRStatus spawn_and_wait (const vector<string> &argv,
                                 const char* fd0, const char* fd1, const char* fd2,
-				const char *pwd, bool setrlimits = false);
+				const char *pwd, bool setrlimits = false, const vector<string>& envVec = vector<string> ());
 
 /* getopt variables */
 extern int optind;
 
 /* File scope statics. Set during argument parsing and initialization. */
+static cs_protocol_version client_version;
 static bool set_rlimits;
 static bool use_db_password;
 static int port;
@@ -73,6 +79,7 @@ static string cert_serial_number;
 static string B_options;
 static string I_options;
 static string R_option;
+static bool   keep_temp;
 
 // Used to save our resource limits for these categories and impose smaller
 // limits on the translator while servicing a request.
@@ -88,24 +95,51 @@ static struct rlimit translator_RLIMIT_CPU;
 static struct rlimit translator_RLIMIT_NPROC;
 static struct rlimit translator_RLIMIT_AS;
 
-// Message handling. Error messages occur during the handling of a request and
-// are logged, printed to stderr and also to the client's stderr.
-extern "C"
-void
-nsscommon_error (const char *msg, int logit)
+static string stapstderr;
+
+// Message handling.
+// Server_error messages are printed to stderr and logged, if requested.
+static void
+server_error (const string &msg, int logit = true)
 {
-  clog << msg << endl << flush;
+  cerr << msg << endl << flush;
   // Log it, but avoid repeated messages to the terminal.
   if (logit && log_ok ())
     log (msg);
 }
 
-// Fatal errors are treated the same as errors but also result in termination
+// client_error messages are treated as server errors and also printed to the client's stderr.
+static void
+client_error (const string &msg)
+{
+  server_error (msg);
+  if (! stapstderr.empty ())
+    {
+      ofstream errfile;
+      errfile.open (stapstderr.c_str (), ios_base::app);
+      if (! errfile.good ())
+	server_error (_F("Could not open client stderr file %s: %s", stapstderr.c_str (),
+			 strerror (errno)));
+      else
+	errfile << "Server: " << msg << endl;
+      // NB: No need to close errfile
+    }
+}
+
+// Messages from the nss common code are treated as server errors.
+extern "C"
+void
+nsscommon_error (const char *msg, int logit)
+{
+  server_error (msg, logit);
+}
+
+// Fatal errors are treated as server errors but also result in termination
 // of the server.
 static void
 fatal (const string &msg)
 {
-  nsscommon_error (msg, true/*logit*/);
+  server_error (msg);
   cleanup ();
   exit (1);
 }
@@ -141,7 +175,7 @@ parse_options (int argc, char **argv)
   // parse all options in order to discover the ones we're interested in.
   while (true)
     {
-      int long_opt;
+      int long_opt = 0;
       char *num_endptr;
 #define LONG_OPT_PORT 1
 #define LONG_OPT_SSL 2
@@ -152,7 +186,7 @@ parse_options (int argc, char **argv)
         { "log", 1, & long_opt, LONG_OPT_LOG },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "a:B:I:Pr:R:", long_options, NULL);
+      int grc = getopt_long (argc, argv, "a:B:I:kPr:R:", long_options, NULL);
       if (grc < 0)
         break;
       switch (grc)
@@ -167,6 +201,9 @@ parse_options (int argc, char **argv)
 	case 'I':
 	  I_options += optarg;
 	  stap_options += string (" -") + (char)grc + optarg;
+	  break;
+	case 'k':
+	  keep_temp = true;
 	  break;
 	case 'P':
 	  use_db_password = true;
@@ -184,9 +221,9 @@ parse_options (int argc, char **argv)
         default:
           // Reached when one added a getopt option but not a corresponding switch/case:
           if (optarg)
-	    nsscommon_error (_F("%s: unhandled option '%c %s'", argv[0], (char)grc, optarg));
+	    server_error (_F("%s: unhandled option '%c %s'", argv[0], (char)grc, optarg));
           else
-	    nsscommon_error (_F("%s: unhandled option '%c'", argv[0], (char)grc));
+	    server_error (_F("%s: unhandled option '%c'", argv[0], (char)grc));
 	  break;
         case 0:
           switch (long_opt)
@@ -202,10 +239,10 @@ parse_options (int argc, char **argv)
 	      break;
             default:
 	      if (optarg)
-		nsscommon_error (_F("%s: unhandled option '--%s=%s'", argv[0],
+		server_error (_F("%s: unhandled option '--%s=%s'", argv[0],
 				    long_options[long_opt - 1].name, optarg));
 	      else
-		nsscommon_error (_F("%s: unhandled option '--%s'", argv[0],
+		server_error (_F("%s: unhandled option '--%s'", argv[0],
 				    long_options[long_opt - 1].name));
             }
           break;
@@ -213,7 +250,13 @@ parse_options (int argc, char **argv)
     }
 
   for (int i = optind; i < argc; i++)
-    nsscommon_error (_F("%s: unrecognized argument '%s'", argv[0], argv[i]));
+    server_error (_F("%s: unrecognized argument '%s'", argv[0], argv[i]));
+}
+
+static string
+server_cert_file ()
+{
+  return server_cert_db_path () + "/stap.cert";
 }
 
 // Signal handling. When an interrupt is received, kill any spawned processes
@@ -312,7 +355,7 @@ entry_group_callback (
       n = avahi_alternative_service_name (avahi_service_name);
       avahi_free (avahi_service_name);
       avahi_service_name = n;
-      nsscommon_error (_F("Avahi service name collision, renaming service to '%s'", avahi_service_name));
+      server_error (_F("Avahi service name collision, renaming service to '%s'", avahi_service_name));
 
       // And recreate the services.
       create_services (avahi_entry_group_get_client (g));
@@ -320,7 +363,7 @@ entry_group_callback (
     }
 
     case AVAHI_ENTRY_GROUP_FAILURE:
-      nsscommon_error (_F("Avahi entry group failure: %s",
+      server_error (_F("Avahi entry group failure: %s",
 		  avahi_strerror (avahi_client_errno (avahi_entry_group_get_client (g)))));
       // Some kind of failure happened while we were registering our services.
       avahi_threaded_poll_stop (avahi_threaded_poll);
@@ -341,7 +384,7 @@ create_services (AvahiClient *c) {
   if (! avahi_group)
     if (! (avahi_group = avahi_entry_group_new (c, entry_group_callback, NULL)))
       {
-	nsscommon_error (_F("avahi_entry_group_new () failed: %s",
+	server_error (_F("avahi_entry_group_new () failed: %s",
 		    avahi_strerror (avahi_client_errno (c))));
 	  goto fail;
       }
@@ -355,6 +398,7 @@ create_services (AvahiClient *c) {
       // Create the txt tags that will be registered with our service.
       string sysinfo = "sysinfo=" + uname_r + " " + arch;
       string certinfo = "certinfo=" + cert_serial_number;
+      string version = string ("version=") + CURRENT_CS_PROTOCOL_VERSION;;
       string optinfo = "optinfo=";
       string separator;
       if (! R_option.empty ())
@@ -377,19 +421,19 @@ create_services (AvahiClient *c) {
 						(AvahiPublishFlags)0,
 						avahi_service_name, "_stap._tcp", NULL, NULL, port,
 						sysinfo.c_str (), optinfo.c_str (),
-						certinfo.c_str (), NULL)) < 0)
+						version.c_str (), certinfo.c_str (), NULL)) < 0)
 	{
 	  if (ret == AVAHI_ERR_COLLISION)
 	    goto collision;
 
-	  nsscommon_error (_F("Failed to add _ipp._tcp service: %s", avahi_strerror (ret)));
+	  server_error (_F("Failed to add _stap._tcp service: %s", avahi_strerror (ret)));
 	  goto fail;
 	}
 
       // Tell the server to register the service.
       if ((ret = avahi_entry_group_commit (avahi_group)) < 0)
 	{
-	  nsscommon_error (_F("Failed to commit avahi entry group: %s", avahi_strerror (ret)));
+	  server_error (_F("Failed to commit avahi entry group: %s", avahi_strerror (ret)));
 	  goto fail;
 	}
     }
@@ -402,7 +446,7 @@ create_services (AvahiClient *c) {
   n = avahi_alternative_service_name (avahi_service_name);
   avahi_free(avahi_service_name);
   avahi_service_name = n;
-  nsscommon_error (_F("Avahi service name collision, renaming service to '%s'", avahi_service_name));
+  server_error (_F("Avahi service name collision, renaming service to '%s'", avahi_service_name));
   avahi_entry_group_reset (avahi_group);
   create_services (c);
   return;
@@ -427,7 +471,7 @@ client_callback (AvahiClient *c, AvahiClientState state, AVAHI_GCC_UNUSED void *
       break;
 
     case AVAHI_CLIENT_FAILURE:
-      nsscommon_error (_F("Avahi client failure: %s", avahi_strerror (avahi_client_errno (c))));
+      server_error (_F("Avahi client failure: %s", avahi_strerror (avahi_client_errno (c))));
       avahi_threaded_poll_stop (avahi_threaded_poll);
       break;
 
@@ -491,7 +535,7 @@ avahi_publish_service (CERTCertificate *cert)
   // Allocate main loop object.
   if (! (avahi_threaded_poll = avahi_threaded_poll_new ()))
     {
-      nsscommon_error (_("Failed to create avahi threaded poll object."));
+      server_error (_("Failed to create avahi threaded poll object."));
       return;
     }
 
@@ -503,7 +547,7 @@ avahi_publish_service (CERTCertificate *cert)
   // Check wether creating the client object succeeded.
   if (! avahi_client)
     {
-      nsscommon_error (_F("Failed to create avahi client: %s", avahi_strerror(error)));
+      server_error (_F("Failed to create avahi client: %s", avahi_strerror(error)));
       return;
     }
 
@@ -520,7 +564,7 @@ advertise_presence (CERTCertificate *cert __attribute ((unused)))
 #if HAVE_AVAHI
   avahi_publish_service (cert);
 #else
-  nsscommon_error (_("Unable to advertise presence on the network. Avahi is not available"));
+  server_error (_("Unable to advertise presence on the network. Avahi is not available"));
 #endif
 }
 
@@ -577,8 +621,10 @@ initialize (int argc, char **argv) {
   srand (time (NULL));
 
   // Initial values.
+  client_version = "1.0"; // Assumed until discovered otherwise
   use_db_password = false;
   port = 0;
+  keep_temp = false;
   struct utsname utsname;
   uname (& utsname);
   uname_r = utsname.release;
@@ -628,12 +674,12 @@ readDataFromSocket(PRFileDesc *sslSocket, const char *requestFileName)
   numBytesRead = PR_Read (sslSocket, & numBytesExpected, sizeof (numBytesExpected));
   if (numBytesRead == 0) /* EOF */
     {
-      nsscommon_error (_("Error reading size of request file"));
+      server_error (_("Error reading size of request file"));
       goto done;
     }
   if (numBytesRead < 0)
     {
-      nsscommon_error (_("Error in PR_Read"));
+      server_error (_("Error in PR_Read"));
       nssError ();
       goto done;
     }
@@ -651,7 +697,7 @@ readDataFromSocket(PRFileDesc *sslSocket, const char *requestFileName)
 			  PR_IRUSR | PR_IWUSR);
   if (local_file_fd == NULL)
     {
-      nsscommon_error (_F("Could not open output file %s", requestFileName));
+      server_error (_F("Could not open output file %s", requestFileName));
       nssError ();
       return -1;
     }
@@ -664,7 +710,7 @@ readDataFromSocket(PRFileDesc *sslSocket, const char *requestFileName)
 	break;	/* EOF */
       if (numBytesRead < 0)
 	{
-	  nsscommon_error (_("Error in PR_Read"));
+	  server_error (_("Error in PR_Read"));
 	  nssError ();
 	  goto done;
 	}
@@ -673,7 +719,7 @@ readDataFromSocket(PRFileDesc *sslSocket, const char *requestFileName)
       numBytesWritten = PR_Write(local_file_fd, buffer, numBytesRead);
       if (numBytesWritten < 0 || (numBytesWritten != numBytesRead))
         {
-          nsscommon_error (_F("Could not write to output file %s", requestFileName));
+          server_error (_F("Could not write to output file %s", requestFileName));
 	  nssError ();
 	  goto done;
         }
@@ -681,7 +727,7 @@ readDataFromSocket(PRFileDesc *sslSocket, const char *requestFileName)
 
   if (totalBytes != numBytesExpected)
     {
-      nsscommon_error (_F("Expected %d bytes, got %d while reading client request from socket",
+      server_error (_F("Expected %d bytes, got %d while reading client request from socket",
 			  numBytesExpected, totalBytes));
       goto done;
     }
@@ -709,7 +755,7 @@ setupSSLSocket (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKey *
   sslSocket = SSL_ImportFD (NULL, tcpSocket);
   if (sslSocket == NULL)
     {
-      nsscommon_error (_("Could not import socket into SSL"));
+      server_error (_("Could not import socket into SSL"));
       nssError ();
       return NULL;
     }
@@ -718,7 +764,7 @@ setupSSLSocket (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKey *
   secStatus = SSL_OptionSet (sslSocket, SSL_SECURITY, PR_TRUE);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error setting SSL security for socket"));
+      server_error (_("Error setting SSL security for socket"));
       nssError ();
       return NULL;
     }
@@ -726,7 +772,7 @@ setupSSLSocket (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKey *
   secStatus = SSL_OptionSet(sslSocket, SSL_HANDSHAKE_AS_SERVER, PR_TRUE);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error setting handshake as server for socket"));
+      server_error (_("Error setting handshake as server for socket"));
       nssError ();
       return NULL;
     }
@@ -734,7 +780,7 @@ setupSSLSocket (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKey *
   secStatus = SSL_OptionSet(sslSocket, SSL_REQUEST_CERTIFICATE, PR_FALSE);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error setting SSL client authentication mode for socket"));
+      server_error (_("Error setting SSL client authentication mode for socket"));
       nssError ();
       return NULL;
     }
@@ -742,7 +788,7 @@ setupSSLSocket (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKey *
   secStatus = SSL_OptionSet(sslSocket, SSL_REQUIRE_CERTIFICATE, PR_FALSE);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error setting SSL client authentication mode for socket"));
+      server_error (_("Error setting SSL client authentication mode for socket"));
       nssError ();
       return NULL;
     }
@@ -753,7 +799,7 @@ setupSSLSocket (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKey *
   if (secStatus != SECSuccess)
     {
       nssError ();
-      nsscommon_error (_("Error in SSL_AuthCertificateHook"));
+      server_error (_("Error in SSL_AuthCertificateHook"));
       return NULL;
     }
 #endif
@@ -762,7 +808,7 @@ setupSSLSocket (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKey *
   if (secStatus != SECSuccess)
     {
       nssError ();
-      nsscommon_error (_("Error in SSL_BadCertHook"));
+      server_error (_("Error in SSL_BadCertHook"));
       return NULL;
     }
 #endif
@@ -770,7 +816,7 @@ setupSSLSocket (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKey *
   secStatus = SSL_HandshakeCallback(sslSocket, myHandshakeCallback, NULL);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error in SSL_HandshakeCallback"));
+      server_error (_("Error in SSL_HandshakeCallback"));
       nssError ();
       return NULL;
     }
@@ -781,7 +827,7 @@ setupSSLSocket (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKey *
   secStatus = SSL_ConfigSecureServer (sslSocket, cert, privKey, certKEA);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error configuring SSL server"));
+      server_error (_("Error configuring SSL server"));
       nssError ();
       return NULL;
     }
@@ -815,7 +861,7 @@ authenticateSocket (PRFileDesc *sslSocket, PRBool requireCert)
   secStatus = SSL_OptionSet(sslSocket, SSL_REQUEST_CERTIFICATE, PR_TRUE);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error in SSL_OptionSet:SSL_REQUEST_CERTIFICATE"));
+      server_error (_("Error in SSL_OptionSet:SSL_REQUEST_CERTIFICATE"));
       nssError ();
       return SECFailure;
     }
@@ -825,7 +871,7 @@ authenticateSocket (PRFileDesc *sslSocket, PRBool requireCert)
   secStatus = SSL_OptionSet(sslSocket, SSL_REQUIRE_CERTIFICATE, requireCert);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error in SSL_OptionSet:SSL_REQUIRE_CERTIFICATE"));
+      server_error (_("Error in SSL_OptionSet:SSL_REQUIRE_CERTIFICATE"));
       nssError ();
       return SECFailure;
     }
@@ -834,7 +880,7 @@ authenticateSocket (PRFileDesc *sslSocket, PRBool requireCert)
   secStatus = SSL_ReHandshake(sslSocket, PR_TRUE);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error in SSL_ReHandshake"));
+      server_error (_("Error in SSL_ReHandshake"));
       nssError ();
       return SECFailure;
     }
@@ -843,7 +889,7 @@ authenticateSocket (PRFileDesc *sslSocket, PRBool requireCert)
   secStatus = SSL_ForceHandshake(sslSocket);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error in SSL_ForceHandshake"));
+      server_error (_("Error in SSL_ForceHandshake"));
       nssError ();
       return SECFailure;
     }
@@ -863,7 +909,7 @@ writeDataToSocket(PRFileDesc *sslSocket, const char *responseFileName)
   PRFileDesc *local_file_fd = PR_Open (responseFileName, PR_RDONLY, 0);
   if (local_file_fd == NULL)
     {
-      nsscommon_error (_F("Could not open input file %s", responseFileName));
+      server_error (_F("Could not open input file %s", responseFileName));
       nssError ();
       return SECFailure;
     }
@@ -879,7 +925,7 @@ writeDataToSocket(PRFileDesc *sslSocket, const char *responseFileName)
   SECStatus secStatus = SECSuccess;
   if (numBytes < 0)
     {
-      nsscommon_error (_("Error writing response to socket"));
+      server_error (_("Error writing response to socket"));
       nssError ();
       secStatus = SECFailure;
     }
@@ -888,16 +934,125 @@ writeDataToSocket(PRFileDesc *sslSocket, const char *responseFileName)
   return secStatus;
 }
 
+static void
+get_stap_locale (const string &staplang, vector<string> &envVec)
+{
+  // If the client version is < 1.6, then no file containing environment
+  // variables defining the locale has been passed.
+  if (client_version < "1.6")
+    return;
+
+  /* Go through each line of the file, verify it, then add it to the vector */
+  ifstream langfile;
+  langfile.open(staplang.c_str());
+  if (!langfile.is_open())
+    {
+      // Not fatal. Proceed with the environment we have.
+      server_error(_F("Unable to open file %s for reading: %s", staplang.c_str(),
+			 strerror (errno)));
+      return;
+    }
+
+  /* Unpackage internationalization variables and verify their contents */
+  map<string, string> envMap; /* To temporarily store the entire array of strings */
+  string line;
+  const set<string> &locVars = localization_variables();
+
+  /* Copy the global environ variable into the map */
+  for (unsigned i=0; environ[i]; i++)
+    {
+      vector<string> environTok;
+      tokenize(environ[i], environTok, "=");
+      envMap[environTok[0]] = (string)getenv(environTok[0].c_str());
+    }
+
+  /* Create regular expression objects to verify lines read from file. Should not allow
+     spaces, ctrl characters, etc */
+  regex_t checkre;
+  if ((regcomp(&checkre, "^[a-zA-Z0-9@_.=-]*$", REG_EXTENDED | REG_NOSUB) != 0))
+    {
+      // Not fatal. Proceed with the environment we have.
+      server_error(_F("Error in regcomp: %s", strerror (errno)));
+      return;
+    }
+
+  while (1)
+    {
+      getline(langfile, line);
+      if (!langfile.good())
+	break;
+
+      /* Extract key and value from the line. Note: value may contain "=". */
+      string key;
+      string value;
+      size_t pos;
+      pos = line.find("=");
+      key = line.substr(0, pos);
+      pos++;
+      value = line.substr(pos);
+
+      /* Make sure the key is found in the localization variables global set */
+      if (locVars.find(key) == locVars.end())
+	{
+	  // Not fatal. Just ignore it.
+	  client_error(_F("Localization key '%s' not found in global list", key.c_str()));
+	  continue;
+	}
+
+      /* Make sure the value does not contain illegal characters */
+      if ((regexec(&checkre, value.c_str(), (size_t) 0, NULL, 0) != 0))
+	{
+	  // Not fatal. Just ignore it.
+	  client_error(_F("Localization value '%s' contains illegal characters", value.c_str()));
+	  continue;
+	}
+
+      /* All is good, copy line into envMap, replacing if already there */
+      envMap[key] = value;
+    }
+
+  if (!langfile.eof())
+    {
+      // Not fatal. Proceed with what we have.
+      server_error(_F("Error reading file %s: %s", staplang.c_str(), strerror (errno)));
+    }
+
+  regfree(&checkre);
+
+  /* Copy map into vector */
+  for (map<string, string>::iterator it = envMap.begin(); it != envMap.end(); it++)
+    envVec.push_back(it->first + "=" + it->second);
+}
+
+// Filter paths prefixed with the server's home directory from the given file.
+//
+static void
+filter_response_file (const string &file_name, const string &responseDirName)
+{
+  vector<string> cmd;
+
+  // Filter the server's home directory name
+  cmd.clear();
+  cmd.push_back ("sed");
+  cmd.push_back ("-i");
+  cmd.push_back (string ("s,") + get_home_directory () + ",<server>,g");
+  cmd.push_back (file_name);
+  stap_system (0, cmd);
+
+  // Filter the server's response directory name
+  cmd.clear();
+  cmd.push_back ("sed");
+  cmd.push_back ("-i");
+  cmd.push_back (string ("s,") + responseDirName + ",<server>,g");
+  cmd.push_back (file_name);
+  stap_system (0, cmd);
+}
 
 /* Run the translator on the data in the request directory, and produce output
    in the given output directory. */
 static void
-handleRequest (const char* requestDirName, const char* responseDirName)
+handleRequest (const string &requestDirName, const string &responseDirName)
 {
-  char stapstdout[PATH_MAX];
-  char stapstderr[PATH_MAX];
-  char staprc[PATH_MAX];
-  char stapsymvers[PATH_MAX];
   vector<string> stapargv;
   int rc;
   wordexp_t words;
@@ -905,8 +1060,26 @@ handleRequest (const char* requestDirName, const char* responseDirName)
   unsigned i;
   FILE* f;
   int unprivileged = 0;
-  struct stat st;
 
+  // Save the server version. Do this early, so the client knows what version of the server
+  // it is dealing with, even if the request is not fully completed.
+  string stapversion = responseDirName + "/version";
+  f = fopen (stapversion.c_str (), "w");
+  if (f) 
+    {
+      fputs (CURRENT_CS_PROTOCOL_VERSION, f);
+      fclose(f);
+    }
+  else
+    server_error (_F("Unable to open client version file %s", stapversion.c_str ()));
+
+  // Get the client version. The default version is already set. Use it if we fail here.
+  string filename = requestDirName + "/version";
+  if (file_exists (filename))
+    read_from_file (filename, client_version);
+  log (_F("Client version is %s", client_version.v));
+
+  // The name of the translator executable.
   stapargv.push_back ((char *)(getenv ("SYSTEMTAP_STAP") ?: STAP_PREFIX "/bin/stap"));
 
   /* Transcribe stap_options.  We use plain wordexp(3), since these
@@ -914,21 +1087,25 @@ handleRequest (const char* requestDirName, const char* responseDirName)
      content is not a concern. */
   // TODO: Use tokenize here.
   rc = wordexp (stap_options.c_str (), & words, WRDE_NOCMD|WRDE_UNDEF);
-  if (rc) 
-    { 
-      nsscommon_error (_("Cannot parse stap options"));
+  if (rc)
+    {
+      server_error (_("Cannot parse stap options"));
       return;
     }
 
   for (u=0; u<words.we_wordc; u++)
     stapargv.push_back (words.we_wordv[u]);
 
-  stapargv.push_back ("-k"); /* Need to keep temp files in order to package them up again. */
-
   /* Process the saved command line arguments.  Avoid quoting/unquoting errors by
      transcribing literally. */
-  stapargv.push_back ("--client-options");
+  string new_staptmpdir = responseDirName + "/stap000000";
+  rc = mkdir(new_staptmpdir.c_str(), 0700);
+  if (rc)
+    server_error(_F("Could not create temporary directory %s", new_staptmpdir.c_str()));
 
+  stapargv.push_back("--tmpdir=" + new_staptmpdir);
+
+  stapargv.push_back ("--client-options");
   for (i=1 ; ; i++)
     {
       char stapargfile[PATH_MAX];
@@ -936,7 +1113,7 @@ handleRequest (const char* requestDirName, const char* responseDirName)
       struct stat st;
       char *arg;
 
-      snprintf (stapargfile, PATH_MAX, "%s/argv%d", requestDirName, i);
+      snprintf (stapargfile, PATH_MAX, "%s/argv%d", requestDirName.c_str (), i);
 
       rc = stat(stapargfile, & st);
       if (rc) break;
@@ -944,21 +1121,24 @@ handleRequest (const char* requestDirName, const char* responseDirName)
       arg = (char *)malloc (st.st_size+1);
       if (!arg)
         {
-          nsscommon_error (_("Out of memory"));
+          server_error (_("Out of memory"));
           return;
         }
 
       argfile = fopen(stapargfile, "r");
       if (! argfile)
         {
-          nsscommon_error (_F("Error opening %s: %s", stapargfile, strerror (errno)));
+          free(arg);
+          server_error (_F("Error opening %s: %s", stapargfile, strerror (errno)));
           return;
         }
 
       rc = fread(arg, 1, st.st_size, argfile);
       if (rc != st.st_size)
         {
-          nsscommon_error (_F("Error reading %s: %s", stapargfile, strerror (errno)));
+          free(arg);
+          fclose(argfile);
+          server_error (_F("Error reading %s: %s", stapargfile, strerror (errno)));
           return;
         }
 
@@ -968,8 +1148,7 @@ handleRequest (const char* requestDirName, const char* responseDirName)
       fclose (argfile);
     }
 
-  snprintf (stapstdout, PATH_MAX, "%s/stdout", responseDirName);
-  snprintf (stapstderr, PATH_MAX, "%s/stderr", responseDirName);
+  string stapstdout = responseDirName + "/stdout";
 
   /* Check for the unprivileged flag; we need this so that we can decide to sign the module. */
   for (i=0; i < stapargv.size (); i++)
@@ -996,12 +1175,18 @@ handleRequest (const char* requestDirName, const char* responseDirName)
       stapargv.insert (stapargv.begin () + 1, "--unprivileged"); /* better not be resettable by later option */
     }
 
+  // Environment variables (possibly empty) to be passed to spawn_and_wait().
+  string staplang = requestDirName + "/locale";
+  vector<string> envVec;
+  get_stap_locale (staplang, envVec);
+
   /* All ready, let's run the translator! */
-  rc = spawn_and_wait (stapargv, "/dev/null", stapstdout, stapstderr, requestDirName, set_rlimits);
+  rc = spawn_and_wait(stapargv, "/dev/null", stapstdout.c_str (), stapstderr.c_str (),
+		      requestDirName.c_str (), set_rlimits, envVec);
 
   /* Save the RC */
-  snprintf (staprc, PATH_MAX, "%s/rc", responseDirName);
-  f = fopen(staprc, "w");
+  string staprc = responseDirName + "/rc";
+  f = fopen(staprc.c_str (), "w");
   if (f) 
     {
       /* best effort basis */
@@ -1009,97 +1194,66 @@ handleRequest (const char* requestDirName, const char* responseDirName)
       fclose(f);
     }
 
-  /* Parse output to extract the -k-saved temporary directory.
-     XXX: bletch. */
-  f = fopen(stapstderr, "r");
-  if (!f)
+  /* In unprivileged mode, if we have a module built, we need to
+     sign the sucker. */
+  if (unprivileged)
     {
-      nsscommon_error (_F("Error in stap stderr open: %s", strerror (errno)));
-      return;
+      glob_t globber;
+      char pattern[PATH_MAX];
+      snprintf (pattern, PATH_MAX, "%s/*.ko", new_staptmpdir.c_str());
+      rc = glob (pattern, GLOB_ERR, NULL, &globber);
+      if (rc)
+        server_error (_F("Unable to find a module in %s", new_staptmpdir.c_str()));
+      else if (globber.gl_pathc != 1)
+        server_error (_F("Too many modules (%zu) in %s", globber.gl_pathc, new_staptmpdir.c_str()));
+      else
+        {
+         sign_file (cert_db_path, server_cert_nickname(),
+                    globber.gl_pathv[0], string(globber.gl_pathv[0]) + ".sgn");
+        }
     }
 
-  while (1)
+  /* If uprobes.ko is required, it will have been built or cache-copied into
+   * the temp directory.  We need to pack it into the response where the client
+   * can find it, and sign, if necessary, for unprivileged users.
+   */
+  string uprobes_ko = new_staptmpdir + "/uprobes/uprobes.ko";
+  if (get_file_size(uprobes_ko) > 0)
     {
-      char line[PATH_MAX];
-      char *l = fgets(line, PATH_MAX, f); /* NB: normally includes \n at end */
-      if (!l) break;
-      char key[]="Keeping temporary directory \"";
+      /* uprobes.ko is required.
+       *
+       * It's already underneath the stap tmpdir, but older stap clients
+       * don't know to look for it there, so, for these clients, we end up packing uprobes twice
+       * into the zip.  We could move instead of symlink.
+       */
+      string uprobes_response;
+      if (client_version < "1.6")
+	{
+	  uprobes_response = (string)responseDirName + "/uprobes.ko";
+	  rc = symlink(uprobes_ko.c_str(), uprobes_response.c_str());
+	  if (rc != 0)
+	    server_error (_F("Could not link to %s from %s",
+			     uprobes_ko.c_str(), uprobes_response.c_str()));
+	}
+      else
+	uprobes_response = uprobes_ko;
 
-      /* Look for line from main.cxx: s.keep_tmpdir */
-      if (strncmp(l, key, strlen(key)) == 0 &&
-          l[strlen(l)-2] == '"')  /* "\n */
-        { 
-          /* Move this directory under responseDirName.  We don't have to
-             preserve the exact stapXXXXXX suffix part, since stap-client
-             will accept anything ("stap......" regexp), and rewrite it
-             to a client-local string.
-             
-             We don't just symlink because then we'd have to
-             remember to delete it later anyhow. */
-          vector<string> mvargv;
-          char *orig_staptmpdir = & l[strlen(key)];
-          char new_staptmpdir[PATH_MAX];
-
-          orig_staptmpdir[strlen(orig_staptmpdir)-2] = '\0'; /* Kill the closing "\n */
-          snprintf(new_staptmpdir, PATH_MAX, "%s/stap000000", responseDirName);
-          mvargv.push_back ("mv");
-          mvargv.push_back (orig_staptmpdir);
-          mvargv.push_back (new_staptmpdir);
-          rc = stap_system (0, mvargv);
-          if (rc != PR_SUCCESS)
-            nsscommon_error (_("Error in stap tmpdir move"));
-
-          /* In unprivileged mode, if we have a module built, we need to
-             sign the sucker. */
-          if (unprivileged) 
-            {
-              glob_t globber;
-              char pattern[PATH_MAX];
-              snprintf (pattern,PATH_MAX,"%s/*.ko", new_staptmpdir);
-              rc = glob (pattern, GLOB_ERR, NULL, &globber);
-              if (rc)
-                nsscommon_error (_F("Unable to find a module in %s", new_staptmpdir));
-              else if (globber.gl_pathc != 1)
-                nsscommon_error (_F("Too many modules (%zu) in %s", globber.gl_pathc, new_staptmpdir));
-              else
-                {
-		  sign_file (cert_db_path, server_cert_nickname (),
-			     globber.gl_pathv[0], string (globber.gl_pathv[0]) + ".sgn");
-                }
-            }
-
-	  /* If uprobes.ko is required, then we need to return it to the client.
-	     uprobes.ko was required if the file "Module.symvers" is not empty in
-	     the temp directory.  */
-	  snprintf (stapsymvers, PATH_MAX, "%s/Module.symvers", new_staptmpdir);
-	  rc = stat (stapsymvers, & st);
-	  if (rc == 0 && st.st_size != 0)
-	    {
-	      /* uprobes.ko is required. Link to it from the response directory.  */
-	      vector<string> lnargv;
-	      lnargv.push_back ("/bin/ln");
-	      lnargv.push_back ("-s");
-	      lnargv.push_back (PKGDATADIR "/runtime/uprobes/uprobes.ko");
-	      lnargv.push_back (responseDirName);
-	      rc = stap_system (0, lnargv);
-	      if (rc != PR_SUCCESS)
-		nsscommon_error (_F("Could not link to %s from %s", lnargv[2].c_str (), lnargv[3].c_str ()));
-
-	      /* In unprivileged mode, we need to return the signature as well. */
-	      if (unprivileged) 
-		{
-		  lnargv[2] = PKGDATADIR "/runtime/uprobes/uprobes.ko.sgn";
-		  rc = stap_system (0, lnargv);
-		  if (rc != PR_SUCCESS)
-		    nsscommon_error (_F("Could not link to %s from %s", lnargv[2].c_str (), lnargv[3].c_str ()));
-		}
-	    }
+      /* In unprivileged mode, we need a signature on uprobes as well. */
+      if (unprivileged)
+        {
+          sign_file (cert_db_path, server_cert_nickname(),
+                     uprobes_response, uprobes_response + ".sgn");
         }
     }
 
   /* Free up all the arg string copies.  Note that the first few were alloc'd
      by wordexp(), which wordfree() frees; others were hand-set to literal strings. */
   wordfree (& words);
+
+  // Filter paths prefixed with the server's home directory from the stdout and stderr
+  // files in the response.
+  filter_response_file (stapstdout, responseDirName);
+  filter_response_file (stapstderr, responseDirName);
 
   /* Sorry about the inconvenience.  C string/file processing is such a pleasure. */
 }
@@ -1110,14 +1264,14 @@ handleRequest (const char* requestDirName, const char* responseDirName)
 static PRStatus
 spawn_and_wait (const vector<string> &argv,
 		const char* fd0, const char* fd1, const char* fd2,
-		const char *pwd,  bool setrlimits)
+		const char *pwd,  bool setrlimits, const vector<string>& envVec)
 { 
   pid_t pid;
   int rc;
   posix_spawn_file_actions_t actions;
   int dotfd = -1;
 
-#define CHECKRC(msg) do { if (rc) { nsscommon_error (_(msg)); return PR_FAILURE; } } while (0)
+#define CHECKRC(msg) do { if (rc) { server_error (_(msg)); return PR_FAILURE; } } while (0)
 
   rc = posix_spawn_file_actions_init (& actions);
   CHECKRC ("Error in spawn file actions ctor");
@@ -1130,7 +1284,8 @@ spawn_and_wait (const vector<string> &argv,
     CHECKRC ("Error in spawn file actions fd1");
   }
   if (fd2) { 
-    rc = posix_spawn_file_actions_addopen(& actions, 2, fd2, O_WRONLY|O_CREAT, 0600);
+    // Use append mode for stderr because it gets written to in other places in the server.
+    rc = posix_spawn_file_actions_addopen(& actions, 2, fd2, O_WRONLY|O_APPEND|O_CREAT, 0600);
     CHECKRC ("Error in spawn file actions fd2");
   }
 
@@ -1139,15 +1294,20 @@ spawn_and_wait (const vector<string> &argv,
     {
       dotfd = open (".", O_RDONLY);
       if (dotfd < 0)
-        { 
-          nsscommon_error (_("Error in spawn getcwd"));
+        {
+          server_error (_("Error in spawn getcwd"));
           return PR_FAILURE;
         }
-      
+
       rc = chdir (pwd);
-      CHECKRC ("Error in spawn chdir");
-    } 
- 
+      if (rc)
+        {
+          close(dotfd);
+          server_error(_("Error in spawn chdir"));
+          return PR_FAILURE;
+        }
+    }
+
   // Set resource limits, if requested, in order to prevent
   // DOS. spawn_and_wait ultimately uses posix_spawp which behaves like
   // fork (according to the posix_spawnbp man page), so the limits we set here will be
@@ -1162,11 +1322,11 @@ spawn_and_wait (const vector<string> &argv,
   }
   if (rc == 0)
     {
-      pid = stap_spawn (0, argv, & actions);
+      pid = stap_spawn (0, argv, & actions, envVec);
       /* NB: don't react to pid==-1 right away; need to chdir back first. */
     }
   else {
-    nsscommon_error (_F("Unable to set resource limits for %s: %s",
+    server_error (_F("Unable to set resource limits for %s: %s",
 			argv[0].c_str (), strerror (errno)));
     pid = -1;
   }
@@ -1187,19 +1347,19 @@ spawn_and_wait (const vector<string> &argv,
       subrc = fchdir (dotfd);
       subrc |= close (dotfd);
       if (subrc) 
-        nsscommon_error (_("Error in spawn unchdir"));
+        server_error (_("Error in spawn unchdir"));
     }
 
   if (pid == -1)
     {
-      nsscommon_error (_F("Error in spawn: %s", strerror (errno)));
+      server_error (_F("Error in spawn: %s", strerror (errno)));
       return PR_FAILURE;
     }
 
   rc = stap_waitpid (0, pid);
   if (rc == -1)
     {
-      nsscommon_error (_("Error in waitpid"));
+      server_error (_("Error in waitpid"));
       return PR_FAILURE;
     }
 
@@ -1223,7 +1383,7 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   SECStatus          secStatus = SECFailure;
   int                rc;
   char              *rc1;
-  char               tmpdir[PATH_MAX]; 
+  char               tmpdir[PATH_MAX];
   char               requestFileName[PATH_MAX];
   char               requestDirName[PATH_MAX];
   char               responseDirName[PATH_MAX];
@@ -1251,7 +1411,7 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   secStatus = SSL_ResetHandshake(sslSocket, /* asServer */ PR_TRUE);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error resetting SSL handshake"));
+      server_error (_("Error resetting SSL handshake"));
       nssError ();
       goto cleanup;
     }
@@ -1261,7 +1421,7 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   secStatus = SSL_ForceHandshake(sslSocket);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Error forcing SSL handshake"));
+      server_error (_("Error forcing SSL handshake"));
       nssError ();
       goto cleanup;
     }
@@ -1272,7 +1432,7 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   rc1 = mkdtemp(tmpdir);
   if (! rc1)
     {
-      nsscommon_error (_F("Could not create temporary directory %s: %s", tmpdir, strerror(errno)));
+      server_error (_F("Could not create temporary directory %s: %s", tmpdir, strerror(errno)));
       tmpdir[0]=0; /* prevent /bin/rm */
       goto cleanup;
     }
@@ -1284,7 +1444,7 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   rc = mkdir(requestDirName, 0700);
   if (rc)
     {
-      nsscommon_error (_F("Could not create temporary directory %s: %s", requestDirName, strerror (errno)));
+      server_error (_F("Could not create temporary directory %s: %s", requestDirName, strerror (errno)));
       goto cleanup;
     }
 
@@ -1292,9 +1452,11 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   rc = mkdir(responseDirName, 0700);
   if (rc)
     {
-      nsscommon_error (_F("Could not create temporary directory %s: %s", responseDirName, strerror (errno)));
+      server_error (_F("Could not create temporary directory %s: %s", responseDirName, strerror (errno)));
       goto cleanup;
     }
+  // Set this early, since it gets used for errors to be returned to the client.
+  stapstderr = string(responseDirName) + "/stderr";
 
   snprintf (responseFileName, PATH_MAX, "%s/response.zip", tmpdir);
 
@@ -1327,9 +1489,9 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   argv.push_back (requestDirName);
   argv.push_back (requestFileName);
   rc = stap_system (0, argv);
-  if (rc != PR_SUCCESS)
+  if (rc != 0)
     {
-      nsscommon_error (_("Unable to extract client request"));
+      server_error (_("Unable to extract client request"));
       goto cleanup;
     }
 
@@ -1348,7 +1510,7 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   rc = spawn_and_wait (argv, NULL, NULL, NULL, responseDirName);
   if (rc != PR_SUCCESS)
     {
-      nsscommon_error (_("Unable to compress server response"));
+      server_error (_("Unable to compress server response"));
       goto cleanup;
     }
   
@@ -1358,19 +1520,25 @@ cleanup:
   if (sslSocket)
     if (PR_Close (sslSocket) != PR_SUCCESS)
       {
-	nsscommon_error (_("Error closing ssl socket"));
+	server_error (_("Error closing ssl socket"));
 	nssError ();
       }
+
   if (tmpdir[0]) 
     {
-      /* Remove the whole tmpdir and all that lies beneath. */
-      argv.clear ();
-      argv.push_back ("rm");
-      argv.push_back ("-r");
-      argv.push_back (tmpdir);
-      rc = stap_system (0, argv);
-      if (rc != PR_SUCCESS)
-        nsscommon_error (_("Error in tmpdir cleanup"));
+      // Remove the whole tmpdir and all that lies beneath, unless -k was specified.
+      if (keep_temp) 
+	log (_F("Keeping temporary directory %s", tmpdir));
+      else
+	{
+	  argv.clear ();
+	  argv.push_back ("rm");
+	  argv.push_back ("-r");
+	  argv.push_back (tmpdir);
+	  rc = stap_system (0, argv);
+	  if (rc != 0)
+	    server_error (_("Error in tmpdir cleanup"));
+	}
     }
 
   return secStatus;
@@ -1395,7 +1563,7 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
   SECKEYPrivateKey *privKey = PK11_FindKeyByAnyCert (cert, (void*)cert_db_path.c_str ());
   if (privKey == NULL)
     {
-      nsscommon_error (_("Unable to obtain certificate private key"));
+      server_error (_("Unable to obtain certificate private key"));
       nssError ();
       return SECFailure;
     }
@@ -1406,7 +1574,7 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
       tcpSocket = PR_Accept (listenSocket, &addr, PR_INTERVAL_NO_TIMEOUT);
       if (tcpSocket == NULL)
 	{
-	  nsscommon_error (_("Error accepting client connection"));
+	  server_error (_("Error accepting client connection"));
 	  break;
 	}
 
@@ -1424,7 +1592,7 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
       /* Accepted the connection, now handle it. */
       secStatus = handle_connection (tcpSocket, cert, privKey);
       if (secStatus != SECSuccess)
-	nsscommon_error (_("Error processing client request"));
+	server_error (_("Error processing client request"));
 
       // Log the end of the request.
       log (_F("Request from %d.%d.%d.%d:%d complete",
@@ -1479,7 +1647,7 @@ server_main (PRFileDesc *listenSocket)
   //      SSL_ClearSessionCache ();
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Unable to set NSS export policy"));
+      server_error (_("Unable to set NSS export policy"));
       nssError ();
       goto done;
     }
@@ -1488,7 +1656,7 @@ server_main (PRFileDesc *listenSocket)
   secStatus = SSL_ConfigServerSessionIDCache (0, 0, 0, NULL);
   if (secStatus != SECSuccess)
     {
-      nsscommon_error (_("Unable to configure SSL server session ID cache"));
+      server_error (_("Unable to configure SSL server session ID cache"));
       nssError ();
       goto done;
     }
@@ -1498,7 +1666,7 @@ server_main (PRFileDesc *listenSocket)
   cert = PK11_FindCertFromNickname (server_cert_nickname (), NULL);
   if (cert == NULL)
     {
-      nsscommon_error (_F("Unable to find our certificate in the database at %s", 
+      server_error (_F("Unable to find our certificate in the database at %s", 
 			  cert_db_path.c_str ()));
       nssError ();
       goto done;
@@ -1521,7 +1689,7 @@ server_main (PRFileDesc *listenSocket)
   // Shutdown NSS
   if (serverCacheConfigured && SSL_ShutdownServerSessionIDCache () != SECSuccess)
     {
-      nsscommon_error (_("Unable to shut down server session ID cache"));
+      server_error (_("Unable to shut down server session ID cache"));
       nssError ();
     }
   nssCleanup (cert_db_path.c_str ());
@@ -1536,7 +1704,7 @@ listen ()
   PRFileDesc *listenSocket = PR_NewTCPSocket ();
   if (listenSocket == NULL)
     {
-      nsscommon_error (_("Error creating socket"));
+      server_error (_("Error creating socket"));
       nssError ();
       return;
     }
@@ -1548,7 +1716,7 @@ listen ()
   PRStatus prStatus = PR_SetSocketOption (listenSocket, & socketOption);
   if (prStatus != PR_SUCCESS)
     {
-      nsscommon_error (_("Error setting socket properties"));
+      server_error (_("Error setting socket properties"));
       nssError ();
       goto done;
     }
@@ -1560,7 +1728,7 @@ listen ()
   prStatus = PR_SetSocketOption (listenSocket, & socketOption);
   if (prStatus != PR_SUCCESS)
     {
-      nsscommon_error (_("Error setting socket properties"));
+      server_error (_("Error setting socket properties"));
       nssError ();
       goto done;
     }
@@ -1585,15 +1753,15 @@ listen ()
       switch (errorNumber)
 	{
 	case PR_ADDRESS_NOT_AVAILABLE_ERROR:
-	  nsscommon_error (_F("Network port %d is unavailable. Trying another port", port));
+	  server_error (_F("Network port %d is unavailable. Trying another port", port));
 	  port = 0; // Will automatically select an available port
 	  continue;
 	case PR_ADDRESS_IN_USE_ERROR:
-	  nsscommon_error (_F("Network port %d is busy. Trying another port", port));
+	  server_error (_F("Network port %d is busy. Trying another port", port));
 	  port = 0; // Will automatically select an available port
 	  continue;
 	default:
-	  nsscommon_error (_("Error setting socket address"));
+	  server_error (_("Error setting socket address"));
 	  nssError ();
 	  goto done;
 	}
@@ -1603,7 +1771,7 @@ listen ()
   prStatus = PR_GetSockName (listenSocket, &addr);
   if (prStatus != PR_SUCCESS)
     {
-      nsscommon_error (_("Unable to obtain socket address"));
+      server_error (_("Unable to obtain socket address"));
       nssError ();
       goto done;
     }
@@ -1615,7 +1783,7 @@ listen ()
   prStatus = PR_Listen (listenSocket, 5);
   if (prStatus != PR_SUCCESS)
     {
-      nsscommon_error (_("Error listening on socket"));
+      server_error (_("Error listening on socket"));
       nssError ();
       goto done;
     }
@@ -1638,7 +1806,7 @@ listen ()
 					     local_client_cert_db_path ());
       if (secStatus != SECSuccess)
 	{
-	  nsscommon_error (_("Unable to authorize certificate for the local client"));
+	  server_error (_("Unable to authorize certificate for the local client"));
 	  goto done;
 	}
 
@@ -1649,7 +1817,7 @@ listen ()
  done:
   if (PR_Close (listenSocket) != PR_SUCCESS)
     {
-      nsscommon_error (_("Error closing listen socket"));
+      server_error (_("Error closing listen socket"));
       nssError ();
     }
 }
@@ -1661,3 +1829,5 @@ main (int argc, char **argv) {
   cleanup ();
   return 0;
 }
+
+/* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

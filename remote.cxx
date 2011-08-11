@@ -1,5 +1,5 @@
 // systemtap remote execution
-// Copyright (C) 2010 Red Hat Inc.
+// Copyright (C) 2010-2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -76,11 +76,13 @@ class uri_decoder {
 class direct : public remote {
   private:
     pid_t child;
+    vector<string> args;
     direct(systemtap_session& s): remote(s), child(0) {}
 
     int start()
       {
-        pid_t pid = stap_spawn (s->verbose, make_run_command (*s));
+        args = make_run_command(*s);
+        pid_t pid = stap_spawn (s->verbose, args);
         if (pid <= 0)
           return 1;
         child = pid;
@@ -93,6 +95,8 @@ class direct : public remote {
           return 1;
 
         int ret = stap_waitpid(s->verbose, child);
+        if(ret)
+          clog << _F("Warning: %s exited with status: %d", args.front().c_str(), ret) << endl;
         child = 0;
         return ret;
       }
@@ -109,6 +113,7 @@ class stapsh : public remote {
     int interrupts_sent;
     int fdin, fdout;
     FILE *IN, *OUT;
+    string remote_version;
 
     virtual void prepare_poll(vector<pollfd>& fds)
       {
@@ -244,7 +249,7 @@ class stapsh : public remote {
             if (reply != "OK\n")
               {
                 rc = 1;
-                if (s->verbose > 1)
+                if (s->verbose > 0)
                   {
                     if (reply.empty())
                       clog << _("stapsh file ERROR: no reply") << endl;
@@ -307,7 +312,7 @@ class stapsh : public remote {
         // Send the staprun args
         // NB: The remote is left to decide its own staprun path
         ostringstream run("run", ios::out | ios::ate);
-        vector<string> cmd = make_run_command(*s, s->module_name + ".ko");
+        vector<string> cmd = make_run_command(*s, ".", remote_version);
         for (unsigned i = 1; i < cmd.size(); ++i)
           run << ' ' << qpencode(cmd[i]);
         run << '\n';
@@ -320,7 +325,7 @@ class stapsh : public remote {
             if (reply != "OK\n")
               {
                 rc = 1;
-                if (s->verbose > 1)
+                if (s->verbose > 0)
                   {
                     if (reply.empty())
                       clog << _("stapsh run ERROR: no reply") << endl;
@@ -335,6 +340,10 @@ class stapsh : public remote {
             long flags = fcntl(fdout, F_GETFL) | O_NONBLOCK;
             fcntl(fdout, F_SETFL, flags);
           }
+        else
+          // If run failed for any reason, then this
+          // connection is effectively dead to us.
+          close();
 
         return rc;
       }
@@ -377,7 +386,10 @@ class stapsh : public remote {
         tokenize(reply, uname, " \t\r\n");
         if (uname.size() != 4 || uname[0] != "stapsh")
           throw runtime_error(_("failed to get uname from stapsh"));
-        // XXX check VERSION compatibility
+
+        // We assume that later versions will know how to talk to us.
+        // Looking backward, we use this for make_run_command().
+        this->remote_version = uname[1];
 
         this->s = s->clone(uname[2], uname[3]);
       }
@@ -660,22 +672,44 @@ class ssh_legacy_remote : public remote {
           tmpmodule = tmpdir + "/" + s->module_name + ".ko";
         }
 
-        // Transfer the module.  XXX and uprobes.ko, sigs, etc.
-        if (rc == 0) {
-          vector<string> cmd = scp_args;
-          cmd.push_back(localmodule);
-          cmd.push_back(host + ":" + tmpmodule);
-          rc = stap_system(s->verbose, cmd);
-          if (rc != 0)
-            cerr << _F("failed to copy the module to %s : rc=%d",
-                       host.c_str(), rc) << endl;
-        }
+        // Transfer the module.
+        if (rc == 0)
+          {
+            vector<string> cmd = scp_args;
+            cmd.push_back(localmodule);
+            cmd.push_back(host + ":" + tmpmodule);
+            rc = stap_system(s->verbose, cmd);
+            if (rc != 0)
+              cerr << _F("failed to copy the module to %s : rc=%d",
+                         host.c_str(), rc) << endl;
+          }
+
+        // Transfer the module signature.
+        if (rc == 0 && file_exists(localmodule + ".sgn"))
+          {
+            vector<string> cmd = scp_args;
+            cmd.push_back(localmodule + ".sgn");
+            cmd.push_back(host + ":" + tmpmodule + ".sgn");
+            rc = stap_system(s->verbose, cmd);
+            if (rc != 0)
+              cerr << _F("failed to copy the module signature to %s : rc=%d",
+                         host.c_str(), rc) << endl;
+          }
+
+        // What about transfering uprobes.ko?  In this ssh "legacy" mode, we
+        // don't the remote systemtap version, but -uPATH wasn't added until
+        // 1.4.  Rather than risking a getopt error, we'll just assume that
+        // this isn't supported.  The remote will just have to provide its own
+        // uprobes.ko in SYSTEMTAP_RUNTIME or already loaded.
 
         // Run the module on the remote.
         if (rc == 0) {
           vector<string> cmd = ssh_args;
           cmd.push_back("-t");
-          cmd.push_back(cmdstr_join(make_run_command(*s, tmpmodule)));
+          // We don't know the actual version, but all <=1.3 are approx equal.
+          vector<string> staprun_cmd = make_run_command(*s, tmpdir, "1.3");
+          staprun_cmd[0] = "staprun"; // NB: The remote decides its own path
+          cmd.push_back(cmdstr_join(staprun_cmd));
           pid_t pid = stap_spawn(s->verbose, cmd);
           if (pid > 0)
             child = pid;

@@ -39,15 +39,14 @@ foreach arch $arches {
     expect {
       -re {^main\r\n} { incr ok; exp_continue }
       -re {^rep_ret\r\n} { incr ok; exp_continue }
-      -re {^repnz_ret\r\n} { incr bad; exp_continue }
-      -re {^WARNING: [^\r\n]*failed[^\r\n]*repnz_ret[^\r\n]*\r\n} { incr warn; exp_continue }
-      -re {^WARNING: Number of errors: 0, skipped probes: 1\r\n} { incr warn; exp_continue }
+      -re {^repnz_ret\r\n} { incr ok; exp_continue }
+      -re {^WARNING: Number of errors: 0, skipped probes: [^\r\n]*\r\n} { incr warn; exp_continue }
       timeout { fail "$exe (timeout)" }
       eof { }
     }
     wait
 
-    if {$ok == 2 && $bad == 0 && $warn == 2} {
+    if {$ok == 3 && $bad == 0 && $warn == 0} {
       pass "$exe"
     } else {
       fail "$exe ($ok, $bad, $warn)"

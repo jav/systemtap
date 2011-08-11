@@ -30,11 +30,6 @@ extern "C" {
 #include <regex.h>
 }
 
-#if !_ELFUTILS_PREREQ(0,142)
-// Always use newer name, old name is deprecated in 0.142.
-#define elf_getshdrstrndx elf_getshstrndx
-#endif
-
 
 struct func_info;
 struct inline_instance_info;
@@ -372,7 +367,8 @@ private:
                                   Dwarf_Addr address);
 
   void print_locals(std::vector<Dwarf_Die>& scopes, std::ostream &o);
-  void print_members(Dwarf_Die *vardie, std::ostream &o);
+  void print_members(Dwarf_Die *vardie, std::ostream &o,
+                     std::set<std::string> &dupes);
 
   Dwarf_Attribute *find_variable_and_frame_base (std::vector<Dwarf_Die>& scopes,
                                                  Dwarf_Addr pc,

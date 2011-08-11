@@ -40,6 +40,9 @@
 
 <h2>All Examples</h2>
 <ul>
+<li><a href="func_time_stats.stp">func_time_stats.stp</a> - Function time statistics<br>
+keywords: <a href="keyword-index.html#FUNCTION">FUNCTION</a> <a href="keyword-index.html#WALL-CLOCK">WALL-CLOCK</a> <a href="keyword-index.html#TIME">TIME</a> <br>
+<p>The func_time_stats.stp script tracks the wall clock time for each invocation of a function probe listed as the first command line argument. When the script exits it prints out the minimum, average, and maximum times in microseconds. It also prints out a count of times that the function was called.<p><font size="-2"><pre># stap func_time_stats.stp &#39;syscall.nanosleep&#39; -c &quot;sleep 0.2&quot;</pre></font></p></li>
 <li><a href="general/ansi_colors.stp">general/ansi_colors.stp</a> - Color Table for ansi_set_color2() and ansi_set_color3()<br>
 keywords: <a href="keyword-index.html#FORMAT">FORMAT</a> <br>
 <p>The script prints a table showing the available color combinations for the ansi_set_color2() and ans_set_color3() functions in the ansi.stp tapset.<p><font size="-2"><pre># stap ansi_colors.stp</pre></font></p></li>
@@ -53,6 +56,9 @@ denied&quot;</pre></font></p></li>
 <li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
 keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
 <p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p></li>
+<li><a href="general/func_time_stats.stp">general/func_time_stats.stp</a> - Function time statistics<br>
+keywords: <a href="keyword-index.html#FUNCTION">FUNCTION</a> <a href="keyword-index.html#WALL-CLOCK">WALL-CLOCK</a> <a href="keyword-index.html#TIME">TIME</a> <br>
+<p>The func_time_stats.stp script tracks the wall clock time for each invocation of the function probe listed as the first command line argument. When the script exits it prints out the minimum, average, and maximum times in microseconds followed by a count of times that the function was called and a histogram showing the distributions of times.<p><font size="-2"><pre># stap func_time_stats.stp &#39;syscall.nanosleep&#39; -c &quot;sleep 0.2&quot;</pre></font></p></li>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html#CPU">CPU</a> <a href="keyword-index.html#USE">USE</a> <a href="keyword-index.html#GRAPH">GRAPH</a> <br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.<p><font size="-2"><pre># stap graphs.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
@@ -74,6 +80,10 @@ keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keywor
 keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
 <p>This script places a set of probes (specified by $1), each of which monitors the state of some context $variable expression (specified by $2).  Whenever the value changes, with respect to the active thread, the event is traced.<p><font size="-2"><pre># stap -w varwatch.stp &#39;kernel.statement(&quot;do_sys_open@fs/open.c:*&quot;)&#39; \
 &#39;$$vars&#39; -c &quot;sleep 0.2&quot;</pre></font></p></li>
+<li><a href="general/watchdog.stp">general/watchdog.stp</a> - Watchdog timer<br>
+keywords: <a href="keyword-index.html#WATCHDOG">WATCHDOG</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
+<p>The watchdog.stp script provides a watchdog timer mechanism for arbitrary events. The script takes three arguments: the events to start watchdog timer, the event to stop the watchdog timer, and the time in millseconds for the watchdog. If the watchdog timer is exceed, the script will trigger a stack backtrace of the user-process that timed out using pstack. This script can be used to diagnose what the userspace application is doing when a slower than expected operation occurs.<p><font size="-2"><pre># stap watchdog.stp &#39;syscall.nanosleep&#39; &#39;syscall.nanosleep.return&#39; 1000 \
+-c &quot;sleep 0.2&quot;</pre></font></p></li>
 <li><a href="interrupt/interrupts-by-dev.stp">interrupt/interrupts-by-dev.stp</a> - Record interrupts on a per-device basis.<br>
 keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <br>
 <p>The interrupts-by-dev.stp script profiles interrupts received by each device per 100 ms.<p><font size="-2"><pre># stap interrupts-by-dev.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
@@ -135,6 +145,13 @@ keywords: <a href="keyword-index.html#LOCKING">LOCKING</a> <br>
 <li><a href="locks/bkl_stats.stp">locks/bkl_stats.stp</a> - Per Process Statistics on Big Kernel Lock (BKL) Use<br>
 keywords: <a href="keyword-index.html#LOCKING">LOCKING</a> <br>
 <p>The bkl_stats.stp script can indicate which processes have excessive waits for the Big Kernel Lock (BKL) and which processes are taking the BKL for long periods of time. The bkl_stats.stp script prints lists of all the processes that require the BKL. Every five seconds two tables are printed out. The first table lists the processes that waited for the BKL followed by the number of times that the process waited, the minimum time of the wait, the average and the maximum time waited. The second table lists has similar information for the time spent in holding the lock for each of the processes.<p><font size="-2"><pre># stap bkl_stats.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+<li><a href="memory/hw_watch_addr.stp">memory/hw_watch_addr.stp</a> - Watch access to a kernel address using breakpoint hardware<br>
+keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#WATCHPOINT">WATCHPOINT</a> <br>
+<p>The script will watch accesses to a single kernel address and prints a traceback each time the address is accessed. This script needs to be run as root to allow access to the breakpoint hardware.<p><font size="-2"><pre># stap --all-modules hw_watch_addr.stp 0x`grep &quot;pid_max$&quot; /proc/kallsyms` \
+-c &quot;sleep 1&quot;</pre></font></p></li>
+<li><a href="memory/hw_watch_sym.stp">memory/hw_watch_sym.stp</a> - Watch to a kernel symbol using breakpoint hardware<br>
+keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#WATCHPOINT">WATCHPOINT</a> <br>
+<p>The script will watch accesses to the starting address of a single kernel symbol and prints a traceback each time the symbol is accessed. This script needs to be run as root to allow access to the breakpoint hardware.<p><font size="-2"><pre># stap --all-modules hw_watch_sym.stp pid_max -c &quot;sleep 1&quot;</pre></font></p></li>
 <li><a href="memory/kmalloc-top">memory/kmalloc-top</a> - Show Paths to Kernel Malloc (kmalloc) Invocations<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 <p>The kmalloc-top perl program runs a small systemtap script to collect stack traces for each call to the kmalloc function and counts the time that each stack trace is observed. When kmalloc-top exits it prints out sorted list. The output can be filtered to print only the first N stack traces (-t), stack traces with a minimum counts (-m), or exclude certain stack traces (-e).<p><font size="-2"><pre># ./kmalloc-top -c &quot;sleep 0.2&quot;</pre></font></p></li>
@@ -174,6 +191,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <li><a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.<p><font size="-2"><pre># stap nettop.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+<li><a href="network/nfsd_unlink.stp">network/nfsd_unlink.stp</a> - Find which client is removing nfs files on server<br>
+keywords: <a href="keyword-index.html#NFS">NFS</a> <a href="keyword-index.html#DISK">DISK</a> <br>
+<p>The nfsd_unlink.stp script lists the ip address and file name each time time a file is being removed or unlinked by the nfsd. This script is run on the nfs server.<p><font size="-2"><pre># stap nfsd_unlink.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
 <li><a href="network/sk_stream_wait_memory.stp">network/sk_stream_wait_memory.stp</a> - Track Start and Stop of Processes Due to Network Buffer Space<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 <p>The sk_stream-wait_memory.stp prints a time stamp, executable, and pid each time a process blocks due to the send buffer being full. A similar entry is printed each time a process continues because there is room in the buffer.<p><font size="-2"><pre># stap sk_stream_wait_memory.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
@@ -204,9 +224,6 @@ keywords: <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <br>
 <li><a href="process/cycle_thief.stp">process/cycle_thief.stp</a> - Track IRQs and Other Processes Stealing Cycles from a Task<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <br>
 <p>The cycle_thief.stp script instruments the scheduler and IRQ handler to determine which processes and interrupts are competing with the specified task for the cpu cycles. This script uses the &#39;-c&#39; or &#39;-x&#39; options to focus on a specific task. The script output the number of times the task migrates between processors, histograms showing the length of time on and off processor, lists of processes running while the task is off the processor, and the interrupts that occurred while the task was running.<p><font size="-2"><pre># stap cycle_thief.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
-<li><a href="process/dumpstack.stp">process/dumpstack.stp</a> - Print the kernel stack of a hung task<br>
-keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
-<p>The script prints the kernel stack of any non-running pid in the system.  This is useful for diagnosing the reason that a task is hung.<p><font size="-2"><pre># stap dumpstack.stp -x $$</pre></font></p></li>
 <li><a href="process/errsnoop.stp">process/errsnoop.stp</a> - tabulate system call errors<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 <p>The script prints a periodic tabular report about failing system calls, by process and by syscall failure.  The first optional argument specifies the reporting interval (in seconds, default 5); the second optional argument gives a screen height (number of lines in the report, default 20).<p><font size="-2"><pre># stap errsnoop.stp 1 10 -c &quot;sleep 1&quot;</pre></font></p></li>

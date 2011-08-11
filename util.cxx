@@ -493,10 +493,14 @@ null_child_fd(posix_spawn_file_actions_t* fa, int childfd)
 // Runs a command with a saved PID, so we can kill it from the signal handler
 pid_t
 stap_spawn(int verbose, const vector<string>& args,
-           posix_spawn_file_actions_t* fa)
+           posix_spawn_file_actions_t* fa, const vector<string>& envVec)
 {
+  string::const_iterator it;
+  it = args[0].begin();
   const char *cmd;
   string command;
+  if(*it == '/' && (access(args[0].c_str(), X_OK)==-1)) //checking to see if staprun is executable
+    clog << _F("Warning: %s is not executable (%s)", args[0].c_str(), strerror(errno)) << endl;
   for (size_t i = 0; i < args.size(); ++i)
     command += " " + args[i];
   cmd = command.c_str();
@@ -509,9 +513,29 @@ stap_spawn(int verbose, const vector<string>& args,
     argv[i] = args[i].c_str();
   argv[args.size()] = NULL;
 
+  char** env;
+  bool allocated;
+  if(envVec.empty())
+  {
+	  env = environ;
+  	  allocated = false;
+  }
+  else
+  {
+	allocated = true;
+	env = new char*[envVec.size() + 1];
+
+  	for (size_t i = 0; i < envVec.size(); ++i)
+  	    env[i] = (char*)envVec[i].c_str();
+  	  env[envVec.size()] = NULL;
+  }
+
   pid_t pid = 0;
   int ret = posix_spawnp(&pid, argv[0], fa, NULL,
-                         const_cast<char * const *>(argv), environ);
+                         const_cast<char * const *>(argv), env);
+ if (allocated)
+	  delete[] env;
+
   PROBE2(stap, stap_system__spawn, ret, pid);
   if (ret != 0)
     {
@@ -585,6 +609,28 @@ cleanup_fa:
   return pid;
 }
 
+// Global set of supported localization variables. Make changes here to
+// add or remove variables. List of variables from:
+// http://publib.boulder.ibm.com/infocenter/tivihelp/v8r1/index.jsp?topic=/
+// com.ibm.netcool_OMNIbus.doc_7.3.0/omnibus/wip/install/concept/omn_con_settingyourlocale.html
+const set<string>&
+localization_variables()
+{
+  static set<string> localeVars;
+  if (localeVars.empty())
+    {
+      localeVars.insert("LANG");
+      localeVars.insert("LC_ALL");
+      localeVars.insert("LC_CTYPE");
+      localeVars.insert("LC_COLLATE");
+      localeVars.insert("LC_MESSAGES");
+      localeVars.insert("LC_TIME");
+      localeVars.insert("LC_MONETARY");
+      localeVars.insert("LC_NUMERIC");
+    }
+  return localeVars;
+}
+
 // Runs a command with a saved PID, so we can kill it from the signal handler,
 // and wait for it to finish.
 int
@@ -603,8 +649,11 @@ stap_system(int verbose, const vector<string>& args,
     {
       pid_t pid = stap_spawn(verbose, args, &fa);
       ret = pid;
-      if (pid > 0)
+      if (pid > 0){
         ret = stap_waitpid(verbose, pid);
+        if(ret)
+          clog << _F("Warning: %s exited with status: %d", args.front().c_str(), ret) << endl;
+      }
     }
 
   posix_spawn_file_actions_destroy(&fa);

@@ -204,7 +204,12 @@ if {![regexp "^i.86$" $::tcl_platform(machine)]} {
 set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $type_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "$test compiling types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
+    # -std=gnu++0x and -std=c++0x are not universally accepted
+    if {[string first "unrecognized command line option" $res] == -1} {
+      fail "$test compiling types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
+    } else {
+      untested "$test compiling types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
+    }
     untested "$test types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
     continue ; # type_pedantics_idx
 } else {

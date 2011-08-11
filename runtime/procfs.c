@@ -9,14 +9,13 @@
  * later version.
  */
 
+#ifndef _STP_PROCFS_C_
+#define _STP_PROCFS_C_
+
 /* The maximum number of files AND directories that can be opened.
  * It would be great if the translator would emit this based on the actual
  * number of needed files.
  */
-
-#ifndef _STP_PROCFS_C_
-#define _STP_PROCFS_C_
-
 #ifndef STP_MAX_PROCFS_FILES
 #define STP_MAX_PROCFS_FILES 16
 #endif

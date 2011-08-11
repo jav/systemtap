@@ -1,5 +1,5 @@
 // elaboration functions
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2008 Intel Corporation
 //
 // This file is part of systemtap, and is free software.  You can
@@ -806,7 +806,8 @@ derive_probes (systemtap_session& s,
         }
       catch (const semantic_error& e)
         {
-          if (! s.listing_mode) // suppress error messages in listing mode
+	  //only output in listing if -vv is supplied
+          if (!s.listing_mode || (s.listing_mode && s.verbose > 1))
             {
               // XXX: prefer not to print_error at every nest/unroll level
               semantic_error* er = new semantic_error (e); // copy it
@@ -1200,8 +1201,8 @@ semantic_pass_conditions (systemtap_session & sess)
 // necessary initialization of code needed by the embedded code functions.
 
 // This is only for pragmas that don't have any other side-effect than
-// needing some initialization at module init time. Currently only handles
-// /* pragma:vma */.
+// needing some initialization at module init time. Currently handles
+// /* pragma:vma */ /* pragma:unwind */ /* pragma:symbol */
 
 // /* pragma:uprobes */ is handled during the typeresolution_info pass.
 // /* pure */, /* unprivileged */. /* myproc-unprivileged */ and /* guru */
@@ -1224,6 +1225,24 @@ public:
 	if (session.verbose > 2)
           clog << _F("Turning on task_finder vma_tracker, pragma:vma found in %s",
                      current_function->name.c_str()) << endl;
+      }
+
+    if (! session.need_unwind
+	&& c->code.find("/* pragma:unwind */") != string::npos)
+      {
+	if (session.verbose > 2)
+	  clog << _F("Turning on unwind support, pragma:unwind found in %s",
+		    current_function->name.c_str()) << endl;
+	session.need_unwind = true;
+      }
+
+    if (! session.need_symbols
+	&& c->code.find("/* pragma:symbols */") != string::npos)
+      {
+	if (session.verbose > 2)
+	  clog << _F("Turning on symbol data collecting, pragma:symbols found in %s",
+		    current_function->name.c_str()) << endl;
+	session.need_symbols = true;
       }
   }
 };
@@ -1382,6 +1401,7 @@ void add_global_var_display (systemtap_session& s)
   if (s.listing_mode) return;
 
   varuse_collecting_visitor vut(s);
+
   for (unsigned i=0; i<s.probes.size(); i++)
     {
       s.probes[i]->body->visit (& vut);
@@ -1393,7 +1413,8 @@ void add_global_var_display (systemtap_session& s)
   for (unsigned g=0; g < s.globals.size(); g++)
     {
       vardecl* l = s.globals[g];
-      if (vut.read.find (l) != vut.read.end()
+      if ((vut.read.find (l) != vut.read.end()
+           && vut.used.find (l) != vut.used.end())
           || vut.written.find (l) == vut.written.end())
 	continue;
 
@@ -1522,8 +1543,14 @@ void add_global_var_display (systemtap_session& s)
 	  for (int i=0; i < idx_count; i++)
 	    {
 	      char *idx_name;
-	      if (asprintf (&idx_name, "idx%d", i) < 0)
-		return;
+	      if (asprintf (&idx_name, "idx%d", i) < 0) {
+               delete pf;
+               delete b;
+               delete p;
+               delete g_sym;
+               delete fe;
+               return;
+	      }
 	      idx_sym[i] = new symbol;
 	      idx_sym[i]->name = idx_name;
 	      idx_sym[i]->tok = l->tok;

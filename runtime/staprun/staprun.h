@@ -171,6 +171,8 @@ void assert_uprobes_module_permissions (
 int insert_module(const char *path, const char *special_options,
 		  char **options, assert_permissions_func apf);
 
+int rename_module(void* module_file, const __off_t st_size);
+
 int mountfs(void);
 void start_symbol_thread(void);
 void stop_symbol_thread(void);
@@ -202,6 +204,7 @@ extern char *modoptions[MAXMODOPTIONS];
 extern int target_pid;
 extern char *target_cmd;
 extern char *outfile_name;
+extern int rename_mod;
 extern int attach_mod;
 extern int delete_mod;
 extern int load_only;
@@ -210,7 +213,6 @@ extern const char *uprobes_path;
 extern int daemon_mode;
 extern off_t fsize_max;
 extern int fnum_max;
-extern int unprivileged_user;
 
 /* getopt variables */
 extern char *optarg;

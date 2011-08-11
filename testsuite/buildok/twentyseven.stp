@@ -2,5 +2,5 @@
 
 probe syscall.execve
 {
-  print($argv[0])
+  print(@defined($__argv) ? $__argv[0] : $argv[0])
 }

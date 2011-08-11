@@ -125,7 +125,7 @@ function tcpmib_filter_key: long ( sk:long, op:long ){
 /* Print the results. */
 probe end {
 	foreach (addr in  RetransSegs )
-		printf ("%s  %d \n ",ip_ntop(htonl(addr)), lport)
+		printf ("%s  %d \\n ",ip_ntop(htonl(addr)), lport)
 }
 .ESAMPLE
 	

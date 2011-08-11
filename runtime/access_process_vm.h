@@ -26,7 +26,7 @@ __access_process_vm_ (struct task_struct *tsk, unsigned long addr, void *buf,
     return 0;
 
   down_read (&mm->mmap_sem);
-  /* ignore errors, just check how much was sucessfully transferred */
+  /* ignore errors, just check how much was successfully transferred */
   while (len)
     {
       int bytes, ret, offset;

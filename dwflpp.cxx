@@ -1,5 +1,5 @@
 // C++ interface to dwfl
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -359,7 +359,7 @@ dwflpp::setup_user(const vector<string>& modules, bool debuginfo_needed)
     sess.module_cache = new module_cache ();
 
   vector<string>::const_iterator it = modules.begin();
-  dwfl_ptr = setup_dwfl_user(it, modules.end(), debuginfo_needed);
+  dwfl_ptr = setup_dwfl_user(it, modules.end(), debuginfo_needed, sess);
   if (debuginfo_needed && it != modules.end())
     dwfl_assert (string(_F("missing process %s %s debuginfo",
                            (*it).c_str(), sess.architecture.c_str())),
@@ -1007,8 +1007,10 @@ int
 dwflpp::iterate_over_notes (void *object, void (*callback)(void *object, int type, const char *data, size_t len))
 {
   Dwarf_Addr bias;
-  Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (module, &bias))
-              ?: dwfl_module_getelf (module, &bias));
+  // Note we really want the actual elf file, not the dwarf .debug file.
+  // Older binutils had a bug where they mangled the SHT_NOTE type during
+  // --keep-debug.
+  Elf* elf = dwfl_module_getelf (module, &bias);
   size_t shstrndx;
   if (elf_getshdrstrndx (elf, &shstrndx))
     return elf_errno();
@@ -1059,6 +1061,7 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
 //  We cannot use this: dwarf_getelf (dwfl_module_getdwarf (module, &bias))
   Elf *elf = dwfl_module_getelf (module, &bias);
 //  elf_getphdrnum (elf, &phnum) is not available in all versions of elfutils
+//  needs libelf from elfutils 0.144+
   for (int i = 0; ; i++)
     {
       GElf_Phdr mem;
@@ -2019,22 +2022,7 @@ dwflpp::translate_location(struct obstack *pool,
 {
 
   /* DW_AT_data_member_location, can be either constant offsets
-     (struct member fields), or full blown location expressions.
-     In older elfutils, dwarf_getlocation_addr would not handle the
-     constant for us, but newer ones do.  For older ones, we work
-     it by faking an expression, which is what newer ones do. */
-#if !_ELFUTILS_PREREQ (0,142)
-  if (dwarf_whatattr (attr) == DW_AT_data_member_location)
-    {
-      Dwarf_Op offset_loc;
-      memset(&offset_loc, 0, sizeof(Dwarf_Op));
-      offset_loc.atom = DW_OP_plus_uconst;
-      if (dwarf_formudata (attr, &offset_loc.number) == 0)
-        return c_translate_location (pool, &loc2c_error, this,
-                                     &loc2c_emit_address, 1, 0, pc,
-                                     NULL, &offset_loc, 1, NULL, NULL, NULL);
-    }
-#endif
+     (struct member fields), or full blown location expressions.  */
 
   /* There is no location expression, but a constant value instead.  */
   if (dwarf_whatattr (attr) == DW_AT_const_value)
@@ -2082,7 +2070,7 @@ dwflpp::translate_location(struct obstack *pool,
 
 
 void
-dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
+dwflpp::print_members(Dwarf_Die *vardie, ostream &o, set<string> &dupes)
 {
   const int typetag = dwarf_tag (vardie);
 
@@ -2123,7 +2111,11 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
       const char *member = dwarf_diename (die) ;
 
       if ( tag == DW_TAG_member && member != NULL )
-        o << " " << member;
+        {
+          // Only output if this is new, to avoid inheritance dupes.
+          if (dupes.insert(member).second)
+            o << " " << member;
+        }
       else
         {
           Dwarf_Die temp_die;
@@ -2137,7 +2129,7 @@ dwflpp::print_members(Dwarf_Die *vardie, ostream &o)
               return;
             }
 
-          print_members(&temp_die,o);
+          print_members(&temp_die, o, dupes);
         }
 
     }
@@ -2155,42 +2147,55 @@ dwflpp::find_struct_member(const target_symbol::component& c,
   Dwarf_Attribute attr;
   Dwarf_Die die;
 
-  switch (dwarf_child (parentdie, &die))
+  /* With inheritance, a subclass may mask member names of parent classes, so
+   * our search among the inheritance tree must be breadth-first rather than
+   * depth-first (recursive).  The parentdie is still our starting point. */
+  deque<Dwarf_Die> inheritees(1, *parentdie);
+  for (; !inheritees.empty(); inheritees.pop_front())
     {
-    case 0:		/* First child found.  */
-      break;
-    case 1:		/* No children.  */
-      return false;
-    case -1:		/* Error.  */
-    default:		/* Shouldn't happen */
-      throw semantic_error (dwarf_type_name(parentdie) + ": "
-                            + string (dwarf_errmsg (-1)),
-                            c.tok);
-    }
-
-  do
-    {
-      int tag = dwarf_tag(&die);
-      if (tag != DW_TAG_member && tag != DW_TAG_inheritance)
-        continue;
-
-      const char *name = dwarf_diename(&die);
-      if (name == NULL || tag == DW_TAG_inheritance)
+      switch (dwarf_child (&inheritees.front(), &die))
         {
-          // need to recurse for anonymous structs/unions and
-          // for inherited members
-          Dwarf_Die subdie;
-          if (dwarf_attr_die (&die, DW_AT_type, &subdie) &&
-              find_struct_member(c, &subdie, memberdie, dies, locs))
-            goto success;
+        case 0:		/* First child found.  */
+          break;
+        case 1:		/* No children.  */
+          continue;
+        case -1:	/* Error.  */
+        default:	/* Shouldn't happen */
+          throw semantic_error (dwarf_type_name(&inheritees.front()) + ": "
+                                + string (dwarf_errmsg (-1)),
+                                c.tok);
         }
-      else if (name == c.member)
+
+      do
         {
-          *memberdie = die;
-          goto success;
+          int tag = dwarf_tag(&die);
+          if (tag != DW_TAG_member && tag != DW_TAG_inheritance)
+            continue;
+
+          const char *name = dwarf_diename(&die);
+          if (tag == DW_TAG_inheritance)
+            {
+              /* Remember inheritee for breadth-first search. */
+              Dwarf_Die inheritee;
+              if (dwarf_attr_die (&die, DW_AT_type, &inheritee))
+                inheritees.push_back(inheritee);
+            }
+          else if (name == NULL)
+            {
+              /* Need to recurse for anonymous structs/unions. */
+              Dwarf_Die subdie;
+              if (dwarf_attr_die (&die, DW_AT_type, &subdie) &&
+                  find_struct_member(c, &subdie, memberdie, dies, locs))
+                goto success;
+            }
+          else if (name == c.member)
+            {
+              *memberdie = die;
+              goto success;
+            }
         }
+      while (dwarf_siblingof (&die, &die) == 0);
     }
-  while (dwarf_siblingof (&die, &die) == 0);
 
   return false;
 
@@ -2332,7 +2337,8 @@ dwflpp::translate_components(struct obstack *pool,
 
                   string alternatives;
                   stringstream members;
-                  print_members(typedie, members);
+                  set<string> member_dupes;
+                  print_members(typedie, members, member_dupes);
                   if (members.str().size() != 0)
                     alternatives = " (alternatives:" + members.str() + ")";
                   throw semantic_error(_F("unable to find member '%s' for %s%s%s", c.member.c_str(),
@@ -2997,15 +3003,24 @@ dwflpp::build_blacklist()
   blfn += "|unknown_nmi_error";
 
   // Lots of locks
-  blfn += "|.*raw_.*lock.*";
-  blfn += "|.*read_.*lock.*";
-  blfn += "|.*write_.*lock.*";
-  blfn += "|.*spin_.*lock.*";
-  blfn += "|.*rwlock_.*lock.*";
-  blfn += "|.*rwsem_.*lock.*";
+  blfn += "|.*raw_.*_lock.*";
+  blfn += "|.*raw_.*_unlock.*";
+  blfn += "|.*raw_.*_trylock.*";
+  blfn += "|.*read_lock.*";
+  blfn += "|.*read_unlock.*";
+  blfn += "|.*read_trylock.*";
+  blfn += "|.*write_lock.*";
+  blfn += "|.*write_unlock.*";
+  blfn += "|.*write_trylock.*";
+  blfn += "|.*write_seqlock.*";
+  blfn += "|.*write_sequnlock.*";
+  blfn += "|.*spin_lock.*";
+  blfn += "|.*spin_unlock.*";
+  blfn += "|.*spin_trylock.*";
+  blfn += "|.*spin_is_locked.*";
+  blfn += "|rwsem_.*lock.*";
   blfn += "|.*mutex_.*lock.*";
   blfn += "|raw_.*";
-  blfn += "|.*seq_.*lock.*";
 
   // atomic functions
   blfn += "|atomic_.*";
@@ -3215,7 +3230,6 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
     clog << "get_cfa_ops @0x" << hex << pc << dec
 	 << ", module_start @0x" << hex << module_start << dec << endl;
 
-#if _ELFUTILS_PREREQ(0,142)
   // Try debug_frame first, then fall back on eh_frame.
   size_t cfa_nops = 0;
   Dwarf_Addr bias = 0;
@@ -3250,13 +3264,11 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 	clog << "dwfl_module_eh_cfi failed: " << dwfl_errmsg(-1) << endl;
 
     }
-#endif
 
   if (sess.verbose > 2)
     {
       if (cfa_ops == NULL)
 	clog << _("not found cfa") << endl;
-#if _ELFUTILS_PREREQ(0,142)
       else
 	{
 	  Dwarf_Addr frame_start, frame_end;
@@ -3266,7 +3278,6 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
           clog << _F("found cfa, info: %d [start: 0x%#" PRIx64 ", end: 0x%#" PRIx64 
                      ", nops: %zu", info, frame_start, frame_end, cfa_nops) << endl;
 	}
-#endif
     }
 
   return cfa_ops;

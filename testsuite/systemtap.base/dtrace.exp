@@ -60,12 +60,12 @@ exec rm -f XXX.o
 
 verbose -log "$dtrace -G -s $dpath -o XXX"
 catch {exec $dtrace -G -s $dpath -o XXX}
-if {[file exists XXX.o]} then {
+if {[file exists XXX]} then {
     pass "dtrace -G -o XXX"
 } else {
     fail "dtrace -G -o XXX"
 }
-exec rm -f XXX.o
+exec rm -f XXX
 
 verbose -log "$dtrace -h -s $dpath -o XXX.h"
 catch {exec $dtrace -h -s $dpath -o XXX.h}
@@ -96,12 +96,12 @@ exec rm -f /tmp/XXX.o
 
 verbose -log "$dtrace -G -s $dpath -o /tmp/XXX"
 catch {exec $dtrace -G -s $dpath -o /tmp/XXX}
-if {[file exists /tmp/XXX.o]} then {
-    pass "dtrace -G -o /tmp/XXX.o"
+if {[file exists /tmp/XXX]} then {
+    pass "dtrace -G -o /tmp/XXX"
 } else {
-    fail "dtrace -G -o /tmp/XXX.o"
+    fail "dtrace -G -o /tmp/XXX"
 }
-exec rm -f /tmp/XXX.o
+exec rm -f /tmp/XXX
 
 verbose -log "$dtrace -h -s $dpath -o /tmp/XXX.h"
 catch {exec $dtrace -h -s $dpath -o /tmp/XXX.h}

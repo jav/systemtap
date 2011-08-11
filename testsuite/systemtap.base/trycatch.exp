@@ -9,6 +9,7 @@ expect {
     -timeout 30
     -re {^ERROR: MAXACTION[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^WARNING: Number of errors[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^Warning:[^\r\n]* exited with status:[^\r\n]*\r\n} {incr ok; exp_continue }
     -re {^Pass 5: run failed[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^OK[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^KO[^\r\n]*\r\n} { incr ko; exp_continue }
@@ -16,7 +17,7 @@ expect {
     eof { }
 }
 wait; catch { close } 
-if {$ok == 12 && $ko == 0} then {pass $test} else {fail "$test ($ok $ko)"}
+if {$ok == 13 && $ko == 0} then {pass $test} else {fail "$test ($ok $ko)"}
 
 
 set test "trycatch -u"
@@ -28,6 +29,7 @@ expect {
     -timeout 30
     -re {^ERROR: MAXACTION[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^WARNING: Number of errors[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^Warning:[^\r\n]* exited with status:[^\r\n]*\r\n} {incr ok; exp_continue }
     -re {^Pass 5: run failed[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^OK[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^KO[^\r\n]*\r\n} { incr ko; exp_continue }
@@ -35,7 +37,7 @@ expect {
     eof { }
 }
 wait; catch { close } 
-if {$ok == 12 && $ko == 0} then {pass $test} else {fail "$test ($ok $ko)"}
+if {$ok == 13 && $ko == 0} then {pass $test} else {fail "$test ($ok $ko)"}
 
 
 

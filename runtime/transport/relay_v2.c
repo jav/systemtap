@@ -287,7 +287,7 @@ static int _stp_transport_data_fs_init(void)
 
 	/* Create "dropped" file. */
 	_stp_relay_data.dropped_file
-		= debugfs_create_file("dropped", 0444, _stp_get_module_dir(),
+		= debugfs_create_file("dropped", 0400, _stp_get_module_dir(),
 				      NULL, &__stp_relay_dropped_fops);
 	if (!_stp_relay_data.dropped_file) {
 		rc = -EIO;

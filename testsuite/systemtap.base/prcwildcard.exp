@@ -1,18 +1,23 @@
 
+set stap_path $env(SYSTEMTAP_PATH)/stap
 set test "prcwildcard function"
-spawn stap -L {process("../sta*").function("*")}
-set count 0
-expect {
-    -re {^process[^\r\n]+\r\n} { incr count; exp_continue }
-    timeout { }
-    eof { }
+# Looking for functions in stap will only work if it isn't stripped.
+if {[stripped_p $stap_path]} {
+    untested $test
+} else {
+    spawn stap -L "process(\"$stap_path\").function(\"*\")"
+    set count 0
+    expect {
+	-re {^process[^\r\n]+\r\n} { incr count; exp_continue }
+	timeout { }
+	eof { }
+    }
+    catch {close}; catch {wait}
+    if {$count > 100} then { pass $test } else { fail $test }
 }
-catch {close}; catch {wait}
-if {$count > 100} then { pass $test } else { fail $test }
-
 
 set test "prcwildcard mark"
-spawn stap -L {process("../sta*").mark("*")}
+spawn stap -L "process(\"$stap_path\").mark(\"*\")"
 set count 0
 expect {
     -re {^process[^\r\n]+\r\n} { incr count; exp_continue }

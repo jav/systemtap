@@ -30,6 +30,7 @@ proc exe_uses_implicit_ptr {exe} {
 set opt_flags {{-O0} {-O1} {-O2} {-O3}}
 foreach opt $opt_flags {
   set test_flags "additional_flags=-g additional_flags=$opt"
+  set test_flags "$test_flags [sdt_includes]"
 
   set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
   if {$res != ""} {

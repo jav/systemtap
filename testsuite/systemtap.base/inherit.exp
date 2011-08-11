@@ -1,0 +1,28 @@
+set test "inherit"
+set ::result_string {1
+2
+3
+4
+42
+{.foo=42, .bar={...}}
+{.foo=42, .bar={.x=3, .y=4}}}
+
+set srcfile "$srcdir/$subdir/$test.cxx"
+set test_flags "compiler=g++ additional_flags=-g"
+set res [target_compile "$srcfile" $test.exe executable "$test_flags"]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling $test.cxx"
+    untested "$test.cxx compile"
+    continue
+} else {
+    pass "$test.cxx compile"
+}
+
+set stpfile "$srcdir/$subdir/$test.stp"
+if {[installtest_p] && [uprobes_p]} {
+  stap_run3 "$test" -w "$stpfile" $test.exe -c ./$test.exe
+} else {
+  untested "$test"
+}
+catch {exec rm -f $test.exe}

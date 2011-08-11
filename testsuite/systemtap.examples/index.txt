@@ -1,6 +1,18 @@
 SYSTEMTAP EXAMPLES INDEX
 (see also keyword-index.txt)
 
+func_time_stats.stp - Function time statistics
+keywords: function wall-clock time
+
+  The func_time_stats.stp script tracks the wall clock time for each
+  invocation of a function probe listed as the first command line
+  argument. When the script exits it prints out the minimum, average,
+  and maximum times in microseconds. It also prints out a count of
+  times that the function was called.
+
+  # stap func_time_stats.stp 'syscall.nanosleep' -c "sleep 0.2"
+
+
 general/ansi_colors.stp - Color Table for ansi_set_color2() and ansi_set_color3()
 keywords: format
 
@@ -38,6 +50,19 @@ keywords: event counter tid pid
   over the course of execution.
 
   # stap eventcount.stp syscall.* -c 'sleep 0.2'
+
+
+general/func_time_stats.stp - Function time statistics
+keywords: function wall-clock time
+
+  The func_time_stats.stp script tracks the wall clock time for each
+  invocation of the function probe listed as the first command line
+  argument. When the script exits it prints out the minimum, average,
+  and maximum times in microseconds followed by a count of times that
+  the function was called and a histogram showing the distributions of
+  times.
+
+  # stap func_time_stats.stp 'syscall.nanosleep' -c "sleep 0.2"
 
 
 general/graphs.stp - Graphing Disk and CPU Utilization
@@ -107,6 +132,22 @@ keywords: monitoring
 
   # stap -w varwatch.stp 'kernel.statement("do_sys_open@fs/open.c:*")' \
   '$$vars' -c "sleep 0.2"
+
+
+general/watchdog.stp - Watchdog timer
+keywords: watchdog backtrace
+
+  The watchdog.stp script provides a watchdog timer mechanism for
+  arbitrary events. The script takes three arguments: the events to
+  start watchdog timer, the event to stop the watchdog timer, and the
+  time in millseconds for the watchdog. If the watchdog timer is
+  exceed, the script will trigger a stack backtrace of the user-process
+  that timed out using pstack. This script can be used to diagnose what
+  the userspace application is doing when a slower than expected
+  operation occurs.
+
+  # stap watchdog.stp 'syscall.nanosleep' 'syscall.nanosleep.return' 1000 \
+  -c "sleep 0.2"
 
 
 interrupt/interrupts-by-dev.stp - Record interrupts on a per-device basis.
@@ -338,6 +379,28 @@ keywords: locking
   # stap bkl_stats.stp -c "sleep 0.2"
 
 
+memory/hw_watch_addr.stp - Watch access to a kernel address using breakpoint hardware
+keywords: memory watchpoint
+
+  The script will watch accesses to a single kernel address and prints
+  a traceback each time the address is accessed. This script needs to
+  be run as root to allow access to the breakpoint hardware.
+
+  # stap --all-modules hw_watch_addr.stp 0x`grep "pid_max$" /proc/kallsyms` \
+  -c "sleep 1"
+
+
+memory/hw_watch_sym.stp - Watch to a kernel symbol using breakpoint hardware
+keywords: memory watchpoint
+
+  The script will watch accesses to the starting address of a single
+  kernel symbol and prints a traceback each time the symbol is
+  accessed. This script needs to be run as root to allow access to the
+  breakpoint hardware.
+
+  # stap --all-modules hw_watch_sym.stp pid_max -c "sleep 1"
+
+
 memory/kmalloc-top - Show Paths to Kernel Malloc (kmalloc) Invocations
 keywords: memory
 
@@ -490,6 +553,16 @@ keywords: network traffic per-process
   # stap nettop.stp -c "sleep 0.2"
 
 
+network/nfsd_unlink.stp - Find which client is removing nfs files on server
+keywords: nfs disk
+
+  The nfsd_unlink.stp script lists the ip address and file name each
+  time time a file is being removed or unlinked by the nfsd. This
+  script is run on the nfs server.
+
+  # stap nfsd_unlink.stp -c "sleep 0.2"
+
+
 network/sk_stream_wait_memory.stp - Track Start and Stop of Processes Due to Network Buffer Space
 keywords: network tcp buffer memory
 
@@ -606,16 +679,6 @@ keywords: process scheduler time tracepoint interrupt
   the task was running.
 
   # stap cycle_thief.stp -c "sleep 0.2"
-
-
-process/dumpstack.stp - Print the kernel stack of a hung task
-keywords: process backtrace
-
-  The script prints the kernel stack of any non-running pid in the
-  system.  This is useful for diagnosing the reason that a task is
-  hung.
-
-  # stap dumpstack.stp -x $$
 
 
 process/errsnoop.stp - tabulate system call errors

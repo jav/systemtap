@@ -1,5 +1,5 @@
 // recursive descent parser for systemtap scripts
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 // Copyright (C) 2007 Bull S.A.S
 //
@@ -1236,7 +1236,7 @@ parser::parse ()
     }
   else if (num_errors > 0)
     {
-      cerr << num_errors << " parse error(s)." << endl;
+      cerr << _F(ngettext("%d parse error.", "%d parse errors.", num_errors), num_errors) << endl;
       delete f;
       f = 0;
     }

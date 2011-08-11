@@ -342,6 +342,11 @@ do_run()
       args[nargs++] = arg;
     }
 
+  // Explicitly check execute permissions here, because posix_spawn will only
+  // report that failure through a process exit code.
+  if (access(staprun, X_OK) != 0)
+    return reply ("ERROR: can't execute %s (%s)\n", staprun, strerror(errno));
+
   int ret = 0;
   posix_spawn_file_actions_t fa;
   if (posix_spawn_file_actions_init(&fa) != 0)

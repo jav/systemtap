@@ -20,7 +20,6 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <iomanip>
 #include <cerrno>
 #include <cstdio>
 #include <cassert>
@@ -69,12 +68,6 @@ server_cert_db_path ()
 }
 
 string
-server_cert_file ()
-{
-  return server_cert_db_path () + "/stap.cert";
-}
-
-string
 local_client_cert_db_path ()
 {
   string data_path;
@@ -84,12 +77,6 @@ local_client_cert_db_path ()
   else
     data_path = get_home_directory() + string("/.systemtap");
   return data_path + "/ssl/client";
-}
-
-string
-global_client_cert_db_path ()
-{
-  return SYSCONFDIR "/systemtap/ssl/client";
 }
 
 // Common error handling for applications using this file.
@@ -199,7 +186,16 @@ nssCleanup (const char *db_path)
       if (db_path)
 	nsscommon_error (_F("Unable to shutdown NSS for database %s", db_path));
       else
-	nsscommon_error (_("Unable to shutdown NSS"));
+	{
+	  // This shutdown request is coming from the rpm finder which attempts to shutdown NSS
+	  // manually if rpmFreeCrypto() is not available (see rpm_finder.cxx:missing_rpm_enlist).
+	  // At that point there is no way of knowing if NSS was actually started, so allow
+	  // failure here with SEC_ERROR_NOT_INITIALIZED.
+	  PRErrorCode errorNumber = PR_GetError ();
+	  if (errorNumber == SEC_ERROR_NOT_INITIALIZED)
+	    return;
+	  nsscommon_error (_("Unable to shutdown NSS"));
+	}
       nssError ();
     }
 }
@@ -294,8 +290,7 @@ nssPasswordCallback (PK11SlotInfo *info __attribute ((unused)), PRBool retry, vo
   return password_ret;
 }
 
-extern "C"
-int
+static int
 create_server_cert_db (const char *db_path)
 {
   return create_dir (db_path, 0755);
@@ -1070,19 +1065,6 @@ CERTCertList *get_cert_list_from_db (const string &cert_nickname)
     }
 
   return certs;
-}
-
-string get_cert_serial_number (const CERTCertificate *cert)
-{
-  ostringstream serialNumber;
-  serialNumber << hex << setfill('0') << right;
-  for (unsigned i = 0; i < cert->serialNumber.len; ++i)
-    {
-      if (i > 0)
-	serialNumber << ':';
-      serialNumber << setw(2) << (unsigned)cert->serialNumber.data[i];
-    }
-  return serialNumber.str ();
 }
 
 static int

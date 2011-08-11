@@ -32,9 +32,6 @@
    */
 #undef HAVE_DCGETTEXT
 
-/* Define to 1 if you have the <elfutils/version.h> header file. */
-#undef HAVE_ELFUTILS_VERSION_H
-
 /* Define if the GNU gettext() function is already present or preinstalled. */
 #undef HAVE_GETTEXT
 
@@ -61,9 +58,6 @@
 
 /* Define to 1 if you have the nss libraries. */
 #undef HAVE_NSS
-
-/* Define to 1 if you have the <pcp/pmapi.h> header file. */
-#undef HAVE_PCP_PMAPI_H
 
 /* Define to 1 if you have the `ppoll' function. */
 #undef HAVE_PPOLL

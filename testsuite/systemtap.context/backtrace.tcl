@@ -13,7 +13,7 @@ spawn stap -d kernel -d systemtap_test_module1 $srcdir/$subdir/backtrace.stp
 #exp_internal 1
 expect {
     -timeout 120
-    "Systemtap probe: begin\r\n" {
+    "<no kernel backtrace at begin>\r\n" {
 	pass "backtrace of begin probe"
 	exec echo 0 > /proc/stap_test_cmd
 	exp_continue

@@ -13,8 +13,6 @@
 #ifndef _STP_UNWIND_H_
 #define _STP_UNWIND_H_
 
-#ifdef STP_USE_DWARF_UNWINDER
-
 #if defined (__x86_64__)
 #include "x86_64.h"
 #elif  defined (__i386__)
@@ -23,7 +21,8 @@
 #error "Unsupported dwarf unwind architecture"
 #endif
 
-#define STP_MAX_STACK_DEPTH 8
+/* Used for DW_CFA_remember_state and DW_CFA_restore_state. */
+#define STP_MAX_STACK_DEPTH 4
 
 #ifndef BUILD_BUG_ON_ZERO
 #define BUILD_BUG_ON_ZERO(e) (sizeof(char[1 - 2 * !!(e)]) - 1)
@@ -247,17 +246,6 @@ static const struct {
 typedef unsigned long uleb128_t;
 typedef   signed long sleb128_t;
 
-static struct unwind_table {
-	unsigned long pc; /* text */
-	unsigned long range; /* text_size */
-	const void *address; /* unwind_data */
-	unsigned long size; /* unwind_data_len */
-	const unsigned char *header; /* unwind_header */
-	unsigned long hdrsz;
-	struct unwind_table *link;
-	const char *name; /* module name */
-} root_table;
-
 struct unwind_item {
 	enum item_location {
 		Nowhere,
@@ -273,11 +261,7 @@ struct unwind_item {
 	};
 };
 
-struct unwind_state {
-	uleb128_t loc, org;
-	const u8 *cieStart, *cieEnd;
-	uleb128_t codeAlign;
-	sleb128_t dataAlign;
+struct unwind_reg_state {
 	union {
 		struct cfa {
 			uleb128_t reg, offs;
@@ -285,23 +269,17 @@ struct unwind_state {
 		const u8 *cfa_expr;
 	};
 	struct unwind_item regs[ARRAY_SIZE(reg_info)];
-	unsigned stackDepth:8;
-	unsigned version:8;
 	unsigned cfa_is_expr:1;
-	const u8 *label;
-	const u8 *stack[STP_MAX_STACK_DEPTH];
+};
+
+struct unwind_state {
+	uleb128_t loc;
+	uleb128_t codeAlign;
+	sleb128_t dataAlign;
+	unsigned stackDepth:8;
+	struct unwind_reg_state reg[STP_MAX_STACK_DEPTH];
 };
 
 static const struct cfa badCFA = { ARRAY_SIZE(reg_info), 1 };
-static unsigned long read_pointer(const u8 **pLoc,
-                                  const void *end,
-                                  signed ptrType);
-static const u32 bad_cie, not_fde;
-static const u32 *cie_for_fde(const u32 *fde, void *table,
-			      uint32_t table_len, int is_ehframe);
-static signed fde_pointer_type(const u32 *cie,
-			       void *table, uint32_t table_len);
 
-
-#endif /* STP_USE_DWARF_UNWINDER */
 #endif /*_STP_UNWIND_H_*/

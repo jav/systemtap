@@ -1,0 +1,833 @@
+########### Startup Server #############
+# Don't attempt these tests if the client/server are not available
+# Start a systemtap server, if one is not already started.
+if {! [use_server_p]} then {
+    if {! [setup_server]} then {
+	untested "Server Tests"
+	return
+    }
+}
+######################################################
+################# General Tests ######################
+######################################################
+
+###### Embedded '\n' in Environment Variables ########
+# Should not allow embedded '\n' in Environment Variables
+set test "Embedded '\\n' in Env Vars"
+
+set failed 1
+set cmd [concat env \"LANG=en_US\\n.utf8\" stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {^Server: Localization key '.utf8' not found in global list\r\n} {
+		set failed 0
+		exp_continue
+	}
+	-re {^Hello\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+
+
+###### Embedded ';' in Environment Variables ########
+# Should not allow embedded ';' in Environment Variables
+# There are many disallowed chars, but let's just try one
+set test "Embedded ';' in Env Vars"
+
+set failed 1
+set cmd [concat env \"LANG=en_US\;.utf8\" stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Server: Localization value '\[^'\]*' contains illegal characters\r\n" {
+		# good, it was not passed through
+		set failed 0
+		exp_continue
+	}
+	-re {^Hello\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1
+	}
+	timeout {
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+
+
+###### Use of "_.-@=" in Environment Variables ########
+# Should allow "_.-@=" in Environment Variables
+set test "Use of '_.-@=' in Env Vars"
+
+set failed 0
+set cmd [concat env LANG=en_US.utf-8@toronto=test stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Hello\r\n" {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+
+######################################################
+################### LANG TESTS #######################
+######################################################
+
+########### LANG Proper Syntax Test (French) ##############
+#Run a basic execution test in French. Should return only "Bonjour".
+set test "LANG Proper Syntax Test (French)"
+
+set failed 0
+set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Bonjour\r\n" {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+
+########### LANG Proper Syntax Test (English) #############
+#Run a basic execution test in English. Should return only "Hello".
+set test "LANG Proper Syntax Test (English)"
+
+set failed 0
+set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Hello\r\n" {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########### LANG Bad Syntax Test (French) #############
+# Run an execution test with a syntax error, in French.
+set test "LANG Bad Syntax Test (French)"
+
+set failed 0
+set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
+	-re {^Aucun module a été renvoyé par le serveur\r\n} {
+		exp_continue
+	}
+	-re {^erreur d'analyse syntaxique : Ne peut trouver la guillemet fermante\r\n} {
+		exp_continue
+	}
+	-re {^[ \t]*à : string 'Bonjour\); exit\(\);\}' at <input>:1:20\r\n} {
+		exp_continue
+	}
+	-re {^[ \t]*source : probe begin\{printf\("Bonjour\); exit\(\);\}\r\n} {
+		exp_continue
+	}
+	-re {^[ \t]*\^\r\n} {
+		exp_continue
+	}
+	-re {^1 erreur d'analyse\.\r\n} {
+		exp_continue
+	}
+	-re {^Passe 1 : échec de l'analyse syntaxique\. Essayez encore avec une option '--vp 1' supplémentaire\.\r\n} {
+		exp_continue
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1		
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1		
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########### LANG Bad Syntax Test (English) #############
+# Run an execution test with a syntax error, in English.
+set test "LANG Bad Syntax Test (English)"
+
+set failed 0
+set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
+	-re {^parse error: Could not find matching closing quote\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*at: string 'Hello\); exit\(\);\}' at <input>:1:20\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*source: probe begin\{printf\("Hello\); exit\(\);\}\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*\^\r\n} {
+		exp_continue		
+	}
+	-re {^1 parse error\.\r\n} {
+		exp_continue		
+	}
+	-re {^Pass 1: parse failed\.  Try again with another '--vp 1' option\.\r\n} {
+		exp_continue		
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1		
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1		
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########### LANG Proper Syntax Test (French, -k) #############
+#Run a basic execution test in French with -k.
+set test "LANG Proper Syntax Test (French, -k)"
+
+set failed 0
+set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server -k]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Bonjour\r\n" {
+		exp_continue
+	}
+	-re {^Conservation du répertoire temporaire "/tmp/stap......"\r\n} {
+		exp_continue	
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########### LANG Proper Syntax Test (English, -k) #############
+#Run a basic execution test in English with -k.
+set test "LANG Proper Syntax Test (English, -k)"
+
+set failed 0
+set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server -k]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Hello\r\n" {
+		exp_continue
+	}
+	-re {^Keeping temporary directory "/tmp/stap......"\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########### LANG Bad Syntax Test (French, -k) #############
+# Run an execution test with a syntax error, in French, with -k.
+set test "LANG Bad Syntax Test (French, -k)"
+
+set failed 0
+set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server -k]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
+	-re {^Aucun module a été renvoyé par le serveur\r\n} {
+		exp_continue		
+	}
+	-re {^erreur d'analyse syntaxique : Ne peut trouver la guillemet fermante\r\n} {
+		exp_continue
+	}
+	-re {^[ \t]*à : string 'Bonjour\); exit\(\);\}' at <input>:1:20\r\n} {
+
+		exp_continue	
+	}
+	-re {^[ \t]*source : probe begin\{printf\("Bonjour\); exit\(\);\}\r\n} {
+
+		exp_continue		
+	}
+	-re {^[ \t]*\^\r\n} {
+		exp_continue		
+	}
+	-re {^1 erreur d'analyse\.\r\n} {
+		exp_continue	
+	}
+	-re {^Passe 1 : échec de l'analyse syntaxique\. Essayez encore avec une option '--vp 1' supplémentaire\.\r\n} {
+		exp_continue	
+	}
+	-re {^Conservation du répertoire temporaire "/tmp/stap......"\r\n} {
+		exp_continue	
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1		
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########### LANG Bad Syntax Test (English, -k) #############
+# Run an execution test with a syntax error, in English, with -k.
+set test "LANG Bad Syntax Test (English, -k)"
+
+set failed 0
+set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server -k]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
+	-re {^parse error: Could not find matching closing quote\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*at: string 'Hello\); exit\(\);\}' at <input>:1:20\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*source: probe begin\{printf\("Hello\); exit\(\);\}\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*\^\r\n} {
+		exp_continue		
+	}
+	-re {^1 parse error\.\r\n} {
+		exp_continue		
+	}
+	-re {^Pass 1: parse failed\.  Try again with another '--vp 1' option\.\r\n} {
+		exp_continue		
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
+	}
+	-re {^Keeping temporary directory "/tmp/stap......"\r\n} {
+		exp_continue		
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1		
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1		
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+######################################################
+################## LC_ALL Tests ######################
+######################################################
+
+########### LC_ALL Proper Syntax Test (French) ##############
+#Run a basic execution test in French. Should return only "Bonjour".
+set test "LC_ALL Proper Syntax Test (French)"
+
+set failed 0
+set cmd [concat env LC_ALL=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Bonjour\r\n" {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########### LC_ALL Proper Syntax Test (English) #############
+#Run a basic execution test in English. Should return only "Hello".
+set test "LC_ALL Proper Syntax Test (English)"
+
+set failed 0
+set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Hello\r\n" {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########### LC_ALL Bad Syntax Test (French) #############
+# Run an execution test with a syntax error, in French.
+set test "LC_ALL Bad Syntax Test (French)"
+
+set failed 0
+set cmd [concat env LC_ALL=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
+	-re {^Aucun module a été renvoyé par le serveur\r\n} {
+		exp_continue
+	}
+	-re {^erreur d'analyse syntaxique : Ne peut trouver la guillemet fermante\r\n} {
+		exp_continue
+	}
+	-re {^[ \t]*à : string 'Bonjour\); exit\(\);\}' at <input>:1:20\r\n} {
+		exp_continue
+	}
+	-re {^[ \t]*source : probe begin\{printf\("Bonjour\); exit\(\);\}\r\n} {
+		exp_continue
+	}
+	-re {^[ \t]*\^\r\n} {
+		exp_continue
+	}
+	-re {^1 erreur d'analyse\.\r\n} {
+		exp_continue
+	}
+	-re {^Passe 1 : échec de l'analyse syntaxique\. Essayez encore avec une option '--vp 1' supplémentaire\.\r\n} {
+		exp_continue
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1		
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1		
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########### LC_ALL Bad Syntax Test (English) #############
+# Run an execution test with a syntax error, in English.
+set test "LC_ALL Bad Syntax Test (English)"
+
+set failed 0
+set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
+	-re {^parse error: Could not find matching closing quote\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*at: string 'Hello\); exit\(\);\}' at <input>:1:20\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*source: probe begin\{printf\("Hello\); exit\(\);\}\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*\^\r\n} {
+		exp_continue		
+	}
+	-re {^1 parse error\.\r\n} {
+		exp_continue		
+	}
+	-re {^Pass 1: parse failed\.  Try again with another '--vp 1' option\.\r\n} {
+		exp_continue		
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1		
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1		
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########### LC_ALL Proper Syntax Test (French, -k) #############
+#Run a basic execution test in French with -k.
+set test "LC_ALL Proper Syntax Test (French, -k)"
+
+set failed 0
+set cmd [concat env LC_ALL=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} --use-server -k]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Bonjour\r\n" {
+		exp_continue
+	}
+	-re {^Conservation du répertoire temporaire "/tmp/stap......"\r\n} {
+		exp_continue	
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+
+########### LC_ALL Proper Syntax Test (English, -k) #############
+#Run a basic execution test in English with -k.
+set test "LC_ALL Proper Syntax Test (English, -k)"
+
+set failed 0
+set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} --use-server -k]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Hello\r\n" {
+		exp_continue
+	}
+	-re {^Keeping temporary directory "/tmp/stap......"\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+########### LC_ALL Bad Syntax Test (French, -k) #############
+# Run an execution test with a syntax error, in French, with -k.
+set test "LC_ALL Bad Syntax Test (French, -k)"
+
+set failed 0
+set cmd [concat env LC_ALL=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} --use-server -k]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
+	-re {^Aucun module a été renvoyé par le serveur\r\n} {
+		exp_continue		
+	}
+	-re {^erreur d'analyse syntaxique : Ne peut trouver la guillemet fermante\r\n} {
+		exp_continue
+	}
+	-re {^[ \t]*à : string 'Bonjour\); exit\(\);\}' at <input>:1:20\r\n} {
+
+		exp_continue	
+	}
+	-re {^[ \t]*source : probe begin\{printf\("Bonjour\); exit\(\);\}\r\n} {
+
+		exp_continue		
+	}
+	-re {^[ \t]*\^\r\n} {
+		exp_continue		
+	}
+	-re {^1 erreur d'analyse\.\r\n} {
+		exp_continue	
+	}
+	-re {^Passe 1 : échec de l'analyse syntaxique\. Essayez encore avec une option '--vp 1' supplémentaire\.\r\n} {
+		exp_continue	
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
+	}
+	-re {^Conservation du répertoire temporaire "/tmp/stap......"\r\n} {
+		exp_continue	
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1	
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1		
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+
+########### LC_ALL Bad Syntax Test (English, -k) #############
+# Run an execution test with a syntax error, in English, with -k.
+set test "LC_ALL Bad Syntax Test (English, -k)"
+
+set failed 0
+set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} --use-server -k]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {^No module was returned by the server.\r\n} {
+		exp_continue		
+	}
+	-re {^parse error: Could not find matching closing quote\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*at: string 'Hello\); exit\(\);\}' at <input>:1:20\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*source: probe begin\{printf\("Hello\); exit\(\);\}\r\n} {
+		exp_continue		
+	}
+	-re {^[ \t]*\^\r\n} {
+		exp_continue		
+	}
+	-re {^1 parse error\.\r\n} {
+		exp_continue		
+	}
+	-re {^Pass 1: parse failed\.  Try again with another '--vp 1' option\.\r\n} {
+		exp_continue		
+	}
+	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
+		exp_continue
+	}
+	-re {^Keeping temporary directory "/tmp/stap......"\r\n} {
+		exp_continue		
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1		
+	}
+	timeout { 
+		exec kill -INT -[exp_pid]
+		wait
+		set failed 1		
+	}
+}
+catch close
+if {$failed != 0} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+######################################################
+################ LC_CTYPE Tests ######################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+######################################################
+############### LC_COLLATE Tests #####################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+######################################################
+############## LC_MESSAGES Tests #####################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+######################################################
+################# LC_TIME Tests ######################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+######################################################
+############### LC_MONETARY Tests ####################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+######################################################
+################ LC_NUMERIC Tests ####################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+########### Shutdown Server #############
+# Shudown the server, if we started it.
+if {! [use_server_p]} then {
+    shutdown_server
+}

@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  * kernel stack unwinding
- * Copyright (C) 2008-2010 Red Hat Inc.
+ * Copyright (C) 2008-2011 Red Hat Inc.
  *
  * Based on old kernel code that is
  * Copyright (C) 2002-2006 Novell, Inc.
@@ -15,37 +15,10 @@
 
 #include "unwind/unwind.h"
 
-#ifdef STP_USE_DWARF_UNWINDER
-
 struct unwind_context {
     struct unwind_frame_info info;
     struct unwind_state state;
 };
-
-struct eh_frame_hdr_table_entry {
-	unsigned long start, fde;
-};
-
-static int cmp_eh_frame_hdr_table_entries(const void *p1, const void *p2)
-{
-	const struct eh_frame_hdr_table_entry *e1 = p1;
-	const struct eh_frame_hdr_table_entry *e2 = p2;
-	return (e1->start > e2->start) - (e1->start < e2->start);
-}
-
-static void swap_eh_frame_hdr_table_entries(void *p1, void *p2, int size)
-{
-	struct eh_frame_hdr_table_entry *e1 = p1;
-	struct eh_frame_hdr_table_entry *e2 = p2;
-	unsigned long v;
-
-	v = e1->start;
-	e1->start = e2->start;
-	e2->start = v;
-	v = e1->fde;
-	e1->fde = e2->fde;
-	e2->fde = v;
-}
 
 static uleb128_t get_uleb128(const u8 **pcur, const u8 *end)
 {
@@ -91,23 +64,52 @@ static sleb128_t get_sleb128(const u8 **pcur, const u8 *end)
 	return value;
 }
 
-/* given an FDE, find its CIE */
+/* Whether this is a real CIE. Assumes CIE (length) sane. */
+static int has_cie_id(const u32 *cie, int is_ehframe)
+{
+	/* CIE id for eh_frame is 0, otherwise 0xffffffff */
+	if (is_ehframe && cie[1] == 0)
+		return 1;
+	else if (cie[1] == 0xffffffff)
+		return 1;
+	else
+		return 0;
+}
+
+/* whether this is a real fde or not */
+static int is_fde(const u32 *fde, void *table, uint32_t table_len,
+			int is_ehframe)
+{
+	const u8 *end;
+
+	/* check that length is proper */
+	if (!*fde || (*fde & (sizeof(*fde) - 1))) {
+		_stp_warn("bad fde\n");
+		return 0;
+	}
+
+	if (has_cie_id(fde, is_ehframe))
+		return 0;
+
+	end = (const u8 *)(fde + 1) + *fde;
+
+        /* end should fall within unwind table. */
+        if (((void*)end) < table
+            || ((void *)end) > ((void *)(table + table_len))) {
+		_stp_warn("bad fde length\n");
+		return 0;
+	}
+
+	return 1;
+}
+
+/* given an FDE, find its CIE and sanity check */
 static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
 			      uint32_t table_len, int is_ehframe)
 {
 	const u32 *cie;
-
-	/* check that length is proper */
-	if (!*fde || (*fde & (sizeof(*fde) - 1)))
-		return &bad_cie;
-
-	/* CIE id for eh_frame is 0, otherwise 0xffffffff */
-	if (is_ehframe && fde[1] == 0)
-		return &not_fde;
-	else if (fde[1] == 0xffffffff)
-		return &not_fde;
-
-	/* OK, must be an FDE.  Now find its CIE. */
+	unsigned version;
+	const u8 *end;
 
 	/* CIE_pointer must be a proper offset */
 	if ((fde[1] & (sizeof(*fde) - 1)) || fde[1] > (unsigned long)(fde + 1) - (unsigned long)unwind_data) {
@@ -125,14 +127,30 @@ static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
 
 	/* Make sure address falls in the table */
 	if (((void *)cie) < ((void*)unwind_data)
-	    || ((void*)cie) > ((void*)(unwind_data + table_len)))
-	  return NULL;
+	    || ((void*)cie) > ((void*)(unwind_data + table_len))) {
+		_stp_warn("cie address falls outside table\n");
+		return NULL;
+	}
 
 	if (*cie <= sizeof(*cie) + 4 || *cie >= fde[1] - sizeof(*fde)
-	    || (*cie & (sizeof(*cie) - 1))
-	    || (cie[1] != 0xffffffff && cie[1] != 0)) {
+	    || ! has_cie_id(cie, is_ehframe)) {
 		_stp_warn("cie is not valid %lx %x %x %x\n", (unsigned long)cie, *cie, fde[1], cie[1]);
 		return NULL;	/* this is not a (valid) CIE */
+	}
+
+	version = *(const u8 *)(cie + 2);
+	if (version != 1 && version != 3 && version != 4) {
+		_stp_warn ("Unsupported CIE version: %d\n", version);
+		return NULL;
+	}
+
+	end = (const u8 *)(cie + 1) + *cie;
+
+        /* end should fall within unwind table. */
+        if (((void *)end) < (void *)unwind_data
+            || ((void *)end) > ((void *)(unwind_data + table_len))) {
+		_stp_warn ("CIE end falls outside table\n");
+		return NULL;
 	}
 
 	return cie;
@@ -224,62 +242,123 @@ static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrTy
 	return read_ptr_sect(pLoc, end, ptrType, 0, 0);
 }
 
-static signed fde_pointer_type(const u32 *cie, void *unwind_data,
-			       uint32_t table_len)
+/* Parse FDE and CIE content. Basic sanity checks should already have
+   been done start/end/version/id (done by is_fde and cie_for_fde).
+   Returns -1 if FDE or CIE cannot be parsed.*/
+static int parse_fde_cie(const u32 *fde, const u32 *cie,
+			       void *unwind_data, uint32_t table_len,
+			       unsigned *ptrType,
+			       unsigned long *startLoc, unsigned long *locRange,
+			       const u8 **fdeStart, const u8 **fdeEnd,
+			       const u8 **cieStart, const u8 **cieEnd,
+			       uleb128_t *codeAlign, sleb128_t *dataAlign,
+			       uleb128_t *retAddrReg, unsigned *call_frame)
 {
-	const u8 *ptr = (const u8 *)(cie + 2);
-	unsigned version = *ptr;
+	const u8 *ciePtr = (const u8 *)(cie + 2);
+	const u8 *fdePtr = (const u8 *)(fde + 2);
+	unsigned version = *ciePtr++;
+	const char *aug = (const void *)ciePtr;
+	uleb128_t augLen = 0;	/* Set to non-zero if cie aug starts with z */
 
-	if (version != 1 && version != 3 && version != 4)
-		return -1;	/* unsupported */
-	if (*++ptr) {
-		const char *aug;
-		const u8 *end = (const u8 *)(cie + 1) + *cie;
-		uleb128_t len;
+	*cieEnd = (const u8 *)(cie + 1) + *cie;
+	*fdeEnd = (const u8 *)(fde + 1) + *fde;
 
-		/* end of cie should fall within unwind table. */
-		if (((void*)end) < ((void *)unwind_data)
-		    || ((void *)end) > ((void *)(unwind_data + table_len)))
-		  return -1;
+	/* check if augmentation string is nul-terminated */
+	if ((ciePtr = memchr(aug, 0, *cieEnd - ciePtr)) == NULL) {
+		_stp_warn("Unterminated augmentation string\n");
+		return -1;
+	}
+	ciePtr++;	/* skip aug terminator */
 
-		/* check if augmentation size is first (and thus present) */
-		if (*ptr != 'z')
+	*codeAlign = get_uleb128(&ciePtr, *cieEnd);
+	*dataAlign = get_sleb128(&ciePtr, *cieEnd);
+	dbug_unwind(2, "codeAlign=%lx, dataAlign=%lx\n",
+		    *codeAlign, *dataAlign);
+	if (*codeAlign == 0 || *dataAlign == 0) {
+		_stp_warn("zero codeAlign or dataAlign values\n");
+		return -1;
+	}
+
+	*retAddrReg = ((version <= 1)
+		       ? *ciePtr++ : get_uleb128(&ciePtr, *cieEnd));
+
+	if (*aug == 'z') {
+		augLen = get_uleb128(&ciePtr, *cieEnd);
+		if (augLen > (const u8 *)cie - *cieEnd
+		    || ciePtr + augLen > *cieEnd) {
+			_stp_warn("Bogus CIE augmentation length\n");
 			return -1;
-		/* check if augmentation string is nul-terminated */
-		if ((ptr = memchr(aug = (const void *)ptr, 0, end - ptr)) == NULL)
-			return -1;
-		++ptr;		/* skip terminator */
-		get_uleb128(&ptr, end);	/* skip code alignment */
-		get_sleb128(&ptr, end);	/* skip data alignment */
-		/* skip return address column */
-		version <= 1 ? (void)++ptr : (void)get_uleb128(&ptr, end);
-		len = get_uleb128(&ptr, end);	/* augmentation length */
-		if (ptr + len < ptr || ptr + len > end)
-			return -1;
-		end = ptr + len;
-		while (*++aug) {
-			if (ptr >= end)
-				return -1;
-			switch (*aug) {
-			case 'L':
-				++ptr;
-				break;
-			case 'P':{
-					signed ptrType = *ptr++;
-
-					if (!read_pointer(&ptr, end, ptrType) || ptr > end)
-						return -1;
-				}
-				break;
-			case 'R':
-				return *ptr;
-			default:
-				return -1;
-			}
 		}
 	}
-	return DW_EH_PE_absptr;
+	*cieStart = ciePtr + augLen;
+
+	/* Read augmentation string to determine frame_call and ptrType. */
+	*call_frame = 1;
+	*ptrType = DW_EH_PE_absptr;
+	while (*aug) {
+		if (ciePtr > *cieStart) {
+			_stp_warn("Augmentation data runs past end\n");
+			return -1;
+		}
+		switch (*aug) {
+			case 'z':
+				break;
+			case 'L':
+				ciePtr++;
+				break;
+			case 'P': {
+				/* We are not actually interested in
+				   the value, so don't try to deref.
+				   Mask off DW_EH_PE_indirect. */
+				signed pType = *ciePtr++ & 0x7F;
+				if (!read_pointer(&ciePtr, *cieStart, pType)) {
+					_stp_warn("couldn't read personality routine handler\n");
+					return -1;
+				}
+				break;
+			}
+			case 'R':
+				*ptrType = *ciePtr++;
+				break;
+			case 'S':
+				*call_frame = 0;
+				break;
+			default:
+				_stp_warn("Unknown augmentation char '%c'\n", *(aug - 1));
+				return -1;
+		}
+		aug++;
+	}
+
+	if (ciePtr != *cieStart) {
+		_stp_warn("Bogus CIE augmentation data\n");
+		return -1;
+	}
+
+	/* Now we finally know the type encoding and whether or not the
+	   augmentation string starts with 'z' indicating the FDE might also
+	   have some augmentation data, so we can parse the FDE. */
+	*startLoc = read_pointer(&fdePtr, *fdeEnd, *ptrType);
+	*locRange = read_pointer(&fdePtr, *fdeEnd,
+				 *ptrType & (DW_EH_PE_FORM | DW_EH_PE_signed));
+	dbug_unwind(2, "startLoc: %lx, locrange: %lx\n",
+		    *startLoc, *locRange);
+
+	/* Skip FDE augmentation length (not interested in data). */
+	if (augLen != 0) {
+		augLen = get_uleb128(&fdePtr, *fdeEnd);
+		if (augLen > (const u8 *)fde - *fdeEnd
+		    || fdePtr + augLen > *fdeEnd) {
+			_stp_warn("Bogus FDE augmentation length\n");
+			return -1;
+		}
+	}
+	*fdeStart = fdePtr + augLen;
+
+	return 0;
 }
+
+#define REG_STATE state->reg[state->stackDepth]
 
 static int advance_loc(unsigned long delta, struct unwind_state *state)
 {
@@ -291,9 +370,9 @@ static int advance_loc(unsigned long delta, struct unwind_state *state)
 static void set_rule(uleb128_t reg, enum item_location where, uleb128_t value, struct unwind_state *state)
 {
 	dbug_unwind(1, "reg=%lx, where=%d, value=%lx\n", reg, where, value);
-	if (reg < ARRAY_SIZE(state->regs)) {
-		state->regs[reg].where = where;
-		state->regs[reg].value = value;
+	if (reg < ARRAY_SIZE(REG_STATE.regs)) {
+		REG_STATE.regs[reg].where = where;
+		REG_STATE.regs[reg].value = value;
 	}
 }
 
@@ -305,9 +384,9 @@ static void set_expr_rule(uleb128_t reg, enum item_location where,
 	uleb128_t len = get_uleb128(expr, end);
 	dbug_unwind(1, "reg=%lx, where=%d, expr=%lu@%p\n",
 		    reg, where, len, *expr);
-	if (end - *expr >= len && reg < ARRAY_SIZE(state->regs)) {
-		state->regs[reg].where = where;
-		state->regs[reg].expr = start;
+	if (end - *expr >= len && reg < ARRAY_SIZE(REG_STATE.regs)) {
+		REG_STATE.regs[reg].where = where;
+		REG_STATE.regs[reg].expr = start;
 		*expr += len;
 	}
 }
@@ -325,17 +404,12 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 	} ptr;
 	int result = 1;
 
-	if (end - start > MAX_CFI)
-	  return 0;
-
-	dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
-	if (start != state->cieStart) {
-		state->loc = state->org;
-		result = processCFI(state->cieStart, state->cieEnd, 0, ptrType, state);
-		if (targetLoc == 0 && state->label == NULL)
-			return result;
+	if (end - start > MAX_CFI) {
+		_stp_warn("Too many CFI instuctions\n");
+		return 0;
 	}
 
+	dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
 	for (ptr.p8 = start; result && ptr.p8 < end;) {
 		switch (*ptr.p8 >> 6) {
 			uleb128_t value;
@@ -351,15 +425,15 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				break;
 			case DW_CFA_advance_loc1:
 				result = ptr.p8 < end && advance_loc(*ptr.p8++, state);
-				dbug_unwind(1, "DW_CFA_advance_loc1 %d\n", result);
+				dbug_unwind(1, "DW_CFA_advance_loc1 (result=%d)\n", result);
 				break;
 			case DW_CFA_advance_loc2:
 				result = ptr.p8 <= end + 2 && advance_loc(*ptr.p16++, state);
-				dbug_unwind(1, "DW_CFA_advance_loc2 %d\n", result);
+				dbug_unwind(1, "DW_CFA_advance_loc2 (result=%d)\n", result);
 				break;
 			case DW_CFA_advance_loc4:
 				result = ptr.p8 <= end + 4 && advance_loc(*ptr.p32++, state);
-				dbug_unwind(1, "DW_CFA_advance_loc4 %d\n", result);
+				dbug_unwind(1, "DW_CFA_advance_loc4 (result=%d)\n", result);
 				break;
 			case DW_CFA_offset_extended:
 				value = get_uleb128(&ptr.p8, end);
@@ -385,7 +459,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 			case DW_CFA_undefined:
 			case DW_CFA_same_value:
 				set_rule(get_uleb128(&ptr.p8, end), Nowhere, 0, state);
-				dbug_unwind(1, "DW_CFA_undefined\n");
+				dbug_unwind(1, "DW_CFA_undefined (instruction: 0x%x)\n", *(ptr.p8 - 1));
 				break;
 			case DW_CFA_register:
 				value = get_uleb128(&ptr.p8, end);
@@ -404,58 +478,50 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				dbug_unwind(1, "DW_CFA_val_expression\n");
 				break;
 			case DW_CFA_remember_state:
-				dbug_unwind(1, "DW_CFA_remember_state\n");
-				if (ptr.p8 == state->label) {
-					state->label = NULL;
-					return 1;
-				}
-				if (state->stackDepth >= STP_MAX_STACK_DEPTH)
+				state->stackDepth++;
+				if (state->stackDepth >= STP_MAX_STACK_DEPTH) {
+					_stp_warn("Too many stacked DW_CFA_remember_state\n");
 					return 0;
-				state->stack[state->stackDepth++] = ptr.p8;
+				}
+				memcpy(&REG_STATE,
+				       &state->reg[state->stackDepth - 1],
+				       sizeof (REG_STATE));
+				dbug_unwind(1, "DW_CFA_remember_state (stackDepth=%d)\n", state->stackDepth);
 				break;
 			case DW_CFA_restore_state:
-				dbug_unwind(1, "DW_CFA_restore_state\n");
-				if (state->stackDepth) {
-					const uleb128_t loc = state->loc;
-					const u8 *label = state->label;
-
-					state->label = state->stack[state->stackDepth - 1];
-					state->cfa_is_expr = 0;
-					memcpy(&state->cfa, &badCFA, sizeof(state->cfa));
-					memset(state->regs, 0, sizeof(state->regs));
-					state->stackDepth = 0;
-					result = processCFI(start, end, 0, ptrType, state);
-					state->loc = loc;
-					state->label = label;
-				} else
+				if (state->stackDepth == 0) {
+					_stp_warn("Unbalanced DW_CFA_restore_state\n");
 					return 0;
+				}
+				state->stackDepth--;
+				dbug_unwind(1, "DW_CFA_restore_state (stackDepth=%d)\n", state->stackDepth);
 				break;
 			case DW_CFA_def_cfa:
-				state->cfa.reg = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "DW_CFA_def_cfa reg=%ld\n", state->cfa.reg);
+				REG_STATE.cfa.reg = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "DW_CFA_def_cfa reg=%ld\n", REG_STATE.cfa.reg);
 				/*nobreak */
 			case DW_CFA_def_cfa_offset:
-				state->cfa.offs = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "DW_CFA_def_cfa_offset offs=%lx\n", state->cfa.offs);
+				REG_STATE.cfa.offs = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "DW_CFA_def_cfa_offset offs=%lx\n", REG_STATE.cfa.offs);
 				break;
 			case DW_CFA_def_cfa_sf:
-				state->cfa.reg = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "DW_CFA_def_cfa_sf reg=%ld\n", state->cfa.reg);
+				REG_STATE.cfa.reg = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "DW_CFA_def_cfa_sf reg=%ld\n", REG_STATE.cfa.reg);
 				/*nobreak */
 			case DW_CFA_def_cfa_offset_sf:
-				state->cfa.offs = get_sleb128(&ptr.p8, end) * state->dataAlign;
-				dbug_unwind(1, "DW_CFA_def_cfa_offset_sf offs=%lx\n", state->cfa.offs);
+				REG_STATE.cfa.offs = get_sleb128(&ptr.p8, end) * state->dataAlign;
+				dbug_unwind(1, "DW_CFA_def_cfa_offset_sf offs=%lx\n", REG_STATE.cfa.offs);
 				break;
 			case DW_CFA_def_cfa_register:
-				state->cfa.reg = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "DW_CFA_def_cfa_register reg=%ld\n", state->cfa.reg);
+				REG_STATE.cfa.reg = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "DW_CFA_def_cfa_register reg=%ld\n", REG_STATE.cfa.reg);
 				break;
 			case DW_CFA_def_cfa_expression: {
 				const u8 *cfa_expr = ptr.p8;
 				value = get_uleb128(&ptr.p8, end);
 				if (ptr.p8 < end && end - ptr.p8 >= value) {
-					state->cfa_is_expr = 1;
-					state->cfa_expr = cfa_expr;
+					REG_STATE.cfa_is_expr = 1;
+					REG_STATE.cfa_expr = cfa_expr;
 					ptr.p8 += value;
 					dbug_unwind(1, "DW_CFA_def_cfa_expression %lu@%p\n", value, cfa_expr);
 				}
@@ -481,16 +547,16 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 			break;
 		case 1:
 			result = advance_loc(*ptr.p8++ & 0x3f, state);
-			dbug_unwind(1, "case 1\n");
+			dbug_unwind(1, "DW_CFA_advance_loc\n");
 			break;
 		case 2:
 			value = *ptr.p8++ & 0x3f;
 			set_rule(value, Memory, get_uleb128(&ptr.p8, end), state);
-			dbug_unwind(1, "case 2\n");
+			dbug_unwind(1, "DW_CFA_offset\n");
 			break;
 		case 3:
 			set_rule(*ptr.p8++ & 0x3f, Nowhere, 0, state);
-			dbug_unwind(1, "case 3\n");
+			dbug_unwind(1, "DW_CFA_restore\n");
 			break;
 		}
 		dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
@@ -499,7 +565,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 		if (result && targetLoc != 0 && targetLoc < state->loc)
 			return 1;
 	}
-	return result && ptr.p8 == end && (targetLoc == 0 || state->label == NULL);
+	return result && ptr.p8 == end;
 }
 
 #ifdef DEBUG_UNWIND
@@ -600,15 +666,18 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 				   int is_ehframe)
 {
 	const u8 *ptr, *end, *hdr = is_ehframe ? m->unwind_hdr: s->debug_hdr;
+	uint32_t hdr_len = is_ehframe ? m->unwind_hdr_len : s->debug_hdr_len;
 	unsigned long startLoc;
 	u32 *fde = NULL;
 	unsigned num, tableSize, t2;
 	unsigned long eh_hdr_addr = m->unwind_hdr_addr;
 
-	if (hdr == NULL || hdr[0] != 1)
+	if (hdr == NULL || hdr_len < 4 || hdr[0] != 1) {
+		_stp_warn("no or bad debug frame hdr\n");
 		return NULL;
+	}
 
-	dbug_unwind(1, "search for %lx", pc);
+	dbug_unwind(1, "binary search for %lx", pc);
 
 	/* table_enc */
 	switch (hdr[3] & DW_EH_PE_FORM) {
@@ -629,7 +698,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 		return NULL;
 	}
 	ptr = hdr + 4;
-	end = hdr + (is_ehframe ? m->unwind_hdr_len : s->debug_hdr_len);
+	end = hdr + hdr_len;
 	{
 		// XXX Can the header validity be checked just once?
 		unsigned long eh = read_ptr_sect(&ptr, end, hdr[1], 0,
@@ -947,7 +1016,7 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 	return 0;
 
 copy_failed:
-	_stp_warn("_stp_read_address failed to access memory\n");
+	_stp_warn("_stp_read_address failed to access memory for deref\n");
 	return 1;
 truncated:
 	_stp_warn("invalid (truncated) DWARF expression in CFI\n");
@@ -976,12 +1045,15 @@ static int unwind_frame(struct unwind_context *context,
 			void *table, uint32_t table_len, int is_ehframe)
 {
 	const u32 *fde = NULL, *cie = NULL;
-	const u8 *ptr = NULL, *end = NULL;
+	/* The start and end of the CIE CFI instructions. */
+	const u8 *cieStart = NULL, *cieEnd = NULL;
+	/* The start and end of the FDE CFI instructions. */
+	const u8 *fdeStart = NULL, *fdeEnd = NULL;
 	struct unwind_frame_info *frame = &context->info;
 	unsigned long pc = UNW_PC(frame) - frame->call_frame;
-	unsigned long tableSize, startLoc = 0, endLoc = 0, cfa;
+	unsigned long startLoc = 0, endLoc = 0, locRange = 0, cfa;
 	unsigned i;
-	signed ptrType = -1;
+	signed ptrType = -1, call_frame = 1;
 	uleb128_t retAddrReg = 0;
 	struct unwind_state *state = &context->state;
 	unsigned long addr;
@@ -997,55 +1069,68 @@ static int unwind_frame(struct unwind_context *context,
 		goto err;
 	}
 
+	memset(state, 0, sizeof(*state));
+
 	fde = _stp_search_unwind_hdr(pc, tsk, m, s, is_ehframe);
 	dbug_unwind(1, "%s: fde=%lx\n", m->name, (unsigned long) fde);
 
 	/* found the fde, now set startLoc and endLoc */
-	if (fde != NULL) {
+	if (fde != NULL && is_fde(fde, table, table_len, is_ehframe)) {
 		cie = cie_for_fde(fde, table, table_len, is_ehframe);
 		dbug_unwind(1, "%s: cie=%lx\n", m->name, (unsigned long) cie);
-		if (likely(cie != NULL && cie != &bad_cie && cie != &not_fde)) {
-			ptr = (const u8 *)(fde + 2);
-			ptrType = fde_pointer_type(cie, table, table_len);
-			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
+		if (likely(cie != NULL)) {
+			if (parse_fde_cie(fde, cie, table, table_len, &ptrType,
+					  &startLoc, &locRange,
+					  &fdeStart, &fdeEnd,
+					  &cieStart, &cieEnd,
+					  &state->codeAlign,
+					  &state->dataAlign,
+					  &retAddrReg,
+					  &call_frame) < 0)
+				goto err;
 			startLoc = adjustStartLoc(startLoc, tsk, m, s, ptrType, is_ehframe);
-
-			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
-			if (!(ptrType & DW_EH_PE_indirect))
-				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
-			endLoc = startLoc + read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
+			endLoc = startLoc + locRange;
+			dbug_unwind(1, "startLoc: %lx, endLoc: %lx\n", startLoc, endLoc);
 			if (pc > endLoc) {
                                 dbug_unwind(1, "pc (%lx) > endLoc(%lx)\n", pc, endLoc);
 				goto done;
 			}
 		} else {
-			dbug_unwind(1, "fde found in header, but cie is bad!\n");
+			_stp_warn("fde found in header, but cie is bad!\n");
 			fde = NULL;
 		}
-	}
-
-	/* did not a good fde find with binary search, so do slow linear search */
-	if (fde == NULL) {
+	} else if ((is_ehframe ? m->unwind_hdr: s->debug_hdr) == NULL) {
+	    /* Only do a linear search if there isn't a search header.
+	       There always should be one, we create it in the translator
+	       if it didn't exist. These should never be missing except
+	       when there are toolchain bugs. */
+	    unsigned long tableSize;
+	    _stp_warn("No binary search table for debug frame, doing slow linear search for %s\n", m->name);
 	    for (fde = table, tableSize = table_len; cie = NULL, tableSize > sizeof(*fde)
 		 && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
 			dbug_unwind(3, "fde=%lx tableSize=%d\n", (long)*fde, (int)tableSize);
-			cie = cie_for_fde(fde, table, table_len, is_ehframe);
-			if (cie == &bad_cie) {
-				cie = NULL;
-				break;
-			}
-			if (cie == NULL || cie == &not_fde || (ptrType = fde_pointer_type(cie, table, table_len)) < 0)
+			if (!is_fde(fde, table, table_len, is_ehframe))
 				continue;
-
-			ptr = (const u8 *)(fde + 2);
-			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
+			cie = cie_for_fde(fde, table, table_len, is_ehframe);
+			if (cie == NULL
+			    || parse_fde_cie(fde, cie, table, table_len,
+					     &ptrType,
+					     &startLoc, &locRange,
+					     &fdeStart, &fdeEnd,
+					     &cieStart, &cieEnd,
+					     &state->codeAlign,
+					     &state->dataAlign,
+					     &retAddrReg,
+					     &call_frame) < 0)
+				break;
 			startLoc = adjustStartLoc(startLoc, tsk, m, s, ptrType, is_ehframe);
-			dbug_unwind(2, "startLoc=%lx, ptrType=%s\n", startLoc, _stp_eh_enc_name(ptrType));
 			if (!startLoc)
 				continue;
-			if (!(ptrType & DW_EH_PE_indirect))
-				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
-			endLoc = startLoc + read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
+			endLoc = startLoc + locRange;
+			if (pc > endLoc) {
+                                dbug_unwind(1, "pc (%lx) > endLoc(%lx)\n", pc, endLoc);
+				goto done;
+			}
 			dbug_unwind(3, "endLoc=%lx\n", endLoc);
 			if (pc >= startLoc && pc < endLoc)
 				break;
@@ -1059,106 +1144,47 @@ static int unwind_frame(struct unwind_context *context,
 
 	/* found the CIE and FDE */
 
-	memset(state, 0, sizeof(*state));
-	state->cieEnd = ptr;	/* keep here temporarily */
-	ptr = (const u8 *)(cie + 2);
-	end = (const u8 *)(cie + 1) + *cie;
-
-	/* end should fall within unwind table. */
-	if (((void *)end) < table
-	    || ((void *)end) > ((void *)(table + table_len)))
-	  goto err;
-
-	frame->call_frame = 1;
-	state->version = *ptr;
-	if (state->version != 1 && state->version != 3 && state->version != 4) {
-		_stp_warn("CIE version number is %d.  1, 3 or 4 is supported.\n", state->version);
-		goto err;	/* unsupported version */
-	}
-	if (*++ptr) {
-		/* check if augmentation size is first (and thus present) */
-		if (*ptr == 'z') {
-			while (++ptr < end && *ptr) {
-				switch (*ptr) {
-					/* check for ignorable (or already handled)
-					 * nul-terminated augmentation string */
-				case 'L':
-				case 'P':
-				case 'R':
-					continue;
-				case 'S':
-					dbug_unwind(1, "This is a signal frame\n");
-					frame->call_frame = 0;
-					continue;
-				default:
-					break;
-				}
-				break;
-			}
-		}
-		if (ptr >= end || *ptr) {
-			_stp_warn("Problem parsing the augmentation string.\n");
-			goto err;
-		}
-	}
-	++ptr;
-
-	/* get code aligment factor */
-	state->codeAlign = get_uleb128(&ptr, end);
-	/* get data aligment factor */
-	state->dataAlign = get_sleb128(&ptr, end);
-	if (state->codeAlign == 0 || state->dataAlign == 0 || ptr >= end)
-		goto err;;
-
-	retAddrReg = state->version <= 1 ? *ptr++ : get_uleb128(&ptr, end);
-
-	/* skip augmentation */
-	if (((const char *)(cie + 2))[1] == 'z') {
-		uleb128_t augSize = get_uleb128(&ptr, end);
-		ptr += augSize;
-	}
-	if (ptr > end || retAddrReg >= ARRAY_SIZE(reg_info)
+	// Sanity check return address register value.
+	if (retAddrReg >= ARRAY_SIZE(reg_info)
 	    || REG_INVALID(retAddrReg)
-	    || reg_info[retAddrReg].width != sizeof(unsigned long))
+	    || reg_info[retAddrReg].width != sizeof(unsigned long)) {
+		_stp_warn("Bad retAddrReg value\n");
+		goto err;
+	}
+
+	frame->call_frame = call_frame;
+	state->stackDepth = 0;
+	state->loc = startLoc;
+	memcpy(&REG_STATE.cfa, &badCFA, sizeof(REG_STATE.cfa));
+
+	/* Common Information Entry (CIE) instructions. */
+	dbug_unwind (1, "processCFI for CIE\n");
+	if (!processCFI(cieStart, cieEnd, 0, ptrType, state))
 		goto err;
 
-	state->cieStart = ptr;
-	ptr = state->cieEnd;
-	state->cieEnd = end;
-	end = (const u8 *)(fde + 1) + *fde;
-
-	/* end should fall within unwind table. */
-	if (((void*)end) < table
-	    || ((void *)end) > ((void *)(table + table_len)))
-	  goto err;
-
-	/* skip augmentation */
-	if (((const char *)(cie + 2))[1] == 'z') {
-		uleb128_t augSize = get_uleb128(&ptr, end);
-		if ((ptr += augSize) > end)
-			goto err;
-	}
-
-	state->org = startLoc;
-	memcpy(&state->cfa, &badCFA, sizeof(state->cfa));
-	/* process instructions */
-	if (!processCFI(ptr, end, pc, ptrType, state)
-	    || state->loc > endLoc || state->regs[retAddrReg].where == Nowhere || state->cfa.reg >= ARRAY_SIZE(reg_info)
-	    || reg_info[state->cfa.reg].width != sizeof(unsigned long)
-	    || state->cfa.offs % sizeof(unsigned long))
+	/* Process Frame Description Entry (FDE) instructions. */
+	dbug_unwind (1, "processCFI for FDE\n");
+	if (!processCFI(fdeStart, fdeEnd, pc, ptrType, state)
+	    || state->loc > endLoc || REG_STATE.regs[retAddrReg].where == Nowhere
+	    || REG_STATE.cfa.reg >= ARRAY_SIZE(reg_info)
+	    || reg_info[REG_STATE.cfa.reg].width != sizeof(unsigned long)
+	    || REG_STATE.cfa.offs % sizeof(unsigned long))
 		goto err;
 
 	/* update frame */
 #ifndef CONFIG_AS_CFI_SIGNAL_FRAME
-	if (frame->call_frame && !UNW_DEFAULT_RA(state->regs[retAddrReg], state->dataAlign))
+	if (frame->call_frame && !UNW_DEFAULT_RA(REG_STATE.regs[retAddrReg], state->dataAlign))
 		frame->call_frame = 0;
 #endif
-	if (state->cfa_is_expr) {
-		if (compute_expr(state->cfa_expr, frame, &cfa))
+	if (REG_STATE.cfa_is_expr) {
+		if (compute_expr(REG_STATE.cfa_expr, frame, &cfa))
 			goto err;
 	}
-	else
-		cfa = FRAME_REG(state->cfa.reg, unsigned long) + state->cfa.offs;
+	else {
+		dbug_unwind(1, "cfa reg=%ld, offs=%lx\n",
+			    REG_STATE.cfa.reg,  REG_STATE.cfa.offs);
+		cfa = FRAME_REG(REG_STATE.cfa.reg, unsigned long) + REG_STATE.cfa.offs;
+	}
 	startLoc = min((unsigned long)UNW_SP(frame), cfa);
 	endLoc = max((unsigned long)UNW_SP(frame), cfa);
 	dbug_unwind(1, "cfa=%lx startLoc=%lx, endLoc=%lx\n", cfa, startLoc, endLoc);
@@ -1169,28 +1195,28 @@ static int unwind_frame(struct unwind_context *context,
                             (unsigned long)startLoc, (unsigned long)endLoc);
 	}
 	dbug_unwind(1, "cie=%lx fde=%lx\n", (unsigned long) cie, (unsigned long) fde);
-	for (i = 0; i < ARRAY_SIZE(state->regs); ++i) {
+	for (i = 0; i < ARRAY_SIZE(REG_STATE.regs); ++i) {
 		if (REG_INVALID(i)) {
-			if (state->regs[i].where == Nowhere)
+			if (REG_STATE.regs[i].where == Nowhere)
 				continue;
 			_stp_warn("REG_INVALID %d\n", i);
 			goto err;
 		}
-		dbug_unwind(2, "register %d. where=%d\n", i, state->regs[i].where);
-		switch (state->regs[i].where) {
+		dbug_unwind(2, "register %d. where=%d\n", i, REG_STATE.regs[i].where);
+		switch (REG_STATE.regs[i].where) {
 		default:
 			break;
 		case Register:
-			if (state->regs[i].value >= ARRAY_SIZE(reg_info)
-			    || REG_INVALID(state->regs[i].value)
-			    || reg_info[i].width > reg_info[state->regs[i].value].width) {
+			if (REG_STATE.regs[i].value >= ARRAY_SIZE(reg_info)
+			    || REG_INVALID(REG_STATE.regs[i].value)
+			    || reg_info[i].width > reg_info[REG_STATE.regs[i].value].width) {
 				_stp_warn("case Register bad\n");
 				goto err;
 			}
-			switch (reg_info[state->regs[i].value].width) {
+			switch (reg_info[REG_STATE.regs[i].value].width) {
 #define CASE(n) \
 			case sizeof(u##n): \
-				state->regs[i].value = FRAME_REG(state->regs[i].value, \
+				REG_STATE.regs[i].value = FRAME_REG(REG_STATE.regs[i].value, \
 				                                const u##n); \
 				break
 				CASES;
@@ -1202,12 +1228,12 @@ static int unwind_frame(struct unwind_context *context,
 			break;
 		}
 	}
-	for (i = 0; i < ARRAY_SIZE(state->regs); ++i) {
+	for (i = 0; i < ARRAY_SIZE(REG_STATE.regs); ++i) {
 		dbug_unwind(2, "register %d. invalid=%d\n", i, REG_INVALID(i));
 		if (REG_INVALID(i))
 			continue;
-		dbug_unwind(2, "register %d. where=%d\n", i, state->regs[i].where);
-		switch (state->regs[i].where) {
+		dbug_unwind(2, "register %d. where=%d\n", i, REG_STATE.regs[i].where);
+		switch (REG_STATE.regs[i].where) {
 		case Nowhere:
 			if (reg_info[i].width != sizeof(UNW_SP(frame))
 			    || &FRAME_REG(i, __typeof__(UNW_SP(frame)))
@@ -1218,7 +1244,7 @@ static int unwind_frame(struct unwind_context *context,
 		case Register:
 			switch (reg_info[i].width) {
 #define CASE(n) case sizeof(u##n): \
-				FRAME_REG(i, u##n) = state->regs[i].value; \
+				FRAME_REG(i, u##n) = REG_STATE.regs[i].value; \
 				break
 				CASES;
 #undef CASE
@@ -1228,15 +1254,15 @@ static int unwind_frame(struct unwind_context *context,
 			}
 			break;
 		case Expr:
-			if (compute_expr(state->regs[i].expr, frame, &addr))
+			if (compute_expr(REG_STATE.regs[i].expr, frame, &addr))
 				goto err;
 			goto memory;
 		case ValExpr:
-			if (compute_expr(state->regs[i].expr, frame, &addr))
+			if (compute_expr(REG_STATE.regs[i].expr, frame, &addr))
 				goto err;
 			goto value;
 		case Value:
-			addr = cfa + state->regs[i].value * state->dataAlign;
+			addr = cfa + REG_STATE.regs[i].value * state->dataAlign;
 		value:
 			if (reg_info[i].width != sizeof(unsigned long)) {
 				_stp_warn("bad Register width\n");
@@ -1245,7 +1271,7 @@ static int unwind_frame(struct unwind_context *context,
 			FRAME_REG(i, unsigned long) = addr;
 			break;
 		case Memory:
-			addr = cfa + state->regs[i].value * state->dataAlign;
+			addr = cfa + REG_STATE.regs[i].value * state->dataAlign;
 		memory:
 			dbug_unwind(2, "addr=%lx width=%d\n", addr, reg_info[i].width);
 			switch (reg_info[i].width) {
@@ -1267,7 +1293,7 @@ static int unwind_frame(struct unwind_context *context,
 	return 0;
 
 copy_failed:
-	_stp_warn("_stp_read_address failed to access memory\n");
+	_stp_warn("_stp_read_address failed to access memory location\n");
 err:
 	return -EIO;
 
@@ -1303,11 +1329,12 @@ static int unwind(struct unwind_context *context,
 	  }
 	else
           {
-            preempt_disable(); /* probably redundant */
             m = _stp_kmod_sec_lookup (pc, &s);
             if (!m) {
 #ifdef STAPCONF_MODULE_TEXT_ADDRESS
-                struct module *ko = __module_text_address (pc);
+                struct module *ko;
+                preempt_disable();
+                ko = __module_text_address (pc);
                 if (ko) { module_name = ko->name; }
                 else { 
                   /* Possible heuristic: we could assume we're talking
@@ -1315,9 +1342,9 @@ static int unwind(struct unwind_context *context,
                      were SYMBOL_EXPORT'd, we could call that and be
                      more sure. */
                 } 
+                preempt_enable_no_resched();
 #endif
             }
-            preempt_enable_no_resched();
           }
 
 	if (unlikely(m == NULL)) {
@@ -1346,9 +1373,3 @@ static int unwind(struct unwind_context *context,
 
 	return res;
 }
-
-#else
-
-struct unwind_context { };
-
-#endif /* STP_USE_DWARF_UNWINDER */

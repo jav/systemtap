@@ -1,0 +1,6 @@
+#! /usr/bin/env stap
+probe kernel.data(@1).rw
+{
+  printf("%s value is accessed\n", @1);
+  print_backtrace();
+}

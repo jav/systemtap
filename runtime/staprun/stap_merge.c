@@ -38,7 +38,8 @@ int main (int argc, char *argv[])
 	char *buf, *outfile_name = NULL;
 	int c, i, j, rc, dropped=0;
 	long count=0, min, num[NR_CPUS];
-	FILE *ofp, *fp[NR_CPUS];
+	FILE *ofp = NULL;
+	FILE *fp[NR_CPUS] = { 0 };
 	int ncpus, len, verbose = 0;
 	int bufsize = 65536;
 

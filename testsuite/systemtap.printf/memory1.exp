@@ -1,3 +1,6 @@
 set test "memory1"
 set ::result_string {Test passed}
-stap_run2 $srcdir/$subdir/$test.stp
+
+# make sure we run some dummy workload, so the script doesn't block
+# forever waiting for an open syscall
+stap_run2 $srcdir/$subdir/$test.stp -w -c "/bin/sh < /dev/null"

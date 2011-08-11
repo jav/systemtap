@@ -31,7 +31,7 @@ function _arch_ptrace_argstr(request, pid, addr, data)
 		return sprintf ("PTRACE_PROT, %d, addr=%p, data=%p", pid, addr, data)
 }
 
-function _ptrace_return_arch_prctl_addr(request, addr, data)
+function _ptrace_return_arch_prctl_addr:long(request:long, addr:long, data:long)
 {
 	return 0
 }

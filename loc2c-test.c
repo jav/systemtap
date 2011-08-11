@@ -15,19 +15,12 @@
 #include <locale.h>
 #include <argp.h>
 #include <elfutils/libdwfl.h>
-#ifdef HAVE_ELFUTILS_VERSION_H
 #include <elfutils/version.h>
-#endif
 #include <dwarf.h>
 #include <obstack.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include "loc2c.h"
-
-#if !defined(_ELFUTILS_PREREQ)
-// make a dummy PREREQ check for elfutils < 0.138
-#define _ELFUTILS_PREREQ(major, minor) (0 >= 1)
-#endif
 
 #define _(msg) msg
 
@@ -177,22 +170,10 @@ handle_fields (struct obstack *pool,
 	    }
 	  else
 	    {
-	      /* We expect a block or a constant.  In older elfutils,
-		 dwarf_getlocation_addr would not handle the constant for
-		 us, but newer ones do.  For older ones, we work around
-		 it by faking an expression, which is what newer ones do.  */
-	      size_t locexpr_len;
+	      /* We expect a block or a constant.  */
+	      size_t locexpr_len = 0;
 	      const Dwarf_Op *locexpr;
-#if !_ELFUTILS_PREREQ (0,142)
-	      Dwarf_Op offset_loc = { .atom = DW_OP_plus_uconst };
-	      if (dwarf_formudata (&attr_mem, &offset_loc.number) == 0)
-		{
-		  locexpr = &offset_loc;
-		  locexpr_len = 1;
-		}
-	      else
-#endif
-		locexpr = get_location (cubias, pc, &attr_mem, &locexpr_len);
+	      locexpr = get_location (cubias, pc, &attr_mem, &locexpr_len);
 	      c_translate_location (pool, NULL, NULL, NULL,
 				    1, cubias, pc, &attr_mem,
 				    locexpr, locexpr_len,
@@ -355,7 +336,7 @@ handle_variable (Dwarf_Die *lscopes, int lnscopes, int out,
 	error (2, 0, _("cannot get location of variable: %s"),
 	       dwarf_errmsg (-1));
 
-      size_t locexpr_len;
+      size_t locexpr_len = 0;
       const Dwarf_Op *locexpr = get_location (cubias, pc,
 					      &attr_mem, &locexpr_len);
 
@@ -609,7 +590,6 @@ In the third form, the access is a store rather than a fetch."
 	{
 	  Dwarf_Op *cfa_ops = NULL;
 
-#if _ELFUTILS_PREREQ(0,142)
 	  size_t cfa_nops;
 	  Dwarf_Addr bias;
 	  Dwfl_Module *module = dwfl_addrmodule (dwfl, pc);
@@ -634,7 +614,6 @@ In the third form, the access is a store rather than a fetch."
 		    }
 		}
 	    }
-#endif
 
 	  handle_variable (scopes, n, out, cubias, &vardie, pc, cfa_ops,
 			   &argv[argi]);

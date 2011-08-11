@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2010 Red Hat Inc.
+// Copyright (C) 2010-2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -8,12 +8,15 @@
 #ifndef CSCLIENT_H
 #define CSCLIENT_H
 
+#if HAVE_NSS
+#include "cscommon.h"
+
 struct compile_server_info;
 
 class compile_server_client
 {
 public:
-  compile_server_client (systemtap_session &s) : s(s) {}
+  compile_server_client (systemtap_session &s) : s(s), server_version() {}
   int passes_0_4 ();
 
 private:
@@ -28,16 +31,19 @@ private:
   // Client/server utility methods.
   int include_file_or_directory (
     const std::string &subdir,
-    const std::string &path,
-    const char *option = 0
+    const std::string &path
   );
   int add_package_args ();
   int add_package_arg (const std::string &arg);
   int compile_using_server (const std::vector<compile_server_info> &servers);
+  int add_localization_variables();
 
   int read_from_file (const std::string &fname, int &data);
-  int write_to_file (const std::string &fname, const std::string &data);
+  template <class T>
+  int write_to_file (const std::string &fname, const T &data);
   int flush_to_stream (const std::string &fname, std::ostream &o);
+
+  void show_server_compatibility () const;
 
   systemtap_session &s;
   std::vector<std::string> private_ssl_dbs;
@@ -47,7 +53,9 @@ private:
   std::string server_tmpdir;
   std::string server_zipfile;
   unsigned argc;
+  cs_protocol_version server_version;
 };
+#endif // HAVE_NSS
 
 // Utility functions
 void query_server_status (systemtap_session &s);

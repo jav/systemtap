@@ -16,6 +16,7 @@
 import os
 import posix
 import sys
+import shlex
 from subprocess import call
 from tempfile import mkstemp
 
@@ -61,8 +62,13 @@ class _provider(object):
         self.semaphores_def += '#define %s_%s_semaphore %s_semaphore\n' % \
             (self.provider,this_probe,this_probe)
         self.semaphores_def += '#endif\n'
+        self.semaphores_def += '#if defined STAP_SDT_V1 || defined STAP_SDT_V2 \n'
+        self.semaphores_def += "__extension__ unsigned short %s_%s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\")));\n" % \
+            (self.provider,this_probe)
+        self.semaphores_def += '#else\n'
         self.semaphores_def += "__extension__ unsigned short %s_%s_semaphore __attribute__ ((unused)) __attribute__ ((section (\".probes\"))) __attribute__ ((visibility (\"hidden\")));\n" % \
             (self.provider,this_probe)
+        self.semaphores_def += '#endif\n'
 
     def semaphore_def_write(self, file):
         file.write(self.semaphores_def)
@@ -183,7 +189,7 @@ def help ():
 def main():
     if (len(sys.argv) < 2):
         usage()
-        sys.exit(1)
+        return 1
 
     i = 1
     build_header = False
@@ -191,7 +197,7 @@ def main():
     add_typedefs = False
     keep_temps = False
     use_cpp = False
-    h_ext = '.h'
+    suffix = ""
     filename = ""
     s_filename = ""
     includes = []
@@ -209,10 +215,12 @@ def main():
             defines.append(sys.argv[i])
         elif (sys.argv[i] == "-h"):
             build_header = True
+            suffix = ".h"
         elif (sys.argv[i].startswith("-I")):
             includes.append(sys.argv[i])
         elif (sys.argv[i] == "-G"):
             build_source = True
+            suffix = ".o"
         elif (sys.argv[i] == "-k"):
             keep_temps = True
         elif (sys.argv[i] == "--types"):
@@ -222,17 +230,16 @@ def main():
         i += 1
     if (build_header == False and build_source == False):
         usage()
-        sys.exit(1)
+        return 1
 
     if (s_filename != "" and use_cpp):
         (d,fn) = mkstemp(suffix=".d")
         CPP = os.environ.get("CPP", "cpp")
-        args = [CPP] + includes + defines + [s_filename, fn]
-        retcode = call(args)
+        retcode = call(shlex.split(CPP) + includes + defines + [s_filename, fn])
         if (retcode != 0):
             print "\"cpp includes s_filename\" failed"
             usage()
-            sys.exit(1)
+            return 1
         s_filename = fn
     if (filename == ""):
         if (s_filename != ""):
@@ -240,15 +247,12 @@ def main():
             filename = os.path.basename(filename)
         else:
             usage()
-            sys.exit(1)
+            return 1
     else:
-        if (build_header):
-            h_ext = ""
-        else:
-            (filename,ext) = os.path.splitext(filename)
+        suffix = ""
     if (build_header):
         providers = _provider()
-        providers.generate(s_filename, filename + h_ext, add_typedefs)
+        providers.generate(s_filename, filename + suffix, add_typedefs)
     elif (build_source):
         (basename,ext) = os.path.splitext(s_filename)
 
@@ -269,9 +273,13 @@ def main():
         f.close()
         CC = os.environ.get("CC", "gcc")
         CFLAGS = "-g " + os.environ.get("CFLAGS", "")
-        call([CC, "-fPIC"] + defines + includes + CFLAGS.split() +
-             ["-I.", "-I@prefix@/include", "-c", fn, "-o",
-              filename + ".o"], shell=False)
+        retcode = call(shlex.split(CC) + defines + includes + shlex.split(CFLAGS) +
+             ["-fPIC", "-I.", "-I@prefix@/include", "-c", fn, "-o",
+              filename + suffix], shell=False)
+        if (retcode != 0):
+            print "\"gcc " + fn + "\" failed"
+            usage()
+            return 1
         if (not keep_temps):
             os.remove(fn)
         else:
@@ -281,7 +289,8 @@ def main():
                 os.remove(s_filename)
             else:
                 print "cpp: " + s_filename
+    return 0
 
 if __name__ == "__main__":
     _ = init_gettext()
-    main()
+    sys.exit(main())

@@ -24,6 +24,7 @@ int target_pid;
 unsigned int buffer_size;
 char *target_cmd;
 char *outfile_name;
+int rename_mod;
 int attach_mod;
 int delete_mod;
 int load_only;
@@ -32,7 +33,6 @@ const char *uprobes_path = NULL;
 int daemon_mode;
 off_t fsize_max;
 int fnum_max;
-int unprivileged_user = 0;
 
 /* module variables */
 char *modname = NULL;
@@ -113,6 +113,7 @@ void parse_args(int argc, char **argv)
 	buffer_size = 0;
 	target_cmd = NULL;
 	outfile_name = NULL;
+	rename_mod = 0;
 	attach_mod = 0;
 	delete_mod = 0;
 	load_only = 0;
@@ -121,7 +122,7 @@ void parse_args(int argc, char **argv)
 	fsize_max = 0;
 	fnum_max = 0;
 
-	while ((c = getopt(argc, argv, "ALu::vb:t:dc:o:x:S:Dw")) != EOF) {
+	while ((c = getopt(argc, argv, "ALu::vb:t:dc:o:x:S:DwR")) != EOF) {
 		switch (c) {
 		case 'u':
 			need_uprobes = 1;
@@ -154,6 +155,9 @@ void parse_args(int argc, char **argv)
 			break;
 		case 'o':
 			outfile_name = optarg;
+			break;
+		case 'R':
+			rename_mod = 1;
 			break;
 		case 'A':
 			attach_mod = 1;
@@ -267,6 +271,13 @@ void usage(char *prog)
 	"-d              Delete a module.  Only detached or unused modules\n"
 	"                the user has permission to access will be deleted. Use \"*\"\n"
 	"                (quoted) to delete all unused modules.\n"
+#ifdef HAVE_ELF_GETSHDRSTRNDX
+        "-R              Have staprun create a new name for the module before\n"
+        "                inserting it. This allows the same module to be inserted\n"
+        "                more than once.\n"
+#else
+        "-R              (Module renaming is not available in this configuration.)\n"
+#endif
 	"-D              Run in background. This requires '-o' option.\n"
 	"-S size[,N]     Switches output file to next file when the size\n"
 	"                of file reaches the specified size. The value\n"

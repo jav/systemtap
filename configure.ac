@@ -1,7 +1,7 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap], 1.6, systemtap@sourceware.org, systemtap)
+AC_INIT([systemtap], 1.7, systemtap@sourceware.org, systemtap)
 dnl                  ^^^ see also NEWS, systemtap.spec, testsuite/configure.ac,
 dnl                      runtime/staprun/configure.ac
 
@@ -70,7 +70,7 @@ AS_IF([test "x$enable_ssp" != xno],[
    save_CXXFLAGS="$CXXFLAGS"
    CXXFLAGS="$CXXFLAGS -Werror -fstack-protector-all -D_FORTIFY_SOURCE=2"
    CFLAGS="$CFLAGS -Werror -fstack-protector-all -D_FORTIFY_SOURCE=2"
-   AC_COMPILE_IFELSE([int something ();], [
+   AC_COMPILE_IFELSE([AC_LANG_SOURCE([int something ();])], [
        AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])
 	CFLAGS="$save_CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
 	CXXFLAGS="$save_CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"],[
@@ -102,7 +102,7 @@ AS_IF([test "x$enable_pie" == xyes],[
    CFLAGS="$CFLAGS -fPIE"
    CXXFLAGS="$CXXFLAGS -fPIE"
    LDFLAGS="$LDFLAGS -pie -Wl,-z,relro -Wl,-z,now"
-   AC_LINK_IFELSE([void main () {}], [
+   AC_LINK_IFELSE([AC_LANG_SOURCE([void main () {}])], [
        AC_MSG_NOTICE([Compiling with gcc pie et al.])
           # LDFLAGS is special since it may be passed down to bundled-elfutils,
           # and interfere with the .so's built therein
@@ -463,8 +463,8 @@ if test $enable_translator = yes; then
     AC_CHECK_LIB(dw, dwfl_module_getsym,[],[
       AC_MSG_ERROR([missing elfutils development headers/libraries (install elfutils-devel, libebl-dev, libdw-dev and/or libebl-devel)])],
       [-Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf])
-    AC_CHECK_LIB(dw, dwarf_getelf,[],[
-      AC_MSG_ERROR([elfutils, libdw too old, need 0.126+])],
+    AC_CHECK_LIB(dw, dwarf_getcfi_elf,[],[
+      AC_MSG_ERROR([elfutils, libdw too old, need 0.142+])],
       [-Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf])
     stap_LIBS="$stap_LIBS -Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf"
     LIBS="$save_LIBS"
@@ -498,7 +498,7 @@ AC_LANG_POP(C++)
 AC_CACHE_CHECK([for assembler .section "?" flags support], stap_cv_sectionq, [
 old_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -Wa,--fatal-warnings"
-AC_COMPILE_IFELSE([asm(".section .note.foo,\"?\",\"note\"\n"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([asm(".section .note.foo,\"?\",\"note\"\n"
 		       ".byte 1, 2, 3\n"
 		       ".previous\n"
 		       ".section .text,\"axG\",\"progbits\",foogroup,comdat\n"
@@ -506,7 +506,7 @@ AC_COMPILE_IFELSE([asm(".section .note.foo,\"?\",\"note\"\n"
 		       ".pushsection .note.foo,\"?\",\"note\"\n"
 		       ".byte 4, 5, 6\n"
 		       ".popsection\n"
-		       ".byte 2\n");],
+		       ".byte 2\n");])],
 		  stap_cv_sectionq=yes, stap_cv_sectionq=no)
 CFLAGS="$old_CFLAGS"])
 AC_SUBST(support_section_question)
@@ -515,7 +515,6 @@ if test $stap_cv_sectionq = yes; then
   support_section_question=1
 fi
 AC_CONFIG_FILES([includes/sys/sdt-config.h po/Makefile.in])
-
 
 if test $build_elfutils = yes -a $enable_translator = yes; then
   case "$with_elfutils" in
@@ -529,7 +528,7 @@ if test $build_elfutils = yes -a $enable_translator = yes; then
   CXXFLAGS="$CXXFLAGS -fgnu89-inline"
   CFLAGS="$CFLAGS -fgnu89-inline"
   gnu89_inline_flag=""
-  AC_COMPILE_IFELSE([int something ();], [
+  AC_COMPILE_IFELSE([AC_LANG_SOURCE([int something ();])], [
     AC_MSG_NOTICE([Compiling elfutils with gcc -fgnu89-inline])
     gnu89_inline_flag="-fgnu89-inline"],[
     AC_MSG_NOTICE([Compiler does not support -fgnu89-inline])])
@@ -551,19 +550,13 @@ if test $build_elfutils = yes -a $enable_translator = yes; then
 				CFLAGS="${CFLAGS/-Wall/} $gnu89_inline_flag" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
    if test -f ${elfutils_srcdir}/config/version.h.in; then
-        echo Trying to install elfutils version header...
-	make install-pkgincludeHEADERS
+        echo Found elfutils/version.h header...
+   else
+	echo elfutils/version.h header not found, need elfutils 0.142+...
+	exit -1
    fi
-   # so that elfutils/version.h - available from 0.138 - may be found.
-   # Don't use install-data because that will fail (installing in $prefix).
   )
-  if test $? != 0; then exit; fi
-  save_CPPFLAGS=${CPPFLAGS}
-  CPPFLAGS="${CPPFLAGS} -Iinclude-elfutils" # in case bundled elfutils
-  AC_CHECK_HEADERS([elfutils/version.h])
-  CPPFLAGS="$save_CPPFLAGS"
-else
-  AC_CHECK_HEADERS([elfutils/version.h])
+  if test $? != 0; then exit -1; fi
 fi
 
 AC_SUBST(ENABLE_NLS, "$USE_NLS")

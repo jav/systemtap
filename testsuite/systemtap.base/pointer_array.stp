@@ -1,9 +1,9 @@
 probe syscall.execve
 {
     if (pid() == target()) {
-        println(user_string($argv[0]))
+        println(user_string(@defined($__argv) ? $__argv[0] : $argv[0]))
         for (i=0; i<9; ++i)
-            printf("%c\n", $argv[0][i])
-        println($argv[0][9])
+            printf("%c\n", @defined($__argv) ? $__argv[0][i] : $argv[0][i])
+        println(@defined($__argv) ? $__argv[0][9] : $argv[0][9])
     }
 }

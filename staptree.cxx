@@ -2036,10 +2036,13 @@ varuse_collecting_visitor::visit_print_format (print_format* e)
   //
   // But sprint and sprintf don't have side-effects.
 
+  bool last_lvalue_read = current_lvalue_read;
+  current_lvalue_read = true;
   if (e->print_to_stream)
     embedded_seen = true; // a proxy for "has unknown side-effects"
 
   functioncall_traversing_visitor::visit_print_format (e);
+  current_lvalue_read = last_lvalue_read;
 }
 
 
@@ -2049,9 +2052,12 @@ varuse_collecting_visitor::visit_assignment (assignment *e)
   if (e->op == "=" || e->op == "<<<") // pure writes
     {
       expression* last_lvalue = current_lvalue;
+      bool last_lvalue_read = current_lvalue_read;
       current_lvalue = e->left; // leave a mark for ::visit_symbol
+      current_lvalue_read = true;
       functioncall_traversing_visitor::visit_assignment (e);
       current_lvalue = last_lvalue;
+      current_lvalue_read = last_lvalue_read;
     }
   else // read-modify-writes
     {
@@ -2080,14 +2086,19 @@ varuse_collecting_visitor::visit_symbol (symbol *e)
   if (current_lvalue == e || current_lrvalue == e)
     {
       written.insert (e->referent);
-      // clog << "write ";
     }
   if (current_lvalue != e || current_lrvalue == e)
     {
       read.insert (e->referent);
-      // clog << "read ";
     }
-  // clog << *e->tok << endl;
+
+  if (current_lrvalue == e)
+    {
+      if (current_lvalue_read)
+        used.insert (e->referent);
+    }
+  else if (current_lvalue != e)
+    used.insert (e->referent);
 }
 
 // NB: stat_op need not be overridden, since it will get to
@@ -2209,9 +2220,12 @@ varuse_collecting_visitor::visit_delete_statement (delete_statement* s)
   // "delete" yet, so we pose more like a *crement ("lrvalue").  This
   // should protect the underlying value from optimizional mischief.
   expression* last_lrvalue = current_lrvalue;
+  bool last_lvalue_read = current_lvalue_read;
   current_lrvalue = s->value; // leave a mark for ::visit_symbol
+  current_lvalue_read = true;
   functioncall_traversing_visitor::visit_delete_statement (s);
   current_lrvalue = last_lrvalue;
+  current_lvalue_read = last_lvalue_read;
 }
 
 bool

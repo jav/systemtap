@@ -131,10 +131,10 @@ mark_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 
     if (e->name == "$format")
       expr->code = string("/* string */ /* pure */ ")
-	+ string("c->marker_format ? c->marker_format : \"\"");
+	+ string("c->ips.kmark.marker_format ? c->ips.kmark.marker_format : \"\"");
     else
       expr->code = string("/* string */ /* pure */ ")
-	+ string("c->marker_name ? c->marker_name : \"\"");
+	+ string("c->ips.kmark.marker_name ? c->ips.kmark.marker_name : \"\"");
 
     provide (expr);
   }
@@ -430,7 +430,7 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
       switch (mark_args[i]->stp_type)
         {
 	case pe_long:
-	  o->newline() << localname << " = va_arg(*c->mark_va_list, "
+	  o->newline() << localname << " = va_arg(*c->ips.kmark.mark_va_list, "
 		       << mark_args[i]->c_type << ");";
 	  break;
 
@@ -438,7 +438,7 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
 	  // We're assuming that this is a kernel string (this code is
 	  // basically the guts of kernel_string), not a user string.
 	  o->newline() << "{ " << mark_args[i]->c_type
-		       << " tmp_str = va_arg(*c->mark_va_list, "
+		       << " tmp_str = va_arg(*c->ips.kmark.mark_va_list, "
 		       << mark_args[i]->c_type << ");";
 	  o->newline() << "deref_string (" << localname
 		       << ", tmp_str, MAXSTRINGLEN); }";
@@ -510,13 +510,13 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "static void enter_marker_probe (void *probe_data, void *call_data, const char *fmt, va_list *args) {";
   s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)probe_data;";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "smp->probe");
-  s.op->newline() << "c->marker_name = smp->name;";
-  s.op->newline() << "c->marker_format = smp->format;";
-  s.op->newline() << "c->mark_va_list = args;";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "smp->probe",
+				 "_STP_PROBE_HANDLER_MARKER");
+  s.op->newline() << "c->ips.kmark.marker_name = smp->name;";
+  s.op->newline() << "c->ips.kmark.marker_format = smp->format;";
+  s.op->newline() << "c->ips.kmark.mark_va_list = args;";
   s.op->newline() << "(*smp->probe->ph) (c);";
-  s.op->newline() << "c->mark_va_list = NULL;";
-  s.op->newline() << "c->data = NULL;";
+  s.op->newline() << "c->ips.kmark.mark_va_list = NULL;";
 
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";

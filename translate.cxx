@@ -913,67 +913,17 @@ translator_output::line ()
 void
 c_unparser::emit_common_header ()
 {
+  // Common (static atomic) state of the stap session.
   o->newline();
-  o->newline() << "typedef char string_t[MAXSTRINGLEN];";
-  o->newline();
-  o->newline() << "#define STAP_SESSION_STARTING 0";
-  o->newline() << "#define STAP_SESSION_RUNNING 1";
-  o->newline() << "#define STAP_SESSION_ERROR 2";
-  o->newline() << "#define STAP_SESSION_STOPPING 3";
-  o->newline() << "#define STAP_SESSION_STOPPED 4";
-  o->newline() << "static atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
-  o->newline() << "static atomic_t error_count = ATOMIC_INIT (0);";
-  o->newline() << "static atomic_t skipped_count = ATOMIC_INIT (0);";
-  o->newline() << "static atomic_t skipped_count_lowstack = ATOMIC_INIT (0);";
-  o->newline() << "static atomic_t skipped_count_reentrant = ATOMIC_INIT (0);";
-  o->newline() << "static atomic_t skipped_count_uprobe_reg = ATOMIC_INIT (0);";
-  o->newline() << "static atomic_t skipped_count_uprobe_unreg = ATOMIC_INIT (0);";
+  o->newline() << "#include \"common_session_state.h\"";
 
-  // Defines for the regsflags field. Maybe merge with regparm field?
-  // _STP_REGS_USER regsflags bit to indicate regs fully from user.
-  o->newline();
-  o->newline() << "#define _STP_REGS_USER_FLAG 1";
-  o->newline();
-
+  // Per CPU context for probes. Includes common shared state held for
+  // all probes (defined in common_probe_context), the probe locals (union)
+  // and the function locals (union).
   o->newline() << "struct context {";
-  o->newline(1) << "atomic_t busy;";
-  o->newline() << "const char *probe_point;";
-  o->newline() << "const char *probe_name;"; // as per 'stap -l'
-  o->newline() << "int actionremaining;";
-  o->newline() << "int nesting;";
-  o->newline() << "string_t error_buffer;";
-  o->newline() << "#ifdef STAP_NEED_CONTEXT_TOKENIZE";
-  o->newline() << "string_t tok_str;";
-  o->newline() << "char *tok_start;";
-  o->newline() << "char *tok_end;";
-  o->newline() << "#endif";
-  o->newline() << "const char *last_error;";
-  // NB: last_error is used as a health flag within a probe.
-  // While it's 0, execution continues
-  // When it's "something", probe code unwinds, _stp_error's, sets error state
-  o->newline() << "const char *last_stmt;";
-  o->newline() << "struct pt_regs *regs;";
-  o->newline() << "#if defined __ia64__";
-  o->newline() << "unsigned long *unwaddr;";
-  // unwaddr is caching unwound address in each probe handler on ia64.
-  o->newline() << "#endif";
-  o->newline() << "struct kretprobe_instance *pi;";
-  o->newline() << "int pi_longs;"; // int64_t count in pi->data, the rest is string_t
-  o->newline() << "int regflags;"; // status of pt_regs regs field.
-  o->newline() << "int regparm;";
-  o->newline() << "va_list *mark_va_list;";
-  o->newline() << "const char * marker_name;";
-  o->newline() << "const char * marker_format;";
-  o->newline() << "void *data;";
-  o->newline() << "#ifdef STP_OVERLOAD";
-  o->newline() << "cycles_t cycles_base;";
-  o->newline() << "cycles_t cycles_sum;";
-  o->newline() << "#endif";
-  o->newline() << "struct uretprobe_instance *ri;";
 
-  o->newline() << "#if defined(STP_NEED_UNWIND_DATA)";
-  o->newline() << "struct unwind_context uwcontext;";
-  o->newline() << "#endif";
+  // Common state held shared by probes.
+  o->newline(1) << "#include \"common_probe_context.h\"";
 
   // PR10516: probe locals
   o->newline() << "union {";
@@ -1688,7 +1638,7 @@ c_unparser::emit_probe (derived_probe* v)
       // NB: Elision of context variable structs is a separate
       // operation which has already taken place by now.
       if (session->verbose > 1)
-        clog << _F("%s elided, duplicates %s", v->name.c_str(), dupe.c_str());
+        clog << _F("%s elided, duplicates %s\n", v->name.c_str(), dupe.c_str());
 
 #if DUPMETHOD_CALL
       // This one emits a direct call to the first copy.
@@ -4730,7 +4680,6 @@ static void create_debug_frame_hdr (const unsigned char e_ident[],
   *debug_frame_hdr = NULL;
   *debug_frame_hdr_len = 0;
 
-#if _ELFUTILS_PREREQ(0,142)
   int cies = 0;
   set< pair<Dwarf_Addr, Dwarf_Off> > fdes;
   set< pair<Dwarf_Addr, Dwarf_Off> >::iterator it;
@@ -4822,7 +4771,6 @@ static void create_debug_frame_hdr (const unsigned char e_ident[],
 	  *table++ = (*it).second;
 	}
     }
-#endif
 }
 
 // Get the .debug_frame end .eh_frame sections for the given module.
@@ -4958,26 +4906,6 @@ dump_unwindsyms (Dwfl_Module *m,
                                         (const unsigned char **)&build_id_bits,
                                          &build_id_vaddr)) > 0)
   {
-    // Enable workaround for elfutils dwfl bug.
-    // see https://bugzilla.redhat.com/show_bug.cgi?id=465872
-    // and http://sourceware.org/ml/systemtap/2008-q4/msg00579.html
-#if !_ELFUTILS_PREREQ(0,138)
-    // Let's standardize to the new "start of build-id bits" behavior.
-    build_id_vaddr -= build_id_len;
-#endif
-
-    // And check for another workaround needed.
-    // see https://bugzilla.redhat.com/show_bug.cgi?id=489439
-    // and http://sourceware.org/ml/systemtap/2009-q1/msg00513.html
-#if !_ELFUTILS_PREREQ(0,141)
-    if (build_id_vaddr < base && dwfl_module_relocations (m) == 1)
-      {
-        GElf_Addr main_bias;
-        dwfl_module_getelf (m, &main_bias);
-        build_id_vaddr += main_bias;
-      }
-#endif
-
      if (modname != "kernel")
       {
         Dwarf_Addr reloc_vaddr = build_id_vaddr;
@@ -5055,10 +4983,6 @@ dump_unwindsyms (Dwfl_Module *m,
               ki = dwfl_module_relocate_address (m, &extra_offset);
               dwfl_assert ("dwfl_module_relocate_address extra_offset",
                            ki >= 0);
-              // Sadly dwfl_module_relocate_address is broken on
-              // elfutils < 0.138, so we need to adjust for the module
-              // base address outself. (see also below).
-              extra_offset = sym.st_value - base;
               if (c->session.verbose > 2)
                 clog << _F("Found kernel _stext extra offset 0x%#" PRIx64, extra_offset) << endl;
             }
@@ -5083,14 +5007,6 @@ dump_unwindsyms (Dwfl_Module *m,
                   int ki = dwfl_module_relocate_address (m, &sym_addr);
                   dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
                   secname = dwfl_module_relocation_info (m, ki, NULL);
-
-                  // For ET_DYN files (secname == "") we do ignore the
-                  // dwfl_module_relocate_address adjustment. libdwfl
-                  // up to 0.137 would substract the wrong bias. So we do
-                  // it ourself, it is always just the module base address
-                  // in this case.
-                  if (ki == 0 && secname != NULL && secname[0] == '\0')
-                    sym_addr = save_addr - base;
 		}
 
               if (n == 1 && modname == "kernel")
@@ -5159,7 +5075,11 @@ dump_unwindsyms (Dwfl_Module *m,
                   seclist.push_back (make_pair(secname,size));
 		}
 
-              (addrmap[secidx])[sym_addr] = name;
+              // If we don't actually need the symbols then we did all
+              // of the above just to get the section names... we can
+              // probably do that in some more efficient way...
+              if (c->session.need_symbols)
+                (addrmap[secidx])[sym_addr] = name;
             }
         }
     }
@@ -5180,10 +5100,13 @@ dump_unwindsyms (Dwfl_Module *m,
   size_t eh_frame_hdr_len = 0;
   Dwarf_Addr eh_addr = 0;
   Dwarf_Addr eh_frame_hdr_addr = 0;
-  get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr,
-                   &eh_frame_hdr, &eh_frame_hdr_len, &debug_frame_hdr,
-                   &debug_frame_hdr_len, &debug_frame_off, &eh_frame_hdr_addr,
-                   c->session, m);
+
+  if (c->session.need_unwind)
+    get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr,
+                     &eh_frame_hdr, &eh_frame_hdr_len, &debug_frame_hdr,
+                     &debug_frame_hdr_len, &debug_frame_off, &eh_frame_hdr_addr,
+                     c->session, m);
+
   if (debug_frame != NULL && debug_len > 0)
     {
       c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
@@ -5257,7 +5180,7 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
     }
   
-  if (debug_frame == NULL && eh_frame == NULL)
+  if (c->session.need_unwind && debug_frame == NULL && eh_frame == NULL)
     {
       // There would be only a small benefit to warning.  A user
       // likely can't do anything about this; backtraces for the
@@ -5274,19 +5197,22 @@ dump_unwindsyms (Dwfl_Module *m,
                 << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {\n";
 
       // Only include symbols if they will be used
-      c->output << "#ifdef STP_NEED_SYMBOL_DATA\n";
+      if (c->session.need_symbols)
+	{
 
-      // We write out a *sorted* symbol table, so the runtime doesn't have to sort them later.
-      for (addrmap_t::iterator it = addrmap[secidx].begin(); it != addrmap[secidx].end(); it++)
-        {
-          if (it->first < extra_offset)
-            continue; // skip symbols that occur before our chosen base address
+	  // We write out a *sorted* symbol table, so the runtime doesn't
+	  // have to sort them later.
+	  for (addrmap_t::iterator it = addrmap[secidx].begin();
+	       it != addrmap[secidx].end(); it++)
+	    {
+	      // skip symbols that occur before our chosen base address
+	      if (it->first < extra_offset)
+		continue;
 
-          c->output << "  { 0x" << hex << it->first-extra_offset << dec
-                    << ", " << lex_cast_qstring (it->second) << " },\n";
-        }
-
-      c->output << "#endif /* STP_NEED_SYMBOL_DATA */\n";
+	      c->output << "  { 0x" << hex << it->first-extra_offset << dec
+			<< ", " << lex_cast_qstring (it->second) << " },\n";
+	    }
+	}
 
       c->output << "};\n";
 
@@ -5831,63 +5757,14 @@ translate_pass (systemtap_session& s)
       if (ri.recursive) nesting += 10;
 
       // This is at the very top of the file.
+      // All "static" defines (not dependend on session state).
+      s.op->newline() << "#include\"runtime_defines.h\"";
+
       if (! s.unprivileged)
 	s.op->newline() << "#define STP_PRIVILEGED 1";
+
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING " << nesting;
-      s.op->newline() << "#endif";
-
-      // Strings are used for storing backtraces, they are larger on 64bit
-      // so raise the size on 64bit architectures. PR10486
-      s.op->newline() << "#include <asm/types.h>";
-      s.op->newline() << "#ifndef MAXSTRINGLEN";
-      s.op->newline() << "#if BITS_PER_LONG == 32";
-      s.op->newline() << "#define MAXSTRINGLEN 256";
-      s.op->newline() << "#else";
-      s.op->newline() << "#define MAXSTRINGLEN 512";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#endif";
-
-      s.op->newline() << "#ifndef MAXACTION";
-      s.op->newline() << "#define MAXACTION 1000";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXACTION_INTERRUPTIBLE";
-      s.op->newline() << "#define MAXACTION_INTERRUPTIBLE (MAXACTION * 10)";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef TRYLOCKDELAY";
-      s.op->newline() << "#define TRYLOCKDELAY 10 /* microseconds */";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXTRYLOCK";
-      s.op->newline() << "#define MAXTRYLOCK 100 /* 1 millisecond total */";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXMAPENTRIES";
-      s.op->newline() << "#define MAXMAPENTRIES 2048";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXERRORS";
-      s.op->newline() << "#define MAXERRORS 0";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXSKIPPED";
-      s.op->newline() << "#define MAXSKIPPED 100";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MINSTACKSPACE";
-      s.op->newline() << "#define MINSTACKSPACE 1024";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef INTERRUPTIBLE";
-      s.op->newline() << "#define INTERRUPTIBLE 1";
-      s.op->newline() << "#endif";
-
-      // Overload processing
-      s.op->newline() << "#ifndef STP_OVERLOAD_INTERVAL";
-      s.op->newline() << "#define STP_OVERLOAD_INTERVAL 1000000000LL";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef STP_OVERLOAD_THRESHOLD";
-      s.op->newline() << "#define STP_OVERLOAD_THRESHOLD 500000000LL";
-      s.op->newline() << "#endif";
-      // We allow the user to completely turn overload processing off
-      // (as opposed to tuning it by overriding the values above) by
-      // running:  stap -DSTP_NO_OVERLOAD {other options}
-      s.op->newline() << "#if !defined(STP_NO_OVERLOAD) && !defined(STAP_NO_OVERLOAD)";
-      s.op->newline() << "#define STP_OVERLOAD";
       s.op->newline() << "#endif";
 
       s.op->newline() << "#define STP_SKIP_BADVARS " << (s.skip_badvars ? 1 : 0);
@@ -5896,10 +5773,12 @@ translate_pass (systemtap_session& s)
 	  s.op->newline() << "#define STP_BULKMODE";
 
       if (s.timing)
-      s.op->newline() << "#define STP_TIMING";
+	s.op->newline() << "#define STP_TIMING";
+
+      if (s.need_unwind)
+	s.op->newline() << "#define STP_NEED_UNWIND_DATA 1";
 
       s.op->newline() << "#include \"runtime.h\"";
-      s.op->newline() << "#include \"stack.c\"";
       s.op->newline() << "#include \"stat.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
@@ -5922,6 +5801,9 @@ translate_pass (systemtap_session& s)
         }
 
       s.up->emit_common_header (); // context etc.
+
+      if (s.need_unwind)
+	s.op->newline() << "#include \"stack.c\"";
 
       s.op->newline() << "#include \"probe_lock.h\" ";
 

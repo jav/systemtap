@@ -102,19 +102,19 @@ to classify them with respect to their need for DWARF debuginfo.
 
 .TS
 l l l.
-\fBDWARF	AUTO-DWARF	NON-DWARF\fP
+\fBDWARF	NON-DWARF\fP
 
-kernel.function, .statement	kernel.trace	kernel.mark
-module.function, .statement		process.mark
-process.function, .statement		begin, end, error, never
-process.mark \fI(backup)\fP		timer
-		perf
-		procfs
-		kernel.statement.absolute
-		kernel.data
-		kprobe.function
-		process.statement.absolute
-		process.begin, .end, .error
+kernel.function, .statement	kernel.mark
+module.function, .statement	process.mark
+process.function, .statement	begin, end, error, never
+process.mark \fI(backup)\fP	timer
+	perf
+	procfs
+\fBAUTO-DWARF\fP	kernel.statement.absolute
+	kernel.data
+kernel.trace	kprobe.function
+	process.statement.absolute
+	process.begin, .end, .error
 .TE
 
 .SH PROBE POINT FAMILIES
@@ -616,7 +616,12 @@ If a process probe is specified without a PID or FULLPATH, all user
 threads will be probed.  However, if systemtap was invoked with the
 .IR \-c " or " \-x
 options, then process probes are restricted to the process
-hierarchy associated with the target process.
+hierarchy associated with the target process.  If a process probe is
+specified without a PID or FULLPATH, but with the 
+.IR \-c "
+option, the PATH of the
+.IR \-c "
+cmd will be heuristically filled into the process PATH.
 
 .PP
 Third, symbolic static instrumentation compiled into programs and
