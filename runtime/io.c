@@ -64,9 +64,7 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
                 else printk (KERN_INFO "%s", buf);
 #else
 		if (type != DBUG) {
-			/* This is non-urgent .cmd data, so call
-			   _stp_ctl_write, instead of _stp_ctl_send.  */
-			_stp_ctl_write(STP_OOB_DATA, buf, start + num + 1);
+			_stp_ctl_send(STP_OOB_DATA, buf, start + num + 1);
 		} else {
 			_stp_print(buf);
 			_stp_print_flush();

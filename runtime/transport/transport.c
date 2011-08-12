@@ -33,12 +33,6 @@ static int _stp_probes_started = 0;
 static int _stp_exit_called = 0;
 static DEFINE_MUTEX(_stp_transport_mutex);
 
-#ifndef STP_CTL_TIMER_INTERVAL
-/* ctl timer interval in jiffies (default 20 ms) */
-#define STP_CTL_TIMER_INTERVAL		((HZ+49)/50)
-#endif
-
-
 // For now, disable transport version 3 (unless STP_USE_RING_BUFFER is
 // defined).
 #if STP_TRANSPORT_VERSION == 3 && !defined(STP_USE_RING_BUFFER)
@@ -71,8 +65,6 @@ MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 /* forward declarations */
 static void probe_exit(void);
 static int probe_start(void);
-
-struct timer_list _stp_ctl_work_timer;
 
 /*
  *	_stp_handle_start - handle STP_START
@@ -163,7 +155,6 @@ static void _stp_detach(void)
 	if (!_stp_exit_flag)
 		_stp_transport_data_fs_overwrite(1);
 
-        del_timer_sync(&_stp_ctl_work_timer);
 	wake_up_interruptible(&_stp_ctl_wq);
 }
 
@@ -178,37 +169,6 @@ static void _stp_attach(void)
 	dbug_trans(1, "attach\n");
 	_stp_pid = current->pid;
 	_stp_transport_data_fs_overwrite(0);
-	init_timer(&_stp_ctl_work_timer);
-	_stp_ctl_work_timer.expires = jiffies + STP_CTL_TIMER_INTERVAL;
-	_stp_ctl_work_timer.function = _stp_ctl_work_callback;
-	_stp_ctl_work_timer.data= 0;
-	add_timer(&_stp_ctl_work_timer);
-}
-
-/*
- *	_stp_ctl_work_callback - periodically check for IO or exit
- *	This IO comes from ERRORs or WARNINGs which are send with
- *	_stp_ctl_write as type STP_OOB_DATA, so don't immediately
- *	trigger a wake_up of _stp_ctl_wq.
- *	This is run by a kernel thread and may NOT sleep.
- */
-static void _stp_ctl_work_callback(unsigned long val)
-{
-	int do_io = 0;
-	unsigned long flags;
-
-	spin_lock_irqsave(&_stp_ctl_ready_lock, flags);
-	if (!list_empty(&_stp_ctl_ready_q))
-		do_io = 1;
-	spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
-	if (do_io)
-		wake_up_interruptible(&_stp_ctl_wq);
-
-	/* if exit flag is set AND we have finished with probe_start() */
-	if (unlikely(_stp_exit_flag && _stp_probes_started))
-		_stp_request_exit();
-	if (atomic_read(& _stp_ctl_attached))
-                mod_timer (&_stp_ctl_work_timer, jiffies + STP_CTL_TIMER_INTERVAL);
 }
 
 /**

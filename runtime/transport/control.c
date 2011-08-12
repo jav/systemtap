@@ -441,6 +441,12 @@ static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf,
 	spin_lock_irqsave(&_stp_ctl_ready_lock, flags);
 	while (list_empty(&_stp_ctl_ready_q)) {
 		spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
+
+	/* Someone is listening, if exit flag is set AND we have finished
+	   with probe_start() we might want them to know.  */
+	if (unlikely(_stp_exit_flag && _stp_probes_started))
+		_stp_request_exit();
+
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 		if (wait_event_interruptible(_stp_ctl_wq, !list_empty(&_stp_ctl_ready_q)))
