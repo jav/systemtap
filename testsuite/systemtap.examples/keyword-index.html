@@ -39,7 +39,7 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#ALLOCATOR">ALLOCATOR</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#COUNTER">COUNTER</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#EVENT">EVENT</a> <a href="#FILES">FILES</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#HACK">HACK</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITORING">MONITORING</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PID">PID</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SECURITY">SECURITY</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TID">TID</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WATCHDOG">WATCHDOG</a> <a href="#WATCHPOINT">WATCHPOINT</a> <a href="#WRITE">WRITE</a> </tt></p>
+<p><tt><a href="#ALLOCATOR">ALLOCATOR</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#COUNTER">COUNTER</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#EVENT">EVENT</a> <a href="#FILES">FILES</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTION">FUNCTION</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#HACK">HACK</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITORING">MONITORING</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PER-PROCESS">PER-PROCESS</a> <a href="#PID">PID</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SECURITY">SECURITY</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TID">TID</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WAIT4">WAIT4</a> <a href="#WALL-CLOCK">WALL-CLOCK</a> <a href="#WATCHDOG">WATCHDOG</a> <a href="#WATCHPOINT">WATCHPOINT</a> <a href="#WRITE">WRITE</a> </tt></p>
 <h3><a name="ALLOCATOR">ALLOCATOR</a></h3>
 <ul>
 <li><a href="memory/vm.tracepoints.stp">memory/vm.tracepoints.stp</a> - Collect slab allocation statistics<br>
@@ -154,6 +154,12 @@ keywords: <a href="keyword-index.html#FORMAT">FORMAT</a> <br>
 <li><a href="network/dropwatch.stp">network/dropwatch.stp</a> - Watch Where Socket Buffers are Freed in the Kernel<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#FREE">FREE</a> <br>
 <p>Every five seconds the dropwatch.stp script lists the number of socket buffers freed at locations in the kernel.<p><font size="-2"><pre># stap dropwatch.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+</ul>
+<h3><a name="FUNCTION">FUNCTION</a></h3>
+<ul>
+<li><a href="general/func_time_stats.stp">general/func_time_stats.stp</a> - Function time statistics<br>
+keywords: <a href="keyword-index.html#FUNCTION">FUNCTION</a> <a href="keyword-index.html#WALL-CLOCK">WALL-CLOCK</a> <a href="keyword-index.html#TIME">TIME</a> <br>
+<p>The func_time_stats.stp script tracks the wall clock time for each invocation of the function probe listed as the first command line argument. When the script exits it prints out the minimum, average, and maximum times in microseconds followed by a count of times that the function was called and a histogram showing the distributions of times.<p><font size="-2"><pre># stap func_time_stats.stp &#39;syscall.nanosleep&#39; -c &quot;sleep 0.2&quot;</pre></font></p></li>
 </ul>
 <h3><a name="FUNCTIONS">FUNCTIONS</a></h3>
 <ul>
@@ -597,6 +603,9 @@ keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.ht
 </ul>
 <h3><a name="TIME">TIME</a></h3>
 <ul>
+<li><a href="general/func_time_stats.stp">general/func_time_stats.stp</a> - Function time statistics<br>
+keywords: <a href="keyword-index.html#FUNCTION">FUNCTION</a> <a href="keyword-index.html#WALL-CLOCK">WALL-CLOCK</a> <a href="keyword-index.html#TIME">TIME</a> <br>
+<p>The func_time_stats.stp script tracks the wall clock time for each invocation of the function probe listed as the first command line argument. When the script exits it prints out the minimum, average, and maximum times in microseconds followed by a count of times that the function was called and a histogram showing the distributions of times.<p><font size="-2"><pre># stap func_time_stats.stp &#39;syscall.nanosleep&#39; -c &quot;sleep 0.2&quot;</pre></font></p></li>
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#READ">READ</a> <a href="keyword-index.html#WRITE">WRITE</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#IO">IO</a> <br>
 <p>The script watches each open, close, read, and write syscalls on the system. For each file the scripts observes opened it accumulates the amount of wall clock time spent in read and write operations and the number of bytes read and written. When a file is closed the script prints out a pair of lines for the file. Both lines begin with a timestamp in microseconds, the PID number, and the executable name in parentheses. The first line with the &quot;access&quot; keyword lists the file name, the attempted number of bytes for the read and write operations. The second line with the &quot;iotime&quot; keyword list the file name and the number of microseconds accumulated in the read and write syscalls.<p><font size="-2"><pre># stap iotime.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
@@ -662,6 +671,12 @@ keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html
 <li><a href="process/wait4time.stp">process/wait4time.stp</a> - Trace Time Spent in wait4 Syscalls<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#WAIT4">WAIT4</a> <br>
 <p>The script watches each wait4 syscall on the system. At the end of each wait4 syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in parentheses, the &quot;wait4:&quot; key, the duration of the wait and the PID that the wait4 was waiting for. If the waited for PID is not specified , it is &quot;-1&quot;.<p><font size="-2"><pre># stap wait4time.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+</ul>
+<h3><a name="WALL-CLOCK">WALL-CLOCK</a></h3>
+<ul>
+<li><a href="general/func_time_stats.stp">general/func_time_stats.stp</a> - Function time statistics<br>
+keywords: <a href="keyword-index.html#FUNCTION">FUNCTION</a> <a href="keyword-index.html#WALL-CLOCK">WALL-CLOCK</a> <a href="keyword-index.html#TIME">TIME</a> <br>
+<p>The func_time_stats.stp script tracks the wall clock time for each invocation of the function probe listed as the first command line argument. When the script exits it prints out the minimum, average, and maximum times in microseconds followed by a count of times that the function was called and a histogram showing the distributions of times.<p><font size="-2"><pre># stap func_time_stats.stp &#39;syscall.nanosleep&#39; -c &quot;sleep 0.2&quot;</pre></font></p></li>
 </ul>
 <h3><a name="WATCHDOG">WATCHDOG</a></h3>
 <ul>

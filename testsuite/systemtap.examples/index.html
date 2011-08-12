@@ -53,6 +53,9 @@ denied&quot;</pre></font></p></li>
 <li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
 keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
 <p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p></li>
+<li><a href="general/func_time_stats.stp">general/func_time_stats.stp</a> - Function time statistics<br>
+keywords: <a href="keyword-index.html#FUNCTION">FUNCTION</a> <a href="keyword-index.html#WALL-CLOCK">WALL-CLOCK</a> <a href="keyword-index.html#TIME">TIME</a> <br>
+<p>The func_time_stats.stp script tracks the wall clock time for each invocation of the function probe listed as the first command line argument. When the script exits it prints out the minimum, average, and maximum times in microseconds followed by a count of times that the function was called and a histogram showing the distributions of times.<p><font size="-2"><pre># stap func_time_stats.stp &#39;syscall.nanosleep&#39; -c &quot;sleep 0.2&quot;</pre></font></p></li>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html#CPU">CPU</a> <a href="keyword-index.html#USE">USE</a> <a href="keyword-index.html#GRAPH">GRAPH</a> <br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.<p><font size="-2"><pre># stap graphs.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
