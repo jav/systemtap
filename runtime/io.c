@@ -100,6 +100,7 @@ static void _stp_warn (const char *fmt, ...)
 static void _stp_exit (void)
 {
 	_stp_exit_flag = 1;
+	wake_up_interruptible(&_stp_ctl_wq);
 }
 
 /** Prints error message and exits.
