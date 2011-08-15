@@ -1187,9 +1187,9 @@ probe syscall.rt_sigprocmask = kernel.function("sys32_rt_sigprocmask").call ?,
 	name = "rt_sigprocmask"
 	how  = $how
 	how_str = _sigprocmask_how_str($how)
-	set_uaddr    = $set
+	set_uaddr    = @defined($set) ? $set : $nset
 	oldset_uaddr = $oset
-	argstr = sprintf("%s, [%s], %p, %d", how_str, _stp_sigset_u($set),
+	argstr = sprintf("%s, [%s], %p, %d", how_str, _stp_sigset_u(set_uaddr),
 		$oset, $sigsetsize)
 }
 probe syscall.rt_sigprocmask.return = kernel.function("sys32_rt_sigprocmask").return ?,
@@ -2507,9 +2507,9 @@ probe syscall.sigprocmask = kernel.function("sys_sigprocmask").call ?
 	name = "sigprocmask"
 	how  = $how
 	how_str = _sigprocmask_how_str($how)
-	set_uaddr    = $set
+	set_uaddr    = @defined($set) ? $set : $nset
 	oldset_uaddr = $oset
-	argstr = sprintf("%s, %p, %p", how_str, $set, $oset)
+	argstr = sprintf("%s, %p, %p", how_str, set_uaddr, $oset)
 }
 probe syscall.sigprocmask.return = kernel.function("sys_sigprocmask").return ?
 {
