@@ -237,6 +237,9 @@
 !Itapset/tcp.stp
 !Itapset/udp.stp
 !Itapset/ip.stp
+!Itapset/inet.stp
+!Itapset/tcpmib-filter-default.stp
+!Itapset/rpc.stp
   </chapter>
 
   <chapter id="socket.stp">
@@ -246,6 +249,7 @@
       It contains the following probe points:
    </para>
 !Itapset/socket.stp
+!Itapset/inet_sock.stp
   </chapter>
   <chapter id="snmp.stp">
     <title>SNMP Information Tapset</title>
@@ -368,5 +372,17 @@
       It contains the following probe points:
     </para>
 !Itapset/stap_staticmarkers.stp
+  </chapter>
+
+  <chapter id="nfsd.stp">
+    <title>Network File Storage Tapsets</title>
+    <para>
+      This family of probe points is used to probe network file storage
+      functions and operations.
+    </para>
+!Itapset/nfsd.stp
+!Itapset/nfs_proc.stp
+!Itapset/nfs.stp
+!Itapset/nfsderrno.stp
   </chapter>
 </book>
