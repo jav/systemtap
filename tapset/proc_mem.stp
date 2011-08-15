@@ -65,9 +65,9 @@ function _MM_ANONPAGES:long()
 
 function _stp_get_mm_counter:long(mm:long, member:long)
 {
-    /* kernels >= 2.6.34 */
+    /* kernels >= 2.6.34, 3.1 and later always use atomics */
     if (@defined(&@cast(mm, "mm_struct", "kernel<linux/sched.h>")->rss_stat)) {
-%( CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
+%( kernel_v >= "3.1.0" || CONFIG_NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS %?
 	val = atomic_long_read(&@cast(mm, "mm_struct",
 			"kernel<linux/sched.h>")->rss_stat->count[member])
 %:

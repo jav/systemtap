@@ -545,6 +545,7 @@ struct block: public statement
   void visit (visitor* u);
   block () {}
   block (statement* car, statement* cdr);
+  virtual ~block () {}
 };
 
 

@@ -359,7 +359,7 @@ dwflpp::setup_user(const vector<string>& modules, bool debuginfo_needed)
     sess.module_cache = new module_cache ();
 
   vector<string>::const_iterator it = modules.begin();
-  dwfl_ptr = setup_dwfl_user(it, modules.end(), debuginfo_needed);
+  dwfl_ptr = setup_dwfl_user(it, modules.end(), debuginfo_needed, sess);
   if (debuginfo_needed && it != modules.end())
     dwfl_assert (string(_F("missing process %s %s debuginfo",
                            (*it).c_str(), sess.architecture.c_str())),

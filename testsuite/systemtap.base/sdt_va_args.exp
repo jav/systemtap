@@ -40,7 +40,12 @@ set saveidx 0
 set res [target_compile $srcdir/$subdir/$test.c $testprog executable "$test_flags $extra_flag"]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "compiling $test.c $extra_mssg"
+    # -std=gnu++0x and -std=c++0x are not universally accepted
+    if {[string first "unrecognized command line option" $res] == -1} {
+      fail "compiling $test.c $extra_mssg"
+    } else {
+      untested "compiling $test.c $extra_mssg"
+    }
     untested "$test $extra_mssg"
     continue
 } else {

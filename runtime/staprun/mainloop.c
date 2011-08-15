@@ -13,6 +13,7 @@
 #include "staprun.h"
 #include <sys/utsname.h>
 #include <sys/ptrace.h>
+#include <sys/select.h>
 #include <search.h>
 #include <wordexp.h>
 
@@ -26,9 +27,9 @@ static int use_old_transport = 0;
 static int pending_interrupts = 0;
 static int target_pid_failed_p = 0;
 
-//enum _stp_sig_type { sig_none, sig_done, sig_detach };
-//static enum _stp_sig_type got_signal = sig_none;
-
+/* Setup by setup_main_signals, used by signal_thread to notify the
+   main thread of interruptable events. */
+static pthread_t main_thread;
 
 static void *signal_thread(void *arg)
 {
@@ -49,7 +50,18 @@ static void *signal_thread(void *arg)
       break;
     }
   }
+  /* Notify main thread (interrupts select). */
+  pthread_kill (main_thread, SIGURG);
   return NULL;
+}
+
+static void urg_proc(int signum)
+{
+  /* This handler is just notified from the signal_thread
+     whenever an interruptable condition is detected. The
+     handler itself doesn't do anything. But this will
+     result select to detect an EINTR event. */
+  dbug(2, "urg_proc %d (%s)\n", signum, strsignal(signum));
 }
 
 static void chld_proc(int signum)
@@ -100,20 +112,37 @@ static void setup_main_signals(void)
     _perr("malloc failed");
     exit(1);
   }
+
+  /* The main thread will only handle SIGCHLD and SIGURG.
+     SIGURG is send from the signal thread in case the interrupt
+     flag is set. This will then interrupt any select call. */
+  main_thread = pthread_self();
   sigfillset(s);
   pthread_sigmask(SIG_SETMASK, s, NULL);
 
   memset(&sa, 0, sizeof(sa));
+  /* select will report EINTR even when SA_RESTART is set. */
+  sa.sa_flags = SA_RESTART;
   sigfillset(&sa.sa_mask);
+
+  /* Ignore all these events on the main thread. */
   sa.sa_handler = SIG_IGN;
   sigaction(SIGINT, &sa, NULL);
   sigaction(SIGTERM, &sa, NULL);
   sigaction(SIGHUP, &sa, NULL);
   sigaction(SIGQUIT, &sa, NULL);
 
+  /* This is to notify when our child process (-c) ends. */
   sa.sa_handler = chld_proc;
   sigaction(SIGCHLD, &sa, NULL);
 
+  /* This signal handler is notified from the signal_thread
+     whenever a interruptable event is detected. It will
+     result in an EINTR event for select or sleep. */
+  sa.sa_handler = urg_proc;
+  sigaction(SIGURG, &sa, NULL);
+
+  /* Everything else is handled on a special signal_thread. */
   sigemptyset(s);
   sigaddset(s, SIGINT);
   sigaddset(s, SIGTERM);
@@ -522,7 +551,13 @@ int stp_main_loop(void)
     } payload;
   } recvbuf;
   int error_detected = 0;
+  int select_supported;
   int flags;
+  int res;
+  struct timeval tv;
+  fd_set fds;
+  sigset_t blockset, mainset;
+
 
   setvbuf(ofp, (char *)NULL, _IONBF, 0);
   setup_main_signals();
@@ -531,6 +566,27 @@ int stp_main_loop(void)
   send_request(STP_READY, NULL, 0);
 
   flags = fcntl(control_channel, F_GETFL);
+
+  /* Make select return immediately.  We just check whether
+     there is an exception available on the control_channel,
+     which is how we know the module supports select. */
+  tv.tv_sec = 0;
+  tv.tv_usec = 0;
+  FD_ZERO(&fds);
+  FD_SET(control_channel, &fds);
+  res = select(control_channel + 1, NULL, NULL, &fds, &tv);
+  select_supported = (res == 1 && FD_ISSET(control_channel, &fds));
+  dbug(2, "select_supported: %d\n", select_supported);
+  if (select_supported) {
+    /* We block SIGURG to the main thread, except when we call
+       pselect(). This makes sure we won't miss any signals. All other
+       calls are non-blocking, so we defer till pselect() time, which
+       is when we are "sleeping". */
+    sigemptyset(&blockset);
+    sigaddset(&blockset, SIGURG);
+    pthread_sigmask(SIG_BLOCK, &blockset, &mainset);
+  }
+
 
   /* handle messages from control channel */
   while (1) {
@@ -543,8 +599,9 @@ int stp_main_loop(void)
          }
     }
 
-    /* XXX: The runtime does not implement select() on the command
-       filehandle, so we poll periodically.  The polling interval can
+
+    /* If the runtime does not implement select() on the command
+       filehandle, we have to poll periodically.  The polling interval can
        be relatively large, since we don't receive EAGAIN during the
        time-sensitive startup period (packets go back-to-back). */
 
@@ -560,8 +617,20 @@ int stp_main_loop(void)
         _perr(_("Unexpected EOF in read (nb=%ld)"), (long)nb);
         cleanup_and_exit(0, 1);
       }
-      dbug(4, "sleeping\n");
-      usleep (250*1000); /* sleep 250ms between polls */
+
+      if (!select_supported) {
+	dbug(4, "sleeping\n");
+	usleep (250*1000); /* sleep 250ms between polls */
+      } else {
+	FD_ZERO(&fds);
+	FD_SET(control_channel, &fds);
+	res = pselect(control_channel + 1, &fds, NULL, NULL, NULL, &mainset);
+	if (res < 0 && errno != EINTR)
+	  {
+	    _perr(_("Unexpected error in select"));
+	    cleanup_and_exit(0, 1);
+	  }
+      }
       continue;
     }
 

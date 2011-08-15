@@ -54,7 +54,12 @@ set saveidx 0
 set res [target_compile $srcdir/$subdir/$test.c $testprog executable "$test_flags $extra_flag [lindex $type_pedantics $j]"]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "compiling $test.c $extra_mssg $type_pedantic_mssg $pbtype_mssg"
+    # -std=gnu++0x and -std=c++0x are not universally accepted
+    if {[string first "unrecognized command line option" $res] == -1} {
+      fail "compiling $test.c $extra_mssg $type_pedantic_mssg $pbtype_mssg"
+    } else {
+      untested "compiling $test.c $extra_mssg $type_pedantic_mssg $pbtype_mssg"
+    }
     untested "$test $extra_mssg $type_pedantic_mssg $pbtype_mssg"
     continue
 } else {

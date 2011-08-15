@@ -153,8 +153,10 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 
 	if (c->probe_type == _STP_PROBE_HANDLER_URETPROBE)
 		ri = c->ips.ri;
+#ifdef STAPCONF_UPROBE_GET_PC
 	else if (c->probe_type == _STP_PROBE_HANDLER_UPROBE)
 		ri = GET_PC_URETPROBE_NONE;
+#endif
 	else
 		ri = NULL;
 

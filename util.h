@@ -8,12 +8,14 @@
 #include <stdexcept>
 #include <cctype>
 #include <set>
+#include <iomanip>
 extern "C" {
 #include <libintl.h>
 #include <locale.h>
 #include <signal.h>
 #include <stdint.h>
 #include <spawn.h>
+#include <assert.h>
 }
 
 #if ENABLE_NLS
@@ -116,6 +118,25 @@ lex_cast_hex(IN const & in)
   return ss.str();
 }
 
+//Convert binary data to hex data.
+template <typename IN>
+inline std::string
+hex_dump(IN const & in,  size_t len)
+{
+  std::ostringstream ss;
+  unsigned i;
+  if (!(ss << std::hex << std::setfill('0')))
+    throw std::runtime_error(_("bad lexical cast"));
+
+  for(i = 0; i < len; i++)
+  {
+    int temp = in[i];
+    ss << std::setw(2) << temp;
+  }
+  std::string hex = ss.str();
+  assert(hex.length() == 2 * len);
+  return hex;
+}
 
 // Return as quoted string, so that when compiled as a C literal, it
 // would print to the user out nicely.

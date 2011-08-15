@@ -13,6 +13,7 @@
 #include "../mempool.c"
 #include "symbols.c"
 #include <linux/delay.h>
+#include <linux/poll.h>
 
 static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
@@ -441,6 +442,12 @@ static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf,
 	spin_lock_irqsave(&_stp_ctl_ready_lock, flags);
 	while (list_empty(&_stp_ctl_ready_q)) {
 		spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
+
+	/* Someone is listening, if exit flag is set AND we have finished
+	   with probe_start() we might want them to know.  */
+	if (unlikely(_stp_exit_flag && _stp_probes_started))
+		_stp_request_exit();
+
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 		if (wait_event_interruptible(_stp_ctl_wq, !list_empty(&_stp_ctl_ready_q)))
@@ -492,12 +499,36 @@ static int _stp_ctl_close_cmd(struct inode *inode, struct file *file)
 	return 0;
 }
 
+static unsigned _stp_ctl_poll_cmd(struct file *file, poll_table *wait)
+{
+	/* Pretend we can always write and that there is
+	   priority data available.  We do this so select
+	   will report an exception condition on the file,
+	   which is used by stapio to see whether select
+	   works. */
+	unsigned res = POLLPRI | POLLOUT | POLLWRNORM;
+	unsigned long flags;
+
+        poll_wait(file, &_stp_ctl_wq, wait);
+
+        /* If there are messages waiting or we want to exit, then
+           there will (soon) be data available. */
+	spin_lock_irqsave(&_stp_ctl_ready_lock, flags);
+	if (! list_empty(&_stp_ctl_ready_q) || _stp_exit_flag)
+		res |= POLLIN | POLLRDNORM;
+	spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
+
+	return res;
+}
+
+
 static struct file_operations _stp_ctl_fops_cmd = {
 	.owner = THIS_MODULE,
 	.read = _stp_ctl_read_cmd,
 	.write = _stp_ctl_write_cmd,
 	.open = _stp_ctl_open_cmd,
 	.release = _stp_ctl_close_cmd,
+	.poll = _stp_ctl_poll_cmd
 };
 
 static int _stp_register_ctl_channel(void)

@@ -1638,7 +1638,7 @@ c_unparser::emit_probe (derived_probe* v)
       // NB: Elision of context variable structs is a separate
       // operation which has already taken place by now.
       if (session->verbose > 1)
-        clog << _F("%s elided, duplicates %s", v->name.c_str(), dupe.c_str());
+        clog << _F("%s elided, duplicates %s\n", v->name.c_str(), dupe.c_str());
 
 #if DUPMETHOD_CALL
       // This one emits a direct call to the first copy.
@@ -5075,7 +5075,11 @@ dump_unwindsyms (Dwfl_Module *m,
                   seclist.push_back (make_pair(secname,size));
 		}
 
-              (addrmap[secidx])[sym_addr] = name;
+              // If we don't actually need the symbols then we did all
+              // of the above just to get the section names... we can
+              // probably do that in some more efficient way...
+              if (c->session.need_symbols)
+                (addrmap[secidx])[sym_addr] = name;
             }
         }
     }
@@ -5096,10 +5100,13 @@ dump_unwindsyms (Dwfl_Module *m,
   size_t eh_frame_hdr_len = 0;
   Dwarf_Addr eh_addr = 0;
   Dwarf_Addr eh_frame_hdr_addr = 0;
-  get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr,
-                   &eh_frame_hdr, &eh_frame_hdr_len, &debug_frame_hdr,
-                   &debug_frame_hdr_len, &debug_frame_off, &eh_frame_hdr_addr,
-                   c->session, m);
+
+  if (c->session.need_unwind)
+    get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr,
+                     &eh_frame_hdr, &eh_frame_hdr_len, &debug_frame_hdr,
+                     &debug_frame_hdr_len, &debug_frame_off, &eh_frame_hdr_addr,
+                     c->session, m);
+
   if (debug_frame != NULL && debug_len > 0)
     {
       c->output << "#if defined(STP_USE_DWARF_UNWINDER) && defined(STP_NEED_UNWIND_DATA)\n";
@@ -5173,7 +5180,7 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << "#endif /* STP_USE_DWARF_UNWINDER && STP_NEED_UNWIND_DATA */\n";
     }
   
-  if (debug_frame == NULL && eh_frame == NULL)
+  if (c->session.need_unwind && debug_frame == NULL && eh_frame == NULL)
     {
       // There would be only a small benefit to warning.  A user
       // likely can't do anything about this; backtraces for the
@@ -5190,19 +5197,22 @@ dump_unwindsyms (Dwfl_Module *m,
                 << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {\n";
 
       // Only include symbols if they will be used
-      c->output << "#ifdef STP_NEED_SYMBOL_DATA\n";
+      if (c->session.need_symbols)
+	{
 
-      // We write out a *sorted* symbol table, so the runtime doesn't have to sort them later.
-      for (addrmap_t::iterator it = addrmap[secidx].begin(); it != addrmap[secidx].end(); it++)
-        {
-          if (it->first < extra_offset)
-            continue; // skip symbols that occur before our chosen base address
+	  // We write out a *sorted* symbol table, so the runtime doesn't
+	  // have to sort them later.
+	  for (addrmap_t::iterator it = addrmap[secidx].begin();
+	       it != addrmap[secidx].end(); it++)
+	    {
+	      // skip symbols that occur before our chosen base address
+	      if (it->first < extra_offset)
+		continue;
 
-          c->output << "  { 0x" << hex << it->first-extra_offset << dec
-                    << ", " << lex_cast_qstring (it->second) << " },\n";
-        }
-
-      c->output << "#endif /* STP_NEED_SYMBOL_DATA */\n";
+	      c->output << "  { 0x" << hex << it->first-extra_offset << dec
+			<< ", " << lex_cast_qstring (it->second) << " },\n";
+	    }
+	}
 
       c->output << "};\n";
 

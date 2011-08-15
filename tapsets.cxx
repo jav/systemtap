@@ -7885,7 +7885,11 @@ hwbkpt_derived_probe_group::emit_module_init (systemtap_session& s)
     s.op->newline() << "hp->bp_len = sdp->len;";
 
   s.op->newline() << "probe_point = sdp->probe->pp;"; // for error messages
+  s.op->newline() << "#ifdef STAPCONF_HW_BREAKPOINT_CONTEXT";
+  s.op->newline() << "stap_hwbkpt_ret_array[i] = register_wide_hw_breakpoint(hp, (void *)&enter_hwbkpt_probe, NULL);";
+  s.op->newline() << "#else";
   s.op->newline() << "stap_hwbkpt_ret_array[i] = register_wide_hw_breakpoint(hp, (void *)&enter_hwbkpt_probe);";
+  s.op->newline() << "#endif";
   s.op->newline() << "rc = 0;";
   s.op->newline() << "if (IS_ERR(stap_hwbkpt_ret_array[i])) {";
   s.op->newline(1) << "rc = PTR_ERR(stap_hwbkpt_ret_array[i]);";

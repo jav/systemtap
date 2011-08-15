@@ -1,5 +1,5 @@
-# Don't attempt these tests if the client/server are not available
 # Start a systemtap server, if one is not already started.
+# Don't attempt these tests if the client/server are not available
 if {! [use_server_p]} then {
     if {! [setup_server]} then {
 	untested "Server Tests"

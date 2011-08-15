@@ -15,7 +15,7 @@ if [ ! -d ../../tapset/ ]; then
 	echo "Error: tapsets directory doesn't exist!"
 	exit 1
 fi
-(cd ../../tapset/; ls -R) | grep "\.stp" > checkfile1
+(cd ../../tapset/; ls -R) | grep "\.stp$" > checkfile1
 #might as well check for the functions that are documented in
 #langref now too
 grep -H sfunction ../../tapset/* | sed 's/..\/..\/tapset\///g' | cut -d : -f 1 | sort -d | uniq  > tap1

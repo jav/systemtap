@@ -124,6 +124,7 @@ systemtap_session::systemtap_session ():
   tapset_compile_coverage = false;
   need_uprobes = false;
   need_unwind = false;
+  need_symbols = false;
   uprobes_path = "";
   consult_symtab = false;
   ignore_vmlinux = false;
@@ -284,6 +285,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   tapset_compile_coverage = other.tapset_compile_coverage;
   need_uprobes = false;
   need_unwind = false;
+  need_symbols = false;
   uprobes_path = "";
   consult_symtab = other.consult_symtab;
   ignore_vmlinux = other.ignore_vmlinux;
@@ -619,7 +621,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         case 'G':
           // Make sure the global option is only composed of the
           // following chars: [_=a-zA-Z0-9]
-          assert_regexp_match("-G parameter", optarg, "^[a-z_][a-z0-9_]+=[a-z0-9_-]+$");
+          assert_regexp_match("-G parameter", optarg, "^[a-z_][a-z0-9_]*=[a-z0-9_-]+$");
 
           globalopts.push_back (string(optarg));
           break;
