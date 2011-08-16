@@ -49,7 +49,7 @@ The Systemtap module input and output handler.
 .TP
 sdt.h Path: @oldincludedir@/include/sys/std.h
 .TP
-Debuginfo Path: /usr/lib/debug/lib/modules/Kernel-Debuginfo-Version/
+Kernel debuginfo Path: /usr/lib/debug/lib/modules/$(uname -r)/
 The location of kernel debugging information when packaged into the
 .IR kernel\-debuginfo
 RPM, unless overridden by the
