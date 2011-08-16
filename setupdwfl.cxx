@@ -25,6 +25,13 @@ extern "C" {
 #include <fnmatch.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <time.h>
+#include <sys/times.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <limits.h>
 }
 
 // XXX: also consider adding $HOME/.debug/ for perf build-id-cache
@@ -466,6 +473,7 @@ internal_find_debuginfo (Dwfl_Module *mod,
 {
   int bits_length;
   string hex;
+
   /* To Keep track of whether the abrt successfully installed the debuginfo */
   static int install_dbinfo_failed = 0;
 
@@ -473,11 +481,15 @@ internal_find_debuginfo (Dwfl_Module *mod,
   if(current_session_for_find_debuginfo == NULL)
     goto call_dwfl_standard_find_debuginfo;
 
+  /* Check to see if download-debuginfo=0 was set */
+  if(!current_session_for_find_debuginfo->download_dbinfo)
+    goto call_dwfl_standard_find_debuginfo;
+
   /* Check that we haven't already run this */
   if (install_dbinfo_failed < 0)
     {
-      if(current_session_for_find_debuginfo->verbose > 1)
-        clog << _F("We already tried running '%s'", ABRT_PATH) << endl;
+      if(current_session_for_find_debuginfo->verbose > 1 && !current_session_for_find_debuginfo->suppress_warnings)
+        current_session_for_find_debuginfo->print_warning( _F("We already tried running '%s'", ABRT_PATH));
       goto call_dwfl_standard_find_debuginfo;
     }
 
@@ -508,12 +520,34 @@ internal_find_debuginfo (Dwfl_Module *mod,
   to download and install the debuginfo */
   if(current_session_for_find_debuginfo->verbose > 1)
     clog << _F("Downloading and installing debuginfo with build ID: '%s' using %s.", hex.c_str(), ABRT_PATH) << endl;
+
+  struct tms tms_before;
+  times (& tms_before);
+  struct timeval tv_before;
+  struct tms tms_after;
+  unsigned _sc_clk_tck;
+  struct timeval tv_after;
+  gettimeofday (&tv_before, NULL);
+
   if(execute_abrt_action_install_debuginfo_to_abrt_cache (hex) < 0)
     {
       install_dbinfo_failed = -1;
       if (!current_session_for_find_debuginfo->suppress_warnings)
-        current_session_for_find_debuginfo->print_warning(ABRT_PATH " failed");
+        current_session_for_find_debuginfo->print_warning(_F("%s failed.", ABRT_PATH));
+      goto call_dwfl_standard_find_debuginfo;
     }
+
+  _sc_clk_tck = sysconf (_SC_CLK_TCK);
+  times (& tms_after);
+  gettimeofday (&tv_after, NULL);
+  if(current_session_for_find_debuginfo->verbose > 1)
+    clog << _("Download completed in ")
+              << ((tms_after.tms_cutime + tms_after.tms_utime
+              - tms_before.tms_cutime - tms_before.tms_utime) * 1000 / (_sc_clk_tck)) << "usr/"
+              << ((tms_after.tms_cstime + tms_after.tms_stime
+              - tms_before.tms_cstime - tms_before.tms_stime) * 1000 / (_sc_clk_tck)) << "sys/"
+              << ((tv_after.tv_sec - tv_before.tv_sec) * 1000 +
+              ((long)tv_after.tv_usec - (long)tv_before.tv_usec) / 1000) << "real ms"<< endl;
 
   call_dwfl_standard_find_debuginfo:
 
@@ -530,11 +564,77 @@ execute_abrt_action_install_debuginfo_to_abrt_cache (string hex)
   /* Check that abrt exists */
   if(access (ABRT_PATH, X_OK) < 0)
       return -1;
-
-  /* Execute abrt-action-install-debuginfo-to-abrt-cache */
+  
+  int timeout = current_session_for_find_debuginfo->download_dbinfo;;
   vector<string> cmd;
   cmd.push_back ("/bin/sh");
   cmd.push_back ("-c");
-  cmd.push_back ("echo " + hex + " | " + ABRT_PATH + " -y --ids=-");
-  return stap_system (current_session_for_find_debuginfo->verbose, cmd, true, false);
+  
+  /* NOTE: abrt does not currently work with asking for confirmation
+   * in version abrt-2.0.3-1.fc15.x86_64, Bugzilla: BZ726192 */
+  if(current_session_for_find_debuginfo->download_dbinfo == -1)
+    {
+      cmd.push_back ("echo " + hex + " | " + ABRT_PATH + " --ids=-");
+      timeout = INT_MAX; 
+      if(!current_session_for_find_debuginfo->suppress_warnings)
+        current_session_for_find_debuginfo->print_warning(_("Due to bug in abrt, it may continue downloading anyway without asking for confirmation."));
+    }
+  else
+    cmd.push_back ("echo " + hex + " | " + ABRT_PATH + " -y --ids=-");
+ 
+  /* NOTE: abrt does not allow canceling the download process at the moment
+   * in version abrt-2.0.3-1.fc15.x86_64, Bugzilla: BZ730107 */
+  if(timeout != INT_MAX && !current_session_for_find_debuginfo->suppress_warnings)
+    current_session_for_find_debuginfo->print_warning(_("Due to a bug in abrt, it  may continue downloading after stopping stap if download times out."));
+  
+  int pid;
+  if(current_session_for_find_debuginfo->verbose > 1 ||  current_session_for_find_debuginfo->download_dbinfo == -1)
+    /* Execute abrt-action-install-debuginfo-to-abrt-cache, 
+     * showing output from abrt */
+    pid = stap_spawn(current_session_for_find_debuginfo->verbose, cmd, NULL);
+  else
+    {
+      /* Execute abrt-action-install-debuginfo-to-abrt-cache,
+       * without showing output from abrt */
+      posix_spawn_file_actions_t fa;
+      if (posix_spawn_file_actions_init(&fa) != 0)
+        return -1;
+      if(posix_spawn_file_actions_addopen(&fa, 1, "/dev/null", O_WRONLY, 0) != 0)
+        {
+          posix_spawn_file_actions_destroy(&fa);
+          return -1;
+        }
+      pid = stap_spawn(current_session_for_find_debuginfo->verbose, cmd, &fa);
+      posix_spawn_file_actions_destroy(&fa);
+    }
+
+  /* Check to see if either the program successfully completed, or if it timed out. */
+  int rstatus = 0;
+  int timer = 0;
+  int rc = 0;
+  while(timer < timeout)
+    {
+      sleep(1); 
+      rc = waitpid(pid, &rstatus, WNOHANG);
+      if(rc < 0)
+        return -1;
+      if (rc > 0 && WIFEXITED(rstatus)) 
+        break;
+      if(pending_interrupts) 
+        return -1;
+      timer++;
+    }
+  if(timer == timeout)
+    {
+      /* Timed out! */
+      kill(-pid, SIGINT);
+      if (!current_session_for_find_debuginfo->suppress_warnings)
+        current_session_for_find_debuginfo->print_warning(_("Aborted downloading debuginfo: timed out."));
+      return -1;
+    }
+
+  /* Successfully finished downloading! */
+  if(current_session_for_find_debuginfo->verbose > 1 || current_session_for_find_debuginfo->download_dbinfo == -1)
+     clog << _("Download Completed Successfully!") << endl;
+  return 0;
 }
