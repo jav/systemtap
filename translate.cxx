@@ -4966,8 +4966,12 @@ dump_unwindsyms (Dwfl_Module *m,
 
   for (int i = 0; i < syments; ++i)
     {
+      if (pending_interrupts)
+        return DWARF_CB_ABORT;
+
       GElf_Sym sym;
       GElf_Word shndxp;
+
       const char *name = dwfl_module_getsym(m, i, &sym, &shndxp);
       if (name)
         {
@@ -5123,7 +5127,7 @@ dump_unwindsyms (Dwfl_Module *m,
         for (size_t i = 0; i < debug_len; i++)
           {
             int h = ((uint8_t *)debug_frame)[i];
-            c->output << "0x" << hex << h << dec << ",";
+            c->output << h << ","; // decimal is less wordy than hex
             if ((i + 1) % 16 == 0)
               c->output << "\n" << "   ";
           }
@@ -5172,7 +5176,7 @@ dump_unwindsyms (Dwfl_Module *m,
         for (size_t i = 0; i < eh_frame_hdr_len; i++)
           {
             int h = ((uint8_t *)eh_frame_hdr)[i];
-            c->output << "0x" << hex << h << dec << ",";
+            c->output << h << ","; // decimal is less wordy than hex
             if ((i + 1) % 16 == 0)
               c->output << "\n" << "   ";
           }
@@ -5240,7 +5244,7 @@ dump_unwindsyms (Dwfl_Module *m,
 		for (size_t i = 0; i < debug_frame_hdr_len; i++)
 		  {
 		    int h = ((uint8_t *)debug_frame_hdr)[i];
-		    c->output << "0x" << hex << h << dec << ",";
+                    c->output << h << ","; // decimal is less wordy than hex
 		    if ((i + 1) % 16 == 0)
 		      c->output << "\n" << "   ";
 		  }
