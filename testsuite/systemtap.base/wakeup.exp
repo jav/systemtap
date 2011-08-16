@@ -1,0 +1,24 @@
+set test "wakeup"
+
+if {![installtest_p]} {untested $test; return}
+
+# There have been issues with kernel probes put into the wake_up path.
+# see http://sourceware.org/ml/systemtap/2011-q3/msg00163.html
+spawn stap -DMAXERRORS=8 $srcdir/$subdir/$test.stp -c {ls -laR /dev/* /proc/* > /dev/null 2>&1}
+set systems 0
+set warns 0
+set errors 0
+set prints 0
+expect {
+    -timeout 180
+    -re {^sleeping\r\n} { incr systems; exp_continue }
+    -re {^WARNING: wake_up\r\n} { incr warns; exp_continue }
+    -re {^ERROR: wake_down\r\n} { incr errors; exp_continue }
+    -re {^count: 25\r\n} { incr prints; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+
+# WARNINGs get collapsed, so only 1 expected.
+if {$systems == 8 && $warns == 1 && $errors == 8 && $prints == 1} { pass "$test" } { fail "$test ($systems,$warns,$errors,$prints)" }
