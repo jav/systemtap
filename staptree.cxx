@@ -1570,9 +1570,10 @@ classify_indexable(indexable* ix,
 {
   array_out = NULL;
   hist_out = NULL;
+  assert(ix != NULL);
   if (!(ix->is_symbol (array_out) || ix->is_hist_op (hist_out)))
     throw semantic_error(_("Expecting symbol or histogram operator"), ix->get_tok());
-  if (ix && !(hist_out || array_out))
+  if (!(hist_out || array_out))
     throw semantic_error(_("Failed to classify indexable"), ix->get_tok());
 }
 
