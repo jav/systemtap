@@ -197,7 +197,9 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 	}
 
 	/* print the current address */
-	if (c->probe_type == _STP_PROBE_HANDLER_KRETPROBE && c->ips.krp.pi) {
+	if (stack_flags == _STP_STACK_KERNEL
+	    && c->probe_type == _STP_PROBE_HANDLER_KRETPROBE
+	    && c->ips.krp.pi) {
 		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			_stp_print_addr((unsigned long)_stp_probe_addr_r(c->ips.krp.pi),
@@ -207,7 +209,9 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 		_stp_print_addr((unsigned long)_stp_ret_addr_r(c->ips.krp.pi),
 				sym_flags, tsk);
 #ifdef STAPCONF_UPROBE_GET_PC
-	} else if (c->probe_type == _STP_PROBE_HANDLER_URETPROBE && ri) {
+	} else if (stack_flags == _STP_STACK_USER
+		   && c->probe_type == _STP_PROBE_HANDLER_URETPROBE
+		   && ri) {
 		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			/* ... otherwise this dereference fails */

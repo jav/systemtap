@@ -454,7 +454,7 @@ BUILT_SOURCES = git_version.stamp $(am__append_20)
 CLEANFILES = git_version.h $(am__append_21) $(pkglibexec_PROGRAMS)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
 PHONIES = $(am__append_17) $(am__append_23) runcheck update-po \
-	dist-gzip uprobes install-uprobes
+	dist-gzip rpm srpm uprobes install-uprobes
 @BUILD_TRANSLATOR_TRUE@stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ \
 @BUILD_TRANSLATOR_TRUE@	-D_FILE_OFFSET_BITS=64 $(am__append_13)
 @BUILD_TRANSLATOR_TRUE@stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ \
@@ -2193,6 +2193,10 @@ rpm: dist-gzip
 	mkdir -p `rpm --eval %_builddir`
 	mkdir -p `rpm --eval %_buildroot`
 	rpmbuild --define "_sourcedir $(PWD)/" -ta systemtap-$(VERSION).tar.gz $(RPMBUILDFLAGS)
+
+srpm: dist-gzip
+	mkdir -p `rpm --eval %_srcrpmdir`
+	rpmbuild --define "_sourcedir $(PWD)/" -ts systemtap-$(VERSION).tar.gz $(RPMBUILDFLAGS)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

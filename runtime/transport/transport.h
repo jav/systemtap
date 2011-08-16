@@ -11,8 +11,6 @@
 /* amount of data a print can send. */
 #define STP_BUFFER_SIZE 8192
 
-static void _stp_request_exit(void);
-
 /* STP_CTL_BUFFER_SIZE is the maximum size of a message */
 /* exchanged on the control channel. */
 #if STP_TRANSPORT_VERSION == 1

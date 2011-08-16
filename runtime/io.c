@@ -99,8 +99,10 @@ static void _stp_warn (const char *fmt, ...)
  */
 static void _stp_exit (void)
 {
+	/* Just set the flag since this is possibly called from
+	   kprobe context. A timer will come along and call
+	   _stp_request_exit() for us.  */
 	_stp_exit_flag = 1;
-	wake_up_interruptible(&_stp_ctl_wq);
 }
 
 /** Prints error message and exits.

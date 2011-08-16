@@ -1,0 +1,13 @@
+global count;
+probe kernel.function("__wake_up_common")
+{
+  count++
+  if (count <= 8)
+    { system("echo sleeping") }
+  else if (count <= 16)
+    { warn("wake_up") }
+  else if (count <= 24)
+    { error("wake_down") }
+  else
+    { printf("count: %d\n", count); exit() }
+}

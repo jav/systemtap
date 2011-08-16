@@ -357,7 +357,7 @@ update-po:
 #     --define "with_bundled_elfutils 1" --define "elfutils_version 0.135"
 RPMBUILDFLAGS=
 
-PHONIES += dist-gzip
+PHONIES += dist-gzip rpm srpm
 
 PHONIES += uprobes install-uprobes
 uprobes:
@@ -378,5 +378,9 @@ rpm: dist-gzip
 	mkdir -p `rpm --eval %_builddir`
 	mkdir -p `rpm --eval %_buildroot`
 	rpmbuild --define "_sourcedir $(PWD)/" -ta systemtap-$(VERSION).tar.gz $(RPMBUILDFLAGS)
+
+srpm: dist-gzip
+	mkdir -p `rpm --eval %_srcrpmdir`
+	rpmbuild --define "_sourcedir $(PWD)/" -ts systemtap-$(VERSION).tar.gz $(RPMBUILDFLAGS)
 
 ACLOCAL_AMFLAGS = -I m4
