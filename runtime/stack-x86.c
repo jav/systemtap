@@ -66,7 +66,8 @@ static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
 		 * trampolines? PR9999. */
 		if ((ret < 0 || UNW_PC(info) == _stp_kretprobe_trampoline)
 		    && ! tsk)
-			_stp_stack_print_fallback(UNW_SP(info), verbose, levels);
+			_stp_stack_print_fallback(UNW_SP(info),
+						  verbose, levels, 0);
 		return;
 	}
 #endif
