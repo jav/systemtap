@@ -1,0 +1,28 @@
+probe begin {
+    println(pp())
+
+    // Print our process chain, should be stapio, stapsh, socat
+    for (t = task_current(); t && task_parent(t) != t;
+            t = task_parent(t)) {
+        name = task_execname(t)
+        println("^ ", name)
+        if (name == "socat") {
+            break
+        }
+    }
+}
+
+probe timer.s(1) {
+    println(pp())
+    exit()
+}
+
+probe timer.s(10) {
+    println(pp())
+    println("timeout!")
+    exit()
+}
+
+probe end {
+    println(pp())
+}

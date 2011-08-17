@@ -14,6 +14,8 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 }
 
 #include <cstdio>
@@ -134,63 +136,76 @@ class stapsh : public remote {
     virtual void handle_poll(vector<pollfd>& fds)
       {
         for (unsigned i=0; i < fds.size(); ++i)
-          if (fds[i].revents)
+          if (fds[i].fd == fdin || fds[i].fd == fdout)
             {
-              if (fdout >= 0 && OUT && fds[i].fd == fdout)
-                {
-                  if (fds[i].revents & POLLIN)
-                    {
-                      char buf[4096];
-                      if (!prefix.empty())
-                        {
-                          // If we have a line prefix, then read lines one at a
-                          // time and copy out with the prefix.
-                          errno = 0;
-                          while (fgets(buf, sizeof(buf), OUT))
-                            cout << prefix << buf;
-                          if (errno == EAGAIN)
-                            continue;
-                        }
-                      else
-                        {
-                          // Otherwise read an entire block of data at once.
-                          size_t rc = fread(buf, 1, sizeof(buf), OUT);
-                          if (rc > 0)
-                            {
-                              // NB: The buf could contain binary data,
-                              // including \0, so write as a block instead of
-                              // the usual <<string.
-                              cout.write(buf, rc);
-                              continue;
-                            }
-                        }
-                    }
-                  close();
-                }
+              bool err = false;
 
               // need to send a signal?
-              if (fdin >= 0 && IN && fds[i].fd == fdin &&
+              if (fds[i].revents & POLLOUT && IN &&
                   interrupts_sent < pending_interrupts)
                 {
-                  if (fds[i].revents & POLLOUT)
-                    {
-                      if (send_command("quit\n") == 0)
-                        {
-                          ++interrupts_sent;
-                          continue;
-                        }
-                    }
-                  close();
+                  if (send_command("quit\n") == 0)
+                    ++interrupts_sent;
+                  else
+                    err = true;
                 }
+
+              // have data to read?
+              if (fds[i].revents & POLLIN && OUT)
+                {
+                  char buf[4096];
+                  if (!prefix.empty())
+                    {
+                      // If we have a line prefix, then read lines one at a
+                      // time and copy out with the prefix.
+                      errno = 0;
+                      while (fgets(buf, sizeof(buf), OUT))
+                        cout << prefix << buf;
+                      if (errno != EAGAIN)
+                        err = true;
+                    }
+                  else
+                    {
+                      // Otherwise read an entire block of data at once.
+                      size_t rc = fread(buf, 1, sizeof(buf), OUT);
+                      if (rc > 0)
+                        {
+                          // NB: The buf could contain binary data,
+                          // including \0, so write as a block instead of
+                          // the usual <<string.
+                          cout.write(buf, rc);
+                        }
+                      else
+                        err = true;
+                    }
+                }
+
+              // any errors?
+              if (err || fds[i].revents & ~(POLLIN|POLLOUT))
+                close();
             }
       }
 
     string get_reply()
       {
+        // Some schemes like unix may have stdout and stderr mushed together.
+        // There shouldn't be anything except dbug messages on stderr before we
+        // actually start running, and there's no get_reply after that.  So
+        // we'll just loop and skip those that start with "stapsh:".
         char reply[4096];
-        if (!fgets(reply, sizeof(reply), OUT))
-          reply[0] = '\0';
-        return reply;
+        while (fgets(reply, sizeof(reply), OUT))
+          {
+            if (!startswith(reply, "stapsh:"))
+              return reply;
+
+            // Why not clog here?  Well, once things get running we won't be
+            // able to distinguish stdout/err, so trying to fake it here would
+            // be less consistent than just keeping it merged.
+            cout << reply;
+          }
+
+        // Reached EOF, nothing to reply...
+        return "";
       }
 
     int send_command(const string& cmd)
@@ -452,6 +467,66 @@ class direct_stapsh : public stapsh {
     friend class remote;
 
     virtual ~direct_stapsh() { finish(); }
+};
+
+
+// Connect to an existing stapsh on a unix socket.
+class unix_stapsh : public stapsh {
+  private:
+
+    unix_stapsh(systemtap_session& s, const uri_decoder& ud)
+      : stapsh(s)
+      {
+        sockaddr_un server;
+        server.sun_family = AF_UNIX;
+        if (ud.path.empty())
+          throw runtime_error(_("unix target requires a /path"));
+        if (ud.path.size() > sizeof(server.sun_path) - 1)
+          throw runtime_error(_("unix target /path is too long"));
+        strcpy(server.sun_path, ud.path.c_str());
+
+        if (ud.has_authority)
+          throw runtime_error(_("unix target doesn't support a hostname"));
+        if (ud.has_query)
+          throw runtime_error(_("unix target URI doesn't support a ?query"));
+        if (ud.has_fragment)
+          throw runtime_error(_("unix target URI doesn't support a #fragment"));
+
+        int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (fd <= 0)
+          throw runtime_error(_("error opening a socket"));
+
+        if (connect(fd, (struct sockaddr *)&server, SUN_LEN(&server)) < 0)
+          {
+            const char *msg = strerror(errno);
+            ::close(fd);
+            throw runtime_error(_F("error connecting to socket: %s", msg));
+          }
+
+        // Try to dup it, so class stapsh can have truly separate fds for its
+        // fdopen handles.  If it fails for some reason, it can still work with
+        // just one though.
+        int fd2 = dup(fd);
+        if (fd2 < 0)
+          fd2 = fd;
+
+        try
+          {
+            set_child_fds(fd, fd2);
+          }
+        catch (runtime_error&)
+          {
+            finish();
+            ::close(fd);
+            ::close(fd2);
+            throw;
+          }
+      }
+
+  public:
+    friend class remote;
+
+    virtual ~unix_stapsh() { finish(); }
 };
 
 
@@ -823,6 +898,8 @@ remote::create(systemtap_session& s, const string& uri)
             return new direct(s);
           else if (ud.scheme == "stapsh")
             return new direct_stapsh(s);
+          else if (ud.scheme == "unix")
+            return new unix_stapsh(s, ud);
           if (ud.scheme == "ssh")
             return ssh_remote::create(s, ud);
           else
