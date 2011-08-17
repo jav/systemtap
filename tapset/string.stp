@@ -25,8 +25,10 @@ function strlen:long(s:string) %{ /* pure */ /* unprivileged */
  * @start: starting position of the extracted string (first character is 0)
  * @length: length of string to return
  *
- * Description: Returns the substring of the up to the given length
- * starting at the given start position and ending at given stop position.
+ * Description: Returns the substring of the given string at the given
+ * start position with the given length (or smaller if the length of the
+ * original string is less than start + length, or length is bigger than
+ * MAXSTRINGLEN).
  */
 function substr:string(str:string,start:long, length:long) %{ /* pure */ /* unprivileged */
 	int64_t length = clamp_t(int64_t, THIS->length + 1, 0, MAXSTRINGLEN);
