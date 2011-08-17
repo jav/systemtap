@@ -7428,7 +7428,9 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "probe_point = sdp->probe->pp;"; // for error messages
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "kp->u.krp.kp.addr = addr;";
+  s.op->newline() << "#ifdef STAPCONF_KPROBE_SYMBOL_NAME";
   s.op->newline() << "kp->u.krp.kp.symbol_name = (char *) symbol_name;";
+  s.op->newline() << "#endif";
   s.op->newline() << "if (sdp->maxactive_p) {";
   s.op->newline(1) << "kp->u.krp.maxactive = sdp->maxactive_val;";
   s.op->newline(-1) << "} else {";
@@ -7438,7 +7440,9 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   // to ensure safeness of bspcache, always use aggr_kprobe on ia64
   s.op->newline() << "#ifdef __ia64__";
   s.op->newline() << "kp->dummy.addr = kp->u.krp.kp.addr;";
+  s.op->newline() << "#ifdef STAPCONF_KPROBE_SYMBOL_NAME";
   s.op->newline() << "kp->dummy.symbol_name = kp->u.krp.kp.symbol_name;";
+  s.op->newline() << "#endif";
   s.op->newline() << "kp->dummy.pre_handler = NULL;";
   s.op->newline() << "rc = register_kprobe (& kp->dummy);";
   s.op->newline() << "if (rc == 0) {";
@@ -7452,12 +7456,16 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(-1) << "} else {";
   // to ensure safeness of bspcache, always use aggr_kprobe on ia64
   s.op->newline(1) << "kp->u.kp.addr = addr;";
+  s.op->newline() << "#ifdef STAPCONF_KPROBE_SYMBOL_NAME";
   s.op->newline() << "kp->u.kp.symbol_name = (char *) symbol_name;";
+  s.op->newline() << "#endif";
   s.op->newline() << "kp->u.kp.pre_handler = &enter_kprobe2_probe;";
   s.op->newline() << "#ifdef __ia64__";
   s.op->newline() << "kp->dummy.pre_handler = NULL;";
   s.op->newline() << "kp->dummy.addr = kp->u.kp.addr;";
+  s.op->newline() << "#ifdef STAPCONF_KPROBE_SYMBOL_NAME";
   s.op->newline() << "kp->dummy.symbol_name = kp->u.kp.symbol_name;";
+  s.op->newline() << "#endif";
   s.op->newline() << "rc = register_kprobe (& kp->dummy);";
   s.op->newline() << "if (rc == 0) {";
   s.op->newline(1) << "rc = register_kprobe (& kp->u.kp);";

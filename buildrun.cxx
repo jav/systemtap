@@ -207,6 +207,7 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-x86-uniregs.c", "STAPCONF_X86_UNIREGS", NULL);
   output_autoconf(s, o, "autoconf-nameidata.c", "STAPCONF_NAMEIDATA_CLEANUP", NULL);
   output_autoconf(s, o, "autoconf-unregister-kprobes.c", "STAPCONF_UNREGISTER_KPROBES", NULL);
+  output_autoconf(s, o, "autoconf-kprobe-symbol-name.c", "STAPCONF_KPROBE_SYMBOL_NAME", NULL);
   output_autoconf(s, o, "autoconf-real-parent.c", "STAPCONF_REAL_PARENT", NULL);
   output_autoconf(s, o, "autoconf-uaccess.c", "STAPCONF_LINUX_UACCESS_H", NULL);
   output_autoconf(s, o, "autoconf-oneachcpu-retry.c", "STAPCONF_ONEACHCPU_RETRY", NULL);
