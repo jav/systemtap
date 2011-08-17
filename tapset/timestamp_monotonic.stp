@@ -55,6 +55,7 @@ function cpu_clock_ns:long (cpu:long) %{ /* pure */ /* unprivileged */
 
 /**
  * sfunction cpu_clock_us - Number of microseconds on the given cpu's clock
+ * @cpu: Which processor's clock to read
  *
  * Description: This function returns the number of microseconds on the given
  * cpu's clock.  This is always monotonic comparing on the same cpu, but may
@@ -66,6 +67,7 @@ function cpu_clock_us:long (cpu:long) {
 
 /**
  * sfunction cpu_clock_ms - Number of milliseconds on the given cpu's clock
+ * @cpu: Which processor's clock to read
  *
  * Description: This function returns the number of milliseconds on the given
  * cpu's clock.  This is always monotonic comparing on the same cpu, but may
@@ -77,6 +79,7 @@ function cpu_clock_ms:long (cpu:long) {
 
 /**
  * sfunction cpu_clock_s - Number of seconds on the given cpu's clock
+ * @cpu: Which processor's clock to read
  *
  * Description: This function returns the number of seconds on the given cpu's
  * clock.  This is always monotonic comparing on the same cpu, but may have
