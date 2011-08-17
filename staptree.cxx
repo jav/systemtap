@@ -111,7 +111,7 @@ probe_point::probe_point ():
 unsigned probe::last_probeidx = 0;
 
 probe::probe ():
-  body (0), tok (0), systemtap_v_conditional (0)
+  body (0), tok (0), systemtap_v_conditional (0), privileged (false)
 {
   this->name = string ("probe_") + lex_cast(last_probeidx ++);
 }
@@ -134,13 +134,13 @@ probe::probe(const probe& p, probe_point* l)
 
 
 probe_point::component::component ():
-  arg (0)
+  arg (0), tok(0)
 {
 }
 
 
 probe_point::component::component (std::string const & f, literal * a):
-  functor(f), arg(a)
+  functor(f), arg(a), tok(0)
 {
 }
 
@@ -1173,7 +1173,7 @@ string probe_point::str (bool print_extras) const
 
 
 probe_alias::probe_alias(std::vector<probe_point*> const & aliases):
-  probe (), alias_names (aliases)
+  probe (), alias_names (aliases), epilogue_style(false)
 {
 }
 

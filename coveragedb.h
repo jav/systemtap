@@ -68,7 +68,7 @@ public:
 
   coverage_element(source_loc &place):
     file(place.file->name), line(place.line), col(place.column),
-    compiled(0), executed(0) {}
+    type(0), compiled(0), executed(0) {}
 };
 
 

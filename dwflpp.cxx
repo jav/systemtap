@@ -71,7 +71,8 @@ static string TOK_KERNEL("kernel");
 dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
   sess(session), module(NULL), module_bias(0), mod_info(NULL),
   module_start(0), module_end(0), cu(NULL),
-  module_dwarf(NULL), function(NULL), blacklist_enabled(false)
+  module_dwarf(NULL), function(NULL), blacklist_func(), blacklist_func_ret(),
+  blacklist_file(),  blacklist_enabled(false)
 {
   if (kernel_p)
     setup_kernel(name);

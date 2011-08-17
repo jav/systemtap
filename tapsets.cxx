@@ -424,9 +424,10 @@ protected:
                       probe_point *location,
                       Dwarf_Addr addr,
                       bool has_return):
-    derived_probe(base, location), addr(addr), has_return(has_return),
-    has_maxactive(0), maxactive_val(0), access_vars(false),
-    saved_longs(0), saved_strings(0), entry_handler(0)
+    derived_probe(base, location), addr(addr), has_process(0),
+    has_return(has_return), has_maxactive(0), has_library(0),
+    maxactive_val(0), access_vars(false), saved_longs(0),
+    saved_strings(0), entry_handler(0)
   {}
 
 private:
@@ -523,7 +524,7 @@ struct base_query
 
 
 base_query::base_query(dwflpp & dw, literal_map_t const & params):
-  sess(dw.sess), dw(dw)
+  sess(dw.sess), dw(dw), has_library(false)
 {
   has_kernel = has_null_param (params, TOK_KERNEL);
   if (has_kernel)
@@ -555,7 +556,7 @@ base_query::base_query(dwflpp & dw, literal_map_t const & params):
 }
 
 base_query::base_query(dwflpp & dw, const string & module_val)
-  : sess(dw.sess), dw(dw), module_val(module_val)
+  : sess(dw.sess), dw(dw), has_library(false), module_val(module_val)
 {
   // NB: This uses '/' to distinguish between kernel modules and userspace,
   // which means that userspace modules won't get any PATH searching.
@@ -757,7 +758,8 @@ dwarf_query::dwarf_query(probe * base_probe,
 			 const string user_lib)
   : base_query(dw, params), results(results),
     base_probe(base_probe), base_loc(base_loc),
-    user_path(user_path), user_lib(user_lib)
+    user_path(user_path), user_lib(user_lib), has_relative(false),
+    relative_val(0), choose_next_line(false), entrypc_for_next_line(0)
 {
   // Reduce the query to more reasonable semantic values (booleans,
   // extracted strings, numbers, etc).
@@ -2045,7 +2047,7 @@ private:
 unsigned var_expanding_visitor::tick = 0;
 
 
-var_expanding_visitor::var_expanding_visitor ()
+var_expanding_visitor::var_expanding_visitor (): op()
 {
   // FIXME: for the time being, by default we only support plain '$foo
   // = bar', not '+=' or any other op= variant. This is fixable, but a
@@ -5466,8 +5468,10 @@ private:
 sdt_query::sdt_query(probe * base_probe, probe_point * base_loc,
                      dwflpp & dw, literal_map_t const & params,
                      vector<derived_probe *> & results, const string user_lib):
-  base_query(dw, params), base_probe(base_probe),
-  base_loc(base_loc), params(params), results(results), user_lib(user_lib)
+  base_query(dw, params), probe_type(probe_type), probe_loc(probe_loc), base_probe(base_probe),
+  base_loc(base_loc), params(params), results(results), user_lib(user_lib),
+  probe_scn_offset(0), probe_scn_addr(0), arg_count(0), base(0), pc(0),
+  semaphore(0)
 {
   assert(get_string_param(params, TOK_MARK, pp_mark));
   get_string_param(params, TOK_PROVIDER, pp_provider); // pp_provider == "" -> unspecified

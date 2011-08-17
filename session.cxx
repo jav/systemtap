@@ -331,6 +331,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   server_args = other.server_args;
 
   unwindsym_modules = other.unwindsym_modules;
+  automatic_server_mode = other.automatic_server_mode;
 }
 
 systemtap_session::~systemtap_session ()
