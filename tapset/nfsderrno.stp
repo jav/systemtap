@@ -115,6 +115,13 @@
 #endif
 %}
 
+/**
+ * sfunction nfsderror - Convert nfsd error number into string
+ * @err: errnum
+ *
+ * Description: This function returns a string for the error number
+ * passed into the function.
+ */
 function nfsderror:string(err:long) 
 %{
 	static struct {
