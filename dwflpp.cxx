@@ -3002,21 +3002,14 @@ dwflpp::build_blacklist()
   blfn += "|sync_regs";
   blfn += "|unhandled_fault";
   blfn += "|unknown_nmi_error";
-  blfn += "|xen_set_debugreg";
-  blfn += "|xen_get_debugreg";
-  blfn += "|xen_irq_enable_direct_reloc";
-  blfn += "|xen_irq_disable_direct";
-  blfn += "|xen_irq_disable_direct_end";
-  blfn += "|xen_save_fl_direct";
-  blfn += "|xen_restore_fl_direct_reloc";
+  blfn += "|xen_[gs]et_debugreg";
+  blfn += "|xen_irq_.*";
+  blfn += "|xen_.*_fl_direct.*";
   blfn += "|check_events";
   blfn += "|xen_adjust_exception_frame";
-  blfn += "|xen_iret";
-  blfn += "|xen_iret_reloc";
-  blfn += "|xen_sysret64";
-  blfn += "|xen_sysret64_reloc";
-  blfn += "|test_ti_thread_flag.clone.16";
-  blfn += "|hash_ptr.clone.12";
+  blfn += "|xen_iret.*";
+  blfn += "|xen_sysret64.*";
+  blfn += "|test_ti_thread_flag.*";
   blfn += "|inat_get_opcode_attribute";
   blfn += "|system_call_after_swapgs";
 
