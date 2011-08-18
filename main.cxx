@@ -358,6 +358,10 @@ int parse_kernel_exports (systemtap_session &s)
           tokens[2] == "vmlinux" &&
           tokens[3].substr(0,13) == string("EXPORT_SYMBOL"))
         s.kernel_exports.insert (tokens[1]);
+      // RHEL4 Module.symvers file only has 3 tokens.  No
+      // 'EXPORT_SYMBOL' token at the end of the line.
+      else if (tokens.size() == 3 && tokens[2] == "vmlinux")
+        s.kernel_exports.insert (tokens[1]);
     }
   if (s.verbose > 2)
     clog << _F(ngettext("Parsed kernel %s, which contained one vmlinux export",
