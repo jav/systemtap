@@ -249,8 +249,9 @@ compile_pass (systemtap_session& s)
 		  "STAPCONF_PERF_COUNTER_CONTEXT", NULL);
   output_autoconf(s, o, "perf_probe_handler_nmi.c",
 		  "STAPCONF_PERF_HANDLER_NMI", NULL);
-  output_autoconf(s, o, "autoconf-kern-path-parent.c",
-		  "STAPCONF_KERN_PATH_PARENT", NULL);
+  output_exportconf(s, o, "path_lookup", "STAPCONF_PATH_LOOKUP");
+  output_exportconf(s, o, "kern_path_parent", "STAPCONF_KERN_PATH_PARENT");
+  output_exportconf(s, o, "vfs_path_lookup", "STAPCONF_VFS_PATH_LOOKUP");
 
   // used by tapset/timestamp_monotonic.stp
   output_exportconf(s, o, "cpu_clock", "STAPCONF_CPU_CLOCK");
