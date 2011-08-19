@@ -1,7 +1,7 @@
 // rpc tapset
 // Copyright (C) 2006 IBM Corp.
 // Copyright (C) 2007 Bull S.A.S
-// Copyright (C) 2008, 2010 Red Hat
+// Copyright (C) 2008, 2010, 2011 Red Hat
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -76,6 +76,10 @@ probe sunrpc.clnt.return =
  *  rpc_create_client(struct rpc_xprt *xprt, char *servname, 
  *  	struct rpc_program *info, u32 version, 
  * 	rpc_authflavor_t authflavor)
+ */
+
+/**
+ * probe sunrpc.clnt.create_client - Create an RPC client
  *
  *  @servername: the server machine name
  *  @progname:   the RPC program name
@@ -254,11 +258,9 @@ probe _sunrpc.clnt.create_client.return.rpc_create_client =
 {
 }
 
-/*
- * Fires when the RPC client structure is to be cloned
- * 
- * struct rpc_clnt * rpc_clone_client(struct rpc_clnt *clnt)
- * 
+/**
+ * probe sunrpc.clnt.clone_client - Clone an RPC client structure
+ *
  *  @servername: the server machine name
  *  @progname:   the RPC program name
  *  @prog:       the RPC program number
@@ -291,10 +293,8 @@ probe sunrpc.clnt.clone_client.return =
 	retstr = return_str(2, $return)
 }
 
-/*
- * Fires when an RPC client is to be shut down.
- *
- * int rpc_shutdown_client(struct rpc_clnt *clnt)
+/**
+ * probe sunrpc.clnt.shutdown_client - Shutdown an RPC client
  *
  *  @servername: the server machine name
  *  @progname:   the RPC program name
@@ -303,10 +303,8 @@ probe sunrpc.clnt.clone_client.return =
  *  @prot:	 the IP protocol number
  *  @port:	 the port number
  *  @authflavor: the authentication flavor
- *  
  *  @clones:     the number of clones
  *  @tasks:      the number of references
- *  
  *  @netreconn:  the count of reconnections
  *  @rpccnt:     the count of RPC calls
  *  @om_ops:      the count of operations
@@ -375,19 +373,16 @@ probe sunrpc.clnt.shutdown_client.return =
 	retstr = (@defined($return) ? return_str(1, $return) : "N/A")
 }
 
-/*
- * Fires when a new RPC program is to be bound an existing client
- *
- * struct rpc_clnt * rpc_bind_new_program(struct rpc_clnt *old, 
- * 	struct rpc_program *program, int vers)
+/**
+ * probe sunrpc.clnt.bind_new_program - Bind a new RPC program to an existing client
  *
  *  @servername:     the server machine name
  *  @old_progname:   the name of old RPC program
  *  @old_prog:       the number of old RPC program
- *  @old_vers:	     the version of old RPC program 
+ *  @old_vers:	     the version of old RPC program
  *  @progname:       the name of new RPC program
  *  @prog:           the number of new RPC program
- *  @vers:	     the version of new RPC program 
+ *  @vers:	     the version of new RPC program
  */
 probe sunrpc.clnt.bind_new_program = 
 	kernel.function("rpc_bind_new_program") !,
@@ -414,9 +409,8 @@ probe sunrpc.clnt.bind_new_program.return =
 	retstr = return_str(2, $return)
 }
 
-/*
- * int rpc_call_sync(struct rpc_clnt *clnt, struct rpc_message *msg, 
- * 	int flags)
+/**
+ * probe sunrpc.clnt.call_sync - Make a synchronous RPC call
  *
  *  @servername: the server machine name
  *  @progname:   the RPC program name
@@ -464,9 +458,8 @@ probe sunrpc.clnt.call_sync.return = kernel.function("rpc_call_sync").return !,
 	retstr = return_str(1, $return)
 }
 
-/*
- * int rpc_call_async(struct rpc_clnt *clnt, struct rpc_message *msg, 
- * 	int flags, const struct rpc_call_ops *tk_ops, void *data)
+/**
+ * probe sunrpc.clnt.call_async - Make an asynchronous RPC call
  *
  *  @servername: the server machine name
  *  @progname:   the RPC program name
@@ -515,10 +508,8 @@ probe sunrpc.clnt.call_async.return =
 	retstr = return_str(1, $return)
 }
 
-/*
- * Fires when an (async) RPC call is to be restarted
- *
- * void rpc_restart_call(struct rpc_task *task)
+/**
+ * probe sunrpc.clnt.restart_call - Restart an asynchronous RPC call
  *
  * @servername:   the server machine name
  * @prog:         the RPC program number
@@ -577,17 +568,16 @@ probe sunrpc.svc.return =
 	sunrpc.svc.drop.return
 {}
 
-/*
- * Fires when an RPC service is to be registered with the local portmapper.
- * If proto and port == 0, it means to unregister a service.
- *
- * int svc_register(struct svc_serv *serv, int proto, unsigned short port)
+/**
+ * probe sunrpc.svc.register - Register an RPC service with the local portmapper
  *
  * @sv_name:     the service name
  * @progname:    the name of the program
  * @prog:        the number of the program
  * @prot:	 the IP protocol number
  * @port:	 the port number
+ *
+ * If @proto and @port are both 0, then unregister a service.
  */
 probe sunrpc.svc.register = kernel.function("svc_register") !,
       	module("sunrpc").function("svc_register")
@@ -609,11 +599,8 @@ probe sunrpc.svc.register.return = kernel.function("svc_register").return !,
 	retstr = return_str(1, $return)
 }
 
-/*
- * Fires when an RPC service is to be created
- *
- * struct svc_serv * 
- * svc_create(struct svc_program *prog, unsigned int bufsize)
+/**
+ * probe sunrpc.svc.create - Create an RPC service
  *
  * @progname:    the name of the program
  * @prog:        the number of the program
@@ -639,10 +626,8 @@ probe sunrpc.svc.create.return = kernel.function("svc_create").return !,
 	retstr = return_str(2, $return)
 }
 
-/*
- * Fires when an RPC service is to be destroyed
- *
- * void svc_destroy(struct svc_serv *serv)
+/**
+ * probe sunrpc.svc.destroy - Destroy an RPC service
  *
  * @sv_name:     the service name
  * @sv_progname: the name of the program
@@ -680,10 +665,8 @@ probe sunrpc.svc.destroy.return = kernel.function("svc_destroy").return !,
 	retstr = "N/A"
 }
 
-/*
- * Fires when an RPC request is to be processed
- *
- * int svc_process(struct svc_serv *serv, struct svc_rqst *rqstp)
+/**
+ * probe sunrpc.svc.process - Process an RPC request
  *
  * @sv_name:     the service name
  * @sv_prog:     the number of the program
@@ -728,9 +711,7 @@ probe sunrpc.svc.process.return = kernel.function("svc_process").return !,
 }
 
 /* 
- * Fires when an RPC request is to be authorised
- *
- * int svc_authorise(struct svc_rqst *rqstp)
+ * probe sunrpc.svc.authorise - An RPC request is to be authorised
  *
  * @sv_name:     the service name
  * @peer_ip:     the peer address where the request is from
@@ -763,10 +744,8 @@ probe sunrpc.svc.authorise.return = kernel.function("svc_authorise").return !,
 	retstr = return_str(1, $return)
 }
 
-/*
- * Fires when the server is to receive the next request on any socket.
- *
- * int svc_recv(struct svc_serv *serv, struct svc_rqst *rqstp, long timeout)
+/**
+ * probe sunrpc.svc.recv - Listen for the next RPC request on any socket
  *
  * @sv_name:     the service name
  * @sv_prog:     the number of the program
@@ -799,10 +778,8 @@ probe sunrpc.svc.recv.return = kernel.function("svc_recv").return !,
 	retstr = return_str(1, $return)
 }
 
-/*
- * Fires when want to return reply to client.
- *
- * int svc_send(struct svc_rqst *rqstp)
+/**
+ * probe sunrpc.svc.send  - Return reply to RPC client
  *
  * @sv_name:     the service name
  * @peer_ip:     the peer address where the request is from
@@ -835,10 +812,8 @@ probe sunrpc.svc.send.return = kernel.function("svc_send").return !,
 	retstr = return_str(1, $return)
 }
 
-/*
- * Fires when a request is to be dropped
- *
- * void svc_drop(struct svc_rqst *rqstp)
+/**
+ * probe sunrpc.svc.drop - Drop RPC request
  *
  * @sv_name:     the service name
  * @peer_ip:     the peer address where the request is from
@@ -888,11 +863,8 @@ probe sunrpc.sched.return =
 	sunrpc.sched.delay.return
 {}
 
-/*
- * Fires when a new task is to be created for the specified client.
- * 
- * struct rpc_task * rpc_new_task(struct rpc_clnt *clnt, int flags, 
- * 	const struct rpc_call_ops *tk_ops, void *calldata)
+/**
+ * probe sunrpc.sched.new_task - Create new task for the specified client
  *
  * @xid:         the transmission id in the RPC call
  * @prog:        the program number in the RPC call
@@ -929,10 +901,8 @@ probe sunrpc.sched.new_task.return = kernel.function("rpc_new_task").return !,
 	retstr = return_str(2, $return)
 }
 
-/*
- * Fires when all resources associated with a task are to be released
- * 
- * void rpc_release_task(struct rpc_task *task)
+/**
+ * probe sunrpc.sched.release_task - Release all resources associated with a task
  *
  * @xid:         the transmission id in the RPC call
  * @prog:        the program number in the RPC call
@@ -947,7 +917,6 @@ probe sunrpc.sched.new_task.return = kernel.function("rpc_new_task").return !,
  * version of rpc_release_task() (assuming it exists).  We can't find
  * the return of rpc_release_task() if it is inline (PR 4413).
  */
-
 probe sunrpc.sched.release_task = kernel.function("rpc_release_task").call !,
       	module("sunrpc").function("rpc_release_task").call !,
 	never
@@ -978,11 +947,8 @@ probe sunrpc.sched.release_task.return =
 	retstr = "N/A"
 }
 
-/*
- * Fires when the RPC `scheduler'(or rather, the finite state machine) 
- * is to be executed 
- *
- * static int __rpc_execute(struct rpc_task *task)
+/**
+ * probe sunrpc.sched.execute - Execute the RPC `scheduler' 
  *
  * @xid:         the transmission id in the RPC call
  * @prog:        the program number in the RPC call
@@ -1020,10 +986,8 @@ probe sunrpc.sched.execute.return = kernel.function("__rpc_execute").return !,
 	}
 }
 
-/*
- * Fires when a task is to be delayed
- * 
- * void rpc_delay(struct rpc_task *task, unsigned long delay)
+/**
+ * probe sunrpc.sched.delay - Delay an RPC task
  *
  * @xid:         the transmission id in the RPC call
  * @prog:        the program number in the RPC call
