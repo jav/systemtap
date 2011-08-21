@@ -973,7 +973,7 @@ location_from_attr (struct location_context *ctx, int indent,
       /* Fall through.  */
 
     case 0:			/* Shouldn't happen.  */
-      (*ctx->fail) (ctx->fail_arg, N_("not accessible at this address"));
+      (*ctx->fail) (ctx->fail_arg, N_("not accessible at this address (%#" PRIx64 ")"), ctx->pc);
       return NULL;
 
     default:			/* Shouldn't happen.  */
