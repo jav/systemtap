@@ -6,6 +6,13 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+/**
+ * atomic_read - Retrieves an atomic variable from kernel memory
+ *
+ * @addr: pointer to atomic variable
+ *
+ * Safely perform the read of an atomic variable.
+ */
 function atomic_read:long(addr:long)
 %{ /* pure */
 	atomic_t *a = (atomic_t *)(long)THIS->addr;
@@ -18,6 +25,14 @@ function atomic_read:long(addr:long)
 	CATCH_DEREF_FAULT();
 %}
 
+/**
+ * atomic_long_read - Retrieves an atomic long variable from kernel memory
+ *
+ * @addr: pointer to atomic long variable
+ *
+ * Safely perform the read of an atomic long variable. This will be a
+ * NOP on kernels that do not have ATOMIC_LONG_INIT set on the kernel config.
+ */
 function atomic_long_read:long(addr:long)
 %{ /* pure */
 #ifdef ATOMIC_LONG_INIT

@@ -460,6 +460,30 @@ script, and then pass 5 will copy the module to the target and run it.
 If a custom ssh_config file is in use, add
 .B SendEnv LANG
 to retain internationalization functionality.
+
+.TP
+.BI \-\-download\-debuginfo " [OPTION]"
+Enable, disable or set a timeout for the automatic debuginfo downloading feature
+offered by abrt as specified by OPTION, where OPTION is one of the following:
+.RS
+.TP
+.BI yes
+enable automatic downloading of debuginfo with no timeout. This is the same
+as not providing an OPTION value to 
+.IR \-\-download\-debuginfo
+.TP
+.BI no
+explicitly disable automatic dowloading of debuginfo. This is the same as
+not using the option at all.
+.TP
+.BI ask
+show abrt output, and ask before continuing download. No timeout will be set.
+.TP
+.BI <timeout>
+specify a timeout as a positive number to stop the download if it is taking 
+too long.
+
+
 .SH ARGUMENTS
 
 Any additional arguments on the command line are passed to the script

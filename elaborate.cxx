@@ -3834,7 +3834,9 @@ semantic_pass_types (systemtap_session& s)
 
 
 typeresolution_info::typeresolution_info (systemtap_session& s):
-  session(s), current_function(0), current_probe(0)
+  session(s), num_newly_resolved(0), num_still_unresolved(0),
+  assert_resolvability(false), current_function(0), current_probe(0),
+  t(pe_unknown)
 {
 }
 

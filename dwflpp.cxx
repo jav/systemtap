@@ -71,7 +71,8 @@ static string TOK_KERNEL("kernel");
 dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
   sess(session), module(NULL), module_bias(0), mod_info(NULL),
   module_start(0), module_end(0), cu(NULL),
-  module_dwarf(NULL), function(NULL), blacklist_enabled(false)
+  module_dwarf(NULL), function(NULL), blacklist_func(), blacklist_func_ret(),
+  blacklist_file(),  blacklist_enabled(false)
 {
   if (kernel_p)
     setup_kernel(name);
@@ -3001,6 +3002,16 @@ dwflpp::build_blacklist()
   blfn += "|sync_regs";
   blfn += "|unhandled_fault";
   blfn += "|unknown_nmi_error";
+  blfn += "|xen_[gs]et_debugreg";
+  blfn += "|xen_irq_.*";
+  blfn += "|xen_.*_fl_direct.*";
+  blfn += "|check_events";
+  blfn += "|xen_adjust_exception_frame";
+  blfn += "|xen_iret.*";
+  blfn += "|xen_sysret64.*";
+  blfn += "|test_ti_thread_flag.*";
+  blfn += "|inat_get_opcode_attribute";
+  blfn += "|system_call_after_swapgs";
 
   // Lots of locks
   blfn += "|.*raw_.*_lock.*";

@@ -77,7 +77,8 @@ struct c_unparser: public unparser, public visitor
 
   c_unparser (systemtap_session* ss):
     session (ss), o (ss->op), current_probe(0), current_function (0),
-    tmpvar_counter (0), label_counter (0),
+    tmpvar_counter (0), label_counter (0), action_counter(0),
+    probe_or_function_needs_deref_fault_handler(false),
     vcv_needs_global_locks (*ss) {}
   ~c_unparser () {}
 

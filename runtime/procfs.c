@@ -12,6 +12,15 @@
 #ifndef _STP_PROCFS_C_
 #define _STP_PROCFS_C_
 
+#if (!defined(STAPCONF_PATH_LOOKUP) && !defined(STAPCONF_KERN_PATH_PARENT) \
+     && !defined(STAPCONF_VFS_PATH_LOOKUP))
+#error "Either path_lookup(), kern_path_parent(), or vfs_path_lookup() must be exported by the kernel."
+#endif
+
+#ifdef STAPCONF_VFS_PATH_LOOKUP
+#include <linux/pid_namespace.h>
+#endif
+
 /* The maximum number of files AND directories that can be opened.
  * It would be great if the translator would emit this based on the actual
  * number of needed files.
@@ -20,7 +29,7 @@
 #define STP_MAX_PROCFS_FILES 16
 #endif
 
-#ifndef STAPCONF_KERN_PATH_PARENT
+#if defined(STAPCONF_PATH_LOOKUP) && !defined(STAPCONF_KERN_PATH_PARENT)
 #define kern_path_parent(name, nameidata) \
 	path_lookup(name, LOOKUP_PARENT, nameidata)
 #endif
@@ -67,7 +76,7 @@ static void _stp_rmdir_proc_module(void)
 		 * though it will not show up in directory
 		 * listings. */
 
- 		if (atomic_read(&_stp_proc_stap->count) == 0) {
+ 		if (atomic_read(&_stp_proc_stap->count) == LAST_ENTRY_COUNT) {
 			remove_proc_entry("systemtap", NULL);
 			_stp_proc_stap = NULL;
 		}
@@ -83,6 +92,7 @@ static void _stp_rmdir_proc_module(void)
 static int _stp_mkdir_proc_module(void)
 {	
         if (_stp_proc_root == NULL) {
+#if defined(STAPCONF_PATH_LOOKUP) || defined(STAPCONF_KERN_PATH_PARENT)
 		struct nameidata nd;
 
 		if (!_stp_lock_transport_dir()) {
@@ -119,7 +129,43 @@ static int _stp_mkdir_proc_module(void)
 			path_release (&nd);
 			#endif
 		}
-		
+#else  /* STAPCONF_VFS_PATH_LOOKUP */
+		struct path path;
+		struct vfsmount *mnt;
+		int rc;
+
+		if (!_stp_lock_transport_dir()) {
+			errk("Unable to lock transport directory.\n");
+			goto done;
+		}
+
+		/* See if '/proc/systemtap' exists. */
+		if (! init_pid_ns.proc_mnt) {
+			_stp_unlock_transport_dir();
+			goto done;
+		}
+		mnt = init_pid_ns.proc_mnt;
+		rc = vfs_path_lookup(mnt->mnt_root, mnt, "systemtap", 0,
+				     &path);
+
+		/* If '/proc/systemtap' exists, update
+		 * _stp_proc_stap.  Otherwise create the directory. */
+		if (rc == 0) {
+                        _stp_proc_stap = PDE(path.dentry->d_inode);
+                        path_put (&path);
+		}
+		else if (rc == -ENOENT) {
+			_stp_proc_stap = proc_mkdir ("systemtap", NULL);
+			if (_stp_proc_stap == NULL) {
+				_stp_unlock_transport_dir();
+				goto done;
+			}
+		}
+#endif	/* STAPCONF_VFS_PATH_LOOKUP */
+
+		/* Now that we've found '/proc/systemtap', create the
+		 * module specific directory
+		 * '/proc/systemtap/MODULE_NAME'. */
 		_stp_proc_root = proc_mkdir(THIS_MODULE->name, _stp_proc_stap);
 #ifdef STAPCONF_PROCFS_OWNER
 		if (_stp_proc_root != NULL)

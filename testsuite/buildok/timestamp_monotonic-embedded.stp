@@ -1,0 +1,13 @@
+#! stap -p4
+
+probe begin {
+  println(cpu_clock_ns(0))
+  println(cpu_clock_us(1))
+  println(cpu_clock_ms(2))
+  println(cpu_clock_s(3))
+
+  println(local_clock_ns())
+  println(local_clock_us())
+  println(local_clock_ms())
+  println(local_clock_s())
+}

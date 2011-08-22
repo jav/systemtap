@@ -253,12 +253,14 @@ struct target_symbol: public symbol
       component(const token* t, const std::string& m, bool pprint=false):
         tok(t),
         type(pprint ? comp_pretty_print : comp_struct_member),
-        member(m)
+        member(m), num_index(0), expr_index(0)
       {}
       component(const token* t, int64_t n):
-        tok(t), type(comp_literal_array_index), num_index(n) {}
+        tok(t), type(comp_literal_array_index), num_index(n),
+        expr_index(0) {}
       component(const token* t, expression* e):
-        tok(t), type(comp_expression_array_index), expr_index(e) {}
+        tok(t), type(comp_expression_array_index), num_index(0),
+         expr_index(e) {}
       void print (std::ostream& o) const;
     };
 

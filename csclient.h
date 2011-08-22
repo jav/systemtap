@@ -16,7 +16,7 @@ struct compile_server_info;
 class compile_server_client
 {
 public:
-  compile_server_client (systemtap_session &s) : s(s), server_version() {}
+  compile_server_client (systemtap_session &s) : s(s), argc(0), server_version() {}
   int passes_0_4 ();
 
 private:

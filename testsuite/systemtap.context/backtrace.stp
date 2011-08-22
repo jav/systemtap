@@ -9,7 +9,9 @@ function print_all_trace_info(point) {
 }
 
 probe begin {
-	print_backtrace()
+	// Too difficult/different on different arches/kernels to check.
+	// print_backtrace()
+	log("<no kernel backtrace at begin>");
 }
 
 probe end {

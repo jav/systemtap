@@ -178,6 +178,7 @@ public:
   bool unprivileged;
   bool systemtap_v_check;
   bool tmpdir_opt_set;
+  int download_dbinfo;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).
