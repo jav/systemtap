@@ -974,17 +974,17 @@ dwarf_query::parse_function_spec(const string & spec)
   line_type = ABSOLUTE;
   line[0] = line[1] = 0;
 
-  size_t src_pos, line_pos, dash_pos, scope_pos, next_scope_pos;
+  size_t src_pos, line_pos, dash_pos, scope_pos;
 
   // look for named scopes
-  scope_pos = 0;
-  next_scope_pos = spec.find("::");
-  while (next_scope_pos != string::npos)
+  scope_pos = spec.rfind("::");
+  if (scope_pos != string::npos)
     {
-      scopes.push_back(spec.substr(scope_pos, next_scope_pos - scope_pos));
-      scope_pos = next_scope_pos + 2;
-      next_scope_pos = spec.find("::", scope_pos);
+      tokenize_cxx(spec.substr(0, scope_pos), scopes);
+      scope_pos += 2;
     }
+  else
+    scope_pos = 0;
 
   // look for a source separator
   src_pos = spec.find('@', scope_pos);

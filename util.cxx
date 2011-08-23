@@ -299,6 +299,37 @@ tokenize(const string& str, vector<string>& tokens,
 }
 
 
+// Akin to tokenize(...,"::"), but it also has to deal with C++ template
+// madness.  We do this naively by balancing '<' and '>' characters.  This
+// doesn't eliminate blanks either, so a leading ::scope still works.
+void
+tokenize_cxx(const string& str, vector<string>& tokens)
+{
+  int angle_count = 0;
+  string::size_type pos = 0;
+  string::size_type colon_pos = str.find("::");
+  string::size_type angle_pos = str.find_first_of("<>");
+  while (colon_pos != string::npos &&
+         (angle_count == 0 || angle_pos != string::npos))
+    {
+      if (angle_count > 0 || angle_pos < colon_pos)
+        {
+          angle_count += str.at(angle_pos) == '<' ? 1 : -1;
+          colon_pos = str.find("::", angle_pos + 1);
+          angle_pos = str.find_first_of("<>", angle_pos + 1);
+        }
+      else
+        {
+          tokens.push_back(str.substr(pos, colon_pos - pos));
+          pos = colon_pos + 2;
+          colon_pos = str.find("::", pos);
+          angle_pos = str.find_first_of("<>", pos);
+        }
+    }
+  tokens.push_back(str.substr(pos));
+}
+
+
 // Resolve an executable name to a canonical full path name, with the
 // same policy as execvp().  A program name not containing a slash
 // will be searched along the $PATH.

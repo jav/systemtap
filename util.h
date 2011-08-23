@@ -43,6 +43,7 @@ bool in_group_id (gid_t target_gid);
 std::string getmemusage ();
 void tokenize(const std::string& str, std::vector<std::string>& tokens,
 	      const std::string& delimiters);
+void tokenize_cxx(const std::string& str, std::vector<std::string>& tokens);
 std::string find_executable(const std::string& name,
 			    const std::string& env_path = "PATH");
 const std::string cmdstr_quoted(const std::string& cmd);
