@@ -7,7 +7,7 @@
 // later version.
 
 /**
- * atomic_read - Retrieves an atomic variable from kernel memory
+ * sfunction atomic_read - Retrieves an atomic variable from kernel memory
  *
  * @addr: pointer to atomic variable
  *
@@ -26,7 +26,7 @@ function atomic_read:long(addr:long)
 %}
 
 /**
- * atomic_long_read - Retrieves an atomic long variable from kernel memory
+ * sfunction atomic_long_read - Retrieves an atomic long variable from kernel memory
  *
  * @addr: pointer to atomic long variable
  *
