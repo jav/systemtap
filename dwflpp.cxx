@@ -723,7 +723,8 @@ cache_type_prefix(Dwarf_Die* type)
 }
 
 int
-dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
+dwflpp::global_alias_caching_callback(Dwarf_Die *die, bool has_inner_types,
+                                      const string& prefix, void *arg)
 {
   cu_type_cache_t *cache = static_cast<cu_type_cache_t*>(arg);
   const char *name = dwarf_diename(die);
@@ -731,9 +732,19 @@ dwflpp::global_alias_caching_callback(Dwarf_Die *die, void *arg)
   if (!name || dwarf_hasattr(die, DW_AT_declaration))
     return DWARF_CB_OK;
 
-  string type_name = cache_type_prefix(die) + string(name);
-  if (cache->find(type_name) == cache->end())
-    (*cache)[type_name] = *die;
+  int tag = dwarf_tag(die);
+  if (has_inner_types && (tag == DW_TAG_namespace
+                          || tag == DW_TAG_structure_type
+                          || tag == DW_TAG_class_type))
+    iterate_over_types(die, has_inner_types, prefix + name + "::",
+                       global_alias_caching_callback, arg);
+
+  if (tag != DW_TAG_namespace)
+    {
+      string type_name = prefix + cache_type_prefix(die) + name;
+      if (cache->find(type_name) == cache->end())
+        (*cache)[type_name] = *die;
+    }
 
   return DWARF_CB_OK;
 }
@@ -968,16 +979,34 @@ dwflpp::iterate_single_function (int (* callback)(Dwarf_Die * func, base_query *
  * only picks up top level stuff (i.e. nothing in a lower scope) */
 int
 dwflpp::iterate_over_globals (Dwarf_Die *cu_die,
-                              int (* callback)(Dwarf_Die *, void *),
+                              int (* callback)(Dwarf_Die *, bool,
+                                               const string&, void *),
                               void * data)
+{
+  assert (cu_die);
+  assert (dwarf_tag(cu_die) == DW_TAG_compile_unit);
+
+  // If this is C++, recurse for any inner types
+  bool has_inner_types = dwarf_srclang(cu_die) == DW_LANG_C_plus_plus;
+
+  return iterate_over_types(cu_die, has_inner_types, "", callback, data);
+}
+
+
+int
+dwflpp::iterate_over_types (Dwarf_Die *top_die,
+                            bool has_inner_types,
+                            const string& prefix,
+                            int (* callback)(Dwarf_Die *, bool,
+                                             const string&, void *),
+                            void * data)
 {
   int rc = DWARF_CB_OK;
   Dwarf_Die die;
 
-  assert (cu_die);
-  assert (dwarf_tag(cu_die) == DW_TAG_compile_unit);
+  assert (top_die);
 
-  if (dwarf_child(cu_die, &die) != 0)
+  if (dwarf_child(top_die, &die) != 0)
     return rc;
 
   do
@@ -991,7 +1020,8 @@ dwflpp::iterate_over_globals (Dwarf_Die *cu_die,
       case DW_TAG_class_type:
       case DW_TAG_typedef:
       case DW_TAG_union_type:
-        rc = (*callback)(&die, data);
+      case DW_TAG_namespace:
+        rc = (*callback)(&die, has_inner_types, prefix, data);
         break;
       }
   while (rc == DWARF_CB_OK && dwarf_siblingof(&die, &die) == 0);
