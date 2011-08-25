@@ -416,7 +416,7 @@ on server side, only called by nfsd3_proc_create and nfsd4_open
 
 .I  createmode 
   create mode. The possible values could be:
-    NFS3_CREATE_EXCLUSIVE,NFS3_CREATE_UNCHECKED,NFS3_CREATE_GUARDED
+    NFS3_CREATE_EXCLUSIVE, NFS3_CREATE_UNCHECKED, NFS3_CREATE_GUARDED
 
 .I  truncp 
   trunp arguments, indicates if the file should be truncated

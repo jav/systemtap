@@ -123,7 +123,8 @@ module_cache
 struct func_info
 {
   func_info()
-    : decl_file(NULL), decl_line(-1), addr(0), prologue_end(0), weak(false), descriptor(false)
+    : decl_file(NULL), decl_line(-1), addr(0), entrypc(0), prologue_end(0),
+      weak(false), descriptor(false)
   {
     std::memset(&die, 0, sizeof(die));
   }
@@ -141,7 +142,7 @@ struct func_info
 struct inline_instance_info
 {
   inline_instance_info()
-    : decl_file(NULL), decl_line(-1)
+    : decl_file(NULL), decl_line(-1), entrypc(0)
   {
     std::memset(&die, 0, sizeof(die));
   }

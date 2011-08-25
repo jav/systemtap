@@ -13,6 +13,7 @@
 #include "../mempool.c"
 #include "symbols.c"
 #include <linux/delay.h>
+#include <linux/poll.h>
 
 static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
@@ -354,13 +355,12 @@ static void _stp_ctl_free_buffer(struct _stp_buffer *bptr)
 	}
 }
 
-/* Send a message directly (only old_relay) or puts it on the
-   _stp_ctl_ready_q.  Doesn't call wake_up on _stp_ctl_wq (use
-   _stp_ctl_send if you need that behavior).  Returns zero if len
-   was zero, or len > STP_CTL_BUFFER_SIZE.  Returns the the length
-   if the send or stored message on success. Returns a negative
-   error code on failure.  */
-static int _stp_ctl_write(int type, void *data, unsigned len)
+/* Put a message on the _stp_ctl_ready_q.  Safe to call from a probe context.
+   Doesn't call wake_up on _stp_ctl_wq (which would not be safe from all
+   probe context). A timer will come by and pick up the message to notify
+   any readers. Returns the number of bytes queued/send or zero/negative
+   on error. */
+static int _stp_ctl_send(int type, void *data, unsigned len)
 {
 	struct _stp_buffer *bptr;
 	unsigned long flags;
@@ -370,61 +370,61 @@ static int _stp_ctl_write(int type, void *data, unsigned len)
 	_stp_ctl_write_dbug(type, data, len);
 #endif
 
+	/* Give the fs a chance to do something special.
+	   Like merging two packets in case the previous buffer
+	   still has some room (transport version 1 procfs does  this. */
 	hlen = _stp_ctl_write_fs(type, data, len);
 	if (hlen > 0)
 		return hlen;
 
 	/* make sure we won't overflow the buffer */
-	if (unlikely(len > STP_CTL_BUFFER_SIZE))
+	if (unlikely(len > STP_CTL_BUFFER_SIZE)) {
+		/* We could try to send an error message instead? */
+                printk(KERN_ERR "ctl_write_msg type=%d len=%d too large\n",
+		       type, len);
 		return 0;
+	}
 
 	/* get a buffer from the free pool */
 	bptr = _stp_ctl_get_buffer(type, data, len);
-	if (unlikely(bptr == NULL))
+	if (unlikely(bptr == NULL)) {
+		/* Nothing else we can do... */
+                printk(KERN_ERR "ctl_write_msg type=%d len=%d ENOMEM\n",
+		       type, len);
 		return -ENOMEM;
+	}
 
-	/* put it on the pool of ready buffers */
+	/* put it on the pool of ready buffers. Even though we are
+	   holding a lock, calling list_add_tail() is safe here since
+	   it will be totally inlined from the list.h header file so
+	   we cannot recursively hit a kprobe inside the lock. */
 	spin_lock_irqsave(&_stp_ctl_ready_lock, flags);
 	list_add_tail(&bptr->list, &_stp_ctl_ready_q);
 	spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
 
+	/* It would be nice if we could speed up the notification
+	   timer at this point, but calling mod_timer() at this
+	   point would bring in more locking issues... */
 	return len + sizeof(bptr->type);
 }
 
-/* send commands with timeout and retry (can still fail though).
-   Will call wake_up on _stp_ctl_wq if new data is available for
-   _stp_ctl_read_cmd, so stapio can immediately read it if wanted.
-   Returns zero if the message had zero length or was too big.
-   Returns the length of the final message if sucessfully send or queued.
-   Returns a negative error number on failure.  */
-static int _stp_ctl_send(int type, void *data, int len)
+/* Calls _stp_ctl_send and then calls wake_up on _stp_ctl_wq
+   to immediately notify listeners. DO NOT CALL THIS FROM A (KERNEL)
+   PROBE CONTEXT. This is only safe to call from the transport layer
+   itself when in user context. All code that could be triggered from
+   a probe context should call _stp_ctl_send(). */
+static int _stp_ctl_send_notify(int type, void *data, unsigned len)
 {
-	int err, mesg_on_queue = 0;
-	unsigned long flags;
-	dbug_trans(1, "ctl_send: type=%d len=%d\n", type, len);
-	err = _stp_ctl_write(type, data, len);
-	if (err > 0) {
-		/* A message was queued (or directly written), so wake up
-		   _stp_ctl_read_cmd so stapio can pick it up asap.  */
-		wake_up_interruptible(&_stp_ctl_wq);
-        } else {
-                /* printk instead of _stp_error since an error here means
-		   our message or transport is suspect.  */
-                printk(KERN_ERR "ctl_send (type=%d len=%d) failed: %d\n", type, len, err);
+	int ret;
+	dbug_trans(1, "_stp_ctl_send_notify: type=%d len=%d\n", type, len);
+	ret = _stp_ctl_send(type, data, len);
 
-		/* If there are pending messages on the queue, then yell
-		   and scream for someone to pick them off quickly.  */
-		spin_lock_irqsave(&_stp_ctl_ready_lock, flags);
-		if (!list_empty(&_stp_ctl_ready_q))
-			mesg_on_queue = 1;
-		spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
-		if (!mesg_on_queue)
-			printk(KERN_ERR "_stp_ctl_write failed, but no messages on queue\n");
-		else
-			wake_up_interruptible(&_stp_ctl_wq);
-	}
-	dbug_trans(1, "returning %d\n", err);
-	return err;
+	/* A message was queued, so wake up all _stp_ctl_wq listeners
+	   so stapio can pick it up asap.  */
+	if (ret > 0)
+		wake_up_interruptible(&_stp_ctl_wq);
+
+	return ret;
 }
 
 /** Called when someone tries to read from our .cmd file.
@@ -492,12 +492,36 @@ static int _stp_ctl_close_cmd(struct inode *inode, struct file *file)
 	return 0;
 }
 
+static unsigned _stp_ctl_poll_cmd(struct file *file, poll_table *wait)
+{
+	/* Pretend we can always write and that there is
+	   priority data available.  We do this so select
+	   will report an exception condition on the file,
+	   which is used by stapio to see whether select
+	   works. */
+	unsigned res = POLLPRI | POLLOUT | POLLWRNORM;
+	unsigned long flags;
+
+        poll_wait(file, &_stp_ctl_wq, wait);
+
+        /* If there are messages waiting, then there will be
+	   data available to read. */
+	spin_lock_irqsave(&_stp_ctl_ready_lock, flags);
+	if (! list_empty(&_stp_ctl_ready_q))
+		res |= POLLIN | POLLRDNORM;
+	spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
+
+	return res;
+}
+
+
 static struct file_operations _stp_ctl_fops_cmd = {
 	.owner = THIS_MODULE,
 	.read = _stp_ctl_read_cmd,
 	.write = _stp_ctl_write_cmd,
 	.open = _stp_ctl_open_cmd,
 	.release = _stp_ctl_close_cmd,
+	.poll = _stp_ctl_poll_cmd
 };
 
 static int _stp_register_ctl_channel(void)

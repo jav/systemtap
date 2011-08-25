@@ -28,6 +28,10 @@
 #define BUILD_BUG_ON_ZERO(e) (sizeof(char[1 - 2 * !!(e)]) - 1)
 #endif
 
+#ifndef FIELD_SIZEOF
+#define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
+#endif
+
 
 #define EXTRA_INFO(f) { \
 		BUILD_BUG_ON_ZERO(offsetof(struct unwind_frame_info, f) \

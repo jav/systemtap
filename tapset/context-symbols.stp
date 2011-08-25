@@ -1,5 +1,5 @@
 // context-symbols tapset
-// Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2005-2008, 2011 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -11,11 +11,6 @@
 //provide information such as a backtrace to where the event occurred and the current register values for the 
 //processor.
 // </tapsetdescription>
-%{
-#ifndef STP_NEED_SYMBOL_DATA
-#define STP_NEED_SYMBOL_DATA 1
-#endif
-%}
 
 /**
  *  sfunction print_stack - Print out kernel stack from string
@@ -30,7 +25,7 @@
  *  name  of the function containing the address, and an estimate of
  *  its position within that function.  Return nothing.
  */
-function print_stack(stk:string) %{
+function print_stack(stk:string) %{ /* pragma:symbols */
 	char *ptr = THIS->stk;
 	char *tok = strsep(&ptr, " ");
 	while (tok && *tok) {
@@ -57,7 +52,7 @@ function print_stack(stk:string) %{
  * truncated to MAXSTRINGLEN, to print fuller and richer stacks use
  * print_stack.
  */
-function sprint_stack:string(stk:string) %{ /* pure */
+function sprint_stack:string(stk:string) %{ /* pure */ /* pragma:symbols */
 	char *ptr = THIS->stk;
 	char *tok = strsep(&ptr, " ");
 	char *str = THIS->__retvalue;
@@ -87,7 +82,7 @@ function sprint_stack:string(stk:string) %{ /* pure */
  * usymname(). This function might return a function name based on the
  * current address if the probe point context couldn't be parsed.
  */
-function probefunc:string () %{ /* pure */
+function probefunc:string () %{ /* pure */ /* pragma:symbols */
 	char *ptr, *start;
 
 	start = strstr(CONTEXT->probe_point, "function(\"");
@@ -173,7 +168,7 @@ function modname:string (addr: long) %{ /* pure */
  * given address if known. If not known it will return the hex string
  * representation of addr.
  */
-function symname:string (addr: long) %{ /* pure */
+function symname:string (addr: long) %{ /* pure */ /* pragma:symbols */
 	 _stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
 			   _STP_SYM_SYMBOL, NULL);
 %}
@@ -190,7 +185,7 @@ function symname:string (addr: long) %{ /* pure */
  * omitted and if the symbol name is unknown it will return the hex
  * string for the given address.
  */
-function symdata:string (addr: long) %{ /* pure */
+function symdata:string (addr: long) %{ /* pure */ /* pragma:symbols */
 	_stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
 			  _STP_SYM_DATA, NULL);
 %}

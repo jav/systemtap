@@ -1,4 +1,8 @@
 #! stap -p4
 
 # The ne2k_pci module dwarf refers to both kernel and 8390 module symbols
+%( CONFIG_NE2K_PCI == "m" %?
 probe module("ne2k_pci").function("ne2k_pci_open") { log($$parms); }
+%:
+probe begin { log("No ne2k-pci module, this test skipped.");exit(); }
+%)

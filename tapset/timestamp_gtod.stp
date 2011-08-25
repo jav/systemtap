@@ -55,5 +55,3 @@ function gettimeofday_ms:long () {
 function gettimeofday_s:long () {
   return gettimeofday_ns() / 1000000000;
 }
-
-// likewise jiffies, monotonic_clock ...

@@ -170,6 +170,7 @@ public:
   bool tapset_compile_coverage;
   bool need_uprobes;
   bool need_unwind;
+  bool need_symbols;
   std::string uprobes_path;
   std::string uprobes_hash;
   bool load_only; // flight recorder mode
@@ -178,6 +179,7 @@ public:
   bool systemtap_v_check;
   bool tmpdir_opt_set;
   bool dump_probe_types;
+  int download_dbinfo;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).

@@ -140,6 +140,20 @@ void output_exportconf(systemtap_session& s, ofstream& o, const char *symbol,
 }
 
 
+void output_dual_exportconf(systemtap_session& s, ofstream& o,
+			    const char *symbol1, const char *symbol2,
+			    const char *deftrue)
+{
+  o << "\t";
+  if (s.verbose < 4)
+    o << "@";
+  if (s.kernel_exports.find(symbol1) != s.kernel_exports.end()
+      && s.kernel_exports.find(symbol2) != s.kernel_exports.end())
+    o << "echo \"#define " << deftrue << " 1\"";
+  o << ">> $@" << endl;
+}
+
+
 int
 compile_pass (systemtap_session& s)
 {
@@ -206,14 +220,15 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-ktime-get-real.c", "STAPCONF_KTIME_GET_REAL", NULL);
   output_autoconf(s, o, "autoconf-x86-uniregs.c", "STAPCONF_X86_UNIREGS", NULL);
   output_autoconf(s, o, "autoconf-nameidata.c", "STAPCONF_NAMEIDATA_CLEANUP", NULL);
-  output_autoconf(s, o, "autoconf-unregister-kprobes.c", "STAPCONF_UNREGISTER_KPROBES", NULL);
+  output_dual_exportconf(s, o, "unregister_kprobes", "unregister_kretprobes", "STAPCONF_UNREGISTER_KPROBES");
+  output_autoconf(s, o, "autoconf-kprobe-symbol-name.c", "STAPCONF_KPROBE_SYMBOL_NAME", NULL);
   output_autoconf(s, o, "autoconf-real-parent.c", "STAPCONF_REAL_PARENT", NULL);
   output_autoconf(s, o, "autoconf-uaccess.c", "STAPCONF_LINUX_UACCESS_H", NULL);
   output_autoconf(s, o, "autoconf-oneachcpu-retry.c", "STAPCONF_ONEACHCPU_RETRY", NULL);
   output_autoconf(s, o, "autoconf-dpath-path.c", "STAPCONF_DPATH_PATH", NULL);
-  output_autoconf(s, o, "autoconf-synchronize-sched.c", "STAPCONF_SYNCHRONIZE_SCHED", NULL);
+  output_exportconf(s, o, "synchronize_sched", "STAPCONF_SYNCHRONIZE_SCHED");
   output_autoconf(s, o, "autoconf-task-uid.c", "STAPCONF_TASK_UID", NULL);
-  output_autoconf(s, o, "autoconf-vm-area.c", "STAPCONF_VM_AREA", NULL);
+  output_dual_exportconf(s, o, "alloc_vm_area", "free_vm_area", "STAPCONF_VM_AREA");
   output_autoconf(s, o, "autoconf-procfs-owner.c", "STAPCONF_PROCFS_OWNER", NULL);
   output_autoconf(s, o, "autoconf-alloc-percpu-align.c", "STAPCONF_ALLOC_PERCPU_ALIGN", NULL);
   output_autoconf(s, o, "autoconf-x86-gs.c", "STAPCONF_X86_GS", NULL);
@@ -227,7 +242,7 @@ compile_pass (systemtap_session& s)
   output_exportconf(s, o, "__module_text_address", "STAPCONF_MODULE_TEXT_ADDRESS");
   output_exportconf(s, o, "add_timer_on", "STAPCONF_ADD_TIMER_ON");
 
-  output_autoconf(s, o, "autoconf-probe-kernel.c", "STAPCONF_PROBE_KERNEL", NULL);
+  output_dual_exportconf(s, o, "probe_kernel_read", "probe_kernel_write", "STAPCONF_PROBE_KERNEL");
   output_autoconf(s, o, "autoconf-hw_breakpoint_context.c",
 		  "STAPCONF_HW_BREAKPOINT_CONTEXT", NULL);
   output_autoconf(s, o, "autoconf-save-stack-trace.c",
@@ -248,8 +263,13 @@ compile_pass (systemtap_session& s)
 		  "STAPCONF_PERF_COUNTER_CONTEXT", NULL);
   output_autoconf(s, o, "perf_probe_handler_nmi.c",
 		  "STAPCONF_PERF_HANDLER_NMI", NULL);
-  output_autoconf(s, o, "autoconf-kern-path-parent.c",
-		  "STAPCONF_KERN_PATH_PARENT", NULL);
+  output_exportconf(s, o, "path_lookup", "STAPCONF_PATH_LOOKUP");
+  output_exportconf(s, o, "kern_path_parent", "STAPCONF_KERN_PATH_PARENT");
+  output_exportconf(s, o, "vfs_path_lookup", "STAPCONF_VFS_PATH_LOOKUP");
+
+  // used by tapset/timestamp_monotonic.stp
+  output_exportconf(s, o, "cpu_clock", "STAPCONF_CPU_CLOCK");
+  output_exportconf(s, o, "local_clock", "STAPCONF_LOCAL_CLOCK");
 
   o << module_cflags << " += -include $(STAPCONF_HEADER)" << endl;
 
@@ -449,7 +469,7 @@ uprobes_pass (systemtap_session& s)
 }
 
 vector<string>
-make_run_command (systemtap_session& s, const string& module,
+make_run_command (systemtap_session& s, const string& remotedir,
                   const string& version)
 {
   // for now, just spawn staprun
@@ -488,9 +508,16 @@ make_run_command (systemtap_session& s, const string& module,
 
   if (s.need_uprobes)
     {
-      staprun_cmd.push_back("-u");
-      if (!s.uprobes_path.empty())
-        staprun_cmd.back().append(s.uprobes_path);
+      string opt_u = "-u";
+      if (!s.uprobes_path.empty() &&
+          strverscmp("1.4", version.c_str()) <= 0)
+        {
+          if (remotedir.empty())
+            opt_u.append(s.uprobes_path);
+          else
+            opt_u.append(remotedir + "/" + basename(s.uprobes_path.c_str()));
+        }
+      staprun_cmd.push_back(opt_u);
     }
 
   if (s.load_only)
@@ -505,10 +532,8 @@ make_run_command (systemtap_session& s, const string& module,
       staprun_cmd.push_back(s.size_option);
     }
 
-  if (module.empty())
-    staprun_cmd.push_back(s.tmpdir + "/" + s.module_name + ".ko");
-  else
-    staprun_cmd.push_back(module);
+  staprun_cmd.push_back((remotedir.empty() ? s.tmpdir : remotedir)
+                        + "/" + s.module_name + ".ko");
 
   // add module arguments
   staprun_cmd.insert(staprun_cmd.end(),

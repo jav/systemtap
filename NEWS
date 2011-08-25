@@ -4,6 +4,12 @@
   If --unprivileged is also specified, the list will be limited to probe types
   which are available to unprivileged users.
 
+- Systemtap can now automatically download the required debuginfo
+  using abrt. The --download-debuginfo[=OPTION] can be used to
+  control this feature. Possible values are: 'yes', 'no', 'ask',
+  and a positive number representing the timeout desired. The 
+  default behavior is to not automatically download the debuginfo.
+
 * What's new in version 1.6, 2011-07-25
 
 - Security fixes for CVE-2011-2503: read instead of mmap to load modules,

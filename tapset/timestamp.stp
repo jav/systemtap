@@ -48,6 +48,3 @@ function jiffies:long () %{ /* pure */ /* unprivileged */
 function HZ:long () %{ /* pure */ /* unprivileged */
   THIS->__retvalue = (int64_t) HZ;
 %}
-
-
-// likewise monotonic_clock ...

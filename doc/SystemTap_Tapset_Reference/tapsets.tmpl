@@ -137,6 +137,7 @@
     </para>
 !Itapset/timestamp.stp
 !Itapset/timestamp_gtod.stp
+!Itapset/timestamp_monotonic.stp
   </chapter>
 
   <chapter id="ctime.stp">
@@ -152,7 +153,7 @@
 
 
   <chapter id="system.stp">
-    <title>Time utility functions</title>
+    <title>Shell command functions</title>
     <para>
       Utility functions to enqueue shell commands.
     </para>
@@ -237,6 +238,8 @@
 !Itapset/tcp.stp
 !Itapset/udp.stp
 !Itapset/ip.stp
+!Itapset/inet.stp
+!Itapset/rpc.stp
   </chapter>
 
   <chapter id="socket.stp">
@@ -246,6 +249,7 @@
       It contains the following probe points:
    </para>
 !Itapset/socket.stp
+!Itapset/inet_sock.stp
   </chapter>
   <chapter id="snmp.stp">
     <title>SNMP Information Tapset</title>
@@ -255,8 +259,11 @@
       and probe points:
    </para>
 !Itapset/ipmib.stp
+!Itapset/ipmib-filter-default.stp
 !Itapset/tcpmib.stp
+!Itapset/tcpmib-filter-default.stp
 !Itapset/linuxmib.stp
+!Itapset/linuxmib-filter-default.stp
   </chapter>
   <chapter id="kprocess.stp">
     <title>Kernel Process Tapset</title>
@@ -320,6 +327,7 @@
       strings are of a maximum length given by MAXSTRINGLEN.
     </para>
 !Itapset/conversions.stp
+!Itapset/atomic.stp
 !Itapset/uconversions.stp
    </chapter>
 
@@ -368,5 +376,17 @@
       It contains the following probe points:
     </para>
 !Itapset/stap_staticmarkers.stp
+  </chapter>
+
+  <chapter id="nfsd.stp">
+    <title>Network File Storage Tapsets</title>
+    <para>
+      This family of probe points is used to probe network file storage
+      functions and operations.
+    </para>
+!Itapset/nfs_proc.stp
+!Itapset/nfs.stp
+!Itapset/nfsd.stp
+!Itapset/nfsderrno.stp
   </chapter>
 </book>
