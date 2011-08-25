@@ -1,5 +1,9 @@
 * What's new in version 1.7
 
+- A new option, --dump-probe-types, will dump a list of supported probe types.
+  If --unprivileged is also specified, the list will be limited to probe types
+  which are available to unprivileged users.
+
 * What's new in version 1.6, 2011-07-25
 
 - Security fixes for CVE-2011-2503: read instead of mmap to load modules,

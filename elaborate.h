@@ -226,6 +226,7 @@ struct derived_probe_builder
 		     std::vector<derived_probe*> & finished_results) = 0;
   virtual ~derived_probe_builder() {}
   virtual void build_no_more (systemtap_session &) {}
+  virtual bool is_alias () const { return false; }
 
   static bool has_null_param (literal_map_t const & parameters,
                               const std::string& key);
@@ -269,6 +270,7 @@ match_node
                        probe* p, probe_point *loc, unsigned pos,
                        std::vector<derived_probe *>& results);
   void build_no_more (systemtap_session &s);
+  void dump (systemtap_session &s, const std::string &name = "");
 
   match_node* bind(match_key const & k);
   match_node* bind(std::string const & k);
@@ -298,6 +300,7 @@ alias_expansion_builder
 		     probe_point * location,
 		     std::map<std::string, literal *> const &,
 		     std::vector<derived_probe *> & finished_results);
+  virtual bool is_alias () const { return true; }
 
   bool checkForRecursiveExpansion (probe *use);
 };
