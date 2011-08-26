@@ -1,5 +1,5 @@
 // logging tapset
-// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -97,4 +97,34 @@ function ftrace (msg:string) %{
        because bprintk doesn't save the incoming strings, only their
        addresses. */
 #endif
+%}
+
+
+
+/**
+ * sfunction printk - Send a message to the kernel trace buffer
+ *
+ * @level: an integer for the severity level (0=KERN_EMERG ... 7=KERN_DEBUG)
+ * @msg: The formatted message string
+ *
+ * Description: Print a line of text to the kernel dmesg/console with the
+ * given severity.  An implicit end-of-line is added.  This function may 
+ * not be safely called from all kernel probe contexts, so is restricted
+ * to guru mode only.
+ */
+function printk (level:long,msg:string) %{ /* guru */
+         printk (THIS->level == 0 ? KERN_EMERG "%s\n":
+                 THIS->level == 1 ? KERN_ALERT "%s\n":
+                 THIS->level == 2 ? KERN_CRIT "%s\n":
+                 THIS->level == 3 ? KERN_ERR "%s\n":
+                 THIS->level == 4 ? KERN_WARNING "%s\n":
+                 THIS->level == 5 ? KERN_NOTICE "%s\n":
+                 THIS->level == 6 ? KERN_INFO "%s\n":
+                 THIS->level == 7 ? KERN_DEBUG "%s\n":
+#ifdef KERN_DEFAULT
+                 KERN_DEFAULT "%s\n"
+#else
+                 KERN_INFO "%s\n"
+#endif
+                 , THIS->msg);
 %}
