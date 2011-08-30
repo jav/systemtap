@@ -61,7 +61,7 @@ proc print_systemtap_version {} {
 
 
 proc setup_systemtap_environment {} {
-    global srcdir env server_pid net_path
+    global srcdir env server_pid net_path logfile
 
     # need an absolute SRCDIR for the top-level src/ tree
     # XXX: or, we could change nearby uses of ${SRCDIR}/testsuite to ${SRCDIR}
@@ -74,6 +74,18 @@ proc setup_systemtap_environment {} {
     # Use a local systemtap directory and cache.  Add user name so
     # make check and sudo make check don't clobber each other.
     set env(SYSTEMTAP_DIR) [exec pwd]/.systemtap-[exec whoami]
+
+    # Start with fresh server certificates
+    exec rm -fr $env(SYSTEMTAP_DIR)/ssl
+
+    # Erase the old server log file.
+    set logfile "[exec pwd]/server.log"
+    if {[file exists $logfile]} then {
+	exec rm -f $logfile;
+    }
+    # Create a new one and make sure it's world writable.
+    exec touch $logfile
+    exec chmod 666 $logfile
 
     # Start a systemtap server, if requested.
     set net_path ""
@@ -97,7 +109,7 @@ proc setup_systemtap_environment {} {
 # Set up the environment so that tests will be performed using the systemtap
 # client and server.
 proc setup_server {} {
-    global srcdir env net_path installed_stap
+    global srcdir env net_path installed_stap logfile
 
     # Make sure that the necessary resources are available to run the client/server.
     if {[catch {exec /usr/bin/which avahi-publish-service} dummy]} then {
@@ -131,7 +143,7 @@ proc setup_server {} {
 	verbose -log "Unable to automatically find the systemtap server -- check firewall settings for mDNS"
 	# Try to discover the port the server is listening on from the server
 	# log.
-	set res [catch { exec /bin/cat [exec pwd]/server.log | awk "/^Systemtap Compile Server on port .* ready/ {print \$6}" } server_port]
+	set res [catch { exec /bin/cat $logfile | awk "/^Systemtap Compile Server on port .* ready/ {print \$6}" } server_port]
 	if {$res != 0} then {
 	    verbose -log "Unable to discover the port used by the systemtap server"
 	    shutdown_server
@@ -169,7 +181,7 @@ proc setup_server {} {
 }
 
 proc start_server {} {
-    global srcdir env server_pid installed_stap
+    global srcdir env server_pid installed_stap logfile
 
     # Server management scripts and data are installed if this is an
     # install test, otherwise there is some setup to do.
@@ -183,18 +195,6 @@ proc start_server {} {
         set installed_stap "$env(SYSTEMTAP_PATH)/stap"
 	set env(SYSTEMTAP_SERVER_SCRIPTS) $env(PKGLIBDIR)
     }
-
-    # Erase the old server log file.
-    set logfile "[exec pwd]/server.log"
-    if {[file exists $logfile]} then {
-	exec rm -f $logfile;
-    }
-    # Create a new one and make sure it's world writable.
-    exec touch $logfile
-    exec chmod 666 $logfile
-
-    # Start with fresh server certificates
-    exec rm -fr $env(SYSTEMTAP_DIR)/ssl
 
     # Try to start the server.
     set status 0

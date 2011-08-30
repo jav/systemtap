@@ -600,6 +600,36 @@ match_node::build_no_more (systemtap_session& s)
     }
 }
 
+void
+match_node::dump (systemtap_session &s, const string &name)
+{
+  // Dump this node, if it is complete.
+  for (unsigned k=0; k<ends.size(); k++)
+    {
+      // Don't print aliases at all (for now) until we can figure out how to determine whether
+      // the probes they resolve to are ok in unprivileged mode.
+      if (ends[k]->is_alias ())
+	continue;
+
+      // In unprivileged mode, don't show the probes which are not allowed for unprivileged
+      // users.
+      if (! s.unprivileged || unprivileged_ok)
+	{
+	  cout << name << endl;
+	  break; // we need only print one instance.
+	}
+    }
+
+  // Recursively dump the children of this node
+  string dot;
+  if (! name.empty ())
+    dot = ".";
+  for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
+    {
+      i->second->dump (s, name + dot + i->first.str());
+    }
+}
+
 
 // ------------------------------------------------------------------------
 // Alias probes

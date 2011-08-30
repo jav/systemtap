@@ -100,6 +100,7 @@ systemtap_session::systemtap_session ():
   panic_warnings = false;
   listing_mode = false;
   listing_mode_vars = false;
+  dump_probe_types = false;
 
 #ifdef ENABLE_PROLOGUES
   prologue_searching = true;
@@ -266,6 +267,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   panic_warnings = other.panic_warnings;
   listing_mode = other.listing_mode;
   listing_mode_vars = other.listing_mode_vars;
+  dump_probe_types = other.dump_probe_types;
 
   prologue_searching = other.prologue_searching;
 
@@ -519,6 +521,8 @@ systemtap_session::usage (int exitcode)
     "   --download-debuginfo[=OPTION]\n"
     "              automatically download debuginfo."
     "              yes,no,ask,<timeout value>\n"
+    "   --dump-probe-types\n"
+    "              show a list of available probe types.\n"
     , compatible.c_str()) << endl
   ;
 
@@ -568,6 +572,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_REMOTE_PREFIX 24
 #define LONG_OPT_TMPDIR 25
 #define LONG_OPT_DOWNLOAD_DEBUGINFO 26
+#define LONG_OPT_DUMP_PROBE_TYPES 27
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -602,6 +607,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "version", 0, &long_opt, LONG_OPT_VERSION },
         { "tmpdir", 1, &long_opt, LONG_OPT_TMPDIR },
         { "download-debuginfo", 2, &long_opt, LONG_OPT_DOWNLOAD_DEBUGINFO },
+        { "dump-probe-types", 0, &long_opt, LONG_OPT_DUMP_PROBE_TYPES },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -1092,6 +1098,11 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               systemtap_v_check = true;
               break;
 
+	    case LONG_OPT_DUMP_PROBE_TYPES:
+	      push_server_opt = true;
+	      dump_probe_types = true;
+	      break;
+
             default:
               // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
               cerr << _F("Unhandled long argument id %d", long_opt) << endl;
@@ -1147,8 +1158,9 @@ systemtap_session::check_options (int argc, char * const argv [])
   // NB: this is also triggered if stap is invoked with no arguments at all
   if (! have_script)
     {
-      // We don't need a script if --list-servers or --trust-servers was specified
-      if (server_status_strings.empty () && server_trust_spec.empty ())
+      // We don't need a script if --list-servers, --trust-servers or --dump-probe-types was
+      // specified.
+      if (server_status_strings.empty () && server_trust_spec.empty () && ! dump_probe_types)
 	{
 	  cerr << _("A script must be specified.") << endl;
 	  usage(1);

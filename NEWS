@@ -1,5 +1,9 @@
 * What's new in version 1.7
 
+- A new option, --dump-probe-types, will dump a list of supported probe types.
+  If --unprivileged is also specified, the list will be limited to probe types
+  which are available to unprivileged users.
+
 - Systemtap can now automatically download the required debuginfo
   using abrt. The --download-debuginfo[=OPTION] can be used to
   control this feature. Possible values are: 'yes', 'no', 'ask',

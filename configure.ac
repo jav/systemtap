@@ -55,6 +55,22 @@ if test "$enable_prologues" = yes; then
   AC_DEFINE([ENABLE_PROLOGUES],[],[make -P prologue-searching default])
 fi])
 
+dnl Handle the disable-sdt-probes option.
+dnl
+dnl Default to --disable-sdt-probes if --enable-sdt-probes/--disable-prologues
+dnl was not specified and the gcc version is less than version 4,
+
+if test "${enable_sdt_probes+set}" != set; then
+  AC_MSG_CHECKING([to see if sdt probes should be the default])
+  if { echo '#if __GNUC__ < 4'
+       echo ' yes '
+       echo '#endif'; } | ${CC} -E - | grep yes > /dev/null; then
+    enable_prologues=no
+    AC_MSG_RESULT([no])
+  else
+    AC_MSG_RESULT([yes])
+  fi
+fi
 AC_ARG_ENABLE([sdt-probes],
   [AS_HELP_STRING([--disable-sdt-probes],
                   [disable process.mark probes in stap, staprun, stapio])])

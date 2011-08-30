@@ -410,13 +410,13 @@ struct dwarf_derived_probe: public derived_probe
   // Pattern registration helpers.
   static void register_statement_variants(match_node * root,
 					  dwarf_builder * dw,
-					  bool bind_unprivileged_p = false);
+					  bool bind_unprivileged_p);
   static void register_function_variants(match_node * root,
 					 dwarf_builder * dw,
-					 bool bind_unprivileged_p = false);
+					 bool bind_unprivileged_p);
   static void register_function_and_statement_variants(match_node * root,
 						       dwarf_builder * dw,
-						       bool bind_unprivileged_p = false);
+						       bool bind_unprivileged_p);
   static void register_patterns(systemtap_session& s);
 
 protected:
@@ -4172,9 +4172,13 @@ dwarf_derived_probe::register_function_variants(match_node * root,
   root->bind(TOK_RETURN)
     ->bind_unprivileged(bind_unprivileged_p)
     ->bind(dw);
-  root->bind(TOK_RETURN)
-    ->bind_unprivileged(bind_unprivileged_p)
-    ->bind_num(TOK_MAXACTIVE)->bind(dw);
+
+  if (! bind_unprivileged_p) /* for process probes / uprobes, .maxactive() is unused. */
+    {
+      root->bind(TOK_RETURN)
+        ->bind_unprivileged(bind_unprivileged_p)
+        ->bind_num(TOK_MAXACTIVE)->bind(dw);
+    }
 }
 
 void
@@ -4206,8 +4210,8 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   update_visitor *filter = new dwarf_cast_expanding_visitor(s, *dw);
   s.code_filters.push_back(filter);
 
-  register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
-  register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
+  register_function_and_statement_variants(root->bind(TOK_KERNEL), dw, false);
+  register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw, false);
 
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
     ->bind(dw);
@@ -4217,16 +4221,10 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind_str(TOK_MODULE)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind(dw);
 
-  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw,
-					   true/*bind_unprivileged*/);
-  register_function_and_statement_variants(root->bind(TOK_PROCESS), dw,
-					   true/*bind_unprivileged*/);
-  register_function_and_statement_variants(root->bind_str(TOK_PROCESS)
-                                           ->bind_str(TOK_LIBRARY), dw,
-					   true/*bind_unprivileged*/);
-  register_function_and_statement_variants(root->bind(TOK_PROCESS)
-                                           ->bind_str(TOK_LIBRARY), dw,
-					   true/*bind_unprivileged*/);
+  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw, true);
+  register_function_and_statement_variants(root->bind(TOK_PROCESS), dw, true);
+  register_function_and_statement_variants(root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, true);
+  register_function_and_statement_variants(root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, true);
 
   root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind_unprivileged()

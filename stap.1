@@ -452,6 +452,12 @@ the user will be prompted to confirm the trust to be granted or revoked before
 the operation is performed.
 
 .TP
+.BI \-\-dump-probe-types
+Dumps a list of supported probe types. If
+.IR \-\-unprivileged
+is also specified, the list will be limited to probe types available to unprivileged users.
+
+.TP
 .BI \-\-remote " [USER@]HOSTNAME"
 Set the execution target to the specified ssh host, optionally using a username
 not matching your own.  This option may be repeated to target multiple
