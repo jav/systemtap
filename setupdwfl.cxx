@@ -335,7 +335,7 @@ setup_dwfl_kernel (unsigned *modules_found, systemtap_session &s)
 
   // If no modules were found, and we are probing the kernel,
   // attempt to download the kernel debuginfo.
-  if(offline_modules_found == 0 && kernel)
+  if(offline_modules_found == 0 && kernel && s.download_dbinfo != 0)
     {
       rc = download_kernel_debuginfo(s);
       if(rc >= 0)
