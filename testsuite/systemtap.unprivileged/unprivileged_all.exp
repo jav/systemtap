@@ -150,17 +150,9 @@ set invalid_probe_types [list \
   "module(string).statement(string)" \
   "perf.type(number).config(number)" \
   "perf.type(number).config(number).sample(number)" \
-  "process.function(number).return.maxactive(number)" \
-  "process.function(string).return.maxactive(number)" \
-  "process.library(string).function(number).return.maxactive(number)" \
-  "process.library(string).function(string).return.maxactive(number)" \
   "process(number).insn" \
   "process(number).insn.block" \
-  "process(string).function(number).return.maxactive(number)" \
-  "process(string).function(string).return.maxactive(number)" \
   "process(string).insn.block" \
-  "process(string).library(string).function(number).return.maxactive(number)" \
-  "process(string).library(string).function(string).return.maxactive(number)" \
   "procfs.read" \
   "procfs.write" \
   "procfs.read.maxsize(number)" \
