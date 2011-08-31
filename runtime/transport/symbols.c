@@ -65,4 +65,19 @@ static void _stp_do_relocation(const char __user *buf, size_t count)
   _stp_kmodule_update_address(msg.module, msg.reloc, msg.address);
 }
 
+
+
+static int _stp_module_notifier (struct notifier_block * nb,
+                                 unsigned long val, void *data)
+{
+        struct module *mod = data;
+
+        (void) nb;
+        (void) val;
+        (void) data;
+        /* printk (KERN_DEBUG "stp_module_notifier %s %lu\n", mod->name, val); */
+        return NOTIFY_DONE;
+}
+
+
 #endif /* _STP_SYMBOLS_C_ */

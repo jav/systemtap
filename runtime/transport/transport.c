@@ -73,6 +73,15 @@ MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 static void systemtap_module_exit(void);
 static int systemtap_module_init(void);
 
+static int _stp_module_notifier_active = 0;
+static int _stp_module_notifier (struct notifier_block * nb,
+                                 unsigned long val, void *data);
+static struct notifier_block _stp_module_notifier_nb = {
+        .notifier_call = _stp_module_notifier,
+        .priority = 1 /* As per kernel/trace/trace_kprobe.c, 
+                         invoked after kprobe module callback. */
+};
+
 struct timer_list _stp_ctl_work_timer;
 
 /*
@@ -98,6 +107,15 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 		if (st->res == 0)
 			_stp_probes_started = 1;
 
+                /* Register the module notifier. */
+                if (!_stp_module_notifier_active) {
+                        int rc = register_module_notifier(& _stp_module_notifier_nb);
+                        if (rc == 0)
+                                _stp_module_notifier_active = 1;
+                        else
+                                _stp_warn ("Cannot register module notifier (%d)\n", rc);
+                }
+
 		/* Called from the user context in response to a proc
 		   file write (in _stp_ctl_write_cmd), so may notify
 		   the reader directly. */
@@ -114,6 +132,14 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 static void _stp_cleanup_and_exit(int send_exit)
 {
 	mutex_lock(&_stp_transport_mutex);
+
+        /* Unregister the module notifier. */
+        if (_stp_module_notifier_active) {
+                _stp_module_notifier_active = 0;
+                (void) unregister_module_notifier(& _stp_module_notifier_nb);
+                /* -ENOENT is possible, if we were not already registered */
+        }
+
 	if (!_stp_exit_called) {
 		int failures;
 
