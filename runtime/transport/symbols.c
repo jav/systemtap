@@ -27,7 +27,6 @@ static void _stp_do_relocation(const char __user *buf, size_t count)
 {
   static struct _stp_msg_relocation msg; /* by protocol, never concurrently used */
   static struct _stp13_msg_relocation msg13; /* ditto */
-  unsigned mi, si;
 
   /* PR12612: Let's try to be compatible with systemtap modules being
      compiled by new systemtap, but loaded (staprun'd) by an older
@@ -63,33 +62,7 @@ static void _stp_do_relocation(const char __user *buf, size_t count)
       _stp_kretprobe_trampoline += (unsigned long) msg.address;
   }
 
-  /* Save the relocation value.  XXX: While keeping the data here is
-     fine for the kernel address space ("kernel" and "*.ko" modules),
-     it is NOT fine for user-space apps.  They need a separate
-     relocation values for each address space, since the same shared
-     libraries/executables can be mapped in at different
-     addresses.  */
-
-  for (mi=0; mi<_stp_num_modules; mi++)
-    {
-      if (strcmp (_stp_modules[mi]->name, msg.module))
-        continue;
-
-      if (!strcmp (".note.gnu.build-id", msg.reloc)) {
-        _stp_modules[mi]->notes_sect = msg.address;   /* cache this particular address  */
-      }
-
-      for (si=0; si<_stp_modules[mi]->num_sections; si++)
-        {
-          if (strcmp (_stp_modules[mi]->sections[si].name, msg.reloc))
-            continue;
-          else
-            {
-              _stp_modules[mi]->sections[si].static_addr = msg.address;
-              break;
-            }
-        } /* loop over sections */
-    } /* loop over modules */
+  _stp_kmodule_update_address(msg.module, msg.reloc, msg.address);
 }
 
 #endif /* _STP_SYMBOLS_C_ */

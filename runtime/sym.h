@@ -117,5 +117,8 @@ static unsigned long _stp_umodule_relocate (const char *module,
 					    unsigned long offset,
 					    struct task_struct *tsk);
 static struct _stp_module *_stp_get_unwind_info (unsigned long addr);
+static void _stp_kmodule_update_address(const char* module,
+                                        const char* section,
+                                        unsigned long offset);
 
 #endif /* _STP_SYM_H_ */

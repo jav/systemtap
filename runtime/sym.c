@@ -507,4 +507,42 @@ static void _stp_print_addr(unsigned long address, int flags,
 
 /** @} */
 
+
+
+/* Update the given module/section's offset value.  Assume that there
+   is no need for locking or for super performance.  NB: this is only
+   for kernel modules, which exist singly at run time.  User-space
+   modules (executables, shared libraries) exist at different
+   addresses in different processes, so are tracked in the
+   _stp_tf_vma_map. */
+static void _stp_kmodule_update_address(const char* module,
+                                        const char* reloc,
+                                        unsigned long address)
+{
+  unsigned mi, si;
+        
+  for (mi=0; mi<_stp_num_modules; mi++)
+    {
+      if (strcmp (_stp_modules[mi]->name, module))
+        continue;
+
+      if (!strcmp (".note.gnu.build-id", reloc)) {
+        _stp_modules[mi]->notes_sect = address;   /* cache this particular address  */
+      }
+
+      for (si=0; si<_stp_modules[mi]->num_sections; si++)
+        {
+          if (strcmp (_stp_modules[mi]->sections[si].name, reloc))
+            continue;
+          else
+            {
+              _stp_modules[mi]->sections[si].static_addr = address;
+              break;
+            }
+        } /* loop over sections */
+    } /* loop over modules */
+}
+
+
+
 #endif /* _STP_SYM_C_ */
