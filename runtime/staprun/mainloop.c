@@ -728,7 +728,7 @@ int stp_main_loop(void)
     case STP_START:
       {
         struct _stp_msg_start *t = &recvbuf.payload.start;
-        dbug(2, "probe_start() returned %d\n", t->res);
+        dbug(2, "systemtap_module_init() returned %d\n", t->res);
         if (t->res < 0) {
           if (target_cmd)
             kill(target_pid, SIGKILL);

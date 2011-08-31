@@ -70,8 +70,8 @@ module_param(_stp_bufsize, int, 0);
 MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 
 /* forward declarations */
-static void probe_exit(void);
-static int probe_start(void);
+static void systemtap_module_exit(void);
+static int systemtap_module_init(void);
 
 struct timer_list _stp_ctl_work_timer;
 
@@ -94,8 +94,8 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 #endif
 
 		_stp_target = st->target;
-		st->res = probe_start();
-		if (st->res >= 0)
+		st->res = systemtap_module_init();
+		if (st->res == 0)
 			_stp_probes_started = 1;
 
 		/* Called from the user context in response to a proc
@@ -123,10 +123,10 @@ static void _stp_cleanup_and_exit(int send_exit)
 		_stp_exit_called = 1;
 
 		if (_stp_probes_started) {
-			dbug_trans(1, "calling probe_exit\n");
+			dbug_trans(1, "calling systemtap_module_exit\n");
 			/* tell the stap-generated code to unload its probes, etc */
-			probe_exit();
-			dbug_trans(1, "done with probe_exit\n");
+			systemtap_module_exit();
+			dbug_trans(1, "done with systemtap_module_exit\n");
 		}
 
 		failures = atomic_read(&_stp_transport_failures);
@@ -219,7 +219,7 @@ static void _stp_ctl_work_callback(unsigned long val)
 	if (do_io)
 		wake_up_interruptible(&_stp_ctl_wq);
 
-	/* if exit flag is set AND we have finished with probe_start() */
+	/* if exit flag is set AND we have finished with systemtap_module_init() */
 	if (unlikely(_stp_exit_flag && _stp_probes_started))
 		_stp_request_exit();
 	if (atomic_read(& _stp_ctl_attached))

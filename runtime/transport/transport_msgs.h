@@ -28,7 +28,7 @@ enum
 {
 	/** stapio sends a STP_START after recieving a STP_TRANSPORT from
 	    the module. The module sends STP_START back with result of call
-	    probe_start() which will install all initial probes.  */
+	    systemtap_module_init() which will install all initial probes.  */
 	STP_START,
 	/** stapio sends STP_EXIT to signal it wants to stop the module
 	    itself or in response to receiving a STP_REQUEST_EXIT.
@@ -123,7 +123,7 @@ struct _stp_msg_unwind
 struct _stp_msg_start
 {
 	pid_t target;
-        int32_t res;    // for reply: result of probe_start()
+        int32_t res;    // for reply: result of systemtap_module_init
 };
 
 #if STP_TRANSPORT_VERSION == 1

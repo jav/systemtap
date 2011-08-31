@@ -5957,16 +5957,6 @@ translate_pass (systemtap_session& s)
       s.op->assert_0_indent();
       s.op->newline();
 
-      // XXX impedance mismatch
-      s.op->newline() << "static int probe_start (void) {";
-      s.op->newline(1) << "return systemtap_module_init () ? -1 : 0;";
-      s.op->newline(-1) << "}";
-      s.op->newline();
-      s.op->newline() << "static void probe_exit (void) {";
-      s.op->newline(1) << "systemtap_module_exit ();";
-      s.op->newline(-1) << "}";
-      s.op->assert_0_indent();
-
       emit_symbol_data (s);
 
       s.op->newline() << "MODULE_DESCRIPTION(\"systemtap-generated probe\");";
