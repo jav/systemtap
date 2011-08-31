@@ -9,6 +9,10 @@
 #ifndef SETUP_DWFLPP_H
 #define SETUP_DWFLPP_H
 
+#ifndef NT_GNU_BUILD_ID
+#define NT_GNU_BUILD_ID 3
+#endif
+
 #include "config.h"
 #include "session.h"
 
