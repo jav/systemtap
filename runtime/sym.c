@@ -516,7 +516,7 @@ static void _stp_print_addr(unsigned long address, int flags,
    addresses in different processes, so are tracked in the
    _stp_tf_vma_map. */
 static void _stp_kmodule_update_address(const char* module,
-                                        const char* reloc,
+                                        const char* reloc, /* NULL="all" */
                                         unsigned long address)
 {
   unsigned mi, si;
@@ -526,16 +526,20 @@ static void _stp_kmodule_update_address(const char* module,
       if (strcmp (_stp_modules[mi]->name, module))
         continue;
 
-      if (!strcmp (".note.gnu.build-id", reloc)) {
+      if (reloc && !strcmp (".note.gnu.build-id", reloc)) {
         _stp_modules[mi]->notes_sect = address;   /* cache this particular address  */
       }
 
       for (si=0; si<_stp_modules[mi]->num_sections; si++)
         {
-          if (strcmp (_stp_modules[mi]->sections[si].name, reloc))
+          if (reloc && strcmp (_stp_modules[mi]->sections[si].name, reloc))
             continue;
           else
             {
+              dbug_sym(1, "module %s section %s address %#lx\n",
+                       _stp_modules[mi]->name,
+                       _stp_modules[mi]->sections[si].name,
+                       address);
               _stp_modules[mi]->sections[si].static_addr = address;
               break;
             }

@@ -72,10 +72,33 @@ static int _stp_module_notifier (struct notifier_block * nb,
 {
         struct module *mod = data;
 
-        (void) nb;
-        (void) val;
-        (void) data;
-        /* printk (KERN_DEBUG "stp_module_notifier %s %lu\n", mod->name, val); */
+        if (val == MODULE_STATE_COMING) {
+                /* A module is arriving.  Register all of its section
+                   addresses, as though staprun sent us a bunch of
+                   STP_RELOCATE messages.  Now ... where did the
+                   fishie go?  It's in mod->sect_attrs, but the type
+                   declaration is private to kernel/module.c.  It's in
+                   the load_info, but we can't get there from here.
+                   It's in sysfs, but one'd have to maneuver through
+                   mod->mkobj etc, or consult userspace; not cool.
+
+                   So we cheat.  It's under the sofa.  */
+
+                _stp_kmodule_update_address(mod->name, ".text",
+                                            (uintptr_t)mod->module_core);
+                _stp_kmodule_update_address(mod->name, ".init.text",
+                                            (uintptr_t)mod->module_init);
+                /* _stp_kmodule_update_address(mod->name,
+                                               ".note.gnu.build-id", ??); */
+        }
+        else if (val == MODULE_STATE_LIVE) {
+                /* The init section(s) may have been unloaded. */
+                _stp_kmodule_update_address(mod->name, ".init.text", 0);
+        }
+        else if (val == MODULE_STATE_GOING) {
+                /* Unregister all sections. */
+                _stp_kmodule_update_address(mod->name, NULL, 0);
+        }
         return NOTIFY_DONE;
 }
 
