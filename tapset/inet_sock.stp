@@ -22,7 +22,7 @@ function inet_get_local_port:long(sock:long)
 }
 
 /**
- * sfunction inet_get_ip_source - Provide IP source address string for a kernel socket.
+ * sfunction inet_get_ip_source - Provide IP source address string for a kernel socket
  *
  * @sock: pointer to the kernel socket
  *
