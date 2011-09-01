@@ -526,8 +526,8 @@ probe socket.close.return = kernel.function ("sock_release").return
 ####### PROTOCOL HELPER FUNCTIONS ########
 
 /**
- * sfunction sock_prot_num2str - Given a protocol number, return a string representation.
- * @proto: The protocol number.
+ * sfunction sock_prot_num2str - Given a protocol number, return a string representation
+ * @proto: The protocol number
  */
 function sock_prot_num2str:string (proto:long)
 {
@@ -535,8 +535,8 @@ function sock_prot_num2str:string (proto:long)
 }
 
 /**
- * sfunction sock_prot_str2num - Given a protocol name (string), return the corresponding protocol number.
- * @proto: The protocol name.
+ * sfunction sock_prot_str2num - Given a protocol name (string), return the corresponding protocol number
+ * @proto: The protocol name
  */
 function sock_prot_str2num:long (proto:string)
 {
@@ -546,8 +546,8 @@ function sock_prot_str2num:long (proto:string)
 ######### PROTOCOL FAMILY HELPER FUNCTIONS ###########
 
 /**
- * sfunction sock_fam_num2str - Given a protocol family number, return a string representation.
- * @family: The family number.
+ * sfunction sock_fam_num2str - Given a protocol family number, return a string representation
+ * @family: The family number
  */
 function sock_fam_num2str:string (family:long)
 {
@@ -555,9 +555,8 @@ function sock_fam_num2str:string (family:long)
 }
 
 /**
- * sfunction sock_fam_str2num - Given a protocol family name (string), return the corresponding
- * protocol family number.
- * @family: The family name.
+ * sfunction sock_fam_str2num - Given a protocol family name (string), return the corresponding protocol family number
+ * @family: The family name
  */
 function sock_fam_str2num:long (family:string)
 {
@@ -567,8 +566,8 @@ function sock_fam_str2num:long (family:string)
 ######### SOCKET STATE HELPER FUNCTIONS ##########
 
 /**
- * sfunction sock_state_num2str - Given a socket state number, return a string representation.
- * @state: The state number.
+ * sfunction sock_state_num2str - Given a socket state number, return a string representation
+ * @state: The state number
  */
 function sock_state_num2str:string (state:long)
 {
@@ -576,8 +575,8 @@ function sock_state_num2str:string (state:long)
 }
 
 /**
- * sfunction sock_state_str2num - Given a socket state string, return the corresponding state number.
- * @state: The state name.
+ * sfunction sock_state_str2num - Given a socket state string, return the corresponding state number
+ * @state: The state name
  */
 function sock_state_str2num:long (state:string)
 {
