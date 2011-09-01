@@ -83,7 +83,7 @@ static int __stp_alloc_ring_buffer(void)
 	unsigned long buffer_size = _stp_bufsize;
 
 	if (!alloc_cpumask_var(&_stp_relay_data.trace_reader_cpumask,
-			       GFP_KERNEL))
+			       (GFP_KERNEL & ~__GFP_WAIT)))
 		goto fail;
 	cpumask_clear(_stp_relay_data.trace_reader_cpumask);
 

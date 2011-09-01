@@ -56,7 +56,7 @@ static Counter _stp_counter_init (void)
 {
 	Counter cnt = _stp_alloc_percpu (struct _counter);
 #if NEED_COUNTER_LOCKS == 1
-	{
+	if (cnt) {
 		int i;
 		stp_for_each_cpu(i) {
 			Counter c = per_cpu_ptr (cnt, i);
