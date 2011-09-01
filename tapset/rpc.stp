@@ -910,9 +910,10 @@ probe sunrpc.sched.new_task.return = kernel.function("rpc_new_task").return !,
  * @prot:        the IP protocol in the RPC call
  * @tk_flags:    the flags of the task
  *
- * rpc_release_task() might not be found for a particular kernel.  So,
- * if we can't find it, just return '-1' for everything.
- *
+ * rpc_release_task() function might not be found for a particular kernel.
+ *  So, if we can't find it, just return '-1' for everything.
+ */
+/*
  * The '.call' here is so that we're sure to grab the non-inline
  * version of rpc_release_task() (assuming it exists).  We can't find
  * the return of rpc_release_task() if it is inline (PR 4413).
