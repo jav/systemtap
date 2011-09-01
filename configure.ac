@@ -309,10 +309,17 @@ AM_CONDITIONAL([BUILD_PDFREFDOCS], [test "$have_xmlto_pdf" == "yes"])
 rm -f conftest.xml
 
 dnl See if we have the nss/nspr headers and libraries
-PKG_CHECK_MODULES([nss], [nss >= 3],
-  [have_nss=yes
-   AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
-  ], [have_nss=no])
+AC_ARG_WITH([nss],
+  AS_HELP_STRING([--without-nss],
+    [Do not use NSS even if present]))
+
+AS_IF([test "x$with_nss" != "xno"], [
+  PKG_CHECK_MODULES([nss], [nss >= 3],
+    [have_nss=yes
+     AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
+    ], [have_nss=no])
+], [have_nss=no])
+
 AM_CONDITIONAL([HAVE_NSS], [test "${have_nss}" = "yes"])
 
 dnl Handle the option to build the compile server.
@@ -335,10 +342,17 @@ if test "${have_nss}" != "yes"; then
 fi		       
 
 dnl See if we have the avahi libraries and headers
-PKG_CHECK_MODULES([avahi], [avahi-client],
-  [have_avahi=yes
-   AC_DEFINE([HAVE_AVAHI], [1], [Define to 1 if you have the avahi libraries.])
-  ], [have_avahi=no])
+AC_ARG_WITH([avahi],
+  AS_HELP_STRING([--without-avahi],
+    [Do not use Avahi even if present]))
+
+AS_IF([test "x$with_avahi" != "xno"], [
+  PKG_CHECK_MODULES([avahi], [avahi-client],
+    [have_avahi=yes
+     AC_DEFINE([HAVE_AVAHI], [1], [Define to 1 if you have the avahi libraries.])
+    ], [have_avahi=no])
+], [have_avahi=no])
+
 AM_CONDITIONAL([HAVE_AVAHI], [test "${have_avahi}" = "yes"])
 
 if test "${have_avahi}" != "yes"; then
