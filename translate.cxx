@@ -89,6 +89,7 @@ struct c_unparser: public unparser, public visitor
   void emit_global_param (vardecl* v);
   void emit_functionsig (functiondecl* v);
   void emit_module_init ();
+  void emit_module_refresh ();
   void emit_module_exit ();
   void emit_function (functiondecl* v);
   void emit_lock_decls (const varuse_collecting_visitor& v);
@@ -1318,6 +1319,22 @@ c_unparser::emit_module_init ()
   o->newline(-1) << "}";
 
   o->newline() << "return rc;";
+  o->newline(-1) << "}\n";
+}
+
+
+void
+c_unparser::emit_module_refresh ()
+{
+  o->newline() << "static void systemtap_module_refresh (void) {";
+  o->newline(1) << "int i=0, j=0;"; // for derived_probe_group use
+  o->newline() << "(void) i;";
+  o->newline() << "(void) j;";
+  vector<derived_probe_group*> g = all_session_groups (*session);
+  for (unsigned i=0; i<g.size(); i++)
+    {
+      g[i]->emit_module_refresh (*session);
+    }
   o->newline(-1) << "}\n";
 }
 
@@ -5951,6 +5968,9 @@ translate_pass (systemtap_session& s)
 
       s.op->newline();
       s.up->emit_module_init ();
+      s.op->assert_0_indent();
+      s.op->newline();
+      s.up->emit_module_refresh ();
       s.op->assert_0_indent();
       s.op->newline();
       s.up->emit_module_exit ();
