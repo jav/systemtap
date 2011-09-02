@@ -9,7 +9,7 @@
  */
 
 /**
- * sfunction ipmib_filter_key - Default filter function for ipmib.stp
+ * sfunction ipmib_filter_key - Default filter function for ipmib.* probes
  *
  * @skb: pointer to the struct sk_buff
  * @op: value to be returned if @sk passes the filter

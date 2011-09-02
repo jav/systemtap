@@ -9,7 +9,7 @@
  */
 
 /**
- * sfunction linuxmib_filter_key - Default filter function for linuxmib.stp
+ * sfunction linuxmib_filter_key - Default filter function for linuxmib.* probes
  *
  * @sk: pointer to the struct sock
  * @op: value to be returned if @sk passes the filter

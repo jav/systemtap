@@ -9,7 +9,7 @@
  */
 
 /**
- * sfunction tcpmib_filter_key - Default filter function for tcpmib.stp
+ * sfunction tcpmib_filter_key - Default filter function for tcpmib.* probes
  *
  * @sk: pointer to the struct sock being acted on
  * @op: value to be returned if @sk passes the filter
