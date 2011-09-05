@@ -2965,6 +2965,9 @@ dwflpp::build_blacklist()
   blfile += "|.*/arch/.*/include/asm/io\\.h";
   blfile += "|.*/arch/.*/include/asm/bitops\\.h";
   blfile += "|drivers/ide/ide-iops\\.c";
+  // paravirt ops
+  blfile += "|arch/.*/kernel/paravirt\\.c";
+  blfile += "|.*/arch/.*/include/asm/paravirt\\.h";
 
   // XXX: it would be nice if these blacklisted functions were pulled
   // in dynamically, instead of being statically defined here.
