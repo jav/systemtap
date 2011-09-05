@@ -2958,16 +2958,13 @@ dwflpp::build_blacklist()
      so prefix those with '.*' - see PR13108 and PR13112. */
   blfile += "kernel/kprobes\\.c"; // first alternative, no "|"
   blfile += "|arch/.*/kernel/kprobes\\.c";
-  // Older kernels need ...
   blfile += "|.*/include/asm/io\\.h";
+  blfile += "|.*/include/asm/io_64\\.h";
   blfile += "|.*/include/asm/bitops\\.h";
-  // While newer ones need ...
-  blfile += "|.*/arch/.*/include/asm/io\\.h";
-  blfile += "|.*/arch/.*/include/asm/bitops\\.h";
   blfile += "|drivers/ide/ide-iops\\.c";
   // paravirt ops
   blfile += "|arch/.*/kernel/paravirt\\.c";
-  blfile += "|.*/arch/.*/include/asm/paravirt\\.h";
+  blfile += "|.*/include/asm/paravirt\\.h";
 
   // XXX: it would be nice if these blacklisted functions were pulled
   // in dynamically, instead of being statically defined here.
