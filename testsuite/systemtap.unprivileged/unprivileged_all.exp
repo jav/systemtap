@@ -262,14 +262,12 @@ proc test_valid_probes { use_alias } {
     }
 
     foreach probe_type $valid_probe_types {
-	# There are currently some known failures
+	# There are currently some known and expected failures
 	switch $probe_type {
+	    process.library(string).function(number).inline -
+	    process(string).library(string).function(number).inline -
 	    process.function(number).inline -
-	    process(string).function(number).inline -
-	    process.library(string).function(number).call -
-	    process.library(string).function(number).return -
-	    process(string).library(string).function(number).call -
-	    process(string).library(string).function(number).return
+	    process(string).function(number).inline
 	    {
 		setup_xfail *-*-*
 	    }
@@ -332,13 +330,11 @@ proc test_invalid_probes { use_alias } {
 }
 
 # Need to build a user shared library.
-#set opath "[pwd]/sdt_misc_.o"
 set libflags [sdt_includes]
 set libflags "$libflags additional_flags=-g"
 set libflags "$libflags additional_flags=-O"
 set libflags "$libflags additional_flags=-Wall"
 set libflags "$libflags additional_flags=-Werror"
-#set libflags "$libflags additional_flags=$opath"
 set libflags "$libflags additional_flags=-I."
 set libflags "$libflags additional_flags=-shared"
 set libflags "$libflags additional_flags=-fPIC"
@@ -386,6 +382,8 @@ if {[llength all_probe_types] > 0} {
     pass "$test: Obtain list of supported probe types"
 } else {
     fail "$test: Obtain list of supported probe types"
+    untested "$test Tests"
+    return
 }
 
 # Now run the tests
