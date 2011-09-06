@@ -21,7 +21,9 @@
 #endif
 
 /* how often the work queue wakes up and checks buffers */
+#ifndef STP_WORK_TIMER
 #define STP_WORK_TIMER (HZ/100)
+#endif
 
 static unsigned _stp_nsubbufs;
 static unsigned _stp_subbuf_size;
