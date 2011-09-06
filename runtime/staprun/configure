@@ -5773,9 +5773,10 @@ if test "x$ac_cv_lib_elf_elf_getshdrstrndx" = xyes; then :
 
 $as_echo "#define HAVE_ELF_GETSHDRSTRNDX 1" >>confdefs.h
 
+  staprun_LIBS="$staprun_LIBS -lelf"
+
 fi
 
-staprun_LIBS="$staprun_LIBS -lelf"
 LIBS="$save_LIBS"
 
 

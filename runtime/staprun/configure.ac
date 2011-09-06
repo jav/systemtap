@@ -76,8 +76,9 @@ AC_CHECK_HEADERS([libelf.h])
 save_LIBS="$LIBS"
 dnl this will only succeed with elfutils 0.142+
 AC_CHECK_LIB(elf,elf_getshdrstrndx,[
-        AC_DEFINE([HAVE_ELF_GETSHDRSTRNDX],[1],[Define to 1 if libelf has elf_getshdrstrndx])])
-staprun_LIBS="$staprun_LIBS -lelf"
+  AC_DEFINE([HAVE_ELF_GETSHDRSTRNDX],[1],[Define to 1 if libelf has elf_getshdrstrndx])
+  staprun_LIBS="$staprun_LIBS -lelf"
+])
 LIBS="$save_LIBS"  
 
 AC_SUBST(staprun_LIBS)
