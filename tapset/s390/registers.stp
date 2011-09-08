@@ -50,9 +50,9 @@ function probing_32bit_app() %{ /* pure */
 		THIS->__retvalue = 0;
 %}
 
-function _stp_probing_kernel: long () %{ /* pure */
-	THIS->__retvalue = !user_mode(CONTEXT->regs);
-%}
+function _stp_probing_kernel: long () {
+	return !user_mode();
+}
 
 function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;

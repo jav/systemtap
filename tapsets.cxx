@@ -160,7 +160,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->probe_type = " << probe_type << ";";
   // reset Individual Probe State union
   o->newline() << "memset(&c->ips, 0, sizeof(c->ips));";
-  o->newline() << "c->regflags = 0;";
+  o->newline() << "c->probe_flags = 0;";
   o->newline() << "#ifdef STAP_NEED_REGPARM"; // i386 or x86_64 register.stp
   o->newline() << "c->regparm = 0;";
   o->newline() << "#endif";
@@ -6917,7 +6917,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "goto probe_epilogue;";
   s.op->newline(-1) << "}";
   s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
+  s.op->newline() << "c->probe_flags |= _STP_PROBE_STATE_USER_MODE;";
 
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so
@@ -6948,7 +6948,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
 
   s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
+  s.op->newline() << "c->probe_flags |= _STP_PROBE_STATE_USER_MODE;";
 
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so

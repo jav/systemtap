@@ -103,7 +103,7 @@ function probefunc:string () %{ /* pure */ /* pragma:symbols */
 		_stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN,
 				  REG_IP(CONTEXT->regs),
 				  _STP_SYM_SYMBOL,
-				  (CONTEXT->regflags & _STP_REGS_USER_FLAG
+				  (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE
 				   ? current : NULL));
        	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
        	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
@@ -131,7 +131,7 @@ function probemod:string () %{ /* pure */
 			*dst++ = *ptr++;
 		*dst = 0;
 	} else if (CONTEXT->regs
-		   && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG)) {
+		   && ! (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)) {
 		struct _stp_module *m;
 		m = _stp_kmod_sec_lookup (REG_IP(CONTEXT->regs), NULL);
 		if (m && m->name)

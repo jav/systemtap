@@ -242,11 +242,8 @@ function registers_valid:long ()
  */
 function user_mode:long ()
 %{ /* pure */ /* unprivileged */
-  if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG)) {
-    THIS->__retvalue = 1;
-  } else {
-    THIS->__retvalue = 0;
-  }
+  THIS->__retvalue = (CONTEXT->probe_flags
+		      & _STP_PROBE_STATE_USER_MODE) ? 1 : 0;
 %}
 
 /**

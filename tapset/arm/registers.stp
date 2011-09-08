@@ -43,9 +43,9 @@ function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	THIS->__retvalue = value;
 %}
 
-function _stp_probing_kernel:long () %{ /* pure */
-	THIS->__retvalue = !user_mode(CONTEXT->regs);
-%}
+function _stp_probing_kernel:long () {
+	return !user_mode();
+}
 
 /* Return the named register value as a signed value. */
 function register:long (name:string) {

@@ -167,7 +167,8 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 		ri = NULL;
 
 	if (stack_flags == _STP_STACK_KERNEL) {
-		if (! c->regs || (c->regflags & _STP_REGS_USER_FLAG)) {
+		if (! c->regs
+		    || (c->probe_flags & _STP_PROBE_STATE_USER_MODE)) {
 			/* For the kernel we can use an inexact fallback.
 			   When compiled with frame pointers we can do
 			   a pretty good guess at the stack value,
@@ -201,7 +202,7 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 		}
 	} else if (stack_flags == _STP_STACK_USER) {
 		/* use task_pt_regs, regs might be kernel regs, or not set. */
-		if (c->regs && (c->regflags & _STP_REGS_USER_FLAG)) {
+		if (c->regs && (c->probe_flags & _STP_PROBE_STATE_USER_MODE)) {
 			regs = c->regs;
 			uregs_valid = 1;
 		} else {
