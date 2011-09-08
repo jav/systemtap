@@ -67,7 +67,7 @@ int internal_find_debuginfo (Dwfl_Module *mod,
 			      GElf_Word debuglink_crc,
 			      char **debuginfo_file_name);
 int execute_abrt_action_install_debuginfo_to_abrt_cache (std::string hex);
-std::string get_kernel_build_id_from_notes ();
-int download_kernel_debuginfo (systemtap_session &s);
+std::string get_kernel_build_id (systemtap_session &s);
+int download_kernel_debuginfo (systemtap_session &s, std::string hex);
 
 #endif
