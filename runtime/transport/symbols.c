@@ -86,14 +86,14 @@ static int _stp_module_notifier (struct notifier_block * nb,
 
 #ifndef STAPCONF_GRSECURITY
                 _stp_kmodule_update_address(mod->name, ".text",
-                                            (uintptr_t)mod->module_core);
+                                            (unsigned long)mod->module_core);
                 _stp_kmodule_update_address(mod->name, ".init.text",
-                                            (uintptr_t)mod->module_init);
+                                            (unsigned long)mod->module_init);
 #else
                 _stp_kmodule_update_address(mod->name, ".text",
-                                            (uintptr_t)mod->module_core_rx);
+                                            (unsigned long)mod->module_core_rx);
                 _stp_kmodule_update_address(mod->name, ".init.text",
-                                            (uintptr_t)mod->module_init_rx);
+                                            (unsigned long)mod->module_init_rx);
 		/* XXX: also: module_*_rw for .data? */
 #endif
                 /* _stp_kmodule_update_address(mod->name,
