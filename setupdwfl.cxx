@@ -335,11 +335,18 @@ setup_dwfl_kernel (unsigned *modules_found, systemtap_session &s)
 
   // If no modules were found, and we are probing the kernel,
   // attempt to download the kernel debuginfo.
-  if(offline_modules_found == 0 && kernel && s.download_dbinfo != 0)
+  if(kernel)
     {
-      rc = download_kernel_debuginfo(s);
-      if(rc >= 0)
-        return setup_dwfl_kernel (modules_found, s);
+      // Get the kernel build ID. We still need to call this even if we
+      // already have the kernel debuginfo installed as it adds the
+      // build ID to the script hash.
+      string hex = get_kernel_build_id(s);
+      if (offline_modules_found == 0 && s.download_dbinfo != 0 && !hex.empty())
+        {
+          rc = download_kernel_debuginfo(s, hex);
+          if(rc >= 0)
+            return setup_dwfl_kernel (modules_found, s);
+        }
     }
 
   dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
@@ -447,12 +454,12 @@ setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
   Dwfl *dwfl = dwfl_begin (&user_callbacks);
   dwfl_assert("dwfl_begin", dwfl);
   dwfl_report_begin (dwfl);
-
+  Dwfl_Module *mod = NULL;
   // XXX: should support buildid-based naming
   while (begin != end && dwfl != NULL)
     {
       const char *cname = (*begin).c_str();
-      Dwfl_Module *mod = dwfl_report_offline (dwfl, cname, cname, -1);
+      mod = dwfl_report_offline (dwfl, cname, cname, -1);
       if (! mod && all_needed)
 	{
 	  dwfl_end(dwfl);
@@ -460,6 +467,24 @@ setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
 	}
       begin++;
     }
+
+  /* Extract the build id and add it to the session variable
+   * so it will be added to the script hash */
+  if (mod)
+    {
+      const unsigned char *bits;
+      GElf_Addr vaddr;
+      if(s.verbose > 2)
+        clog << _("Extracting build ID.") << endl;
+      int bits_length = dwfl_module_build_id(mod, &bits, &vaddr);
+
+      /* Convert the binary bits to a hex string */
+      string hex = hex_dump(bits, bits_length);
+
+      //Store the build ID in the session
+      s.build_ids.push_back(hex);
+    }
+
   if (dwfl)
     dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
 
@@ -659,71 +684,16 @@ execute_abrt_action_install_debuginfo_to_abrt_cache (string hex)
   return 0;
 }
 
-/* Look for a build ID note in /sys/kernel/notes */
+/* Get the kernel build ID */
 string
-get_kernel_build_id_from_notes ()
+get_kernel_build_id(systemtap_session &s)
 {
-  const char *notesfile = "/sys/kernel/notes";
-  int fd = open64 (notesfile, O_RDONLY);
-  if (fd < 0)
-    return "";
-
-  assert (sizeof (Elf32_Nhdr) == sizeof (GElf_Nhdr));
-  assert (sizeof (Elf64_Nhdr) == sizeof (GElf_Nhdr));
-
-  union
-  {
-    GElf_Nhdr nhdr;
-    unsigned char data[8192];
-  } buf;
-
-  ssize_t n = read (fd, buf.data, sizeof buf);
-  close (fd);
-
-  if (n <= 0)
-    return "";
-
-  unsigned char *p = buf.data;
-  while (p < &buf.data[n])
-    {
-      /* No translation required since we are reading the native kernel.  */
-      GElf_Nhdr *nhdr = (GElf_Nhdr *) p;
-      p += sizeof *nhdr;
-      unsigned char *name = p;
-      p += (nhdr->n_namesz + 3) & -4U;
-      unsigned char *bits = p;
-      p += (nhdr->n_descsz + 3) & -4U;
-
-      if (p <= &buf.data[n]
-          && nhdr->n_type == NT_GNU_BUILD_ID
-          && nhdr->n_namesz == sizeof "GNU"
-          && !memcmp (name, "GNU", sizeof "GNU"))
-        {
-          // Found it.
-          return hex_dump(bits, nhdr->n_descsz);
-        }
-    }
-  return "";
-}
-
-/* Find the kernel build ID and attempt to download the matching debuginfo */
-int download_kernel_debuginfo (systemtap_session &s)
-{
-  // NOTE: At some point we want to base the
-  // already_tried_downloading_kernel_debuginfo flag on the build ID rather
-  // than just the stap process.
   bool found = false;
   string hex;
-
-  // Don't try this again if we already did.
-  static int already_tried_downloading_kernel_debuginfo = 0;
-  if(already_tried_downloading_kernel_debuginfo)
-    return -1;
-
   // Get the kernel information
   struct utsname kernelinfo;
   if( uname(&kernelinfo) < 0)
-    return -1;
+    return "";
 
   // Try to find BuildID from vmlinux.id
   string kernel_buildID_path = "/lib/modules/"
@@ -750,16 +720,71 @@ int download_kernel_debuginfo (systemtap_session &s)
       if(s.verbose > 1)
         clog << _("Attempting to extract kernel debuginfo build ID from /sys/kernel/notes") << endl;
 
-      hex = get_kernel_build_id_from_notes();
-      if (!hex.empty())
-        found = true;
-    }
+      const char *notesfile = "/sys/kernel/notes";
+      int fd = open64 (notesfile, O_RDONLY);
+      if (fd < 0)
+      return "";
 
-  // If we still didn't find it, return -1
-  if(found == false)
+      assert (sizeof (Elf32_Nhdr) == sizeof (GElf_Nhdr));
+      assert (sizeof (Elf64_Nhdr) == sizeof (GElf_Nhdr));
+
+      union
+      {
+        GElf_Nhdr nhdr;
+        unsigned char data[8192];
+      } buf;
+
+      ssize_t n = read (fd, buf.data, sizeof buf);
+      close (fd);
+
+      if (n <= 0)
+        return "";
+
+      unsigned char *p = buf.data;
+      while (p < &buf.data[n])
+        {
+          /* No translation required since we are reading the native kernel.  */
+          GElf_Nhdr *nhdr = (GElf_Nhdr *) p;
+          p += sizeof *nhdr;
+          unsigned char *name = p;
+          p += (nhdr->n_namesz + 3) & -4U;
+          unsigned char *bits = p;
+          p += (nhdr->n_descsz + 3) & -4U;
+
+          if (p <= &buf.data[n]
+              && nhdr->n_type == NT_GNU_BUILD_ID
+              && nhdr->n_namesz == sizeof "GNU"
+              && !memcmp (name, "GNU", sizeof "GNU"))
+            {
+              // Found it.
+              hex = hex_dump(bits, nhdr->n_descsz);
+              found = true;
+            }
+        }
+    }
+  if(found)
+    {
+      //Store the build ID in the session
+      s.build_ids.push_back(hex);
+      return hex;
+    }
+  else
+    return "";
+}
+
+/* Find the kernel build ID and attempt to download the matching debuginfo */
+int download_kernel_debuginfo (systemtap_session &s, string hex)
+{
+  // NOTE: At some point we want to base the
+  // already_tried_downloading_kernel_debuginfo flag on the build ID rather
+  // than just the stap process.
+
+  // Don't try this again if we already did.
+  static int already_tried_downloading_kernel_debuginfo = 0;
+  if(already_tried_downloading_kernel_debuginfo)
     return -1;
 
-  // We found the BuildID hex, so attempt to download the debuginfo
+  // Attempt to download the debuginfo
   if(s.verbose > 1)
     clog << _F("Success! Extracted kernel debuginfo build ID: %s", hex.c_str()) << endl;
   int rc = execute_abrt_action_install_debuginfo_to_abrt_cache(hex);

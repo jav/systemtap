@@ -93,8 +93,8 @@ if { $res != "" } {
 if {[installtest_p] && [utrace_p] && [uprobes_p]} {
     if {[regexp "^(s390x)$" $::tcl_platform(machine)] && $pbtype_mssg == "V2_kprobe"} {
 	set FAIL xfail
-    } elseif {[regexp "^(ppc64)$" $::tcl_platform(machine)] && [regex "^(-O)" $extra_mssg]} {
-	# register name and constant is ambiguous in ppc asm syntax
+    } elseif {[regexp "^(ppc64|s390x)$" $::tcl_platform(machine)] && [regexp "^(-O)" $extra_mssg]} {
+	# register name and constant is ambiguous in ppc/s390 asm syntax
 	# thus constant folding can throw the result off
 	set FAIL xfail
     } else {
