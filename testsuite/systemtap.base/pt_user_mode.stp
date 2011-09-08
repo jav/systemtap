@@ -1,0 +1,28 @@
+/*
+ * Check perf/timer trigger in both user/kernel mode.
+ */
+
+global u, k
+
+probe begin
+{
+	println("systemtap starting probe");
+}
+
+probe perf.sw.cpu_clock!, timer.profile
+{
+	if (user_mode())
+		u <<< 1
+	else
+		k <<< 1
+}
+
+probe end
+{
+	println("systemtap ending probe")
+	if (@count(u) == 0 || @count(k) == 0) {
+		println("systemtap test failure");
+	} else {
+		println("systemtap test success");
+	}
+}

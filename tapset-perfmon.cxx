@@ -150,11 +150,7 @@ perf_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->probe",
 				 "_STP_PROBE_HANDLER_PERF");
   s.op->newline() << "c->regs = regs;";
-  // If it was a hardware perf event type then if it occured in user space
-  // we can assume the user registers are all given by task_pt_regs.
-  s.op->newline() << "if ((stp->attr.type == PERF_TYPE_HARDWARE";
-  s.op->newline() << "     || stp->attr.type == PERF_TYPE_HW_CACHE)";
-  s.op->newline() << "    && user_mode(regs))";
+  s.op->newline() << "if (user_mode(regs))";
   s.op->newline(1)<< "c->probe_flags |= _STP_PROBE_STATE_USER_MODE;";
 
   s.op->newline(-1) << "(*stp->probe->ph) (c);";
