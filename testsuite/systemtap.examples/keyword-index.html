@@ -579,6 +579,9 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 <li><a href="process/syscalls_by_proc.stp">process/syscalls_by_proc.stp</a> - System-Wide Count of Syscalls by Executable<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 <p>The script watches all syscall on the system. On exit the script prints a list showing the number of systemcalls executed by each executable ordered from greatest to least number of syscalls.<p><font size="-2"><pre># stap syscalls_by_proc.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>
+<li><a href="process/syscalltimes">process/syscalltimes</a> - System wide syscall statistics with filtering on exec, uid or pid.<br>
+keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
+<p>Combination shell/systemtap script to measure system call counts and times.  Can be filtered by process IDs, process names and users.<p><font size="-2"><pre># ./syscalltimes -c &#39;sleep 0.2&#39;</pre></font></p></li>
 <li><a href="process/wait4time.stp">process/wait4time.stp</a> - Trace Time Spent in wait4 Syscalls<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#WAIT4">WAIT4</a> <br>
 <p>The script watches each wait4 syscall on the system. At the end of each wait4 syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in parentheses, the &quot;wait4:&quot; key, the duration of the wait and the PID that the wait4 was waiting for. If the waited for PID is not specified , it is &quot;-1&quot;.<p><font size="-2"><pre># stap wait4time.stp -c &quot;sleep 0.2&quot;</pre></font></p></li>

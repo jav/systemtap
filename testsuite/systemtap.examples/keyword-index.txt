@@ -1618,6 +1618,15 @@ keywords: syscall
   # stap syscalls_by_proc.stp -c "sleep 0.2"
 
 
+process/syscalltimes - System wide syscall statistics with filtering on exec, uid or pid.
+keywords: syscall
+
+  Combination shell/systemtap script to measure system call counts and
+  times.  Can be filtered by process IDs, process names and users.
+
+  # ./syscalltimes -c 'sleep 0.2'
+
+
 process/wait4time.stp - Trace Time Spent in wait4 Syscalls
 keywords: syscall wait4
 
