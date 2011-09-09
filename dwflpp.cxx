@@ -2890,7 +2890,8 @@ dwflpp::blacklisted_p(const string& funcname,
 
   // check against section blacklist
   string section = get_blacklist_section(addr);
-  if (!regexec (&blacklist_section, section.c_str(), 0, NULL, 0))
+  // PR6503: modules don't need special init/exit treatment
+  if (module == TOK_KERNEL && !regexec (&blacklist_section, section.c_str(), 0, NULL, 0))
     {
       blacklisted = true;
       if (sess.verbose>1)
