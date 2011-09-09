@@ -541,7 +541,9 @@ static void _stp_kmodule_update_address(const char* module,
                        _stp_modules[mi]->sections[si].name,
                        address);
               _stp_modules[mi]->sections[si].static_addr = address;
-              break;
+
+              if (reloc) break;
+              else continue; /* wildcarded - will have more hits */
             }
         } /* loop over sections */
     } /* loop over modules */
