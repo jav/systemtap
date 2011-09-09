@@ -13,6 +13,10 @@
 #define _STP_SYMBOLS_C_
 #include "../sym.h"
 
+
+static void systemtap_module_refresh(void);
+
+
 /* PR12612: pre-commit-3abb860f values */
 
 #define STP13_MODULE_NAME_LEN 64
@@ -107,6 +111,14 @@ static int _stp_module_notifier (struct notifier_block * nb,
                 /* Unregister all sections. */
                 _stp_kmodule_update_address(mod->name, NULL, 0);
         }
+
+        /* Give the probes a chance to update themselves. */
+        /* Proper kprobes support for this appears to be relatively
+           recent.  XXX: need more precise reference */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
+        systemtap_module_refresh();
+#endif
+
         return NOTIFY_DONE;
 }
 
