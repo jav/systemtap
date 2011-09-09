@@ -2886,28 +2886,26 @@ dwflpp::blacklisted_p(const string& funcname,
   if (!blacklist_enabled)
     return false; // no blacklist for userspace
 
+  bool blacklisted = false;
+
+  // check against section blacklist
   string section = get_blacklist_section(addr);
   if (!regexec (&blacklist_section, section.c_str(), 0, NULL, 0))
     {
-      // NB: module .exit. routines could be probed in theory:
-      // if the exit handler in "struct module" is diverted,
-      // first inserting the kprobes
-      // then allowing the exit code to run
-      // then removing these kprobes
+      blacklisted = true;
       if (sess.verbose>1)
-        clog << _(" skipping - init/exit");
-      return true;
+        clog << _(" init/exit");
     }
 
   // Check for function marked '__kprobes'.
   if (module == TOK_KERNEL && in_kprobes_function(sess, addr))
     {
+      blacklisted = true;
       if (sess.verbose>1)
-        clog << _(" skipping - __kprobes");
-      return true;
+        clog << _(" __kprobes");
     }
 
-  // Check probe point against blacklist.
+  // Check probe point against file/function blacklists.
   int goodfn = regexec (&blacklist_func, funcname.c_str(), 0, NULL, 0);
   if (has_return)
     goodfn = goodfn && regexec (&blacklist_func_ret, funcname.c_str(), 0, NULL, 0);
@@ -2915,21 +2913,23 @@ dwflpp::blacklisted_p(const string& funcname,
 
   if (! (goodfn && goodfile))
     {
-      if (sess.guru_mode)
-        {
-          if (sess.verbose>1)
-            clog << _(" guru mode enabled - ignoring blacklist");
-        }
-      else
-        {
-          if (sess.verbose>1)
-            clog << _(" skipping - blacklisted");
-          return true;
-        }
+      blacklisted = true;
+      if (sess.verbose>1)
+        clog << _(" file/function blacklist");
     }
 
+  if (sess.guru_mode && blacklisted)
+    {
+      blacklisted = false;
+      if (sess.verbose>1)
+        clog << _(" - not skipped (guru mode enabled)");
+    }
+
+  if (blacklisted && sess.verbose>1)
+    clog << _(" - skipped");
+
   // This probe point is not blacklisted.
-  return false;
+  return blacklisted;
 }
 
 
