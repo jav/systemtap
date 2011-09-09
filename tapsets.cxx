@@ -484,6 +484,7 @@ public:
   void enroll (dwarf_derived_probe* probe);
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
+  void emit_module_refresh (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
 };
 
@@ -4632,6 +4633,98 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 
 
 void
+dwarf_derived_probe_group::emit_module_refresh (systemtap_session& s)
+{
+  s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
+  s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
+  s.op->newline() << "unsigned long relocated_addr = _stp_kmodule_relocate (sdp->module, sdp->section, sdp->address);";
+  s.op->newline() << "int rc;";
+
+  // new module arrived?
+  s.op->newline() << "if (sdp->registered_p == 0 && relocated_addr != 0) {";
+  s.op->newline(1) << "if (sdp->return_p) {";
+  s.op->newline(1) << "kp->u.krp.kp.addr = (void *) relocated_addr;";
+  s.op->newline() << "if (sdp->maxactive_p) {";
+  s.op->newline(1) << "kp->u.krp.maxactive = sdp->maxactive_val;";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "kp->u.krp.maxactive = KRETACTIVE;";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "kp->u.krp.handler = &enter_kretprobe_probe;";
+  s.op->newline() << "#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)";
+  s.op->newline() << "if (sdp->entry_probe) {";
+  s.op->newline(1) << "kp->u.krp.entry_handler = &enter_kretprobe_entry_probe;";
+  s.op->newline() << "kp->u.krp.data_size = sdp->saved_longs * sizeof(int64_t) + ";
+  s.op->newline() << "                      sdp->saved_strings * MAXSTRINGLEN;";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "#endif";
+  // to ensure safeness of bspcache, always use aggr_kprobe on ia64
+  s.op->newline() << "#ifdef __ia64__";
+  s.op->newline() << "kp->dummy.addr = kp->u.krp.kp.addr;";
+  s.op->newline() << "kp->dummy.pre_handler = NULL;";
+  s.op->newline() << "rc = register_kprobe (& kp->dummy);";
+  s.op->newline() << "if (rc == 0) {";
+  s.op->newline(1) << "rc = register_kretprobe (& kp->u.krp);";
+  s.op->newline() << "if (rc != 0)";
+  s.op->newline(1) << "unregister_kprobe (& kp->dummy);";
+  s.op->newline(-2) << "}";
+  s.op->newline() << "#else";
+  s.op->newline() << "rc = register_kretprobe (& kp->u.krp);";
+  s.op->newline() << "#endif";
+  s.op->newline(-1) << "} else {";
+  // to ensure safeness of bspcache, always use aggr_kprobe on ia64
+  s.op->newline(1) << "kp->u.kp.addr = (void *) relocated_addr;";
+  s.op->newline() << "kp->u.kp.pre_handler = &enter_kprobe_probe;";
+  s.op->newline() << "#ifdef __ia64__";
+  s.op->newline() << "kp->dummy.addr = kp->u.kp.addr;";
+  s.op->newline() << "kp->dummy.pre_handler = NULL;";
+  s.op->newline() << "rc = register_kprobe (& kp->dummy);";
+  s.op->newline() << "if (rc == 0) {";
+  s.op->newline(1) << "rc = register_kprobe (& kp->u.kp);";
+  s.op->newline() << "if (rc != 0)";
+  s.op->newline(1) << "unregister_kprobe (& kp->dummy);";
+  s.op->newline(-2) << "}";
+  s.op->newline() << "#else";
+  s.op->newline() << "rc = register_kprobe (& kp->u.kp);";
+  s.op->newline() << "#endif";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "if (rc == 0) sdp->registered_p = 1;";
+
+  // old module disappeared?
+  s.op->newline(-1) << "} else if (sdp->registered_p == 1 && relocated_addr == 0) {";
+  s.op->newline(1) << "if (sdp->return_p) {";
+  s.op->newline(1) << "unregister_kretprobe (&kp->u.krp);";
+  s.op->newline() << "atomic_add (kp->u.krp.nmissed, & skipped_count);";
+  s.op->newline() << "#ifdef STP_TIMING";
+  s.op->newline() << "if (kp->u.krp.nmissed)";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/1 on '%s': %d\\n\", sdp->probe->pp, kp->u.krp.nmissed);";
+  s.op->newline(-1) << "#endif";
+  s.op->newline() << "atomic_add (kp->u.krp.kp.nmissed, & skipped_count);";
+  s.op->newline() << "#ifdef STP_TIMING";
+  s.op->newline() << "if (kp->u.krp.kp.nmissed)";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->probe->pp, kp->u.krp.kp.nmissed);";
+  s.op->newline(-1) << "#endif";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "unregister_kprobe (&kp->u.kp);";
+  s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
+  s.op->newline() << "#ifdef STP_TIMING";
+  s.op->newline() << "if (kp->u.kp.nmissed)";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->probe->pp, kp->u.kp.nmissed);";
+  s.op->newline(-1) << "#endif";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "#if defined(__ia64__)";
+  s.op->newline() << "unregister_kprobe (&kp->dummy);";
+  s.op->newline() << "#endif";
+  s.op->newline() << "sdp->registered_p = 0;";
+  s.op->newline(-1) << "}";
+
+  s.op->newline(-1) << "}"; // for loop
+}
+
+
+
+
+void
 dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
   if (has_semaphores)
@@ -7486,6 +7579,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "else sdp->registered_p = 1;";
   s.op->newline(-1) << "}"; // for loop
 }
+
 
 void
 kprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
