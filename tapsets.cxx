@@ -6354,6 +6354,13 @@ dwarf_builder::build(systemtap_session & sess,
       else
 	module_name = user_path; // canonicalize it
 
+      // There is a similar check in pass 4 (buildrun), but it is
+      // needed here too to make sure alternatives for optional
+      // (? or !) process probes are disposed and/or alternatives
+      // are selected.
+      if (sess.kernel_config["CONFIG_UTRACE"] != string("y"))
+        throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE"));
+
       // user-space target; we use one dwflpp instance per module name
       // (= program or shared library)
       dw = get_user_dw(sess, module_name);
