@@ -1594,7 +1594,7 @@ dwflpp::resolve_prologue_endings (func_info_map_t & funcs)
         }
 
       if (sess.verbose>2)
-        clog << _F("searching for prologue of function '%s' 0x%#" PRIx64 "-0x%#" PRIx64 
+        clog << _F("searching for prologue of function '%s' %#" PRIx64 "-%#" PRIx64 
                    "@%s:%d\n", it->name.c_str(), entrypc, highpc, it->decl_file,
                    it->decl_line);
 
@@ -1619,7 +1619,7 @@ dwflpp::resolve_prologue_endings (func_info_map_t & funcs)
           int postprologue_lineno = lr.lineno();
 
           if (sess.verbose>2)
-            clog << _F("checking line record 0x%#" PRIx64 "@%s:%d\n", postprologue_addr,
+            clog << _F("checking line record %#" PRIx64 "@%s:%d\n", postprologue_addr,
                        postprologue_file, postprologue_lineno);
 
           if (postprologue_addr >= highpc)
@@ -1719,7 +1719,7 @@ dwflpp::die_entrypc (Dwarf_Die * die, Dwarf_Addr * addr)
     }
 
   if (sess.verbose > 2)
-    clog << _F("entry-pc lookup (%s dieoffset: %s) = 0x%#" PRIx64 " (rc %d", lookup_method.c_str(), 
+    clog << _F("entry-pc lookup (%s dieoffset: %s) = %#" PRIx64 " (rc %d", lookup_method.c_str(), 
                lex_cast_hex(dwarf_dieoffset(die)).c_str(), *addr, rc) << endl;
 
   return (rc == 0);
@@ -1842,7 +1842,7 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
     {
       ostringstream msg;
       msg << _F("emit_address internal error, dwfl_addrmodule failed, "
-                "address 0x%#" PRIx64 , address);
+                "address %#" PRIx64 , address);
       const char *err = dwfl_errmsg(0);
       if (err)
 	msg << " (" << err << ")";
@@ -1860,7 +1860,7 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
 
   if (sess.verbose > 2)
     {
-      clog << _F("emit dwarf addr 0x%#" PRIx64 " => module %s section %s relocaddr 0x%#" PRIx64,
+      clog << _F("emit dwarf addr %#" PRIx64 " => module %s section %s relocaddr %#" PRIx64,
                  address, modname, (secname ?: "null"), reloc_address) << endl;
     }
 
@@ -2585,7 +2585,7 @@ dwflpp::vardie_from_symtable (Dwarf_Die *vardie, Dwarf_Addr *addr)
     }
 
   if (sess.verbose > 2)
-    clog << _F("found %s @0x%#" PRIx64 "\n", name, *addr);
+    clog << _F("found %s @%#" PRIx64 "\n", name, *addr);
 
   return *addr;
 }
@@ -2605,8 +2605,8 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
                                           &vardie, &fb_attr_mem);
 
   if (sess.verbose>2)
-    clog << _F("finding location for local '%s' near address 0x%#" PRIx64 
-               ", module bias 0x%#" PRIx64 "\n", local.c_str(), pc, module_bias);
+    clog << _F("finding location for local '%s' near address %#" PRIx64 
+               ", module bias %#" PRIx64 "\n", local.c_str(), pc, module_bias);
 
 #define obstack_chunk_alloc malloc
 #define obstack_chunk_free free
@@ -3288,7 +3288,7 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
 	  bool frame_signalp;
 	  int info = dwarf_frame_info (frame, &frame_start, &frame_end,
 				       &frame_signalp);
-          clog << _F("found cfa, info: %d [start: 0x%#" PRIx64 ", end: 0x%#" PRIx64 
+          clog << _F("found cfa, info: %d [start: %#" PRIx64 ", end: %#" PRIx64 
                      ", nops: %zu", info, frame_start, frame_end, cfa_nops) << endl;
 	}
     }

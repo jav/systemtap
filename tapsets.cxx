@@ -1318,10 +1318,10 @@ query_addr(Dwarf_Addr addr, dwarf_query *q)
       if (!q->has_mark && (!address_line || address_line.addr() != addr))
         {
           stringstream msg;
-          msg << _F("address 0x%#" PRIx64 " does not match the beginning of a statement",
+          msg << _F("address %#" PRIx64 " does not match the beginning of a statement",
                     addr);
           if (address_line)
-            msg << _F(" (try 0x%#" PRIx64 ")", address_line.addr());
+            msg << _F(" (try %#" PRIx64 ")", address_line.addr());
           else
             msg << _F(" (no line info found for '%s', in module '%s')",
                       dw.cu_name().c_str(), dw.module_name.c_str());
@@ -1829,7 +1829,7 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
     }
 
   if (q->sess.verbose>2)
-    clog << _F("focused on module '%s' = [0x%#" PRIx64 ", -0x%#" PRIx64 ", bias 0x%#" PRIx64 
+    clog << _F("focused on module '%s' = [%#" PRIx64 "-%#" PRIx64 ", bias %#" PRIx64 
                " file %s ELF machine %s|%s (code %d)\n",
                q->dw.module_name.c_str(), q->dw.module_start, q->dw.module_end,
                q->dw.module_bias, debug_filename, expect_machine.c_str(),

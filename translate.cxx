@@ -4953,7 +4953,7 @@ dump_unwindsyms (Dwfl_Module *m,
 
     if (c->session.verbose > 1)
       {
-        clog << _F("Found build-id in %s, length %d, start at 0x%#" PRIx64,
+        clog << _F("Found build-id in %s, length %d, start at %#" PRIx64,
                    name, build_id_len, build_id_vaddr) << endl;
       }
   }
@@ -5006,7 +5006,7 @@ dump_unwindsyms (Dwfl_Module *m,
               dwfl_assert ("dwfl_module_relocate_address extra_offset",
                            ki >= 0);
               if (c->session.verbose > 2)
-                clog << _F("Found kernel _stext extra offset 0x%#" PRIx64, extra_offset) << endl;
+                clog << _F("Found kernel _stext extra offset %#" PRIx64, extra_offset) << endl;
             }
 
 	  // We are only interested in "real" symbols.
