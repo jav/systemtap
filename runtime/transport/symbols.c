@@ -114,8 +114,8 @@ static int _stp_module_notifier (struct notifier_block * nb,
 
         /* Give the probes a chance to update themselves. */
         /* Proper kprobes support for this appears to be relatively
-           recent.  XXX: need more precise reference */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
+           recent.  Example prerequisite commits: 0deddf436a f24659d9 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29)
         systemtap_module_refresh();
 #endif
 
