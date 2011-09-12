@@ -33,7 +33,7 @@ if { [error_handler [expr {$res==""}] "buildid.o"] } { return }
 set res [target_link "buildid.o" "buildid.ro" "-r"]
 if { [error_handler [expr {$res==""}] "buildid.ro"] } { return }
 
-set bid_exepath [pwd]/buildid.x
+set bid_exepath ./buildid.x
 set res [target_compile "" $bid_exepath executable "additional_flags=buildid.ro"]
 if { [error_handler [expr {$res==""}] "$bid_exepath"] } { return }
 
@@ -61,7 +61,7 @@ set bid_bid $srcdir/$subdir/buildid.hex
 system "objcopy --remove-section=.note.gnu.build-id buildid.ro buildid1.ro"
 system "objcopy --add-section .note.gnu.build-id=$bid_bid buildid1.ro buildid2.ro"
 set res [target_compile "" $bid_exepath executable "additional_flags=buildid2.ro"]
-if { [error_handler [expr {$res==""}] "$bid_exepath"] } { return }
+if { [error_handler [expr {$res==""}] "$bid_exepath altered"] } { return }
 
 set ok 0
 spawn staprun -u [pwd]/bid.ko -c $bid_exepath
@@ -96,14 +96,14 @@ set bid_flags "additional_flags=-DNO_MAIN"
 set bid_flags "$bid_flags additional_flags=-shared"
 set bid_flags "$bid_flags additional_flags=-g"
 set res [target_compile $bid_srcpath "libbid.so" executable $bid_flags]
-if { [error_handler [expr {$res==""}] "libbid.so"] } { return }
+if { [error_handler [expr {$res==""}] "libbid.so -DNO_MAIN"] } { return }
 
 set bid_flags "additional_flags=-DONLY_MAIN"
 set bid_flags "$bid_flags additional_flags=-Wl,-rpath,[pwd]"
 set bid_flags "$bid_flags additional_flags=-L[pwd]"
 set bid_flags "$bid_flags additional_flags=-lbid"
 set res [target_compile $bid_srcpath "$bid_exepath" executable $bid_flags]
-if { [error_handler [expr {$res==""}] "$bid_exepath"] } { return }
+if { [error_handler [expr {$res==""}] "$bid_exepath -DONLY_MAIN"] } { return }
 
 spawn stap -m bid -p4 $bid_stp libbid.so
 wait
