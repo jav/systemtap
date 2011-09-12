@@ -65,7 +65,7 @@ if test "${enable_sdt_probes+set}" != set; then
   if { echo '#if __GNUC__ < 4'
        echo ' yes '
        echo '#endif'; } | ${CC} -E - | grep yes > /dev/null; then
-    enable_prologues=no
+    enable_sdt_probes=no
     AC_MSG_RESULT([no])
   else
     AC_MSG_RESULT([yes])

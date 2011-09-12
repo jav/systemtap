@@ -48,6 +48,17 @@ AC_SUBST(PIECXXFLAGS)
 AC_SUBST(PIELDFLAGS)
 AC_SUBST(LOCALEDIR, "$localedir")
 
+if test "${enable_sdt_probes+set}" != set; then
+  AC_MSG_CHECKING([to see if sdt probes should be the default])
+  if { echo '#if __GNUC__ < 4'
+       echo ' yes '
+       echo '#endif'; } | ${CC} -E - | grep yes > /dev/null; then
+    enable_sdt_probes=no
+    AC_MSG_RESULT([no])
+  else
+    AC_MSG_RESULT([yes])
+  fi
+fi
 AC_ARG_ENABLE([sdt-probes],
   [AS_HELP_STRING([--disable-sdt-probes],
                   [disable process.mark probes in staprun, stapio])])

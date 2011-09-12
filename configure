@@ -8694,7 +8694,7 @@ $as_echo_n "checking to see if sdt probes should be the default... " >&6; }
   if { echo '#if __GNUC__ < 4'
        echo ' yes '
        echo '#endif'; } | ${CC} -E - | grep yes > /dev/null; then
-    enable_prologues=no
+    enable_sdt_probes=no
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
   else
