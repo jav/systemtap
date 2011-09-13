@@ -45,20 +45,21 @@ do
     fi
     avahi_advertising=1
 
-    # The server is ready
-    echo $server_pid
-    exit 0
+    break; # Server is up and advertised
 done
 
-echo -n "Unable to start a systemtap server: " >&2
-
+# server did not start?
 if test $server_started = 0; then
+    echo -n "Unable to start a systemtap server: " >&2
     echo "${stap_pkglibexecdir}stap-serverd did not start" >&2
-elif test $avahi_advertising = 0; then
-    echo "avahi is not advertising the server" >&2
+    exit 1
 fi
 
-# If the server partially started, then kill it.
-test $server_started = 1 && ${stap_pkglibexecdir}stap-stop-server $server_pid
+# Is avahi advertising the server? Warn if not.
+if test $avahi_advertising = 0; then
+    echo "WARNING: avahi is not advertising the server" >&2
+fi
 
-exit 1 # server did not start
+# The server is ready
+echo $server_pid
+exit 0
