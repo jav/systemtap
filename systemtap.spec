@@ -108,7 +108,7 @@ License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap = %{version}-%{release}
 Requires: systemtap-sdt-devel = %{version}-%{release}
-Requires: dejagnu which prelink
+Requires: dejagnu which prelink elfutils
 
 %description testsuite
 The testsuite allows testing of the entire SystemTap toolchain
