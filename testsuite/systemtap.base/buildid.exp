@@ -37,6 +37,31 @@ set bid_exepath ./buildid.x
 set res [target_compile "" $bid_exepath executable "additional_flags=buildid.ro"]
 if { [error_handler [expr {$res==""}] "$bid_exepath"] } { return }
 
+# Check that the build ID exists on this system
+set bid_check_passed 0
+set cmd [concat {/usr/bin/eu-readelf -n $bid_exepath}]
+eval spawn $cmd
+expect {
+  -timeout 180
+  -re {^[^\r\n]*GNU_BUILD_ID[^\r\n]*\r\n} {
+    set bid_check_passed 1
+    exp_continue
+  }
+  -re {^[^\r\n]*\r\n} {
+    exp_continue
+  }
+  timeout {
+    set bid_check_passed 0
+  }
+}
+catch close
+
+if {$bid_check_passed == 0} {
+  untested "Build IDs do not exist on this system"
+  cleanup_handler $verbose
+  return
+}
+
 # Since uprobes.ko may not be prebuilt in the runtime, and we don't yet have a
 # way to discover the path to the cache-build uprobes.ko, we need to preload
 # it.  This dummy run lets us go through the motions to get uprobes loaded, and
