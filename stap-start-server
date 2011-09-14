@@ -15,7 +15,7 @@
 # Initialize the environment
 . ${PKGLIBEXECDIR}stap-env
 
-startup_timeout=20
+startup_timeout=10
 
 # start the server
 ${stap_pkglibexecdir}stap-serverd "$@" </dev/null >/dev/null 2>/dev/null &
@@ -24,26 +24,11 @@ server_pid=$!
 # Make sure the server is started
 for ((attempt=0; $attempt < $startup_timeout; ++attempt))
 do
-    server_started=0
-    avahi_advertising=0
-
     # Has the server started?
     if ! (ps -e | grep stap-serverd | grep $server_pid) >/dev/null 2>&1; then
-	# The stap-serverd script should start right away
-	test $server_started = 0 -a $attempt -gt 1 && break
         sleep 1
         continue
     fi
-    server_started=1
-
-    # Is avahi advertizing the server?
-    if ! (avahi-browse $stap_avahi_service_tag --terminate | \
-	  grep "Systemtap Compile Server" | grep $server_pid) \
-	>/dev/null 2>&1; then
-	sleep 1
-	continue
-    fi
-    avahi_advertising=1
 
     # The server is ready
     echo $server_pid
@@ -51,14 +36,6 @@ do
 done
 
 echo -n "Unable to start a systemtap server: " >&2
-
-if test $server_started = 0; then
-    echo "${stap_pkglibexecdir}stap-serverd did not start" >&2
-elif test $avahi_advertising = 0; then
-    echo "avahi is not advertising the server" >&2
-fi
-
-# If the server partially started, then kill it.
-test $server_started = 1 && ${stap_pkglibexecdir}stap-stop-server $server_pid
+echo "${stap_pkglibexecdir}stap-serverd did not start" >&2
 
 exit 1 # server did not start

@@ -45,7 +45,7 @@ Requires: kernel-devel
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
-BuildRequires: nss-devel avahi-devel pkgconfig
+BuildRequires: nss-devel avahi-client pkgconfig
 
 # Additional requires for things spawned by stap
 Requires: coreutils grep sed unzip zip
@@ -120,16 +120,17 @@ Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap = %{version}-%{release}
-Requires: avahi avahi-tools nss mktemp
+Requires: nss mktemp
 Requires: zip unzip
 Requires(post): chkconfig
 Requires(preun): chkconfig
 Requires(preun): initscripts
 Requires(postun): initscripts
+BuildRequires: nss-devel avahi-client
 
 %description server
 This is the remote script compilation server component of systemtap.
-It announces itself to local clients with avahi, and compiles systemtap
+It announces itself to local clients with avahi (if available), and compiles systemtap
 scripts to kernel objects on their demand.
 
 %package sdt-devel
