@@ -1,4 +1,4 @@
-set test unprivilegedall
+set test "unprivileged probes"
 
 set exepath "foo"
 set sopath "libfoo.so"
