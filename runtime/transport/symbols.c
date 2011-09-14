@@ -71,46 +71,65 @@ static void _stp_do_relocation(const char __user *buf, size_t count)
 
 
 
+#if !defined(STAPCONF_MODULE_SECT_ATTRS) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
+/* It would be nice if it were (still) in a header we could get to,
+   like include/linux/module.h, but commit a58730c42 moved them into
+   kernel/module.c. */
+struct module_sect_attr
+{
+        struct module_attribute mattr;
+        char *name;
+        unsigned long address;
+};
+
+struct module_sect_attrs
+{
+        struct attribute_group grp;
+        unsigned int nsections;
+        struct module_sect_attr attrs[0];
+};
+#endif
+
+
 static int _stp_module_notifier (struct notifier_block * nb,
                                  unsigned long val, void *data)
 {
+        /* Prior to 2.6.11, struct module contained a module_sections
+           attribute vector rather than module_sect_attrs.  Prior to
+           2.6.19, module_sect_attrs lacked a number-of-sections
+           field.  Without CONFIG_KALLSYMS, we don't get any of the
+           related fields at all in struct module.  XXX: autoconf for
+           that directly? */
+
+#if defined(CONFIG_KALLSYMS) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
         struct module *mod = data;
+        struct module_sect_attrs *attrs = mod->sect_attrs;
+        unsigned i;
 
         if (val == MODULE_STATE_COMING) {
                 /* A module is arriving.  Register all of its section
                    addresses, as though staprun sent us a bunch of
                    STP_RELOCATE messages.  Now ... where did the
-                   fishie go?  It's in mod->sect_attrs, but the type
-                   declaration is private to kernel/module.c.  It's in
-                   the load_info, but we can't get there from here.
-                   It's in sysfs, but one'd have to maneuver through
-                   mod->mkobj etc, or consult userspace; not cool.
-
-                   So we cheat.  It's under the sofa.  */
-
-#ifndef STAPCONF_GRSECURITY
-                _stp_kmodule_update_address(mod->name, ".text",
-                                            (unsigned long)mod->module_core);
-                _stp_kmodule_update_address(mod->name, ".init.text",
-                                            (unsigned long)mod->module_init);
-#else
-                _stp_kmodule_update_address(mod->name, ".text",
-                                            (unsigned long)mod->module_core_rx);
-                _stp_kmodule_update_address(mod->name, ".init.text",
-                                            (unsigned long)mod->module_init_rx);
-		/* XXX: also: module_*_rw for .data? */
-#endif
-                /* _stp_kmodule_update_address(mod->name,
-                                               ".note.gnu.build-id", ??); */
+                   fishie go? */
+                for (i=0; i<attrs->nsections; i++) 
+                        _stp_kmodule_update_address(mod->name, 
+                                                    attrs->attrs[i].name,
+                                                    attrs->attrs[i].address);
         }
         else if (val == MODULE_STATE_LIVE) {
                 /* The init section(s) may have been unloaded. */
-                _stp_kmodule_update_address(mod->name, ".init.text", 0);
+                for (i=0; i<attrs->nsections; i++) 
+                        if (strstr(attrs->attrs[i].name, "init.") != NULL)
+                        _stp_kmodule_update_address(mod->name, 
+                                                    attrs->attrs[i].name,
+                                                    0);
         }
         else if (val == MODULE_STATE_GOING) {
                 /* Unregister all sections. */
                 _stp_kmodule_update_address(mod->name, NULL, 0);
         }
+
+        /* XXX: verify build-id! */
 
         /* Give the probes a chance to update themselves. */
         /* Proper kprobes support for this appears to be relatively
@@ -118,6 +137,8 @@ static int _stp_module_notifier (struct notifier_block * nb,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29)
         systemtap_module_refresh();
 #endif
+
+#endif /* skipped for ancient or kallsyms-free kernels */
 
         return NOTIFY_DONE;
 }
