@@ -45,7 +45,7 @@ Requires: kernel-devel
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
-BuildRequires: nss-devel avahi-client pkgconfig
+BuildRequires: nss-devel avahi-devel pkgconfig
 
 # Additional requires for things spawned by stap
 Requires: coreutils grep sed unzip zip
@@ -126,7 +126,7 @@ Requires(post): chkconfig
 Requires(preun): chkconfig
 Requires(preun): initscripts
 Requires(postun): initscripts
-BuildRequires: nss-devel avahi-client
+BuildRequires: nss-devel avahi-devel
 
 %description server
 This is the remote script compilation server component of systemtap.
