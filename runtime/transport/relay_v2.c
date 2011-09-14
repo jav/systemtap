@@ -305,7 +305,7 @@ static int _stp_transport_data_fs_init(void)
 	/* Create "trace" file. */
 	npages = _stp_subbuf_size * _stp_nsubbufs;
 #ifdef STP_BULKMODE
-	npages *= num_possible_cpus();
+	npages *= num_online_cpus();
 #endif
 	npages >>= PAGE_SHIFT;
 	si_meminfo(&si);
