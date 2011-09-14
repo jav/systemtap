@@ -14,8 +14,8 @@
 #include "../sym.h"
 
 
-static void systemtap_module_refresh(void);
-
+static void systemtap_module_refresh (void);
+static int _stp_kmodule_check (const char*);
 
 /* PR12612: pre-commit-3abb860f values */
 
@@ -115,6 +115,10 @@ static int _stp_module_notifier (struct notifier_block * nb,
                         _stp_kmodule_update_address(mod->name, 
                                                     attrs->attrs[i].name,
                                                     attrs->attrs[i].address);
+
+                /* Verify build-id. */
+                if (_stp_kmodule_check (mod->name))
+                   _stp_kmodule_update_address(mod->name, NULL, 0); /* Pretend it was never here. */
         }
         else if (val == MODULE_STATE_LIVE) {
                 /* The init section(s) may have been unloaded. */
@@ -123,13 +127,14 @@ static int _stp_module_notifier (struct notifier_block * nb,
                         _stp_kmodule_update_address(mod->name, 
                                                     attrs->attrs[i].name,
                                                     0);
+
+                /* No need to verify build-id here; if it failed when COMING,
+                   all other section names will already have reloc=0. */
         }
         else if (val == MODULE_STATE_GOING) {
                 /* Unregister all sections. */
                 _stp_kmodule_update_address(mod->name, NULL, 0);
         }
-
-        /* XXX: verify build-id! */
 
         /* Give the probes a chance to update themselves. */
         /* Proper kprobes support for this appears to be relatively

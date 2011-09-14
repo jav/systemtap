@@ -287,6 +287,7 @@ static int _stp_build_id_check (struct _stp_module *m, unsigned long notes_addr,
   return 0;
 }
 
+
 /* Validate module/kernel based on build-id (if present)
 *  The completed case is the following combination:
 *	   Debuginfo 		 Module			         Kernel	
@@ -333,6 +334,45 @@ static int _stp_module_check(void)
     } /* end loop */
   return 0;
 }
+
+
+
+/* Iterate over _stp_modules, looking for a kernel module of given
+   name.  Run build-id checking for it.  Return 0 on ok. */
+static int _stp_kmodule_check (const char *name)
+{
+  struct _stp_module *m = NULL;
+  unsigned long notes_addr, base_addr;
+  unsigned i,j;
+
+#ifdef STP_NO_BUILDID_CHECK
+  return 0;
+#endif
+
+  for (i = 0; i < _stp_num_modules; i++)
+    {
+      m = _stp_modules[i];
+      if (strcmp (name, m->name)) continue;
+
+      if (m->build_id_len > 0 && m->notes_sect != 0) {
+          dbug_sym(1, "build-id validation [%s]\n", m->name);
+
+          /* notes end address */
+          notes_addr = m->notes_sect + m->build_id_offset;
+          base_addr = m->notes_sect;
+
+          if (notes_addr <= base_addr) { /* shouldn't happen */
+              _stp_warn ("build-id address %lx < base %lx\n",
+                  notes_addr, base_addr);
+              continue;
+          }
+          return _stp_build_id_check (m, notes_addr, 0);
+      } /* end checking */
+    } /* end loop */
+
+  return 0; /* name not found */
+}
+
 
 
 /* Validate user module based on build-id (if present) */
