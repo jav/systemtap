@@ -1,0 +1,35 @@
+set test bz6503
+
+if {! [installtest_p]} {
+    untested "$test"
+    return
+}
+
+# jffs2 and ext2 seem to cover a span of kernels
+
+spawn stap -t $srcdir/$subdir/bz6503.stp -c "( (/sbin/modprobe jffs2 & /sbin/modprobe ext2&);wait;sleep 3;(/sbin/rmmod jffs2& /sbin/rmmod ext2&); wait) 2>/dev/null"
+set ok 0
+set ko 0
+expect {
+    -timeout 60
+    timeout { fail "$test (timeout)" }
+    -re {^-----[^\r\n]*\r\n} { exp_continue }
+    -re {^module[^\r\n]*hits:[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^WARNING:[\r\n]*\r\n} { incr ko; exp_continue }
+    -re {^ERROR:[\r\n]*\r\n} { incr ko; exp_continue }
+    eof { }
+}
+catch { close} ; catch { wait }
+
+# Mark kernels < 2.6.29 as xfail
+set kv [exec uname -r | cut -f1 -d-]
+set kvbits [split $kv .]
+set k1 [lindex $kvbits 0]
+set k2 [lindex $kvbits 1]
+set k3 [lindex $kvbits 2]
+verbose -log "xfailing if $k1.$k2.$k3 < 2.6.29"
+if {($k1*256*256 + $k2*256 + $k3) < (2*256*256 + 6*256 + 29)} then { setup_xfail *-*-* }
+
+if {$ok > 0 && $ko == 0} then { pass "$test $ok" } else { fail "$test $ok $ko"}
+
+
