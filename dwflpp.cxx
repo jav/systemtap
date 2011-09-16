@@ -1170,6 +1170,113 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
 }
 
 
+/* For each plt section in the current module call 'callback', pass the plt entry
+ * 'address' and 'name' back, and pass 'object' back in case 'callback' is a method */
+
+int
+dwflpp::iterate_over_plt (void *object, void (*callback)(void *object, const char *name, size_t addr))
+{
+  Dwarf_Addr load_addr;
+  // Note we really want the actual elf file, not the dwarf .debug file.
+  Elf* elf = dwfl_module_getelf (module, &load_addr);
+  size_t shstrndx;
+  assert (elf_getshdrstrndx (elf, &shstrndx) >= 0);
+
+  // Get the load address
+  for (int i = 0; ; i++)
+    {
+      GElf_Phdr mem;
+      GElf_Phdr *phdr;
+      phdr = gelf_getphdr (elf, i, &mem);
+      if (phdr == NULL)
+	break;
+      if (phdr->p_type == PT_LOAD)
+	{
+	  load_addr = phdr->p_vaddr;
+	  break;
+	}
+    }
+
+  // Get the plt section header
+  Elf_Scn *scn = NULL;
+  GElf_Shdr *plt_shdr = NULL;
+  GElf_Shdr plt_shdr_mem;
+  while ((scn = elf_nextscn (elf, scn)))
+    {
+      plt_shdr = gelf_getshdr (scn, &plt_shdr_mem);
+      assert (plt_shdr != NULL);
+      if (strcmp (elf_strptr (elf, shstrndx, plt_shdr->sh_name), ".plt") == 0)
+	break;
+    }
+	
+  // Layout of the plt section
+  int plt0_entry_size;
+  int plt_entry_size;
+  GElf_Ehdr ehdr_mem;
+  GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
+  switch (em->e_machine)
+  {
+  case EM_386:    plt0_entry_size = 12; plt_entry_size = 16; break;
+  case EM_X86_64: plt0_entry_size = 16; plt_entry_size = 16; break;
+  case EM_PPC64:
+  case EM_S390:
+  case EM_PPC:
+  default:
+    throw semantic_error(".plt is not supported on this architecture");
+  }
+
+  scn = NULL;
+  while ((scn = elf_nextscn (elf, scn)))
+    {
+      GElf_Shdr shdr_mem;
+      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+      if (shdr == NULL)
+        continue;
+      assert (shdr != NULL);
+
+      if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".rela.plt") == 0)
+	{
+	  /* Get the data of the section.  */
+	  Elf_Data *data = elf_getdata (scn, NULL);
+	  assert (data != NULL);
+	  /* Get the symbol table information.  */
+	  Elf_Scn *symscn = elf_getscn (elf, shdr->sh_link);
+	  GElf_Shdr symshdr_mem;
+	  GElf_Shdr *symshdr = gelf_getshdr (symscn, &symshdr_mem);
+	  assert (symshdr != NULL);
+	  Elf_Data *symdata = elf_getdata (symscn, NULL);
+	  assert (symdata != NULL);
+
+	  unsigned int nsyms = shdr->sh_size / shdr->sh_entsize;
+	  
+	  for (unsigned int cnt = 0; cnt < nsyms; ++cnt)
+	    {
+	      GElf_Ehdr ehdr_mem;
+	      GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
+	      if (em == 0) { dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
+
+	      GElf_Rela relmem;
+	      GElf_Rela *rel = gelf_getrela (data, cnt, &relmem);
+	      assert (rel != NULL);
+	      GElf_Sym symmem;
+	      Elf32_Word xndx;
+	      Elf_Data *xndxdata = NULL;
+	      GElf_Sym *sym = gelf_getsymshndx (symdata, xndxdata,
+						GELF_R_SYM (rel->r_info),
+						&symmem, &xndx);
+	      assert (sym != NULL);
+	      Dwarf_Addr addr = plt_shdr->sh_offset + plt0_entry_size + cnt * plt_entry_size;
+
+	      if (elf_strptr (elf, symshdr->sh_link, sym->st_name))
+	        (*callback) (object, elf_strptr (elf, symshdr->sh_link, sym->st_name), addr + load_addr);
+	    }
+	  break; // while scn
+	}
+    }
+  return 0;
+}
+
+
 // This little test routine represents an unfortunate breakdown in
 // abstraction between dwflpp (putatively, a layer right on top of
 // elfutils), and dwarf_query (interpreting a systemtap probe point).
