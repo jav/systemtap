@@ -70,14 +70,7 @@ hash::start()
 void
 hash::add(const std::string& description, const unsigned char *buffer, size_t size)
 {
-  // If the string is longer than 80 and it is not a path, only
-  // put the last 80 characters from the string into the hash log.
- // string stripped_buffer = lex_cast_qstring(buffer);
-  if(size > 80 && buffer[0] != '/') 
-    parm_stream << description << "..." << lex_cast_qstring(buffer+(size-80)) << endl;
-  else 
-    parm_stream << description << lex_cast_qstring(buffer) << endl;
-
+  parm_stream << description << buffer << endl;
   mdfour_update(&md4, buffer, size);
 }
 
@@ -268,7 +261,7 @@ find_script_hash (systemtap_session& s, const string& script)
     h.add("Build ID: ", *it);
 
   // Add in pass 2 script output.
-  h.add("Script: ", script);
+  h.add("Script:\n", script);
 
   // Get the directory path to store our cached script
   string result, hashdir;

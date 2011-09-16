@@ -1,5 +1,5 @@
 // C++ interface to dwfl
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -250,6 +250,9 @@ struct dwflpp
   void iterate_over_libraries (void (*callback)(void *object,
       const char *data), void *data);
 
+
+  int iterate_over_plt (void *object,
+			  void (*callback)(void *object, const char *name, size_t address));
 
   GElf_Shdr * get_section(std::string section_name, GElf_Shdr *shdr_mem,
                           Elf **elf_ret=NULL);

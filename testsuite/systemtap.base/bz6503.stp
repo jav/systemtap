@@ -1,0 +1,3 @@
+probe module("jffs2").function("*").call ?,
+      module("ext2").function("*").call ?,
+      never { }

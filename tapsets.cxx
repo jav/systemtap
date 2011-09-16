@@ -149,7 +149,8 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->last_stmt = 0;";
   o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = -1;"; // NB: PR10516 packs locals[] tighter
-  o->newline() << "c->regs = 0;";
+  o->newline() << "c->uregs = 0;";
+  o->newline() << "c->kregs = 0;";
   o->newline() << "#if defined __ia64__";
   o->newline() << "c->unwaddr = 0;";
   o->newline() << "#endif";
@@ -296,6 +297,7 @@ static const string TOK_MARK("mark");
 static const string TOK_TRACE("trace");
 static const string TOK_LABEL("label");
 static const string TOK_LIBRARY("library");
+static const string TOK_PLT("plt");
 
 static int query_cu (Dwarf_Die * cudie, void * arg);
 static void query_addr(Dwarf_Addr addr, dwarf_query *q);
@@ -510,7 +512,9 @@ struct base_query
   static bool get_number_param(literal_map_t const & params,
 			       string const & k, Dwarf_Addr & v);
   static void query_library_callback (void *object, const char *data);
+  static void query_plt_callback (void *object, const char *link, size_t addr);
   virtual void query_library (const char *data) = 0;
+  virtual void query_plt (const char *link, size_t addr) = 0;
 
 
   // Extracted parameters.
@@ -518,15 +522,18 @@ struct base_query
   bool has_module;
   bool has_process;
   bool has_library;
+  bool has_plt;
+  bool has_statement;
   string module_val; // has_kernel => module_val = "kernel"
   string path;	     // executable path if module is a .so
+  string plt_val;    // has_plt => plt wildcard
 
   virtual void handle_query_module() = 0;
 };
 
 
 base_query::base_query(dwflpp & dw, literal_map_t const & params):
-  sess(dw.sess), dw(dw), has_library(false)
+  sess(dw.sess), dw(dw), has_library(false), has_plt(false), has_statement(false)
 {
   has_kernel = has_null_param (params, TOK_KERNEL);
   if (has_kernel)
@@ -538,8 +545,14 @@ base_query::base_query(dwflpp & dw, literal_map_t const & params):
   else
     {
       string library_name;
+      long statement_num_val;
       has_process = get_string_param(params, TOK_PROCESS, module_val);
       has_library = get_string_param (params, TOK_LIBRARY, library_name);
+      if ((has_plt = has_null_param (params, TOK_PLT)))
+        plt_val = "*";
+      else has_plt = get_string_param (params, TOK_PLT, plt_val);
+      has_statement = get_number_param(params, TOK_STATEMENT, statement_num_val);
+
       if (has_process)
         module_val = find_executable (module_val);
       if (has_library)
@@ -558,7 +571,8 @@ base_query::base_query(dwflpp & dw, literal_map_t const & params):
 }
 
 base_query::base_query(dwflpp & dw, const string & module_val)
-  : sess(dw.sess), dw(dw), has_library(false), module_val(module_val)
+  : sess(dw.sess), dw(dw), has_library(false), has_plt(false), has_statement(false),
+    module_val(module_val)
 {
   // NB: This uses '/' to distinguish between kernel modules and userspace,
   // which means that userspace modules won't get any PATH searching.
@@ -633,6 +647,7 @@ struct dwarf_query : public base_query
   void query_module_dwarf();
   void query_module_symtab();
   void query_library (const char *data);
+  void query_plt (const char *entry, size_t addr);
 
   void add_probe_point(string const & funcname,
 		       char const * filename,
@@ -905,6 +920,10 @@ dwarf_query::query_module_symtab()
       Dwarf_Addr addr =
       		(has_function_num ? function_num_val : statement_num_val);
       fi = sym_table->get_func_containing_address(addr);
+      // Use the raw address from the .plt
+      if (has_plt)
+	fi->addr = addr;
+      
       if (!fi)
         {
 	  if (! sess.suppress_warnings)
@@ -1089,7 +1108,13 @@ dwarf_query::add_probe_point(const string& dw_funcname,
 
   assert (! has_absolute); // already handled in dwarf_builder::build()
 
-  reloc_addr = dw.relocate_address(addr, reloc_section);
+  if (!has_plt)
+    reloc_addr = dw.relocate_address(addr, reloc_section);
+  else
+    {
+      dw.relocate_address(addr, reloc_section);
+      reloc_addr = addr;
+    }
 
   // If we originally used the linkage name, then let's call it that way
   const char* linkage_name;
@@ -1937,10 +1962,13 @@ query_module (Dwfl_Module *mod,
       if (q->has_library && contains_glob_chars (q->path))
         // handle .library(GLOB)
         q->dw.iterate_over_libraries (&q->query_library_callback, q);
+      // .plt is translated to .plt.statement(N).  We only want to iterate for the
+      // .plt case
+      else if (q->has_plt && ! q->has_statement)
+        q->dw.iterate_over_plt (q, &q->query_plt_callback);
       else
         // search the module for matches of the probe point.
         q->handle_query_module();
-
 
       // If we know that there will be no more matches, abort early.
       if (q->dw.module_name_final_match(q->module_val) || pending_interrupts)
@@ -2000,6 +2028,67 @@ dwarf_query::query_library (const char *library)
   query_one_library (library, dw, user_lib, base_probe, base_loc, results);
 }
 
+struct plt_expanding_visitor: public var_expanding_visitor
+{
+  plt_expanding_visitor(const string & entry):
+    entry (entry)
+  {
+  }
+  const string & entry;
+
+  void visit_target_symbol (target_symbol* e);
+};
+
+
+void
+base_query::query_plt_callback (void *q, const char *entry, size_t address)
+{
+  base_query *me = (base_query*)q;
+  if (me->dw.function_name_matches_pattern (entry, me->plt_val))
+    me->query_plt (entry, address);
+}
+
+
+void
+query_one_plt (const char *entry, long addr, dwflpp & dw,
+    probe * base_probe, probe_point *base_loc,
+    vector<derived_probe *> & results)
+{
+      probe_point* specific_loc = new probe_point(*base_loc);
+      specific_loc->optional = true;
+      vector<probe_point::component*> derived_comps;
+
+      if (dw.sess.verbose > 2)
+        clog << _F("plt entry=%s\n", entry);
+
+      // query_module_symtab requires .plt to recognize that it can set the probe at
+      // a plt entry so we convert process.plt to process.plt.statement
+      vector<probe_point::component*>::iterator it;
+      for (it = specific_loc->components.begin();
+          it != specific_loc->components.end(); ++it)
+        if ((*it)->functor == TOK_PLT)
+	  {
+	    derived_comps.push_back(*it);
+	    derived_comps.push_back(new probe_point::component(TOK_STATEMENT,
+							       new literal_number(addr)));
+	  }
+        else
+          derived_comps.push_back(*it);
+      probe_point* derived_loc = new probe_point(*specific_loc);
+      derived_loc->components = derived_comps;
+      probe *new_base = base_probe->create_alias(derived_loc, specific_loc);
+      string e = string(entry);
+      plt_expanding_visitor pltv (e);
+      pltv.replace (new_base->body);
+      derive_probes(dw.sess, new_base, results);
+}
+
+
+void
+dwarf_query::query_plt (const char *entry, size_t address)
+{
+  query_one_plt (entry, address, dw, base_probe, base_loc, results);
+}
 
 // This would more naturally fit into elaborate.cxx:semantic_pass_symbols,
 // but the needed declaration for module_cache is not available there.
@@ -3532,6 +3621,7 @@ struct dwarf_cast_query : public base_query
 
   void handle_query_module();
   void query_library (const char *) {}
+  void query_plt (const char *entry, size_t addr) {}
 };
 
 
@@ -4268,6 +4358,18 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind_str(TOK_PROCESS)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
     ->bind_unprivileged()
     ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind(TOK_PLT)
+    ->bind_unprivileged()
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)
+    ->bind_unprivileged()
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
+    ->bind_unprivileged()
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
+    ->bind_unprivileged()
+    ->bind(dw);
 }
 
 void
@@ -4277,7 +4379,7 @@ dwarf_derived_probe::emit_probe_local_init(translator_output * o)
     {
       // if accessing $variables, emit bsp cache setup for speeding up
       o->newline() << "#if defined __ia64__";
-      o->newline() << "bspcache(c->unwaddr, c->regs);";
+      o->newline() << "bspcache(c->unwaddr, c->kregs);";
       o->newline() << "#endif";
     }
 }
@@ -4469,14 +4571,14 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << "];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
 				 "_STP_PROBE_HANDLER_KPROBE");
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->kregs = regs;";
 
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
   s.op->newline() << "{";
   s.op->indent(1);
-  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->kregs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
   s.op->newline() << "(*sdp->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
@@ -4506,7 +4608,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sp",
 				 "_STP_PROBE_HANDLER_KRETPROBE");
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->kregs = regs;";
 
   // for assisting runtime's backtrace logic and accessing kretprobe data packets
   s.op->newline() << "c->ips.krp.pi = inst;";
@@ -4516,7 +4618,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
   s.op->newline() << "{";
-  s.op->newline(1) << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline(1) << "unsigned long kprobes_ip = REG_IP(c->kregs);";
   s.op->newline() << "if (entry)";
   s.op->newline(1) << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
   s.op->newline(-1) << "else";
@@ -5516,6 +5618,27 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 }
 
 
+void
+plt_expanding_visitor::visit_target_symbol (target_symbol *e)
+{
+  try
+    {
+      if (e->name == "$$name")
+	{
+	  literal_string *myname = new literal_string (entry);
+	  myname->tok = e->tok;
+	  provide(myname);
+	  return;
+	}
+    }
+  catch (const semantic_error &er)
+    {
+      e->chain (er);
+      provide (e);
+    }
+}
+
+
 struct sdt_query : public base_query
 {
   sdt_query(probe * base_probe, probe_point * base_loc,
@@ -5523,6 +5646,7 @@ struct sdt_query : public base_query
             vector<derived_probe *> & results, const string user_lib);
 
   void query_library (const char *data);
+  void query_plt (const char *entry, size_t addr) {}
   void handle_query_module();
 
 private:
@@ -7027,7 +7151,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "atomic_dec (&c->busy);";
   s.op->newline() << "goto probe_epilogue;";
   s.op->newline(-1) << "}";
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->uregs = regs;";
   s.op->newline() << "c->probe_flags |= _STP_PROBE_STATE_USER_MODE;";
 
   // Make it look like the IP is set as it would in the actual user
@@ -7035,7 +7159,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // we don't confuse uprobes. PR10458
   s.op->newline() << "{";
   s.op->indent(1);
-  s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->uregs);";
   s.op->newline() << "SET_REG_IP(regs, inst->vaddr);";
   s.op->newline() << "(*sups->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
@@ -7058,7 +7182,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "goto probe_epilogue;";
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->uregs = regs;";
   s.op->newline() << "c->probe_flags |= _STP_PROBE_STATE_USER_MODE;";
 
   // Make it look like the IP is set as it would in the actual user
@@ -7066,7 +7190,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // we don't confuse uprobes. PR10458
   s.op->newline() << "{";
   s.op->indent(1);
-  s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->uregs);";
   s.op->newline() << "SET_REG_IP(regs, inst->ret_addr);";
   s.op->newline() << "(*sups->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
@@ -7435,14 +7559,14 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << "];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
 				 "_STP_PROBE_HANDLER_KPROBE");
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->kregs = regs;";
 
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
   s.op->newline() << "{";
   s.op->indent(1);
-  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->kregs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
   s.op->newline() << "(*sdp->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
@@ -7469,7 +7593,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
 				 "_STP_PROBE_HANDLER_KRETPROBE");
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->kregs = regs;";
   s.op->newline() << "c->ips.krp.pi = inst;"; // for assisting runtime's backtrace logic
 
   // Make it look like the IP is set as it wouldn't have been replaced
@@ -7477,7 +7601,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // IP regs on return, so we don't confuse kprobes. PR10458
   s.op->newline() << "{";
   s.op->indent(1);
-  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->kregs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
   s.op->newline() << "(*sdp->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
@@ -7947,7 +8071,12 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct stap_hwbkpt_probe *sdp = &stap_hwbkpt_probes[i];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
 				 "_STP_PROBE_HANDLER_HWBKPT");
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "if (user_mode(regs)) {";
+  s.op->newline(1)<< "c->probe_flags |= _STP_PROBE_STATE_USER_MODE;";
+  s.op->newline() << "c->uregs = regs;";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "c->kregs = regs;";
+  s.op->newline(-1) << "}";
   s.op->newline() << "(*sdp->probe->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
@@ -8776,6 +8905,7 @@ struct tracepoint_query : public base_query
   int handle_query_cu(Dwarf_Die * cudie);
   int handle_query_func(Dwarf_Die * func);
   void query_library (const char *) {}
+  void query_plt (const char *entry, size_t addr) {}
 
   static int tracepoint_query_cu (Dwarf_Die * cudie, void * arg);
   static int tracepoint_query_func (Dwarf_Die * func, base_query * query);

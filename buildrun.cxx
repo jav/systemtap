@@ -266,6 +266,7 @@ compile_pass (systemtap_session& s)
   output_exportconf(s, o, "path_lookup", "STAPCONF_PATH_LOOKUP");
   output_exportconf(s, o, "kern_path_parent", "STAPCONF_KERN_PATH_PARENT");
   output_exportconf(s, o, "vfs_path_lookup", "STAPCONF_VFS_PATH_LOOKUP");
+  output_autoconf(s, o, "autoconf-module-sect-attrs.c", "STAPCONF_MODULE_SECT_ATTRS", NULL);
 
   // used by tapset/timestamp_monotonic.stp
   output_exportconf(s, o, "cpu_clock", "STAPCONF_CPU_CLOCK");

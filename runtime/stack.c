@@ -167,8 +167,7 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 		ri = NULL;
 
 	if (stack_flags == _STP_STACK_KERNEL) {
-		if (! c->regs
-		    || (c->probe_flags & _STP_PROBE_STATE_USER_MODE)) {
+		if (! c->kregs) {
 			/* For the kernel we can use an inexact fallback.
 			   When compiled with frame pointers we can do
 			   a pretty good guess at the stack value,
@@ -195,15 +194,15 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 #endif
 			return;
 		} else {
-			regs = c->regs;
+			regs = c->kregs;
 			ri = NULL; /* This is a hint for GCC so that it can
 				      eliminate the call to uprobe_get_pc()
 				      in __stp_stack_print() below. */
 		}
 	} else if (stack_flags == _STP_STACK_USER) {
 		/* use task_pt_regs, regs might be kernel regs, or not set. */
-		if (c->regs && (c->probe_flags & _STP_PROBE_STATE_USER_MODE)) {
-			regs = c->regs;
+		if (c->uregs && (c->probe_flags & _STP_PROBE_STATE_USER_MODE)) {
+			regs = c->uregs;
 			uregs_valid = 1;
 		} else {
 			regs = task_pt_regs(current);
