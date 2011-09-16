@@ -47,7 +47,11 @@ if (test_x86_gs()) {
 
 function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
-	if (!CONTEXT->regs) {
+	struct pt_regs *regs;
+	regs = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+		? CONTEXT->uregs : CONTEXT->kregs);
+
+	if (!regs) {
 		CONTEXT->last_error = "No registers available in this context";
 		return;
 	}
@@ -57,7 +61,7 @@ function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 		CONTEXT->last_error = CONTEXT->error_buffer;
 		return;
 	}
-	memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset, sizeof(value));
+	memcpy(&value, ((char *)regs) + THIS->offset, sizeof(value));
 	THIS->__retvalue = value;
 %}
 
@@ -70,7 +74,7 @@ function _stp_probing_kernel:long () {
  * the pre-trap stack pointer is &regs->sp.
  */
 function _stp_kernel_sp:long (sp_offset:long) %{ /* pure */
-	THIS->__retvalue = ((long) CONTEXT->regs) + THIS->sp_offset;
+	THIS->__retvalue = ((long) CONTEXT->kregs) + THIS->sp_offset;
 %}
 
 /* Assume ss register hasn't changed since we took the trap. */
@@ -114,9 +118,11 @@ function u_register:long (name:string) {
 function _stp_arg:long (argnum:long) %{ /* pure */
 	long val;
 	int n, nr_regargs, result;
-
+	struct pt_regs *regs;
+	regs = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+		? CONTEXT->uregs : CONTEXT->kregs);
 	THIS->__retvalue = 0;
-	if (!CONTEXT->regs) {
+	if (!regs) {
 		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
 			"cannot access function args in this context");
 		CONTEXT->last_error = CONTEXT->error_buffer;
@@ -125,8 +131,8 @@ function _stp_arg:long (argnum:long) %{ /* pure */
 	if (THIS->argnum < 1)
 		goto bad_argnum;
 	n = (int) THIS->argnum;
-	nr_regargs = _stp_get_regparm(CONTEXT->regparm, CONTEXT->regs);
-	result = _stp_get_arg32_by_number(n, nr_regargs, CONTEXT->regs, &val);
+	nr_regargs = _stp_get_regparm(CONTEXT->regparm, regs);
+	result = _stp_get_arg32_by_number(n, nr_regargs, regs, &val);
 	switch (result) {
 	case 0:
 		/* Arg is in register. */

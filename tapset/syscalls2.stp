@@ -282,7 +282,7 @@ probe syscall.personality.return = kernel.function("sys_personality").return
 # ia64 returns the results from the pipe call through (user) registers.
 %( arch == "ia64" %?
 function _ia64_pipe0:long() %{
-	THIS->__retvalue = CONTEXT->regs ? CONTEXT->regs->r8 : 0;
+	THIS->__retvalue = CONTEXT->kregs ? CONTEXT->kregs->r8 : 0;
 %}
 function _ia64_pipe1:long() %{
 	THIS->__retvalue = task_pt_regs(current)->r9;

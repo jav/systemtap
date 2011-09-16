@@ -63,10 +63,12 @@ const char *last_error;
 /* Last statement (token) executed. Often set together with last_error. */
 const char *last_stmt;
 
-/* Set when probe handler gets pt_regs handed to it. This can be either
-   the kernel registers or the user space registers.  The probe_flags field
-   will indicate which and whether the user registers are complete.  */
-struct pt_regs *regs;
+/* Set when probe handler gets pt_regs handed to it. kregs holds the kernel
+   registers when availble. uregs holds the user registers when available.
+   uregs are at least available when probe_flags contains
+   _STP_PROBE_STATE_USER_MODE.  */
+struct pt_regs *kregs;
+struct pt_regs *uregs;
 
 /* unwaddr is caching unwound address in each probe handler on ia64. */
 #if defined __ia64__

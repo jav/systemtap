@@ -15,12 +15,14 @@
 /**
  * sfunction print_regs - Print a register dump
  * 
- * Description: This function prints a register dump.
+ * Description: This function prints a register dump. Does nothing if no registers are available for the probe point.
  */
 function print_regs ()
 %{
-	if (CONTEXT->regs) {
-		_stp_print_regs (CONTEXT->regs);
+	if ((c->probe_flags & _STP_PROBE_STATE_USER_MODE) && CONTEXT->uregs) {
+		_stp_print_regs (CONTEXT->uregs);
+	} else if (CONTEXT->kregs) {
+		_stp_print_regs (CONTEXT->kregs);
 	}
 %}
 
@@ -232,7 +234,9 @@ function pp:string ()
  */
 function registers_valid:long ()
 %{ /* pure */ /* unprivileged */
-	THIS->__retvalue = (CONTEXT->regs != NULL);
+	THIS->__retvalue = ((c->probe_flags & _STP_PROBE_STATE_USER_MODE)
+			    ? (CONTEXT->uregs != NULL)
+			    : (CONTEXT->kregs != NULL));
 %}
 
 /**
@@ -349,7 +353,11 @@ function stack_unused:long ()
  */
 function addr:long ()
 %{ /* pure */
-  THIS->__retvalue = (intptr_t)(CONTEXT->regs ? REG_IP(CONTEXT->regs) : 0);
+  if (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE) {
+    THIS->__retvalue = (intptr_t)(CONTEXT->uregs ? REG_IP(CONTEXT->uregs) : 0);
+  } else {
+    THIS->__retvalue = (intptr_t)(CONTEXT->kregs ? REG_IP(CONTEXT->kregs) : 0);
+  }
 %}
 
 /**
