@@ -10,6 +10,14 @@
   and a positive number representing the timeout desired. The 
   default behavior is to not automatically download the debuginfo.
 
+- The following probe types are deprecated in release 1.7 and will be removed in release 1.8:
+      kernel.function(number).inline
+      module(string).function(number).inline
+      process.function(number).inline
+      process.library(string).function(number).inline
+      process(string).function(number).inline
+      process(string).library(string).function(number).inline
+
 * What's new in version 1.6, 2011-07-25
 
 - Security fixes for CVE-2011-2503: read instead of mmap to load modules,

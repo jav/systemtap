@@ -414,7 +414,8 @@ struct dwarf_derived_probe: public derived_probe
   static void register_function_variants(match_node * root,
 					 dwarf_builder * dw,
 					 bool bind_unprivileged_p);
-  static void register_function_and_statement_variants(match_node * root,
+  static void register_function_and_statement_variants(systemtap_session& s,
+						       match_node * root,
 						       dwarf_builder * dw,
 						       bool bind_unprivileged_p);
   static void register_patterns(systemtap_session& s);
@@ -4164,9 +4165,6 @@ dwarf_derived_probe::register_function_variants(match_node * root,
   root
     ->bind_unprivileged(bind_unprivileged_p)
     ->bind(dw);
-  root->bind(TOK_INLINE)
-    ->bind_unprivileged(bind_unprivileged_p)
-    ->bind(dw);
   root->bind(TOK_CALL)
     ->bind_unprivileged(bind_unprivileged_p)
     ->bind(dw);
@@ -4184,6 +4182,7 @@ dwarf_derived_probe::register_function_variants(match_node * root,
 
 void
 dwarf_derived_probe::register_function_and_statement_variants(
+  systemtap_session& s,
   match_node * root,
   dwarf_builder * dw,
   bool bind_unprivileged_p
@@ -4196,8 +4195,23 @@ dwarf_derived_probe::register_function_and_statement_variants(
   // .statement("foo")
   // .statement(0xdeadbeef)
 
-  register_function_variants(root->bind_str(TOK_FUNCTION), dw, bind_unprivileged_p);
-  register_function_variants(root->bind_num(TOK_FUNCTION), dw, bind_unprivileged_p);
+  match_node *fv_root = root->bind_str(TOK_FUNCTION);
+  register_function_variants(fv_root, dw, bind_unprivileged_p);
+  // ROOT.function("STRING") always gets the .inline variant.
+  fv_root->bind(TOK_INLINE)
+    ->bind_unprivileged(bind_unprivileged_p)
+    ->bind(dw);
+
+  fv_root = root->bind_num(TOK_FUNCTION);
+  register_function_variants(fv_root, dw, bind_unprivileged_p);
+  // ROOT.function(NUMBER).inline is deprecated in release 1.7 and removed thereafter.
+  if (strverscmp(s.compatible.c_str(), "1.7") <= 0)
+    {
+      fv_root->bind(TOK_INLINE)
+	->bind_unprivileged(bind_unprivileged_p)
+	->bind(dw);
+    }
+
   register_statement_variants(root->bind_str(TOK_STATEMENT), dw, bind_unprivileged_p);
   register_statement_variants(root->bind_num(TOK_STATEMENT), dw, bind_unprivileged_p);
 }
@@ -4211,8 +4225,8 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   update_visitor *filter = new dwarf_cast_expanding_visitor(s, *dw);
   s.code_filters.push_back(filter);
 
-  register_function_and_statement_variants(root->bind(TOK_KERNEL), dw, false);
-  register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw, false);
+  register_function_and_statement_variants(s, root->bind(TOK_KERNEL), dw, false);
+  register_function_and_statement_variants(s, root->bind_str(TOK_MODULE), dw, false);
 
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
     ->bind(dw);
@@ -4222,10 +4236,10 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind_str(TOK_MODULE)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind(dw);
 
-  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw, true);
-  register_function_and_statement_variants(root->bind(TOK_PROCESS), dw, true);
-  register_function_and_statement_variants(root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, true);
-  register_function_and_statement_variants(root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, true);
+  register_function_and_statement_variants(s, root->bind_str(TOK_PROCESS), dw, true);
+  register_function_and_statement_variants(s, root->bind(TOK_PROCESS), dw, true);
+  register_function_and_statement_variants(s, root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, true);
+  register_function_and_statement_variants(s, root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, true);
 
   root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind_unprivileged()
