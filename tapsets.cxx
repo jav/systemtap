@@ -4929,6 +4929,7 @@ struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
   vector<string> arg_tokens;
 
   void visit_target_symbol (target_symbol* e);
+  void visit_cast_op (cast_op* e);
 };
 
 
@@ -5103,6 +5104,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   void visit_target_symbol (target_symbol* e);
   void visit_target_symbol_arg (target_symbol* e);
   void visit_target_symbol_context (target_symbol* e);
+  void visit_cast_op (cast_op* e);
 };
 
 
@@ -5499,6 +5501,17 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 
 
 void
+sdt_uprobe_var_expanding_visitor::visit_cast_op (cast_op* e)
+{
+  // Fill in our current module context if needed
+  if (e->module.empty())
+    e->module = process_name;
+
+  var_expanding_visitor::visit_cast_op(e);
+}
+
+
+void
 sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   try
@@ -5601,6 +5614,17 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       e->chain (er);
       provide (e);
     }
+}
+
+
+void
+sdt_kprobe_var_expanding_visitor::visit_cast_op (cast_op* e)
+{
+  // Fill in our current module context if needed
+  if (e->module.empty())
+    e->module = process_name;
+
+  var_expanding_visitor::visit_cast_op(e);
 }
 
 
