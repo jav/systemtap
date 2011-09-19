@@ -220,13 +220,6 @@ static void _stp_print_regs(struct pt_regs * regs)
 
 #elif defined (__powerpc64__)
 
-static int _stp_probing_32bit_app(struct pt_regs *regs)
-{
-	if (!regs)
-		return 0;
-	return (user_mode(regs) && test_tsk_thread_flag(current, TIF_32BIT));
-}
-
 static void _stp_print_regs(struct pt_regs * regs)
 {
 	int i;
@@ -382,18 +375,6 @@ static long _stp_get_sp(struct pt_regs *regs)
 	return EREG(sp, regs);
 }
 
-static int _stp_get_regparm(int regparm, struct pt_regs *regs)
-{
-	if (regparm == 0) {
-		/* Default */
-		if (user_mode(regs))
-			return 0;
-		else
-			// Kernel is built with -mregparm=3.
-			return 3;
-	} else
-		return (regparm & _STP_REGPARM_MASK);
-}
 #endif	/* __i386__ */
 
 #ifdef __x86_64__
@@ -410,13 +391,6 @@ static long _stp_get_sp(struct pt_regs *regs)
 	return RREG(sp, regs);
 }
 
-static int _stp_probing_32bit_app(struct pt_regs *regs)
-{
-	if (!regs)
-		return 0;
-	return (user_mode(regs) && test_tsk_thread_flag(current, TIF_IA32));
-}
-
 /* Ensure that the upper 32 bits of val are a sign-extension of the lower 32. */
 static int64_t __stp_sign_extend32(int64_t val)
 {
@@ -424,17 +398,6 @@ static int64_t __stp_sign_extend32(int64_t val)
 	return *val_ptr32;
 }
 
-static int _stp_get_regparm(int regparm, struct pt_regs *regs)
-{
-	if (regparm == 0) {
-		/* Default */
-		if (_stp_probing_32bit_app(regs))
-			return 0;
-		else
-			return 6;
-	} else
-		return (regparm & _STP_REGPARM_MASK);
-}
 #endif	/* __x86_64__ */
 
 #if defined(__i386__) || defined(__x86_64__)

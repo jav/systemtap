@@ -44,9 +44,8 @@ function _stp_register_regs() {
  */
 function probing_32bit_app() %{ /* pure */
 	if ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
-	    && CONTEXT->uregs)
-		THIS->__retvalue = (user_mode(CONTEXT->uregs) &&
-				test_tsk_thread_flag(current, TIF_31BIT));
+	    && _stp_is_compat_task())
+		THIS->__retvalue = 1;
 	else
 		THIS->__retvalue = 0;
 %}
