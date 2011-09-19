@@ -351,11 +351,17 @@ private:
    * added to it, it would have to be indexed by name and tag
    */
   mod_cu_type_cache_t global_alias_cache;
-  static int global_alias_caching_callback(Dwarf_Die *die, void *arg);
+  static int global_alias_caching_callback(Dwarf_Die *die, bool has_inner_types,
+                                           const std::string& prefix, void *arg);
   static int global_alias_caching_callback_cus(Dwarf_Die *die, void *arg);
   static int iterate_over_globals (Dwarf_Die *,
-                                   int (* callback)(Dwarf_Die *, void *),
+                                   int (* callback)(Dwarf_Die *, bool,
+                                                    const std::string&, void *),
                                    void * data);
+  static int iterate_over_types (Dwarf_Die *, bool, const std::string&,
+                                 int (* callback)(Dwarf_Die *, bool,
+                                                  const std::string&, void *),
+                                 void * data);
 
   static int mod_function_caching_callback (Dwarf_Die* func, void *arg);
   static int cu_function_caching_callback (Dwarf_Die* func, void *arg);

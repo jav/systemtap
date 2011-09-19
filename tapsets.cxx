@@ -975,17 +975,17 @@ dwarf_query::parse_function_spec(const string & spec)
   line_type = ABSOLUTE;
   line[0] = line[1] = 0;
 
-  size_t src_pos, line_pos, dash_pos, scope_pos, next_scope_pos;
+  size_t src_pos, line_pos, dash_pos, scope_pos;
 
   // look for named scopes
-  scope_pos = 0;
-  next_scope_pos = spec.find("::");
-  while (next_scope_pos != string::npos)
+  scope_pos = spec.rfind("::");
+  if (scope_pos != string::npos)
     {
-      scopes.push_back(spec.substr(scope_pos, next_scope_pos - scope_pos));
-      scope_pos = next_scope_pos + 2;
-      next_scope_pos = spec.find("::", scope_pos);
+      tokenize_cxx(spec.substr(0, scope_pos), scopes);
+      scope_pos += 2;
     }
+  else
+    scope_pos = 0;
 
   // look for a source separator
   src_pos = spec.find('@', scope_pos);
@@ -4943,6 +4943,7 @@ struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
   vector<string> arg_tokens;
 
   void visit_target_symbol (target_symbol* e);
+  void visit_cast_op (cast_op* e);
 };
 
 
@@ -5117,6 +5118,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   void visit_target_symbol (target_symbol* e);
   void visit_target_symbol_arg (target_symbol* e);
   void visit_target_symbol_context (target_symbol* e);
+  void visit_cast_op (cast_op* e);
 };
 
 
@@ -5513,6 +5515,17 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 
 
 void
+sdt_uprobe_var_expanding_visitor::visit_cast_op (cast_op* e)
+{
+  // Fill in our current module context if needed
+  if (e->module.empty())
+    e->module = process_name;
+
+  var_expanding_visitor::visit_cast_op(e);
+}
+
+
+void
 sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   try
@@ -5615,6 +5628,17 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       e->chain (er);
       provide (e);
     }
+}
+
+
+void
+sdt_kprobe_var_expanding_visitor::visit_cast_op (cast_op* e)
+{
+  // Fill in our current module context if needed
+  if (e->module.empty())
+    e->module = process_name;
+
+  var_expanding_visitor::visit_cast_op(e);
 }
 
 

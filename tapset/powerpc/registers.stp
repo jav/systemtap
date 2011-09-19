@@ -60,7 +60,7 @@ function _stp_register_regs() {
 
 function probing_32bit_app() %{ /* pure */
         THIS->__retvalue = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
-			    && _stp_probing_32bit_app(CONTEXT->uregs));
+			    && _stp_is_compat_task());
 %}
 
 function _stp_get_register_by_offset:long (offset:long) %{ /* pure */

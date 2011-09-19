@@ -1,0 +1,25 @@
+set test "cast-scope"
+set ::result_string {function direct: {._M_dataplus={._M_p="Hello World!"}}
+function cast: {._M_dataplus={._M_p="Hello World!"}}
+mark cast: {._M_dataplus={._M_p="Hello World!"}}
+}
+
+set srcfile "$srcdir/$subdir/$test.cxx"
+set test_flags "compiler=g++ additional_flags=-g"
+set res [target_compile "$srcfile" $test.exe executable "$test_flags"]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling $test.cxx"
+    untested "$test.cxx run"
+    continue
+} else {
+    pass "$test.cxx compile"
+}
+
+set stpfile "$srcdir/$subdir/$test.stp"
+if {[installtest_p] && [uprobes_p]} {
+  stap_run3 "$test" "$stpfile" $test.exe -c ./$test.exe
+} else {
+  untested "$test"
+}
+catch {exec rm -f $test.exe}

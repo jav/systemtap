@@ -1,0 +1,10 @@
+probe process("cast-scope.exe").function("length")
+{
+  println("function direct: ", $str$$)
+  println("function cast: ", @cast($str, "std::string")$$)
+}
+
+probe process("cast-scope.exe").mark("length")
+{
+  println("mark cast: ", @cast($arg1, "std::string")$$)
+}
