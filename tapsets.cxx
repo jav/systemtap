@@ -1323,8 +1323,16 @@ query_addr(Dwarf_Addr addr, dwarf_query *q)
 
           func_info_map_t funcs(1, func);
           dw.resolve_prologue_endings (funcs);
-          if (funcs[0].prologue_end)
-            addr = funcs[0].prologue_end;
+          if (q->has_return) // PR13200
+            {
+              if (q->sess.verbose > 2)
+                clog << "ignoring prologue for .return probes" << endl;
+            }
+          else
+            {
+              if (funcs[0].prologue_end)
+                addr = funcs[0].prologue_end;
+            }
         }
     }
   else
@@ -1425,6 +1433,11 @@ query_func_info (Dwarf_Addr entrypc,
 	{
 	  // NB. dwarf_derived_probe::emit_registrations will emit a
 	  // kretprobe based on the entrypc in this case.
+          if (fi.prologue_end != 0 && q->has_return) // PR13200
+            {
+              if (q->sess.verbose > 2)
+                clog << "ignoring prologue for .return probes" << endl;
+            }
 	  query_statement (fi.name, fi.decl_file, fi.decl_line,
 			   &fi.die, entrypc, q);
 	}
@@ -1686,6 +1699,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
           && !q->has_statement_str) // PR 2608
         if (! q->filtered_functions.empty())
           q->dw.resolve_prologue_endings (q->filtered_functions);
+      // NB: we could skip the resolve_prologue_endings() call here for has_return case (PR13200),
+      // but don't have to.  We can resolve the prologue, just not actually use it in query_addr().
 
       if (q->spec_type == function_file_and_line)
         {
