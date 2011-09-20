@@ -551,6 +551,8 @@ base_query::base_query(dwflpp & dw, literal_map_t const & params):
       if ((has_plt = has_null_param (params, TOK_PLT)))
         plt_val = "*";
       else has_plt = get_string_param (params, TOK_PLT, plt_val);
+      if (has_plt)
+	sess.consult_symtab = true;
       has_statement = get_number_param(params, TOK_STATEMENT, statement_num_val);
 
       if (has_process)
