@@ -31,9 +31,9 @@ function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
 	struct pt_regs *regs;
 	if (c->probe_flags & _STP_PROBE_STATE_USER_MODE) {
-		regs = CONTEXT->kregs;
-	} else {
 		regs = CONTEXT->uregs;
+	} else {
+		regs = CONTEXT->kregs;
 	}
 	if (!regs) {
 		CONTEXT->last_error = "No registers available in this context";
