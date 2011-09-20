@@ -8,14 +8,6 @@ proc installtest_p {} {
 }
 
 
-proc use_server_p {} {
-    global TOOL_OPTIONS
-    if {[info exists TOOL_OPTIONS] && [string match "*server*" $TOOL_OPTIONS]} {
-        return 1
-    } else { return 0 }
-}
-
-
 proc utrace_p {} {
     set path "/proc/kallsyms"
     if {! [catch {exec grep -q utrace_attach $path} dummy]} {
@@ -61,7 +53,7 @@ proc print_systemtap_version {} {
 
 
 proc setup_systemtap_environment {} {
-    global srcdir env server_pid net_path logfile
+    global srcdir env server_pid logfile
 
     # need an absolute SRCDIR for the top-level src/ tree
     # XXX: or, we could change nearby uses of ${SRCDIR}/testsuite to ${SRCDIR}
@@ -87,14 +79,8 @@ proc setup_systemtap_environment {} {
     exec touch $logfile
     exec chmod 666 $logfile
 
-    # Start a systemtap server, if requested.
-    set net_path ""
+    # No compile-server started yet.
     set server_pid 0
-    if {[use_server_p]} then {
-	if {! [setup_server]} then {
-	    return 0
-	}
-    }
 
     # PATH, SYSTEMTAP_TAPSET, SYSTEMTAP_RUNTIME, LD_LIBRARY_PATH are already set.
     foreach var {PATH STAP SRCDIR SYSTEMTAP_TAPSET SYSTEMTAP_RUNTIME SYSTEMTAP_DIR LD_LIBRARY_PATH} {
@@ -109,11 +95,7 @@ proc setup_systemtap_environment {} {
 # Set up the environment so that tests will be performed using the systemtap
 # client and server.
 proc setup_server {} {
-    global srcdir env net_path installed_stap logfile
-
-    # A place for some temporary files and scripts.
-    set net_path [exec pwd]/net
-    exec /bin/mkdir -p $net_path
+    global srcdir env installed_stap logfile use_server
 
     # Start the server
     if {! [start_server]} then {
@@ -150,21 +132,6 @@ proc setup_server {} {
 	    return 0
 	}
     }
-
-    # Substitute a script on the PATH in place of stap which calls the real
-    # stap with the --use-server flag.
-    set path "$net_path/stap"
-    set fp [open $path "w"]
-    puts $fp "#!/bin/sh"
-    # NB: [which stap] does not necessarily work here, because
-    # $PATH might already have had .../testsuite/net added,
-    # leading to an infinite fork/exec loop.
-    puts $fp "exec $installed_stap $use_server \"\$@\""
-    close $fp
-    exec chmod +x $path
-
-    # Add the wrapper script to the PATH after creating it
-    set env(PATH) "$net_path:$env(PATH)"
 
     return 1
 }
@@ -207,17 +174,11 @@ proc start_server {} {
 }
 
 proc shutdown_server {} {
-    global server_pid net_path
-
+    global server_pid
     if { $server_pid != 0 } then {
 	verbose -log "Stopping the systemtap server with PID==$server_pid"
 	exec stap-stop-server $server_pid
 	set server_pid 0
-    }
-
-    # Remove the temporary stap script
-    if [file exists $net_path] {
-	exec /bin/rm -fr $net_path
     }
 
     foreach module [glob -nocomplain [exec pwd]/stap_*.ko] {

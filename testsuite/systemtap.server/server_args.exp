@@ -16,7 +16,7 @@ verbose -log "Random seed is $random_seed"
 expr srand($random_seed)
 
 proc stap_direct_and_with_client {stap options} {
-    global installed_stap
+    global installed_stap use_server
 
     # tcl's 'eval' creates a string containing the arguments and
     # recursively passes it to the tcl interpreter. Special
@@ -29,7 +29,7 @@ proc stap_direct_and_with_client {stap options} {
     if {[regexp "\-I */$" $options] || [regexp "\-I */ " $options]} {
 	set passed 0
 	set fallthrough 0
-	set cmd [concat stap $options --use-server]
+	set cmd [concat stap $options $use_server]
 	send_log "executing: $cmd\n"
 	eval spawn $cmd
 	expect {
@@ -61,8 +61,8 @@ proc stap_direct_and_with_client {stap options} {
     verbose -log $res_stap
 
     # Now run it using the client
-    verbose -log "eval exec $stap --use-server $options"
-    catch {eval exec $stap --use-server $options} res_stap_client
+    verbose -log "eval exec $stap $use_server $options"
+    catch {eval exec $stap $use_server $options} res_stap_client
     verbose -log $res_stap_client
 
     # Now check the output
@@ -127,23 +127,21 @@ proc stap_direct_and_with_client {stap options} {
 # ************ Start of mainline *************
 
 # Don't attempt these tests if the client/server are not available
-# Start a systemtap server, if one is not already started.
-if {! [use_server_p]} then {
-    if {! [setup_server]} then {
-	untested "$test"
-	return
-    }
+if {! [setup_server]} then {
+    untested "$test"
+    return
 }
 
 # Make sure we call the correct instance of stap
-# There is a copy of stap on the PATH which always uses --use-server
-if {[installtest_p]} then {
-    # For 'make installcheck', use the installed stap
-    set stap $installed_stap
-} else {
-    # For 'make check' use stap from the build tree
-    set stap [exec pwd]/../stap
-}
+# There is a copy of stap on the PATH which always uses --use-server NOT ANY MORE!!!
+#if {[installtest_p]} then {
+#    # For 'make installcheck', use the installed stap
+#    set stap $installed_stap
+#} else {
+#    # For 'make check' use stap from the build tree
+#    set stap [exec pwd]/../stap
+#}
+set stap stap
 
 # Test some argument strings which have failed in the past. This is useful
 # for debugging a currently failing case and helps to ensure that previously
@@ -222,7 +220,5 @@ for {set i 0} {$i < $iterations} {incr i} {
     }
 }
 
-# Shudown the server, if we started it.
-if {! [use_server_p]} then {
-    shutdown_server
-}
+# Shudown the server.
+shutdown_server

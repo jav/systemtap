@@ -1,36 +1,103 @@
-# Start a systemtap server, if one is not already started.
+set test "Server Tests"
 # Don't attempt these tests if the client/server are not available
-if {! [use_server_p]} then {
-    if {! [setup_server]} then {
-	untested "Server Tests"
-	return
-    }
+if {! [setup_server]} then {
+    untested "Server Tests"
+    return
 }
 
-# Run the buildok tests using the server
-set self buildok
-foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
-    set test "$self/[file tail $file]"
-    verbose -log "Running $file"
-    set rc [stap_run_batch $file]
-    # some tests are known to fail ...
-    buildok_known_failures $test $rc
-    # ... as well as this one
-    switch $test {
-	buildok/thirtythree.stp { # uses --ldd
-		if {$rc != 0} { setup_xfail *-*-* } }
-    }
-    if {$rc == 0} { pass "$test with server" } else { fail "$test with server" }
-}
-
-# If this is an installcheck, then run a basic execution test.
-if {[installtest_p]} then {
-    set test "Hello from server"
-    set rc [stap_run_batch $srcdir/systemtap.server/hello.stp]
-    if {$rc == 0} { pass $test } else { fail $test }
-}
-
-# Shudown the server, if we started it.
-if {! [use_server_p]} then {
+proc cleanup {} {
+    global tmpdir
+    catch {exec rm -f foo}
+    catch {exec rm -fr $tmpdir}
     shutdown_server
 }
+
+# Whether the server can communicate with the client is tested in client.exp.
+# Test that the the server can handle particular situations of interest.
+
+#-------------------------------------------------------
+# Building, returning and using the uprobes.ko module.
+set subtest "uprobes"
+if {! [uprobes_p]} then {
+    untested "$test $subtest tests"
+} else {
+    # First compile a test application.
+    catch {exec gcc -g -o foo $srcdir/systemtap.base/jennie.c} err
+    if {$err == "" && [file exists foo]} {
+	pass "$test $subtest compile foo"
+    } else {
+	fail "$test $subtest compile foo"
+    }
+    set foo [exec pwd]/foo
+
+    # Make sure that uprobes.ko is not loaded
+    catch {exec /sbin/rmmod uprobes}
+
+    # Now use the server to compile the uprobes.stp script
+    set failed 1
+    set tmpdir ""
+    set cmd [concat stap -p4 $srcdir/$subdir/uprobes.stp $use_server -k -c $foo]
+    send_log "executing: $cmd\n"
+    eval spawn $cmd
+    expect {
+	-timeout 150
+	-re {.*Keeping temporary directory \"(.*)\"\r\n} {
+	    set tmpdir "$expect_out(1,string)"
+	    set failed 0
+	}
+	-re {^.*\r\n} { exp_continue }
+	timeout { 
+	    exec kill -INT -[exp_pid]
+	    wait
+	}
+    }
+    catch close
+    if {$failed == 0} {
+	pass "$test $subtest -p4"
+    } else {
+	fail "$test $subtest -p4"
+    }
+
+    # Make sure that the uprobes.ko module was returned.
+    if {"$tmpdir" == ""} {
+	untested "$test $subtest uprobes returned"
+    } else {
+	if {[file exists $tmpdir/server/stap000000/uprobes/uprobes.ko]} {
+	    pass "$test $subtest uprobes returned"
+	} else {
+	    fail "$test $subtest uprobes returned"
+	}
+    }
+
+    if {! [installtest_p]} {
+	untested "$test $subtest -p5";
+	cleanup
+	return
+    }
+
+    # Now do it again, but follow through to phase 5
+    # Make sure that uprobes.ko is not loaded
+    catch {exec /sbin/rmmod uprobes}
+
+    # Now use the server to compile and run the uprobes.stp script
+    set failed 1
+    set cmd {stap $srcdir/$subdir/uprobes.stp $use_server -c "$foo 1 2 3 4"}
+    send_log "executing: $cmd\n"
+    eval spawn $cmd
+    set ok 0
+    expect {
+	-re {^process[^\r\n]+foo[^\r\n]+main[^\r\n]+arg[cv]=0x[0-9a-f]+\ +arg[cv]=0x[0-9a-f]+\r\n} { incr ok; exp_continue }
+	-re {^process[^\r\n]+foo[^\r\n]+main[^\r\n]+return=0x0\r\n} { incr ok; exp_continue }
+	-timeout 30
+	timeout { }
+	eof { }
+    }
+    catch close
+    if {$ok == 10} {
+	pass "$test $subtest -p5"
+    } else {
+	fail "$test $subtest -p5 ($ok)"
+    }
+}
+
+cleanup
