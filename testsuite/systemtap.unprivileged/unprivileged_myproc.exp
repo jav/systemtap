@@ -214,13 +214,13 @@ proc test_probes { } {
 
 	# Test the probe type. If successful, the stap rc will be 0.
 	set probe [add_args $probe_type $our_pid]
-	set cmd [concat [list $stap --unprivileged -e "probe $probe { if (is_myproc ()) println (\"is myproc\") else println (\"not myproc\"); exit (); }"] [extra_options $probe_type]]
+	set cmd [concat [list $stap --unprivileged -e "probe $probe { if (is_myproc ()) println (\"is myproc\") else println (\"not myproc\"); exit (); } probe timer.s(15) { println(\"timeout\") exit() }"] [extra_options $probe_type]]
 
 	# If the probe types was 'process(number).end' or 'process(string).end' then set up a
 	# delayed kill of our test program in order to make the probe fire.
 	if {[regexp "^process\\(number\\)\\.end" $probe_type] || \
 	    [regexp "^process\\(string\\)\\.end" $probe_type]} {
-	    exec $srcdir/$subdir/delayedkill $our_pid 5 &
+	    exec $srcdir/$subdir/delayedkill $our_pid 10 &
 	}
 
 	# Run stap.
