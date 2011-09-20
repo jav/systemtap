@@ -145,6 +145,27 @@ static void _stp_stack_print_fallback(unsigned long s, int v, int l, int k) {
 // used through context-unwind.stp.
 #if defined (CONFIG_KPROBES)
 
+/** Gets user space registers when available, also sets context probe_flags
+ * _STP_PROBE_STATE_FULL_UREGS if appropriate.  Should be used instead of
+ * accessing context uregs field directly when (full) uregs are needed
+ * from kernel context.
+ */
+static struct pt_regs *_stp_get_uregs(struct context *c)
+{
+  /* When the probe occurred in user context uregs are always complete. */
+  if (c->uregs && c->probe_flags & _STP_PROBE_STATE_USER_MODE)
+    c->probe_flags |= _STP_PROBE_STATE_FULL_UREGS;
+  else if (c->uregs == NULL)
+    {
+      /* First try simple recovery through task_pt_regs,
+	 on some platforms that already provides complete uregs. */
+      c->uregs = task_pt_regs (current);
+      if (_stp_task_pt_regs_valid(current, c->uregs))
+	c->probe_flags |= _STP_PROBE_STATE_FULL_UREGS;
+    }
+  return c->uregs;
+}
+
 /** Prints the stack backtrace
  * @param regs A pointer to the struct pt_regs.
  * @param verbose _STP_SYM_FULL or _STP_SYM_BRIEF
@@ -200,14 +221,8 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 				      in __stp_stack_print() below. */
 		}
 	} else if (stack_flags == _STP_STACK_USER) {
-		/* use task_pt_regs, regs might be kernel regs, or not set. */
-		if (c->uregs && (c->probe_flags & _STP_PROBE_STATE_USER_MODE)) {
-			regs = c->uregs;
-			uregs_valid = 1;
-		} else {
-			regs = task_pt_regs(current);
-			uregs_valid = _stp_task_pt_regs_valid(current, regs);
-		}
+		regs = _stp_get_uregs(c);
+		uregs_valid = c->probe_flags & _STP_PROBE_STATE_FULL_UREGS;
 
 		if (! current->mm || ! regs) {
 			if (sym_flags & _STP_SYM_SYMBOL)

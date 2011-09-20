@@ -99,3 +99,5 @@ typedef char string_t[MAXSTRINGLEN];
 /* Defines for CONTEXT probe_flags. */
 /* Probe occured in user space, also indicate regs fully from user. */
 #define _STP_PROBE_STATE_USER_MODE  1
+/* _stp_get_uregs() was called and full user registers were recovered. */
+#define _STP_PROBE_STATE_FULL_UREGS 2
