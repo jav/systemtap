@@ -13,6 +13,12 @@
 #ifndef _STP_UNWIND_H_
 #define _STP_UNWIND_H_
 
+struct unwind_frame_info
+{
+    struct pt_regs regs;
+    unsigned call_frame:1;
+};
+
 #if defined (__x86_64__)
 #include "x86_64.h"
 #elif  defined (__i386__)
@@ -282,6 +288,11 @@ struct unwind_state {
 	sleb128_t dataAlign;
 	unsigned stackDepth:8;
 	struct unwind_reg_state reg[STP_MAX_STACK_DEPTH];
+};
+
+struct unwind_context {
+    struct unwind_frame_info info;
+    struct unwind_state state;
 };
 
 static const struct cfa badCFA = { ARRAY_SIZE(reg_info), 1 };
