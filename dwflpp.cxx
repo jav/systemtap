@@ -1260,7 +1260,8 @@ dwflpp::iterate_over_plt (void *object, void (*callback)(void *object, const cha
     {
       GElf_Shdr shdr_mem;
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-      bool have_rela, have_rel;
+      bool have_rela = false;
+      bool have_rel = false;
 
       if (shdr == NULL)
         continue;
