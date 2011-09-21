@@ -1162,6 +1162,9 @@ c_unparser::emit_module_init ()
   // just in case modversions didn't.
   o->newline() << "{";
   o->newline(1) << "const char* release = UTS_RELEASE;";
+  o->newline() << "#ifdef STAPCONF_GENERATED_COMPILE";
+  o->newline() << "const char* version = UTS_VERSION;";
+  o->newline() << "#endif";
 
   // NB: This UTS_RELEASE compile-time macro directly checks only that
   // the compile-time kbuild tree matches the compile-time debuginfo/etc.
@@ -1181,6 +1184,17 @@ c_unparser::emit_module_init ()
                 << ");";
   o->newline() << "rc = -EINVAL;";
   o->newline(-1) << "}";
+
+  o->newline() << "#ifdef STAPCONF_GENERATED_COMPILE";
+  o->newline() << "if (strcmp (utsname()->version, version)) {";
+  o->newline(1) << "_stp_error (\"module version mismatch (%s vs %s), release %s\", "
+                << "version, "
+                << "utsname()->version, "
+                << "release"
+                << ");";
+  o->newline() << "rc = -EINVAL;";
+  o->newline(-1) << "}";
+  o->newline() << "#endif";
 
   // perform buildid-based checking if able
   o->newline() << "if (_stp_module_check()) rc = -EINVAL;";
@@ -5813,6 +5827,9 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include <linux/utsname.h>";
       s.op->newline() << "#include <linux/version.h>";
       // s.op->newline() << "#include <linux/compile.h>";
+      s.op->newline() << "#ifdef STAPCONF_GENERATED_COMPILE";
+      s.op->newline() << "#include <generated/compile.h>";
+      s.op->newline() << "#endif";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
       s.op->newline() << "#include \"access_process_vm.h\" ";
 
