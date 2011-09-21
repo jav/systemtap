@@ -1289,9 +1289,9 @@ dwflpp::iterate_over_plt (void *object, void (*callback)(void *object, const cha
 	      if (em == 0) { dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
 
 	      GElf_Rela relamem;
-	      GElf_Rela *rela;
+	      GElf_Rela *rela = NULL;
 	      GElf_Rel relmem;
-	      GElf_Rel *rel;
+	      GElf_Rel *rel = NULL;
 	      if (have_rela)
 		{
 		  rela = gelf_getrela (data, cnt, &relamem);
