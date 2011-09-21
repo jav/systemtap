@@ -1246,7 +1246,7 @@ dwflpp::iterate_over_plt (void *object, void (*callback)(void *object, const cha
   GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
   switch (em->e_machine)
   {
-  case EM_386:    plt0_entry_size = 12; plt_entry_size = 16; break;
+  case EM_386:    plt0_entry_size = 16; plt_entry_size = 16; break;
   case EM_X86_64: plt0_entry_size = 16; plt_entry_size = 16; break;
   case EM_PPC64:
   case EM_S390:
@@ -1260,11 +1260,14 @@ dwflpp::iterate_over_plt (void *object, void (*callback)(void *object, const cha
     {
       GElf_Shdr shdr_mem;
       GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+      bool have_rela, have_rel;
+
       if (shdr == NULL)
         continue;
       assert (shdr != NULL);
 
-      if (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".rela.plt") == 0)
+      if ((have_rela = (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".rela.plt") == 0))
+	  || (have_rel = (strcmp (elf_strptr (elf, shstrndx, shdr->sh_name), ".rel.plt") == 0)))
 	{
 	  /* Get the data of the section.  */
 	  Elf_Data *data = elf_getdata (scn, NULL);
@@ -1285,15 +1288,27 @@ dwflpp::iterate_over_plt (void *object, void (*callback)(void *object, const cha
 	      GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
 	      if (em == 0) { dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
 
-	      GElf_Rela relmem;
-	      GElf_Rela *rel = gelf_getrela (data, cnt, &relmem);
-	      assert (rel != NULL);
+	      GElf_Rela relamem;
+	      GElf_Rela *rela;
+	      GElf_Rel relmem;
+	      GElf_Rel *rel;
+	      if (have_rela)
+		{
+		  rela = gelf_getrela (data, cnt, &relamem);
+		  assert (rela != NULL);
+		}
+	      else if (have_rel)
+		{
+		  rel = gelf_getrel (data, cnt, &relmem);
+		  assert (rel != NULL);
+		}
 	      GElf_Sym symmem;
 	      Elf32_Word xndx;
 	      Elf_Data *xndxdata = NULL;
-	      GElf_Sym *sym = gelf_getsymshndx (symdata, xndxdata,
-						GELF_R_SYM (rel->r_info),
-						&symmem, &xndx);
+	      GElf_Sym *sym =
+		gelf_getsymshndx (symdata, xndxdata,
+				  GELF_R_SYM (have_rela ? rela->r_info : rel->r_info),
+				  &symmem, &xndx);
 	      assert (sym != NULL);
 	      Dwarf_Addr addr = plt_shdr->sh_offset + plt0_entry_size + cnt * plt_entry_size;
 
