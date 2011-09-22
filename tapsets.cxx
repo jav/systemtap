@@ -7407,8 +7407,8 @@ uprobe_derived_probe_group::emit_module_inode_decls (systemtap_session& s)
                    << "container_of(inst, struct stp_inode_uprobe_consumer, consumer);";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sup->probe",
                                  "_STP_PROBE_HANDLER_UPROBE");
-  s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
+  s.op->newline() << "c->uregs = regs;";
+  s.op->newline() << "c->probe_flags |= _STP_PROBE_STATE_USER_MODE;";
   // XXX: Can't set SET_REG_IP; we don't actually know the relocated address.
   // ...  In some error cases, uprobes itself calls uprobes_get_bkpt_addr().
   s.op->newline() << "(*sup->probe->ph) (c);";
