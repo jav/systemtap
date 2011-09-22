@@ -208,22 +208,19 @@ probe nfs.proc.return = nfs.proc.lookup.return,
 {
 }
 
-/*
-*probe nfs.proc.lookup
-*
-* Fires when client opens/searchs a file on server
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version
-*   filename : the name of  file which client opens/searchs on server
-*   name_len : the length of file name
-*   bitmask0:
-*   bitmask1 :V4 bitmask representing the set of attributes 
-*             supported on this filesystem
-* 
-*/
+/**
+ * probe nfs.proc.lookup - NFS client opens/searches a file on server
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version
+ * @filename: the name of  file which client opens/searches on server
+ * @name_len: the length of file name
+ * @bitmask0: V4 bitmask representing the set
+ *            of attributes supported on this filesystem
+ * @bitmask1: V4 bitmask representing the set
+ *            of attributes supported on this filesystem
+ */
 probe nfs.proc.lookup = nfs.proc2.lookup,
                         nfs.proc3.lookup,
                         nfs.proc4.lookup
@@ -310,23 +307,21 @@ probe nfs.proc4.lookup.return = kernel.function("nfs4_proc_lookup").return!,
 	retstr = sprintf("%d", $return)
 }
 
-/*
-*probe nfs.proc.read
-*
-* Fires when client synchronously reads file from server 
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version
-*   flags  : used to set task->tk_flags in rpc_init_task function
-*   size:
-*   count : read bytes in this execution
-*   offset : the file offset
-* 
-* All the nfs.proc.read kernel functions were removed in kernel commit
-* 8e0969, so these probes are optional.
-*/
+/**
+ * probe nfs.proc.read - NFS client synchronously reads file from server
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version
+ * @flags: used to set task->tk_flags in rpc_init_task function
+ * @size:
+ * @count: read bytes in this execution
+ * @offset: the file offset
+ * 
+ * All the nfs.proc.read kernel functions were removed in kernel commit
+ * 8e0969 in December 2006, so these probes do not exist on Linux
+ * 2.6.21 and newer kernels.
+ */
 probe nfs.proc.read = nfs.proc2.read ?,
                       nfs.proc3.read ?,
                       nfs.proc4.read ?
@@ -419,26 +414,25 @@ probe nfs.proc4.read.return = kernel.function("nfs4_proc_read").return !,
 }
 
 
-/*
-*probe nfs.proc.write
-*
-* Fires when client synchronously writes file to server 
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version
-*   flags  : used to set task->tk_flags in rpc_init_task function
-*   count :
-*   size  : read bytes in this execution
-*   offset : the file offset
-*   bitmask0:
-*   bitmask1 :V4 bitmask representing the set of attributes 
-*             supported on this filesystem
-*
-* All the nfs.proc.write kernel functions were removed in kernel commit
-* 200baa, so these probes are optional.
-*/
+/**
+ * probe nfs.proc.write - NFS client synchronously writes file to server
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version
+ * @flags: used to set task->tk_flags in rpc_init_task function
+ * @count:
+ * @size: read bytes in this execution
+ * @offset: the file offset
+ * @bitmask0: V4 bitmask representing the set
+ *            of attributes supported on this filesystem
+ * @bitmask1: V4 bitmask representing the set
+ *            of attributes supported on this filesystem
+ *
+ * All the nfs.proc.write kernel functions were removed in kernel commit
+ * 200baa in December 2006, so these probes do not exist on Linux
+ * 2.6.21 and newer kernels.
+ */
 
 probe nfs.proc.write = nfs.proc2.write ?,
                       nfs.proc3.write ?,
@@ -558,27 +552,29 @@ probe nfs.proc4.write.return = kernel.function("nfs4_proc_write").return !,
 	}
 }
 
-/*
-*probe nfs.proc.commit
-*
-* Fires when client writes the buffered data to disk,the buffered 
-* data is asynchronously written by client before
-* The commit function works in sync way,not exist in NFSV2
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version
-*   count :
-*   size  : read bytes in this execution
-*   offset : the file offset
-*   bitmask0:
-*   bitmask1 :V4 bitmask representing the set of attributes 
-*             supported on this filesystem
-*
-* All the nfs.proc.commit kernel functions were removed in kernel
-* commit 200baa, so these probes are optional. 
-*/
+/**
+ * probe nfs.proc.commit - NFS client committing data on server
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version
+ * @count:
+ * @size: read bytes in this execution
+ * @offset: the file offset
+ * @bitmask0: V4 bitmask representing the set
+ *            of attributes supported on this filesystem
+ * @bitmask1 :V4 bitmask representing the set
+ *            of attributes supported on this filesystem
+ *
+ * All the nfs.proc.commit kernel functions were removed in kernel
+ * commit 200baa in December 2006, so these probes do not exist on Linux
+ * 2.6.21 and newer kernels.
+ *
+ * Fires when client writes the buffered data to disk.
+ * The buffered data is asynchronously written by client earlier.
+ * The commit function works in sync way.
+ * This probe point does not exist in NFSv2.
+ */
 probe nfs.proc.commit = nfs.proc3.commit ?,
                         nfs.proc4.commit ?
 {}
@@ -657,20 +653,19 @@ probe nfs.proc4.commit.return = kernel.function ("nfs4_proc_commit").return!,
 	}
 }
 
-/*
-*probe nfs.proc.read_setup
-*
-* The read_setup function is used to setup a read rpc task,not do
-* a real read operation.
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version
-*   count :
-*   size  : read bytes in this execution
-*   offset : the file offset 
-*/
+/**
+ * probe nfs.proc.read_setup - NFS client setting up a read RPC task
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version
+ * @count: read bytes in this execution
+ * @size: read bytes in this execution
+ * @offset: the file offset 
+ *
+ * The read_setup function is used to setup a read RPC task.
+ * It is not doing the actual read operation.
+ */
 probe nfs.proc.read_setup = nfs.proc2.read_setup ,
                       nfs.proc3.read_setup ,
                       nfs.proc4.read_setup 
@@ -762,19 +757,19 @@ probe nfs.proc4.read_setup.return = kernel.function("nfs4_proc_read_setup").retu
 	retvalue = 0;
 }
 
-/*probe nfs.proc.read_done
-*
-* Fires when a read reply is received or some read error occur
-* (timeout or socket shutdown)
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version
-*   status : result of last operation
-*   count  : number of bytes read
-*   timestamp : V4 timestamp, which is used for lease renewal
-*/
+/**
+ * probe nfs.proc.read_done - NFS client response to a read RPC task
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version
+ * @status: result of last operation
+ * @count: number of bytes read
+ * @timestamp : V4 timestamp, which is used for lease renewal
+ *
+ * Fires when a reply to a read RPC task is received or some read error occurs
+ * (timeout or socket shutdown).
+ */
 probe nfs.proc.read_done = nfs.proc2.read_done,
                            nfs.proc3.read_done,
                            nfs.proc4.read_done
@@ -878,25 +873,26 @@ probe nfs.proc4.read_done.return = kernel.function("nfs4_read_done").return!,
 	retstr = (@defined($return) ? sprintf("%d", $return) : "N/A")
 }
 
-/*probe nfs.proc.write_setup
-*
-* The write_setup function is used to setup a write rpc task,not do
-* a real write operation.
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version
-*   size :
-*   count : read bytes in this execution
-*   offset : the file offset
-*   how : used to set args.stable.
-*         The stable value could be:
-*         NFS_UNSTABLE,NFS_DATA_SYNC,NFS_FILE_SYNC(in nfs.proc3.write_setup and nfs.proc4.write_setup)
-*   bitmask0:
-*   bitmask1 :V4 bitmask representing the set of attributes 
-*             supported on this filesystem
-*/
+/**
+ * probe nfs.proc.write_setup - NFS client setting up a write RPC task
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version
+ * @size: bytes written in this execution
+ * @count: bytes written in this execution
+ * @offset: the file offset
+ * @how: used to set args.stable. The stable value could be:
+ *       NFS_UNSTABLE,NFS_DATA_SYNC,NFS_FILE_SYNC
+ *       (in nfs.proc3.write_setup and nfs.proc4.write_setup)
+ * @bitmask0: V4 bitmask representing the set
+ *            of attributes supported on this filesystem
+ * @bitmask1: V4 bitmask representing the set
+ *            of attributes supported on this filesystem
+ *
+ * The write_setup function is used to setup a write RPC task.
+ * It is not doing the actual write operation.
+ */
 
 probe nfs.proc.write_setup = nfs.proc2.write_setup,
                              nfs.proc3.write_setup,
@@ -995,20 +991,20 @@ probe nfs.proc4.write_setup.return = kernel.function("nfs4_proc_write_setup").re
 }
 
 
-/*probe nfs.proc.write_done
-*
-* Fires when a write reply is received or some write error occur
-* (timeout or socket shutdown)
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version
-*   status : result of last operation
-*   valid  : fattr->valid ,indicates which fields are valid 
-*   count  : number of bytes written
-*   timestamp : V4 timestamp, which is used for lease renewal
-*/
+/**
+ * probe nfs.proc.write_done - NFS client response to a write RPC task
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version
+ * @status: result of last operation
+ * @valid: fattr->valid ,indicates which fields are valid 
+ * @count: number of bytes written
+ * @timestamp: V4 timestamp, which is used for lease renewal
+ *
+ * Fires when a reply to a write RPC task is received or some write error occurs
+ * (timeout or socket shutdown).
+ */
 probe nfs.proc.write_done = nfs.proc2.write_done,
                             nfs.proc3.write_done,
                             nfs.proc4.write_done 
@@ -1114,22 +1110,24 @@ probe nfs.proc4.write_done.return = kernel.function("nfs4_write_done").return !,
 }
 
 
-/*probe nfs.proc.commit_setup
-*
-* The commit_setup function is used to setup a commit rpc task,not do
-* a real commit operation.It is not exist in NFSV2
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version
-*   size :
-*   count : read bytes in this execution
-*   offset : the file offset
-*   bitmask0:
-*   bitmask1 :V4 bitmask representing the set of attributes 
-*             supported on this filesystem
-*/
+/**
+ * probe nfs.proc.commit_setup - NFS client setting up a commit RPC task
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version
+ * @size: bytes in this commit
+ * @count: bytes in this commit
+ * @offset: the file offset
+ * @bitmask0: V4 bitmask representing the set
+ *            of attributes supported on this filesystem
+ * @bitmask1: V4 bitmask representing the set
+ *            of attributes supported on this filesystem
+ *
+ * The commit_setup function is used to setup a commit RPC task.
+ * Is is not doing the actual commit operation.
+ * It is does not exist in NFSv2.
+ */
 
 probe nfs.proc.commit_setup =nfs.proc3.commit_setup,
                              nfs.proc4.commit_setup
@@ -1196,20 +1194,20 @@ probe nfs.proc4.commit_setup.return = kernel.function("nfs4_proc_commit_setup") 
 }
 
 
-/*probe nfs.proc.commit_done
-*
-* Fires when a commit reply is received or some commit operation error occur
-* (timeout or socket shutdown)
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version
-*   status : result of last operation
-*   valid  : fattr->valid ,indicates which fields are valid 
-*   count  : number of bytes commited
-*   timestamp : V4 timestamp, which is used for lease renewal
-*/
+/**
+ * probe nfs.proc.commit_done - NFS client response to a commit RPC task
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version
+ * @status: result of last operation
+ * @valid: fattr->valid ,indicates which fields are valid 
+ * @count: number of bytes commited
+ * @timestamp: V4 timestamp, which is used for lease renewal
+ *
+ * Fires when a reply to a commit RPC task is received
+ * or some commit operation error occur (timeout or socket shutdown).
+ */
 probe nfs.proc.commit_done = 
                             nfs.proc3.commit_done,
                             nfs.proc4.commit_done 
@@ -1283,19 +1281,19 @@ probe nfs.proc4.commit_done.return = kernel.function("nfs4_commit_done").return 
 	name = "nfs.proc4.commit_done.return"
 	retstr = (@defined($return) ? sprintf("%d", $return) : "N/A")
 }
-/*probe nfs.proc.open
-*
-*  Allocate file read/write context information
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version(the function is used for all NFS version)
-*   filename : file name 
-*   flag   : file flag
-*   mode   : file  mode
-*/
 
+/**
+ * probe nfs.proc.open - NFS client allocates file read/write context information
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version (the function is used for all NFS version)
+ * @filename: file name
+ * @flag: file flag
+ * @mode: file mode
+ *
+ *  Allocate file read/write context information
+ */
 probe nfs.proc.open = kernel.function("nfs_open") !,
                       module("nfs").function("nfs_open") ?
 {
@@ -1318,18 +1316,18 @@ probe nfs.proc.open.return = kernel.function("nfs_open").return !,
 	retstr = sprintf("%d", $return)
 }
 
-/*probe nfs.proc.release
-*
-*  Release file read/write context information
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version(the function is used for all NFS version)
-*   filename : file name 
-*   flag   : file flag
-*   mode   : file  mode
-*/
+/**
+ * probe nfs.proc.release -  NFS client releases file read/write context information
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version (the function is used for all NFS version)
+ * @filename: file name
+ * @flag: file flag
+ * @mode: file mode
+ *
+ *  Release file read/write context information
+ */
 probe nfs.proc.release= kernel.function("nfs_release") !,
                       module("nfs").function("nfs_release") ?
 {
@@ -1352,13 +1350,13 @@ probe nfs.proc.release.return = kernel.function("nfs_release").return !,
 	retstr = sprintf("%d", $return)
 }
 
-/*
-*probe nfs.proc.handle_exception (only for NFSV4)
-* This is the error handling routine for processes for nfsv4
-*
-* Arguments:
-*  errorcode : indicates the type of error
-*/
+/**
+ * probe nfs.proc.handle_exception - NFS client handling an NFSv4 exception
+ *
+ * @errorcode: indicates the type of error
+ *
+ * This is the error handling routine for processes for NFSv4.
+ */
 probe nfs.proc.handle_exception = 
                             nfs.proc4.handle_exception 
 {}
@@ -1385,19 +1383,17 @@ probe nfs.proc4.handle_exception.return = kernel.function("nfs4_handle_exception
         retstr =  sprintf("%d",$return)
 }
 
-/*
-* probe nfs.proc.create
-*   Fires when client creates a file on server
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version(the function is used for all NFS version)
-*   fh : file handler of parent dir
-*   filename : file name 
-*   filelen : length of file name
-*   flag : indicates create mode(only for NFSV3 and NFSV4)
-*/
+/**
+ * probe nfs.proc.create - NFS client creating file on server
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version (the function is used for all NFS version)
+ * @fh: file handler of parent dir
+ * @filename: file name
+ * @filelen: length of file name
+ * @flag: indicates create mode (only for NFSv3 and NFSv4)
+ */
 probe nfs.proc.create = nfs.proc2.create,
                         nfs.proc3.create,
                         nfs.proc4.create
@@ -1482,18 +1478,16 @@ probe nfs.proc4.create.return = kernel.function("nfs4_proc_create").return!,
 	retstr = sprintf("%d",$return)
 }
 
-/*
-* probe nfs.proc.remove
-*   Fires when client removes a file on server
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version(the function is used for all NFS version)
-*   fh : file handler of parent dir
-*   filename : file name 
-*   filelen : length of file name
-*/
+/**
+ * probe nfs.proc.remove - NFS client removes a file on server
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version (the function is used for all NFS version)
+ * @fh: file handler of parent dir
+ * @filename: file name
+ * @filelen: length of file name
+ */
 probe nfs.proc.remove = nfs.proc2.remove,
                         nfs.proc3.remove,
                         nfs.proc4.remove
@@ -1573,21 +1567,19 @@ probe nfs.proc4.remove.return = kernel.function("nfs4_proc_remove").return!,
 	retstr = sprintf("%d",$return)
 }
 
-/*
-* probe nfs.proc.rename
-*   Fires when client renames a file on server
-*
-* Arguments:
-*   server_ip : ip address of server
-*   prot  : transfer protocol
-*   version : nfs version(the function is used for all NFS version)
-*   old_fh : file handler of old parent dir
-*   new_fh : file handler of new parent dir
-*   old_name : old file name 
-*   old_filelen : length of old file name
-*   new_name : new file name 
-*   new_filelen : length of new file name
-*/
+/**
+ * probe nfs.proc.rename - NFS client renames a file on server
+ *
+ * @server_ip: IP address of server
+ * @prot: transfer protocol
+ * @version: NFS version (the function is used for all NFS version)
+ * @old_fh: file handler of old parent dir
+ * @new_fh: file handler of new parent dir
+ * @old_name: old file name
+ * @old_filelen: length of old file name
+ * @new_name: new file name
+ * @new_filelen: length of new file name
+ */
 probe nfs.proc.rename = nfs.proc2.rename,
                         nfs.proc3.rename,
                         nfs.proc4.rename

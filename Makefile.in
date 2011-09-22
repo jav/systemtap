@@ -50,12 +50,12 @@ bin_PROGRAMS = $(am__EXEEXT_1)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_8 = stap-start-server stap-stop-server
 @BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_9 = $(avahi_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_10 = $(avahi_CFLAGS)
-@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_11 = -lavahi-client -lavahi-common
+@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__append_11 = $(avahi_LIBS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_12 = nsscommon.cxx
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_13 = $(nss_CFLAGS) $(nspr_CFLAGS) -DSTAP
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_14 = $(nss_CFLAGS) $(nspr_CFLAGS)
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_15 = $(nss_CFLAGS) $(nspr_CFLAGS)
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_16 = -lssl3 -lnss3 -lnspr4 -lplc4 -lsmime3
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_13 = $(nss_CFLAGS) -DSTAP
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_14 = $(nss_CFLAGS)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_15 = $(nss_CFLAGS)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_16 = $(nss_LIBS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__append_17 = install-scripts
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_18 = -Iinclude-elfutils
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_19 = -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
@@ -65,7 +65,9 @@ bin_PROGRAMS = $(am__EXEEXT_1)
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_21 = stamp-elfutils
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_22 = lib-elfutils/libdw.so
 @BUILD_ELFUTILS_TRUE@@BUILD_TRANSLATOR_TRUE@am__append_23 = install-elfutils
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@@HAVE_NSS_TRUE@am__append_24 = -lavahi-client -lavahi-common
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@@HAVE_NSS_TRUE@am__append_24 = $(avahi_CFLAGS)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@@HAVE_NSS_TRUE@am__append_25 = $(avahi_CFLAGS)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@@HAVE_NSS_TRUE@am__append_26 = $(avahi_LIBS)
 @BUILD_TRANSLATOR_TRUE@noinst_PROGRAMS = loc2c-test$(EXEEXT)
 subdir = .
 DIST_COMMON = INSTALL NEWS README AUTHORS $(srcdir)/Makefile.in \
@@ -107,10 +109,14 @@ PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglibexec_PROGRAMS)
 @BUILD_TRANSLATOR_TRUE@	loc2c_test-loc2c.$(OBJEXT)
 loc2c_test_OBJECTS = $(am_loc2c_test_OBJECTS)
 am__DEPENDENCIES_1 =
-@BUILD_TRANSLATOR_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) \
-@BUILD_TRANSLATOR_TRUE@	$(am__DEPENDENCIES_1)
+@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@am__DEPENDENCIES_2 =  \
+@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@	$(am__DEPENDENCIES_1)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__DEPENDENCIES_3 =  \
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	$(am__DEPENDENCIES_1)
+@BUILD_TRANSLATOR_TRUE@am__DEPENDENCIES_4 = $(am__DEPENDENCIES_2) \
+@BUILD_TRANSLATOR_TRUE@	$(am__DEPENDENCIES_3)
 @BUILD_TRANSLATOR_TRUE@loc2c_test_DEPENDENCIES =  \
-@BUILD_TRANSLATOR_TRUE@	$(am__DEPENDENCIES_2)
+@BUILD_TRANSLATOR_TRUE@	$(am__DEPENDENCIES_4)
 loc2c_test_LINK = $(CCLD) $(loc2c_test_CFLAGS) $(CFLAGS) \
 	$(loc2c_test_LDFLAGS) $(LDFLAGS) -o $@
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am__objects_1 = stap-nsscommon.$(OBJEXT)
@@ -150,14 +156,15 @@ stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_authorize_cert-nsscommon.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_authorize_cert-util.$(OBJEXT)
 stap_authorize_cert_OBJECTS = $(am_stap_authorize_cert_OBJECTS)
-stap_authorize_cert_DEPENDENCIES =
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_DEPENDENCIES =  \
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	$(am__DEPENDENCIES_1)
 stap_authorize_cert_LINK = $(CXXLD) $(stap_authorize_cert_CXXFLAGS) \
 	$(CXXFLAGS) $(stap_authorize_cert_LDFLAGS) $(LDFLAGS) -o $@
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am_stap_gen_cert_OBJECTS = stap_gen_cert-stap-gen-cert.$(OBJEXT) \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_gen_cert-util.$(OBJEXT) \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_gen_cert-nsscommon.$(OBJEXT)
 stap_gen_cert_OBJECTS = $(am_stap_gen_cert_OBJECTS)
-stap_gen_cert_DEPENDENCIES =
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_DEPENDENCIES = $(am__DEPENDENCIES_1)
 stap_gen_cert_LINK = $(CXXLD) $(stap_gen_cert_CXXFLAGS) $(CXXFLAGS) \
 	$(stap_gen_cert_LDFLAGS) $(LDFLAGS) -o $@
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am_stap_serverd_OBJECTS = stap_serverd-stap-serverd.$(OBJEXT) \
@@ -165,14 +172,17 @@ stap_gen_cert_LINK = $(CXXLD) $(stap_gen_cert_CXXFLAGS) $(CXXFLAGS) \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_serverd-util.$(OBJEXT) \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_serverd-nsscommon.$(OBJEXT)
 stap_serverd_OBJECTS = $(am_stap_serverd_OBJECTS)
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_DEPENDENCIES = $(am__DEPENDENCIES_1)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_AVAHI_TRUE@@HAVE_NSS_TRUE@am__DEPENDENCIES_5 = $(am__DEPENDENCIES_1)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	$(am__DEPENDENCIES_5)
 stap_serverd_LINK = $(CXXLD) $(stap_serverd_CXXFLAGS) $(CXXFLAGS) \
 	$(stap_serverd_LDFLAGS) $(LDFLAGS) -o $@
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@am_stap_sign_module_OBJECTS = stap_sign_module-stap-sign-module.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_sign_module-nsscommon.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	stap_sign_module-util.$(OBJEXT)
 stap_sign_module_OBJECTS = $(am_stap_sign_module_OBJECTS)
-stap_sign_module_DEPENDENCIES =
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_DEPENDENCIES =  \
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	$(am__DEPENDENCIES_1)
 stap_sign_module_LINK = $(CXXLD) $(stap_sign_module_CXXFLAGS) \
 	$(CXXFLAGS) $(stap_sign_module_LDFLAGS) $(LDFLAGS) -o $@
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
@@ -347,6 +357,8 @@ am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
+avahi_CFLAGS = @avahi_CFLAGS@
+avahi_LIBS = @avahi_LIBS@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
@@ -385,8 +397,8 @@ localedir = @localedir@
 localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
-nspr_CFLAGS = @nspr_CFLAGS@
 nss_CFLAGS = @nss_CFLAGS@
+nss_LIBS = @nss_LIBS@
 oldincludedir = ${includedir}/sys
 pdfdir = @pdfdir@
 prefix = @prefix@
@@ -454,7 +466,7 @@ BUILT_SOURCES = git_version.stamp $(am__append_20)
 CLEANFILES = git_version.h $(am__append_21) $(pkglibexec_PROGRAMS)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
 PHONIES = $(am__append_17) $(am__append_23) runcheck update-po \
-	dist-gzip uprobes install-uprobes
+	dist-gzip rpm srpm uprobes install-uprobes
 @BUILD_TRANSLATOR_TRUE@stap_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ \
 @BUILD_TRANSLATOR_TRUE@	-D_FILE_OFFSET_BITS=64 $(am__append_13)
 @BUILD_TRANSLATOR_TRUE@stap_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ \
@@ -466,32 +478,33 @@ PHONIES = $(am__append_17) $(am__append_23) runcheck update-po \
 @BUILD_TRANSLATOR_TRUE@	$(am__append_19)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_SOURCES = stap-sign-module.cxx nsscommon.cxx util.cxx
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CPPFLAGS = $(AM_CPPFLAGS)
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_sign_module_LDADD = $(nss_LIBS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_SOURCES = stap-authorize-cert.cxx nsscommon.cxx util.cxx
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_CPPFLAGS = $(AM_CPPFLAGS)
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS)
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
+@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_authorize_cert_LDADD = $(nss_LIBS)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_SOURCES = stap-serverd.cxx cscommon.cxx util.cxx nsscommon.cxx
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_LDADD = -lssl3 \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	-lnss3 \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	-lnspr4 \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	-lplc4 \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	-lsmime3 \
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	-lpthread \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_CXXFLAGS = $(AM_CXXFLAGS) \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	@PIECXXFLAGS@ \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	$(nss_CFLAGS) \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	$(am__append_25)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_CFLAGS = $(AM_CFLAGS) \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	@PIECFLAGS@ \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	$(nss_CFLAGS) \
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	$(am__append_24)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_serverd_LDADD = $(nss_LIBS) \
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@	$(am__append_26)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_SOURCES = stap-gen-cert.cxx util.cxx nsscommon.cxx
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS)
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS)
 @BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
+@BUILD_SERVER_TRUE@@BUILD_TRANSLATOR_TRUE@@HAVE_NSS_TRUE@stap_gen_cert_LDADD = $(nss_LIBS)
 @BUILD_TRANSLATOR_TRUE@loc2c_test_SOURCES = loc2c-test.c loc2c.c
 @BUILD_TRANSLATOR_TRUE@loc2c_test_CFLAGS = $(stap_CFLAGS)
 @BUILD_TRANSLATOR_TRUE@loc2c_test_CPPFLAGS = $(stap_CPPFLAGS)
@@ -2193,6 +2206,10 @@ rpm: dist-gzip
 	mkdir -p `rpm --eval %_builddir`
 	mkdir -p `rpm --eval %_buildroot`
 	rpmbuild --define "_sourcedir $(PWD)/" -ta systemtap-$(VERSION).tar.gz $(RPMBUILDFLAGS)
+
+srpm: dist-gzip
+	mkdir -p `rpm --eval %_srcrpmdir`
+	rpmbuild --define "_sourcedir $(PWD)/" -ts systemtap-$(VERSION).tar.gz $(RPMBUILDFLAGS)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

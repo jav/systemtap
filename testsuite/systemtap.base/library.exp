@@ -32,8 +32,8 @@ set dpath "[pwd]/sdt_misc_.d"
 set hpath "[pwd]/sdt_misc_.h"
 set opath "[pwd]/sdt_misc_.o"
 
-set exepath "[pwd]/sdt_misc.x"
-set sopath "[pwd]/libsdt.so"
+set exepath "./sdt_misc.x"
+set sopath "./libsdt.so"
 
 # Run dtrace
 

@@ -25,13 +25,6 @@
 #define _stp_get_unaligned(ptr) (*(ptr))
 #define _stp_put_unaligned(val, ptr) ((void)( *(ptr) = (val) ))
 
-struct unwind_frame_info
-{
-	struct pt_regs regs;
-	struct task_struct *task;
-	unsigned call_frame:1;
-};
-
 #ifdef STAPCONF_X86_UNIREGS
 #define UNW_PC(frame)        (frame)->regs.ip
 #define UNW_SP(frame)        (frame)->regs.sp

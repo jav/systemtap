@@ -178,6 +178,8 @@ public:
   bool unprivileged;
   bool systemtap_v_check;
   bool tmpdir_opt_set;
+  bool dump_probe_types;
+  int download_dbinfo;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).
@@ -310,6 +312,7 @@ public:
   std::set<std::string> unwindsym_modules;
   bool unwindsym_ldd;
   struct module_cache* module_cache;
+  std::vector<std::string> build_ids;
 
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).

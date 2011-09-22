@@ -1,6 +1,6 @@
 /*  -*- linux-c -*-
  * Stack tracing functions
- * Copyright (C) 2005-2009 Red Hat Inc.
+ * Copyright (C) 2005-2009, 2011 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -36,8 +36,6 @@
 #include "sym.c"
 #include "regs.h"
 
-#define MAXBACKTRACE 20
-
 /* If uprobes isn't in the kernel, pull it in from the runtime. */
 #if defined(CONFIG_UTRACE)      /* uprobes doesn't work without utrace */
 #if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)
@@ -57,7 +55,7 @@ struct uretprobe_instance;
 #include <asm/stacktrace.h>
 #endif
 
-static void _stp_stack_print_fallback(unsigned long, int, int);
+static void _stp_stack_print_fallback(unsigned long, int, int, int);
 
 #if (defined(__i386__) || defined(__x86_64__))
 #include "stack-x86.c"
@@ -77,9 +75,9 @@ static void _stp_stack_print_fallback(unsigned long, int, int);
 
 struct print_stack_data
 {
-        int verbose;
-        int max_level;
-        int level;
+        int flags;
+        int levels;
+        int skip;
 };
 
 #if defined(STAPCONF_STACKTRACE_OPS_WARNING)
@@ -101,8 +99,14 @@ static int print_stack_stack(void *data, char *name)
 static void print_stack_address(void *data, unsigned long addr, int reliable)
 {
 	struct print_stack_data *sdata = data;
-        if (sdata->level++ < sdata->max_level)
-                _stp_print_addr(addr, sdata->verbose | _STP_SYM_INEXACT, NULL);
+	if (sdata->skip > 0)
+		sdata->skip--;
+	else if (sdata->levels > 0) {
+		_stp_print_addr(addr,
+				sdata->flags | (reliable ? 0 :_STP_SYM_INEXACT),
+				NULL);
+		sdata->levels--;
+	}
 }
 
 static const struct stacktrace_ops print_stack_ops = {
@@ -117,27 +121,50 @@ static const struct stacktrace_ops print_stack_ops = {
 #endif
 };
 
-/* Currently only used by the stack-x64.c code when dwarf unwinding fails. */
-static void _stp_stack_print_fallback(unsigned long stack, int verbose, int levels)
+/* Used for kernel backtrace printing when other mechanisms fail. */
+static void _stp_stack_print_fallback(unsigned long stack,
+				      int sym_flags, int levels, int skip)
 {
         struct print_stack_data print_data;
-        print_data.verbose = verbose;
-        print_data.max_level = levels;
-        print_data.level = 0;
+        print_data.flags = sym_flags;
+        print_data.levels = levels;
+        print_data.skip = skip;
         dump_trace(current, NULL, (long *)stack, 0, &print_stack_ops,
                    &print_data);
 }
 #else
-static void _stp_stack_print_fallback(unsigned long s, int v, int l) {
+static void _stp_stack_print_fallback(unsigned long s, int v, int l, int k) {
 	/* Don't guess, just give up. */
 	_stp_print_addr(0, v | _STP_SYM_INEXACT, NULL);
 }
+
 #endif /* defined(STAPCONF_KERNEL_STACKTRACE) */
 
 // Without KPROBES very little works atm.
 // But this file is unconditionally imported, while these two functions are only
 // used through context-unwind.stp.
 #if defined (CONFIG_KPROBES)
+
+/** Gets user space registers when available, also sets context probe_flags
+ * _STP_PROBE_STATE_FULL_UREGS if appropriate.  Should be used instead of
+ * accessing context uregs field directly when (full) uregs are needed
+ * from kernel context.
+ */
+static struct pt_regs *_stp_get_uregs(struct context *c)
+{
+  /* When the probe occurred in user context uregs are always complete. */
+  if (c->uregs && c->probe_flags & _STP_PROBE_STATE_USER_MODE)
+    c->probe_flags |= _STP_PROBE_STATE_FULL_UREGS;
+  else if (c->uregs == NULL)
+    {
+      /* First try simple recovery through task_pt_regs,
+	 on some platforms that already provides complete uregs. */
+      c->uregs = task_pt_regs (current);
+      if (_stp_task_pt_regs_valid(current, c->uregs))
+	c->probe_flags |= _STP_PROBE_STATE_FULL_UREGS;
+    }
+  return c->uregs;
+}
 
 /** Prints the stack backtrace
  * @param regs A pointer to the struct pt_regs.
@@ -161,28 +188,41 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 		ri = NULL;
 
 	if (stack_flags == _STP_STACK_KERNEL) {
-		if (! c->regs || (c->regflags & _STP_REGS_USER_FLAG)) {
+		if (! c->kregs) {
+			/* For the kernel we can use an inexact fallback.
+			   When compiled with frame pointers we can do
+			   a pretty good guess at the stack value,
+			   otherwise let dump_stack guess it
+			   (and skip some framework frames). */
+#if defined(STAPCONF_KERNEL_STACKTRACE)
+			unsigned long sp;
+			int skip;
+#ifdef CONFIG_FRAME_POINTER
+			sp  = *(unsigned long *) __builtin_frame_address (0);
+			skip = 1; /* Skip just this frame. */
+#else
+			sp = 0;
+			skip = 5; /* yes, that many framework frames. */
+#endif
+			_stp_stack_print_fallback(sp, sym_flags,
+						  MAXBACKTRACE, skip);
+#else
 			if (sym_flags & _STP_SYM_SYMBOL)
 				_stp_printf("<no kernel backtrace at %s>\n",
 					    c->probe_point);
 			else
 				_stp_print("\n");
+#endif
 			return;
 		} else {
-			regs = c->regs;
+			regs = c->kregs;
 			ri = NULL; /* This is a hint for GCC so that it can
 				      eliminate the call to uprobe_get_pc()
 				      in __stp_stack_print() below. */
 		}
 	} else if (stack_flags == _STP_STACK_USER) {
-		/* use task_pt_regs, regs might be kernel regs, or not set. */
-		if (c->regs && (c->regflags & _STP_REGS_USER_FLAG)) {
-			regs = c->regs;
-			uregs_valid = 1;
-		} else {
-			regs = task_pt_regs(current);
-			uregs_valid = _stp_task_pt_regs_valid(current, regs);
-		}
+		regs = _stp_get_uregs(c);
+		uregs_valid = c->probe_flags & _STP_PROBE_STATE_FULL_UREGS;
 
 		if (! current->mm || ! regs) {
 			if (sym_flags & _STP_SYM_SYMBOL)
@@ -197,7 +237,9 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 	}
 
 	/* print the current address */
-	if (c->probe_type == _STP_PROBE_HANDLER_KRETPROBE && c->ips.krp.pi) {
+	if (stack_flags == _STP_STACK_KERNEL
+	    && c->probe_type == _STP_PROBE_HANDLER_KRETPROBE
+	    && c->ips.krp.pi) {
 		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			_stp_print_addr((unsigned long)_stp_probe_addr_r(c->ips.krp.pi),
@@ -207,7 +249,9 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 		_stp_print_addr((unsigned long)_stp_ret_addr_r(c->ips.krp.pi),
 				sym_flags, tsk);
 #ifdef STAPCONF_UPROBE_GET_PC
-	} else if (c->probe_type == _STP_PROBE_HANDLER_URETPROBE && ri) {
+	} else if (stack_flags == _STP_STACK_USER
+		   && c->probe_type == _STP_PROBE_HANDLER_URETPROBE
+		   && ri) {
 		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			/* ... otherwise this dereference fails */

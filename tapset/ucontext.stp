@@ -6,12 +6,6 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-%{
-#ifndef STP_NEED_VMA_TRACKER
-#define STP_NEED_VMA_TRACKER 1
-#endif
-%}
-
 /**
  * sfunction umodname - Returns the (short) name of the user module. EXPERIMENTAL!
  * @addr: User-space address

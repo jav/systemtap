@@ -14,7 +14,8 @@
 #include <linux/percpu.h>
 
 static int _stp_allocated_net_memory = 0;
-#define STP_ALLOC_FLAGS (GFP_KERNEL | __GFP_NORETRY | __GFP_NOWARN)
+#define STP_ALLOC_FLAGS ((GFP_KERNEL | __GFP_NORETRY | __GFP_NOWARN) \
+			 & ~__GFP_WAIT)
 
 /* #define DEBUG_MEM */
 /*

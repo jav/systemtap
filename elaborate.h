@@ -202,7 +202,15 @@ struct derived_probe_group
   // The _init-generated code may assume that it is called only once.
   // If that code fails at run time, it must set rc=1 and roll back
   // any partial initializations, for its _exit friend will NOT be
-  // invoked.  The generated code may use pre-declared "int i, j;".
+  // invoked.  The generated code may use pre-declared "int i, j;"
+  // and set "const char* probe_point;".
+
+  virtual void emit_module_refresh (systemtap_session& s) {}
+  // The _refresh-generated code may be called multiple times during
+  // a session run, bracketed by _init and _exit calls.
+  // Upon failure, it must set enough state so that
+  // a subsequent _exit call will clean up everything.
+  // The generated code may use pre-declared "int i, j;".
 
   virtual void emit_module_exit (systemtap_session& s) = 0;
   // The _exit-generated code may assume that it is executed exactly
@@ -226,6 +234,7 @@ struct derived_probe_builder
 		     std::vector<derived_probe*> & finished_results) = 0;
   virtual ~derived_probe_builder() {}
   virtual void build_no_more (systemtap_session &) {}
+  virtual bool is_alias () const { return false; }
 
   static bool has_null_param (literal_map_t const & parameters,
                               const std::string& key);
@@ -269,6 +278,7 @@ match_node
                        probe* p, probe_point *loc, unsigned pos,
                        std::vector<derived_probe *>& results);
   void build_no_more (systemtap_session &s);
+  void dump (systemtap_session &s, const std::string &name = "");
 
   match_node* bind(match_key const & k);
   match_node* bind(std::string const & k);
@@ -298,6 +308,7 @@ alias_expansion_builder
 		     probe_point * location,
 		     std::map<std::string, literal *> const &,
 		     std::vector<derived_probe *> & finished_results);
+  virtual bool is_alias () const { return true; }
 
   bool checkForRecursiveExpansion (probe *use);
 };

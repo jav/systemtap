@@ -1,5 +1,5 @@
 // C++ interface to dwfl
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -123,7 +123,8 @@ module_cache
 struct func_info
 {
   func_info()
-    : decl_file(NULL), decl_line(-1), addr(0), prologue_end(0), weak(false), descriptor(false)
+    : decl_file(NULL), decl_line(-1), addr(0), entrypc(0), prologue_end(0),
+      weak(false), descriptor(false)
   {
     std::memset(&die, 0, sizeof(die));
   }
@@ -141,7 +142,7 @@ struct func_info
 struct inline_instance_info
 {
   inline_instance_info()
-    : decl_file(NULL), decl_line(-1)
+    : decl_file(NULL), decl_line(-1), entrypc(0)
   {
     std::memset(&die, 0, sizeof(die));
   }
@@ -250,6 +251,9 @@ struct dwflpp
       const char *data), void *data);
 
 
+  int iterate_over_plt (void *object,
+			  void (*callback)(void *object, const char *name, size_t address));
+
   GElf_Shdr * get_section(std::string section_name, GElf_Shdr *shdr_mem,
                           Elf **elf_ret=NULL);
 
@@ -320,7 +324,7 @@ private:
   Dwarf * module_dwarf;
   Dwarf_Die * function;
 
-  void setup_kernel(const std::string& module_name, bool debuginfo_needed = true);
+  void setup_kernel(const std::string& module_name, systemtap_session &s, bool debuginfo_needed = true);
   void setup_kernel(const std::vector<std::string>& modules, bool debuginfo_needed = true);
   void setup_user(const std::vector<std::string>& modules, bool debuginfo_needed = true);
 
@@ -347,11 +351,17 @@ private:
    * added to it, it would have to be indexed by name and tag
    */
   mod_cu_type_cache_t global_alias_cache;
-  static int global_alias_caching_callback(Dwarf_Die *die, void *arg);
+  static int global_alias_caching_callback(Dwarf_Die *die, bool has_inner_types,
+                                           const std::string& prefix, void *arg);
   static int global_alias_caching_callback_cus(Dwarf_Die *die, void *arg);
   static int iterate_over_globals (Dwarf_Die *,
-                                   int (* callback)(Dwarf_Die *, void *),
+                                   int (* callback)(Dwarf_Die *, bool,
+                                                    const std::string&, void *),
                                    void * data);
+  static int iterate_over_types (Dwarf_Die *, bool, const std::string&,
+                                 int (* callback)(Dwarf_Die *, bool,
+                                                  const std::string&, void *),
+                                 void * data);
 
   static int mod_function_caching_callback (Dwarf_Die* func, void *arg);
   static int cu_function_caching_callback (Dwarf_Die* func, void *arg);
@@ -426,6 +436,13 @@ private:
   Dwarf_Op *get_cfa_ops (Dwarf_Addr pc);
 
   Dwarf_Addr vardie_from_symtable(Dwarf_Die *vardie, Dwarf_Addr *addr);
+
+  static int add_module_build_id_to_hash (Dwfl_Module *m,
+                 void **userdata __attribute__ ((unused)),
+                 const char *name,
+                 Dwarf_Addr base,
+                 void *arg);
+
 };
 
 #endif // DWFLPP_H

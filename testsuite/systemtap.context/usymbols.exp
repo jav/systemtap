@@ -66,14 +66,14 @@ foreach arch $arches {
     set res [target_compile $testsrclib $testso executable $testlibflags]
     if { $res != "" } {
 	verbose "target_compile for $testso failed: $res" 2
-	fail "unable to compile $testsrclib $arch"
+	fail "unable to compile usymbols_lib.c $arch"
 	return
     }
     set testexe  "[pwd]/${testexename}"
     set res [target_compile $testsrc $testexe executable $maintestflags]
     if { $res != "" } {
 	verbose "target_compile failed: $res" 2
-	fail "unable to compile $testsrc $arch"
+	fail "unable to compile usymbols.c $arch"
 	return
     }
 

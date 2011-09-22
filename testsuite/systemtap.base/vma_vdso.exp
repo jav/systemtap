@@ -1,0 +1,49 @@
+# Make sure however we entered a syscall, we know the calling module name.
+# the task finder vma tracker should have recorded it.
+
+set test "vma_vdso"
+
+# Expect the following three syscalls
+set ::result_string {clock_gettime
+getuid
+getuid}
+
+# Force 64-bit (when necessary) to be sure of what we're testing.
+switch -regexp $::tcl_platform(machine) {
+    {^(x86_64|ppc64|s390x)$} { set arches [list "-m64"] }
+    default { set arches [list "default"] }
+}
+
+# Test 32-on-64 when available
+switch -regexp $::tcl_platform(machine) {
+    {^(x86_64|ppc64)$} { lappend arches "-m32" }
+    {^s390x$} { lappend arches "-m31" }
+}
+
+foreach arch $arches {
+    verbose "testing $test $arch"
+
+    set test_flags "additional_flags=-g"
+    set test_flags "$test_flags additional_flags=-lrt"
+
+    if {$arch != "default"} {
+        set test_flags "$test_flags additional_flags=$arch"
+    }
+
+    set res [target_compile $srcdir/$subdir/$test.c ${test}${arch}.exe executable "$test_flags"]
+    if { $res != "" } {
+        verbose "target_compile ${test}${arch} failed: $res" 2
+        fail "${test}.c compile ${arch}"
+        untested "${test}${arch}"
+        return
+    } else {
+        pass "${test}.c compile ${arch}"
+    }
+
+    # Test only when we are running an install test (can execute)
+    if {[installtest_p]} {
+        stap_run3 ${test}${arch} $srcdir/$subdir/$test.stp ./${test}${arch}.exe -c ./${test}${arch}.exe
+    } else {
+        untested "${test}${arch}"
+    }
+}

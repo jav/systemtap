@@ -25,8 +25,9 @@
 %}
 
 /**
- * sfunction ip_ntop - returns a string representation from an integer IP number
- * @addr: the ip represented as an integer
+ * sfunction ip_ntop - Returns a string representation from an integer IP number
+ *
+ * @addr: the IP represented as an integer
  */
 function ip_ntop:string (addr:long)
 %{

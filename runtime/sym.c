@@ -287,6 +287,7 @@ static int _stp_build_id_check (struct _stp_module *m, unsigned long notes_addr,
   return 0;
 }
 
+
 /* Validate module/kernel based on build-id (if present)
 *  The completed case is the following combination:
 *	   Debuginfo 		 Module			         Kernel	
@@ -333,6 +334,45 @@ static int _stp_module_check(void)
     } /* end loop */
   return 0;
 }
+
+
+
+/* Iterate over _stp_modules, looking for a kernel module of given
+   name.  Run build-id checking for it.  Return 0 on ok. */
+static int _stp_kmodule_check (const char *name)
+{
+  struct _stp_module *m = NULL;
+  unsigned long notes_addr, base_addr;
+  unsigned i,j;
+
+#ifdef STP_NO_BUILDID_CHECK
+  return 0;
+#endif
+
+  for (i = 0; i < _stp_num_modules; i++)
+    {
+      m = _stp_modules[i];
+      if (strcmp (name, m->name)) continue;
+
+      if (m->build_id_len > 0 && m->notes_sect != 0) {
+          dbug_sym(1, "build-id validation [%s]\n", m->name);
+
+          /* notes end address */
+          notes_addr = m->notes_sect + m->build_id_offset;
+          base_addr = m->notes_sect;
+
+          if (notes_addr <= base_addr) { /* shouldn't happen */
+              _stp_warn ("build-id address %lx < base %lx\n",
+                  notes_addr, base_addr);
+              continue;
+          }
+          return _stp_build_id_check (m, notes_addr, 0);
+      } /* end checking */
+    } /* end loop */
+
+  return 0; /* name not found */
+}
+
 
 
 /* Validate user module based on build-id (if present) */
@@ -506,5 +546,54 @@ static void _stp_print_addr(unsigned long address, int flags,
 }
 
 /** @} */
+
+
+
+/* Update the given module/section's offset value.  Assume that there
+   is no need for locking or for super performance.  NB: this is only
+   for kernel modules, which exist singly at run time.  User-space
+   modules (executables, shared libraries) exist at different
+   addresses in different processes, so are tracked in the
+   _stp_tf_vma_map. */
+static void _stp_kmodule_update_address(const char* module,
+                                        const char* reloc, /* NULL="all" */
+                                        unsigned long address)
+{
+  unsigned mi, si;
+        
+  for (mi=0; mi<_stp_num_modules; mi++)
+    {
+      const char *note_sectname = ".note.gnu.build-id";
+      if (strcmp (_stp_modules[mi]->name, module))
+        continue;
+
+      if (reloc && !strcmp (note_sectname, reloc)) {
+        dbug_sym(1, "module %s special section %s address %#lx\n",
+                 _stp_modules[mi]->name,
+                 note_sectname,
+                 address);
+        _stp_modules[mi]->notes_sect = address;   /* cache this particular address  */
+      }
+
+      for (si=0; si<_stp_modules[mi]->num_sections; si++)
+        {
+          if (reloc && strcmp (_stp_modules[mi]->sections[si].name, reloc))
+            continue;
+          else
+            {
+              dbug_sym(1, "module %s section %s address %#lx\n",
+                       _stp_modules[mi]->name,
+                       _stp_modules[mi]->sections[si].name,
+                       address);
+              _stp_modules[mi]->sections[si].static_addr = address;
+
+              if (reloc) break;
+              else continue; /* wildcarded - will have more hits */
+            }
+        } /* loop over sections */
+    } /* loop over modules */
+}
+
+
 
 #endif /* _STP_SYM_C_ */

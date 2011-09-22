@@ -1,8 +1,37 @@
 /* Some functions from libc <arpa/inet.h> */
 
+/**
+ * sfunction htonll - Convert 64-bit long long from host to network order
+ * @x: Value to convert
+ */
 function htonll:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) cpu_to_be64 ((u64) THIS->x); %}
+
+/**
+ * sfunction htonl - Convert 32-bit long from host to network order
+ * @x: Value to convert
+ */
 function htonl:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) cpu_to_be32 ((u32) THIS->x); %}
+
+/**
+ * sfunction htons - Convert 16-bit short from host to network order
+ * @x: Value to convert
+ */
 function htons:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) cpu_to_be16 ((u16) THIS->x); %}
+
+/**
+ * sfunction ntohll - Convert 64-bit long long from network to host order
+ * @x: Value to convert
+ */
 function ntohll:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) be64_to_cpu ((u64) THIS->x); %}
+
+/**
+ * sfunction ntohl - Convert 32-bit long from network to host order
+ * @x: Value to convert
+ */
 function ntohl:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) be32_to_cpu ((u32) THIS->x); %}
+
+/**
+ * sfunction ntohs - Convert 16-bit short from network to host order
+ * @x: Value to convert
+ */
 function ntohs:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) be16_to_cpu ((u16) THIS->x); %}

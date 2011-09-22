@@ -23,6 +23,7 @@
 #include "task_finder.h"
 #include "csclient.h"
 #include "remote.h"
+#include "tapsets.h"
 
 #include <libintl.h>
 #include <locale.h>
@@ -358,6 +359,10 @@ int parse_kernel_exports (systemtap_session &s)
           tokens[2] == "vmlinux" &&
           tokens[3].substr(0,13) == string("EXPORT_SYMBOL"))
         s.kernel_exports.insert (tokens[1]);
+      // RHEL4 Module.symvers file only has 3 tokens.  No
+      // 'EXPORT_SYMBOL' token at the end of the line.
+      else if (tokens.size() == 3 && tokens[2] == "vmlinux")
+        s.kernel_exports.insert (tokens[1]);
     }
   if (s.verbose > 2)
     clog << _F(ngettext("Parsed kernel %s, which contained one vmlinux export",
@@ -684,6 +689,10 @@ passes_0_4 (systemtap_session &s)
   PROBE1(stap, pass2__start, &s);
   rc = semantic_pass (s);
 
+  // Dump a list of known probe point types, if requested.
+  if (s.dump_probe_types)
+    s.pattern_root->dump (s);
+
   if (s.listing_mode || (rc == 0 && s.last_pass == 2))
     printscript(s, cout);
 
@@ -990,7 +999,8 @@ main (int argc, char * const argv [])
 
       // Run the passes only if a script has been specified. The requirement for
       // a script has already been checked in systemtap_session::check_options.
-      if (ss.have_script)
+      // Run the passes also if a dump of supported probe types has been requested via a server.
+      if (ss.have_script || (ss.dump_probe_types && ! s.specified_servers.empty ()))
         {
           // Run passes 0-4 for each unique session,
           // either locally or using a compile-server.
@@ -1003,6 +1013,12 @@ main (int argc, char * const argv [])
                 rc = passes_0_4_again_with_server (ss);
             }
         }
+      else if (ss.dump_probe_types)
+	{
+	  // Dump a list of known probe point types, if requested.
+	  register_standard_tapsets(ss);
+	  ss.pattern_root->dump (ss);
+	}
     }
 
   // Run pass 5, if requested

@@ -80,8 +80,9 @@ struct unparser
   // static void function_NAME (context* c);
 
   virtual void emit_module_init () = 0;
+  virtual void emit_module_refresh () = 0;
   virtual void emit_module_exit () = 0;
-  // XXX
+  // startup, probe refresh/activation, shutdown
 
   virtual void emit_function (functiondecl* v) = 0;
   // void function_NAME (struct context* c) {

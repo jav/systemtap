@@ -2,6 +2,7 @@
 
 # Syscalltimes systemtap script
 # Copyright (C) 2007 IBM Corp.
+# Copyright (C) 2011 Red Hat, Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -23,15 +24,17 @@ FILTER=0                # Any filters specified?
 # Print options
 P_TOTALS=0              # Print totals
 P_VERBOSE_STR=""        # Print verbose build output
+P_PROCESS_STR=""        # Run process during stap script invocation
 
 DELIM=","
 
 function usage {
-	echo "USAGE: syscalltimes [-n pname]... [-p pid]... [-u username]..."
+	echo "USAGE: syscalltimes [-n pname]... [-p pid]... [-u username]... [-c 'process']"
 	echo "                    [-v]... [-t] [-h]"
 	echo "    -n pname     # filter by this process name"
 	echo "    -p pid       # filter by this process ID"
 	echo "    -u username  # filter by this user"
+	echo "    -c 'process' # run 'process' then exit to show totals"
 	echo "    -t           # print totals (default with filters: OFF"
 	echo "                                 default without filters: ON)"
 	echo "    -v           # print verbose output during SystemTap module creation"
@@ -42,7 +45,7 @@ function usage {
 }
 
 # Process options
-while getopts n:p:u:vth option; do
+while getopts n:p:u:c:vth option; do
 	case $option in
 	n)	let "F_EXEC++"
 		F_EXECSTR=$OPTARG$DELIM$F_EXECSTR ;;
@@ -63,6 +66,8 @@ while getopts n:p:u:vth option; do
 
 	t)	P_TOTALS=1 ;;
 
+	c)	P_PROCESS_STR="-c $OPTARG" ;;
+
 	h|?|*)  usage
 		exit 1 ;;
 	esac
@@ -81,7 +86,7 @@ echo "Creating and building SystemTap module..."
 #
 # SystemTap script
 #
-stap $P_VERBOSE_STR -e '
+stap $P_VERBOSE_STR -w "$P_PROCESS_STR" -e '
 global starttime, timebycall, timebypid, timebyuid, timebyexec
 global f_exec_str, f_pid_str, f_uid_str
 global f_exec, f_pid, f_uid
@@ -99,9 +104,9 @@ probe begin {
 		filter_str = " (filtered)"
 
 	prt_totals   = '$P_TOTALS'
-	f_exec_str   = "'$F_EXECSTR'"
-	f_pid_str    = "'$F_PIDSTR'"
-	f_uid_str    = "'$F_UIDSTR'"
+	if ('$F_EXEC') f_exec_str   = "'$F_EXECSTR'"
+	if ('$F_PID') f_pid_str    = "'$F_PIDSTR'"
+	if ('$F_UID') f_uid_str    = "'$F_UIDSTR'"
 
 	delim = "'$DELIM'"
 
@@ -242,7 +247,7 @@ probe end {
 	}
 
 	delete timebycall
-	delete timebypid
-	delete timebyuid
-	delete timebyexec
+	if ('$F_PID') delete timebypid
+	if ('$F_UID') delete timebyuid
+	if ('$F_EXEC') delete timebyexec
 }'

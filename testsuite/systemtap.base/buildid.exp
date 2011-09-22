@@ -33,9 +33,34 @@ if { [error_handler [expr {$res==""}] "buildid.o"] } { return }
 set res [target_link "buildid.o" "buildid.ro" "-r"]
 if { [error_handler [expr {$res==""}] "buildid.ro"] } { return }
 
-set bid_exepath [pwd]/buildid.x
+set bid_exepath ./buildid.x
 set res [target_compile "" $bid_exepath executable "additional_flags=buildid.ro"]
 if { [error_handler [expr {$res==""}] "$bid_exepath"] } { return }
+
+# Check that the build ID exists on this system
+set bid_check_passed 0
+set cmd [concat {/usr/bin/eu-readelf -n $bid_exepath}]
+eval spawn $cmd
+expect {
+  -timeout 180
+  -re {^[^\r\n]*GNU_BUILD_ID[^\r\n]*\r\n} {
+    set bid_check_passed 1
+    exp_continue
+  }
+  -re {^[^\r\n]*\r\n} {
+    exp_continue
+  }
+  timeout {
+    set bid_check_passed 0
+  }
+}
+catch close
+
+if {$bid_check_passed == 0} {
+  untested "Build IDs do not exist on this system"
+  cleanup_handler $verbose
+  return
+}
 
 # Since uprobes.ko may not be prebuilt in the runtime, and we don't yet have a
 # way to discover the path to the cache-build uprobes.ko, we need to preload
@@ -61,7 +86,7 @@ set bid_bid $srcdir/$subdir/buildid.hex
 system "objcopy --remove-section=.note.gnu.build-id buildid.ro buildid1.ro"
 system "objcopy --add-section .note.gnu.build-id=$bid_bid buildid1.ro buildid2.ro"
 set res [target_compile "" $bid_exepath executable "additional_flags=buildid2.ro"]
-if { [error_handler [expr {$res==""}] "$bid_exepath"] } { return }
+if { [error_handler [expr {$res==""}] "$bid_exepath altered"] } { return }
 
 set ok 0
 spawn staprun -u [pwd]/bid.ko -c $bid_exepath
@@ -96,14 +121,14 @@ set bid_flags "additional_flags=-DNO_MAIN"
 set bid_flags "$bid_flags additional_flags=-shared"
 set bid_flags "$bid_flags additional_flags=-g"
 set res [target_compile $bid_srcpath "libbid.so" executable $bid_flags]
-if { [error_handler [expr {$res==""}] "libbid.so"] } { return }
+if { [error_handler [expr {$res==""}] "libbid.so -DNO_MAIN"] } { return }
 
 set bid_flags "additional_flags=-DONLY_MAIN"
 set bid_flags "$bid_flags additional_flags=-Wl,-rpath,[pwd]"
 set bid_flags "$bid_flags additional_flags=-L[pwd]"
 set bid_flags "$bid_flags additional_flags=-lbid"
 set res [target_compile $bid_srcpath "$bid_exepath" executable $bid_flags]
-if { [error_handler [expr {$res==""}] "$bid_exepath"] } { return }
+if { [error_handler [expr {$res==""}] "$bid_exepath -DONLY_MAIN"] } { return }
 
 spawn stap -m bid -p4 $bid_stp libbid.so
 wait

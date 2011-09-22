@@ -107,15 +107,15 @@ stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 if HAVE_AVAHI
 stap_CXXFLAGS += $(avahi_CFLAGS)
 stap_CPPFLAGS += $(avahi_CFLAGS)
-stap_LDADD += -lavahi-client -lavahi-common
+stap_LDADD += $(avahi_LIBS)
 endif
 
 if HAVE_NSS
 stap_SOURCES += nsscommon.cxx
-stap_CFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS) -DSTAP
-stap_CXXFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_CPPFLAGS += $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_LDADD += -lssl3 -lnss3 -lnspr4 -lplc4 -lsmime3
+stap_CFLAGS += $(nss_CFLAGS) -DSTAP
+stap_CXXFLAGS += $(nss_CFLAGS)
+stap_CPPFLAGS += $(nss_CFLAGS)
+stap_LDADD += $(nss_LIBS)
 
 install-exec-local: install-scripts
 
@@ -164,33 +164,35 @@ if BUILD_TRANSLATOR
 if HAVE_NSS
 stap_sign_module_SOURCES = stap-sign-module.cxx nsscommon.cxx util.cxx
 stap_sign_module_CPPFLAGS = $(AM_CPPFLAGS)
-stap_sign_module_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_sign_module_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_sign_module_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS)
+stap_sign_module_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS)
 stap_sign_module_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-stap_sign_module_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
+stap_sign_module_LDADD = $(nss_LIBS)
 
 stap_authorize_cert_SOURCES = stap-authorize-cert.cxx nsscommon.cxx util.cxx
 stap_authorize_cert_CPPFLAGS = $(AM_CPPFLAGS)
-stap_authorize_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_authorize_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_authorize_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS)
+stap_authorize_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS)
 stap_authorize_cert_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-stap_authorize_cert_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
+stap_authorize_cert_LDADD = $(nss_LIBS)
 
 if BUILD_SERVER
 stap_serverd_SOURCES = stap-serverd.cxx cscommon.cxx util.cxx nsscommon.cxx
-stap_serverd_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_serverd_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_serverd_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS)
+stap_serverd_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS)
 stap_serverd_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-stap_serverd_LDADD = -lssl3 -lnss3 -lnspr4 -lplc4 -lsmime3 -lpthread
+stap_serverd_LDADD = $(nss_LIBS)
 if HAVE_AVAHI
-stap_serverd_LDADD += -lavahi-client -lavahi-common
+stap_serverd_CFLAGS += $(avahi_CFLAGS)
+stap_serverd_CXXFLAGS += $(avahi_CFLAGS)
+stap_serverd_LDADD += $(avahi_LIBS)
 endif
 
 stap_gen_cert_SOURCES = stap-gen-cert.cxx util.cxx nsscommon.cxx
-stap_gen_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
-stap_gen_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS) $(nspr_CFLAGS)
+stap_gen_cert_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS)
+stap_gen_cert_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS)
 stap_gen_cert_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-stap_gen_cert_LDADD = -lssl3 -lnss3 -lnspr4 -lsmime3
+stap_gen_cert_LDADD = $(nss_LIBS)
 endif
 endif
 
@@ -357,7 +359,7 @@ update-po:
 #     --define "with_bundled_elfutils 1" --define "elfutils_version 0.135"
 RPMBUILDFLAGS=
 
-PHONIES += dist-gzip
+PHONIES += dist-gzip rpm srpm
 
 PHONIES += uprobes install-uprobes
 uprobes:
@@ -378,5 +380,9 @@ rpm: dist-gzip
 	mkdir -p `rpm --eval %_builddir`
 	mkdir -p `rpm --eval %_buildroot`
 	rpmbuild --define "_sourcedir $(PWD)/" -ta systemtap-$(VERSION).tar.gz $(RPMBUILDFLAGS)
+
+srpm: dist-gzip
+	mkdir -p `rpm --eval %_srcrpmdir`
+	rpmbuild --define "_sourcedir $(PWD)/" -ts systemtap-$(VERSION).tar.gz $(RPMBUILDFLAGS)
 
 ACLOCAL_AMFLAGS = -I m4

@@ -2,7 +2,7 @@
  *
  * staprun.c - SystemTap module loader
  *
- * Copyright (C) 2005-2010 Red Hat, Inc.
+ * Copyright (C) 2005-2011 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -472,6 +472,12 @@ void send_relocation_modules ()
           /* Now we destructively modify the string, but by now the file
              is open so we won't need the full name again. */
           *module_name_end = '\0';
+
+          /* PR6503.  /sys/module/.../sections/...init.... sometimes contain
+             non-0 addresses, even though the respective module-initialization
+             sections were already unloaded.  We override the addresses here. */
+          if (strstr (section_name, "init.") != NULL) /* .init.text, .devinit.rodata, ... */
+             section_address = 0;
 
           send_a_relocation (module_name, section_name, section_address);
         }

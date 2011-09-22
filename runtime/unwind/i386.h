@@ -21,13 +21,6 @@
 #define _stp_get_unaligned(ptr) (*(ptr))
 #define _stp_put_unaligned(val, ptr) ((void)( *(ptr) = (val) ))
 
-struct unwind_frame_info
-{
-	struct pt_regs regs;
-	struct task_struct *task;
-	unsigned call_frame:1;
-};
-
 #define STACK_LIMIT(ptr)     (((ptr) - 1) & ~(THREAD_SIZE - 1))
 
 #ifdef STAPCONF_X86_UNIREGS

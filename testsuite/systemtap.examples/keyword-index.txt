@@ -273,18 +273,6 @@ keywords: network tracepoint buffer free
 
 = FUNCTION =
 
-func_time_stats.stp - Function time statistics
-keywords: function wall-clock time
-
-  The func_time_stats.stp script tracks the wall clock time for each
-  invocation of a function probe listed as the first command line
-  argument. When the script exits it prints out the minimum, average,
-  and maximum times in microseconds. It also prints out a count of
-  times that the function was called.
-
-  # stap func_time_stats.stp 'syscall.nanosleep' -c "sleep 0.2"
-
-
 general/func_time_stats.stp - Function time statistics
 keywords: function wall-clock time
 
@@ -1630,6 +1618,15 @@ keywords: syscall
   # stap syscalls_by_proc.stp -c "sleep 0.2"
 
 
+process/syscalltimes - System wide syscall statistics with filtering on exec, uid or pid.
+keywords: syscall
+
+  Combination shell/systemtap script to measure system call counts and
+  times.  Can be filtered by process IDs, process names and users.
+
+  # ./syscalltimes -c 'sleep 0.2'
+
+
 process/wait4time.stp - Trace Time Spent in wait4 Syscalls
 keywords: syscall wait4
 
@@ -1690,18 +1687,6 @@ keywords: event counter tid pid
 
 
 = TIME =
-
-func_time_stats.stp - Function time statistics
-keywords: function wall-clock time
-
-  The func_time_stats.stp script tracks the wall clock time for each
-  invocation of a function probe listed as the first command line
-  argument. When the script exits it prints out the minimum, average,
-  and maximum times in microseconds. It also prints out a count of
-  times that the function was called.
-
-  # stap func_time_stats.stp 'syscall.nanosleep' -c "sleep 0.2"
-
 
 general/func_time_stats.stp - Function time statistics
 keywords: function wall-clock time
@@ -1912,18 +1897,6 @@ keywords: syscall wait4
 
 
 = WALL-CLOCK =
-
-func_time_stats.stp - Function time statistics
-keywords: function wall-clock time
-
-  The func_time_stats.stp script tracks the wall clock time for each
-  invocation of a function probe listed as the first command line
-  argument. When the script exits it prints out the minimum, average,
-  and maximum times in microseconds. It also prints out a count of
-  times that the function was called.
-
-  # stap func_time_stats.stp 'syscall.nanosleep' -c "sleep 0.2"
-
 
 general/func_time_stats.stp - Function time statistics
 keywords: function wall-clock time

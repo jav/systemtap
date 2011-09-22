@@ -2,7 +2,7 @@
 // Copyright (C) 2006-2007 IBM Corp.
 // Copyright (C) 2007 Intel Corporation.
 // Copyright (C) 2007 Bull S.A.S
-// Copyright (C) 2010 Red Hat Inc.
+// Copyright (C) 2010,2011 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -146,18 +146,16 @@ function ftype:string(type:long) %{ /* pure */
 	}
 %}
 
-/*
-*probe nfsd.dispatch
-*  Fires when server receives a NFS operation from client 
-*
-*Arguments:
-*  client_ip : the ip address of client
-*  proto : transfer protocol
-*  version : nfs version
-*  xid : transmission id
-*  prog : program number
-*  proc : procedure number
-*/
+/**
+ * probe nfsd.dispatch - NFS server receives an operation from client 
+ *
+ * @client_ip: the ip address of client
+ * @proto: transfer protocol
+ * @version: nfs version
+ * @xid: transmission id
+ * @prog: program number
+ * @proc: procedure number
+ */
 probe nfsd.dispatch = kernel.function("nfsd_dispatch") !,
                       module("nfsd").function("nfsd_dispatch") ?
 {
@@ -197,18 +195,16 @@ probe nfsd.proc.return = nfsd.proc.lookup.return,
                          nfsd.proc.create.return
 {} 
 
-/*
-*probe nfsd.proc.lookup
-*  Fires when client opens/searchs file on server
-*
-*Arguments:
-*  client_ip : the ip address of client
-*  proto : transfer protocol
-*  version : nfs version
-*  fh  : file handle of parent dir (the first part is the length of the file handle)
-*  filename : file name 
-*  filelen  : the length of file name
-*/
+/**
+ * probe nfsd.proc.lookup - NFS server opening or searching for a file for client
+ *
+ * @client_ip: the ip address of client
+ * @proto: transfer protocol
+ * @version: nfs version
+ * @fh: file handle of parent dir (the first part is the length of the file handle)
+ * @filename: file name 
+ * @filelen: the length of file name
+ */
 probe nfsd.proc.lookup = 
       nfsd.proc4.lookup ?,
       nfsd.proc3.lookup,
@@ -317,22 +313,19 @@ probe nfsd.proc4.lookup.return =
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*
-*probe nfsd.proc.read
-*  Fires when client read file on server
-*
-*Arguments:
-*  client_ip : the ip address of client
-*  proto : transfer protocol
-*  version : nfs version
-*  fh  : file handle (the first part is the length of the file handle)
-*  size:
-*  count : read bytes
-*  offset : the offset of file 
-*  vec : struct kvec ,includes buf address in kernel address
-         and length of each buffer
-*  vlen : read blocks 
-*/
+/**
+ * probe nfsd.proc.read - NFS server reading file for client
+ *
+ * @client_ip: the ip address of client
+ * @proto: transfer protocol
+ * @version: nfs version
+ * @fh: file handle (the first part is the length of the file handle)
+ * @size: read bytes
+ * @count: read bytes
+ * @offset: the offset of file 
+ * @vec: struct kvec, includes buf address in kernel address and length of each buffer
+ * @vlen: read blocks 
+ */
 probe nfsd.proc.read = 
       nfsd.proc4.read ?,
       nfsd.proc3.read,
@@ -437,23 +430,20 @@ probe nfsd.proc4.read.return = kernel.function("nfsd4_read").return !,
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*
-*probe nfsd.proc.write
-*  Fires when client writes data to file on server
-*
-*Arguments:
-*  client_ip : the ip address of client
-*  proto : transfer protocol
-*  version : nfs version
-*  fh  : file handle (the first part is the length of the file handle)
-*  size:
-*  count : read bytes
-*  offset : the offset of file 
-*  vec : struct kvec ,includes buf address in kernel address
-         and length of each buffer
-*  vlen : read blocks 
-*  stable : argp->stable
-*/
+/**
+ * probe nfsd.proc.write - NFS server writing data to file for client
+ *
+ * @client_ip: the ip address of client
+ * @proto: transfer protocol
+ * @version: nfs version
+ * @fh: file handle (the first part is the length of the file handle)
+ * @size: read bytes
+ * @count: read bytes
+ * @offset: the offset of file 
+ * @vec: struct kvec, includes buf address in kernel address and length of each buffer
+ * @vlen: read blocks 
+ * @stable: argp->stable
+ */
 probe nfsd.proc.write = 
       nfsd.proc4.write ?,
       nfsd.proc3.write,
@@ -568,21 +558,17 @@ probe nfsd.proc4.write.return =
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*
-*probe nfsd.proc.commit
-*  Fires when client does a commit operation,which is
-*  used to flush the data written by async operation before
-*  to disk
-*
-*Arguments:
-*  client_ip : the ip address of client
-*  proto : transfer protocol
-*  version : nfs version
-*  fh  : file handle (the first part is the length of the file handle)
-*  size:
-*  count : read bytes
-*  offset : the offset of file 
-*/
+/**
+ * probe nfsd.proc.commit - NFS server performing a commit operation for client
+ *
+ * @client_ip: the ip address of client
+ * @proto: transfer protocol
+ * @version: nfs version
+ * @fh: file handle (the first part is the length of the file handle)
+ * @size: read bytes
+ * @count: read bytes
+ * @offset: the offset of file 
+ */
 probe nfsd.proc.commit =  
       nfsd.proc4.commit ?,
       nfsd.proc3.commit
@@ -650,18 +636,16 @@ probe nfsd.proc4.commit.return =
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*
-*probe nfsd.proc.create
-* Fires when clients create a file on server side.
-*
-* Arguments:
-*  client_ip : the ip address of client
-*  proto : transfer protocol
-*  version : nfs version
-*  fh  : file handle (the first part is the length of the file handle)
-*  filename : file name
-*  filelen : length of file name
-*/
+/**
+ * probe nfsd.proc.create - NFS server creating a file for client
+ *
+ * @client_ip: the ip address of client
+ * @proto: transfer protocol
+ * @version: nfs version
+ * @fh: file handle (the first part is the length of the file handle)
+ * @filename: file name
+ * @filelen: length of file name
+ */
 probe nfsd.proc.create = 
       nfsd.proc4.create ?,
       nfsd.proc3.create,
@@ -759,18 +743,16 @@ probe nfsd.proc4.create.return =
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*
-*probe nfsd.proc.remove
-* Fires when clients removes a file on server side.
-*
-* Arguments:
-*  client_ip : the ip address of client
-*  proto : transfer protocol
-*  version : nfs version
-*  fh  : file handle (the first part is the length of the file handle)
-*  filename : file name
-*  filelen : length of file name
-*/
+/**
+ * probe nfsd.proc.remove - NFS server removing a file for client
+ *
+ * @client_ip: the ip address of client
+ * @proto: transfer protocol
+ * @version: nfs version
+ * @fh: file handle (the first part is the length of the file handle)
+ * @filename: file name
+ * @filelen: length of file name
+ */
 probe nfsd.proc.remove = 
       nfsd.proc4.remove ?,
       nfsd.proc3.remove,
@@ -861,19 +843,17 @@ probe nfsd.proc4.remove.return =
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*
-* probe nfsd.proc.rename
-*  Fires when clients rename a file on server side
-*
-* Arguments:
-*  client_ip : the ip address of client
-*   fh : file handler of old path
-*   tfh : file handler of new path
-*   filename : old file name 
-*   tname : new file name
-*   flen : length of old file name 
-*   tlen : length of new file name
-*/
+/**
+ * probe nfsd.proc.rename - NFS Server renaming a file for client
+ *
+ * @client_ip: the ip address of client
+ * @fh: file handler of old path
+ * @tfh: file handler of new path
+ * @filename: old file name 
+ * @tname: new file name
+ * @flen: length of old file name 
+ * @tlen: length of new file name
+ */
 probe nfsd.proc.rename = 
       nfsd.proc4.rename ?,
       nfsd.proc3.rename,
@@ -1001,15 +981,15 @@ probe nfsd.return = nfsd.open.return,
                     nfsd.unlink.return,
                     nfsd.rename.return
 {}
-/*probe nfsd.open
-*  Fires when server opens a file
-*
-* Arguments:
-*  client_ip : the ip address of client
-*  fh  : file handle (the first part is the length of the file handle)
-*  access : indicates the type of open(read/write/commit/readdir...) 
-*  type : type of file(regular file or dir)
-*/
+
+/**
+ * probe nfsd.open - NFS server opening a file for client
+ *
+ * @client_ip: the ip address of client
+ * @fh: file handle (the first part is the length of the file handle)
+ * @access: indicates the type of open (read/write/commit/readdir...) 
+ * @type: type of file (regular file or dir)
+ */
 probe nfsd.open = kernel.function("nfsd_open") !,
                   module("nfsd").function("nfsd_open") ?
 {
@@ -1033,12 +1013,11 @@ probe nfsd.open.return = kernel.function("nfsd_open").return !,
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*probe nfsd.close
-*  Fires when server closes a file
-*
-* Arguments:
-* filename : file name
-*/
+/**
+ * probe nfsd.close - NFS server closing a file for client
+ *
+ * @filename: file name
+ */
 probe nfsd.close = kernel.function("nfsd_close") !,
                    module("nfsd").function("nfsd_close") ?
 {
@@ -1056,20 +1035,18 @@ probe nfsd.close.return = kernel.function("nfsd_close").return !,
 	retstr = "N/A"
 }
 
-/*probe nfsd.read
-*  Fires when server reads data from a file
-*
-* Arguments:
-*  client_ip : the ip address of client
-*  fh  : file handle (the first part is the length of the file handle)
-*  file : argument file,indicates if the file has been opened.
-*  size:
-*  count : read bytes
-*  offset : the offset of file 
-*  vec : struct kvec ,includes buf address in kernel address
-         and length of each buffer
-*  vlen : read blocks 
-*/
+/**
+ * probe nfsd.read - NFS server reading data from a file for client
+ *
+ * @client_ip: the ip address of client
+ * @fh: file handle (the first part is the length of the file handle)
+ * @file: argument file, indicates if the file has been opened.
+ * @size: read bytes
+ * @count: read bytes
+ * @offset: the offset of file 
+ * @vec: struct kvec, includes buf address in kernel address and length of each buffer
+ * @vlen: read blocks 
+ */
 probe nfsd.read = kernel.function("nfsd_read") !,
                   module("nfsd").function("nfsd_read") ?
 {
@@ -1099,20 +1076,18 @@ probe nfsd.read.return = kernel.function("nfsd_read").return !,
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*probe nfsd.write
-*  Fires when server writes data to a file
-*
-* Arguments:
-*  client_ip : the ip address of client
-*  fh  : file handle (the first part is the length of the file handle)
-*  file : argument file,indicates if the file has been opened.
-*  size:
-*  count : read bytes
-*  offset : the offset of file 
-*  vec : struct kvec ,includes buf address in kernel address
-         and length of each buffer
-*  vlen : read blocks 
-*/
+/**
+ * probe nfsd.write - NFS server writing data to a file for client
+ *
+ * @client_ip: the ip address of client
+ * @fh: file handle (the first part is the length of the file handle)
+ * @file: argument file, indicates if the file has been opened.
+ * @size: read bytes
+ * @count: read bytes
+ * @offset: the offset of file 
+ * @vec: struct kvec, includes buf address in kernel address and length of each buffer
+ * @vlen: read blocks 
+ */
 probe nfsd.write = kernel.function("nfsd_write") !,
                    module("nfsd").function("nfsd_write") ?
 {
@@ -1146,17 +1121,16 @@ probe nfsd.write.return = kernel.function("nfsd_write").return !,
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*probe nfsd.commit
-*  Fires when server commits all pending writes to stable storage.  
-*
-* Arguments:
-*  client_ip : the ip address of client
-*  fh  : file handle (the first part is the length of the file handle)
-*  flag : indicates whether this execution is a sync operation
-*  size:
-*  count : read bytes
-*  offset : the offset of file
-*/
+/**
+ * probe nfsd.commit - NFS server commiting all pending writes to stable storage
+ *
+ * @client_ip: the ip address of client
+ * @fh: file handle (the first part is the length of the file handle)
+ * @flag: indicates whether this execution is a sync operation
+ * @size: read bytes
+ * @count: read bytes
+ * @offset: the offset of file
+ */
 probe nfsd.commit = kernel.function("nfsd_commit") !,
                     module("nfsd").function("nfsd_commit") ?
 {
@@ -1184,17 +1158,14 @@ probe nfsd.commit.return = kernel.function("nfsd_commit").return !,
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*
-*probe nfsd.lookup
-*  Fires when client opens/searchs file on server
-*
-*Arguments:
-*  client_ip : the ip address of client
-*  fh  : file handle of parent dir(the first part is the length of the file handle)
-*  filename : file name 
-*  filelen  : the length of file name
-*/
-
+/**
+ * probe nfsd.lookup - NFS server opening or searching file for a file for client
+ *
+ * @client_ip: the ip address of client
+ * @fh: file handle of parent dir(the first part is the length of the file handle)
+ * @filename: file name 
+ * @filelen: the length of file name
+ */
 probe nfsd.lookup = kernel.function("nfsd_lookup") !,
                     module("nfsd").function("nfsd_lookup") ?
 {
@@ -1217,21 +1188,20 @@ probe nfsd.lookup.return = kernel.function("nfsd_lookup").return !,
 	name = "nfsd.lookup.return"
 	retstr = sprintf("%s", nfsderror($return))
 }
-/*
-* probe nfsd.create
-*  Fires when client creates a file(regular,dir,device,fifo) on server side,
-*  sometimes nfsd will call nfsd_create_v3 instead of this function
+
+/**
+ * probe nfsd.create - NFS server creating a file(regular,dir,device,fifo) for client
 *
-* Arguments:
-*
-*  client_ip : the ip address of client
-*  fh  : file handle (the first part is the length of the file handle)
-*  filename : file name 
-*  filelen  : the length of file name
-*  type : file type(regular,dir,device,fifo ...)
-*  iap_valid: Attribute flags
-*  iap_mode : file access mode
-*/
+ * @client_ip: the ip address of client
+ * @fh: file handle (the first part is the length of the file handle)
+ * @filename: file name 
+ * @filelen: the length of file name
+ * @type: file type(regular,dir,device,fifo ...)
+ * @iap_valid: Attribute flags
+ * @iap_mode: file access mode
+ *
+ *  Sometimes nfsd will call nfsd_create_v3 instead of this this probe point.
+ */
 probe nfsd.create = kernel.function("nfsd_create") !,
                     module("nfsd").function("nfsd_create") ?
 {
@@ -1259,25 +1229,22 @@ probe nfsd.create.return = kernel.function("nfsd_create").return !,
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*
-* probe nfsd.createv3
-*  Fires when client creates a regular file or set file attributes on server side,
-*  only called by nfsd3_proc_create and nfsd4_open(op_claim_type is NFS4_OPEN_CLAIM_NULL)
-*
-* Arguments:
-*
-*  client_ip : the ip address of client
-*  fh  : file handle (the first part is the length of the file handle)
-*  filename : file name 
-*  filelen  : the length of file name
-*  iap_valid: Attribute flags
-*  iap_mode : file access mode
-*  createmode : create mode .The possible values could be:
-*	NFS3_CREATE_EXCLUSIVE,NFS3_CREATE_UNCHECKED,NFS3_CREATE_GUARDED
-*  truncp : trunp arguments, indicates if the file shouldbe truncate
-*  verifier :  file attributes (atime,mtime,mode).It's used to reset file
-               attributes for CREATE_EXCLUSIVE
-*/
+/**
+ * probe nfsd.createv3 - NFS server creating a regular file or set file attributes for client
+ *
+ * @client_ip: the ip address of client
+ * @fh: file handle (the first part is the length of the file handle)
+ * @filename: file name 
+ * @filelen: the length of file name
+ * @iap_valid: Attribute flags
+ * @iap_mode: file access mode
+ * @createmode: create mode .The possible values could be: NFS3_CREATE_EXCLUSIVE, NFS3_CREATE_UNCHECKED, or NFS3_CREATE_GUARDED
+ * @truncp: trunp arguments, indicates if the file shouldbe truncate
+*  @verifier: file attributes (atime,mtime,mode). It's used to reset file attributes for CREATE_EXCLUSIVE
+ *
+ *  This probepoints is only called by nfsd3_proc_create and
+ *  nfsd4_open when op_claim_type is NFS4_OPEN_CLAIM_NULL.
+ */
 probe nfsd.createv3 = kernel.function("nfsd_create_v3") !,
                       module("nfsd").function("nfsd_create_v3") ?
 {
@@ -1308,18 +1275,15 @@ probe nfsd.createv3.return =
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*
-* probe nfsd.unlink
-*  Fires when client removes a file or a dir  on server side,
-*
-* Arguments:
-*
-*  client_ip : the ip address of client
-*  fh  : file handle (the first part is the length of the file handle)
-*  filename : file name 
-*  filelen  : the length of file name
-*  type : file type(file or dir)
-*/
+/** 
+ * probe nfsd.unlink - NFS server removing a file or a directory for client
+ *
+ * @client_ip: the ip address of client
+ * @fh: file handle (the first part is the length of the file handle)
+ * @filename: file name 
+ * @filelen: the length of file name
+ * @type: file type (file or dir)
+ */
 probe nfsd.unlink = kernel.function("nfsd_unlink") !,
                     module("nfsd").function("nfsd_unlink") ?
 {
@@ -1344,20 +1308,17 @@ probe nfsd.unlink.return = kernel.function("nfsd_unlink").return !,
 	retstr = sprintf("%s", nfsderror($return))
 }
 
-/*
-* probe nfsd.rename
-*  Fires when clients rename a file on server side
-*
-* Arguments:
-*  client_ip : the ip address of client
-*   fh : file handler of old path
-*   tfh : file handler of new path
-*   filename : old file name 
-*   tname : new file name
-*   flen : length of old file name 
-*   tlen : length of new file name
-*/
-
+/**
+ * probe nfsd.rename -NFS server renaming a file for client
+ *
+ * @client_ip: the ip address of client
+ * @fh: file handler of old path
+ * @tfh: file handler of new path
+ * @filename: old file name 
+ * @tname: new file name
+ * @flen: length of old file name 
+ * @tlen: length of new file name
+ */
 probe nfsd.rename = kernel.function("nfsd_rename") !,
                     module("nfsd").function("nfsd_rename") ?
 {

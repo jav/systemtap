@@ -100,6 +100,7 @@ systemtap_session::systemtap_session ():
   panic_warnings = false;
   listing_mode = false;
   listing_mode_vars = false;
+  dump_probe_types = false;
 
 #ifdef ENABLE_PROLOGUES
   prologue_searching = true;
@@ -142,6 +143,7 @@ systemtap_session::systemtap_session ():
   try_server_status = try_server_unset;
   use_remote_prefix = false;
   systemtap_v_check = false;
+  download_dbinfo = 0;
 
   /*  adding in the XDG_DATA_DIRS variable path,
    *  this searches in conjunction with SYSTEMTAP_TAPSET
@@ -265,6 +267,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   panic_warnings = other.panic_warnings;
   listing_mode = other.listing_mode;
   listing_mode_vars = other.listing_mode_vars;
+  dump_probe_types = other.dump_probe_types;
 
   prologue_searching = other.prologue_searching;
 
@@ -302,6 +305,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   try_server_status = other.try_server_status;
   use_remote_prefix = other.use_remote_prefix;
   systemtap_v_check = other.systemtap_v_check;
+  download_dbinfo = other.download_dbinfo;
 
   include_path = other.include_path;
   runtime_path = other.runtime_path;
@@ -329,6 +333,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   server_args = other.server_args;
 
   unwindsym_modules = other.unwindsym_modules;
+  automatic_server_mode = other.automatic_server_mode;
 }
 
 systemtap_session::~systemtap_session ()
@@ -513,6 +518,11 @@ systemtap_session::usage (int exitcode)
     "              prefix each line of remote output with a host index.\n"
     "   --tmpdir=NAME\n"
     "              specify name of temporary directory to be used."
+    "   --download-debuginfo[=OPTION]\n"
+    "              automatically download debuginfo."
+    "              yes,no,ask,<timeout value>\n"
+    "   --dump-probe-types\n"
+    "              show a list of available probe types.\n"
     , compatible.c_str()) << endl
   ;
 
@@ -561,6 +571,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_VERSION 23
 #define LONG_OPT_REMOTE_PREFIX 24
 #define LONG_OPT_TMPDIR 25
+#define LONG_OPT_DOWNLOAD_DEBUGINFO 26
+#define LONG_OPT_DUMP_PROBE_TYPES 27
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -594,6 +606,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "check-version", 0, &long_opt, LONG_OPT_CHECK_VERSION },
         { "version", 0, &long_opt, LONG_OPT_VERSION },
         { "tmpdir", 1, &long_opt, LONG_OPT_TMPDIR },
+        { "download-debuginfo", 2, &long_opt, LONG_OPT_DOWNLOAD_DEBUGINFO },
+        { "dump-probe-types", 0, &long_opt, LONG_OPT_DUMP_PROBE_TYPES },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -948,6 +962,28 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               tmpdir_opt_set = true;
               tmpdir = optarg;
               break;
+            case LONG_OPT_DOWNLOAD_DEBUGINFO:
+              if(optarg)
+                {
+                  if(strcmp(optarg, "no") == 0)
+                    download_dbinfo = 0; //Disable feature
+                  else if (strcmp(optarg, "yes") == 0)
+                    download_dbinfo = INT_MAX; //Enable, No Timeout
+                  /* NOTE: Timeout and Asking for Confirmation features below are not supported yet by abrt
+                   * in version abrt-2.0.3-1.fc15.x86_64, Bugzilla: BZ730107 (timeout), BZ726192 ('-y') */
+                  else if(atoi(optarg) > 0)
+                      download_dbinfo = atoi(optarg); //Enable, Set timeout to optarg
+                  else if (strcmp(optarg, "ask") == 0)
+                    download_dbinfo = -1; //Enable, Ask for confirmation
+                  else
+                    {
+                      cerr << _F("ERROR: %s is not a valid value. Use 'yes', 'no', 'ask' or a timeout value.", optarg) << endl;
+                      return 1;
+                    }
+                }
+              else
+                download_dbinfo = INT_MAX; //Enable, No Timeout
+              break;
 	    case LONG_OPT_USE_SERVER:
 	      if (client_options)
 		client_options_disallowed += client_options_disallowed.empty () ? "--use-server" : ", --use-server";
@@ -1062,6 +1098,11 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               systemtap_v_check = true;
               break;
 
+	    case LONG_OPT_DUMP_PROBE_TYPES:
+	      push_server_opt = true;
+	      dump_probe_types = true;
+	      break;
+
             default:
               // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
               cerr << _F("Unhandled long argument id %d", long_opt) << endl;
@@ -1117,8 +1158,9 @@ systemtap_session::check_options (int argc, char * const argv [])
   // NB: this is also triggered if stap is invoked with no arguments at all
   if (! have_script)
     {
-      // We don't need a script if --list-servers or --trust-servers was specified
-      if (server_status_strings.empty () && server_trust_spec.empty ())
+      // We don't need a script if --list-servers, --trust-servers or --dump-probe-types was
+      // specified.
+      if (server_status_strings.empty () && server_trust_spec.empty () && ! dump_probe_types)
 	{
 	  cerr << _("A script must be specified.") << endl;
 	  usage(1);
@@ -1219,6 +1261,12 @@ systemtap_session::check_options (int argc, char * const argv [])
        cerr << _("WARNING: kernel release/architecture mismatch with host forces last-pass 4.") << endl;
      last_pass = 4;
    }
+  if(download_dbinfo != 0 && access ("/usr/bin/abrt-action-install-debuginfo-to-abrt-cache", X_OK) < 0)
+    {
+      if(! suppress_warnings)
+        cerr << _("WARNING: abrt-action-install-debuginfo-to-abrt-cache is not installed. Continuing without downloading debuginfo.") << endl;
+      download_dbinfo = 0;
+    }
 
   // translate path of runtime to absolute path
   if (runtime_path[0] != '/')

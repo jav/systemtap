@@ -1,0 +1,68 @@
+
+
+# # flag values
+proc F_UNCACHED {}   {return 0x1};	# compilation should be uncached
+proc F_CACHED {}     {return 0x2};	# compilation should be cached
+proc F_NO_COMPILE {} {return 0x4};	# script doesn't compile
+proc F_COMPILE {}    {return 0x8};	# script compiles
+
+# mask values to get either the cache vale or the compile value
+proc F_CACHE_MASK {}   {return [expr [F_UNCACHED] | [F_CACHED]]}
+proc F_COMPILE_MASK {} {return [expr [F_NO_COMPILE] | [F_COMPILE]]}
+
+# convenience combination of flags
+proc F_CACHED_COMPILE {}      {return [expr [F_CACHED] | [F_COMPILE]]}
+proc F_UNCACHED_COMPILE {}    {return [expr [F_UNCACHED] | [F_COMPILE]]}
+proc F_UNCACHED_NO_COMPILE {} {return [expr [F_UNCACHED] | [F_NO_COMPILE]]}
+
+# cache_compile TEST_NAME flags script args
+# - TEST_NAME is the name of the current test
+# - flags indicates the expected outcome of this test
+# - script is the script to compile
+# Additional arguments are passed to stap as-is.
+proc cache_compile { TEST_NAME flags script args } {
+    set cmd [concat {stap -v -p4 -e} $script $args]
+
+    eval spawn $cmd
+    set cached 0
+    set compile_errors 0
+    expect {
+	-timeout 180
+	-re {^Pass\ [1234]:[^\r]*\ in\ [^\r]*\ ms\.\r\n} {exp_continue}
+	-re {^Pass\ [34]: using cached [^\r\n]+\r\n} {incr cached 1; exp_continue}
+	-re "^WARNING" {exp_continue}
+        # pass-4 output
+	-re {^/[^\r\n]+\.ko\r\n} {exp_continue}
+	-re "compilation failed" {incr compile_errors 1; exp_continue}
+	-re "semantic error:" {incr compile_errors 1; exp_continue}
+	timeout { fail "$TEST_NAME (timeout)" }
+    }
+    catch close
+    wait
+
+    # If we've got compile errors and the script was supposed to
+    # compile, fail.
+    if {$compile_errors > 0
+	&& [expr $flags & [F_COMPILE_MASK]] == [F_COMPILE]} {
+	fail "$TEST_NAME compilation failed"
+	return
+    }
+
+    # If we were supposed to use a cached module...
+    if {[expr $flags & [F_CACHE_MASK]] == [F_CACHED]} {
+	if {$cached == 2} {
+	    pass "$TEST_NAME was cached"
+	} else {
+	    fail "$TEST_NAME wasn't cached"
+	}
+    # If we weren't supposed to use a cached module...
+    } else {
+	if {$cached > 0} {
+	    fail "$TEST_NAME was cached"
+	} else {
+	    pass "$TEST_NAME wasn't cached"
+	}
+    }
+}
+
+

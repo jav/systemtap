@@ -17,16 +17,16 @@ proc stap_run_error { TEST_NAME EXPECT_ERROR ERROR_STRING OUTPUT_CHECK_STRING ar
 	-re {^Pass 5: starting run.\r\n} {exp_continue}
 	-re {^Error inserting module[^\r]+\r\n} {
 	    if {$EXPECT_ERROR} {
-		pass "$TEST_NAME received expected insert module error"
+		pass "$TEST_NAME expected insert module error"
 	    } else {
-		fail "$TEST_NAME unexpected insert module error"
+		fail "$TEST_NAME expected insert module error"
 	    }
 	}
 	-re $full_error {
 	    if {$EXPECT_ERROR} {
-		pass "$TEST_NAME received expected error"
+		pass "$TEST_NAME expected error"
 	    } else {
-		fail "$TEST_NAME unexpected error"
+		fail "$TEST_NAME expected error"
 	    }
 	}
 	-re "^systemtap starting probe\r\n" {
@@ -39,16 +39,16 @@ proc stap_run_error { TEST_NAME EXPECT_ERROR ERROR_STRING OUTPUT_CHECK_STRING ar
 		-timeout 20
 		-re $output {
 		    if {$EXPECT_ERROR} {
-			fail "$TEST_NAME didn't receive expected error"
+			fail "$TEST_NAME no expected error"
 		    } else {
-			pass "$TEST_NAME didn't error"
+			pass "$TEST_NAME no expected error"
 		    }
 		}
 		-re $full_error {
 		    if {$EXPECT_ERROR} {
-			pass "$TEST_NAME received expected error"
+			pass "$TEST_NAME expected error"
 		    } else {
-			fail "$TEST_NAME unexpected error"
+			fail "$TEST_NAME expected error"
 		    }
 		}
 		timeout { 

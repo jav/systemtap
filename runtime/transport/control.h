@@ -32,7 +32,8 @@ struct _stp_buffer {
 
 static struct file_operations _stp_ctl_fops_cmd;
 
-static int _stp_ctl_send(int type, void *data, int len);
+static int _stp_ctl_send(int type, void *data, unsigned len);
+static int _stp_ctl_send_notify(int type, void *data, unsigned len);
 
 static int _stp_ctl_write_fs(int type, void *data, unsigned len);
 

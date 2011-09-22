@@ -15,6 +15,7 @@
 #define _TRANSPORT_TRANSPORT_C_
 
 #include "transport.h"
+#include "control.h"
 #include <linux/debugfs.h>
 #include <linux/namei.h>
 #include <linux/delay.h>
@@ -69,8 +70,17 @@ module_param(_stp_bufsize, int, 0);
 MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 
 /* forward declarations */
-static void probe_exit(void);
-static int probe_start(void);
+static void systemtap_module_exit(void);
+static int systemtap_module_init(void);
+
+static int _stp_module_notifier_active = 0;
+static int _stp_module_notifier (struct notifier_block * nb,
+                                 unsigned long val, void *data);
+static struct notifier_block _stp_module_notifier_nb = {
+        .notifier_call = _stp_module_notifier,
+        .priority = 1 /* As per kernel/trace/trace_kprobe.c, 
+                         invoked after kprobe module callback. */
+};
 
 struct timer_list _stp_ctl_work_timer;
 
@@ -93,11 +103,23 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 #endif
 
 		_stp_target = st->target;
-		st->res = probe_start();
-		if (st->res >= 0)
+		st->res = systemtap_module_init();
+		if (st->res == 0)
 			_stp_probes_started = 1;
 
-		_stp_ctl_send(STP_START, st, sizeof(*st));
+                /* Register the module notifier. */
+                if (!_stp_module_notifier_active) {
+                        int rc = register_module_notifier(& _stp_module_notifier_nb);
+                        if (rc == 0)
+                                _stp_module_notifier_active = 1;
+                        else
+                                _stp_warn ("Cannot register module notifier (%d)\n", rc);
+                }
+
+		/* Called from the user context in response to a proc
+		   file write (in _stp_ctl_write_cmd), so may notify
+		   the reader directly. */
+		_stp_ctl_send_notify(STP_START, st, sizeof(*st));
 	}
 	mutex_unlock(&_stp_transport_mutex);
 }
@@ -110,6 +132,14 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 static void _stp_cleanup_and_exit(int send_exit)
 {
 	mutex_lock(&_stp_transport_mutex);
+
+        /* Unregister the module notifier. */
+        if (_stp_module_notifier_active) {
+                _stp_module_notifier_active = 0;
+                (void) unregister_module_notifier(& _stp_module_notifier_nb);
+                /* -ENOENT is possible, if we were not already registered */
+        }
+
 	if (!_stp_exit_called) {
 		int failures;
 
@@ -119,10 +149,10 @@ static void _stp_cleanup_and_exit(int send_exit)
 		_stp_exit_called = 1;
 
 		if (_stp_probes_started) {
-			dbug_trans(1, "calling probe_exit\n");
+			dbug_trans(1, "calling systemtap_module_exit\n");
 			/* tell the stap-generated code to unload its probes, etc */
-			probe_exit();
-			dbug_trans(1, "done with probe_exit\n");
+			systemtap_module_exit();
+			dbug_trans(1, "done with systemtap_module_exit\n");
 		}
 
 		failures = atomic_read(&_stp_transport_failures);
@@ -133,8 +163,13 @@ static void _stp_cleanup_and_exit(int send_exit)
 		_stp_transport_data_fs_stop();
 
 		dbug_trans(1, "ctl_send STP_EXIT\n");
-		if (send_exit)
-			_stp_ctl_send(STP_EXIT, NULL, 0);
+		if (send_exit) {
+			/* send_exit is only set to one if called from
+			   _stp_ctl_write_cmd() in response to a write
+			   to the proc cmd file, so in user context. It
+			   is safe to immediately notify the reader.  */
+			_stp_ctl_send_notify(STP_EXIT, NULL, 0);
+		}
 		dbug_trans(1, "done with ctl_send STP_EXIT\n");
 	}
 	mutex_unlock(&_stp_transport_mutex);
@@ -147,7 +182,9 @@ static void _stp_request_exit(void)
 		/* we only want to do this once */
 		called = 1;
 		dbug_trans(1, "ctl_send STP_REQUEST_EXIT\n");
-		_stp_ctl_send(STP_REQUEST_EXIT, NULL, 0);
+		/* Called from the timer when _stp_exit_flag has been
+		   been set. So safe to immediately notify any readers. */
+		_stp_ctl_send_notify(STP_REQUEST_EXIT, NULL, 0);
 		dbug_trans(1, "done with ctl_send STP_REQUEST_EXIT\n");
 	}
 }
@@ -187,10 +224,14 @@ static void _stp_attach(void)
 
 /*
  *	_stp_ctl_work_callback - periodically check for IO or exit
- *	This IO comes from ERRORs or WARNINGs which are send with
- *	_stp_ctl_write as type STP_OOB_DATA, so don't immediately
- *	trigger a wake_up of _stp_ctl_wq.
- *	This is run by a kernel thread and may NOT sleep.
+ *	This IO comes from control messages like system(), warn(),
+ *	that could potentially have been send from krpobe context,
+ *	so they don't immediately trigger a wake_up of _stp_ctl_wq.
+ *	This is run by a kernel thread and may NOT sleep, but it
+ *	may call wake_up_interruptible on _stp_ctl_wq to notify
+ *	any readers, or send messages itself that are immediately
+ *	notified. Reschedules itself if someone is still attached
+ *	to the cmd channel.
  */
 static void _stp_ctl_work_callback(unsigned long val)
 {
@@ -204,7 +245,7 @@ static void _stp_ctl_work_callback(unsigned long val)
 	if (do_io)
 		wake_up_interruptible(&_stp_ctl_wq);
 
-	/* if exit flag is set AND we have finished with probe_start() */
+	/* if exit flag is set AND we have finished with systemtap_module_init() */
 	if (unlikely(_stp_exit_flag && _stp_probes_started))
 		_stp_request_exit();
 	if (atomic_read(& _stp_ctl_attached))
@@ -279,8 +320,10 @@ static int _stp_transport_init(void)
         /* Signal stapio to send us STP_START back.
            This is an historic convention. This was called
 	   STP_TRANSPORT_INFO and had a payload that described the
-	   transport buffering, this is no longer the case.  */
-	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
+	   transport buffering, this is no longer the case.
+	   Called during module initialization time, so safe to immediately
+	   notify reader we are ready.  */
+	_stp_ctl_send_notify(STP_TRANSPORT, NULL, 0);
 
 	dbug_trans(1, "returning 0...\n");
 	return 0;

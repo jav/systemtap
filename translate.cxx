@@ -77,7 +77,8 @@ struct c_unparser: public unparser, public visitor
 
   c_unparser (systemtap_session* ss):
     session (ss), o (ss->op), current_probe(0), current_function (0),
-    tmpvar_counter (0), label_counter (0),
+    tmpvar_counter (0), label_counter (0), action_counter(0),
+    probe_or_function_needs_deref_fault_handler(false),
     vcv_needs_global_locks (*ss) {}
   ~c_unparser () {}
 
@@ -88,6 +89,7 @@ struct c_unparser: public unparser, public visitor
   void emit_global_param (vardecl* v);
   void emit_functionsig (functiondecl* v);
   void emit_module_init ();
+  void emit_module_refresh ();
   void emit_module_exit ();
   void emit_function (functiondecl* v);
   void emit_lock_decls (const varuse_collecting_visitor& v);
@@ -1160,6 +1162,9 @@ c_unparser::emit_module_init ()
   // just in case modversions didn't.
   o->newline() << "{";
   o->newline(1) << "const char* release = UTS_RELEASE;";
+  o->newline() << "#ifdef STAPCONF_GENERATED_COMPILE";
+  o->newline() << "const char* version = UTS_VERSION;";
+  o->newline() << "#endif";
 
   // NB: This UTS_RELEASE compile-time macro directly checks only that
   // the compile-time kbuild tree matches the compile-time debuginfo/etc.
@@ -1179,6 +1184,17 @@ c_unparser::emit_module_init ()
                 << ");";
   o->newline() << "rc = -EINVAL;";
   o->newline(-1) << "}";
+
+  o->newline() << "#ifdef STAPCONF_GENERATED_COMPILE";
+  o->newline() << "if (strcmp (utsname()->version, version)) {";
+  o->newline(1) << "_stp_error (\"module version mismatch (%s vs %s), release %s\", "
+                << "version, "
+                << "utsname()->version, "
+                << "release"
+                << ");";
+  o->newline() << "rc = -EINVAL;";
+  o->newline(-1) << "}";
+  o->newline() << "#endif";
 
   // perform buildid-based checking if able
   o->newline() << "if (_stp_module_check()) rc = -EINVAL;";
@@ -1317,6 +1333,22 @@ c_unparser::emit_module_init ()
   o->newline(-1) << "}";
 
   o->newline() << "return rc;";
+  o->newline(-1) << "}\n";
+}
+
+
+void
+c_unparser::emit_module_refresh ()
+{
+  o->newline() << "static void systemtap_module_refresh (void) {";
+  o->newline(1) << "int i=0, j=0;"; // for derived_probe_group use
+  o->newline() << "(void) i;";
+  o->newline() << "(void) j;";
+  vector<derived_probe_group*> g = all_session_groups (*session);
+  for (unsigned i=0; i<g.size(); i++)
+    {
+      g[i]->emit_module_refresh (*session);
+    }
   o->newline(-1) << "}\n";
 }
 
@@ -4935,7 +4967,7 @@ dump_unwindsyms (Dwfl_Module *m,
 
     if (c->session.verbose > 1)
       {
-        clog << _F("Found build-id in %s, length %d, start at 0x%#" PRIx64,
+        clog << _F("Found build-id in %s, length %d, start at %#" PRIx64,
                    name, build_id_len, build_id_vaddr) << endl;
       }
   }
@@ -4966,8 +4998,12 @@ dump_unwindsyms (Dwfl_Module *m,
 
   for (int i = 0; i < syments; ++i)
     {
+      if (pending_interrupts)
+        return DWARF_CB_ABORT;
+
       GElf_Sym sym;
       GElf_Word shndxp;
+
       const char *name = dwfl_module_getsym(m, i, &sym, &shndxp);
       if (name)
         {
@@ -4984,7 +5020,7 @@ dump_unwindsyms (Dwfl_Module *m,
               dwfl_assert ("dwfl_module_relocate_address extra_offset",
                            ki >= 0);
               if (c->session.verbose > 2)
-                clog << _F("Found kernel _stext extra offset 0x%#" PRIx64, extra_offset) << endl;
+                clog << _F("Found kernel _stext extra offset %#" PRIx64, extra_offset) << endl;
             }
 
 	  // We are only interested in "real" symbols.
@@ -5123,7 +5159,7 @@ dump_unwindsyms (Dwfl_Module *m,
         for (size_t i = 0; i < debug_len; i++)
           {
             int h = ((uint8_t *)debug_frame)[i];
-            c->output << "0x" << hex << h << dec << ",";
+            c->output << h << ","; // decimal is less wordy than hex
             if ((i + 1) % 16 == 0)
               c->output << "\n" << "   ";
           }
@@ -5172,7 +5208,7 @@ dump_unwindsyms (Dwfl_Module *m,
         for (size_t i = 0; i < eh_frame_hdr_len; i++)
           {
             int h = ((uint8_t *)eh_frame_hdr)[i];
-            c->output << "0x" << hex << h << dec << ",";
+            c->output << h << ","; // decimal is less wordy than hex
             if ((i + 1) % 16 == 0)
               c->output << "\n" << "   ";
           }
@@ -5240,7 +5276,7 @@ dump_unwindsyms (Dwfl_Module *m,
 		for (size_t i = 0; i < debug_frame_hdr_len; i++)
 		  {
 		    int h = ((uint8_t *)debug_frame_hdr)[i];
-		    c->output << "0x" << hex << h << dec << ",";
+                    c->output << h << ","; // decimal is less wordy than hex
 		    if ((i + 1) % 16 == 0)
 		      c->output << "\n" << "   ";
 		  }
@@ -5791,6 +5827,9 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include <linux/utsname.h>";
       s.op->newline() << "#include <linux/version.h>";
       // s.op->newline() << "#include <linux/compile.h>";
+      s.op->newline() << "#ifdef STAPCONF_GENERATED_COMPILE";
+      s.op->newline() << "#include <generated/compile.h>";
+      s.op->newline() << "#endif";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
       s.op->newline() << "#include \"access_process_vm.h\" ";
 
@@ -5948,19 +5987,12 @@ translate_pass (systemtap_session& s)
       s.up->emit_module_init ();
       s.op->assert_0_indent();
       s.op->newline();
+      s.up->emit_module_refresh ();
+      s.op->assert_0_indent();
+      s.op->newline();
       s.up->emit_module_exit ();
       s.op->assert_0_indent();
       s.op->newline();
-
-      // XXX impedance mismatch
-      s.op->newline() << "static int probe_start (void) {";
-      s.op->newline(1) << "return systemtap_module_init () ? -1 : 0;";
-      s.op->newline(-1) << "}";
-      s.op->newline();
-      s.op->newline() << "static void probe_exit (void) {";
-      s.op->newline(1) << "systemtap_module_exit ();";
-      s.op->newline(-1) << "}";
-      s.op->assert_0_indent();
 
       emit_symbol_data (s);
 

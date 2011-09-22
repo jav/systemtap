@@ -11,8 +11,6 @@
 /* amount of data a print can send. */
 #define STP_BUFFER_SIZE 8192
 
-static int _stp_ctl_write(int type, void *data, unsigned len);
-
 /* STP_CTL_BUFFER_SIZE is the maximum size of a message */
 /* exchanged on the control channel. */
 #if STP_TRANSPORT_VERSION == 1
@@ -21,9 +19,6 @@ static int _stp_ctl_write(int type, void *data, unsigned len);
 #else
 #define STP_CTL_BUFFER_SIZE 256
 #endif
-
-/* how often the work queue wakes up and checks buffers */
-#define STP_WORK_TIMER (HZ/100)
 
 static unsigned _stp_nsubbufs;
 static unsigned _stp_subbuf_size;

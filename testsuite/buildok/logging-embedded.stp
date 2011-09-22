@@ -1,4 +1,4 @@
-#! stap -p4
+#! stap -gp4
 
 // build-test the logging tapset functions
 
@@ -9,4 +9,5 @@ probe begin {
       error("error")
       stp_print_binary(1, 0, 0, 0, 0)
       ftrace("ftrace")
+      printk(0,"Zoink!  The paper tape punch is burning chads!")
 }

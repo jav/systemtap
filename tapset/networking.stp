@@ -224,7 +224,7 @@ probe netdev.get_stats
 
 /**
  * probe netdev.change_mac - Called when the netdev_name has the MAC changed
- * @dev_name: The device that will have the MTU changed
+ * @dev_name: The device that will have the MAC changed
  * @mac_len: The MAC length
  * @old_mac: The current MAC address
  * @new_mac: The new MAC address

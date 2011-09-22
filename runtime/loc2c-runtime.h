@@ -44,10 +44,15 @@
    can be pasted into an identifier name.  These definitions turn it into a
    per-register macro, defined below for machines with individually-named
    registers.  */
+#define pt_regs_fetch_register(pt_regs, regno) \
+  ((intptr_t) k_dwarf_register_##regno (pt_regs))
+#define pt_regs_store_register(pt_regs, regno, value) \
+  (k_dwarf_register_##regno (pt_regs) = (value))
+
 #define k_fetch_register(regno) \
-  ((intptr_t) k_dwarf_register_##regno (c->regs))
+  pt_regs_fetch_register(c->kregs, regno)
 #define k_store_register(regno, value) \
-  (k_dwarf_register_##regno (c->regs) = (value))
+  pt_regs_store_register(c->kregs, regno, value)
 
 
 /* The deref and store_deref macros are called to safely access addresses
@@ -104,7 +109,11 @@
     a % b;								\
 })
 
-/* PR 10601: user-space (user_regset) register access.  */
+/* PR 10601: user-space (user_regset) register access.
+   Needs arch specific code, only i386 and x86_64 for now.  */
+#if ((defined(STAPCONF_REGSET) || defined(STAPCONF_UTRACE_REGSET)) \
+     && (defined (__i386__) || defined (__x86_64__)))
+
 #if defined(STAPCONF_REGSET)
 #include <linux/regset.h>
 #endif
@@ -117,8 +126,6 @@
 #define task_user_regset_view utrace_native_view
 #endif
 
-#if defined(STAPCONF_REGSET) || defined(STAPCONF_UTRACE_REGSET)
-
 struct usr_regset_lut {
   char *name;
   unsigned rsn;
@@ -130,6 +137,7 @@ struct usr_regset_lut {
    The register numbers come from the processor-specific ELF documents.
    The user-regset bank/offset values come from kernel $ARCH/include/asm/user*.h
    or $ARCH/kernel/ptrace.c. */
+#if defined (__i386__) || defined (__x86_64__)
 static const struct usr_regset_lut url_i386[] = {
   { "ax", NT_PRSTATUS, 6*4 },
   { "cx", NT_PRSTATUS, 1*4 },
@@ -141,7 +149,9 @@ static const struct usr_regset_lut url_i386[] = {
   { "di", NT_PRSTATUS, 4*4 },
   { "ip", NT_PRSTATUS, 12*4 },
 };
+#endif
 
+#if defined (__x86_64__)
 static const struct usr_regset_lut url_x86_64[] = {
   { "rax", NT_PRSTATUS, 10*8 },
   { "rdx", NT_PRSTATUS, 12*8 },
@@ -165,6 +175,7 @@ static const struct usr_regset_lut url_x86_64[] = {
   /* XXX: FP registers %st0-%st7 */
   /* XXX: MMX registers %mm0-%mm7 */
 };
+#endif
 /* XXX: insert other architectures here. */
 
 
@@ -316,22 +327,17 @@ static void ursl_store64 (const struct usr_regset_lut* lut,unsigned lutsize,  in
 
 #elif defined (__x86_64__)
 
-#define u_fetch_register(regno) (_stp_probing_32bit_app(c->regs) ? ursl_fetch32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno) : ursl_fetch64(url_x86_64, ARRAY_SIZE(url_x86_64), EM_X86_64, regno))
-#define u_store_register(regno,value)  (_stp_probing_32bit_app(c->regs) ? ursl_store32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno, value) : ursl_store64(url_x86_64, ARRAY_SIZE(url_x86_64), EM_X86_64, regno, value))
-
-#else
-
-/* Some other architecture; downgrade to kernel register access. */
-#define u_fetch_register(regno) k_fetch_register(regno)
-#define u_store_register(regno,value) k_store_register(regno,value)
+#define u_fetch_register(regno) (_stp_is_compat_task() ? ursl_fetch32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno) : ursl_fetch64(url_x86_64, ARRAY_SIZE(url_x86_64), EM_X86_64, regno))
+#define u_store_register(regno,value)  (_stp_is_compat_task() ? ursl_store32(url_i386, ARRAY_SIZE(url_i386), EM_386, regno, value) : ursl_store64(url_x86_64, ARRAY_SIZE(url_x86_64), EM_X86_64, regno, value))
 
 #endif
 
-
 #else /* ! STAPCONF_REGSET */
-/* Downgrade to kernel register access. */
-#define u_fetch_register(regno) k_fetch_register(regno)
-#define u_store_register(regno,value) k_store_register(regno,value)
+/* Downgrade to k_dwarf_register access. */
+#define u_fetch_register(regno) \
+  pt_regs_fetch_register(c->uregs, regno)
+#define u_store_register(regno, value) \
+  pt_regs_store_register(c->uregs, regno, value)
 #endif
 
 
@@ -383,11 +389,14 @@ static void ursl_store64 (const struct usr_regset_lut* lut,unsigned lutsize,  in
 #define k_dwarf_register_7(regs)	regs->edi
 
 #elif defined __ia64__
-#undef k_fetch_register
-#undef k_store_register
 
-#define k_fetch_register(regno)		ia64_fetch_register(regno, c->regs, &c->unwaddr)
-#define k_store_register(regno,value)	ia64_store_register(regno, c->regs, value)
+#undef pt_regs_fetch_register
+#undef pt_regs_store_register
+
+#define pt_regs_fetch_register(pt_regs,(regno) \
+  ia64_fetch_register(regno, pt_regs, &c->unwaddr)
+#define pt_regs_store_register(pt_regs,regno,value) \
+  ia64_store_register(regno, pt_regs, value)
 
 #elif defined __x86_64__
 
@@ -410,23 +419,30 @@ static void ursl_store64 (const struct usr_regset_lut* lut,unsigned lutsize,  in
 
 #elif defined __powerpc__
 
-#undef k_fetch_register
-#undef k_store_register
-#define k_fetch_register(regno) ((intptr_t) c->regs->gpr[regno])
-#define k_store_register(regno,value) (c->regs->gpr[regno] = (value))
+#undef pt_regs_fetch_register
+#undef pt_regs_store_register
+#define pt_regs_fetch_register(pt_regs,regno) \
+  ((intptr_t) pt_regs->gpr[regno])
+#define pt_regs_store_register(pt_regs,regno,value) \
+  (pt_regs->gpr[regno] = (value))
 
 #elif defined (__arm__)
 
-#undef k_fetch_register
-#undef k_store_register
-#define k_fetch_register(regno) ((long) c->regs->uregs[regno])
-#define k_store_register(regno,value) (c->regs->uregs[regno] = (value))
+#undef pt_regs_fetch_register
+#undef pt_regs_store_register
+#define pt_regs_fetch_register(pt_regs,regno) \
+  ((long) pt_regs->uregs[regno])
+#define pt_regs_store_register(pt_regs,regno,value) \
+  (pt_regs->uregs[regno] = (value))
 
 #elif defined (__s390__) || defined (__s390x__)
-#undef k_fetch_register
-#undef k_store_register
-#define k_fetch_register(regno) ((intptr_t) c->regs->gprs[regno])
-#define k_store_register(regno,value) (c->regs->gprs[regno] = (value))
+
+#undef pt_regs_fetch_register
+#undef pt_regs_store_register
+#define pt_regs_fetch_register(pt_regs,regno) \
+  ((intptr_t) pt_regs->gprs[regno])
+#define pt_regs_store_register(pt_regs,regno,value) \
+  (pt_regs->gprs[regno] = (value))
 
 #endif
 

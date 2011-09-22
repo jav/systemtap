@@ -29,7 +29,7 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 AM_GNU_GETTEXT(external)
-AM_GNU_GETTEXT_VERSION
+AM_GNU_GETTEXT_VERSION(0.17)
 AC_CHECK_FUNCS(ppoll)
 
 dnl Handle the prologues option.
@@ -55,6 +55,22 @@ if test "$enable_prologues" = yes; then
   AC_DEFINE([ENABLE_PROLOGUES],[],[make -P prologue-searching default])
 fi])
 
+dnl Handle the disable-sdt-probes option.
+dnl
+dnl Default to --disable-sdt-probes if --enable-sdt-probes/--disable-prologues
+dnl was not specified and the gcc version is less than version 4,
+
+if test "${enable_sdt_probes+set}" != set; then
+  AC_MSG_CHECKING([to see if sdt probes should be the default])
+  if { echo '#if __GNUC__ < 4'
+       echo ' yes '
+       echo '#endif'; } | ${CC} -E - | grep yes > /dev/null; then
+    enable_sdt_probes=no
+    AC_MSG_RESULT([no])
+  else
+    AC_MSG_RESULT([yes])
+  fi
+fi
 AC_ARG_ENABLE([sdt-probes],
   [AS_HELP_STRING([--disable-sdt-probes],
                   [disable process.mark probes in stap, staprun, stapio])])
@@ -293,31 +309,18 @@ AM_CONDITIONAL([BUILD_PDFREFDOCS], [test "$have_xmlto_pdf" == "yes"])
 rm -f conftest.xml
 
 dnl See if we have the nss/nspr headers and libraries
-AC_CHECK_FILE([/usr/include/nss3], nssdir=nss3, [
-  AC_CHECK_FILE([/usr/include/nss], nssdir=nss)
-])
-AC_CHECK_FILE([/usr/include/nspr4], nsprdir=nspr4, [
-  AC_CHECK_FILE([/usr/include/nspr], nsprdir=nspr)
-])
-if test "x$nssdir" != "x" -a "x$nsprdir" != "x"; then
-  nss_CFLAGS="-I/usr/include/$nssdir"
-  nspr_CFLAGS="-I/usr/include/$nsprdir"
-  AC_SUBST(nss_CFLAGS)
-  AC_SUBST(nspr_CFLAGS)
-  save_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="$CFLAGS $nss_CFLAGS $nspr_CFLAGS"
-  have_nss_includes=yes
-  AC_CHECK_HEADERS(["$nsprdir/nspr.h" "$nsprdir/plgetopt.h" "$nsprdir/prerror.h" "$nssdir/ssl.h" "$nssdir/nss.h" "$nssdir/pk11func.h" "$nssdir/secerr.h"], [], have_nss_includes=no)
-  CPPFLAGS="$save_CPPFLAGS"
-  have_nss_libs=no
-fi
-AC_CHECK_LIB(nspr4, PR_Connect, [
-  AC_CHECK_LIB(ssl3, SSL_ReHandshake, have_nss_libs=yes)
-])
-if test "x${have_nss_includes}${have_nss_libs}" = "xyesyes"; then
-  AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
-fi
-AM_CONDITIONAL([HAVE_NSS], [test "x${have_nss_includes}${have_nss_libs}" == "xyesyes"])
+AC_ARG_WITH([nss],
+  AS_HELP_STRING([--without-nss],
+    [Do not use NSS even if present]))
+
+AS_IF([test "x$with_nss" != "xno"], [
+  PKG_CHECK_MODULES([nss], [nss >= 3],
+    [have_nss=yes
+     AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
+    ], [have_nss=no])
+], [have_nss=no])
+
+AM_CONDITIONAL([HAVE_NSS], [test "${have_nss}" = "yes"])
 
 dnl Handle the option to build the compile server.
 AC_ARG_ENABLE([server],
@@ -328,42 +331,33 @@ AC_ARG_ENABLE([server],
 
 if test "$enable_server" != "no"; then
 dnl See if we have enough libraries and tools to build the compile server
-  if test "x${have_nss_includes}" != "xyes"; then
-    AC_MSG_WARN([will not build systemtap compile server, cannot find nss/nspr headers])
+  if test "x${have_nss}" != "xyes"; then
+    AC_MSG_WARN([will not build systemtap compile server, cannot find nss headers])
   fi		       
-  if test "x${have_nss_libs}" != "xyes"; then
-    AC_MSG_WARN([will not build systemtap compile server, cannot find nss/nspr libraries])
-  fi
 fi
-AM_CONDITIONAL([BUILD_SERVER], [test "x${have_nss_includes}${have_nss_libs}" == "xyesyes" -a "$enable_server" != "no"])
+AM_CONDITIONAL([BUILD_SERVER], [test "${have_nss}" == "yes" -a "$enable_server" != "no"])
 
-if test "x${have_nss_includes}" != "xyes"; then
-  AC_MSG_WARN([some compile server client functionality will be restricted, cannot find nss/nspr headers])
+if test "${have_nss}" != "yes"; then
+  AC_MSG_WARN([some compile server client functionality will be restricted, cannot find nss development files])
 fi		       
-if test "x${have_nss_libs}" != "xyes"; then
-  AC_MSG_WARN([some compile server client functionality will be restricted, cannot find nss/nspr libraries])
-fi
 
 dnl See if we have the avahi libraries and headers
-AC_CHECK_FILE([/usr/include/avahi-client], avahi_clientdir=avahi-client)
-AC_CHECK_FILE([/usr/include/avahi-common], avahi_commondir=avahi-common)
-if test "x$avahi_clientdir" != "x" -a "x$avahi_commondir" != "x"; then
-  have_avahi_includes=yes
-  AC_CHECK_HEADERS(["$avahi_clientdir/client.h" "$avahi_clientdir/lookup.h" "$avahi_commondir/simple-watch.h" "$avahi_commondir/malloc.h" "$avahi_commondir/error.h"], [], have_avahi_includes=no)
-  have_avahi_libs=no
+AC_ARG_WITH([avahi],
+  AS_HELP_STRING([--without-avahi],
+    [Do not use Avahi even if present]))
+
+AS_IF([test "x$with_avahi" != "xno"], [
+  PKG_CHECK_MODULES([avahi], [avahi-client],
+    [have_avahi=yes
+     AC_DEFINE([HAVE_AVAHI], [1], [Define to 1 if you have the avahi libraries.])
+    ], [have_avahi=no])
+], [have_avahi=no])
+
+AM_CONDITIONAL([HAVE_AVAHI], [test "${have_avahi}" = "yes"])
+
+if test "${have_avahi}" != "yes"; then
+  AC_MSG_WARN([some compile-server functionality will be restricted, cannot find avahi development files])
 fi
-AC_CHECK_LIB(avahi-client, avahi_client_new,
-  AC_CHECK_LIB(avahi-common, avahi_strerror, have_avahi_libs=yes))
-if test "x${have_avahi_includes}" != "xyes"; then
-  AC_MSG_WARN([some compile-server functionality will be restricted, cannot find avahi headers])
-fi
-if test "x${have_avahi_libs}" != "xyes"; then
-  AC_MSG_WARN([some compile-server functionality will be restricted, cannot find avahi libraries])
-fi
-if test "x${have_avahi_includes}${have_avahi_libs}" = "xyesyes"; then
-  AC_DEFINE([HAVE_AVAHI], [1], [Define to 1 if you have the avahi libraries.])
-fi
-AM_CONDITIONAL([HAVE_AVAHI], [test "x${have_avahi_includes}${have_avahi_libs}" == "xyesyes"])
 
 dnl Handle the optional grapher
 AC_ARG_ENABLE([grapher],

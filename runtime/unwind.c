@@ -15,11 +15,6 @@
 
 #include "unwind/unwind.h"
 
-struct unwind_context {
-    struct unwind_frame_info info;
-    struct unwind_state state;
-};
-
 static uleb128_t get_uleb128(const u8 **pcur, const u8 *end)
 {
 	const u8 *cur = *pcur;

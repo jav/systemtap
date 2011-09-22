@@ -9,8 +9,5 @@
  * running the stap or staprun command.
  */
 function system (cmd:string) %{
-	/* NOTE this uses _stp_ctl_write and not _stp_ctl_send,
-	   so this will only be flushed to the .cmd stream on
-	   the next periodic _stp_ctl_work timer tick.  */
-	_stp_ctl_write(STP_SYSTEM, THIS->cmd, strlen(THIS->cmd)+1);
+	_stp_ctl_send(STP_SYSTEM, THIS->cmd, strlen(THIS->cmd)+1);
 %}

@@ -85,6 +85,7 @@ function sprint_stack:string(stk:string) %{ /* pure */ /* pragma:symbols */
 function probefunc:string () %{ /* pure */ /* pragma:symbols */
 	char *ptr, *start;
 
+	THIS->__retvalue[0] = '\0';
 	start = strstr(CONTEXT->probe_point, "function(\"");
 	ptr = start + 10; 
 	if (!start) {
@@ -99,16 +100,19 @@ function probefunc:string () %{ /* pure */ /* pragma:symbols */
 			*dst++ = *ptr++;
 		*dst = 0;
 
-	} else if (CONTEXT->regs) {
-		_stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN,
-				  REG_IP(CONTEXT->regs),
-				  _STP_SYM_SYMBOL,
-				  (CONTEXT->regflags & _STP_REGS_USER_FLAG
-				   ? current : NULL));
-       	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
-       	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
 	} else {
-		THIS->__retvalue[0] = '\0';
+		struct pt_regs *regs;
+		int user_mode;
+		user_mode = c->probe_flags & _STP_PROBE_STATE_USER_MODE;
+		regs = user_mode ? CONTEXT->uregs : CONTEXT->kregs;
+		if (regs) {
+			_stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN,
+					  REG_IP(regs), _STP_SYM_SYMBOL,
+					  (user_mode ? current : NULL));
+			if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
+				strlcpy(THIS->__retvalue, THIS->__retvalue + 1,
+					MAXSTRINGLEN);
+		}
 	}
 %}
 
@@ -130,10 +134,10 @@ function probemod:string () %{ /* pure */
 		while (*ptr != '"' && --len && *ptr)
 			*dst++ = *ptr++;
 		*dst = 0;
-	} else if (CONTEXT->regs
-		   && ! (CONTEXT->regflags & _STP_REGS_USER_FLAG)) {
+	} else if (CONTEXT->kregs
+		   && ! (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)) {
 		struct _stp_module *m;
-		m = _stp_kmod_sec_lookup (REG_IP(CONTEXT->regs), NULL);
+		m = _stp_kmod_sec_lookup (REG_IP(CONTEXT->kregs), NULL);
 		if (m && m->name)
 			strlcpy (THIS->__retvalue, m->name, MAXSTRINGLEN);
 		else

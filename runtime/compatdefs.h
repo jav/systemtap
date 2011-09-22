@@ -34,6 +34,13 @@ static inline int _stp_is_compat_task(void)
   return test_thread_flag(TIF_32BIT);
 }
 
+#else
+
+static inline int _stp_is_compat_task(void)
+{
+  return 0;
+}
+
 #endif /* CONFIG_COMPAT */
 
 /* task_pt_regs is used in some core tapset functions, so try to make

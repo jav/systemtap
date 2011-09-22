@@ -25,6 +25,14 @@ extern "C" {
 #include <fnmatch.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <time.h>
+#include <sys/times.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <sys/utsname.h>
 }
 
 // XXX: also consider adding $HOME/.debug/ for perf build-id-cache
@@ -51,7 +59,7 @@ static systemtap_session* current_session_for_find_debuginfo;
 static const Dwfl_Callbacks kernel_callbacks =
   {
     dwfl_linux_kernel_find_elf,
-    dwfl_standard_find_debuginfo,
+    internal_find_debuginfo,
     dwfl_offline_section_address,
     (char **) & debuginfo_path
   };
@@ -293,15 +301,18 @@ setup_dwfl_kernel (unsigned *modules_found, systemtap_session &s)
 
   // First try to report full path modules.
   set<string>::iterator it = offline_search_names.begin();
+  int kernel = 0;
   while (it != offline_search_names.end())
     {
       if ((*it)[0] == '/')
-	{
-	  const char *cname = (*it).c_str();
-	  Dwfl_Module *mod = dwfl_report_offline (dwfl, cname, cname, -1);
-	  if (mod)
-	    offline_modules_found++;
-	}
+        {
+          const char *cname = (*it).c_str();
+          Dwfl_Module *mod = dwfl_report_offline (dwfl, cname, cname, -1);
+          if (mod)
+            offline_modules_found++;
+        }
+      else if ((*it) == "kernel")
+        kernel = 1;
       it++;
     }
 
@@ -322,6 +333,22 @@ setup_dwfl_kernel (unsigned *modules_found, systemtap_session &s)
   // modules.  These have to be converted to real addresses at
   // run time.  See the dwarf_derived_probe ctor and its caller.
 
+  // If no modules were found, and we are probing the kernel,
+  // attempt to download the kernel debuginfo.
+  if(kernel)
+    {
+      // Get the kernel build ID. We still need to call this even if we
+      // already have the kernel debuginfo installed as it adds the
+      // build ID to the script hash.
+      string hex = get_kernel_build_id(s);
+      if (offline_modules_found == 0 && s.download_dbinfo != 0 && !hex.empty())
+        {
+          rc = download_kernel_debuginfo(s, hex);
+          if(rc >= 0)
+            return setup_dwfl_kernel (modules_found, s);
+        }
+    }
+
   dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
   *modules_found = offline_modules_found;
 
@@ -336,6 +363,7 @@ setup_dwfl_kernel(const std::string &name,
 		  unsigned *found,
 		  systemtap_session &s)
 {
+  current_session_for_find_debuginfo = &s;
   const char *modname = name.c_str();
   set<string> names; // Default to empty
 
@@ -426,12 +454,12 @@ setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
   Dwfl *dwfl = dwfl_begin (&user_callbacks);
   dwfl_assert("dwfl_begin", dwfl);
   dwfl_report_begin (dwfl);
-
+  Dwfl_Module *mod = NULL;
   // XXX: should support buildid-based naming
   while (begin != end && dwfl != NULL)
     {
       const char *cname = (*begin).c_str();
-      Dwfl_Module *mod = dwfl_report_offline (dwfl, cname, cname, -1);
+      mod = dwfl_report_offline (dwfl, cname, cname, -1);
       if (! mod && all_needed)
 	{
 	  dwfl_end(dwfl);
@@ -439,6 +467,24 @@ setup_dwfl_user(std::vector<std::string>::const_iterator &begin,
 	}
       begin++;
     }
+
+  /* Extract the build id and add it to the session variable
+   * so it will be added to the script hash */
+  if (mod)
+    {
+      const unsigned char *bits;
+      GElf_Addr vaddr;
+      if(s.verbose > 2)
+        clog << _("Extracting build ID.") << endl;
+      int bits_length = dwfl_module_build_id(mod, &bits, &vaddr);
+
+      /* Convert the binary bits to a hex string */
+      string hex = hex_dump(bits, bits_length);
+
+      //Store the build ID in the session
+      s.build_ids.push_back(hex);
+    }
+
   if (dwfl)
     dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
 
@@ -466,6 +512,7 @@ internal_find_debuginfo (Dwfl_Module *mod,
 {
   int bits_length;
   string hex;
+
   /* To Keep track of whether the abrt successfully installed the debuginfo */
   static int install_dbinfo_failed = 0;
 
@@ -473,11 +520,15 @@ internal_find_debuginfo (Dwfl_Module *mod,
   if(current_session_for_find_debuginfo == NULL)
     goto call_dwfl_standard_find_debuginfo;
 
+  /* Check to see if download-debuginfo=0 was set */
+  if(!current_session_for_find_debuginfo->download_dbinfo)
+    goto call_dwfl_standard_find_debuginfo;
+
   /* Check that we haven't already run this */
   if (install_dbinfo_failed < 0)
     {
-      if(current_session_for_find_debuginfo->verbose > 1)
-        clog << _F("We already tried running '%s'", ABRT_PATH) << endl;
+      if(current_session_for_find_debuginfo->verbose > 1 && !current_session_for_find_debuginfo->suppress_warnings)
+        current_session_for_find_debuginfo->print_warning( _F("We already tried running '%s'", ABRT_PATH));
       goto call_dwfl_standard_find_debuginfo;
     }
 
@@ -508,12 +559,34 @@ internal_find_debuginfo (Dwfl_Module *mod,
   to download and install the debuginfo */
   if(current_session_for_find_debuginfo->verbose > 1)
     clog << _F("Downloading and installing debuginfo with build ID: '%s' using %s.", hex.c_str(), ABRT_PATH) << endl;
+
+  struct tms tms_before;
+  times (& tms_before);
+  struct timeval tv_before;
+  struct tms tms_after;
+  unsigned _sc_clk_tck;
+  struct timeval tv_after;
+  gettimeofday (&tv_before, NULL);
+
   if(execute_abrt_action_install_debuginfo_to_abrt_cache (hex) < 0)
     {
       install_dbinfo_failed = -1;
       if (!current_session_for_find_debuginfo->suppress_warnings)
-        current_session_for_find_debuginfo->print_warning(ABRT_PATH " failed");
+        current_session_for_find_debuginfo->print_warning(_F("%s failed.", ABRT_PATH));
+      goto call_dwfl_standard_find_debuginfo;
     }
+
+  _sc_clk_tck = sysconf (_SC_CLK_TCK);
+  times (& tms_after);
+  gettimeofday (&tv_after, NULL);
+  if(current_session_for_find_debuginfo->verbose > 1)
+    clog << _("Download completed in ")
+              << ((tms_after.tms_cutime + tms_after.tms_utime
+              - tms_before.tms_cutime - tms_before.tms_utime) * 1000 / (_sc_clk_tck)) << "usr/"
+              << ((tms_after.tms_cstime + tms_after.tms_stime
+              - tms_before.tms_cstime - tms_before.tms_stime) * 1000 / (_sc_clk_tck)) << "sys/"
+              << ((tv_after.tv_sec - tv_before.tv_sec) * 1000 +
+              ((long)tv_after.tv_usec - (long)tv_before.tv_usec) / 1000) << "real ms"<< endl;
 
   call_dwfl_standard_find_debuginfo:
 
@@ -530,11 +603,193 @@ execute_abrt_action_install_debuginfo_to_abrt_cache (string hex)
   /* Check that abrt exists */
   if(access (ABRT_PATH, X_OK) < 0)
       return -1;
-
-  /* Execute abrt-action-install-debuginfo-to-abrt-cache */
+  
+  int timeout = current_session_for_find_debuginfo->download_dbinfo;;
   vector<string> cmd;
   cmd.push_back ("/bin/sh");
   cmd.push_back ("-c");
-  cmd.push_back ("echo " + hex + " | " + ABRT_PATH + " -y --ids=-");
-  return stap_system (current_session_for_find_debuginfo->verbose, cmd, true, false);
+  
+  /* NOTE: abrt does not currently work with asking for confirmation
+   * in version abrt-2.0.3-1.fc15.x86_64, Bugzilla: BZ726192 */
+  if(current_session_for_find_debuginfo->download_dbinfo == -1)
+    {
+      cmd.push_back ("echo " + hex + " | " + ABRT_PATH + " --ids=-");
+      timeout = INT_MAX; 
+      if(!current_session_for_find_debuginfo->suppress_warnings)
+        current_session_for_find_debuginfo->print_warning(_("Due to bug in abrt, it may continue downloading anyway without asking for confirmation."));
+    }
+  else
+    cmd.push_back ("echo " + hex + " | " + ABRT_PATH + " -y --ids=-");
+ 
+  /* NOTE: abrt does not allow canceling the download process at the moment
+   * in version abrt-2.0.3-1.fc15.x86_64, Bugzilla: BZ730107 */
+  if(timeout != INT_MAX && !current_session_for_find_debuginfo->suppress_warnings)
+    current_session_for_find_debuginfo->print_warning(_("Due to a bug in abrt, it  may continue downloading after stopping stap if download times out."));
+  
+  int pid;
+  if(current_session_for_find_debuginfo->verbose > 1 ||  current_session_for_find_debuginfo->download_dbinfo == -1)
+    /* Execute abrt-action-install-debuginfo-to-abrt-cache, 
+     * showing output from abrt */
+    pid = stap_spawn(current_session_for_find_debuginfo->verbose, cmd, NULL);
+  else
+    {
+      /* Execute abrt-action-install-debuginfo-to-abrt-cache,
+       * without showing output from abrt */
+      posix_spawn_file_actions_t fa;
+      if (posix_spawn_file_actions_init(&fa) != 0)
+        return -1;
+      if(posix_spawn_file_actions_addopen(&fa, 1, "/dev/null", O_WRONLY, 0) != 0)
+        {
+          posix_spawn_file_actions_destroy(&fa);
+          return -1;
+        }
+      pid = stap_spawn(current_session_for_find_debuginfo->verbose, cmd, &fa);
+      posix_spawn_file_actions_destroy(&fa);
+    }
+
+  /* Check to see if either the program successfully completed, or if it timed out. */
+  int rstatus = 0;
+  int timer = 0;
+  int rc = 0;
+  while(timer < timeout)
+    {
+      sleep(1); 
+      rc = waitpid(pid, &rstatus, WNOHANG);
+      if(rc < 0)
+        return -1;
+      if (rc > 0 && WIFEXITED(rstatus)) 
+        break;
+      if(pending_interrupts) 
+        return -1;
+      timer++;
+    }
+  if(timer == timeout)
+    {
+      /* Timed out! */
+      kill(-pid, SIGINT);
+      if (!current_session_for_find_debuginfo->suppress_warnings)
+        current_session_for_find_debuginfo->print_warning(_("Aborted downloading debuginfo: timed out."));
+      return -1;
+    }
+
+  /* Successfully finished downloading! */
+  #if 0 // Should not print this until BZ733690 is fixed as abrt could fail to download
+        // and it would still print success.
+  if(current_session_for_find_debuginfo->verbose > 1 || current_session_for_find_debuginfo->download_dbinfo == -1)
+     clog << _("Download Completed Successfully!") << endl;
+  #endif
+  if(current_session_for_find_debuginfo->verbose > 1 || current_session_for_find_debuginfo->download_dbinfo == -1)
+    clog << _("ABRT finished attempting to download debuginfo.") << endl;
+
+  return 0;
+}
+
+/* Get the kernel build ID */
+string
+get_kernel_build_id(systemtap_session &s)
+{
+  bool found = false;
+  string hex;
+  // Get the kernel information
+  struct utsname kernelinfo;
+  if( uname(&kernelinfo) < 0)
+    return "";
+
+  // Try to find BuildID from vmlinux.id
+  string kernel_buildID_path = "/lib/modules/"
+                              + (string)kernelinfo.release
+                              + "/build/vmlinux.id";
+  if(s.verbose > 1)
+    clog << _F("Attempting to extract kernel debuginfo build ID from %s", kernel_buildID_path.c_str()) << endl;
+  ifstream buildIDfile;
+  buildIDfile.open(kernel_buildID_path.c_str());
+  if(buildIDfile.is_open())
+    {
+      getline(buildIDfile, hex);
+      if(buildIDfile.good())
+        {
+          found = true;
+        }
+      buildIDfile.close();
+    }
+
+  // Try to find BuildID from the notes file if the above didn't work and we are
+  // building a native module
+  if(found == false && s.release == kernelinfo.release)
+    {
+      if(s.verbose > 1)
+        clog << _("Attempting to extract kernel debuginfo build ID from /sys/kernel/notes") << endl;
+
+      const char *notesfile = "/sys/kernel/notes";
+      int fd = open64 (notesfile, O_RDONLY);
+      if (fd < 0)
+      return "";
+
+      assert (sizeof (Elf32_Nhdr) == sizeof (GElf_Nhdr));
+      assert (sizeof (Elf64_Nhdr) == sizeof (GElf_Nhdr));
+
+      union
+      {
+        GElf_Nhdr nhdr;
+        unsigned char data[8192];
+      } buf;
+
+      ssize_t n = read (fd, buf.data, sizeof buf);
+      close (fd);
+
+      if (n <= 0)
+        return "";
+
+      unsigned char *p = buf.data;
+      while (p < &buf.data[n])
+        {
+          /* No translation required since we are reading the native kernel.  */
+          GElf_Nhdr *nhdr = (GElf_Nhdr *) p;
+          p += sizeof *nhdr;
+          unsigned char *name = p;
+          p += (nhdr->n_namesz + 3) & -4U;
+          unsigned char *bits = p;
+          p += (nhdr->n_descsz + 3) & -4U;
+
+          if (p <= &buf.data[n]
+              && nhdr->n_type == NT_GNU_BUILD_ID
+              && nhdr->n_namesz == sizeof "GNU"
+              && !memcmp (name, "GNU", sizeof "GNU"))
+            {
+              // Found it.
+              hex = hex_dump(bits, nhdr->n_descsz);
+              found = true;
+            }
+        }
+    }
+  if(found)
+    {
+      return hex;
+    }
+  else
+    return "";
+}
+
+/* Find the kernel build ID and attempt to download the matching debuginfo */
+int download_kernel_debuginfo (systemtap_session &s, string hex)
+{
+  // NOTE: At some point we want to base the
+  // already_tried_downloading_kernel_debuginfo flag on the build ID rather
+  // than just the stap process.
+
+  // Don't try this again if we already did.
+  static int already_tried_downloading_kernel_debuginfo = 0;
+  if(already_tried_downloading_kernel_debuginfo)
+    return -1;
+
+  // Attempt to download the debuginfo
+  if(s.verbose > 1)
+    clog << _F("Success! Extracted kernel debuginfo build ID: %s", hex.c_str()) << endl;
+  int rc = execute_abrt_action_install_debuginfo_to_abrt_cache(hex);
+  already_tried_downloading_kernel_debuginfo = 1;
+  if (rc < 0)
+    return -1;
+
+  // Success!
+  return 0;
 }

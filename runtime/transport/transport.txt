@@ -42,14 +42,14 @@ STP_START message.
 
 _stp_proc_write_cmd() receives the STP_START. It calls _stp_handle_start().
 
-_stp_handle_start() calls probe_start(), which the translator generates. 
-It allocates memory and registers probes. When that returns, 
-an atomic variable is set indicating probe_start finished. An STP_START 
-message is returned to staprun with the return value from probe_start()
+_stp_handle_start() calls systemtap_module_init(), which the
+translator generates.  It allocates memory and registers probes. When
+that returns, an atomic variable is set indicating it's finished. An
+STP_START message is returned to staprun with the return value.
 
-staprun receives the STP_START message in stp_main_loop(). If the return value 
-is < 0 (indicating probe_start failed to register probes, etc) staprun
-cleans up and exits.
+staprun receives the STP_START message in stp_main_loop(). If the
+return value is < 0 (indicating systemtap_module_init failed to
+register probes, etc) staprun cleans up and exits.
 
 *** Probes running. Everything Up. ***
 
@@ -73,11 +73,12 @@ _stp_proc_write_cmd() receives the STP_EXIT. It sets _stp_exit_flag
 and returns.
 
 The next time _stp_work_queue() runs, it will notice that
-_stp_exit_flag is set. It checks to see if probe_start() finished
-because we don't want to start exiting until then. It will cancel itself, 
-and call  _stp_cleanup_and_exit(0). That will call probe_exit() which
-unregisters the probes. Then it sends an STP_EXIT(0) message to
-staprun. staprun gets the message and calls cleanup_and_exit(0)
+_stp_exit_flag is set. It checks to see if sysetmtap_module_init()
+finished because we don't want to start exiting until then. It will
+cancel itself, and call _stp_cleanup_and_exit(0). That will call
+systemtap_module_exit() which unregisters the probes. Then it sends an
+STP_EXIT(0) message to staprun. staprun gets the message and calls
+cleanup_and_exit(0)
 
 For #2, _stp_exit() sets _stp_exit_flag.
 
