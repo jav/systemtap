@@ -764,8 +764,6 @@ get_kernel_build_id(systemtap_session &s)
     }
   if(found)
     {
-      //Store the build ID in the session
-      s.build_ids.push_back(hex);
       return hex;
     }
   else

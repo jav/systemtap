@@ -324,7 +324,7 @@ private:
   Dwarf * module_dwarf;
   Dwarf_Die * function;
 
-  void setup_kernel(const std::string& module_name, bool debuginfo_needed = true);
+  void setup_kernel(const std::string& module_name, systemtap_session &s, bool debuginfo_needed = true);
   void setup_kernel(const std::vector<std::string>& modules, bool debuginfo_needed = true);
   void setup_user(const std::vector<std::string>& modules, bool debuginfo_needed = true);
 
@@ -436,6 +436,13 @@ private:
   Dwarf_Op *get_cfa_ops (Dwarf_Addr pc);
 
   Dwarf_Addr vardie_from_symtable(Dwarf_Die *vardie, Dwarf_Addr *addr);
+
+  static int add_module_build_id_to_hash (Dwfl_Module *m,
+                 void **userdata __attribute__ ((unused)),
+                 const char *name,
+                 Dwarf_Addr base,
+                 void *arg);
+
 };
 
 #endif // DWFLPP_H

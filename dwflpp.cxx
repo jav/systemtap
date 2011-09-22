@@ -75,7 +75,7 @@ dwflpp::dwflpp(systemtap_session & session, const string& name, bool kernel_p):
   blacklist_file(),  blacklist_enabled(false)
 {
   if (kernel_p)
-    setup_kernel(name);
+    setup_kernel(name, session);
   else
     {
       vector<string> modules;
@@ -304,7 +304,7 @@ dwflpp::function_scope_matches(const vector<string>& scopes)
 
 
 void
-dwflpp::setup_kernel(const string& name, bool debuginfo_needed)
+dwflpp::setup_kernel(const string& name, systemtap_session & s, bool debuginfo_needed)
 {
   if (! sess.module_cache)
     sess.module_cache = new module_cache ();
@@ -321,6 +321,18 @@ dwflpp::setup_kernel(const string& name, bool debuginfo_needed)
       }
       throw semantic_error (_F("missing %s kernel/module debuginfo under '%s'",
                                 sess.architecture.c_str(), sess.kernel_build_tree.c_str()));
+    }
+  Dwfl *dwfl = dwfl_ptr.get()->dwfl;
+  if (dwfl != NULL)
+    {
+      ptrdiff_t off = 0;
+      do
+        {
+          if (pending_interrupts) return;
+          off = dwfl_getmodules (dwfl, &add_module_build_id_to_hash, &s, off);
+        }
+      while (off > 0);
+      dwfl_assert("dwfl_getmodules", off == 0);
     }
 
   build_blacklist();
@@ -3449,6 +3461,34 @@ dwflpp::get_cfa_ops (Dwarf_Addr pc)
     }
 
   return cfa_ops;
+}
+
+int
+dwflpp::add_module_build_id_to_hash (Dwfl_Module *m,
+                 void **userdata __attribute__ ((unused)),
+                 const char *name,
+                 Dwarf_Addr base,
+                 void *arg)
+{
+   string modname = name;
+   systemtap_session * s = (systemtap_session *)arg;
+  if (pending_interrupts)
+    return DWARF_CB_ABORT;
+
+  // Extract the build ID
+  const unsigned char *bits;
+  GElf_Addr vaddr;
+  int bits_length = dwfl_module_build_id(m, &bits, &vaddr);
+  if(bits_length > 0)
+    {
+      // Convert the binary bits to a hex string
+      string hex = hex_dump(bits, bits_length);
+
+      // Store the build ID in the session
+      s->build_ids.push_back(hex);
+    }
+
+  return DWARF_CB_OK;
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
