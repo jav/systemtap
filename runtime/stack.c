@@ -159,8 +159,8 @@ static struct pt_regs *_stp_get_uregs(struct context *c)
     {
       /* First try simple recovery through task_pt_regs,
 	 on some platforms that already provides complete uregs. */
-      c->uregs = task_pt_regs (current);
-      if (_stp_task_pt_regs_valid(current, c->uregs))
+      c->uregs = _stp_current_pt_regs();
+      if (c->uregs && _stp_task_pt_regs_valid(current, c->uregs))
 	c->probe_flags |= _STP_PROBE_STATE_FULL_UREGS;
     }
   return c->uregs;

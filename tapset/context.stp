@@ -376,10 +376,8 @@ function uaddr:long ()
 
   if (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
     uregs = CONTEXT->uregs;
-  else if (current->mm)
-    uregs = task_pt_regs(current);
   else
-    uregs = NULL;
+    uregs = _stp_current_pt_regs();
 
   if (uregs)
     THIS->__retvalue = (int64_t) REG_IP(uregs);

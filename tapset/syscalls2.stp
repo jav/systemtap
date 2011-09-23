@@ -285,7 +285,7 @@ function _ia64_pipe0:long() %{
 	THIS->__retvalue = CONTEXT->kregs ? CONTEXT->kregs->r8 : 0;
 %}
 function _ia64_pipe1:long() %{
-	THIS->__retvalue = task_pt_regs(current)->r9;
+	THIS->__retvalue = _stp_current_pt_regs()->r9;
 %}
 %)
 # pipe _______________________________________________________
