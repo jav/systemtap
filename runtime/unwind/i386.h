@@ -72,6 +72,11 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
                                             /*const*/ struct pt_regs *regs,
 					    int sanitize)
 {
+	if (&info->regs == regs) { /* happens when unwinding kernel->user */
+		info->call_frame = 1;
+		return;
+	}
+
 	memset(info, 0, sizeof(*info));
 	if (sanitize) /* We are only prepared to use full reg sets. */
 		_stp_error("Impossible to sanitize i386 pr_regs");

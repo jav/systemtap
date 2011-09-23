@@ -162,6 +162,41 @@ static struct pt_regs *_stp_get_uregs(struct context *c)
       c->uregs = _stp_current_pt_regs();
       if (c->uregs && _stp_task_pt_regs_valid(current, c->uregs))
 	c->probe_flags |= _STP_PROBE_STATE_FULL_UREGS;
+#ifdef STP_USE_DWARF_UNWINDER
+      else if (c->uregs != NULL && c->kregs != NULL
+	       && ! (c->probe_flags & _STP_PROBE_STATE_USER_MODE))
+	{
+	  /* Try to recover the uregs by unwinding from the the kernel
+	     probe location. */
+	  struct unwind_frame_info *info = &c->uwcontext.info;
+	  int levels = MAXBACKTRACE;
+	  int ret = 0;
+	  arch_unw_init_frame_info(info, c->kregs, 0);
+	  dbug_unwind(1, "Trying to recover... searching for 0x%lx\n",
+		      REG_IP(c->uregs));
+	  while (levels > 0 && ret == 0 && UNW_PC(info) != REG_IP(c->uregs))
+	    {
+	      levels--;
+	      ret = unwind(&c->uwcontext, NULL);
+	      dbug_unwind(1, "unwind levels: %d, ret: %d, pc=0x%lx\n",
+			  levels, ret, UNW_PC(info));
+	    }
+
+	  /* Have we arrived where we think user space currently is? */
+	  if (ret == 0 && UNW_PC(info) == REG_IP(_stp_current_pt_regs()))
+	    {
+	      /* Note we need to clear this state again when the unwinder
+		 has been rerun. See __stp_stack_print invocation below. */
+	      UNW_SP(info) = REG_SP(c->uregs); /* Fix up user stack */
+	      c->uregs = &info->regs;
+	      c->probe_flags |= _STP_PROBE_STATE_FULL_UREGS;
+	      dbug_unwind(1, "recovered with pc=0x%lx sp=0x%lx\n",
+			  UNW_PC(info), UNW_SP(info));
+	    }
+	  else
+	    dbug_unwind(1, "failed to recover user reg state\n");
+	}
+#endif
     }
   return c->uregs;
 }
@@ -266,6 +301,13 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 	}
 
 	/* print rest of stack... */
+#ifdef STP_USE_DWARF_UNWINDER
+	if (c->uregs == &c->uwcontext.info.regs) {
+		/* Unwinder needs the reg state, clear uregs ref. */
+		c->uregs = NULL;
+		c->probe_flags &= ~_STP_PROBE_STATE_FULL_UREGS;
+	}
+#endif
 	__stp_stack_print(regs, sym_flags, MAXBACKTRACE, tsk,
 			  &c->uwcontext, ri, uregs_valid);
 }
