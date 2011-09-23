@@ -642,7 +642,7 @@ adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
   }
 
   /* User space or kernel dynamic module. */
-  if (strcmp (s->name, ".dynamic") == 0)
+  if (tsk && strcmp (s->name, ".dynamic") == 0)
     stap_find_vma_map_info_user(tsk->group_leader, m, &vm_addr, NULL, NULL);
   else
     vm_addr = s->static_addr;
