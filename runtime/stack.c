@@ -166,14 +166,27 @@ static struct pt_regs *_stp_get_uregs(struct context *c)
       else if (c->uregs != NULL && c->kregs != NULL
 	       && ! (c->probe_flags & _STP_PROBE_STATE_USER_MODE))
 	{
-	  /* Try to recover the uregs by unwinding from the the kernel
-	     probe location. */
 	  struct unwind_frame_info *info = &c->uwcontext.info;
-	  int levels = MAXBACKTRACE;
 	  int ret = 0;
-	  arch_unw_init_frame_info(info, c->kregs, 0);
-	  dbug_unwind(1, "Trying to recover... searching for 0x%lx\n",
-		      REG_IP(c->uregs));
+	  int levels;
+
+	  /* We might be lucky and this probe already ran the kernel
+	     unwind to end up in the user regs. */
+	  if (UNW_PC(info) == REG_IP(c->uregs))
+	    {
+	      levels = 0;
+	      dbug_unwind(1, "feeling lucky, info pc == uregs pc\n");
+	    }
+	  else
+	    {
+	      /* Try to recover the uregs by unwinding from the the kernel
+		 probe location. */
+	      levels = MAXBACKTRACE;
+	      arch_unw_init_frame_info(info, c->kregs, 0);
+	      dbug_unwind(1, "Trying to recover... searching for 0x%lx\n",
+			  REG_IP(c->uregs));
+	    }
+
 	  while (levels > 0 && ret == 0 && UNW_PC(info) != REG_IP(c->uregs))
 	    {
 	      levels--;
@@ -183,7 +196,7 @@ static struct pt_regs *_stp_get_uregs(struct context *c)
 	    }
 
 	  /* Have we arrived where we think user space currently is? */
-	  if (ret == 0 && UNW_PC(info) == REG_IP(_stp_current_pt_regs()))
+	  if (ret == 0 && UNW_PC(info) == REG_IP(c->uregs))
 	    {
 	      /* Note we need to clear this state again when the unwinder
 		 has been rerun. See __stp_stack_print invocation below. */
