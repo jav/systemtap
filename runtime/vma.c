@@ -39,9 +39,10 @@ static void _stp_vma_match_vdso(struct task_struct *tsk)
 	  {
 	    unsigned long notes_addr;
 	    int all_ok = 1;
-	    notes_addr = vdso_addr + m->build_id_offset - m->build_id_len;
+	    notes_addr = vdso_addr + m->build_id_offset;
 #ifdef DEBUG_TASK_FINDER_VMA
-	    _dbug("notes_addr %s: 0x%lx\n", m->name, notes_addr);
+	    _dbug("notes_addr %s: 0x%lx + 0x%lx = 0x%lx (len: %x)\n", m->name,
+		  vdso_addr, m->build_id_offset, notes_addr, m->build_id_len);
 #endif
 	    for (j = 0; j < m->build_id_len; j++)
 	      {
@@ -53,7 +54,7 @@ static void _stp_vma_match_vdso(struct task_struct *tsk)
 		if (rc || b != m->build_id_bits[j])
 		  {
 #ifdef DEBUG_TASK_FINDER_VMA
-		    _dbug("darn, not equal (rc=%d) at %d (%d != %d)\n",
+		    _dbug("darn, not equal (rc=%d) at %d (0x%x != 0x%x)\n",
 			  rc, j, b, m->build_id_bits[j]);
 #endif
 		    all_ok = 0;
