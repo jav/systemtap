@@ -75,6 +75,8 @@ struct c_unparser: public unparser, public visitor
 
   map<string, string> probe_contents;
 
+  map<pair<bool, string>, string> compiled_printfs;
+
   c_unparser (systemtap_session* ss):
     session (ss), o (ss->op), current_probe(0), current_function (0),
     tmpvar_counter (0), label_counter (0), action_counter(0),
@@ -96,6 +98,11 @@ struct c_unparser: public unparser, public visitor
   void emit_locks (const varuse_collecting_visitor& v);
   void emit_probe (derived_probe* v);
   void emit_unlocks (const varuse_collecting_visitor& v);
+
+  void emit_compiled_printfs ();
+  void emit_compiled_printf_locals ();
+  void declare_compiled_printf (bool print_to_stream, const string& format);
+  const string& get_compiled_printf (bool print_to_stream, const string& format);
 
   // for use by stats (pmap) foreach
   set<string> aggregations_active;
@@ -1044,6 +1051,9 @@ c_unparser::emit_common_header ()
   o->newline() << "#error \"MAXNESTING must be positive\"";
   o->newline() << "#endif";
 
+  // Use a separate union for compiled-printf locals, no nesting required.
+  emit_compiled_printf_locals ();
+
   o->newline(-1) << "};\n";
   o->newline() << "static struct context *contexts[NR_CPUS] = { NULL };\n";
 
@@ -1056,7 +1066,344 @@ c_unparser::emit_common_header ()
   o->newline() << "#include \"time.c\"";  // Don't we all need more?
   o->newline() << "#endif";
 
+  emit_compiled_printfs();
+
   o->newline();
+}
+
+
+void
+c_unparser::declare_compiled_printf (bool print_to_stream, const string& format)
+{
+  pair<bool, string> index (print_to_stream, format);
+  map<pair<bool, string>, string>::iterator it = compiled_printfs.find(index);
+  if (it == compiled_printfs.end())
+    compiled_printfs[index] = (print_to_stream ? "stp_printf_" : "stp_sprintf_")
+      + lex_cast(compiled_printfs.size() + 1);
+}
+
+const string&
+c_unparser::get_compiled_printf (bool print_to_stream, const string& format)
+{
+  map<pair<bool, string>, string>::iterator it =
+    compiled_printfs.find(make_pair(print_to_stream, format));
+  if (it == compiled_printfs.end())
+    throw semantic_error (_("internal error translating printf"));
+  return it->second;
+}
+
+void
+c_unparser::emit_compiled_printf_locals ()
+{
+  o->newline() << "union {";
+  o->indent(1);
+  map<pair<bool, string>, string>::iterator it;
+  for (it = compiled_printfs.begin(); it != compiled_printfs.end(); ++it)
+    {
+      bool print_to_stream = it->first.first;
+      const string& format_string = it->first.second;
+      const string& name = it->second;
+      vector<print_format::format_component> components =
+	print_format::string_to_components(format_string);
+
+      o->newline() << "struct " << name << "_locals {";
+      o->indent(1);
+
+      size_t arg_ix = 0;
+      vector<print_format::format_component>::const_iterator c;
+      for (c = components.begin(); c != components.end(); ++c)
+	{
+	  if (c->type == print_format::conv_literal)
+	    continue;
+
+	  // Take note of the width and precision arguments, if any.
+	  if (c->widthtype == print_format::width_dynamic)
+	    o->newline() << "int64_t arg" << arg_ix++ << ";";
+	  if (c->prectype == print_format::prec_dynamic)
+	    o->newline() << "int64_t arg" << arg_ix++ << ";";
+
+	  // Output the actual argument.
+	  switch (c->type)
+	    {
+	    case print_format::conv_pointer:
+	    case print_format::conv_number:
+	    case print_format::conv_char:
+	    case print_format::conv_memory:
+	    case print_format::conv_memory_hex:
+	    case print_format::conv_binary:
+	      o->newline() << "int64_t arg" << arg_ix++ << ";";
+	      break;
+
+	    case print_format::conv_string:
+	      // NB: Since we know incoming strings are immutable, we can use
+	      // const char* rather than a private char[] copy.  This is a
+	      // special case of the sort of optimizations desired in PR11528.
+	      o->newline() << "const char* arg" << arg_ix++ << ";";
+	      break;
+
+	    default:
+	      assert(false); // XXX
+	      break;
+	    }
+	}
+
+
+      if (!print_to_stream)
+	o->newline() << "char * __retvalue;";
+
+      o->newline(-1) << "} " << name << ";";
+    }
+  o->newline(-1) << "} printf_locals;";
+}
+
+void
+c_unparser::emit_compiled_printfs ()
+{
+  map<pair<bool, string>, string>::iterator it;
+  for (it = compiled_printfs.begin(); it != compiled_printfs.end(); ++it)
+    {
+      bool print_to_stream = it->first.first;
+      const string& format_string = it->first.second;
+      const string& name = it->second;
+      vector<print_format::format_component> components =
+	print_format::string_to_components(format_string);
+
+      o->newline();
+
+      // Might be nice to output the format string in a comment, but we'd have
+      // to be extra careful about format strings not escaping the comment...
+      o->newline() << "static void " << name
+		   << " (struct context* __restrict__ c) {";
+      o->newline(1) << "struct " << name << "_locals * __restrict__ l = "
+		    << "& c->printf_locals." << name << ";";
+      o->newline() << "char *str = NULL, *end = NULL;";
+
+      if (print_to_stream)
+        {
+	  // Compute the buffer size needed for these arguments.
+	  size_t arg_ix = 0;
+	  o->newline() << "{";
+	  o->newline(1) << "int num_bytes = 0;";
+	  vector<print_format::format_component>::const_iterator c;
+	  for (c = components.begin(); c != components.end(); ++c)
+	    {
+	      if (c->type == print_format::conv_literal)
+		{
+		  literal_string ls(c->literal_string);
+		  o->newline() << "num_bytes += sizeof(";
+		  visit_literal_string(&ls);
+		  o->line() << ") - 1;"; // don't count the '\0'
+		  continue;
+		}
+
+	      o->newline() << "{";
+	      o->indent(1);
+
+	      o->newline() << "int width = ";
+	      if (c->widthtype == print_format::width_dynamic)
+		o->line() << "clamp_t(int, l->arg" << arg_ix++
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else if (c->widthtype == print_format::width_static)
+		o->line() << "clamp_t(int, " << c->width
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else
+		o->line() << "-1;";
+
+	      o->newline() << "int precision = ";
+	      if (c->prectype == print_format::prec_dynamic)
+		o->line() << "clamp_t(int, l->arg" << arg_ix++
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else if (c->prectype == print_format::prec_static)
+		o->line() << "clamp_t(int, " << c->precision
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else
+		o->line() << "-1;";
+
+	      string value = "l->arg" + lex_cast(arg_ix++);
+	      switch (c->type)
+		{
+		case print_format::conv_pointer:
+		  // NB: stap < 1.3 had odd %p behavior... see _stp_vsnprintf
+		  if (strverscmp(session->compatible.c_str(), "1.3") < 0)
+		    {
+		      o->newline() << "unsigned long ptr_value = " << value << ";";
+		      o->newline() << "if (width == -1)";
+		      o->newline(1) << "width = 2 + 2 * sizeof(void*);";
+		      o->newline(-1) << "precision = width - 2;";
+		      if (!c->test_flag(print_format::fmt_flag_left))
+			o->newline() << "precision = min_t(int, precision, 2 * sizeof(void*));";
+		      o->newline() << "num_bytes += number_size(ptr_value, "
+			<< c->base << ", width, precision, " << c->flags << ");";
+		      break;
+		    }
+		  // else fall-through to conv_number
+		case print_format::conv_number:
+		  o->newline() << "num_bytes += number_size(" << value << ", "
+			       << c->base << ", width, precision, " << c->flags << ");";
+		  break;
+
+		case print_format::conv_char:
+		  o->newline() << "num_bytes += max(width, 1);";
+		  break;
+
+		case print_format::conv_string:
+		  o->newline() << "num_bytes += _stp_vsprint_memory_size("
+			       << value << ", width, precision, 's', "
+			       << c->flags << ");";
+		  break;
+
+		case print_format::conv_memory:
+		case print_format::conv_memory_hex:
+		  o->newline() << "num_bytes += _stp_vsprint_memory_size("
+			       << "(const char*)(intptr_t)" << value
+			       << ", width, precision, '"
+			       << ((c->type == print_format::conv_memory) ? "m" : "M")
+			       << "', " << c->flags << ");";
+		  break;
+
+		case print_format::conv_binary:
+		  o->newline() << "num_bytes += _stp_vsprint_binary_size("
+			       << value << ", width, precision);";
+		  break;
+
+		default:
+		  assert(false); // XXX
+		  break;
+		}
+
+	      o->newline(-1) << "}";
+	    }
+
+	  o->newline() << "num_bytes = clamp(num_bytes, 0, STP_BUFFER_SIZE);";
+	  o->newline() << "str = (char*)_stp_reserve_bytes(num_bytes);";
+	  o->newline() << "end = str ? str + num_bytes - 1 : 0;";
+	  o->newline(-1) << "}";
+        }
+      else // !print_to_stream
+	{
+	  // String results are a known buffer and size;
+	  o->newline() << "str = l->__retvalue;";
+	  o->newline() << "end = str + MAXSTRINGLEN - 1;";
+	}
+
+      o->newline() << "if (str && str <= end) {";
+      o->indent(1);
+
+      // Generate code to print the actual arguments.
+      size_t arg_ix = 0;
+      vector<print_format::format_component>::const_iterator c;
+      for (c = components.begin(); c != components.end(); ++c)
+	{
+	  if (c->type == print_format::conv_literal)
+	    {
+	      literal_string ls(c->literal_string);
+	      o->newline() << "{";
+	      o->newline(1) << "const char *src = ";
+	      visit_literal_string(&ls);
+	      o->line() << ";";
+	      o->newline() << "while (*src && str <= end)";
+	      o->newline(1) << "*str++ = *src++;";
+	      o->newline(-2) << "}";
+	      continue;
+	    }
+
+	  o->newline() << "{";
+	  o->indent(1);
+
+	  o->newline() << "int width = ";
+	  if (c->widthtype == print_format::width_dynamic)
+	    o->line() << "clamp_t(int, l->arg" << arg_ix++
+		      << ", 0, end - str + 1);";
+	  else if (c->widthtype == print_format::width_static)
+	    o->line() << "clamp_t(int, " << c->width
+		      << ", 0, end - str + 1);";
+	  else
+	    o->line() << "-1;";
+
+	  o->newline() << "int precision = ";
+	  if (c->prectype == print_format::prec_dynamic)
+	    o->line() << "clamp_t(int, l->arg" << arg_ix++
+		      << ", 0, end - str + 1);";
+	  else if (c->prectype == print_format::prec_static)
+	    o->line() << "clamp_t(int, " << c->precision
+		      << ", 0, end - str + 1);";
+	  else
+	    o->line() << "-1;";
+
+	  string value = "l->arg" + lex_cast(arg_ix++);
+	  switch (c->type)
+	    {
+	    case print_format::conv_pointer:
+	      // NB: stap < 1.3 had odd %p behavior... see _stp_vsnprintf
+	      if (strverscmp(session->compatible.c_str(), "1.3") < 0)
+		{
+		  o->newline() << "unsigned long ptr_value = " << value << ";";
+		  o->newline() << "if (width == -1)";
+		  o->newline(1) << "width = 2 + 2 * sizeof(void*);";
+		  o->newline(-1) << "precision = width - 2;";
+		  if (!c->test_flag(print_format::fmt_flag_left))
+		    o->newline() << "precision = min_t(int, precision, 2 * sizeof(void*));";
+		  o->newline() << "str = number(str, end, ptr_value, "
+		    << c->base << ", width, precision, " << c->flags << ");";
+		  break;
+		}
+	      // else fall-through to conv_number
+	    case print_format::conv_number:
+	      o->newline() << "str = number(str, end, " << value << ", "
+			   << c->base << ", width, precision, " << c->flags << ");";
+	      break;
+
+	    case print_format::conv_char:
+	      if (c->test_flag(print_format::fmt_flag_left))
+		o->newline() << "*str++ = " << value << ";";
+	      o->newline() << "while (width-- > 1 && str <= end)";
+	      o->newline(1) << "*str++ = ' ';";
+	      o->indent(-1);
+	      if (!c->test_flag(print_format::fmt_flag_left))
+		o->newline() << "*str++ = " << value << ";";
+	      break;
+
+	    case print_format::conv_string:
+	      o->newline() << "str = _stp_vsprint_memory(str, end, "
+			   << value << ", width, precision, 's', "
+			   << c->flags << ");";
+	      break;
+
+	    case print_format::conv_memory:
+	    case print_format::conv_memory_hex:
+	      o->newline() << "str = _stp_vsprint_memory(str, end, "
+			   << "(const char*)(intptr_t)" << value
+			   << ", width, precision, '"
+			   << ((c->type == print_format::conv_memory) ? "m" : "M")
+			   << "', " << c->flags << ");";
+	      break;
+
+	    case print_format::conv_binary:
+	      o->newline() << "str = _stp_vsprint_binary(str, end, "
+			   << value << ", width, precision, "
+			   << c->flags << ");";
+	      break;
+
+	    default:
+	      assert(false); // XXX
+	      break;
+	    }
+	  o->newline(-1) << "}";
+	}
+
+      if (!print_to_stream)
+	{
+	  o->newline() << "if (str <= end)";
+	  o->newline(1) << "*str = '\\0';";
+	  o->newline(-1) << "else";
+	  o->newline(1) << "*end = '\\0';";
+	  o->indent(-1);
+	}
+
+      o->newline(-1) << "}";
+
+      o->newline(-1) << "}";
+    }
 }
 
 
@@ -4292,6 +4639,82 @@ c_unparser::visit_functioncall (functioncall* e)
                  << ".__retvalue;";
 }
 
+
+static int
+preprocess_print_format(print_format* e, vector<tmpvar>& tmp,
+                        vector<print_format::format_component>& components,
+                        string& format_string)
+{
+  int use_print = 0;
+
+  if (e->print_with_format)
+    {
+      format_string = e->raw_components;
+      components = e->components;
+    }
+  else
+    {
+      string delim;
+      if (e->print_with_delim)
+	{
+	  stringstream escaped_delim;
+	  const string& dstr = e->delimiter.literal_string;
+	  for (string::const_iterator i = dstr.begin();
+	       i != dstr.end(); ++i)
+	    {
+	      if (*i == '%')
+		escaped_delim << '%';
+	      escaped_delim << *i;
+	    }
+	  delim = escaped_delim.str();
+	}
+
+      // Synthesize a print-format string if the user didn't
+      // provide one; the synthetic string simply contains one
+      // directive for each argument.
+      stringstream format;
+      for (unsigned i = 0; i < e->args.size(); ++i)
+	{
+	  if (i > 0 && e->print_with_delim)
+	    format << delim;
+	  switch (e->args[i]->type)
+	    {
+	    default:
+	    case pe_unknown:
+	      throw semantic_error(_("cannot print unknown expression type"), e->args[i]->tok);
+	    case pe_stats:
+	      throw semantic_error(_("cannot print a raw stats object"), e->args[i]->tok);
+	    case pe_long:
+	      format << "%d";
+	      break;
+	    case pe_string:
+	      format << "%s";
+	      break;
+	    }
+	}
+      if (e->print_with_newline)
+	format << "\\n";
+
+      format_string = format.str();
+      components = print_format::string_to_components(format_string);
+    }
+
+
+  if ((tmp.size() == 0 && format_string.find("%%") == string::npos)
+      || (tmp.size() == 1 && format_string == "%s"))
+    use_print = 1;
+  else if (tmp.size() == 1
+	   && e->args[0]->tok->type == tok_string
+	   && format_string == "%s\\n")
+    {
+      use_print = 1;
+      tmp[0].override(tmp[0].value() + "\"\\n\"");
+      components[0].type = print_format::conv_literal;
+    }
+
+  return use_print;
+}
+
 void
 c_tmpcounter::visit_print_format (print_format* e)
 {
@@ -4312,9 +4735,11 @@ c_tmpcounter::visit_print_format (print_format* e)
   else
     {
       // One temporary per argument
+      vector<tmpvar> tmp;
       for (unsigned i=0; i < e->args.size(); i++)
 	{
 	  tmpvar t = parent->gensym (e->args[i]->type);
+	  tmp.push_back(t);
 	  if (e->args[i]->type == pe_unknown)
 	    {
 	      throw semantic_error(_("unknown type of arg to print operator"),
@@ -4332,6 +4757,15 @@ c_tmpcounter::visit_print_format (print_format* e)
       tmpvar res = parent->gensym (ty);
       if (ty == pe_string)
 	res.declare (*parent);
+
+      // Munge so we can find our compiled printf
+      vector<print_format::format_component> components;
+      string format_string;
+      int use_print = preprocess_print_format(e, tmp, components, format_string);
+
+      // If not in a shortcut case, declare the compiled printf
+      if (!(e->print_to_stream && (e->print_char || use_print)))
+	parent->declare_compiled_printf(e->print_to_stream, format_string);
     }
 }
 
@@ -4409,68 +4843,14 @@ c_unparser::visit_print_format (print_format* e)
 		      "print format actual argument evaluation");
 	}
 
-      std::vector<print_format::format_component> components;
-
-      if (e->print_with_format)
-	{
-	  components = e->components;
-	}
-      else
-	{
-	  // Synthesize a print-format string if the user didn't
-	  // provide one; the synthetic string simply contains one
-	  // directive for each argument.
-	  for (unsigned i = 0; i < e->args.size(); ++i)
-	    {
-	      if (i > 0 && e->print_with_delim)
-		components.push_back (e->delimiter);
-	      print_format::format_component curr;
-	      curr.clear();
-	      switch (e->args[i]->type)
-		{
-		case pe_unknown:
-		  throw semantic_error(_("cannot print unknown expression type"), e->args[i]->tok);
-		case pe_stats:
-		  throw semantic_error(_("cannot print a raw stats object"), e->args[i]->tok);
-		case pe_long:
-		  curr.type = print_format::conv_number;
-		  curr.base = 10;
-		  curr.set_flag (print_format::fmt_flag_sign);
-		  break;
-		case pe_string:
-		  curr.type = print_format::conv_string;
-		  break;
-		}
-	      components.push_back (curr);
-	    }
-
-	  if (e->print_with_newline)
-	    {
-	      print_format::format_component curr;
-	      curr.clear();
-	      curr.type = print_format::conv_literal;
-	      curr.literal_string = "\\n";
-	      components.push_back (curr);
-	    }
-	}
-
       // Allocate the result
       exp_type ty = e->print_to_stream ? pe_long : pe_string;
       tmpvar res = gensym (ty);
-      int use_print = 0;
 
-      string format_string = print_format::components_to_string(components);
-      if ((tmp.size() == 0 && format_string.find("%%") == std::string::npos)
-          || (tmp.size() == 1 && format_string == "%s"))
-	use_print = 1;
-      else if (tmp.size() == 1
-	       && e->args[0]->tok->type == tok_string
-	       && format_string == "%s\\n")
-	{
-	  use_print = 1;
-	  tmp[0].override(tmp[0].value() + "\"\\n\"");
-	  components[0].type = print_format::conv_literal;
-	}
+      // Munge so we can find our compiled printf
+      vector<print_format::format_component> components;
+      string format_string;
+      int use_print = preprocess_print_format(e, tmp, components, format_string);
 
       // Make the [s]printf call...
 
@@ -4549,246 +4929,20 @@ c_unparser::visit_print_format (print_format* e)
 	    }
 	}
 
-      o->newline() << "{";
-      o->newline(1) << "char *str = NULL, *end = NULL;";
-
+      // Copy all arguments to the compiled-printf's space, then call it
+      const string& compiled_printf =
+	get_compiled_printf (e->print_to_stream, format_string);
+      for (unsigned i = 0; i < tmp.size(); ++i)
+	o->newline() << "c->printf_locals." << compiled_printf
+		     << ".arg" << i << " = " << tmp[i].value() << ";";
       if (e->print_to_stream)
-        {
-	  // We'll just hardcode the result of 0 instead of using the
-	  // temporary.
-	  res.override("((int64_t)0LL)");
-
-	  // Compute the buffer size needed for these arguments.
-	  arg_ix = 0;
-	  o->newline() << "{";
-	  o->newline(1) << "int num_bytes = 0;";
-	  vector<print_format::format_component>::const_iterator c;
-	  for (c = components.begin(); c != components.end(); ++c)
-	    {
-	      if (c->type == print_format::conv_literal)
-		{
-		  literal_string ls(c->literal_string);
-		  o->newline() << "num_bytes += sizeof(";
-		  visit_literal_string(&ls);
-		  o->line() << ") - 1;"; // don't count the '\0'
-		  continue;
-		}
-
-	      o->newline() << "{";
-	      o->indent(1);
-
-	      o->newline() << "int width = ";
-	      if (c->widthtype == print_format::width_dynamic
-		  && arg_ix < tmp.size())
-		o->line() << "clamp_t(int, " << tmp[arg_ix++].value()
-		          << ", 0, STP_BUFFER_SIZE);";
-	      else if (c->widthtype == print_format::width_static)
-		o->line() << "clamp_t(int, " << c->width
-		          << ", 0, STP_BUFFER_SIZE);";
-	      else
-		o->line() << "-1;";
-
-	      o->newline() << "int precision = ";
-	      if (c->prectype == print_format::prec_dynamic && arg_ix < tmp.size())
-		o->line() << "clamp_t(int, " << tmp[arg_ix++].value()
-		          << ", 0, STP_BUFFER_SIZE);";
-	      else if (c->prectype == print_format::prec_static)
-		o->line() << "clamp_t(int, " << c->precision
-		          << ", 0, STP_BUFFER_SIZE);";
-	      else
-		o->line() << "-1;";
-
-	      assert (arg_ix < tmp.size()); // XXX
-
-	      switch (c->type)
-		{
-		case print_format::conv_pointer:
-		  // NB: stap < 1.3 had odd %p behavior... see _stp_vsnprintf
-		  if (strverscmp(session->compatible.c_str(), "1.3") < 0)
-		    {
-		      o->newline() << "unsigned long ptr_value = "
-			<< tmp[arg_ix++].value() << ";";
-		      o->newline() << "if (width == -1)";
-		      o->newline(1) << "width = 2 + 2 * sizeof(void*);";
-		      o->newline(-1) << "precision = width - 2;";
-		      if (!c->test_flag(print_format::fmt_flag_left))
-			o->newline() << "precision = min_t(int, precision, 2 * sizeof(void*));";
-		      o->newline() << "num_bytes += number_size(ptr_value, "
-			<< c->base << ", width, precision, " << c->flags << ");";
-		      break;
-		    }
-		  // else fall-through to conv_number
-		case print_format::conv_number:
-		  o->newline() << "num_bytes += number_size("
-		    << tmp[arg_ix++].value() << ", " << c->base
-		    << ", width, precision, " << c->flags << ");";
-		  break;
-
-		case print_format::conv_char:
-		  o->newline() << "num_bytes += max(width, 1);";
-		  break;
-
-		case print_format::conv_string:
-		  o->newline() << "num_bytes += _stp_vsprint_memory_size("
-		    << tmp[arg_ix++].value() << ", width, precision, 's', "
-		    << c->flags << ");";
-		  break;
-
-		case print_format::conv_memory:
-		case print_format::conv_memory_hex:
-		  o->newline() << "num_bytes += _stp_vsprint_memory_size("
-		    << "(const char*)(intptr_t)" << tmp[arg_ix++].value()
-		    << ", width, precision, '"
-		    << ((c->type == print_format::conv_memory) ? "m" : "M")
-		    << "', " << c->flags << ");";
-		  break;
-
-		case print_format::conv_binary:
-		  o->newline() << "num_bytes += _stp_vsprint_binary_size("
-		    << tmp[arg_ix++].value() << ", width, precision);";
-		  break;
-
-		default:
-		  assert(false); // XXX
-		  break;
-		}
-
-	      o->newline(-1) << "}";
-	    }
-
-	  o->newline() << "num_bytes = clamp(num_bytes, 0, STP_BUFFER_SIZE);";
-	  o->newline() << "str = (char*)_stp_reserve_bytes(num_bytes);";
-	  o->newline() << "end = str ? str + num_bytes - 1 : 0;";
-	  o->newline(-1) << "}";
-        }
-      else // !e->print_to_stream
-	{
-	  // String results are a known buffer and size;
-	  o->newline() << "str = " << res.value() << ";";
-	  o->newline() << "end = str + MAXSTRINGLEN - 1;";
-	}
-
-      o->newline() << "if (str && str <= end) {";
-      o->indent(1);
-
-      // Generate code to print the actual arguments.
-      arg_ix = 0;
-      vector<print_format::format_component>::const_iterator c;
-      for (c = components.begin(); c != components.end(); ++c)
-	{
-	  if (c->type == print_format::conv_literal)
-	    {
-	      literal_string ls(c->literal_string);
-	      o->newline() << "{";
-	      o->newline(1) << "const char *src = ";
-	      visit_literal_string(&ls);
-	      o->line() << ";";
-	      o->newline() << "while (*src && str <= end)";
-	      o->newline(1) << "*str++ = *src++;";
-	      o->newline(-2) << "}";
-	      continue;
-	    }
-
-	  o->newline() << "{";
-	  o->indent(1);
-
-	  o->newline() << "int width = ";
-	  if (c->widthtype == print_format::width_dynamic
-	      && arg_ix < tmp.size())
-	    o->line() << "clamp_t(int, " << tmp[arg_ix++].value()
-		      << ", 0, end - str + 1);";
-	  else if (c->widthtype == print_format::width_static)
-	    o->line() << "clamp_t(int, " << c->width
-		      << ", 0, end - str + 1);";
-	  else
-	    o->line() << "-1;";
-
-	  o->newline() << "int precision = ";
-	  if (c->prectype == print_format::prec_dynamic && arg_ix < tmp.size())
-	    o->line() << "clamp_t(int, " << tmp[arg_ix++].value()
-		      << ", 0, end - str + 1);";
-	  else if (c->prectype == print_format::prec_static)
-	    o->line() << "clamp_t(int, " << c->precision
-		      << ", 0, end - str + 1);";
-	  else
-	    o->line() << "-1;";
-
-	  assert (arg_ix < tmp.size()); // XXX
-
-	  switch (c->type)
-	    {
-	    case print_format::conv_pointer:
-	      // NB: stap < 1.3 had odd %p behavior... see _stp_vsnprintf
-	      if (strverscmp(session->compatible.c_str(), "1.3") < 0)
-		{
-		  o->newline() << "unsigned long ptr_value = "
-		    << tmp[arg_ix++].value() << ";";
-		  o->newline() << "if (width == -1)";
-		  o->newline(1) << "width = 2 + 2 * sizeof(void*);";
-		  o->newline(-1) << "precision = width - 2;";
-		  if (!c->test_flag(print_format::fmt_flag_left))
-		    o->newline() << "precision = min_t(int, precision, 2 * sizeof(void*));";
-		  o->newline() << "str = number(str, end, ptr_value, "
-		    << c->base << ", width, precision, " << c->flags << ");";
-		  break;
-		}
-	      // else fall-through to conv_number
-	    case print_format::conv_number:
-	      o->newline() << "str = number(str, end, "
-		<< tmp[arg_ix++].value() << ", " << c->base
-		<< ", width, precision, " << c->flags << ");";
-	      break;
-
-	    case print_format::conv_char:
-	      if (c->test_flag(print_format::fmt_flag_left))
-		o->newline() << "*str++ = " << tmp[arg_ix++].value() << ";";
-	      o->newline() << "while (width-- > 1 && str <= end)";
-	      o->newline(1) << "*str++ = ' ';";
-	      o->indent(-1);
-	      if (!c->test_flag(print_format::fmt_flag_left))
-		o->newline() << "*str++ = " << tmp[arg_ix++].value() << ";";
-	      break;
-
-	    case print_format::conv_string:
-	      o->newline() << "str = _stp_vsprint_memory(str, end, "
-		<< tmp[arg_ix++].value() << ", width, precision, 's', "
-		<< c->flags << ");";
-	      break;
-
-	    case print_format::conv_memory:
-	    case print_format::conv_memory_hex:
-	      o->newline() << "str = _stp_vsprint_memory(str, end, "
-		<< "(const char*)(intptr_t)" << tmp[arg_ix++].value()
-		<< ", width, precision, '"
-		<< ((c->type == print_format::conv_memory) ? "m" : "M")
-		<< "', " << c->flags << ");";
-	      break;
-
-	    case print_format::conv_binary:
-	      o->newline() << "str = _stp_vsprint_binary(str, end, "
-		<< tmp[arg_ix++].value() << ", width, precision, "
-		<< c->flags << ");";
-	      break;
-
-	    default:
-	      assert(false); // XXX
-	      break;
-	    }
-	  o->newline(-1) << "}";
-	}
-
-      if (!e->print_to_stream)
-	{
-	  o->newline() << "if (str <= end)";
-	  o->newline(1) << "*str = '\\0';";
-	  o->newline(-1) << "else";
-	  o->newline(1) << "*end = '\\0';";
-	  o->indent(-1);
-	}
-
-      o->newline(-1) << "}";
-
-      o->newline(-1) << "}";
+	// We'll just hardcode the result of 0 instead of using the
+	// temporary.
+	res.override("((int64_t)0LL)");
+      else
+	o->newline() << "c->printf_locals." << compiled_printf
+		     << ".__retvalue = " << res.value() << ";";
+      o->newline() << compiled_printf << " (c);";
       o->newline() << res.value() << ";";
     }
 }
