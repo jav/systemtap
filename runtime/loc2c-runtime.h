@@ -393,7 +393,7 @@ static void ursl_store64 (const struct usr_regset_lut* lut,unsigned lutsize,  in
 #undef pt_regs_fetch_register
 #undef pt_regs_store_register
 
-#define pt_regs_fetch_register(pt_regs,(regno) \
+#define pt_regs_fetch_register(pt_regs,regno)	\
   ia64_fetch_register(regno, pt_regs, &c->unwaddr)
 #define pt_regs_store_register(pt_regs,regno,value) \
   ia64_store_register(regno, pt_regs, value)
