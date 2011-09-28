@@ -98,7 +98,9 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 		break;
 
 	default:
-		errk("invalid command type %d\n", type);
+#ifdef DEBUG_TRANS
+		dbug_trans2("invalid command type %d\n", type);
+#endif
 		return -EINVAL;
 	}
 
