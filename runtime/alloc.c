@@ -246,7 +246,7 @@ static void _stp_mem_debug_validate(void *addr)
 #endif
 #endif
 
-static void *_stp_kmalloc(size_t size)
+static void *_stp_kmalloc_gfp(size_t size, gfp_t gfp_mask)
 {
 	void *ret;
 #ifdef STP_MAXMEMORY
@@ -256,13 +256,13 @@ static void *_stp_kmalloc(size_t size)
 	}
 #endif
 #ifdef DEBUG_MEM
-	ret = kmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
+	ret = kmalloc(size + MEM_DEBUG_SIZE, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 	}
 #else
-	ret = kmalloc(size, STP_ALLOC_FLAGS);
+	ret = kmalloc(size, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 	}
@@ -270,7 +270,12 @@ static void *_stp_kmalloc(size_t size)
 	return ret;
 }
 
-static void *_stp_kzalloc(size_t size)
+static void *_stp_kmalloc(size_t size)
+{
+	return _stp_kmalloc_gfp(size, STP_ALLOC_FLAGS);
+}
+
+static void *_stp_kzalloc_gfp(size_t size, gfp_t gfp_mask)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
 {
 	void *ret;
@@ -281,14 +286,14 @@ static void *_stp_kzalloc(size_t size)
 	}
 #endif
 #ifdef DEBUG_MEM
-	ret = kmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
+	ret = kmalloc(size + MEM_DEBUG_SIZE, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 		memset (ret, 0, size);
 	}
 #else
-	ret = kmalloc(size, STP_ALLOC_FLAGS);
+	ret = kmalloc(size, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 		memset (ret, 0, size);
@@ -306,13 +311,13 @@ static void *_stp_kzalloc(size_t size)
 	}
 #endif
 #ifdef DEBUG_MEM
-	ret = kzalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
+	ret = kzalloc(size + MEM_DEBUG_SIZE, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 	}
 #else
-	ret = kzalloc(size, STP_ALLOC_FLAGS);
+	ret = kzalloc(size, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 	}
@@ -321,12 +326,18 @@ static void *_stp_kzalloc(size_t size)
 }
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15) */
 
+static void *_stp_kzalloc(size_t size)
+{
+  return _stp_kzalloc_gfp(size, STP_ALLOC_FLAGS);
+}
+
 #ifdef PCPU_MIN_UNIT_SIZE
 #define _STP_MAX_PERCPU_SIZE PCPU_MIN_UNIT_SIZE
 #else
 #define _STP_MAX_PERCPU_SIZE 131072
 #endif
 
+/* Note, calls __alloc_percpu which may sleep and always uses GFP_KERNEL. */
 static void *_stp_alloc_percpu(size_t size)
 {
 	void *ret;
@@ -349,7 +360,7 @@ static void *_stp_alloc_percpu(size_t size)
 #endif
 #ifdef DEBUG_MEM
 	if (likely(ret)) {
-		struct _stp_mem_entry *m = kmalloc(sizeof(struct _stp_mem_entry), STP_ALLOC_FLAGS);
+		struct _stp_mem_entry *m = kmalloc(sizeof(struct _stp_mem_entry), GFP_KERNEL);
 		if (unlikely(m == NULL)) {
 			free_percpu(ret);
 			return NULL;
@@ -367,8 +378,9 @@ static void *_stp_alloc_percpu(size_t size)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,12)
 #define _stp_kmalloc_node(size,node) _stp_kmalloc(size)
+#define _stp_kmalloc_node_gfp(size,node,gfp) _stp_kmalloc_gfp(size,gfp)
 #else
-static void *_stp_kmalloc_node(size_t size, int node)
+static void *_stp_kmalloc_node_gfp(size_t size, int node, gfp_t gfp_mask)
 {
 	void *ret;
 #ifdef STP_MAXMEMORY
@@ -378,18 +390,22 @@ static void *_stp_kmalloc_node(size_t size, int node)
 	}
 #endif
 #ifdef DEBUG_MEM
-	ret = kmalloc_node(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS, node);
+	ret = kmalloc_node(size + MEM_DEBUG_SIZE, gfp_mask, node);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 	}
 #else
-	ret = kmalloc_node(size, STP_ALLOC_FLAGS, node);
+	ret = kmalloc_node(size, gfp_mask, node);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 	}
 #endif
 	return ret;
+}
+static void *_stp_kmalloc_node(size_t size, int node)
+{
+	return _stp_kmalloc_node_gfp(size, node, STP_ALLOC_FLAGS);
 }
 #endif /* LINUX_VERSION_CODE */
 
