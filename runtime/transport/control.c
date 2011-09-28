@@ -33,6 +33,12 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 	u32 type;
 	static int started = 0;
 
+#ifdef STAPCONF_TASK_UID
+	uid_t euid = current->euid;
+#else
+	uid_t euid = current_euid();
+#endif
+
 	if (count < sizeof(u32))
 		return 0;
 
@@ -70,12 +76,16 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 		return -EINVAL;
 #endif
 	case STP_RELOCATION:
+		if (euid != 0)
+			return -EPERM;
           	_stp_do_relocation (buf, count);
           	break;
 
         case STP_TZINFO:
         {
                 struct _stp_msg_tzinfo tzi;
+		if (euid != 0)
+			return -EPERM;
                 if (count < sizeof(tzi))
                         return 0;
                 if (copy_from_user(&tzi, buf, sizeof(tzi)))
