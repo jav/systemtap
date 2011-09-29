@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * x86_64 dwarf unwinder header file
- * Copyright (C) 2008, 2010 Red Hat Inc.
+ * Copyright (C) 2008, 2010, 2011 Red Hat Inc.
  * Copyright (C) 2002-2006 Novell, Inc.
  * 
  * This file is part of systemtap, and is free software.  You can
@@ -23,7 +23,6 @@
 
 /* these are simple for x86_64 */
 #define _stp_get_unaligned(ptr) (*(ptr))
-#define _stp_put_unaligned(val, ptr) ((void)( *(ptr) = (val) ))
 
 #ifdef STAPCONF_X86_UNIREGS
 #define UNW_PC(frame)        (frame)->regs.ip

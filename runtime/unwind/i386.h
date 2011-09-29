@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * 32-bit x86 dwarf unwinder header file
- * Copyright (C) 2008, 2010 Red Hat Inc.
+ * Copyright (C) 2008, 2010, 2011 Red Hat Inc.
  * Copyright (C) 2002-2006 Novell, Inc.
  * 
  * This file is part of systemtap, and is free software.  You can
@@ -19,7 +19,6 @@
 
 /* these are simple for i386 */
 #define _stp_get_unaligned(ptr) (*(ptr))
-#define _stp_put_unaligned(val, ptr) ((void)( *(ptr) = (val) ))
 
 #define STACK_LIMIT(ptr)     (((ptr) - 1) & ~(THREAD_SIZE - 1))
 
