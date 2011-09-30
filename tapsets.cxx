@@ -9088,7 +9088,7 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
 
   string tracequery_ko;
   int rc = make_tracequery(s, tracequery_ko, short_decls);
-  if (rc != 0)
+  if (rc != 0 || ! file_exists(tracequery_ko))
     tracequery_ko = "/dev/null";
 
   // try to save tracequery in the cache
