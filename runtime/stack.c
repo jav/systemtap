@@ -57,9 +57,11 @@ struct uretprobe_instance;
 
 static void _stp_stack_print_fallback(unsigned long, int, int, int);
 
-#if (defined(__i386__) || defined(__x86_64__))
-#include "stack-x86.c"
-#elif defined (__ia64__)
+#ifdef STP_USE_DWARF_UNWINDER
+#include "stack-dwarf.c"
+#endif
+
+#if defined (__ia64__)
 #include "stack-ia64.c"
 #elif defined (__powerpc__)
 #include "stack-ppc.c"
@@ -68,7 +70,9 @@ static void _stp_stack_print_fallback(unsigned long, int, int, int);
 #elif defined (__s390__) || defined (__s390x__)
 #include "stack-s390.c"
 #else
+#ifndef STP_USE_DWARF_UNWINDER
 #error "Unsupported architecture"
+#endif
 #endif
 
 #if defined(STAPCONF_KERNEL_STACKTRACE)
@@ -320,9 +324,12 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 		c->uregs = NULL;
 		c->probe_flags &= ~_STP_PROBE_STATE_FULL_UREGS;
 	}
-#endif
+	__stp_dwarf_stack_print(regs, sym_flags, MAXBACKTRACE, tsk,
+				&c->uwcontext, ri, uregs_valid);
+#else
 	__stp_stack_print(regs, sym_flags, MAXBACKTRACE, tsk,
 			  &c->uwcontext, ri, uregs_valid);
+#endif
 }
 
 /** Writes stack backtrace to a string
