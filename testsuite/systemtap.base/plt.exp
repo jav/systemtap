@@ -35,19 +35,24 @@ if {![regexp "^(x86_64|i.86)$" $::tcl_platform(machine)]} {
 set stap_path $env(SYSTEMTAP_PATH)/stap
 
 set exepath "./plt.x"
-set sopath "./libplt.so"
 
 set F additional_flags
-set flags "$F=-I. $F=-shared $F=-fPIC $F=-DNO_MAIN $F=-g"
-set res [target_compile $srcdir/$subdir/plt.c $sopath executable $flags ]
+set flags "$F=-I. $F=-shared $F=-fPIC $F=-DLIBPLT1 $F=-g"
+set res [target_compile $srcdir/$subdir/plt.c ./libplt1.so executable $flags ]
 if { [error_handler [expr {$res == ""}] "target_compile" ""] } { return }
 
-set flags "$F=-Wl,-rpath,[pwd] $F=-L[pwd] $F=-lplt $F=-DONLY_MAIN $F=-g"
+set flags "$F=-I. $F=-shared $F=-fPIC $F=-DLIBPLT2 $F=-g"
+set res [target_compile $srcdir/$subdir/plt.c ./libplt2.so executable $flags ]
+if { [error_handler [expr {$res == ""}] "target_compile" ""] } { return }
+
+set flags "$F=-Wl,-rpath,[pwd] $F=-L[pwd] $F=-lplt1 $F=-lplt2 $F=-DONLY_MAIN $F=-g"
 set res [target_compile $srcdir/$subdir/plt.c $exepath executable $flags ]
 if { [error_handler [expr {$res == ""}] "target_compile" ""] } { return }
 
+# test process.plt
+
 set ok 0
-spawn $stap_path -c $exepath $srcdir/$subdir/plt.stp -e "global calls probe process(\"./plt.x\").plt {calls\[\$\$name\] += 1} probe process(\"./libplt.so\").plt {calls\[\$\$name\] += 1} probe end {foreach (x in calls) printf (\"%s %d\\n\", x, calls\[x\])}"
+spawn $stap_path -c $exepath -e "global calls probe process(\"./plt.x\").plt {calls\[\$\$name\] += 1} probe process(\"./libplt1.so\").plt {calls\[\$\$name\] += 1} probe process(\"./libplt2.so\").plt {calls\[\$\$name\] += 1} probe end {foreach (x in calls) printf (\"%s %d\\n\", x, calls\[x\])}"
 
 expect {
     -timeout 180
@@ -89,10 +94,59 @@ expect {
 
 catch { close}; catch { wait}
 
-error_handler [expr {$ok == 32}] "plt" "($ok != 32)"
+error_handler [expr {$ok == 31}] "plt" "($ok != 31)"
+
+# test process.library.plt
 
 set ok 0
-spawn $stap_path -c $exepath $srcdir/$subdir/plt.stp -e "global calls probe process(\"./libplt.so\").plt(\"strcmp\") {calls\[\$\$name\] += 1} probe end {foreach (x in calls) printf (\"%s %d\\n\", x, calls\[x\])}"
+spawn $stap_path -c $exepath -e "global calls probe process(\"./plt.x\").plt {calls\[\$\$name\] += 1} probe process(\"./plt.x\").library(\"*\").plt {calls\[\$\$name\] += 1} probe end {foreach (x in calls) printf (\"%s %d\\n\", x, calls\[x\])}"
+
+expect {
+    -timeout 180
+    -re {__libc_start_main 1\r\n} { incr ok; exp_continue }
+    -re {xmalloc 2\r\n} { incr ok; exp_continue }
+    -re {malloc 3\r\n} { incr ok; exp_continue }
+    -re {savestring 1\r\n} { incr ok; exp_continue }
+    -re {memcpy 1\r\n} { incr ok; exp_continue }
+    -re {open2 1\r\n} { incr ok; exp_continue }
+    -re {stpcpy 2\r\n} { incr ok; exp_continue }
+    -re {strcpy 2\r\n} { incr ok; exp_continue }
+    -re {open 2\r\n} { incr ok; exp_continue }
+    -re {open3 1\r\n} { incr ok; exp_continue }
+    -re {free 4\r\n} { incr ok; exp_continue }
+    -re {basename2 1\r\n} { incr ok; exp_continue }
+    -re {__xpg_basename 1\r\n} { incr ok; exp_continue }
+    -re {critters 1\r\n} { incr ok; exp_continue }
+    -re {print_critter 32\r\n} { incr ok; exp_continue }
+    -re {printf 36\r\n} { incr ok; exp_continue }
+    -re {putchar 2\r\n} { incr ok; exp_continue }
+    -re {qsort 1\r\n} { incr ok; exp_continue }
+    -re {strcmp 51\r\n} { incr ok; exp_continue }
+    -re {find_critter 3\r\n} { incr ok; exp_continue }
+    -re {bsearch 3\r\n} { incr ok; exp_continue }
+    -re {widgets 1\r\n} { incr ok; exp_continue }
+    -re {register_printf_specifier 1\r\n} { incr ok; exp_continue }
+    -re {asprintf 3\r\n} { incr ok; exp_continue }
+    -re {fprintf 3\r\n} { incr ok; exp_continue }
+    -re {datetime 1\r\n} { incr ok; exp_continue }
+    -re {time 1\r\n} { incr ok; exp_continue }
+    -re {localtime 1\r\n} { incr ok; exp_continue }
+    -re {asctime 1\r\n} { incr ok; exp_continue }
+    -re {fputs 3\r\n} { incr ok; exp_continue }
+    -re {strftime 2\r\n} { incr ok; exp_continue }
+    -re {__cxa_finalize 1\r\n} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof {  }
+}
+
+catch { close}; catch { wait}
+
+error_handler [expr {$ok == 31}] "plt" "($ok != 31)"
+
+# test process.plt("glob")
+
+set ok 0
+spawn $stap_path -c $exepath -e "global calls probe process(\"./libplt2.so\").plt(\"strcmp\") {calls\[\$\$name\] += 1} probe end {foreach (x in calls) printf (\"%s %d\\n\", x, calls\[x\])}"
 
 expect {
     -timeout 180

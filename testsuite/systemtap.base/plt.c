@@ -11,7 +11,7 @@
 
 /* Examples from libc.info */
 
-#ifndef ONLY_MAIN
+#if defined (LIBPLT2) || defined (NOLIBPLT)
 void *
 fatal (const char *ptr)
 {
@@ -245,7 +245,7 @@ datetime (void)
 #endif
 
 
-#ifndef NO_MAIN
+#if defined (LIBPLT1) || defined (NOLIBPLT)
 void
 zenme ()
 {
@@ -258,7 +258,9 @@ zenme ()
   widgets();
   datetime();
 }
+#endif
 
+#if defined (NOLIBPLT) || defined (ONLY_MAIN)
 int
 main ()
 {

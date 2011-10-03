@@ -343,6 +343,7 @@ symbol_table
   func_info *lookup_symbol(const string& name);
   Dwarf_Addr lookup_symbol_address(const string& name);
   func_info *get_func_containing_address(Dwarf_Addr addr);
+  func_info *get_first_func();
 
   symbol_table(module_info *mi) : mod_info(mi) {}
   ~symbol_table();
@@ -921,17 +922,21 @@ dwarf_query::query_module_symtab()
       // Find the "function" in which the indicated address resides.
       Dwarf_Addr addr =
       		(has_function_num ? function_num_val : statement_num_val);
-      fi = sym_table->get_func_containing_address(addr);
-      // Use the raw address from the .plt
       if (has_plt)
-	fi->addr = addr;
-      
+        {
+          // Use the raw address from the .plt
+          fi = sym_table->get_first_func();
+          fi->addr = addr;
+        }
+      else
+        fi = sym_table->get_func_containing_address(addr);
+
       if (!fi)
         {
-	  if (! sess.suppress_warnings)
-            cerr << _F("Warning: address %#" PRIx64 " out of range for module %s",
-                       addr, dw.module_name.c_str());
-          return;
+          if (! sess.suppress_warnings)
+                cerr << _F("Warning: address %#" PRIx64 " out of range for module %s\n",
+                    addr, dw.module_name.c_str());
+              return;
         }
       if (!null_die(&fi->die))
         {
@@ -940,7 +945,7 @@ dwarf_query::query_module_symtab()
           // match addr to any compilation unit, so addr must be
           // above that cu's address range.
 	  if (! sess.suppress_warnings)
-            cerr << _F("Warning: address %#" PRIx64 " maps to no known compilation unit in module %s",
+            cerr << _F("Warning: address %#" PRIx64 " maps to no known compilation unit in module %s\n",
                        addr, dw.module_name.c_str());
           return;
         }
@@ -1114,6 +1119,7 @@ dwarf_query::add_probe_point(const string& dw_funcname,
     reloc_addr = dw.relocate_address(addr, reloc_section);
   else
     {
+      // Set the reloc_section but use the plt entry for reloc_addr
       dw.relocate_address(addr, reloc_section);
       reloc_addr = addr;
     }
@@ -2084,11 +2090,11 @@ query_one_plt (const char *entry, long addr, dwflpp & dw,
       for (it = specific_loc->components.begin();
           it != specific_loc->components.end(); ++it)
         if ((*it)->functor == TOK_PLT)
-	  {
-	    derived_comps.push_back(*it);
-	    derived_comps.push_back(new probe_point::component(TOK_STATEMENT,
-							       new literal_number(addr)));
-	  }
+          {
+            derived_comps.push_back(*it);
+            derived_comps.push_back(new probe_point::component(TOK_STATEMENT,
+                new literal_number(addr)));
+          }
         else
           derived_comps.push_back(*it);
       probe_point* derived_loc = new probe_point(*specific_loc);
@@ -4381,12 +4387,24 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)
     ->bind_unprivileged()
     ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind(TOK_PLT)
+    ->bind_unprivileged()
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PLT)
+    ->bind_unprivileged()
+    ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
     ->bind_unprivileged()
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
     ->bind_unprivileged()
     ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
+        ->bind_unprivileged()
+        ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
+        ->bind_unprivileged()
+        ->bind(dw);
 }
 
 void
@@ -6670,7 +6688,7 @@ symbol_table::read_symbols(FILE *f, const string& path)
       line++;
       if (ret < 3)
         {
-          cerr << _F("Symbol table error: Line %d of symbol list from %s is not in correct format: address type name [module]",
+          cerr << _F("Symbol table error: Line %d of symbol list from %s is not in correct format: address type name [module]\n",
                      line, path.c_str());
           // Caller should delete symbol_table object.
           return info_absent;
@@ -6687,7 +6705,7 @@ symbol_table::read_symbols(FILE *f, const string& path)
 
   if (map_by_addr.size() < 1)
     {
-      cerr << _F("Symbol table error: %s contains no function symbols.",
+      cerr << _F("Symbol table error: %s contains no function symbols.\n",
                  path.c_str()) << endl;
       return info_absent;
     }
@@ -6713,7 +6731,7 @@ symbol_table::read_from_elf_file(const string &path,
   if (child <= 0 || !(f = fdopen(child_fd, "r")))
     {
       // nm failures are detected by stap_waitpid
-      cerr << _F("Internal error reading symbol table from %s -- %s",
+      cerr << _F("Internal error reading symbol table from %s -- %s\n",
                  path.c_str(), strerror(errno));
       return info_absent;
     }
@@ -6721,7 +6739,7 @@ symbol_table::read_from_elf_file(const string &path,
   if (fclose(f) || stap_waitpid(sess.verbose, child))
     {
       if (status == info_present && ! sess.suppress_warnings)
-        cerr << _F("Warning: nm cannot read symbol table from %s", path.c_str());
+        cerr << _F("Warning: nm cannot read symbol table from %s\n", path.c_str());
       return info_absent;
     }
   return status;
@@ -6735,7 +6753,7 @@ symbol_table::read_from_text_file(const string& path,
   if (!f)
     {
       if (! sess.suppress_warnings)
-        cerr << _F("Warning: cannot read symbol table from %s -- %s",
+        cerr << _F("Warning: cannot read symbol table from %s -- %s\n",
                    path.c_str(), strerror(errno));
       return info_absent;
     }
@@ -6824,6 +6842,13 @@ symbol_table::get_func_containing_address(Dwarf_Addr addr)
 }
 
 func_info *
+symbol_table::get_first_func()
+{
+  iterator_t iter = map_by_addr.begin();
+  return (iter)->second;
+}
+
+func_info *
 symbol_table::lookup_symbol(const string& name)
 {
   map<string, func_info*>::iterator i = map_by_name.find(name);
@@ -6885,7 +6910,7 @@ module_info::get_symtab(dwarf_query *q)
     {
       if (name == TOK_KERNEL && !sess.kernel_symtab_path.empty()
 	  && ! sess.suppress_warnings)
-        cerr << _F("Warning: reading symbol table from %s -- ignoring %s",
+        cerr << _F("Warning: reading symbol table from %s -- ignoring %s\n",
                    elf_path.c_str(), sess.kernel_symtab_path.c_str()) << endl;
       symtab_status = sym_table->get_from_elf();
     }
@@ -6895,7 +6920,7 @@ module_info::get_symtab(dwarf_query *q)
       if (sess.kernel_symtab_path.empty())
         {
           symtab_status = info_absent;
-          cerr << _("Error: Cannot find vmlinux."
+          cerr << _("Error: Cannot find vmlinux.\n"
                   "  Consider using --kmap instead of --kelf.")
                << endl;;
         }
