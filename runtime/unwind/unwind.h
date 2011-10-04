@@ -58,6 +58,14 @@ static const struct {
 #undef PTREGS_INFO
 #undef EXTRA_INFO
 
+/* The reg_info array assumes dwarf register numbers start at zero and
+   are consecutive.  If that isn't the case for some architecture (e.g. ppc)
+   then redefine to map the given dwarf register number to the actual
+   reg_info index.  */
+#ifndef DWARF_REG_MAP
+#define DWARF_REG_MAP(r) r
+#endif
+
 #ifndef REG_INVALID
 #define REG_INVALID(r) (reg_info[r].width == 0)
 #endif
