@@ -1,5 +1,9 @@
 * What's new in version 1.7
 
+- process("...").library("...").plt("...") probes are now supported.  Wildcards
+  are supported in the plt-name part, to refer to any function in the program
+  linkage table which matches the glob pattern and the rest of the probe point.
+
 - A new option, --dump-probe-types, will dump a list of supported probe types.
   If --unprivileged is also specified, the list will be limited to probe types
   which are available to unprivileged users.

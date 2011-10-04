@@ -1144,6 +1144,17 @@ probe process("...").library("...").function("....") { ... }
 \end{vindent}
 The library name may use wildcards.
 
+The first syntax in the following will probe the functions in the program
+linkage table of a particular process.  The second syntax will also add the
+program linkage tables of libraries required by that process.  .plt("...") can
+be specified to match particular plt entries.
+\begin{vindent}
+\begin{verbatim}
+probe process("...").plt { ... }
+probe process("...").plt process("...").library("...").plt { ... }
+\end{verbatim}
+\end{vindent}
+
 \subsubsection{Instruction probes}
 \label{sec:insnprobes}
 Constructs:
