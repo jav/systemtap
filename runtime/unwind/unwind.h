@@ -304,6 +304,7 @@ struct unwind_state {
 	sleb128_t dataAlign;
 	unsigned stackDepth:8;
 	struct unwind_reg_state reg[STP_MAX_STACK_DEPTH];
+	struct unwind_item cie_regs[ARRAY_SIZE(reg_info)];
 };
 
 struct unwind_context {

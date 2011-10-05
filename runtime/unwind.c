@@ -464,9 +464,14 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				set_rule(value, Same, 0, state);
 				break;
 			case DW_CFA_restore_extended:
+				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_restore_extended value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
+				memcpy(&REG_STATE.regs[value], &state->cie_regs[value], sizeof(struct unwind_item));
+				break;
 			case DW_CFA_undefined:
 				value = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "map DW_CFA_undefined (instruction: 0x%x) value %ld to reg_info idx %ld\n", *(ptr.p8 - 1), value, DWARF_REG_MAP(value));
+				dbug_unwind(1, "map DW_CFA_undefined value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
 				value = DWARF_REG_MAP(value);
 				set_rule(value, Nowhere, 0, state);
 				break;
@@ -576,7 +581,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 			value = *ptr.p8++ & 0x3f;
 			dbug_unwind(1, "map DW_CFA_restore value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
 			value = DWARF_REG_MAP(value);
-			set_rule(value, Nowhere, 0, state);
+			memcpy(&REG_STATE.regs[value], &state->cie_regs[value], sizeof(struct unwind_item));
 			break;
 		}
 		dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
@@ -1189,6 +1194,9 @@ static int unwind_frame(struct unwind_context *context,
 	dbug_unwind (1, "processCFI for CIE\n");
 	if (!processCFI(cieStart, cieEnd, 0, ptrType, state))
 		goto err;
+
+	/* Store initial state for use with DW_CFA_restore... */
+	memcpy(&state->cie_regs, &REG_STATE, sizeof (REG_STATE));
 
 	/* Process Frame Description Entry (FDE) instructions. */
 	dbug_unwind (1, "processCFI for FDE\n");
