@@ -1271,6 +1271,16 @@ static int unwind_frame(struct unwind_context *context,
 			continue;
 		}
 
+		if (reg_info[i].width == sizeof(UNW_PC(frame))
+		     && (&FRAME_REG(i, __typeof__(UNW_PC(frame)))
+			 == &UNW_PC(frame))
+		     && (REG_STATE.regs[i].where == Same
+			 || REG_STATE.regs[i].where == Nowhere)) {
+			/* Special case PC if it is not explicitly set. */
+			UNW_PC(frame) = FRAME_REG(retAddrReg, unsigned long);
+			continue;
+		}
+
 		switch (REG_STATE.regs[i].where) {
 		case Same:
 			/* Preserve register from current frame. */
