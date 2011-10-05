@@ -475,12 +475,16 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				value = DWARF_REG_MAP(value);
 				set_rule(value, Nowhere, 0, state);
 				break;
-			case DW_CFA_register:
+			case DW_CFA_register: {
+				uleb128_t reg_value;
 				value = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "map DW_CFA_register value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				reg_value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_register value %ld to reg_info idx %ld (reg_value %ld to reg_info idx %ld)\n", value, DWARF_REG_MAP(value), reg_value, DWARF_REG_MAP(reg_value));
 				value = DWARF_REG_MAP(value);
-				set_rule(value, Register, get_uleb128(&ptr.p8, end), state);
+				reg_value = DWARF_REG_MAP(reg_value);
+				set_rule(value, Register, reg_value, state);
 				break;
+			}
 			case DW_CFA_expression:
 				value = get_uleb128(&ptr.p8, end);
 				dbug_unwind(1, "map DW_CFA_expression value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
