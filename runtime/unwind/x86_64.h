@@ -59,7 +59,7 @@
 	PTREGS_INFO(r13), \
 	PTREGS_INFO(r14), \
 	PTREGS_INFO(r15), \
-	PTREGS_INFO(ip)
+	PTREGS_INFO(ip)	/* Note, placeholder for "fake" dwarf ret reg. */
 #else
 #define UNW_REGISTER_INFO \
 	PTREGS_INFO(rax), \
@@ -78,8 +78,10 @@
 	PTREGS_INFO(r13), \
 	PTREGS_INFO(r14), \
 	PTREGS_INFO(r15), \
-	PTREGS_INFO(rip)
+	PTREGS_INFO(rip) /* Note, placeholder for "fake" dwarf ret reg. */
 #endif /* STAPCONF_X86_UNIREGS */
+
+#define UNW_NR_REAL_REGS 16
 
 #define UNW_DEFAULT_RA(raItem, dataAlign) \
 	((raItem).where == Memory && \

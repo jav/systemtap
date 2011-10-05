@@ -66,6 +66,13 @@ static const struct {
 #define DWARF_REG_MAP(r) r
 #endif
 
+/* The number of real registers in the register map. These are all assumed
+   to be the Same in the new frame. All others will be Unknown untill they
+   have been explictly set. (e.g. the x86 return register). */
+#ifndef UNW_NR_REAL_REGS
+#define UNW_NR_REAL_REGS ARRAY_SIZE(reg_info)
+#endif
+
 #ifndef REG_INVALID
 #define REG_INVALID(r) (reg_info[r].width == 0)
 #endif
@@ -266,6 +273,7 @@ typedef   signed long sleb128_t;
 
 struct unwind_item {
 	enum item_location {
+		Same,
 		Nowhere,
 		Memory,
 		Register,

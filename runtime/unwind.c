@@ -457,9 +457,14 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				value = DWARF_REG_MAP(value);
 				set_rule(value, Value, get_sleb128(&ptr.p8, end), state);
 				break;
+			case DW_CFA_same_value:
+				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_same_value value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
+				set_rule(value, Same, 0, state);
+				break;
 			case DW_CFA_restore_extended:
 			case DW_CFA_undefined:
-			case DW_CFA_same_value:
 				value = get_uleb128(&ptr.p8, end);
 				dbug_unwind(1, "map DW_CFA_undefined (instruction: 0x%x) value %ld to reg_info idx %ld\n", *(ptr.p8 - 1), value, DWARF_REG_MAP(value));
 				value = DWARF_REG_MAP(value);
@@ -1087,7 +1092,12 @@ static int unwind_frame(struct unwind_context *context,
 		goto err;
 	}
 
+	/* Sets all rules to default Same value. */
 	memset(state, 0, sizeof(*state));
+
+	/* All "fake" dwarf registers should start out Nowhere. */
+	for (i = UNW_NR_REAL_REGS; i < ARRAY_SIZE(REG_STATE.regs); ++i)
+		set_rule(i, Nowhere, 0, state);
 
 	fde = _stp_search_unwind_hdr(pc, tsk, m, s, is_ehframe);
 	dbug_unwind(1, "%s: fde=%lx\n", m->name, (unsigned long) fde);
@@ -1251,13 +1261,31 @@ static int unwind_frame(struct unwind_context *context,
 		if (REG_INVALID(i))
 			continue;
 		dbug_unwind(2, "register %d. where=%d\n", i, REG_STATE.regs[i].where);
-		switch (REG_STATE.regs[i].where) {
-		case Nowhere:
-			if (reg_info[i].width != sizeof(UNW_SP(frame))
-			    || &FRAME_REG(i, __typeof__(UNW_SP(frame)))
-			    != &UNW_SP(frame))
-				continue;
+		if (reg_info[i].width == sizeof(UNW_SP(frame))
+		     && (&FRAME_REG(i, __typeof__(UNW_SP(frame)))
+			 == &UNW_SP(frame))
+		     && (REG_STATE.regs[i].where == Same
+			 || REG_STATE.regs[i].where == Nowhere)) {
+			/* Special case SP if it is not explicitly set. */
 			UNW_SP(frame) = cfa;
+			continue;
+		}
+
+		switch (REG_STATE.regs[i].where) {
+		case Same:
+			/* Preserve register from current frame. */
+			break;
+		case Nowhere:
+			switch (reg_info[i].width) {
+#define CASE(n) case sizeof(u##n): \
+				FRAME_REG(i, u##n) = 0; \
+				break
+				CASES;
+#undef CASE
+			default:
+				_stp_warn("bad Register size (Nowhere)\n");
+				goto err;
+			}
 			break;
 		case Register:
 			switch (reg_info[i].width) {
@@ -1267,7 +1295,7 @@ static int unwind_frame(struct unwind_context *context,
 				CASES;
 #undef CASE
 			default:
-				_stp_warn("bad Register size\n");
+				_stp_warn("bad Register size (Register)\n");
 				goto err;
 			}
 			break;
@@ -1283,7 +1311,7 @@ static int unwind_frame(struct unwind_context *context,
 			addr = cfa + REG_STATE.regs[i].value * state->dataAlign;
 		value:
 			if (reg_info[i].width != sizeof(unsigned long)) {
-				_stp_warn("bad Register width\n");
+				_stp_warn("bad Register width for value state\n");
 				goto err;
 			}
 			FRAME_REG(i, unsigned long) = addr;
