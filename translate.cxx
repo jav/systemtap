@@ -1095,6 +1095,7 @@ c_unparser::get_compiled_printf (bool print_to_stream, const string& format)
 void
 c_unparser::emit_compiled_printf_locals ()
 {
+  o->newline() << "#ifndef STP_LEGACY_PRINT";
   o->newline() << "union {";
   o->indent(1);
   map<pair<bool, string>, string>::iterator it;
@@ -1154,11 +1155,13 @@ c_unparser::emit_compiled_printf_locals ()
       o->newline(-1) << "} " << name << ";";
     }
   o->newline(-1) << "} printf_locals;";
+  o->newline() << "#endif // STP_LEGACY_PRINT";
 }
 
 void
 c_unparser::emit_compiled_printfs ()
 {
+  o->newline() << "#ifndef STP_LEGACY_PRINT";
   map<pair<bool, string>, string>::iterator it;
   for (it = compiled_printfs.begin(); it != compiled_printfs.end(); ++it)
     {
@@ -1404,6 +1407,7 @@ c_unparser::emit_compiled_printfs ()
 
       o->newline(-1) << "}";
     }
+  o->newline() << "#endif // STP_LEGACY_PRINT";
 }
 
 
@@ -4854,7 +4858,7 @@ c_unparser::visit_print_format (print_format* e)
 
       // Make the [s]printf call...
 
-      // Generate code to check that any pointer arguments are actually accessible.  */
+      // Generate code to check that any pointer arguments are actually accessible.
       size_t arg_ix = 0;
       for (unsigned i = 0; i < components.size(); ++i) {
 	if (components[i].type == print_format::conv_literal)
@@ -4929,6 +4933,11 @@ c_unparser::visit_print_format (print_format* e)
 	    }
 	}
 
+      // The default it to use the new compiled-printf, but one can fall back
+      // to the old code with -DSTP_LEGACY_PRINT if desired.
+      o->newline() << "#ifndef STP_LEGACY_PRINT";
+      o->indent(1);
+
       // Copy all arguments to the compiled-printf's space, then call it
       const string& compiled_printf =
 	get_compiled_printf (e->print_to_stream, format_string);
@@ -4943,6 +4952,43 @@ c_unparser::visit_print_format (print_format* e)
 	o->newline() << "c->printf_locals." << compiled_printf
 		     << ".__retvalue = " << res.value() << ";";
       o->newline() << compiled_printf << " (c);";
+
+      o->newline(-1) << "#else // STP_LEGACY_PRINT";
+      o->indent(1);
+
+      // Generate the legacy call that goes through _stp_vsnprintf.
+      if (e->print_to_stream)
+	o->newline() << "_stp_printf (";
+      else
+	o->newline() << "_stp_snprintf (" << res.value() << ", MAXSTRINGLEN, ";
+      o->line() << '"' << print_format::components_to_string(components) << '"';
+
+      // Make sure arguments match the expected type of the format specifier.
+      arg_ix = 0;
+      for (unsigned i = 0; i < components.size(); ++i)
+	{
+	  if (components[i].type == print_format::conv_literal)
+	    continue;
+
+	  /* Cast the width and precision arguments, if any, to 'int'.  */
+	  if (components[i].widthtype == print_format::width_dynamic)
+	    o->line() << ", (int)" << tmp[arg_ix++].value();
+	  if (components[i].prectype == print_format::prec_dynamic)
+	    o->line() << ", (int)" << tmp[arg_ix++].value();
+
+	  /* The type of the %m argument is 'char*'.  */
+	  if (components[i].type == print_format::conv_memory
+	      || components[i].type == print_format::conv_memory_hex)
+	    o->line() << ", (char*)(uintptr_t)" << tmp[arg_ix++].value();
+	  /* The type of the %c argument is 'int'.  */
+	  else if (components[i].type == print_format::conv_char)
+	    o->line() << ", (int)" << tmp[arg_ix++].value();
+	  else if (arg_ix < tmp.size())
+	    o->line() << ", " << tmp[arg_ix++].value();
+	}
+      o->line() << ");";
+      o->newline(-1) << "#endif // STP_LEGACY_PRINT";
+
       o->newline() << res.value() << ";";
     }
 }
