@@ -1172,7 +1172,7 @@ c_unparser::emit_compiled_printfs ()
 
       // Might be nice to output the format string in a comment, but we'd have
       // to be extra careful about format strings not escaping the comment...
-      o->newline() << "static void " << name
+      o->newline() << "static noinline void " << name
 		   << " (struct context* __restrict__ c) {";
       o->newline(1) << "struct " << name << "_locals * __restrict__ l = "
 		    << "& c->printf_locals." << name << ";";
