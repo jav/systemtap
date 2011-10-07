@@ -4735,12 +4735,8 @@ typeresolution_info::visit_print_format (print_format* e)
 	      assert (false);
 	      break;
 
-	    case print_format::conv_signed_decimal:
-	    case print_format::conv_unsigned_decimal:
-	    case print_format::conv_unsigned_octal:
-	    case print_format::conv_unsigned_ptr:
-	    case print_format::conv_unsigned_uppercase_hex:
-	    case print_format::conv_unsigned_lowercase_hex:
+	    case print_format::conv_pointer:
+	    case print_format::conv_number:
 	    case print_format::conv_binary:
 	    case print_format::conv_char:
 	    case print_format::conv_memory:
