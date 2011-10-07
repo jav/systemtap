@@ -437,8 +437,11 @@ static int _stp_snprint_addr(char *str, size_t len, unsigned long address,
   else
     poststr = "";
 
-  if (flags & (_STP_SYM_SYMBOL | _STP_SYM_MODULE))
+  if (flags & (_STP_SYM_SYMBOL | _STP_SYM_MODULE)) {
     name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
+    if (name && name[0] == '.')
+      name++;
+  }
 
   if (modname && (flags & _STP_SYM_MODULE_BASENAME)) {
      char *slash = strrchr (modname, '/');

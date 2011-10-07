@@ -109,9 +109,6 @@ function probefunc:string () %{ /* pure */ /* pragma:symbols */
 			_stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN,
 					  REG_IP(regs), _STP_SYM_SYMBOL,
 					  (user_mode ? current : NULL));
-			if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
-				strlcpy(THIS->__retvalue, THIS->__retvalue + 1,
-					MAXSTRINGLEN);
 		}
 	}
 %}
