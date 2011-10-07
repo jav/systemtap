@@ -23,6 +23,8 @@ probe begin
 			sprint(1), sprint(3)), 
 		sprint("C"))
 	printf("\"quote\\this\"\n")
+	printf("%s", "\"quote\\this\"\n")
+	printf("%s\n", "\"quote\\this\"")
 	printf("%d is %03o in octal\n", 9, 9)
 	printf("%d is %#X in hex\n", 255, 255)
 	printf("print unsigned %u\n", 17)

@@ -4713,7 +4713,6 @@ preprocess_print_format(print_format* e, vector<tmpvar>& tmp,
     {
       use_print = 1;
       tmp[0].override(tmp[0].value() + "\"\\n\"");
-      components[0].type = print_format::conv_literal;
     }
 
   return use_print;
@@ -4853,8 +4852,9 @@ c_unparser::visit_print_format (print_format* e)
 
       // Munge so we can find our compiled printf
       vector<print_format::format_component> components;
-      string format_string;
+      string format_string, format_string_out;
       int use_print = preprocess_print_format(e, tmp, components, format_string);
+      format_string_out = print_format::components_to_string(components);
 
       // Make the [s]printf call...
 
@@ -4919,7 +4919,7 @@ c_unparser::visit_print_format (print_format* e)
 	      if (tmp.size())
 		o->line() << tmp[0].value() << ");";
 	      else
-		o->line() << '"' << format_string << "\");";
+		o->line() << '"' << format_string_out << "\");";
 	      return;
 	    }
 	  if (use_print)
@@ -4928,7 +4928,7 @@ c_unparser::visit_print_format (print_format* e)
 	      if (tmp.size())
 		o->line() << tmp[0].value() << ");";
 	      else
-		o->line() << '"' << format_string << "\");";
+		o->line() << '"' << format_string_out << "\");";
 	      return;
 	    }
 	}
@@ -4961,7 +4961,7 @@ c_unparser::visit_print_format (print_format* e)
 	o->newline() << "_stp_printf (";
       else
 	o->newline() << "_stp_snprintf (" << res.value() << ", MAXSTRINGLEN, ";
-      o->line() << '"' << print_format::components_to_string(components) << '"';
+      o->line() << '"' << format_string_out << '"';
 
       // Make sure arguments match the expected type of the format specifier.
       arg_ix = 0;
