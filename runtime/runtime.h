@@ -102,11 +102,11 @@ static struct
 
 #define _stp_seq_inc() (atomic_inc_return(&_stp_seq.seq))
 
-/* dwarf unwinder only tested so far on i386 and x86_64.
+/* dwarf unwinder only tested so far on i386, x86_64 and ppc64.
    Only define STP_USE_DWARF_UNWINDER when STP_NEED_UNWIND_DATA,
    as set through a pragma:unwind in one of the [u]context-unwind.stp
    functions. */
-#if (defined(__i386__) || defined(__x86_64__))
+#if (defined(__i386__) || defined(__x86_64__) || defined(__powerpc64__))
 #ifdef STP_NEED_UNWIND_DATA
 #ifndef STP_USE_DWARF_UNWINDER
 #define STP_USE_DWARF_UNWINDER
@@ -131,7 +131,7 @@ static struct
 #endif
 #include "addr-map.c"
 
-/* DWARF unwinder only tested so far on i386 and x86_64.
+/* DWARF unwinder only tested so far on i386, x86_64 and ppc64.
    We only need to compile in the unwinder when both STP_NEED_UNWIND_DATA
    (set when a stap script defines pragma:unwind, as done in
    [u]context-unwind.stp) is defined and the architecture actually supports

@@ -23,6 +23,8 @@ struct unwind_frame_info
 #include "x86_64.h"
 #elif  defined (__i386__)
 #include "i386.h"
+#elif defined (__powerpc64__)
+#include "ppc64.h"
 #else
 #error "Unsupported dwarf unwind architecture"
 #endif
