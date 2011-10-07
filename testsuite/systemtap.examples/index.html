@@ -121,7 +121,7 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>Every five seconds print out the top ten executables generating I/O traffic during that interval sorted in descending order.<p><font size="-2"><pre># stap iotop.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li><li><a name="io/mbrwatch.stp"></a><a href="#io/mbrwatch.stp">&para;</a> <a href="io/mbrwatch.stp">io/mbrwatch.stp</a> - Monitor read/write of MBR (boot sector) area of block devices<br>
-keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#MONITORING">MONITORING</a> <a href="keyword-index.html#DISK">DISK</a> <br>
 <p> The mbrwatch.stp script reports any attempted reads/writes of the first few sectors of a raw block device.<p><font size="-2"><pre># stap mbrwatch.stp -c &quot;dd of=/dev/null count=1 if=/dev/`grep -v major \
 /proc/partitions | grep . | awk &#39;{print $4}&#39; | head -1`&quot;</pre></font></p>
 </li><li><a name="io/nfs_func_users.stp"></a><a href="#io/nfs_func_users.stp">&para;</a> <a href="io/nfs_func_users.stp">io/nfs_func_users.stp</a> - Tally the Number of NFS Functions Used by Each Process<br>
@@ -134,7 +134,7 @@ keywords: <a href="keyword-index.html#IO">IO</a> <br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p>Print out the executable name and process number as reads and writes to the specified device occur.<p><font size="-2"><pre># stap traceio2.stp 0x0801 -c &quot;sleep 0.2&quot;</pre></font></p>
 </li><li><a name="io/ttyspy.stp"></a><a href="#io/ttyspy.stp">&para;</a> <a href="io/ttyspy.stp">io/ttyspy.stp</a> - Monitor tty typing.<br>
-keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY">TTY</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
+keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY">TTY</a> <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
 <p>The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.<p><font size="-2"><pre># stap --skip-badvars -g ttyspy.stp -c &quot;sleep 1&quot;</pre></font></p>
 </li><li><a name="locks/bkl.stp"></a><a href="#locks/bkl.stp">&para;</a> <a href="locks/bkl.stp">locks/bkl.stp</a> - Tracing Contention on Big Kernel Lock (BKL)<br>
 keywords: <a href="keyword-index.html#LOCKING">LOCKING</a> <br>
@@ -186,7 +186,7 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#DEVICE">DEVICE</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <br>
 <p>The netdev.stp script traces configuration and transmit/receive activity on network devices.<p><font size="-2"><pre># stap netdev.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li><li><a name="network/nettop.stp"></a><a href="#network/nettop.stp">&para;</a> <a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
-keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <a href="keyword-index.html#PER-PROCESS">PER-PROCESS</a> <br>
+keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.<p><font size="-2"><pre># stap nettop.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li><li><a name="network/nfsd_unlink.stp"></a><a href="#network/nfsd_unlink.stp">&para;</a> <a href="network/nfsd_unlink.stp">network/nfsd_unlink.stp</a> - Find which client is removing nfs files on server<br>
 keywords: <a href="keyword-index.html#NFS">NFS</a> <a href="keyword-index.html#DISK">DISK</a> <br>
@@ -276,7 +276,7 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 <p>Combination shell/systemtap script to measure system call counts and times.  Can be filtered by process IDs, process names and users.<p><font size="-2"><pre># ./syscalltimes -c &#39;sleep 0.2&#39;</pre></font></p>
 </li><li><a name="process/wait4time.stp"></a><a href="#process/wait4time.stp">&para;</a> <a href="process/wait4time.stp">process/wait4time.stp</a> - Trace Time Spent in wait4 Syscalls<br>
-keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#WAIT4">WAIT4</a> <br>
+keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
 <p>The script watches each wait4 syscall on the system. At the end of each wait4 syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in parentheses, the &quot;wait4:&quot; key, the duration of the wait and the PID that the wait4 was waiting for. If the waited for PID is not specified , it is &quot;-1&quot;.<p><font size="-2"><pre># stap wait4time.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li><li><a name="profiling/errno.stp"></a><a href="#profiling/errno.stp">&para;</a> <a href="profiling/errno.stp">profiling/errno.stp</a> - Show Which Processes and System Calls Return Errors Most Frequently<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
