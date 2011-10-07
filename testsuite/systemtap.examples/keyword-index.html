@@ -40,19 +40,19 @@
 
 <h2>Examples by Keyword</h2>
 <p><tt><a href="#ALLOCATOR">ALLOCATOR</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#COUNTER">COUNTER</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#EVENT">EVENT</a> <a href="#FILES">FILES</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTION">FUNCTION</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#HACK">HACK</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITORING">MONITORING</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PID">PID</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SECURITY">SECURITY</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TID">TID</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WALL-CLOCK">WALL-CLOCK</a> <a href="#WATCHDOG">WATCHDOG</a> <a href="#WATCHPOINT">WATCHPOINT</a> <a href="#WRITE">WRITE</a> </tt></p>
-<h3><a name="ALLOCATOR">ALLOCATOR</a></h3>
+<h3><a name="ALLOCATOR"><a href="#ALLOCATOR">&para;</a> ALLOCATOR</a></h3>
 <ul>
 <li><a href="memory/vm.tracepoints.stp">memory/vm.tracepoints.stp</a> - Collect slab allocation statistics<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#SLAB">SLAB</a> <a href="keyword-index.html#ALLOCATOR">ALLOCATOR</a> <br>
 <p>The script will probe all memory slab/slub allocations and collects information about the size of the object (bytes requested) and user-space process in execution. When run over a period of time, it helps to correlate kernel-space memory consumption owing to user-space processes.<p><font size="-2"><pre># stap vm.tracepoints.stp -c &quot;sleep 10&quot;</pre></font></p>
 </li></ul>
-<h3><a name="AUTOFS">AUTOFS</a></h3>
+<h3><a name="AUTOFS"><a href="#AUTOFS">&para;</a> AUTOFS</a></h3>
 <ul>
 <li><a href="network/autofs4.stp">network/autofs4.stp</a> - Watch autofs4 operations<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#AUTOFS">AUTOFS</a> <a href="keyword-index.html#NFS">NFS</a> <br>
 <p>Trace key autofs4 operations such as mounting or unmounting remote filesystems.<p><font size="-2"><pre># stap autofs4.stp -c &quot;sleep 1&quot;</pre></font></p>
 </li></ul>
-<h3><a name="BACKTRACE">BACKTRACE</a></h3>
+<h3><a name="BACKTRACE"><a href="#BACKTRACE">&para;</a> BACKTRACE</a></h3>
 <ul>
 <li><a href="general/watchdog.stp">general/watchdog.stp</a> - Watchdog timer<br>
 keywords: <a href="keyword-index.html#WATCHDOG">WATCHDOG</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
@@ -68,7 +68,7 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#BAC
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The script monitors the time that threads spend in waiting for IO operations (in &quot;D&quot; state) in the wait_for_completion function.  If a thread spends over 10ms, its name and backtrace is printed, and later so is the total delay.<p><font size="-2"><pre># stap sleepingBeauties.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="BUFFER">BUFFER</a></h3>
+<h3><a name="BUFFER"><a href="#BUFFER">&para;</a> BUFFER</a></h3>
 <ul>
 <li><a href="network/dropwatch.stp">network/dropwatch.stp</a> - Watch Where Socket Buffers are Freed in the Kernel<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#FREE">FREE</a> <br>
@@ -77,7 +77,7 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 <p>The sk_stream-wait_memory.stp prints a time stamp, executable, and pid each time a process blocks due to the send buffer being full. A similar entry is printed each time a process continues because there is room in the buffer.<p><font size="-2"><pre># stap sk_stream_wait_memory.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="CALLGRAPH">CALLGRAPH</a></h3>
+<h3><a name="CALLGRAPH"><a href="#CALLGRAPH">&para;</a> CALLGRAPH</a></h3>
 <ul>
 <li><a href="general/para-callgraph-verbose.stp">general/para-callgraph-verbose.stp</a> - Callgraph tracing with verbose arguments<br>
 keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.html#CALLGRAPH">CALLGRAPH</a> <br>
@@ -88,25 +88,25 @@ keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.ht
 <p>Print a timed per-thread callgraph, complete with function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.<p><font size="-2"><pre># stap para-callgraph.stp &#39;kernel.function(&quot;*@fs/proc*.c&quot;)&#39; \
 &#39;kernel.function(&quot;vfs_read&quot;)&#39; -c &quot;cat /proc/sys/vm/* || true&quot;</pre></font></p>
 </li></ul>
-<h3><a name="COUNTER">COUNTER</a></h3>
+<h3><a name="COUNTER"><a href="#COUNTER">&para;</a> COUNTER</a></h3>
 <ul>
 <li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
 keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
 <p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p>
 </li></ul>
-<h3><a name="CPU">CPU</a></h3>
+<h3><a name="CPU"><a href="#CPU">&para;</a> CPU</a></h3>
 <ul>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html#CPU">CPU</a> <a href="keyword-index.html#USE">USE</a> <a href="keyword-index.html#GRAPH">GRAPH</a> <br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.<p><font size="-2"><pre># stap graphs.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="DEVICE">DEVICE</a></h3>
+<h3><a name="DEVICE"><a href="#DEVICE">&para;</a> DEVICE</a></h3>
 <ul>
 <li><a href="network/netdev.stp">network/netdev.stp</a> - Trace Activity on Network Devices<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#DEVICE">DEVICE</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <br>
 <p>The netdev.stp script traces configuration and transmit/receive activity on network devices.<p><font size="-2"><pre># stap netdev.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="DISK">DISK</a></h3>
+<h3><a name="DISK"><a href="#DISK">&para;</a> DISK</a></h3>
 <ul>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html#CPU">CPU</a> <a href="keyword-index.html#USE">USE</a> <a href="keyword-index.html#GRAPH">GRAPH</a> <br>
@@ -125,26 +125,26 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#MON
 keywords: <a href="keyword-index.html#NFS">NFS</a> <a href="keyword-index.html#DISK">DISK</a> <br>
 <p>The nfsd_unlink.stp script lists the ip address and file name each time time a file is being removed or unlinked by the nfsd. This script is run on the nfs server.<p><font size="-2"><pre># stap nfsd_unlink.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="EVENT">EVENT</a></h3>
+<h3><a name="EVENT"><a href="#EVENT">&para;</a> EVENT</a></h3>
 <ul>
 <li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
 keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
 <p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p>
 </li></ul>
-<h3><a name="FILES">FILES</a></h3>
+<h3><a name="FILES"><a href="#FILES">&para;</a> FILES</a></h3>
 <ul>
 <li><a href="process/pfiles.stp">process/pfiles.stp</a> - print process file descriptors<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#FILES">FILES</a> <br>
 <p>Run pfiles.stp to produce a human-readable summary of all open file descriptors of a given process.  Specify the process-id as -x PID for fastest performance.<p><font size="-2"><pre># stap -g pfiles.stp -x $$</pre></font></p>
 </li></ul>
-<h3><a name="FILESYSTEM">FILESYSTEM</a></h3>
+<h3><a name="FILESYSTEM"><a href="#FILESYSTEM">&para;</a> FILESYSTEM</a></h3>
 <ul>
 <li><a href="general/badname.stp">general/badname.stp</a> - Bad Filename Filter<br>
 keywords: <a href="keyword-index.html#FILESYSTEM">FILESYSTEM</a> <a href="keyword-index.html#HACK">HACK</a> <br>
 <p>The badname.stp script shows how one could prevent the creation of files with undesirable names using guru mode.<p><font size="-2"><pre># stap -g badname.stp -c &quot;touch /tmp/myXXXbadnameXXXfile.$$ 2&gt;&amp;1 | grep \
 denied&quot;</pre></font></p>
 </li></ul>
-<h3><a name="FORMAT">FORMAT</a></h3>
+<h3><a name="FORMAT"><a href="#FORMAT">&para;</a> FORMAT</a></h3>
 <ul>
 <li><a href="general/ansi_colors.stp">general/ansi_colors.stp</a> - Color Table for ansi_set_color2() and ansi_set_color3()<br>
 keywords: <a href="keyword-index.html#FORMAT">FORMAT</a> <br>
@@ -153,19 +153,19 @@ keywords: <a href="keyword-index.html#FORMAT">FORMAT</a> <br>
 keywords: <a href="keyword-index.html#FORMAT">FORMAT</a> <br>
 <p>The script prints a table showing the available attributes (bold, underline, and inverse) with color combinations for the ans_set_color3() function in the ansi.stp tapset.<p><font size="-2"><pre># stap ansi_colors2.stp</pre></font></p>
 </li></ul>
-<h3><a name="FREE">FREE</a></h3>
+<h3><a name="FREE"><a href="#FREE">&para;</a> FREE</a></h3>
 <ul>
 <li><a href="network/dropwatch.stp">network/dropwatch.stp</a> - Watch Where Socket Buffers are Freed in the Kernel<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#FREE">FREE</a> <br>
 <p>Every five seconds the dropwatch.stp script lists the number of socket buffers freed at locations in the kernel.<p><font size="-2"><pre># stap dropwatch.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="FUNCTION">FUNCTION</a></h3>
+<h3><a name="FUNCTION"><a href="#FUNCTION">&para;</a> FUNCTION</a></h3>
 <ul>
 <li><a href="general/func_time_stats.stp">general/func_time_stats.stp</a> - Function time statistics<br>
 keywords: <a href="keyword-index.html#FUNCTION">FUNCTION</a> <a href="keyword-index.html#WALL-CLOCK">WALL-CLOCK</a> <a href="keyword-index.html#TIME">TIME</a> <br>
 <p>The func_time_stats.stp script tracks the wall clock time for each invocation of the function probe listed as the first command line argument. When the script exits it prints out the minimum, average, and maximum times in microseconds followed by a count of times that the function was called and a histogram showing the distributions of times.<p><font size="-2"><pre># stap func_time_stats.stp &#39;syscall.nanosleep&#39; -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="FUNCTIONS">FUNCTIONS</a></h3>
+<h3><a name="FUNCTIONS"><a href="#FUNCTIONS">&para;</a> FUNCTIONS</a></h3>
 <ul>
 <li><a href="profiling/functioncallcount.stp">profiling/functioncallcount.stp</a> - Count Times Functions Called<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#FUNCTIONS">FUNCTIONS</a> <br>
@@ -174,26 +174,26 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#FUNCTIONS">FUNCTIONS</a> <br>
 <p>The sched_switch.stp script takes two arguments, first argument can be &quot;pid&quot; or &quot;name&quot; to indicate what is being passed as second argument. The script will trace the process based on pid/name and print the scheduler switches happening with the process. If no arguments are passed, it displays all the scheduler switches. This can be used to understand which tasks schedule out the current process being traced, and when it gets scheduled in again.<p><font size="-2"><pre># stap  sched_switch.stp -c &quot;sleep 1&quot;</pre></font></p>
 </li></ul>
-<h3><a name="FUTEX">FUTEX</a></h3>
+<h3><a name="FUTEX"><a href="#FUTEX">&para;</a> FUTEX</a></h3>
 <ul>
 <li><a href="process/futexes.stp">process/futexes.stp</a> - System-Wide Futex Contention<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#LOCKING">LOCKING</a> <a href="keyword-index.html#FUTEX">FUTEX</a> <br>
 <p>The script watches the futex syscall on the system. On exit the futexes address, the number of contentions, and the average time for each contention on the futex are printed from lowest pid number to highest.<p><font size="-2"><pre># stap futexes.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="GRAPH">GRAPH</a></h3>
+<h3><a name="GRAPH"><a href="#GRAPH">&para;</a> GRAPH</a></h3>
 <ul>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html#CPU">CPU</a> <a href="keyword-index.html#USE">USE</a> <a href="keyword-index.html#GRAPH">GRAPH</a> <br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.<p><font size="-2"><pre># stap graphs.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="HACK">HACK</a></h3>
+<h3><a name="HACK"><a href="#HACK">&para;</a> HACK</a></h3>
 <ul>
 <li><a href="general/badname.stp">general/badname.stp</a> - Bad Filename Filter<br>
 keywords: <a href="keyword-index.html#FILESYSTEM">FILESYSTEM</a> <a href="keyword-index.html#HACK">HACK</a> <br>
 <p>The badname.stp script shows how one could prevent the creation of files with undesirable names using guru mode.<p><font size="-2"><pre># stap -g badname.stp -c &quot;touch /tmp/myXXXbadnameXXXfile.$$ 2&gt;&amp;1 | grep \
 denied&quot;</pre></font></p>
 </li></ul>
-<h3><a name="INTERRUPT">INTERRUPT</a></h3>
+<h3><a name="INTERRUPT"><a href="#INTERRUPT">&para;</a> INTERRUPT</a></h3>
 <ul>
 <li><a href="interrupt/interrupts-by-dev.stp">interrupt/interrupts-by-dev.stp</a> - Record interrupts on a per-device basis.<br>
 keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <br>
@@ -205,7 +205,7 @@ keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <a href="keyword-
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <br>
 <p>The cycle_thief.stp script instruments the scheduler and IRQ handler to determine which processes and interrupts are competing with the specified task for the cpu cycles. This script uses the &#39;-c&#39; or &#39;-x&#39; options to focus on a specific task. The script output the number of times the task migrates between processors, histograms showing the length of time on and off processor, lists of processes running while the task is off the processor, and the interrupts that occurred while the task was running.<p><font size="-2"><pre># stap cycle_thief.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="IO">IO</a></h3>
+<h3><a name="IO"><a href="#IO">&para;</a> IO</a></h3>
 <ul>
 <li><a href="io/inodewatch.stp">io/inodewatch.stp</a> - Monitoring Reads and Writes to a File<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
@@ -254,7 +254,7 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The script monitors the time that threads spend in waiting for IO operations (in &quot;D&quot; state) in the wait_for_completion function.  If a thread spends over 10ms, its name and backtrace is printed, and later so is the total delay.<p><font size="-2"><pre># stap sleepingBeauties.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="LOCKING">LOCKING</a></h3>
+<h3><a name="LOCKING"><a href="#LOCKING">&para;</a> LOCKING</a></h3>
 <ul>
 <li><a href="locks/bkl.stp">locks/bkl.stp</a> - Tracing Contention on Big Kernel Lock (BKL)<br>
 keywords: <a href="keyword-index.html#LOCKING">LOCKING</a> <br>
@@ -266,7 +266,7 @@ keywords: <a href="keyword-index.html#LOCKING">LOCKING</a> <br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#LOCKING">LOCKING</a> <a href="keyword-index.html#FUTEX">FUTEX</a> <br>
 <p>The script watches the futex syscall on the system. On exit the futexes address, the number of contentions, and the average time for each contention on the futex are printed from lowest pid number to highest.<p><font size="-2"><pre># stap futexes.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="MEMORY">MEMORY</a></h3>
+<h3><a name="MEMORY"><a href="#MEMORY">&para;</a> MEMORY</a></h3>
 <ul>
 <li><a href="general/sizeof.stp">general/sizeof.stp</a> - Print the size of a C type.<br>
 keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
@@ -309,7 +309,7 @@ keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
 <p>The sk_stream-wait_memory.stp prints a time stamp, executable, and pid each time a process blocks due to the send buffer being full. A similar entry is printed each time a process continues because there is room in the buffer.<p><font size="-2"><pre># stap sk_stream_wait_memory.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="MONITORING">MONITORING</a></h3>
+<h3><a name="MONITORING"><a href="#MONITORING">&para;</a> MONITORING</a></h3>
 <ul>
 <li><a href="general/varwatch.stp">general/varwatch.stp</a> - Watch a variable changing value in a thread.<br>
 keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
@@ -323,7 +323,7 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#MON
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY">TTY</a> <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
 <p>The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.<p><font size="-2"><pre># stap --skip-badvars -g ttyspy.stp -c &quot;sleep 1&quot;</pre></font></p>
 </li></ul>
-<h3><a name="NETWORK">NETWORK</a></h3>
+<h3><a name="NETWORK"><a href="#NETWORK">&para;</a> NETWORK</a></h3>
 <ul>
 <li><a href="network/autofs4.stp">network/autofs4.stp</a> - Watch autofs4 operations<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#AUTOFS">AUTOFS</a> <a href="keyword-index.html#NFS">NFS</a> <br>
@@ -362,7 +362,7 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#STATISTICS">STATISTICS</a> <br>
 <p>tcpipstat collects and displays network statistics related to individual TCP sockets or groups of sockets.  The statistics that are collected are simular to that of the command netstat -s, only sorted and grouped by individual sockets.<p><font size="-2"><pre># stap tcpipstat.stp timeout=1</pre></font></p>
 </li></ul>
-<h3><a name="NFS">NFS</a></h3>
+<h3><a name="NFS"><a href="#NFS">&para;</a> NFS</a></h3>
 <ul>
 <li><a href="network/autofs4.stp">network/autofs4.stp</a> - Watch autofs4 operations<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#AUTOFS">AUTOFS</a> <a href="keyword-index.html#NFS">NFS</a> <br>
@@ -371,19 +371,19 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#NFS">NFS</a> <a href="keyword-index.html#DISK">DISK</a> <br>
 <p>The nfsd_unlink.stp script lists the ip address and file name each time time a file is being removed or unlinked by the nfsd. This script is run on the nfs server.<p><font size="-2"><pre># stap nfsd_unlink.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="NUMA">NUMA</a></h3>
+<h3><a name="NUMA"><a href="#NUMA">&para;</a> NUMA</a></h3>
 <ul>
 <li><a href="memory/numa_faults.stp">memory/numa_faults.stp</a> - Summarize Process Misses across NUMA Nodes<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#NUMA">NUMA</a> <br>
 <p>The numa_faults.stp script tracks the read and write pages faults for each process. When the script exits it prints out the total read and write pages faults for each process. The script also provide a break down of page faults per node for each process. This script is useful for determining whether the program has good locality (page faults limited to a single node) on a NUMA computer.<p><font size="-2"><pre># stap numa_faults.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="PID">PID</a></h3>
+<h3><a name="PID"><a href="#PID">&para;</a> PID</a></h3>
 <ul>
 <li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
 keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
 <p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p>
 </li></ul>
-<h3><a name="PROCESS">PROCESS</a></h3>
+<h3><a name="PROCESS"><a href="#PROCESS">&para;</a> PROCESS</a></h3>
 <ul>
 <li><a href="memory/overcommit.stp">memory/overcommit.stp</a> - Log failed process memory allocation due to overcommit limits<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
@@ -413,7 +413,7 @@ keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
 <p>The script watches each wait4 syscall on the system. At the end of each wait4 syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in parentheses, the &quot;wait4:&quot; key, the duration of the wait and the PID that the wait4 was waiting for. If the waited for PID is not specified , it is &quot;-1&quot;.<p><font size="-2"><pre># stap wait4time.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="PROFILING">PROFILING</a></h3>
+<h3><a name="PROFILING"><a href="#PROFILING">&para;</a> PROFILING</a></h3>
 <ul>
 <li><a href="io/iodevstats.stp">io/iodevstats.stp</a> - List Executables Reading and Writing the Most Data by Device<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
@@ -458,13 +458,13 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p> The topsys.stp script lists out the top twenty systemcalls for the previous 5 seconds. The output is sorted from most frequent to least frequent.<p><font size="-2"><pre># stap topsys.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="READ">READ</a></h3>
+<h3><a name="READ"><a href="#READ">&para;</a> READ</a></h3>
 <ul>
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#READ">READ</a> <a href="keyword-index.html#WRITE">WRITE</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#IO">IO</a> <br>
 <p>The script watches each open, close, read, and write syscalls on the system. For each file the scripts observes opened it accumulates the amount of wall clock time spent in read and write operations and the number of bytes read and written. When a file is closed the script prints out a pair of lines for the file. Both lines begin with a timestamp in microseconds, the PID number, and the executable name in parentheses. The first line with the &quot;access&quot; keyword lists the file name, the attempted number of bytes for the read and write operations. The second line with the &quot;iotime&quot; keyword list the file name and the number of microseconds accumulated in the read and write syscalls.<p><font size="-2"><pre># stap iotime.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="SCHEDULER">SCHEDULER</a></h3>
+<h3><a name="SCHEDULER"><a href="#SCHEDULER">&para;</a> SCHEDULER</a></h3>
 <ul>
 <li><a href="process/chng_cpu.stp">process/chng_cpu.stp</a> - Monitor Changes in Processor Executing a Task<br>
 keywords: <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <br>
@@ -485,19 +485,19 @@ keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The script monitors the time that threads spend in waiting for IO operations (in &quot;D&quot; state) in the wait_for_completion function.  If a thread spends over 10ms, its name and backtrace is printed, and later so is the total delay.<p><font size="-2"><pre># stap sleepingBeauties.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="SCSI">SCSI</a></h3>
+<h3><a name="SCSI"><a href="#SCSI">&para;</a> SCSI</a></h3>
 <ul>
 <li><a href="io/iostat-scsi.stp">io/iostat-scsi.stp</a> - iostat for SCSI Devices<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#SCSI">SCSI</a> <br>
 <p>The iostat-scsi.stp script provides a breakdown of the number of blks read and written on the machine&#39;s various SCSI devices. The script takes one argument which is the number of seconds between reports.<p><font size="-2"><pre># stap -g iostat-scsi.stp 1 -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="SECURITY">SECURITY</a></h3>
+<h3><a name="SECURITY"><a href="#SECURITY">&para;</a> SECURITY</a></h3>
 <ul>
 <li><a href="process/noptrace.stp">process/noptrace.stp</a> - disable ptrace(2) from hierarchies of processes<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <br>
 <p>noptrace.stp blocks ptrace(2) attempts from processes identified by stap -c/-x, as also specifiable from /proc/systemtap/stap_XXX/ control files.  Processes may be added or removed from the blocked list.<p><font size="-2"><pre># stap -g noptrace.stp -c &#39;strace ls || true&#39;</pre></font></p>
 </li></ul>
-<h3><a name="SIGNALS">SIGNALS</a></h3>
+<h3><a name="SIGNALS"><a href="#SIGNALS">&para;</a> SIGNALS</a></h3>
 <ul>
 <li><a href="process/sig_by_pid.stp">process/sig_by_pid.stp</a> -  Signal Counts by Process ID<br>
 keywords: <a href="keyword-index.html#SIGNALS">SIGNALS</a> <br>
@@ -512,7 +512,7 @@ keywords: <a href="keyword-index.html#SIGNALS">SIGNALS</a> <br>
 keywords: <a href="keyword-index.html#SIGNALS">SIGNALS</a> <br>
 <p>The script watches for a particular signal sent to a specific process. When that signal is sent to the specified process, the script prints out the PID and executable of the process sending the signal, the PID and executable name of the process receiving the signal, and the signal number and name.<p><font size="-2"><pre># stap sigmon.stp -c &quot;sleep 0.2&quot; SIGKILL</pre></font></p>
 </li></ul>
-<h3><a name="SIMPLE">SIMPLE</a></h3>
+<h3><a name="SIMPLE"><a href="#SIMPLE">&para;</a> SIMPLE</a></h3>
 <ul>
 <li><a href="general/helloworld.stp">general/helloworld.stp</a> - SystemTap "Hello World" Program<br>
 keywords: <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
@@ -521,19 +521,19 @@ keywords: <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
 keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
 <p>This script prints the size of a type, based on dwarf debuginfo for any kernel or userspace module, or trial-compilation of a given header file name.<p><font size="-2"><pre># stap sizeof.stp FILE &#39;&lt;/usr/include/stdio.h&gt;&#39;</pre></font></p>
 </li></ul>
-<h3><a name="SLAB">SLAB</a></h3>
+<h3><a name="SLAB"><a href="#SLAB">&para;</a> SLAB</a></h3>
 <ul>
 <li><a href="memory/vm.tracepoints.stp">memory/vm.tracepoints.stp</a> - Collect slab allocation statistics<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#SLAB">SLAB</a> <a href="keyword-index.html#ALLOCATOR">ALLOCATOR</a> <br>
 <p>The script will probe all memory slab/slub allocations and collects information about the size of the object (bytes requested) and user-space process in execution. When run over a period of time, it helps to correlate kernel-space memory consumption owing to user-space processes.<p><font size="-2"><pre># stap vm.tracepoints.stp -c &quot;sleep 10&quot;</pre></font></p>
 </li></ul>
-<h3><a name="SLEEP">SLEEP</a></h3>
+<h3><a name="SLEEP"><a href="#SLEEP">&para;</a> SLEEP</a></h3>
 <ul>
 <li><a href="process/sleeptime.stp">process/sleeptime.stp</a> - Trace Time Spent in nanosleep Syscalls<br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#SLEEP">SLEEP</a> <br>
 <p>The script watches each nanosleep syscall on the system. At the end of each nanosleep syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in parentheses, the &quot;nanosleep:&quot; key, and the duration of the sleep in microseconds.<p><font size="-2"><pre># stap sleeptime.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="SOCKET">SOCKET</a></h3>
+<h3><a name="SOCKET"><a href="#SOCKET">&para;</a> SOCKET</a></h3>
 <ul>
 <li><a href="network/socket-trace.stp">network/socket-trace.stp</a> - Trace Functions called in Network Socket Code<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
@@ -548,7 +548,7 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>Run the tcp_init_cwnd.stp script in the background to override a kernel&#39;s default tcp cwnd value to 10, which has been found to improve latency for web server type workloads.  The script prints a count of cwnd value changes when it is stopped.<p><font size="-2"><pre># stap -g tcp_init_cwnd.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="STATISTICS">STATISTICS</a></h3>
+<h3><a name="STATISTICS"><a href="#STATISTICS">&para;</a> STATISTICS</a></h3>
 <ul>
 <li><a href="general/sizeof.stp">general/sizeof.stp</a> - Print the size of a C type.<br>
 keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#SIMPLE">SIMPLE</a> <br>
@@ -557,7 +557,7 @@ keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keywor
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#STATISTICS">STATISTICS</a> <br>
 <p>tcpipstat collects and displays network statistics related to individual TCP sockets or groups of sockets.  The statistics that are collected are simular to that of the command netstat -s, only sorted and grouped by individual sockets.<p><font size="-2"><pre># stap tcpipstat.stp timeout=1</pre></font></p>
 </li></ul>
-<h3><a name="SYSCALL">SYSCALL</a></h3>
+<h3><a name="SYSCALL"><a href="#SYSCALL">&para;</a> SYSCALL</a></h3>
 <ul>
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#READ">READ</a> <a href="keyword-index.html#WRITE">WRITE</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#IO">IO</a> <br>
@@ -584,7 +584,7 @@ keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
 <p>The script watches each wait4 syscall on the system. At the end of each wait4 syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in parentheses, the &quot;wait4:&quot; key, the duration of the wait and the PID that the wait4 was waiting for. If the waited for PID is not specified , it is &quot;-1&quot;.<p><font size="-2"><pre># stap wait4time.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="TCP">TCP</a></h3>
+<h3><a name="TCP"><a href="#TCP">&para;</a> TCP</a></h3>
 <ul>
 <li><a href="network/sk_stream_wait_memory.stp">network/sk_stream_wait_memory.stp</a> - Track Start and Stop of Processes Due to Network Buffer Space<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#MEMORY">MEMORY</a> <br>
@@ -596,13 +596,13 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#SOCKET">SOCKET</a> <br>
 <p>Run the tcp_init_cwnd.stp script in the background to override a kernel&#39;s default tcp cwnd value to 10, which has been found to improve latency for web server type workloads.  The script prints a count of cwnd value changes when it is stopped.<p><font size="-2"><pre># stap -g tcp_init_cwnd.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="TID">TID</a></h3>
+<h3><a name="TID"><a href="#TID">&para;</a> TID</a></h3>
 <ul>
 <li><a href="general/eventcount.stp">general/eventcount.stp</a> - Event Counter for eventcount.stp<br>
 keywords: <a href="keyword-index.html#EVENT">EVENT</a> <a href="keyword-index.html#COUNTER">COUNTER</a> <a href="keyword-index.html#TID">TID</a> <a href="keyword-index.html#PID">PID</a> <br>
 <p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p>
 </li></ul>
-<h3><a name="TIME">TIME</a></h3>
+<h3><a name="TIME"><a href="#TIME">&para;</a> TIME</a></h3>
 <ul>
 <li><a href="general/func_time_stats.stp">general/func_time_stats.stp</a> - Function time statistics<br>
 keywords: <a href="keyword-index.html#FUNCTION">FUNCTION</a> <a href="keyword-index.html#WALL-CLOCK">WALL-CLOCK</a> <a href="keyword-index.html#TIME">TIME</a> <br>
@@ -617,7 +617,7 @@ keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
 <p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends in running, sleeping, queuing, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the &#39;-c&#39; or &#39;-x&#39; options to focus on a specific PID.<p><font size="-2"><pre># stap schedtimes.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="TRACE">TRACE</a></h3>
+<h3><a name="TRACE"><a href="#TRACE">&para;</a> TRACE</a></h3>
 <ul>
 <li><a href="general/para-callgraph-verbose.stp">general/para-callgraph-verbose.stp</a> - Callgraph tracing with verbose arguments<br>
 keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.html#CALLGRAPH">CALLGRAPH</a> <br>
@@ -631,7 +631,7 @@ keywords: <a href="keyword-index.html#TRACE">TRACE</a> <a href="keyword-index.ht
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACE">TRACE</a> <br>
 <p>This scripts traces a given tcp connection based on the filter parameters given by the user. The indexing is done by the 4 tuples local address, remote address, local port, remote port.<p><font size="-2"><pre># stap tcp_trace.stp 127.0.0.1:*-127.0.0.1:* timeout=1</pre></font></p>
 </li></ul>
-<h3><a name="TRACEPOINT">TRACEPOINT</a></h3>
+<h3><a name="TRACEPOINT"><a href="#TRACEPOINT">&para;</a> TRACEPOINT</a></h3>
 <ul>
 <li><a href="network/dropwatch.stp">network/dropwatch.stp</a> - Watch Where Socket Buffers are Freed in the Kernel<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <a href="keyword-index.html#BUFFER">BUFFER</a> <a href="keyword-index.html#FREE">FREE</a> <br>
@@ -643,7 +643,7 @@ keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#TRACEPOINT">TRACEPOINT</a> <br>
 <p>The schedtimes.stp script instruments the scheduler to track the amount of time that each process spends in running, sleeping, queuing, and waiting for io. On exit the script prints out the accumulated time for each state of processes observed.  Optionally, this script can be used with the &#39;-c&#39; or &#39;-x&#39; options to focus on a specific PID.<p><font size="-2"><pre># stap schedtimes.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="TRAFFIC">TRAFFIC</a></h3>
+<h3><a name="TRAFFIC"><a href="#TRAFFIC">&para;</a> TRAFFIC</a></h3>
 <ul>
 <li><a href="network/netdev.stp">network/netdev.stp</a> - Trace Activity on Network Devices<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#DEVICE">DEVICE</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <br>
@@ -655,32 +655,32 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TRAFFIC">TRAFFIC</a> <br>
 <p>The tcpdumplike.stp prints out a line for each TCP packet received. Each line includes the source and destination IP addresses, the source and destination ports, and flags.<p><font size="-2"><pre># stap tcpdumplike.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="TTY">TTY</a></h3>
+<h3><a name="TTY"><a href="#TTY">&para;</a> TTY</a></h3>
 <ul>
 <li><a href="io/ttyspy.stp">io/ttyspy.stp</a> - Monitor tty typing.<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY">TTY</a> <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
 <p>The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.<p><font size="-2"><pre># stap --skip-badvars -g ttyspy.stp -c &quot;sleep 1&quot;</pre></font></p>
 </li></ul>
-<h3><a name="USE">USE</a></h3>
+<h3><a name="USE"><a href="#USE">&para;</a> USE</a></h3>
 <ul>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html#CPU">CPU</a> <a href="keyword-index.html#USE">USE</a> <a href="keyword-index.html#GRAPH">GRAPH</a> <br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.<p><font size="-2"><pre># stap graphs.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="WALL-CLOCK">WALL-CLOCK</a></h3>
+<h3><a name="WALL-CLOCK"><a href="#WALL-CLOCK">&para;</a> WALL-CLOCK</a></h3>
 <ul>
 <li><a href="general/func_time_stats.stp">general/func_time_stats.stp</a> - Function time statistics<br>
 keywords: <a href="keyword-index.html#FUNCTION">FUNCTION</a> <a href="keyword-index.html#WALL-CLOCK">WALL-CLOCK</a> <a href="keyword-index.html#TIME">TIME</a> <br>
 <p>The func_time_stats.stp script tracks the wall clock time for each invocation of the function probe listed as the first command line argument. When the script exits it prints out the minimum, average, and maximum times in microseconds followed by a count of times that the function was called and a histogram showing the distributions of times.<p><font size="-2"><pre># stap func_time_stats.stp &#39;syscall.nanosleep&#39; -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="WATCHDOG">WATCHDOG</a></h3>
+<h3><a name="WATCHDOG"><a href="#WATCHDOG">&para;</a> WATCHDOG</a></h3>
 <ul>
 <li><a href="general/watchdog.stp">general/watchdog.stp</a> - Watchdog timer<br>
 keywords: <a href="keyword-index.html#WATCHDOG">WATCHDOG</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The watchdog.stp script provides a watchdog timer mechanism for arbitrary events. The script takes three arguments: the events to start watchdog timer, the event to stop the watchdog timer, and the time in millseconds for the watchdog. If the watchdog timer is exceed, the script will trigger a stack backtrace of the user-process that timed out using pstack. This script can be used to diagnose what the userspace application is doing when a slower than expected operation occurs.<p><font size="-2"><pre># stap watchdog.stp &#39;syscall.nanosleep&#39; &#39;syscall.nanosleep.return&#39; 1000 \
 -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
-<h3><a name="WATCHPOINT">WATCHPOINT</a></h3>
+<h3><a name="WATCHPOINT"><a href="#WATCHPOINT">&para;</a> WATCHPOINT</a></h3>
 <ul>
 <li><a href="memory/hw_watch_addr.stp">memory/hw_watch_addr.stp</a> - Watch access to a kernel address using breakpoint hardware<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#WATCHPOINT">WATCHPOINT</a> <br>
@@ -690,7 +690,7 @@ keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#WATCHPOINT">WATCHPOINT</a> <br>
 <p>The script will watch accesses to the starting address of a single kernel symbol and prints a traceback each time the symbol is accessed. This script needs to be run as root to allow access to the breakpoint hardware.<p><font size="-2"><pre># stap --all-modules hw_watch_sym.stp pid_max -c &quot;sleep 1&quot;</pre></font></p>
 </li></ul>
-<h3><a name="WRITE">WRITE</a></h3>
+<h3><a name="WRITE"><a href="#WRITE">&para;</a> WRITE</a></h3>
 <ul>
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
 keywords: <a href="keyword-index.html#SYSCALL">SYSCALL</a> <a href="keyword-index.html#READ">READ</a> <a href="keyword-index.html#WRITE">WRITE</a> <a href="keyword-index.html#TIME">TIME</a> <a href="keyword-index.html#IO">IO</a> <br>

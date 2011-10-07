@@ -179,6 +179,7 @@ print KEYHTML "</tt></p>\n";
 foreach $keyword (sort keys %keywords) {
     print KEYINDEX "= " . (uc $keyword) . " =\n\n";
     print KEYHTML "<h3>" . '<a name="' . (uc $keyword) . '">'
+                  . "<a href=\"#". (uc $keyword) ."\">&para;</a> "
 		  . (uc $keyword) . "</a></h3>\n";
     print KEYHTML "<ul>\n";
 
