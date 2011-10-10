@@ -65,14 +65,10 @@ run_make_cmd(systemtap_session& s, vector<string>& make_cmd,
       make_cmd.push_back("--no-print-directory");
     }
 
-  // NB: there appears to be no parallelism opportunity in the
-  // module-building makefiles, so while the following works, it
-  // doesn't seem to accomplish anything measurable as of F13.
-#if 0
+  // Exploit SMP parallelism, if available.
   long smp = sysconf(_SC_NPROCESSORS_ONLN);
-  if (smp > 1)
-    make_cmd.push_back("-j" + lex_cast(smp));
-#endif
+  if (smp >= 1)
+    make_cmd.push_back("-j" + lex_cast(smp+1));
 
   if (strverscmp (s.kernel_base_release.c_str(), "2.6.29") < 0)
     {
@@ -620,10 +616,6 @@ make_tracequeries(systemtap_session& s, const map<string,string>& contents)
   // make the module
   vector<string> make_cmd = make_make_objs_cmd(s, dir);
   make_cmd.push_back ("-i"); // ignore errors, give rc 0 even in case of tracepoint header nits
-  // parallelize the make job, since we have lots of little modules to build
-  long smp = sysconf(_SC_NPROCESSORS_ONLN);
-  if (smp >= 1)
-    make_cmd.push_back("-j" + lex_cast(smp+1));
   bool quiet = (s.verbose < 4);
   int rc = run_make_cmd(s, make_cmd, quiet, quiet);
   if (rc)
