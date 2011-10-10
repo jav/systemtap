@@ -8764,7 +8764,7 @@ static vector<string> tracepoint_extra_decls (systemtap_session& s, const string
     they_live.push_back ("#include <linux/kvm_host.h>");
   }
 
-  if (s.kernel_config["CONFIG_XFS_FS"] != string("")) {
+  if (header.find("xfs") != string::npos && s.kernel_config["CONFIG_XFS_FS"] != string("")) {
     they_live.push_back ("#define XFS_BIG_BLKNOS 1");
     if (s.kernel_source_tree != "")
       they_live.push_back ("#include \"fs/xfs/xfs_types.h\""); // in kernel-source tree
@@ -8775,7 +8775,7 @@ static vector<string> tracepoint_extra_decls (systemtap_session& s, const string
     they_live.push_back ("struct xfs_trans;");
   }
 
-  if (s.kernel_config["CONFIG_NFSD"] != string("")) {
+  if (header.find("nfs") != string::npos && s.kernel_config["CONFIG_NFSD"] != string("")) {
     they_live.push_back ("struct rpc_task;");
   }
 
@@ -8784,9 +8784,12 @@ static vector<string> tracepoint_extra_decls (systemtap_session& s, const string
   // linux 3.0
   they_live.push_back ("struct cpu_workqueue_struct;");
 
-  if (s.kernel_config["CONFIG_EXT4_FS"] != string(""))
+  if (header.find("ext4") != string::npos && s.kernel_config["CONFIG_EXT4_FS"] != string(""))
     if (s.kernel_source_tree != "")
       they_live.push_back ("#include \"fs/ext4/ext4.h\""); // in kernel-source tree
+
+  if (header.find("ext3") != string::npos && s.kernel_config["CONFIG_EXT3_FS"] != string(""))
+    they_live.push_back ("struct ext3_reserve_window_node;");
 
   return they_live;
 }
