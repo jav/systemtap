@@ -458,14 +458,26 @@ Dumps a list of supported probe types. If
 is also specified, the list will be limited to probe types available to unprivileged users.
 
 .TP
-.BI \-\-remote " [USER@]HOSTNAME"
-Set the execution target to the specified ssh host, optionally using a username
-not matching your own.  This option may be repeated to target multiple
-execution targets.  Passes 1-4 are completed locally as normal to build the
-script, and then pass 5 will copy the module to the target and run it.
+.BI \-\-remote " URL"
+Set the execution target to the given host.  This option may be
+repeated to target multiple execution targets.  Passes 1-4 are
+completed locally as normal to build the script, and then pass 5 will
+copy the module to the target and run it.  Acceptable URL forms include:
+.B [USER@]HOSTNAME
+and
+.B ssh://[USER@]HOSTNAME/
+This mode uses ssh, optionally using a username not matching your own.
 If a custom ssh_config file is in use, add
 .B SendEnv LANG
 to retain internationalization functionality.
+The 
+.B direct://
+URL is available as a special loopback mode to run on the local host.
+
+.TP
+.BI \-\-remote\-prefix
+Prefix each line of remote output with "N:", where N is the index of the remote
+execution target from which the given line originated.
 
 .TP
 .BI \-\-download\-debuginfo " [OPTION]"
