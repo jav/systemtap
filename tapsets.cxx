@@ -8751,7 +8751,7 @@ tracepoint_derived_probe::print_dupe_stamp(ostream& o)
 }
 
 
-static vector<string> tracepoint_extra_decls (systemtap_session& s)
+static vector<string> tracepoint_extra_decls (systemtap_session& s, const string& header)
 {
   vector<string> they_live;
   // PR 9993
@@ -8803,7 +8803,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // PR9993: Add extra headers to work around undeclared types in individual
   // include/trace/foo.h files
-  const vector<string>& extra_decls = tracepoint_extra_decls (s);
+  const vector<string>& extra_decls = tracepoint_extra_decls (s, "XXXXXXX");
   for (unsigned z=0; z<extra_decls.size(); z++)
     s.op->newline() << extra_decls[z] << "\n";
 
@@ -9041,8 +9041,9 @@ struct tracepoint_builder: public derived_probe_builder
 private:
   dwflpp *dw;
   bool init_dw(systemtap_session& s);
-  string get_tracequery_module(systemtap_session& s,
-                               const vector<string>& headers);
+  void get_tracequery_modules(systemtap_session& s,
+                              const vector<string>& headers,
+                              vector<string>& modules);
 
 public:
 
@@ -9066,9 +9067,15 @@ public:
 };
 
 
-string
-tracepoint_builder::get_tracequery_module(systemtap_session& s,
-                                          const vector<string>& headers)
+
+// Create (or cache) one or more tracequery .ko modules, based upon the
+// tracepoint-related header files given.  Return the generated or cached
+// modules[].
+
+void
+tracepoint_builder::get_tracequery_modules(systemtap_session& s,
+                                           const vector<string>& headers,
+                                           vector<string>& modules)
 {
   if (s.verbose > 2)
     {
@@ -9077,50 +9084,103 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
         clog << "  " << headers[i] << endl;
     }
 
-  string tracequery_path;
-  if (s.use_cache)
+  map<string,string> headers_cacheko;  // header name -> cache/.../tracequery_hash.ko file name
+  // Map the headers to cache .ko names.  Note that this has side-effects of
+  // creating the $SYSTEMTAP_DIR/.cache/XX/... directory and the hash-log file,
+  // so we prefer not to repeat this.
+  vector<string> uncached_headers;
+  for (size_t i=0; i<headers.size(); i++)
+    headers_cacheko[headers[i]] = find_tracequery_hash(s, headers[i]);
+
+  // They may be in the cache already.
+  if (s.use_cache && !s.poison_cache)
+    for (size_t i=0; i<headers.size(); i++)
+      {
+        // see if the cached module exists
+        string tracequery_path = headers_cacheko[headers[i]];
+        if (!tracequery_path.empty() && file_exists(tracequery_path))
+          {
+            if (s.verbose > 2)
+              clog << _F("Pass 2: using cached %s", tracequery_path.c_str()) << endl;
+            modules.push_back (tracequery_path);
+          }
+        else
+          uncached_headers.push_back(headers[i]);
+      }
+  else
+    uncached_headers = headers;
+
+  // If we have nothing left to search for, quit
+  if (uncached_headers.empty()) return;
+
+  map<string,string> headers_tracequery_src; // header -> C-source code mapping
+
+  // We could query several subsets of headers[] to make this go
+  // faster, but let's KISS and do one at a time.
+  for (size_t i=0; i<uncached_headers.size(); i++)
     {
-      // see if the cached module exists
-      tracequery_path = find_tracequery_hash(s, headers);
-      if (!tracequery_path.empty() && !s.poison_cache)
-        {
-          int fd = open(tracequery_path.c_str(), O_RDONLY);
-          if (fd != -1)
-            {
-              if (s.verbose > 2)
-                clog << _F("Pass 2: using cached %s", tracequery_path.c_str()) << endl;
-              close(fd);
-              return tracequery_path;
-            }
-        }
-    }
+      const string& header = uncached_headers[i];
 
-  // no cached module, time to make it
+      // create a tracequery source file
+      ostringstream osrc;
 
-  // PR9993: Add extra headers to work around undeclared types in individual
-  // include/trace/foo.h files
-  vector<string> short_decls = tracepoint_extra_decls(s);
+      // PR9993: Add extra headers to work around undeclared types in individual
+      // include/trace/foo.h files
+      vector<string> short_decls = tracepoint_extra_decls(s, header);
 
-  // add each requested tracepoint header
-  for (size_t i = 0; i < headers.size(); ++i)
-    {
-      const string &header = headers[i];
+      // add each requested tracepoint header
       size_t root_pos = header.rfind("include/");
       short_decls.push_back(string("#include <") + 
                             ((root_pos != string::npos) ? header.substr(root_pos + 8) : header) +
                             string(">"));
+
+      osrc << "#ifdef CONFIG_TRACEPOINTS" << endl;
+      osrc << "#include <linux/tracepoint.h>" << endl;
+      
+      // override DECLARE_TRACE to synthesize probe functions for us
+      osrc << "#undef DECLARE_TRACE" << endl;
+      osrc << "#define DECLARE_TRACE(name, proto, args) \\" << endl;
+      osrc << "  void stapprobe_##name(proto) {}" << endl;
+      
+      // 2.6.35 added the NOARGS variant, but it's the same for us
+      osrc << "#undef DECLARE_TRACE_NOARGS" << endl;
+      osrc << "#define DECLARE_TRACE_NOARGS(name) \\" << endl;
+      osrc << "  DECLARE_TRACE(name, void, )" << endl;
+      
+      // older tracepoints used DEFINE_TRACE, so redirect that too
+      osrc << "#undef DEFINE_TRACE" << endl;
+      osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
+      osrc << "  DECLARE_TRACE(name, TPPROTO(proto), TPARGS(args))" << endl;
+      
+      // add the specified decls/#includes
+      for (unsigned z=0; z<short_decls.size(); z++)
+        osrc << "#undef TRACE_INCLUDE_FILE\n"
+             << "#undef TRACE_INCLUDE_PATH\n"
+             << short_decls[z] << "\n";
+
+      // finish up the module source
+      osrc << "#endif /* CONFIG_TRACEPOINTS */" << endl;
+
+      // save the source file away
+      headers_tracequery_src[header] = osrc.str();
     }
+      
+  // now build them all together
+  map<string,string> tracequery_kos = make_tracequeries(s, headers_tracequery_src);
 
-  string tracequery_ko;
-  int rc = make_tracequery(s, tracequery_ko, short_decls);
-  if (rc != 0 || ! file_exists(tracequery_ko))
-    tracequery_ko = "/dev/null";
-
-  // try to save tracequery in the cache
+  // now plop them into the cache
   if (s.use_cache)
-    copy_file(tracequery_ko, tracequery_path, s.verbose > 2);
-
-  return tracequery_ko;
+    for (size_t i=0; i<uncached_headers.size(); i++)
+      {
+        const string& header = uncached_headers[i];
+        const string& tracequery_ko = tracequery_kos[header];
+        if (tracequery_ko !="" && file_exists(tracequery_ko))
+          {
+            const string& tracequery_path = headers_cacheko[header];
+            copy_file(tracequery_ko, tracequery_path, s.verbose > 2);
+            modules.push_back (tracequery_path);
+          }
+      }
 }
 
 
@@ -9205,21 +9265,8 @@ tracepoint_builder::init_dw(systemtap_session& s)
       globfree(&trace_glob);
     }
 
-  // First attempt to do all system headers in one go
-  string tracequery_path = get_tracequery_module(s, system_headers);
-  // NB: An empty tracequery means that the header didn't compile correctly
-  if (get_file_size(tracequery_path))
-    tracequery_modules.push_back(tracequery_path);
-  else
-    // Otherwise try to do them one at a time (PR10424)
-    for (size_t i = 0; i < system_headers.size(); ++i)
-      {
-        if (pending_interrupts) return false;
-        vector<string> one_header(1, system_headers[i]);
-        tracequery_path = get_tracequery_module(s, one_header);
-        if (get_file_size(tracequery_path))
-          tracequery_modules.push_back(tracequery_path);
-      }
+  // Build tracequery modules
+  get_tracequery_modules(s, system_headers, tracequery_modules);
 
   // TODO: consider other sources of tracepoint headers too, like from
   // a command-line parameter or some environment or .systemtaprc

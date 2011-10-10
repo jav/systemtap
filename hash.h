@@ -9,7 +9,7 @@ class hash;
 void find_script_hash (systemtap_session& s, const std::string& script);
 void find_stapconf_hash (systemtap_session& s);
 std::string find_tracequery_hash (systemtap_session& s,
-                                  const std::vector<std::string>& headers);
+                                  const std::string& header);
 std::string find_typequery_hash (systemtap_session& s, const std::string& name);
 std::string find_uprobes_hash (systemtap_session& s);
 

@@ -545,13 +545,16 @@ make_run_command (systemtap_session& s, const string& remotedir,
 }
 
 
-// Build a tiny kernel module to query tracepoints
-int
-make_tracequery(systemtap_session& s, string& name,
-                const vector<string>& decls)
+// Build tiny kernel modules to query tracepoints.
+// Given a (header-file -> test-contents) map, compile them ASAP, and return
+// a (header-file -> ko-filename) map.
+
+map<string,string>
+make_tracequeries(systemtap_session& s, const map<string,string>& contents)
 {
   static unsigned tick = 0;
   string basename("tracequery_kmod_" + lex_cast(++tick));
+  map<string,string> kos;
 
   // create a subdirectory for the module
   string dir(s.tmpdir + "/" + basename);
@@ -560,59 +563,46 @@ make_tracequery(systemtap_session& s, string& name,
       if (! s.suppress_warnings)
         cerr << _("Warning: failed to create directory for querying tracepoints.") << endl;
       s.set_try_server ();
-      return 1;
+      return kos;
     }
-
-  name = dir + "/" + basename + ".ko";
 
   // create a simple Makefile
   string makefile(dir + "/Makefile");
   ofstream omf(makefile.c_str());
   // force debuginfo generation, and relax implicit functions
   omf << "EXTRA_CFLAGS := -g -Wno-implicit-function-declaration" << (s.omit_werror ? "" : " -Werror") << endl;
-  if (s.kernel_source_tree != "")
-    omf << "EXTRA_CFLAGS += -I" + s.kernel_source_tree << endl;
-  omf << "obj-m := " + basename + ".o" << endl;
-
   // RHBZ 655231: later rhel6 kernels' module-signing kbuild logic breaks out-of-tree modules
   omf << "CONFIG_MODULE_SIG := n" << endl;
 
+  if (s.kernel_source_tree != "")
+    omf << "EXTRA_CFLAGS += -I" + s.kernel_source_tree << endl;
+
+  omf << "obj-m := " << endl;
+  // write out each header-specific source file into a separate file
+  for (map<string,string>::const_iterator it = contents.begin(); it != contents.end(); it++)
+    {
+      string sbasename = basename + "_" + lex_cast(++tick); // suffixed
+
+      // write out source code
+      string srcname = dir + "/" + sbasename + ".c";
+      string src = it->second;
+      ofstream osrc(srcname.c_str());
+      osrc << src;
+      osrc.close();
+
+      // arrange to build it
+      omf << "obj-m += " + sbasename + ".o" << endl; // NB: without <dir> prefix
+      kos[it->first] = dir + "/" + sbasename + ".ko";
+    }
   omf.close();
-
-  // create our source file
-  string source(dir + "/" + basename + ".c");
-  ofstream osrc(source.c_str());
-  osrc << "#ifdef CONFIG_TRACEPOINTS" << endl;
-  osrc << "#include <linux/tracepoint.h>" << endl;
-
-  // override DECLARE_TRACE to synthesize probe functions for us
-  osrc << "#undef DECLARE_TRACE" << endl;
-  osrc << "#define DECLARE_TRACE(name, proto, args) \\" << endl;
-  osrc << "  void stapprobe_##name(proto) {}" << endl;
-
-  // 2.6.35 added the NOARGS variant, but it's the same for us
-  osrc << "#undef DECLARE_TRACE_NOARGS" << endl;
-  osrc << "#define DECLARE_TRACE_NOARGS(name) \\" << endl;
-  osrc << "  DECLARE_TRACE(name, void, )" << endl;
-
-  // older tracepoints used DEFINE_TRACE, so redirect that too
-  osrc << "#undef DEFINE_TRACE" << endl;
-  osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
-  osrc << "  DECLARE_TRACE(name, TPPROTO(proto), TPARGS(args))" << endl;
-
-  // add the specified decls/#includes
-  for (unsigned z=0; z<decls.size(); z++)
-    osrc << "#undef TRACE_INCLUDE_FILE\n"
-         << "#undef TRACE_INCLUDE_PATH\n"
-         << decls[z] << "\n";
-
-  // finish up the module source
-  osrc << "#endif /* CONFIG_TRACEPOINTS */" << endl;
-  osrc.close();
 
   // make the module
   vector<string> make_cmd = make_make_cmd(s, dir);
   make_cmd.push_back ("-i"); // ignore errors, give rc 0 even in case of tracepoint header nits
+  // parallelize the make job, since we have lots of little modules to build
+  long smp = sysconf(_SC_NPROCESSORS_ONLN);
+  if (smp >= 1)
+    make_cmd.push_back("-j" + lex_cast(smp+1));
   bool quiet = (s.verbose < 4);
   int rc = run_make_cmd(s, make_cmd, quiet, quiet);
   if (rc)
@@ -624,7 +614,7 @@ make_tracequery(systemtap_session& s, string& name,
   // other useful diagnostic.  -vvvv would let a user see what's up,
   // but the user can't fix the problem even with that.
 
-  return rc;
+  return kos;
 }
 
 
