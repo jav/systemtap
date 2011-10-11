@@ -8660,6 +8660,7 @@ resolve_tracepoint_arg_type(tracepoint_arg& arg)
       return (dwarf_attr_die(&arg.type_die, DW_AT_type, &arg.type_die)
               && resolve_tracepoint_arg_type(arg));
     case DW_TAG_base_type:
+    case DW_TAG_enumeration_type:
       // base types will simply be treated as script longs
       arg.isptr = false;
       return true;
@@ -8719,8 +8720,9 @@ tracepoint_derived_probe::build_args(dwflpp&, Dwarf_Die& func_die)
           tparg.usable = resolve_tracepoint_arg_type(tparg);
           args.push_back(tparg);
           if (sess.verbose > 4)
-            clog << _F("found parameter for tracepoint '%s': type:'%s' name:'%s'",
-                       tracepoint_name.c_str(), tparg.c_type.c_str(), tparg.name.c_str()) << endl;
+            clog << _F("found parameter for tracepoint '%s': type:'%s' name:'%s' %s",
+                       tracepoint_name.c_str(), tparg.c_type.c_str(), tparg.name.c_str(),
+                       tparg.usable ? "ok" : "unavailable") << endl;
         }
     while (dwarf_siblingof(&arg, &arg) == 0);
 }
