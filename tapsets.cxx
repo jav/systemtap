@@ -9105,7 +9105,10 @@ tracepoint_builder::get_tracequery_modules(systemtap_session& s,
           {
             if (s.verbose > 2)
               clog << _F("Pass 2: using cached %s", tracequery_path.c_str()) << endl;
-            modules.push_back (tracequery_path);
+
+            // an empty file is a cached failure
+            if (get_file_size(tracequery_path) > 0)
+              modules.push_back (tracequery_path);
           }
         else
           uncached_headers.push_back(headers[i]);
@@ -9177,12 +9180,15 @@ tracepoint_builder::get_tracequery_modules(systemtap_session& s,
       {
         const string& header = uncached_headers[i];
         const string& tracequery_ko = tracequery_kos[header];
+        const string& tracequery_path = headers_cacheko[header];
         if (tracequery_ko !="" && file_exists(tracequery_ko))
           {
-            const string& tracequery_path = headers_cacheko[header];
             copy_file(tracequery_ko, tracequery_path, s.verbose > 2);
             modules.push_back (tracequery_path);
           }
+        else
+          // cache an empty file for failures
+          copy_file("/dev/null", tracequery_path, s.verbose > 2);
       }
 }
 
