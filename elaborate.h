@@ -23,6 +23,7 @@ extern "C" {
 #include <elfutils/libdw.h>
 }
 
+#include "util.h"
 // ------------------------------------------------------------------------
 
 struct derived_probe;
@@ -154,7 +155,7 @@ struct derived_probe: public probe
   // From within unparser::emit_probe, emit any extra processing block
   // for this probe.
 
-  virtual void emit_unprivileged_assertion (translator_output*);
+  virtual void emit_privilege_assertion (translator_output*);
   // From within unparser::emit_probe, emit any unprivileged mode
   // checking for this probe.
 
@@ -284,11 +285,11 @@ match_node
   match_node* bind(std::string const & k);
   match_node* bind_str(std::string const & k);
   match_node* bind_num(std::string const & k);
-  match_node* bind_unprivileged(bool b = true);
+  match_node* bind_privilege(privilege_t p = pr_stapdev);
   void bind(derived_probe_builder* e);
 
 private:
-  bool unprivileged_ok;
+  privilege_t privilege;
 };
 
 // ------------------------------------------------------------------------

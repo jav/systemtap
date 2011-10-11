@@ -2073,7 +2073,7 @@ c_unparser::emit_probe (derived_probe* v)
       o->newline() << "(void) l;"; // make sure "l" is marked used
 
       // Emit runtime safety net for unprivileged mode.
-      v->emit_unprivileged_assertion (o);
+      v->emit_privilege_assertion (o);
 
       // emit probe local initialization block
       v->emit_probe_local_init(o);
@@ -6206,8 +6206,9 @@ translate_pass (systemtap_session& s)
       // All "static" defines (not dependend on session state).
       s.op->newline() << "#include\"runtime_defines.h\"";
 
-      if (! s.unprivileged)
-	s.op->newline() << "#define STP_PRIVILEGED 1";
+      s.op->newline() << "#define STP_PR_STAPUSR " << pr_stapusr;
+      s.op->newline() << "#define STP_PR_STAPDEV " << pr_stapdev;
+      s.op->newline() << "#define STP_PRIVILEGE " << s.privilege;
 
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING " << nesting;

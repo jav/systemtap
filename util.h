@@ -1,3 +1,6 @@
+#ifndef UTIL_H
+#define UTIL_H
+
 #include "config.h"
 #include <cstring>
 #include <cerrno>
@@ -231,5 +234,15 @@ struct stap_sigmasker {
       }
 };
 
+enum privilege_t {
+  // Define the privilege levels in order where a higher value indicates a higher privilege level.
+  // These values cannot change in the future because they will be encoded into the generated
+  // modules in order to identify their privileg level now and in the future. So leave space around
+  // each for future privilege levels.
+  pr_stapusr = 10,
+  pr_stapdev = 20
+};
+
+#endif // UTIL_H
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

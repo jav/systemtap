@@ -220,7 +220,7 @@ static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
                "%s: systemtap: %s, base: %p"
                ", memory: %ludata/%lutext/%uctx/%unet/%ualloc kb"
                ", probes: %d"
-#ifndef STP_PRIVILEGED
+#if STP_PRIVILEGE < STP_PR_STAPDEV
                ", unpriv-uid: %d"
 #endif
                "\n",
@@ -240,7 +240,7 @@ static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
 	       (_stp_allocated_memory - _stp_allocated_net_memory - ctx)/1024,
                /* (un-double-counting net/ctx because they're also stp_alloc'd) */
                num_probes
-#ifndef STP_PRIVILEGED
+#if STP_PRIVILEGE < STP_PR_STAPDEV
                , _stp_uid
 #endif
                 );

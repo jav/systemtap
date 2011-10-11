@@ -26,6 +26,8 @@ extern "C" {
 #include <elfutils/libdw.h>
 }
 
+#include "util.h"
+
 #if ENABLE_NLS
 #define _(string) gettext(string)
 #define _N(string, string_plural, count) \
@@ -175,7 +177,7 @@ public:
   std::string uprobes_hash;
   bool load_only; // flight recorder mode
   bool omit_werror;
-  bool unprivileged;
+  privilege_t privilege;
   bool systemtap_v_check;
   bool tmpdir_opt_set;
   bool dump_probe_types;

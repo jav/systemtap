@@ -165,11 +165,11 @@ derived_probe::script_location () const
 
 
 void
-derived_probe::emit_unprivileged_assertion (translator_output* o)
+derived_probe::emit_privilege_assertion (translator_output* o)
 {
   // Emit code which will cause compilation to fail if it is compiled in
   // unprivileged mode.
-  o->newline() << "#ifndef STP_PRIVILEGED";
+  o->newline() << "#if STP_PRIVILEGE < STP_PR_STAPDEV";
   o->newline() << "#error Internal Error: Probe ";
   probe::printsig (o->line());
   o->line()    << " generated in --unprivileged mode";
@@ -182,7 +182,7 @@ derived_probe::emit_process_owner_assertion (translator_output* o)
 {
   // Emit code which will abort should the current target not belong to the
   // user in unprivileged mode.
-  o->newline()   << "#ifndef STP_PRIVILEGED";
+  o->newline() << "#if STP_PRIVILEGE < STP_PR_STAPDEV";
   o->newline(1)  << "if (! is_myproc ()) {";
   o->newline(1)  << "snprintf(c->error_buffer, sizeof(c->error_buffer),";
   o->newline()   << "         \"Internal Error: Process %d does not belong to user %d in probe %s in --unprivileged mode\",";
@@ -348,7 +348,7 @@ match_key::globmatch(match_key const & other) const
 // ------------------------------------------------------------------------
 
 match_node::match_node() :
-  unprivileged_ok(false)
+  privilege(pr_stapdev)
 {
 }
 
@@ -391,9 +391,9 @@ match_node::bind_num(string const & k)
 }
 
 match_node *
-match_node::bind_unprivileged(bool b)
+match_node::bind_privilege(privilege_t p)
 {
-  unprivileged_ok = b;
+  privilege = p;
   return this;
 }
 
@@ -416,7 +416,7 @@ match_node::find_and_build (systemtap_session& s,
                                    loc->components.back()->tok);
         }
 
-      if (s.unprivileged && ! unprivileged_ok)
+      if (s.privilege < privilege)
 	{
           throw semantic_error (_("probe point is not allowed for unprivileged users"),
                                 loc->components.back()->tok);
@@ -613,7 +613,7 @@ match_node::dump (systemtap_session &s, const string &name)
 
       // In unprivileged mode, don't show the probes which are not allowed for unprivileged
       // users.
-      if (! s.unprivileged || unprivileged_ok)
+      if (s.privilege >= privilege)
 	{
 	  cout << name << endl;
 	  break; // we need only print one instance.

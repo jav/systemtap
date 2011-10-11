@@ -76,7 +76,7 @@ static void _stp_exit(void);
 
 #define is_myproc() (STP_CURRENT_EUID == _stp_uid)
 
-#ifndef STP_PRIVILEGED
+#if STP_PRIVILEGE < STP_PR_STAPDEV
 #define assert_is_myproc() do { \
   if (! is_myproc()) { \
     snprintf (CONTEXT->error_buffer, MAXSTRINGLEN, STAP_MSG_RUNTIME_H_01, \

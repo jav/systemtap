@@ -226,7 +226,7 @@ find_script_hash (systemtap_session& s, const string& script)
   h.add("Ignore Dwarf (--ignore-dwarf): ", s.ignore_dwarf);		// --ignore-dwarf
   h.add("Consult Symtab (--kelf, --kmap): ", s.consult_symtab);		// --kelf, --kmap
   h.add("Skip Badvars (--skip-badvars): ", s.skip_badvars);		// --skip-badvars
-  h.add("Unprivileged (--unprivileged): ", s.unprivileged);		// --unprivileged
+  h.add("Unprivileged (--unprivileged): ", s.privilege);		// --unprivileged
   h.add("Compatible (--compatible): ", s.compatible);			// --compatible
   h.add("Omit Werror (undocumented): ", s.omit_werror);		        // undocumented, evil
   if (!s.kernel_symtab_path.empty())	// --kmap

@@ -407,20 +407,20 @@ struct dwarf_derived_probe: public derived_probe
   void emit_probe_local_init(translator_output * o);
   void getargs(std::list<std::string> &arg_set) const;
 
-  void emit_unprivileged_assertion (translator_output*);
+  void emit_privilege_assertion (translator_output*);
   void print_dupe_stamp(ostream& o);
 
   // Pattern registration helpers.
   static void register_statement_variants(match_node * root,
 					  dwarf_builder * dw,
-					  bool bind_unprivileged_p);
+					  privilege_t privilege);
   static void register_function_variants(match_node * root,
 					 dwarf_builder * dw,
-					 bool bind_unprivileged_p);
+					 privilege_t privilege);
   static void register_function_and_statement_variants(systemtap_session& s,
 						       match_node * root,
 						       dwarf_builder * dw,
-						       bool bind_unprivileged_p);
+						       privilege_t privilege);
   static void register_patterns(systemtap_session& s);
 
 protected:
@@ -468,7 +468,7 @@ struct uprobe_derived_probe: public dwarf_derived_probe
 
   void join_group (systemtap_session& s);
 
-  void emit_unprivileged_assertion (translator_output*);
+  void emit_privilege_assertion (translator_output*);
   void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged_process_owner (o); }
   void getargs(std::list<std::string> &arg_set) const;
   void saveargs(int nargs);
@@ -4228,7 +4228,7 @@ dwarf_derived_probe::getargs(std::list<std::string> &arg_set) const
 
 
 void
-dwarf_derived_probe::emit_unprivileged_assertion (translator_output* o)
+dwarf_derived_probe::emit_privilege_assertion (translator_output* o)
 {
   if (has_process)
     {
@@ -4240,7 +4240,7 @@ dwarf_derived_probe::emit_unprivileged_assertion (translator_output* o)
 
   // Other probes must contain the default assertion which aborts
   // if executed by an unprivileged user.
-  derived_probe::emit_unprivileged_assertion (o);
+  derived_probe::emit_privilege_assertion (o);
 }
 
 
@@ -4263,32 +4263,31 @@ dwarf_derived_probe::print_dupe_stamp(ostream& o)
 void
 dwarf_derived_probe::register_statement_variants(match_node * root,
 						 dwarf_builder * dw,
-						 bool bind_unprivileged_p)
+						 privilege_t privilege)
 {
   root
-    ->bind_unprivileged(bind_unprivileged_p)
+    ->bind_privilege(privilege)
     ->bind(dw);
 }
 
 void
 dwarf_derived_probe::register_function_variants(match_node * root,
 						dwarf_builder * dw,
-						bool bind_unprivileged_p)
+						privilege_t privilege)
 {
   root
-    ->bind_unprivileged(bind_unprivileged_p)
+    ->bind_privilege(privilege)
     ->bind(dw);
   root->bind(TOK_CALL)
-    ->bind_unprivileged(bind_unprivileged_p)
+    ->bind_privilege(privilege)
     ->bind(dw);
   root->bind(TOK_RETURN)
-    ->bind_unprivileged(bind_unprivileged_p)
+    ->bind_privilege(privilege)
     ->bind(dw);
 
-  if (! bind_unprivileged_p) /* for process probes / uprobes, .maxactive() is unused. */
+  if (privilege >= pr_stapdev) /* for process probes / uprobes, .maxactive() is unused. */
     {
       root->bind(TOK_RETURN)
-        ->bind_unprivileged(bind_unprivileged_p)
         ->bind_num(TOK_MAXACTIVE)->bind(dw);
     }
 }
@@ -4298,7 +4297,7 @@ dwarf_derived_probe::register_function_and_statement_variants(
   systemtap_session& s,
   match_node * root,
   dwarf_builder * dw,
-  bool bind_unprivileged_p
+  privilege_t privilege
 )
 {
   // Here we match 4 forms:
@@ -4309,24 +4308,24 @@ dwarf_derived_probe::register_function_and_statement_variants(
   // .statement(0xdeadbeef)
 
   match_node *fv_root = root->bind_str(TOK_FUNCTION);
-  register_function_variants(fv_root, dw, bind_unprivileged_p);
+  register_function_variants(fv_root, dw, privilege);
   // ROOT.function("STRING") always gets the .inline variant.
   fv_root->bind(TOK_INLINE)
-    ->bind_unprivileged(bind_unprivileged_p)
+    ->bind_privilege(privilege)
     ->bind(dw);
 
   fv_root = root->bind_num(TOK_FUNCTION);
-  register_function_variants(fv_root, dw, bind_unprivileged_p);
+  register_function_variants(fv_root, dw, privilege);
   // ROOT.function(NUMBER).inline is deprecated in release 1.7 and removed thereafter.
   if (strverscmp(s.compatible.c_str(), "1.7") <= 0)
     {
       fv_root->bind(TOK_INLINE)
-	->bind_unprivileged(bind_unprivileged_p)
+	->bind_privilege(privilege)
 	->bind(dw);
     }
 
-  register_statement_variants(root->bind_str(TOK_STATEMENT), dw, bind_unprivileged_p);
-  register_statement_variants(root->bind_num(TOK_STATEMENT), dw, bind_unprivileged_p);
+  register_statement_variants(root->bind_str(TOK_STATEMENT), dw, privilege);
+  register_statement_variants(root->bind_num(TOK_STATEMENT), dw, privilege);
 }
 
 void
@@ -4338,8 +4337,8 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   update_visitor *filter = new dwarf_cast_expanding_visitor(s, *dw);
   s.code_filters.push_back(filter);
 
-  register_function_and_statement_variants(s, root->bind(TOK_KERNEL), dw, false);
-  register_function_and_statement_variants(s, root->bind_str(TOK_MODULE), dw, false);
+  register_function_and_statement_variants(s, root->bind(TOK_KERNEL), dw, pr_stapdev);
+  register_function_and_statement_variants(s, root->bind_str(TOK_MODULE), dw, pr_stapdev);
 
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
     ->bind(dw);
@@ -4349,61 +4348,61 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind_str(TOK_MODULE)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind(dw);
 
-  register_function_and_statement_variants(s, root->bind_str(TOK_PROCESS), dw, true);
-  register_function_and_statement_variants(s, root->bind(TOK_PROCESS), dw, true);
-  register_function_and_statement_variants(s, root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, true);
-  register_function_and_statement_variants(s, root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, true);
+  register_function_and_statement_variants(s, root->bind_str(TOK_PROCESS), dw, pr_stapusr);
+  register_function_and_statement_variants(s, root->bind(TOK_PROCESS), dw, pr_stapusr);
+  register_function_and_statement_variants(s, root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, pr_stapusr);
+  register_function_and_statement_variants(s, root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, pr_stapusr);
 
   root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind(TOK_PROCESS)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind(TOK_PLT)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind(TOK_PLT)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PLT)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
-        ->bind_unprivileged()
+        ->bind_privilege(pr_stapusr)
         ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
-        ->bind_unprivileged()
+        ->bind_privilege(pr_stapusr)
         ->bind(dw);
 }
 
@@ -7053,7 +7052,7 @@ uprobe_derived_probe::saveargs(int nargs)
 
 
 void
-uprobe_derived_probe::emit_unprivileged_assertion (translator_output* o)
+uprobe_derived_probe::emit_privilege_assertion (translator_output* o)
 {
   // These probes are allowed for unprivileged users, but only in the
   // context of processes which they own.
@@ -9341,11 +9340,11 @@ register_standard_tapsets(systemtap_session & s)
   // XXX: user-space starter set
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(new uprobe_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(TOK_RETURN)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(new uprobe_builder ());
 
   // kernel tracepoint probes

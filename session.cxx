@@ -132,7 +132,7 @@ systemtap_session::systemtap_session ():
   ignore_dwarf = false;
   load_only = false;
   skip_badvars = false;
-  unprivileged = false;
+  privilege = pr_stapdev;
   omit_werror = false;
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
@@ -295,7 +295,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   ignore_dwarf = other.ignore_dwarf;
   load_only = other.load_only;
   skip_badvars = other.skip_badvars;
-  unprivileged = other.unprivileged;
+  privilege = other.privilege;
   omit_werror = other.omit_werror;
   compatible = other.compatible;
   unwindsym_ldd = other.unwindsym_ldd;
@@ -483,7 +483,7 @@ systemtap_session::usage (int exitcode)
     "   -q         generate information on tapset coverage\n"
 #endif /* HAVE_LIBSQLITE3 */
     "   --unprivileged\n"
-    "              restrict usage to features available to unprivileged users\n"
+    "              equivalent to --privilege=stapusr\n"
 #if 0 /* PR6864: disable temporarily; should merge with -d somehow */
     "   --kelf     make do with symbol table from vmlinux\n"
     "   --kmap[=FILE]\n"
@@ -945,7 +945,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      break;
 	    case LONG_OPT_UNPRIVILEGED:
 	      push_server_opt = true;
-	      unprivileged = true;
+	      privilege = pr_stapusr;
               /* NB: for server security, it is essential that once this flag is
                  set, no future flag be able to unset it. */
 	      break;
@@ -1201,11 +1201,11 @@ systemtap_session::check_options (int argc, char * const argv [])
 	  if (! stgr || ! in_group_id (stgr->gr_gid))
 	    {
               automatic_server_mode = true;
-	      if (! unprivileged)
+	      if (privilege >= pr_stapdev)
 		{
                   if (perpass_verbose[0] > 1)
                     cerr << _("Using --unprivileged for member of the group stapusr") << endl;
-		  unprivileged = true;
+		  privilege = pr_stapusr;
 		  server_args.push_back ("--unprivileged");
 		}
 	      if (specified_servers.empty ())
@@ -1218,7 +1218,7 @@ systemtap_session::check_options (int argc, char * const argv [])
 	}
     }
 
-  if (client_options && unprivileged && ! client_options_disallowed.empty ())
+  if (client_options && privilege < pr_stapdev && ! client_options_disallowed.empty ())
     {
       cerr << _F("You can't specify %s when --unprivileged is specified.",
                  client_options_disallowed.c_str()) << endl;
@@ -1229,7 +1229,7 @@ systemtap_session::check_options (int argc, char * const argv [])
       cerr << _F("You can't specify %s and %s together.", "-c", "-x") << endl;
       usage (1);
     }
-  if (unprivileged && guru_mode)
+  if (privilege < pr_stapdev && guru_mode)
     {
       cerr << _F("You can't specify %s and %s together.", "-g", "--unprivileged") << endl;
       usage (1);
@@ -1399,7 +1399,7 @@ systemtap_session::register_library_aliases()
                     }
 		  // PR 12916: All probe aliases are OK for unprivileged users. The actual
 		  // referenced probe points will be checked when the alias is resolved.
-		  mn->bind_unprivileged ();
+		  mn->bind_privilege (pr_stapusr);
                   mn->bind(new alias_expansion_builder(alias));
                 }
             }
