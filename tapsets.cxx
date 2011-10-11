@@ -9251,6 +9251,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
     for (unsigned j=0; j<glob_suffixes.size(); j++)
       globs.push_back (glob_prefixes[i]+string("/")+glob_suffixes[j]);
 
+  set<string> duped_headers;
   for (unsigned z = 0; z < globs.size(); z++)
     {
       string glob_str = globs[z];
@@ -9267,6 +9268,12 @@ tracepoint_builder::init_dw(systemtap_session& s)
               endswith(header, "/ftrace.h")       ||
               endswith(header, "/trace_events.h") ||
               endswith(header, "_event_types.h"))
+            continue;
+
+          // skip identical headers from the build and source trees.
+          size_t root_pos = header.rfind("include/");
+          if (root_pos != string::npos &&
+              !duped_headers.insert(header.substr(root_pos + 8)).second)
             continue;
 
           system_headers.push_back(header);
