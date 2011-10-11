@@ -4912,7 +4912,7 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 	}
       if (!tok_resolved)
 	{
-          msg << _F("type mismatch ( %s vs. %s )",
+          msg << _F("type mismatch (%s vs. %s)",
                     lex_cast(t1).c_str(), lex_cast(t2).c_str());
 	}
       else
@@ -4926,14 +4926,14 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 		  break;
 		}
 	    }
-          msg << _F("type mismatch ( %s vs. %s )",
+          msg << _F("type mismatch (%s vs. %s)",
                     lex_cast(t1).c_str(), lex_cast(t2).c_str());
 	  if (!tok_printed)
 	    {
 	      //error for possible mismatch in the earlier resolved token
 	      printed_toks.push_back (resolved_toks[i]);
 	      stringstream type_msg;
-              type_msg << _F("type was first inferred here ( %s )", lex_cast(t2).c_str());
+              type_msg << _F("type was first inferred here (%s)", lex_cast(t2).c_str());
 	      err1 = new semantic_error (type_msg.str(), resolved_toks[i]);
 	    }
 	}
