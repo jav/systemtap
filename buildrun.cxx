@@ -89,14 +89,14 @@ run_make_cmd(systemtap_session& s, vector<string>& make_cmd,
 }
 
 static vector<string>
-make_make_cmd(systemtap_session& s, const string& dir)
+make_any_make_cmd(systemtap_session& s, const string& dir, const string& target)
 {
   vector<string> make_cmd;
   make_cmd.push_back("make");
   make_cmd.push_back("-C");
   make_cmd.push_back(s.kernel_build_tree);
   make_cmd.push_back("M=" + dir); // need make-quoting?
-  make_cmd.push_back("modules");
+  make_cmd.push_back(target);
 
   // Add architecture, except for old powerpc (RHBZ669082)
   if (s.architecture != "powerpc" ||
@@ -107,6 +107,27 @@ make_make_cmd(systemtap_session& s, const string& dir)
   make_cmd.insert(make_cmd.end(), s.kbuildflags.begin(), s.kbuildflags.end());
 
   return make_cmd;
+}
+
+static vector<string>
+make_make_cmd(systemtap_session& s, const string& dir)
+{
+  return make_any_make_cmd(s, dir, "modules");
+}
+
+static vector<string>
+make_make_objs_cmd(systemtap_session& s, const string& dir)
+{
+  // Kbuild uses these rules to build external modules:
+  //
+  //   module-dirs := $(addprefix _module_,$(KBUILD_EXTMOD))
+  //   modules: $(module-dirs)
+  //       @$(kecho) '  Building modules, stage 2.';
+  //       $(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
+  //
+  // So if we're only interested in the stage 1 objects, we can
+  // cheat and make only the $(module-dirs) part.
+  return make_any_make_cmd(s, dir, "_module_" + dir);
 }
 
 static void
@@ -597,7 +618,7 @@ make_tracequeries(systemtap_session& s, const map<string,string>& contents)
   omf.close();
 
   // make the module
-  vector<string> make_cmd = make_make_cmd(s, dir);
+  vector<string> make_cmd = make_make_objs_cmd(s, dir);
   make_cmd.push_back ("-i"); // ignore errors, give rc 0 even in case of tracepoint header nits
   // parallelize the make job, since we have lots of little modules to build
   long smp = sysconf(_SC_NPROCESSORS_ONLN);
