@@ -335,7 +335,7 @@ find_tracequery_hash (systemtap_session& s, const string& header)
 
   create_hash_log(string("tracequery_hash"), h.get_parms(), result,
                   hashdir + "/tracequery_" + result + "_hash.log");
-  return hashdir + "/tracequery_" + result + ".ko";
+  return hashdir + "/tracequery_" + result + ".o";
 }
 
 

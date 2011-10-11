@@ -9071,7 +9071,7 @@ public:
 
 
 
-// Create (or cache) one or more tracequery .ko modules, based upon the
+// Create (or cache) one or more tracequery .o modules, based upon the
 // tracepoint-related header files given.  Return the generated or cached
 // modules[].
 
@@ -9087,20 +9087,20 @@ tracepoint_builder::get_tracequery_modules(systemtap_session& s,
         clog << "  " << headers[i] << endl;
     }
 
-  map<string,string> headers_cacheko;  // header name -> cache/.../tracequery_hash.ko file name
-  // Map the headers to cache .ko names.  Note that this has side-effects of
+  map<string,string> headers_cache_obj;  // header name -> cache/.../tracequery_hash.o file name
+  // Map the headers to cache .o names.  Note that this has side-effects of
   // creating the $SYSTEMTAP_DIR/.cache/XX/... directory and the hash-log file,
   // so we prefer not to repeat this.
   vector<string> uncached_headers;
   for (size_t i=0; i<headers.size(); i++)
-    headers_cacheko[headers[i]] = find_tracequery_hash(s, headers[i]);
+    headers_cache_obj[headers[i]] = find_tracequery_hash(s, headers[i]);
 
   // They may be in the cache already.
   if (s.use_cache && !s.poison_cache)
     for (size_t i=0; i<headers.size(); i++)
       {
         // see if the cached module exists
-        string tracequery_path = headers_cacheko[headers[i]];
+        const string& tracequery_path = headers_cache_obj[headers[i]];
         if (!tracequery_path.empty() && file_exists(tracequery_path))
           {
             if (s.verbose > 2)
@@ -9172,18 +9172,18 @@ tracepoint_builder::get_tracequery_modules(systemtap_session& s,
     }
       
   // now build them all together
-  map<string,string> tracequery_kos = make_tracequeries(s, headers_tracequery_src);
+  map<string,string> tracequery_objs = make_tracequeries(s, headers_tracequery_src);
 
   // now plop them into the cache
   if (s.use_cache)
     for (size_t i=0; i<uncached_headers.size(); i++)
       {
         const string& header = uncached_headers[i];
-        const string& tracequery_ko = tracequery_kos[header];
-        const string& tracequery_path = headers_cacheko[header];
-        if (tracequery_ko !="" && file_exists(tracequery_ko))
+        const string& tracequery_obj = tracequery_objs[header];
+        const string& tracequery_path = headers_cache_obj[header];
+        if (tracequery_obj !="" && file_exists(tracequery_obj))
           {
-            copy_file(tracequery_ko, tracequery_path, s.verbose > 2);
+            copy_file(tracequery_obj, tracequery_path, s.verbose > 2);
             modules.push_back (tracequery_path);
           }
         else

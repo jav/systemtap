@@ -547,14 +547,14 @@ make_run_command (systemtap_session& s, const string& remotedir,
 
 // Build tiny kernel modules to query tracepoints.
 // Given a (header-file -> test-contents) map, compile them ASAP, and return
-// a (header-file -> ko-filename) map.
+// a (header-file -> obj-filename) map.
 
 map<string,string>
 make_tracequeries(systemtap_session& s, const map<string,string>& contents)
 {
   static unsigned tick = 0;
   string basename("tracequery_kmod_" + lex_cast(++tick));
-  map<string,string> kos;
+  map<string,string> objs;
 
   // create a subdirectory for the module
   string dir(s.tmpdir + "/" + basename);
@@ -563,7 +563,7 @@ make_tracequeries(systemtap_session& s, const map<string,string>& contents)
       if (! s.suppress_warnings)
         cerr << _("Warning: failed to create directory for querying tracepoints.") << endl;
       s.set_try_server ();
-      return kos;
+      return objs;
     }
 
   // create a simple Makefile
@@ -592,7 +592,7 @@ make_tracequeries(systemtap_session& s, const map<string,string>& contents)
 
       // arrange to build it
       omf << "obj-m += " + sbasename + ".o" << endl; // NB: without <dir> prefix
-      kos[it->first] = dir + "/" + sbasename + ".ko";
+      objs[it->first] = dir + "/" + sbasename + ".o";
     }
   omf.close();
 
@@ -614,7 +614,7 @@ make_tracequeries(systemtap_session& s, const map<string,string>& contents)
   // other useful diagnostic.  -vvvv would let a user see what's up,
   // but the user can't fix the problem even with that.
 
-  return kos;
+  return objs;
 }
 
 
