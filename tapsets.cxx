@@ -9138,28 +9138,39 @@ tracepoint_builder::get_tracequery_modules(systemtap_session& s,
 
       // add each requested tracepoint header
       size_t root_pos = header.rfind("include/");
-      short_decls.push_back(string("#include <") + 
+      short_decls.push_back(string("#include <") +
                             ((root_pos != string::npos) ? header.substr(root_pos + 8) : header) +
                             string(">"));
 
       osrc << "#ifdef CONFIG_TRACEPOINTS" << endl;
       osrc << "#include <linux/tracepoint.h>" << endl;
-      
+
+      // the kernel has changed this naming a few times, previously TPPROTO,
+      // TP_PROTO, TPARGS, TP_ARGS, etc.  so let's just dupe the latest.
+      osrc << "#ifndef PARAMS" << endl;
+      osrc << "#define PARAMS(args...) args" << endl;
+      osrc << "#endif" << endl;
+
       // override DECLARE_TRACE to synthesize probe functions for us
       osrc << "#undef DECLARE_TRACE" << endl;
       osrc << "#define DECLARE_TRACE(name, proto, args) \\" << endl;
       osrc << "  void stapprobe_##name(proto) {}" << endl;
-      
+
       // 2.6.35 added the NOARGS variant, but it's the same for us
       osrc << "#undef DECLARE_TRACE_NOARGS" << endl;
       osrc << "#define DECLARE_TRACE_NOARGS(name) \\" << endl;
       osrc << "  DECLARE_TRACE(name, void, )" << endl;
-      
+
+      // 2.6.38 added the CONDITION variant, which can also just redirect
+      osrc << "#undef DECLARE_TRACE_CONDITION" << endl;
+      osrc << "#define DECLARE_TRACE_CONDITION(name, proto, args, cond) \\" << endl;
+      osrc << "  DECLARE_TRACE(name, PARAMS(proto), PARAMS(args))" << endl;
+
       // older tracepoints used DEFINE_TRACE, so redirect that too
       osrc << "#undef DEFINE_TRACE" << endl;
       osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
-      osrc << "  DECLARE_TRACE(name, TPPROTO(proto), TPARGS(args))" << endl;
-      
+      osrc << "  DECLARE_TRACE(name, PARAMS(proto), PARAMS(args))" << endl;
+
       // add the specified decls/#includes
       for (unsigned z=0; z<short_decls.size(); z++)
         osrc << "#undef TRACE_INCLUDE_FILE\n"
@@ -9172,7 +9183,7 @@ tracepoint_builder::get_tracequery_modules(systemtap_session& s,
       // save the source file away
       headers_tracequery_src[header] = osrc.str();
     }
-      
+
   // now build them all together
   map<string,string> tracequery_objs = make_tracequeries(s, headers_tracequery_src);
 
