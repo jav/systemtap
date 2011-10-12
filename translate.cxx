@@ -5100,13 +5100,37 @@ c_unparser::visit_hist_op (hist_op*)
 }
 
 
+typedef map<Dwarf_Addr,const char*> addrmap_t; // NB: plain map, sorted by address
 
 struct unwindsym_dump_context
 {
   systemtap_session& session;
   ostream& output;
   unsigned stp_module_index;
+
+  int build_id_len;
+  unsigned char *build_id_bits;
+  GElf_Addr build_id_vaddr;
+
   unsigned long stp_kretprobe_trampoline_addr;
+  Dwarf_Addr stext_offset;
+
+  vector<pair<string,unsigned> > seclist; // encountered relocation bases
+                                          // (section names and sizes)
+  map<unsigned, addrmap_t> addrmap; // per-relocation-base sorted addrmap
+
+  void *debug_frame;
+  size_t debug_len;
+  void *debug_frame_hdr;
+  size_t debug_frame_hdr_len;
+  Dwarf_Addr debug_frame_off;
+  void *eh_frame;
+  void *eh_frame_hdr;
+  size_t eh_len;
+  size_t eh_frame_hdr_len;
+  Dwarf_Addr eh_addr;
+  Dwarf_Addr eh_frame_hdr_addr;
+
   set<string> undone_unwindsym_modules;
 };
 
@@ -5228,8 +5252,7 @@ static void get_unwind_data (Dwfl_Module *m,
 			     size_t *debug_frame_hdr_len,
 			     Dwarf_Addr *debug_frame_off,
 			     Dwarf_Addr *eh_frame_hdr_addr,
-			     systemtap_session& session,
-			     Dwfl_Module *mod)
+			     systemtap_session& session)
 {
   Dwarf_Addr start, bias = 0;
   GElf_Ehdr *ehdr, ehdr_mem;
@@ -5297,47 +5320,15 @@ static void get_unwind_data (Dwfl_Module *m,
   if (*debug_frame != NULL && *debug_len > 0)
     create_debug_frame_hdr (ehdr->e_ident, data,
 			    debug_frame_hdr, debug_frame_hdr_len,
-			    debug_frame_off, session, mod);
+			    debug_frame_off, session, m);
 }
 
 static int
-dump_unwindsyms (Dwfl_Module *m,
-                 void **userdata __attribute__ ((unused)),
-                 const char *name,
-                 Dwarf_Addr base,
-                 void *arg)
+dump_build_id (Dwfl_Module *m,
+	       unwindsym_dump_context *c,
+	       const char *name, Dwarf_Addr base)
 {
-  unwindsym_dump_context* c = (unwindsym_dump_context*) arg;
-  assert (c);
-  unsigned stpmod_idx = c->stp_module_index;
-
   string modname = name;
-
-  if (pending_interrupts)
-    return DWARF_CB_ABORT;
-
-  // skip modules/files we're not actually interested in
-  if (c->session.unwindsym_modules.find(modname) == c->session.unwindsym_modules.end())
-    return DWARF_CB_OK;
-
-  c->stp_module_index ++;
-
-  if (c->session.verbose > 1)
-    clog << "dump_unwindsyms " << name
-         << " index=" << stpmod_idx
-         << " base=0x" << hex << base << dec << endl;
-
-  // We want to extract several bits of information:
-  //
-  // - parts of the program-header that map the file's physical offsets to the text section
-  // - section table: just a list of section (relocation) base addresses
-  // - symbol table of the text-like sections, with all addresses relativized to each base
-  // - the contents of .debug_frame section, for unwinding purposes
-  //
-  // In the future, we'll also care about data symbols.
-
-  int syments = dwfl_module_getsymtab(m);
-  dwfl_assert (_F("Getting symbol table for %s", modname.c_str()), syments >= 0);
 
   //extract build-id from debuginfo file
   int build_id_len = 0;
@@ -5380,29 +5371,36 @@ dump_unwindsyms (Dwfl_Module *m,
         clog << _F("Found build-id in %s, length %d, start at %#" PRIx64,
                    name, build_id_len, build_id_vaddr) << endl;
       }
+
+    c->build_id_len = build_id_len;
+    c->build_id_vaddr = build_id_vaddr;
+    c->build_id_bits = build_id_bits;
   }
 
-  // Get the canonical path of the main file for comparison at runtime.
-  // When given directly by the user through -d or in case of the kernel
-  // name and path might differ. path should be used for matching.
+  return DWARF_CB_OK;
+}
+
+static int
+dump_symbol_tables (Dwfl_Module *m,
+		    unwindsym_dump_context *c,
+		    const char *name, Dwarf_Addr base)
+{
+  string modname = name;
+
+  int syments = dwfl_module_getsymtab(m);
+  dwfl_assert (_F("Getting symbol table for %s", modname.c_str()), syments >= 0);
+
   // Use end as sanity check when resolving symbol addresses and to
   // calculate size for .dynamic and .absolute sections.
-  const char *mainfile;
   Dwarf_Addr start, end;
-  dwfl_module_info (m, NULL, &start, &end, NULL, NULL, &mainfile, NULL);
+  dwfl_module_info (m, NULL, &start, &end, NULL, NULL, NULL, NULL);
 
   // Look up the relocation basis for symbols
   int n = dwfl_module_relocations (m);
 
   dwfl_assert ("dwfl_module_relocations", n >= 0);
 
-
   // XXX: unfortunate duplication with tapsets.cxx:emit_address()
-
-  typedef map<Dwarf_Addr,const char*> addrmap_t; // NB: plain map, sorted by address
-  vector<pair<string,unsigned> > seclist; // encountered relocation bases
-					// (section names and sizes)
-  map<unsigned, addrmap_t> addrmap; // per-relocation-base sorted addrmap
 
   Dwarf_Addr extra_offset = 0;
 
@@ -5431,6 +5429,8 @@ dump_unwindsyms (Dwfl_Module *m,
                            ki >= 0);
               if (c->session.verbose > 2)
                 clog << _F("Found kernel _stext extra offset %#" PRIx64, extra_offset) << endl;
+
+              c->stext_offset = extra_offset;
             }
 
 	  // We are only interested in "real" symbols.
@@ -5498,10 +5498,10 @@ dump_unwindsyms (Dwfl_Module *m,
 
               // Compute our section number
               unsigned secidx;
-              for (secidx=0; secidx<seclist.size(); secidx++)
-                if (seclist[secidx].first==secname) break;
+              for (secidx=0; secidx<c->seclist.size(); secidx++)
+                if (c->seclist[secidx].first==secname) break;
 
-              if (secidx == seclist.size()) // new section name
+              if (secidx == c->seclist.size()) // new section name
 		{
                   // absolute, dynamic or kernel have just one relocation
                   // section, which covers the whole module address range.
@@ -5518,14 +5518,14 @@ dump_unwindsyms (Dwfl_Module *m,
                      shdr = gelf_getshdr(scn, &shdr_mem);
                      size = shdr->sh_size;
                    }
-                  seclist.push_back (make_pair(secname,size));
+                  c->seclist.push_back (make_pair(secname,size));
 		}
 
               // If we don't actually need the symbols then we did all
               // of the above just to get the section names... we can
               // probably do that in some more efficient way...
               if (c->session.need_symbols)
-                (addrmap[secidx])[sym_addr] = name;
+                (c->addrmap[secidx])[sym_addr] = name;
             }
         }
     }
@@ -5534,24 +5534,43 @@ dump_unwindsyms (Dwfl_Module *m,
   if (c->stp_kretprobe_trampoline_addr != (unsigned long) -1)
     c->stp_kretprobe_trampoline_addr -= extra_offset;
 
-  // Add unwind data to be included if it exists for this module.
-  void *debug_frame = NULL;
-  size_t debug_len = 0;
-  void *debug_frame_hdr = NULL;
-  size_t debug_frame_hdr_len = 0;
-  Dwarf_Addr debug_frame_off = 0;
-  void *eh_frame = NULL;
-  void *eh_frame_hdr = NULL;
-  size_t eh_len = 0;
-  size_t eh_frame_hdr_len = 0;
-  Dwarf_Addr eh_addr = 0;
-  Dwarf_Addr eh_frame_hdr_addr = 0;
+  return DWARF_CB_OK;
+}
 
+static int
+dump_unwind_tables (Dwfl_Module *m,
+		    unwindsym_dump_context *c,
+		    const char *name, Dwarf_Addr base)
+{
+  // Add unwind data to be included if it exists for this module.
   if (c->session.need_unwind)
-    get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr,
-                     &eh_frame_hdr, &eh_frame_hdr_len, &debug_frame_hdr,
-                     &debug_frame_hdr_len, &debug_frame_off, &eh_frame_hdr_addr,
-                     c->session, m);
+    get_unwind_data (m, &c->debug_frame, &c->eh_frame,
+		     &c->debug_len, &c->eh_len,
+		     &c->eh_addr, &c->eh_frame_hdr, &c->eh_frame_hdr_len,
+		     &c->debug_frame_hdr, &c->debug_frame_hdr_len,
+		     &c->debug_frame_off, &c->eh_frame_hdr_addr,
+                     c->session);
+  return DWARF_CB_OK;
+}
+
+static int
+dump_unwindsym_cxt (Dwfl_Module *m,
+		    unwindsym_dump_context *c,
+		    const char *name, Dwarf_Addr base)
+{
+  string modname = name;
+  unsigned stpmod_idx = c->stp_module_index;
+  void *debug_frame = c->debug_frame;
+  size_t debug_len = c->debug_len;
+  void *debug_frame_hdr = c->debug_frame_hdr;
+  size_t debug_frame_hdr_len = c->debug_frame_hdr_len;
+  Dwarf_Addr debug_frame_off = c->debug_frame_off;
+  void *eh_frame = c->eh_frame;
+  void *eh_frame_hdr = c->eh_frame_hdr;
+  size_t eh_len = c->eh_len;
+  size_t eh_frame_hdr_len = c->eh_frame_hdr_len;
+  Dwarf_Addr eh_addr = c->eh_addr;
+  Dwarf_Addr eh_frame_hdr_addr = c->eh_frame_hdr_addr;
 
   if (debug_frame != NULL && debug_len > 0)
     {
@@ -5637,19 +5656,22 @@ dump_unwindsyms (Dwfl_Module *m,
 				  + ", " + dwfl_errmsg (-1));
     }
 
-  for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
+  for (unsigned secidx = 0; secidx < c->seclist.size(); secidx++)
     {
       c->output << "static struct _stp_symbol "
                 << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {\n";
 
+      string secname = c->seclist[secidx].first;
+      Dwarf_Addr extra_offset;
+      extra_offset = (secname == "_stext") ? c->stext_offset : 0;
+
       // Only include symbols if they will be used
       if (c->session.need_symbols)
 	{
-
 	  // We write out a *sorted* symbol table, so the runtime doesn't
 	  // have to sort them later.
-	  for (addrmap_t::iterator it = addrmap[secidx].begin();
-	       it != addrmap[secidx].end(); it++)
+	  for (addrmap_t::iterator it = c->addrmap[secidx].begin();
+	       it != c->addrmap[secidx].end(); it++)
 	    {
 	      // skip symbols that occur before our chosen base address
 	      if (it->first < extra_offset)
@@ -5663,7 +5685,6 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << "};\n";
 
       /* For now output debug_frame index only in "magic" sections. */
-      string secname = seclist[secidx].first;
       if (secname == ".dynamic" || secname == ".absolute"
 	  || secname == ".text" || secname == "_stext")
 	{
@@ -5702,16 +5723,16 @@ dump_unwindsyms (Dwfl_Module *m,
   // there is just one section that covers the whole address space of
   // the module. For kernel modules (ET_REL) there can be multiple
   // sections that get relocated separately.
-  for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
+  for (unsigned secidx = 0; secidx < c->seclist.size(); secidx++)
     {
       c->output << "{\n"
-                << ".name = " << lex_cast_qstring(seclist[secidx].first) << ",\n"
-                << ".size = 0x" << hex << seclist[secidx].second << dec << ",\n"
+                << ".name = " << lex_cast_qstring(c->seclist[secidx].first) << ",\n"
+                << ".size = 0x" << hex << c->seclist[secidx].second << dec << ",\n"
                 << ".symbols = _stp_module_" << stpmod_idx << "_symbols_" << secidx << ",\n"
-                << ".num_symbols = " << addrmap[secidx].size() << ",\n";
+                << ".num_symbols = " << c->addrmap[secidx].size() << ",\n";
 
       /* For now output debug_frame index only in "magic" sections. */
-      string secname = seclist[secidx].first;
+      string secname = c->seclist[secidx].first;
       if (debug_frame_hdr && (secname == ".dynamic" || secname == ".absolute"
 			      || secname == ".text" || secname == "_stext"))
 	{
@@ -5746,6 +5767,12 @@ dump_unwindsyms (Dwfl_Module *m,
 	c->output << "},\n";
     }
   c->output << "};\n";
+
+  // Get the canonical path of the main file for comparison at runtime.
+  // When given directly by the user through -d or in case of the kernel
+  // name and path might differ. path should be used for matching.
+  const char *mainfile;
+  dwfl_module_info (m, NULL, NULL, NULL, NULL, NULL, &mainfile, NULL);
 
   // For user space modules store canonical path and base name.
   // For kernel modules just the name itself.
@@ -5816,15 +5843,15 @@ dump_unwindsyms (Dwfl_Module *m,
    * See also:
    *    http://sourceware.org/ml/systemtap/2009-q4/msg00574.html
    */
-  if (build_id_len > 0
-      && (modname != "kernel" || (build_id_vaddr > base + extra_offset))) {
+  if (c->build_id_len > 0
+      && (modname != "kernel" || (c->build_id_vaddr > base + c->stext_offset))) {
     c->output << ".build_id_bits = \"" ;
-    for (int j=0; j<build_id_len;j++)
+    for (int j=0; j<c->build_id_len;j++)
       c->output << "\\x" << hex
-                << (unsigned short) *(build_id_bits+j) << dec;
+                << (unsigned short) *(c->build_id_bits+j) << dec;
 
     c->output << "\",\n";
-    c->output << ".build_id_len = " << build_id_len << ",\n";
+    c->output << ".build_id_len = " << c->build_id_len << ",\n";
 
     /* XXX: kernel data boot-time relocation works differently from text.
        This hack assumes that offset between _stext and build id
@@ -5832,12 +5859,12 @@ dump_unwindsyms (Dwfl_Module *m,
        correct either.  We may instead need a relocation basis different
        from _stext, such as __start_notes.  */
     if (modname == "kernel")
-      c->output << ".build_id_offset = 0x" << hex << build_id_vaddr - (base + extra_offset)
+      c->output << ".build_id_offset = 0x" << hex << c->build_id_vaddr - (base + c->stext_offset)
                 << dec << ",\n";
     // ET_DYN: task finder gives the load address. ET_EXEC: this is absolute address
     else
       c->output << ".build_id_offset = 0x" << hex
-                << build_id_vaddr /* - base */
+                << c->build_id_vaddr /* - base */
                 << dec << ",\n";
   } else
     c->output << ".build_id_len = 0,\n";
@@ -5854,6 +5881,73 @@ dump_unwindsyms (Dwfl_Module *m,
   if (debug_frame_hdr) free (debug_frame_hdr);
 
   return DWARF_CB_OK;
+}
+
+static int
+dump_unwindsyms (Dwfl_Module *m,
+                 void **userdata __attribute__ ((unused)),
+                 const char *name,
+                 Dwarf_Addr base,
+                 void *arg)
+{
+  if (pending_interrupts)
+    return DWARF_CB_ABORT;
+
+  unwindsym_dump_context *c = (unwindsym_dump_context*) arg;
+  assert (c);
+
+  // skip modules/files we're not actually interested in
+  string modname = name;
+  if (c->session.unwindsym_modules.find(modname)
+      == c->session.unwindsym_modules.end())
+    return DWARF_CB_OK;
+
+  if (c->session.verbose > 1)
+    clog << "dump_unwindsyms " << name
+         << " index=" << c->stp_module_index
+         << " base=0x" << hex << base << dec << endl;
+
+  // We want to extract several bits of information:
+  //
+  // - parts of the program-header that map the file's physical offsets to the text section
+  // - section table: just a list of section (relocation) base addresses
+  // - symbol table of the text-like sections, with all addresses relativized to each base
+  // - the contents of .debug_frame and/or .eh_frame section, for unwinding purposes
+
+  int res = DWARF_CB_OK;
+
+  c->build_id_len = 0;
+  c->build_id_vaddr = 0;
+  c->build_id_bits = NULL;
+  res = dump_build_id (m, c, name, base);
+  if (res != DWARF_CB_OK)
+    return res;
+
+  c->seclist.clear();
+  c->addrmap.clear();
+  res = dump_symbol_tables (m, c, name, base);
+  if (res != DWARF_CB_OK)
+    return res;
+
+  c->debug_frame = NULL;
+  c->debug_len = 0;
+  c->debug_frame_hdr = NULL;
+  c->debug_frame_hdr_len = 0;
+  c->debug_frame_off = 0;
+  c->eh_frame = NULL;
+  c->eh_frame_hdr = NULL;
+  c->eh_len = 0;
+  c->eh_frame_hdr_len = 0;
+  c->eh_addr = 0;
+  c->eh_frame_hdr_addr = 0;
+  res = dump_unwind_tables (m, c, name, base);
+  if (res != DWARF_CB_OK)
+    return res;
+
+  /* And finally dump everything collected in the output. */
+  res = dump_unwindsym_cxt (m, c, name, base);
+  c->stp_module_index++;
+  return res;
 }
 
 
@@ -5975,7 +6069,26 @@ emit_symbol_data (systemtap_session& s)
 
   ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
 
-  unwindsym_dump_context ctx = { s, kallsyms_out, 0, ~0, s.unwindsym_modules };
+  vector<pair<string,unsigned> > seclist;
+  map<unsigned, addrmap_t> addrmap;
+  unwindsym_dump_context ctx = { s, kallsyms_out,
+				 0, /* module index */
+				 0, NULL, 0, /* build_id len, bits, vaddr */
+				 ~0, /* stp_kretprobe_trampoline_addr */
+				 0, /* stext_offset */
+				 seclist, addrmap,
+				 NULL, /* debug_frame */
+				 0, /* debug_len */
+				 NULL, /* debug_frame_hdr */
+				 0, /* debug_frame_hdr_len */
+				 0, /* debug_frame_off */
+				 NULL, /* eh_frame */
+				 NULL, /* eh_frame_hdr */
+				 0, /* eh_len */
+				 0, /* eh_frame_hdr_len */
+				 0, /* eh_addr */
+				 0, /* eh_frame_hdr_addr */
+				 s.unwindsym_modules };
 
   // Micro optimization, mainly to speed up tiny regression tests
   // using just begin probe.
