@@ -65,6 +65,10 @@ proc test_embedded_C { use_wrapper } {
 		# There should be a message excluding this function
 		set passed $found
 	    }
+	    default
+	    {
+		set passed 0
+	    }
 	}
 
 	if {$passed} {

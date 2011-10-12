@@ -90,7 +90,7 @@ BEGIN {
 function finish_function() {
     if (block == 0 && isfunc) {
 	if (unprivileged == 1)
-	    print " ; unprivileged"
+	    print " ;unprivileged"
 	else if (myproc_unprivileged == 1)
 	    print " ;myproc-unprivileged"
 	else if (unprivileged != -1 || myproc_unprivileged != -1)
