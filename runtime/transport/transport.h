@@ -22,6 +22,7 @@
 
 static unsigned _stp_nsubbufs;
 static unsigned _stp_subbuf_size;
+static pid_t _stp_target;
 
 static int _stp_transport_init(void);
 static void _stp_transport_close(void);

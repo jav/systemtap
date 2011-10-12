@@ -13,7 +13,6 @@
 #define _VSPRINTF_C_
 
 #include "print.h"
-#include "transport/transport.h"
 
 static int skip_atoi(const char **s)
 {
@@ -22,8 +21,6 @@ static int skip_atoi(const char **s)
 		i = i*10 + *((*s)++) - '0';
 	return i;
 }
-
-enum print_flag {STP_ZEROPAD=1, STP_SIGN=2, STP_PLUS=4, STP_SPACE=8, STP_LEFT=16, STP_SPECIAL=32, STP_LARGE=64};
 
 /*
  * Changes to number() will require a corresponding change to number_size below,
@@ -207,6 +204,8 @@ _stp_vsprint_memory(char * str, char * end, const char * ptr,
 		    char format, enum print_flag flags)
 {
 	int i, len = 0;
+	struct context * __restrict__ c;
+
 	if ((unsigned long)ptr < PAGE_SIZE)
 		ptr = "<NULL>";
 
@@ -227,14 +226,24 @@ _stp_vsprint_memory(char * str, char * end, const char * ptr,
 
 	if (format == 'M') { /* stolen from kernel: trace_seq_putmem_hex() */
 		const char _stp_hex_asc[] = "0123456789abcdef";
+
+		c = contexts[smp_processor_id()];
 		for (i = 0; i < len && str < end; i++) {
-			unsigned char c = *(unsigned char *)(ptr++);
-			*str++ = _stp_hex_asc[(c & 0xf0) >> 4];
-			*str++ = _stp_hex_asc[(c & 0x0f)];
+			unsigned char c_tmp = kread((unsigned char *)(ptr));
+			ptr++;
+			*str++ = _stp_hex_asc[(c_tmp & 0xf0) >> 4];
+			*str++ = _stp_hex_asc[(c_tmp & 0x0f)];
 		}
 		len = len * 2; /* the actual length */
 	}
-	else
+	else if (format == 'm') {
+		c = contexts[smp_processor_id()];
+		for (i = 0; i < len && str <= end; ++i) {
+			*str++ = kread((unsigned char *)(ptr));
+			ptr++;
+		}
+	}
+	else				/* %s format */
 		for (i = 0; i < len && str <= end; ++i)
 			*str++ = *ptr++;
 
@@ -244,6 +253,13 @@ _stp_vsprint_memory(char * str, char * end, const char * ptr,
 	if (flags & STP_ZEROPAD && str <= end)
 		*str++ = '\0';
 
+	return str;
+
+	/* We've caught a deref fault.  Make sure the string is null
+	 * terminated. and return. */
+deref_fault:
+	if (str <= end)
+		*str = '\0';
 	return str;
 }
 

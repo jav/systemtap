@@ -115,9 +115,8 @@ static struct
 #endif
 
 #include "alloc.c"
-#include "print.c"
+#include "print.h"
 #include "string.c"
-#include "io.c"
 #include "arith.c"
 #include "copy.c"
 #include "regs.c"

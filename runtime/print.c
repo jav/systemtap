@@ -13,7 +13,6 @@
 
 
 #include "string.h"
-#include "vsprintf.c"
 #include "print.h"
 #include "transport/transport.c"
 #include "vsprintf.c"
@@ -44,7 +43,9 @@ typedef struct __stp_pbuf {
 static void *Stp_pbuf = NULL;
 
 /** private buffer for _stp_vlog() */
+#ifndef STP_LOG_BUF_LEN
 #define STP_LOG_BUF_LEN 256
+#endif
 
 typedef char _stp_lbuf[STP_LOG_BUF_LEN];
 static void *Stp_lbuf = NULL;
@@ -107,10 +108,11 @@ static inline void _stp_print_flush(void)
 	local_irq_restore(flags);
 }
 #else
-#define _stp_print_flush() \
-	EXPORT_FN(stp_print_flush)(per_cpu_ptr(Stp_pbuf, smp_processor_id()))
+static inline void _stp_print_flush(void)
+{
+	EXPORT_FN(stp_print_flush)(per_cpu_ptr(Stp_pbuf, smp_processor_id()));
+}
 #endif
-
 #ifndef STP_MAXBINARYARGS
 #define STP_MAXBINARYARGS 127
 #endif

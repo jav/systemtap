@@ -69,7 +69,6 @@ struct c_unparser: public unparser, public visitor
   unsigned tmpvar_counter;
   unsigned label_counter;
   unsigned action_counter;
-  bool probe_or_function_needs_deref_fault_handler;
 
   varuse_collecting_visitor vcv_needs_global_locks;
 
@@ -80,7 +79,6 @@ struct c_unparser: public unparser, public visitor
   c_unparser (systemtap_session* ss):
     session (ss), o (ss->op), current_probe(0), current_function (0),
     tmpvar_counter (0), label_counter (0), action_counter(0),
-    probe_or_function_needs_deref_fault_handler(false),
     vcv_needs_global_locks (*ss) {}
   ~c_unparser () {}
 
@@ -1947,19 +1945,12 @@ c_unparser::emit_function (functiondecl* v)
     }
 
   o->newline() << "#define return goto out"; // redirect embedded-C return
-  this->probe_or_function_needs_deref_fault_handler = false;
   v->body->visit (this);
   o->newline() << "#undef return";
 
   this->current_function = 0;
 
   record_actions(0, v->body->tok, true);
-
-  if (this->probe_or_function_needs_deref_fault_handler) {
-    // Emit this handler only if the body included a
-    // print/printf/etc. using a string or memory buffer!
-    o->newline() << "CATCH_DEREF_FAULT ();";
-  }
 
   o->newline(-1) << "out:";
   o->newline(1) << "if (0) goto out;"; // make sure out: is marked used
@@ -2048,8 +2039,6 @@ c_unparser::emit_probe (derived_probe* v)
     }
   else // This probe is unique.  Remember it and output it.
     {
-      this->probe_or_function_needs_deref_fault_handler = false;
-
       o->newline();
       o->newline() << "static void " << v->name << " (struct context * __restrict__ c) ";
       o->line () << "{";
@@ -2106,12 +2095,6 @@ c_unparser::emit_probe (derived_probe* v)
       v->body->visit (this);
 
       record_actions(0, v->body->tok, true);
-
-      if (this->probe_or_function_needs_deref_fault_handler) {
-	// Emit this handler only if the body included a
-	// print/printf/etc. using a string or memory buffer!
-	o->newline() << "CATCH_DEREF_FAULT ();";
-      }
 
       o->newline(-1) << "out:";
       // NB: no need to uninitialize locals, except if arrays/stats can
@@ -4899,12 +4882,6 @@ c_unparser::visit_print_format (print_format* e)
 	    o->newline() << "c->last_stmt = " << lex_cast_qstring(*prec_tok) << ";";
 	    o->newline() << "goto out;";
 	    o->newline(-1) << "}";
-
-	    /* Generate a noop call to deref_buffer.  */
-	    this->probe_or_function_needs_deref_fault_handler = true;
-	    o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->args[arg_ix]->tok) << ";";
-	    o->newline() << "deref_buffer (0, " << tmp[arg_ix].value() << ", "
-			 << mem_size << " ?: 1LL);";
 	  }
 
 	++arg_ix;
@@ -4988,7 +4965,7 @@ c_unparser::visit_print_format (print_format* e)
 	}
       o->line() << ");";
       o->newline(-1) << "#endif // STP_LEGACY_PRINT";
-
+      o->newline() << "if (unlikely(c->last_error)) goto out;";
       o->newline() << res.value() << ";";
     }
 }
@@ -6379,6 +6356,7 @@ translate_pass (systemtap_session& s)
 
       s.up->emit_common_header (); // context etc.
 
+      s.op->newline() << "#include \"runtime_context.h\"";
       if (s.need_unwind)
 	s.op->newline() << "#include \"stack.c\"";
 
