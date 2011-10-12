@@ -860,5 +860,34 @@ std::string autosprintf(const char* format, ...)
   return s; /* by copy */
 }
 
+privilege_t pr_next (privilege_t p)
+{
+  switch (p)
+    {
+    case pr_stapusr:
+      p = pr_stapdev;
+      break;
+    case pr_stapdev:
+    default:
+      p = pr_end;
+      break;
+    }
+  return p;
+}
+
+const char *pr_name (privilege_t p)
+{
+  switch (p)
+    {
+    case pr_stapusr:
+      return "stapusr";
+    case pr_stapdev:
+      return "stapdev";
+    default:
+      break;
+    }
+  return "unknown";
+}
+
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

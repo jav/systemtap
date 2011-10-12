@@ -6206,9 +6206,23 @@ translate_pass (systemtap_session& s)
       // All "static" defines (not dependend on session state).
       s.op->newline() << "#include\"runtime_defines.h\"";
 
+      // Generated macros describing the privilege level required to load/run this module.
       s.op->newline() << "#define STP_PR_STAPUSR " << pr_stapusr;
       s.op->newline() << "#define STP_PR_STAPDEV " << pr_stapdev;
       s.op->newline() << "#define STP_PRIVILEGE " << s.privilege;
+
+      // Generate a section containing a list of the privilege levels authorized to load/run this
+      // module.
+      string privilege_list;
+      for (privilege_t p = s.privilege; p != pr_end; p = pr_next (p))
+	{
+	  if (! privilege_list.empty ())
+	    privilege_list += ",";
+	  privilege_list += pr_name (p);
+	}
+      s.op->newline() << "const char privilege_list[] "
+		      << "__attribute__ ((section (\".stap_privilege\"))) = "
+		      << "\"" << privilege_list << "\";";
 
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING " << nesting;

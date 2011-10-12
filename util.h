@@ -239,9 +239,13 @@ enum privilege_t {
   // These values cannot change in the future because they will be encoded into the generated
   // modules in order to identify their privileg level now and in the future. So leave space around
   // each for future privilege levels.
-  pr_stapusr = 10,
-  pr_stapdev = 20
+  pr_stapusr = 10, pr_begin = pr_stapusr,
+  pr_stapdev = 20,
+  pr_end
 };
+
+privilege_t pr_next (privilege_t p);
+const char *pr_name (privilege_t p);
 
 #endif // UTIL_H
 
