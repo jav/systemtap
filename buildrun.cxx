@@ -298,9 +298,6 @@ compile_pass (systemtap_session& s)
   if (s.verbose > 3)
     o << "EXTRA_CFLAGS += -ftime-report -Q" << endl;
 
-  // forward partial declarations for tracepoint callbacks unfortunately require this
-  o << "EXTRA_CFLAGS += -Wno-strict-prototypes" << endl;
-
   // XXX: unfortunately, -save-temps can't work since linux kbuild cwd
   // is not writeable.
   //

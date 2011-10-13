@@ -8812,7 +8812,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   map<string,translator_output*> per_header_aux;
   // GC NB: the translator_output* structs are owned/retained by the systemtap_session.
-  
+
   for (unsigned i = 0; i < probes.size(); ++i)
     {
       tracepoint_derived_probe *p = probes[i];
@@ -8831,12 +8831,12 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
           const vector<string>& extra_decls = tracepoint_extra_decls (s, header);
           for (unsigned z=0; z<extra_decls.size(); z++)
             tpop->newline() << extra_decls[z] << "\n";
-          
+
           // strip include/ substring, the same way as done in get_tracequery_module()
           size_t root_pos = header.rfind("include/");
           header = ((root_pos != string::npos) ? header.substr(root_pos + 8) : header);
           tpop->newline() << "#include <" << header << ">";
-          
+
           // Starting in 2.6.35, at the same time NOARGS was added, the callback
           // always has a void* as the first parameter. PR11599
           tpop->newline() << "#ifdef DECLARE_TRACE_NOARGS";
@@ -8851,30 +8851,43 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
           if (p->args.empty())
             tpop->line() << " void";
           tpop->newline() << "#endif";
+
+          tpop->newline() << "#define intptr_t long";
         }
+
+      // collect the args that are actually in use
+      vector<const tracepoint_arg*> used_args;
+      for (unsigned j = 0; j < p->args.size(); ++j)
+        if (p->args[j].used)
+          used_args.push_back(&p->args[j]);
 
       // forward-declare the generated-side tracepoint callback
       tpop->newline() << "void enter_real_tracepoint_probe_" << i << "(";
-      for (unsigned j = 0; j < p->args.size(); ++j)
+      tpop->indent(2);
+      if (used_args.empty())
+        tpop->line() << "void";
+      for (unsigned j = 0; j < used_args.size(); ++j)
         {
-          if (! p->args[j].used) continue;
           if (j > 0)
             tpop->line() << ", ";
           tpop->line() << "int64_t";
         }
-      tpop->newline() << ");" << endl;
+      tpop->line() << ");";
+      tpop->indent(-2);
 
       // define the generated-side tracepoint callback - in the main translator-output
       s.op->newline() << "void enter_real_tracepoint_probe_" << i << "(";
-      for (unsigned j = 0; j < p->args.size(); ++j)
+      s.op->indent(2);
+      if (used_args.empty())
+        s.op->newline() << "void";
+      for (unsigned j = 0; j < used_args.size(); ++j)
         {
-          if (! p->args[j].used) continue;
           if (j > 0)
             s.op->line() << ", ";
-          s.op->line() << "int64_t " << p->args[j].name;
+          s.op->newline() << "int64_t __tracepoint_arg_" << used_args[j]->name;
         }
-      s.op->newline() << ")" << endl;
-      s.op->newline() << "{";
+      s.op->newline() << ")";
+      s.op->newline(-2) << "{";
       s.op->newline(1) << "struct stap_probe * const probe = "
                        << common_probe_init (p) << ";";
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "probe",
@@ -8882,25 +8895,18 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "c->ips.tracepoint_name = "
                       << lex_cast_qstring (p->tracepoint_name)
                       << ";";
-      for (unsigned j = 0; j < p->args.size(); ++j)
-        if (p->args[j].used)
-          {
-            s.op->newline() << "c->probe_locals." << p->name << ".__tracepoint_arg_"
-                            << p->args[j].name << " = (int64_t)";
-            s.op->line() << p->args[j].typecast;
-            s.op->line() << "__tracepoint_arg_" << p->args[j].name << ";";
-          }
+      for (unsigned j = 0; j < used_args.size(); ++j)
+        {
+          s.op->newline() << "c->probe_locals." << p->name
+                          << ".__tracepoint_arg_" << used_args[j]->name
+                          << " = __tracepoint_arg_" << used_args[j]->name << ";";
+        }
       s.op->newline() << "(*probe->ph) (c);";
       common_probe_entryfn_epilogue (s.op);
       s.op->newline(-1) << "}";
 
-
-      // forward-declare real tracepoint callback function
-      s.op->newline() << "void enter_tracepoint_probe_" << i << "();";
-
-
       // define the real tracepoint callback function
-      tpop->newline() << "void enter_tracepoint_probe_" << i << "(";
+      tpop->newline() << "static void enter_tracepoint_probe_" << i << "(";
       tpop->newline(2) << "STAP_TP_PROTO";
       for (unsigned j = 0; j < p->args.size(); ++j)
         {
@@ -8910,19 +8916,21 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
         }
       tpop->newline() << ")";
       tpop->newline(-2) << "{";
-      tpop->newline(2) << "enter_real_tracepoint_probe_" << i << "(";
-      for (unsigned j = 0; j < p->args.size(); ++j)
-        if (p->args[j].used)
-          {
-            s.op->line() << "(int64_t)" << p->args[j].typecast;
-            s.op->line() << "__tracepoint_arg_" << p->args[j].name << ";";
-          }
-      tpop->newline() << ");" << endl;
-      tpop->newline(-2) << "}" << endl;
+      tpop->newline(1) << "enter_real_tracepoint_probe_" << i << "(";
+      tpop->indent(2);
+      for (unsigned j = 0; j < used_args.size(); ++j)
+        {
+          if (j > 0)
+            tpop->line() << ", ";
+          tpop->newline() << "(int64_t)" << used_args[j]->typecast
+                          << "__tracepoint_arg_" << used_args[j]->name;
+        }
+      tpop->newline() << ");";
+      tpop->newline(-3) << "}";
 
 
-      // emit real normalized registration functions
-      tpop->newline() << "int real_register_tracepoint_probe_" << i << "(void) {";
+      // emit normalized registration functions
+      tpop->newline() << "int register_tracepoint_probe_" << i << "(void) {";
       tpop->newline(1) << "return register_trace_" << p->tracepoint_name
                        << "(enter_tracepoint_probe_" << i << " STAP_TP_DATA);";
       tpop->newline(-1) << "}";
@@ -8931,23 +8939,15 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       // can only occur if the tracepoint doesn't exist (yet?), or if we
       // weren't even registered.  The former should be OKed by the initial
       // registration call, and the latter is safe to ignore.
-      tpop->newline() << "void real_unregister_tracepoint_probe_" << i << "(void) {";
+      tpop->newline() << "void unregister_tracepoint_probe_" << i << "(void) {";
       tpop->newline(1) << "(void) unregister_trace_" << p->tracepoint_name
                        << "(enter_tracepoint_probe_" << i << " STAP_TP_DATA);";
       tpop->newline(-1) << "}";
       tpop->newline();
 
-      // emit normalized registration functions
-      s.op->newline() << "int real_register_tracepoint_probe_" << i << "(void);";
-      s.op->newline() << "int register_tracepoint_probe_" << i << "(void) {";
-      s.op->newline(1) << "return real_register_tracepoint_probe_" << i << "();";
-      s.op->newline(-1) << "}";
-
-      // emit normalized unregistration functions
-      s.op->newline() << "void real_unregister_tracepoint_probe_" << i << "(void);";
-      s.op->newline() << "void unregister_tracepoint_probe_" << i << "(void) {";
-      s.op->newline(1) << "real_unregister_tracepoint_probe_" << i << "();";
-      s.op->newline(-1) << "}";
+      // declare normalized registration functions
+      s.op->newline() << "int register_tracepoint_probe_" << i << "(void);";
+      s.op->newline() << "void unregister_tracepoint_probe_" << i << "(void);";
 
       tpop->assert_0_indent();
     }
