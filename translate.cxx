@@ -5358,30 +5358,108 @@ dump_build_id (Dwfl_Module *m,
 }
 
 static int
-dump_symbol_tables (Dwfl_Module *m,
-		    unwindsym_dump_context *c,
-		    const char *name, Dwarf_Addr base)
+dump_section_list (Dwfl_Module *m,
+                   unwindsym_dump_context *c,
+                   const char *name, Dwarf_Addr base)
 {
+  // Depending on ELF section names normally means you are doing it WRONG.
+  // Sadly it seems we do need it for the kernel modules. Which are ET_REL
+  // files, which are "dynamically loaded" by the kernel. We keep a section
+  // list for them to know which symbol corresponds to which section.
+  //
+  // Luckily for the kernel, normal executables (ET_EXEC) or shared
+  // libraries (ET_DYN) we don't need it. We just have one "section",
+  // which we will just give the arbitrary names "_stext", ".absolute"
+  // or ".dynamic"
+
   string modname = name;
 
-  int syments = dwfl_module_getsymtab(m);
-  dwfl_assert (_F("Getting symbol table for %s", modname.c_str()), syments >= 0);
-
-  // Use end as sanity check when resolving symbol addresses and to
-  // calculate size for .dynamic and .absolute sections.
+  // Use start and end as to calculate size for _stext, .dynamic and
+  // .absolute sections.
   Dwarf_Addr start, end;
   dwfl_module_info (m, NULL, &start, &end, NULL, NULL, NULL, NULL);
 
   // Look up the relocation basis for symbols
   int n = dwfl_module_relocations (m);
+  dwfl_assert ("dwfl_module_relocations", n >= 0);
 
+ if (n == 0)
+    {
+      // ET_EXEC, no relocations.
+      string secname = ".absolute";
+      unsigned size = end - start;
+      c->seclist.push_back (make_pair (secname, size));
+      return DWARF_CB_OK;
+    }
+  else if (n == 1)
+    {
+      // kernel or shared library (ET_DYN).
+      string secname;
+      secname = (modname == "kernel") ? "_stext" : ".dynamic";
+      unsigned size = end - start;
+      c->seclist.push_back (make_pair (secname, size));
+      return DWARF_CB_OK;
+    }
+  else if (n > 1)
+    {
+      // ET_REL, kernel module.
+      string secname;
+      unsigned size;
+      Dwarf_Addr bias;
+      GElf_Ehdr *ehdr, ehdr_mem;
+      GElf_Shdr *shdr, shdr_mem;
+      Elf *elf = dwfl_module_getelf(m, &bias);
+      ehdr = gelf_getehdr(elf, &ehdr_mem);
+      Elf_Scn *scn = NULL;
+      while ((scn = elf_nextscn(elf, scn)))
+	{
+	  // Just the "normal" sections with program bits please.
+	  shdr = gelf_getshdr(scn, &shdr_mem);
+	  if ((shdr->sh_type == SHT_PROGBITS || shdr->sh_type == SHT_NOBITS)
+	      && (shdr->sh_flags & SHF_ALLOC))
+	    {
+	      size = shdr->sh_size;
+	      const char* scn_name = elf_strptr(elf, ehdr->e_shstrndx,
+						shdr->sh_name);
+	      secname = scn_name;
+	      c->seclist.push_back (make_pair (secname, size));
+	    }
+	}
+
+      return DWARF_CB_OK;
+    }
+
+  // Impossible... dflw_assert above will have triggered.
+  return DWARF_CB_ABORT;
+}
+
+static int
+dump_symbol_tables (Dwfl_Module *m,
+		    unwindsym_dump_context *c,
+		    const char *modname, Dwarf_Addr base)
+{
+  // Use end as sanity check when resolving symbol addresses.
+  Dwarf_Addr end;
+  dwfl_module_info (m, NULL, NULL, &end, NULL, NULL, NULL, NULL);
+
+  int syments = dwfl_module_getsymtab(m);
+  dwfl_assert (_F("Getting symbol table for %s", modname), syments >= 0);
+
+  // Look up the relocation basis for symbols
+  int n = dwfl_module_relocations (m);
   dwfl_assert ("dwfl_module_relocations", n >= 0);
 
   // XXX: unfortunate duplication with tapsets.cxx:emit_address()
 
+  // extra_offset is for the special kernel case.
   Dwarf_Addr extra_offset = 0;
+  Dwarf_Addr kretprobe_trampoline_addr = (unsigned long) -1;
+  int is_kernel = !strcmp(modname, "kernel");
 
-  for (int i = 0; i < syments; ++i)
+  /* Set to bail early if we are just examining the kernel
+     and don't need anything more. */
+  int done = 0;
+  for (int i = 0; i < syments && !done; ++i)
     {
       if (pending_interrupts)
         return DWARF_CB_ABORT;
@@ -5392,38 +5470,65 @@ dump_symbol_tables (Dwfl_Module *m,
       const char *name = dwfl_module_getsym(m, i, &sym, &shndxp);
       if (name)
         {
-          // NB: Yey, we found the kernel's _stext value.
-          // Sess.sym_stext may be unset (0) at this point, since
-          // there may have been no kernel probes set.  We could
-          // use tapsets.cxx:lookup_symbol_address(), but then
-          // we're already iterating over the same data here...
-          if (modname == "kernel" && !strcmp(name, "_stext"))
-            {
-              int ki;
-              extra_offset = sym.st_value;
-              ki = dwfl_module_relocate_address (m, &extra_offset);
-              dwfl_assert ("dwfl_module_relocate_address extra_offset",
-                           ki >= 0);
-              if (c->session.verbose > 2)
-                clog << _F("Found kernel _stext extra offset %#" PRIx64, extra_offset) << endl;
+          Dwarf_Addr sym_addr = sym.st_value;
 
-              c->stext_offset = extra_offset;
+	  // We always need two special values from the kernel.
+	  // _stext for extra_offset and kretprobe_trampoline_holder
+	  // for the unwinder.
+          if (is_kernel)
+	    {
+	      // NB: Yey, we found the kernel's _stext value.
+	      // Sess.sym_stext may be unset (0) at this point, since
+	      // there may have been no kernel probes set.  We could
+	      // use tapsets.cxx:lookup_symbol_address(), but then
+	      // we're already iterating over the same data here...
+	      if (! strcmp(name, "_stext"))
+		{
+		  int ki;
+		  extra_offset = sym_addr;
+		  ki = dwfl_module_relocate_address (m, &extra_offset);
+		  dwfl_assert ("dwfl_module_relocate_address extra_offset",
+			       ki >= 0);
+
+		  if (c->session.verbose > 2)
+		    clog << _F("Found kernel _stext extra offset %#" PRIx64,
+			       extra_offset) << endl;
+
+		  if (! c->session.need_symbols
+		      && (kretprobe_trampoline_addr != (unsigned long) -1
+			  || ! c->session.need_unwind))
+		    done = 1;
+		}
+	      else if (kretprobe_trampoline_addr == (unsigned long) -1
+		       && c->session.need_unwind
+		       && ! strcmp(name, "kretprobe_trampoline_holder"))
+		{
+		  int ki;
+                  kretprobe_trampoline_addr = sym_addr;
+                  ki = dwfl_module_relocate_address(m,
+						    &kretprobe_trampoline_addr);
+                  dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
+
+		  if (! c->session.need_symbols
+		      && extra_offset != 0)
+		    done = 1;
+		}
             }
 
 	  // We are only interested in "real" symbols.
 	  // We omit symbols that have suspicious addresses (before base,
 	  // or after end).
-          if ((GELF_ST_TYPE (sym.st_info) == STT_FUNC ||
-               GELF_ST_TYPE (sym.st_info) == STT_NOTYPE || // PR10206 ppc fn-desc are in .opd
-               GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: also need .data
+          if (!done && c->session.need_symbols
+	      && (GELF_ST_TYPE (sym.st_info) == STT_FUNC
+		  || GELF_ST_TYPE (sym.st_info) == STT_NOTYPE // PR10206 ppc fn-desc are in .opd
+		  || GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: also need .data
                && !(sym.st_shndx == SHN_UNDEF	// Value undefined,
 		    || shndxp == (GElf_Word) -1	// in a non-allocated section,
-		    || sym.st_value >= end	// beyond current module,
-		    || sym.st_value < base))	// before first section.
+		    || sym_addr >= end	// beyond current module,
+		    || sym_addr < base))	// before first section.
             {
-              Dwarf_Addr sym_addr = sym.st_value;
-              Dwarf_Addr save_addr = sym_addr;
               const char *secname = NULL;
+              unsigned secidx = 0; /* Most things have just one section. */
 
               if (n > 0) // only try to relocate if there exist relocation bases
                 {
@@ -5432,7 +5537,7 @@ dump_symbol_tables (Dwfl_Module *m,
                   secname = dwfl_module_relocation_info (m, ki, NULL);
 		}
 
-              if (n == 1 && modname == "kernel")
+              if (n == 1 && is_kernel)
                 {
                   // This is a symbol within a (possibly relocatable)
                   // kernel image.
@@ -5447,13 +5552,9 @@ dump_symbol_tables (Dwfl_Module *m,
 		    continue;
 
                   secname = "_stext";
-                  // NB: don't subtract session.sym_stext, which could be inconveniently NULL.
-                  // Instead, sym_addr will get compensated later via extra_offset.
-
-                  // We need to note this for the unwinder.
-                  if (c->stp_kretprobe_trampoline_addr == (unsigned long) -1
-                      && ! strcmp (name, "kretprobe_trampoline_holder"))
-                    c->stp_kretprobe_trampoline_addr = sym_addr;
+                  // NB: don't subtract session.sym_stext, which could be
+                  // inconveniently NULL. Instead, sym_addr will get
+                  // compensated later via extra_offset.
                 }
               else if (n > 0)
                 {
@@ -5464,52 +5565,43 @@ dump_symbol_tables (Dwfl_Module *m,
                   // like shared libraries, as their relocation base
                   // is implicit.
                   if (secname[0] == '\0')
-                    secname = ".dynamic";
+		    secname = ".dynamic";
+		  else
+		    {
+		      // Compute our section number
+		      for (secidx = 0; secidx < c->seclist.size(); secidx++)
+			if (c->seclist[secidx].first==secname)
+			  break;
+
+		      if (secidx == c->seclist.size()) // whoa! We messed up...
+			{
+			  string m = _F("%s has unknown section %s for sym %s",
+					modname, secname, name);
+			  throw runtime_error(m);
+			}
+		    }
                 }
               else
                 {
                   assert (n == 0);
-                  // sym_addr is absolute, as it must be since there are no relocation bases
+                  // sym_addr is absolute, as it must be since there are
+                  // no relocation bases
                   secname = ".absolute"; // sentinel
                 }
 
-              // Compute our section number
-              unsigned secidx;
-              for (secidx=0; secidx<c->seclist.size(); secidx++)
-                if (c->seclist[secidx].first==secname) break;
-
-              if (secidx == c->seclist.size()) // new section name
-		{
-                  // absolute, dynamic or kernel have just one relocation
-                  // section, which covers the whole module address range.
-                  unsigned size;
-                  if (n <= 1)
-                    size = end - start;
-                  else
-                   {
-                     Dwarf_Addr b;
-                     Elf_Scn *scn;
-                     GElf_Shdr *shdr, shdr_mem;
-                     scn = dwfl_module_address_section (m, &save_addr, &b);
-                     assert (scn != NULL);
-                     shdr = gelf_getshdr(scn, &shdr_mem);
-                     size = shdr->sh_size;
-                   }
-                  c->seclist.push_back (make_pair(secname,size));
-		}
-
-              // If we don't actually need the symbols then we did all
-              // of the above just to get the section names... we can
-              // probably do that in some more efficient way...
-              if (c->session.need_symbols)
-                (c->addrmap[secidx])[sym_addr] = name;
+              (c->addrmap[secidx])[sym_addr] = name;
             }
         }
     }
 
-  // Must be relative to actual kernel load address.
-  if (c->stp_kretprobe_trampoline_addr != (unsigned long) -1)
-    c->stp_kretprobe_trampoline_addr -= extra_offset;
+  if (is_kernel)
+    {
+      c->stext_offset = extra_offset;
+      // Must be relative to actual kernel load address.
+      if (kretprobe_trampoline_addr != (unsigned long) -1)
+	c->stp_kretprobe_trampoline_addr = (kretprobe_trampoline_addr
+					    - extra_offset);
+    }
 
   return DWARF_CB_OK;
 }
@@ -5520,13 +5612,12 @@ dump_unwind_tables (Dwfl_Module *m,
 		    const char *name, Dwarf_Addr base)
 {
   // Add unwind data to be included if it exists for this module.
-  if (c->session.need_unwind)
-    get_unwind_data (m, &c->debug_frame, &c->eh_frame,
-		     &c->debug_len, &c->eh_len,
-		     &c->eh_addr, &c->eh_frame_hdr, &c->eh_frame_hdr_len,
-		     &c->debug_frame_hdr, &c->debug_frame_hdr_len,
-		     &c->debug_frame_off, &c->eh_frame_hdr_addr,
-                     c->session);
+  get_unwind_data (m, &c->debug_frame, &c->eh_frame,
+		   &c->debug_len, &c->eh_len,
+		   &c->eh_addr, &c->eh_frame_hdr, &c->eh_frame_hdr_len,
+		   &c->debug_frame_hdr, &c->debug_frame_hdr_len,
+		   &c->debug_frame_off, &c->eh_frame_hdr_addr,
+                   c->session);
   return DWARF_CB_OK;
 }
 
@@ -5897,14 +5988,18 @@ dump_unwindsyms (Dwfl_Module *m,
   c->build_id_vaddr = 0;
   c->build_id_bits = NULL;
   res = dump_build_id (m, c, name, base);
-  if (res != DWARF_CB_OK)
-    return res;
 
   c->seclist.clear();
+  if (res == DWARF_CB_OK)
+    res = dump_section_list(m, c, name, base);
+
+  // We always need to check the symbols of the kernel if we use it,
+  // for the extra_offset (also used for build_ids) and possibly
+  // stp_kretprobe_trampoline_addr for the dwarf unwinder.
   c->addrmap.clear();
-  res = dump_symbol_tables (m, c, name, base);
-  if (res != DWARF_CB_OK)
-    return res;
+  if (res == DWARF_CB_OK
+      && (c->session.need_symbols || ! strcmp(name, "kernel")))
+    res = dump_symbol_tables (m, c, name, base);
 
   c->debug_frame = NULL;
   c->debug_len = 0;
@@ -5917,13 +6012,16 @@ dump_unwindsyms (Dwfl_Module *m,
   c->eh_frame_hdr_len = 0;
   c->eh_addr = 0;
   c->eh_frame_hdr_addr = 0;
-  res = dump_unwind_tables (m, c, name, base);
-  if (res != DWARF_CB_OK)
-    return res;
+  if (res == DWARF_CB_OK && c->session.need_unwind)
+    res = dump_unwind_tables (m, c, name, base);
 
   /* And finally dump everything collected in the output. */
-  res = dump_unwindsym_cxt (m, c, name, base);
-  c->stp_module_index++;
+  if (res == DWARF_CB_OK)
+    res = dump_unwindsym_cxt (m, c, name, base);
+
+  if (res == DWARF_CB_OK)
+    c->stp_module_index++;
+
   return res;
 }
 
