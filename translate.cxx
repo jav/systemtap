@@ -5127,7 +5127,6 @@ struct unwindsym_dump_context
   set<string> undone_unwindsym_modules;
 };
 
-
 static void create_debug_frame_hdr (const unsigned char e_ident[],
 				    Elf_Data *debug_frame,
 				    void **debug_frame_hdr,
@@ -5339,7 +5338,7 @@ dump_build_id (Dwfl_Module *m,
         int i;
 
         i = dwfl_module_relocate_address (m, &reloc_vaddr);
-        dwfl_assert ("dwfl_module_relocate_address", i >= 0);
+        dwfl_assert ("dwfl_module_relocate_address reloc_vaddr", i >= 0);
 
         secname = dwfl_module_relocation_info (m, i, NULL);
 
@@ -5465,6 +5464,13 @@ dump_symbol_tables (Dwfl_Module *m,
   int n = dwfl_module_relocations (m);
   dwfl_assert ("dwfl_module_relocations", n >= 0);
 
+  /* Needed on ppc64, for function descriptors. */
+  Dwarf_Addr elf_bias;
+  GElf_Ehdr *ehdr, ehdr_mem;
+  Elf *elf;
+  elf = dwfl_module_getelf(m, &elf_bias);
+  ehdr = gelf_getehdr(elf, &ehdr_mem);
+
   // XXX: unfortunate duplication with tapsets.cxx:emit_address()
 
   // extra_offset is for the special kernel case.
@@ -5523,7 +5529,7 @@ dump_symbol_tables (Dwfl_Module *m,
                   kretprobe_trampoline_addr = sym_addr;
                   ki = dwfl_module_relocate_address(m,
 						    &kretprobe_trampoline_addr);
-                  dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
+                  dwfl_assert ("dwfl_module_relocate_address, kretprobe_trampoline_addr", ki >= 0);
 
 		  if (! c->session.need_symbols
 		      && extra_offset != 0)
@@ -5532,12 +5538,13 @@ dump_symbol_tables (Dwfl_Module *m,
             }
 
 	  // We are only interested in "real" symbols.
-	  // We omit symbols that have suspicious addresses (before base,
-	  // or after end).
+	  // We omit symbols that have suspicious addresses
+	  // (before base, or after end).
           if (!done && c->session.need_symbols
 	      && (GELF_ST_TYPE (sym.st_info) == STT_FUNC
-		  || GELF_ST_TYPE (sym.st_info) == STT_NOTYPE // PR10206 ppc fn-desc are in .opd
-		  || GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: also need .data
+		  || (GELF_ST_TYPE (sym.st_info) == STT_NOTYPE
+		      && ehdr->e_type == ET_REL) // PR10206 ppc fn-desc in .opd
+		  || GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: .data
                && !(sym.st_shndx == SHN_UNDEF	// Value undefined,
 		    || shndxp == (GElf_Word) -1	// in a non-allocated section,
 		    || sym_addr >= end	// beyond current module,
@@ -5545,12 +5552,49 @@ dump_symbol_tables (Dwfl_Module *m,
             {
               const char *secname = NULL;
               unsigned secidx = 0; /* Most things have just one section. */
+	      Dwarf_Addr func_desc_addr = 0; /* Function descriptor */
+
+	      /* PPC64 uses function descriptors.
+		 Note: for kernel ET_REL modules we rely on finding the
+		 .function symbols instead of going through the opd function
+		 descriptors. */
+	      if (ehdr->e_machine == EM_PPC64
+		  && GELF_ST_TYPE (sym.st_info) == STT_FUNC
+		  && ehdr->e_type != ET_REL)
+		{
+		  Elf64_Addr opd_addr;
+		  Dwarf_Addr opd_bias;
+		  Elf_Scn *opd;
+
+		  func_desc_addr = sym_addr;
+
+		  opd = dwfl_module_address_section (m, &sym_addr, &opd_bias);
+		  dwfl_assert ("dwfl_module_address_section opd", opd != NULL);
+
+		  Elf_Data *opd_data = elf_rawdata (opd, NULL);
+		  assert(opd_data != NULL);
+
+		  Elf_Data opd_in, opd_out;
+		  opd_out.d_buf = &opd_addr;
+		  opd_in.d_buf = (char *) opd_data->d_buf + sym_addr;
+		  opd_out.d_size = opd_in.d_size = sizeof (Elf64_Addr);
+		  opd_out.d_type = opd_in.d_type = ELF_T_ADDR;
+		  if (elf64_xlatetom (&opd_out, &opd_in,
+				      ehdr->e_ident[EI_DATA]) == NULL)
+		    throw runtime_error ("elf64_xlatetom failed");
+
+		  // So the real address of the function is...
+		  sym_addr = opd_addr + opd_bias;
+		}
 
               if (n > 0) // only try to relocate if there exist relocation bases
                 {
                   int ki = dwfl_module_relocate_address (m, &sym_addr);
-                  dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
+                  dwfl_assert ("dwfl_module_relocate_address sym_addr", ki >= 0);
                   secname = dwfl_module_relocation_info (m, ki, NULL);
+
+		  if (func_desc_addr != 0)
+		    dwfl_module_relocate_address (m, &func_desc_addr);
 		}
 
               if (n == 1 && is_kernel)
@@ -5606,6 +5650,10 @@ dump_symbol_tables (Dwfl_Module *m,
                 }
 
               (c->addrmap[secidx])[sym_addr] = name;
+	      /* If we have a function descriptor, register that address
+	         under the same name */
+	      if (func_desc_addr != 0)
+		(c->addrmap[secidx])[func_desc_addr] = name;
             }
         }
     }
