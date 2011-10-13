@@ -206,11 +206,11 @@ _stp_vsprint_memory(char * str, char * end, const char * ptr,
 	int i, len = 0;
 	struct context * __restrict__ c;
 
-	if ((unsigned long)ptr < PAGE_SIZE)
-		ptr = "<NULL>";
-
-	if (format == 's')
+	if (format == 's') {
+		if ((unsigned long)ptr < PAGE_SIZE)
+			ptr = "<NULL>";
 		len = strnlen(ptr, precision);
+	}
 	else if (precision > 0)
 		len = precision;
 	else
@@ -260,7 +260,7 @@ _stp_vsprint_memory(char * str, char * end, const char * ptr,
 deref_fault:
 	if (str <= end)
 		*str = '\0';
-	return str;
+	return NULL;
 }
 
 static int
@@ -269,11 +269,11 @@ _stp_vsprint_memory_size(const char * ptr, int width, int precision,
 {
 	int len = 0;
 
-	if ((unsigned long)ptr < PAGE_SIZE)
-		ptr = "<NULL>";
-
-	if (format == 's')
+	if (format == 's') {
+		if ((unsigned long)ptr < PAGE_SIZE)
+			ptr = "<NULL>";
 		len = strnlen(ptr, precision);
+	}
 	else if (precision > 0)
 		len = precision;
 	else
@@ -401,6 +401,7 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 	int precision;		/* min. # of digits for integers; max
 				   number of chars for from string */
 	int qualifier;		/* 'h', 'l', or 'L' for integer fields */
+	int num_bytes = 0;
 
 	/* Reject out-of-range values early */
 	if (unlikely((int) size < 0))
@@ -415,7 +416,6 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 	 */
 	if (buf == NULL) {
 	  const char* fmt_copy = fmt;
-	  int num_bytes = 0;
           va_list args_copy;
 
           va_copy(args_copy, args);
@@ -681,6 +681,11 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			str = _stp_vsprint_memory(str, end, s,
 					field_width, precision,
 					*fmt, flags);
+			if (unlikely(str == NULL)) {
+				if (num_bytes > 0)
+					_stp_unreserve_bytes(num_bytes);
+				return 0;
+			}
 			continue;
 
 		case 'X':

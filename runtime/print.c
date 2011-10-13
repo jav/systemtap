@@ -138,6 +138,16 @@ static void * _stp_reserve_bytes (int numbytes)
 }
 
 
+static void _stp_unreserve_bytes (int numbytes)
+{
+	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
+
+	if (unlikely(numbytes == 0 || numbytes > pb->len))
+		return;
+
+	pb->len -= numbytes;
+}
+
 /** Write 64-bit args directly into the output stream.
  * This function takes a variable number of 64-bit arguments
  * and writes them directly into the output stream.  Marginally faster

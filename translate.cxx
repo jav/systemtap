@@ -1192,8 +1192,9 @@ c_unparser::emit_compiled_printfs ()
         {
 	  // Compute the buffer size needed for these arguments.
 	  size_t arg_ix = 0;
+	  o->newline() << "int num_bytes = 0;";
 	  o->newline() << "{";
-	  o->newline(1) << "int num_bytes = 0;";
+	  o->indent(1);
 	  vector<print_format::format_component>::const_iterator c;
 	  for (c = components.begin(); c != components.end(); ++c)
 	    {
@@ -1386,6 +1387,12 @@ c_unparser::emit_compiled_printfs ()
 			   << ", width, precision, '"
 			   << ((c->type == print_format::conv_memory) ? "m" : "M")
 			   << "', " << c->flags << ");";
+	      o->newline() << "if (unlikely(str == NULL)) {";
+	      o->indent(1);
+	      if (print_to_stream)
+		  o->newline() << "_stp_unreserve_bytes(num_bytes);";
+	      o->newline() << "return;";
+	      o->newline(-1) << "}";
 	      break;
 
 	    case print_format::conv_binary:
@@ -4883,12 +4890,12 @@ c_unparser::visit_print_format (print_format* e)
 	      mem_size = "1LL";
 
 	    /* Limit how much can be printed at a time. (see also PR10490) */
+	    o->newline() << "c->last_stmt = " << lex_cast_qstring(*prec_tok) << ";";
 	    o->newline() << "if (" << mem_size << " > 1024) {";
 	    o->newline(1) << "snprintf(c->error_buffer, sizeof(c->error_buffer), "
 			  << "\"%lld is too many bytes for a memory dump\", (long long)"
 			  << mem_size << ");";
 	    o->newline() << "c->last_error = c->error_buffer;";
-	    o->newline() << "c->last_stmt = " << lex_cast_qstring(*prec_tok) << ";";
 	    o->newline() << "goto out;";
 	    o->newline(-1) << "}";
 	  }
