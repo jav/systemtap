@@ -287,7 +287,7 @@ find_script_hash (systemtap_session& s, const string& script)
   s.hash_path = hashdir + "/" + s.module_name + ".ko";
 
   // Update C source name with new module_name.
-  s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
+  s.translated_source = string(s.tmpdir) + "/" + s.module_name + "_src.c";
   create_hash_log(string("script_hash"), h.get_parms(), result,
                   hashdir + "/" + s.module_name + "_hash.log");
 }

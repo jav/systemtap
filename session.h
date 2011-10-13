@@ -302,6 +302,7 @@ public:
 
   // unparser data
   translator_output* op;
+  std::vector<translator_output*> auxiliary_outputs;
   unparser* up;
 
   // some symbol addresses
@@ -324,6 +325,8 @@ public:
   unsigned num_errors () { return seen_errors.size() + (panic_warnings ? seen_warnings.size() : 0); }
 
   std::set<std::string> rpms_to_install;
+
+  translator_output* op_create_auxiliary();
 
   // void print_error (const parse_error& e);
   const token* last_token;

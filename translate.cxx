@@ -880,7 +880,8 @@ translator_output::translator_output (const string& filename, size_t bufsize):
   buf (new char[bufsize]),
   o2 (new ofstream (filename.c_str ())),
   o (*o2),
-  tablevel (0)
+  tablevel (0),
+  filename (filename)
 {
   o2->rdbuf()->pubsetbuf(buf, bufsize);
 }
@@ -6351,6 +6352,7 @@ translate_pass (systemtap_session& s)
   int rc = 0;
 
   s.op = new translator_output (s.translated_source);
+  // additional outputs might be found in s.auxiliary_outputs
   c_unparser cup (& s);
   s.up = & cup;
   translate_runtime(s);

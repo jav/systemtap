@@ -1548,6 +1548,18 @@ systemtap_session::print_warning (const string& message_str, const token* tok)
     }
 }
 
+
+translator_output* systemtap_session::op_create_auxiliary()
+{
+  static int counter = 0;
+  string tmpname = this->tmpdir + "/" + this->module_name + "_aux_" + lex_cast(counter++) + ".c";
+  translator_output* n = new translator_output (tmpname);
+  auxiliary_outputs.push_back (n);
+  return n;
+}
+
+
+
 // --------------------------------------------------------------------------
 
 /*

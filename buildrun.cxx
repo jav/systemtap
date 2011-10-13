@@ -11,6 +11,7 @@
 #include "session.h"
 #include "util.h"
 #include "hash.h"
+#include "translate.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -227,7 +228,6 @@ compile_pass (systemtap_session& s)
   // since such headers are cleansed of _KERNEL_ pieces that we need
 
   o << "STAPCONF_HEADER := " << s.tmpdir << "/" << s.stapconf_name << endl;
-  o << s.translated_source << ": $(STAPCONF_HEADER)" << endl;
   o << "$(STAPCONF_HEADER):" << endl;
   o << "\t@echo -n > $@" << endl;
   output_autoconf(s, o, "autoconf-hrtimer-rel.c", "STAPCONF_HRTIMER_REL", NULL);
@@ -298,6 +298,9 @@ compile_pass (systemtap_session& s)
   if (s.verbose > 3)
     o << "EXTRA_CFLAGS += -ftime-report -Q" << endl;
 
+  // forward partial declarations for tracepoint callbacks unfortunately require this
+  o << "EXTRA_CFLAGS += -Wno-strict-prototypes" << endl;
+
   // XXX: unfortunately, -save-temps can't work since linux kbuild cwd
   // is not writeable.
   //
@@ -330,6 +333,37 @@ compile_pass (systemtap_session& s)
   // XXX: this may help ppc toc overflow
   // o << "CFLAGS := $(subst -Os,-O2,$(CFLAGS)) -fminimal-toc" << endl;
   o << "obj-m := " << s.module_name << ".o" << endl;
+
+  // print out all the auxiliary source (->object) file names
+  o << s.module_name << "-y := ";
+  for (unsigned i=0; i<s.auxiliary_outputs.size(); i++)
+    {
+      string srcname = s.auxiliary_outputs[i]->filename;
+      assert (srcname != "" && srcname.rfind('/') != string::npos);
+      string objname = srcname.substr(srcname.rfind('/')+1); // basename
+      assert (objname != "" && objname[objname.size()-1] == 'c');
+      objname[objname.size()-1] = 'o'; // now objname
+      o << " " + objname;
+    }
+  // and once again, for the translated_source file.  It can't simply
+  // be named MODULENAME.c, since kbuild doesn't allow a foo.ko file
+  // consisting of multiple .o's to have foo.o/foo.c as a source.
+  // (It uses ld -r -o foo.o EACH.o EACH.o).
+  {
+    string srcname = s.translated_source;
+    assert (srcname != "" && srcname.rfind('/') != string::npos);
+    string objname = srcname.substr(srcname.rfind('/')+1); // basename
+    assert (objname != "" && objname[objname.size()-1] == 'c');
+    objname[objname.size()-1] = 'o'; // now objname
+    o << " " + objname;
+  }
+  o << endl;
+
+  // add all stapconf dependencies
+  o << s.translated_source << ": $(STAPCONF_HEADER)" << endl;
+  for (unsigned i=0; i<s.auxiliary_outputs.size(); i++)
+    o << s.auxiliary_outputs[i]->filename << ": $(STAPCONF_HEADER)" << endl;  
+
 
   o.close ();
 

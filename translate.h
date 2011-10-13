@@ -27,6 +27,8 @@ class translator_output
   unsigned tablevel;
 
 public:
+  std::string filename;
+
   translator_output (std::ostream& file);
   translator_output (const std::string& filename, size_t bufsize = 8192);
   ~translator_output ();

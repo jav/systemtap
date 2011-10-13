@@ -8805,54 +8805,76 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "/* ---- tracepoint probes ---- */";
   s.op->newline();
 
-  // PR9993: Add extra headers to work around undeclared types in individual
-  // include/trace/foo.h files
-  const vector<string>& extra_decls = tracepoint_extra_decls (s, "XXXXXXX");
-  for (unsigned z=0; z<extra_decls.size(); z++)
-    s.op->newline() << extra_decls[z] << "\n";
 
+  // We create a MODULE_aux_N.c file for each tracepoint header, to allow them
+  // to be separately compiled.  That's because kernel tracepoint headers sometimes
+  // conflict.  PR13155.
+
+  map<string,translator_output*> per_header_aux;
+  // GC NB: the translator_output* structs are owned/retained by the systemtap_session.
+  
   for (unsigned i = 0; i < probes.size(); ++i)
     {
       tracepoint_derived_probe *p = probes[i];
-
-      // emit a separate entry function for each probe, since tracepoints
-      // don't provide any sort of context pointer.
-      s.op->newline() << "#undef TRACE_INCLUDE_FILE";
-      s.op->newline() << "#undef TRACE_INCLUDE_PATH";
-
-      // strip include/ substring, the same way as done in get_tracequery_module()
       string header = p->header;
-      size_t root_pos = header.rfind("include/");
-      header = ((root_pos != string::npos) ? header.substr(root_pos + 8) : header);
-      s.op->newline() << "#include <" << header << ">";
 
-      // Starting in 2.6.35, at the same time NOARGS was added, the callback
-      // always has a void* as the first parameter. PR11599
-      s.op->newline() << "#ifdef DECLARE_TRACE_NOARGS";
-      s.op->newline() << "#define STAP_TP_DATA   , NULL";
-      s.op->newline() << "#define STAP_TP_PROTO  void *cb_data"
-                      << " __attribute__ ((unused))";
-      if (!p->args.empty())
-        s.op->line() << ",";
-      s.op->newline() << "#else";
-      s.op->newline() << "#define STAP_TP_DATA";
-      s.op->newline() << "#define STAP_TP_PROTO";
-      if (p->args.empty())
-        s.op->line() << " void";
-      s.op->newline() << "#endif";
+      // We cache the auxiliary output files on a per-header basis.  We don't
+      // need one aux file per tracepoint, only one per tracepoint-header.
+      translator_output *tpop = per_header_aux[header];
+      if (tpop == 0)
+        {
+          tpop = s.op_create_auxiliary();
+          per_header_aux[header] = tpop;
 
-      s.op->newline() << "static void enter_tracepoint_probe_" << i << "(";
-      s.op->newline(2) << "STAP_TP_PROTO";
+          // PR9993: Add extra headers to work around undeclared types in individual
+          // include/trace/foo.h files
+          const vector<string>& extra_decls = tracepoint_extra_decls (s, header);
+          for (unsigned z=0; z<extra_decls.size(); z++)
+            tpop->newline() << extra_decls[z] << "\n";
+          
+          // strip include/ substring, the same way as done in get_tracequery_module()
+          size_t root_pos = header.rfind("include/");
+          header = ((root_pos != string::npos) ? header.substr(root_pos + 8) : header);
+          tpop->newline() << "#include <" << header << ">";
+          
+          // Starting in 2.6.35, at the same time NOARGS was added, the callback
+          // always has a void* as the first parameter. PR11599
+          tpop->newline() << "#ifdef DECLARE_TRACE_NOARGS";
+          tpop->newline() << "#define STAP_TP_DATA   , NULL";
+          tpop->newline() << "#define STAP_TP_PROTO  void *cb_data"
+                          << " __attribute__ ((unused))";
+          if (!p->args.empty())
+            tpop->line() << ",";
+          tpop->newline() << "#else";
+          tpop->newline() << "#define STAP_TP_DATA";
+          tpop->newline() << "#define STAP_TP_PROTO";
+          if (p->args.empty())
+            tpop->line() << " void";
+          tpop->newline() << "#endif";
+        }
 
+      // forward-declare the generated-side tracepoint callback
+      tpop->newline() << "void enter_real_tracepoint_probe_" << i << "(";
       for (unsigned j = 0; j < p->args.size(); ++j)
         {
+          if (! p->args[j].used) continue;
           if (j > 0)
-            s.op->line() << ",";
-          s.op->newline() << p->args[j].c_type << " __tracepoint_arg_" << p->args[j].name;
+            tpop->line() << ", ";
+          tpop->line() << "int64_t";
         }
-      s.op->newline() << ")";
-      s.op->newline(-2) << "{";
+      tpop->newline() << ");" << endl;
 
+      // define the generated-side tracepoint callback - in the main translator-output
+      s.op->newline() << "void enter_real_tracepoint_probe_" << i << "(";
+      for (unsigned j = 0; j < p->args.size(); ++j)
+        {
+          if (! p->args[j].used) continue;
+          if (j > 0)
+            s.op->line() << ", ";
+          s.op->line() << "int64_t " << p->args[j].name;
+        }
+      s.op->newline() << ")" << endl;
+      s.op->newline() << "{";
       s.op->newline(1) << "struct stap_probe * const probe = "
                        << common_probe_init (p) << ";";
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "probe",
@@ -8872,25 +8894,62 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       common_probe_entryfn_epilogue (s.op);
       s.op->newline(-1) << "}";
 
-      // emit normalized registration functions
-      s.op->newline() << "static int register_tracepoint_probe_" << i << "(void) {";
-      s.op->newline(1) << "return register_trace_" << p->tracepoint_name
+
+      // forward-declare real tracepoint callback function
+      s.op->newline() << "void enter_tracepoint_probe_" << i << "();";
+
+
+      // define the real tracepoint callback function
+      tpop->newline() << "void enter_tracepoint_probe_" << i << "(";
+      tpop->newline(2) << "STAP_TP_PROTO";
+      for (unsigned j = 0; j < p->args.size(); ++j)
+        {
+          if (j > 0)
+            tpop->line() << ", ";
+          tpop->newline() << p->args[j].c_type << " __tracepoint_arg_" << p->args[j].name;
+        }
+      tpop->newline() << ")";
+      tpop->newline(-2) << "{";
+      tpop->newline(2) << "enter_real_tracepoint_probe_" << i << "(";
+      for (unsigned j = 0; j < p->args.size(); ++j)
+        if (p->args[j].used)
+          {
+            s.op->line() << "(int64_t)" << p->args[j].typecast;
+            s.op->line() << "__tracepoint_arg_" << p->args[j].name << ";";
+          }
+      tpop->newline() << ");" << endl;
+      tpop->newline(-2) << "}" << endl;
+
+
+      // emit real normalized registration functions
+      tpop->newline() << "int real_register_tracepoint_probe_" << i << "(void) {";
+      tpop->newline(1) << "return register_trace_" << p->tracepoint_name
                        << "(enter_tracepoint_probe_" << i << " STAP_TP_DATA);";
-      s.op->newline(-1) << "}";
+      tpop->newline(-1) << "}";
 
       // NB: we're not prepared to deal with unreg failures.  However, failures
       // can only occur if the tracepoint doesn't exist (yet?), or if we
       // weren't even registered.  The former should be OKed by the initial
       // registration call, and the latter is safe to ignore.
-      s.op->newline() << "static void unregister_tracepoint_probe_" << i << "(void) {";
-      s.op->newline(1) << "(void) unregister_trace_" << p->tracepoint_name
+      tpop->newline() << "void real_unregister_tracepoint_probe_" << i << "(void) {";
+      tpop->newline(1) << "(void) unregister_trace_" << p->tracepoint_name
                        << "(enter_tracepoint_probe_" << i << " STAP_TP_DATA);";
-      s.op->newline(-1) << "}";
-      s.op->newline();
+      tpop->newline(-1) << "}";
+      tpop->newline();
 
-      s.op->newline() << "#undef STAP_TP_DATA";
-      s.op->newline() << "#undef STAP_TP_PROTO";
-      s.op->newline();
+      // emit normalized registration functions
+      s.op->newline() << "int real_register_tracepoint_probe_" << i << "(void);";
+      s.op->newline() << "int register_tracepoint_probe_" << i << "(void) {";
+      s.op->newline(1) << "return real_register_tracepoint_probe_" << i << "();";
+      s.op->newline(-1) << "}";
+
+      // emit normalized unregistration functions
+      s.op->newline() << "void real_unregister_tracepoint_probe_" << i << "(void);";
+      s.op->newline() << "void unregister_tracepoint_probe_" << i << "(void) {";
+      s.op->newline(1) << "real_unregister_tracepoint_probe_" << i << "();";
+      s.op->newline(-1) << "}";
+
+      tpop->assert_0_indent();
     }
 
   // emit an array of registration functions for easy init/shutdown
