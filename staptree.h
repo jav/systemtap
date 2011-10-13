@@ -496,6 +496,7 @@ struct vardecl: public symboldecl
   std::vector<exp_type> index_types; // for arrays only
   literal *init; // for global scalars only
   bool skip_init; // for probe locals only, don't init on entry
+  bool wrap;
 };
 
 

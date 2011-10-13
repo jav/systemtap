@@ -1500,6 +1500,13 @@ parser::parse_global (vector <vardecl*>& globals, vector<probe*>&)
 
       t = peek ();
 
+      if(t && t->type == tok_operator && t->content == "%") //wrapping
+        {
+          d->wrap = true;
+          next();
+          t = peek();
+        }
+
       if (t && t->type == tok_operator && t->content == "[") // array size
 	{
 	  int64_t size;

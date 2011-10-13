@@ -146,7 +146,7 @@ probe_point::component::component (std::string const & f, literal * a):
 
 
 vardecl::vardecl ():
-  arity_tok(0), arity (-1), maxsize(0), init(NULL), skip_init(false)
+  arity_tok(0), arity (-1), maxsize(0), init(NULL), skip_init(false), wrap(false)
 {
 }
 
@@ -423,6 +423,8 @@ void entry_op::print (ostream& o) const
 void vardecl::print (ostream& o) const
 {
   o << name;
+  if(wrap)
+    o << "%";
   if (maxsize > 0)
     o << "[" << maxsize << "]";
   if (arity > 0 || index_types.size() > 0)
@@ -438,6 +440,8 @@ void vardecl::print (ostream& o) const
 void vardecl::printsig (ostream& o) const
 {
   o << name;
+  if(wrap)
+     o << "%";
   if (maxsize > 0)
     o << "[" << maxsize << "]";
   o << ":" << type;

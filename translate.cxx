@@ -556,14 +556,15 @@ struct mapvar
 {
   vector<exp_type> index_types;
   int maxsize;
+  bool wrap;
   mapvar (bool local, exp_type ty,
 	  statistic_decl const & sd,
 	  string const & name,
 	  vector<exp_type> const & index_types,
-	  int maxsize)
+	  int maxsize, bool wrap)
     : var (local, ty, sd, name),
       index_types (index_types),
-      maxsize (maxsize)
+      maxsize (maxsize), wrap(wrap)
   {}
 
   static string shortname(exp_type e);
@@ -728,6 +729,13 @@ struct mapvar
     // Check for errors during allocation.
     string suffix = "if (" + value () + " == NULL) rc = -ENOMEM;";
 
+    if(wrap == true)
+      {
+        if(mtype == "pmap")
+          suffix = suffix + " else { stp_for_each_cpu(cpu) { MAP mp = per_cpu_ptr(" + value() + "->map, cpu); mp->wrap = 1; }} ";
+        else
+          suffix = suffix + " else " + value() + "->wrap = 1;";
+      }
     if (type() == pe_stats)
       {
 	switch (sdecl().type)
@@ -2690,7 +2698,7 @@ c_unparser::getmap(vardecl *v, token const *tok)
   if (i != session->stat_decls.end())
     sd = i->second;
   return mapvar (is_local (v, tok), v->type, sd,
-      v->name, v->index_types, v->maxsize);
+      v->name, v->index_types, v->maxsize, v->wrap);
 }
 
 
