@@ -3842,6 +3842,10 @@ semantic_pass_types (systemtap_session& s)
           vardecl* gd = s.globals[j];
           if (gd->type == pe_unknown)
             ti.unresolved (gd->tok);
+          if(gd->arity == 0 && gd->wrap == true)
+            {
+              throw semantic_error (_("wrapping not supported for scalars"), gd->tok);
+            }
         }
 
       if (ti.num_newly_resolved == 0) // converged
