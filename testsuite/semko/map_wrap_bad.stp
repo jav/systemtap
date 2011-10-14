@@ -1,0 +1,7 @@
+#! stap -p2
+
+global foo%
+
+probe begin {
+  foo = 2;
+}
