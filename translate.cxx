@@ -222,7 +222,7 @@ struct c_tmpcounter:
   // void visit_logical_or_expr (logical_or_expr* e);
   // void visit_logical_and_expr (logical_and_expr* e);
   void visit_array_in (array_in* e);
-  // void visit_comparison (comparison* e);
+  void visit_comparison (comparison* e);
   void visit_concatenation (concatenation* e);
   // void visit_ternary_expression (ternary_expression* e);
   void visit_assignment (assignment* e);
@@ -3801,6 +3801,23 @@ c_unparser::visit_array_in (array_in* e)
 
 
 void
+c_tmpcounter::visit_comparison (comparison* e)
+{
+  // When computing string operands, their results may be in overlapping
+  // __retvalue memory, so we need to save at least one in a tmpvar.
+  if (e->left->type == pe_string)
+    {
+      tmpvar left = parent->gensym (pe_string);
+      if (e->left->tok->type != tok_string)
+        left.declare (*parent);
+    }
+
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+
+void
 c_unparser::visit_comparison (comparison* e)
 {
   o->line() << "(";
@@ -3810,12 +3827,19 @@ c_unparser::visit_comparison (comparison* e)
       if (e->right->type != pe_string)
         throw semantic_error (_("expected string types"), e->tok);
 
-      o->line() << "strncmp (";
-      e->left->visit (this);
-      o->line() << ", ";
+      o->line() << "({";
+      o->indent(1);
+
+      tmpvar left = gensym (pe_string);
+      if (e->left->tok->type == tok_string)
+        left.override(c_expression(e->left));
+      else
+        c_assign (left.value(), e->left, "assignment");
+
+      o->newline() << "strncmp (" << left << ", ";
       e->right->visit (this);
-      o->line() << ", MAXSTRINGLEN";
-      o->line() << ") " << e->op << " 0";
+      o->line() << ", MAXSTRINGLEN) " << e->op << " 0;";
+      o->newline(-1) << "})";
     }
   else if (e->left->type == pe_long)
     {
