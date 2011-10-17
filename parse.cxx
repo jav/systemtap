@@ -954,8 +954,9 @@ skip:
         throw parse_error (_("invalid nested substitution of command line arguments"), n);
       if (idx == 0 ||
           idx-1 >= session.args.size())
-        throw parse_error ("command line argument index " + lex_cast(idx)
-                           + " out of range [1-" + lex_cast(session.args.size()) + "]", n);
+        throw parse_error (_F("command line argument index %u out of range [1-%u]",
+                              idx, session.args.size()),
+                           n);
       const string& arg = session.args[idx-1];
       input_put ((c == '$') ? arg : lex_cast_qstring (arg), n);
       n->content.clear();
