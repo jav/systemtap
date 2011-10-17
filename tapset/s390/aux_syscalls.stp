@@ -1,5 +1,11 @@
 # arch-specific requests of ptrace ___________________________
 #
+%{
+#ifndef PTRACE_GET_LAST_BREAK
+#define PTRACE_GET_LAST_BREAK	      0x5006
+#endif
+%}
+
 function _arch_ptrace_argstr(request, pid, addr, data)
 {
 	if (request == %{ PTRACE_OLDSETOPTIONS %})
