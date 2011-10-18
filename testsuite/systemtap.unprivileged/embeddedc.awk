@@ -49,19 +49,20 @@ BEGIN {
     fflush()
 }
 
+# Beginning of a preprocessor block
+(! /^.*\/\/.*%\(/) && /%\(/ {
+    if (isfunc)
+	block += 1
+#    printf "%s",$0
+#    print ": preprocessor start:" block " " embedded
+}
+
 # Beginning of an embedded C block
 (! /^.*\/\/.*%{/) && /%{/ {
     block += 1
     embedded += 1
 #    printf "%s",$0
 #    print ": embedded start:" block " " embedded
-}
-
-# Beginning of a preprocessor block
-(! /^.*\/\/.*%\(/) && /%\(/ {
-    block += 1
-#    printf "%s",$0
-#    print ": preprocessor start:" block " " embedded
 }
 
 # Beginning of a code block
@@ -90,16 +91,25 @@ BEGIN {
 function finish_function() {
     if (block == 0 && isfunc) {
 	if (unprivileged == 1)
-	    print " ;unprivileged"
+	    print ";unprivileged"
 	else if (myproc_unprivileged == 1)
-	    print " ;myproc-unprivileged"
+	    print ";myproc-unprivileged"
 	else if (unprivileged != -1 || myproc_unprivileged != -1)
-	    print " ;privileged"
+	    print ";privileged"
 	else
-	    print " ;no embedded C"
+	    print ";no embedded C"
 	fflush()
 	isfunc = 0
     }
+}
+
+# End of a preprocessor C block
+(! /^.*\/\/.*%\)/) && /%\)/ {
+    if (isfunc)
+	block -= 1
+#    printf "%s",$0
+#    print ": embedded end:" block " " embedded
+    finish_function()
 }
 
 # End of an embedded C block
@@ -110,14 +120,6 @@ function finish_function() {
 	unprivileged = 0
     if (myproc_unprivileged == -1)
 	myproc_unprivileged = 0
-#    printf "%s",$0
-#    print ": embedded end:" block " " embedded
-    finish_function()
-}
-
-# End of a preprocessor C block
-(! /^.*\/\/.*%\)/) && /%\)/ {
-    block -= 1
 #    printf "%s",$0
 #    print ": embedded end:" block " " embedded
     finish_function()
