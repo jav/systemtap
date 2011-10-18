@@ -1208,24 +1208,26 @@ parser::parse ()
 	{
 	  print_error (pe);
           if (pe.skip_some) // for recovery
-            try
-              {
-                // Quietly swallow all tokens until the next '}'.
-                while (1)
+            // Quietly swallow all tokens until the next keyword we can start parsing from.
+            while (1)
+              try
+                {
                   {
                     const token* t = peek ();
                     if (! t)
                       break;
-                    next ();
-                    if (t->type == tok_operator && t->content == "}")
-                      break;
+                    if (t->type == tok_keyword && t->content == "probe") break;
+                    else if (t->type == tok_keyword && t->content == "global") break;
+                    else if (t->type == tok_keyword && t->content == "function") break;
+                    else if (t->type == tok_embedded) break;
+                    next(); // swallow it
                   }
-              }
-            catch (parse_error& pe2)
-              {
-                // parse error during recovery ... ugh
-                print_error (pe2);
-              }
+                }
+              catch (parse_error& pe2)
+                {
+                  // parse error during recovery ... ugh
+                  print_error (pe2);
+                }
         }
     }
 
@@ -1360,32 +1362,13 @@ parser::parse_stmt_block ()
 
   while (1)
     {
-      try
-	{
-	  t = peek ();
-	  if (t && t->type == tok_operator && t->content == "}")
-	    {
-	      next ();
-	      break;
-	    }
-
-          pb->statements.push_back (parse_statement ());
-	}
-      catch (parse_error& pe)
-	{
-	  print_error (pe);
-
-	  // Quietly swallow all tokens until the next ';' or '}'.
-	  while (1)
-	    {
-	      const token* t = peek ();
-	      if (! t) return 0;
-	      next ();
-	      if (t->type == tok_operator
-                  && (t->content == "}" || t->content == ";"))
-		break;
-	    }
-	}
+      t = peek ();
+      if (t && t->type == tok_operator && t->content == "}")
+        {
+          next ();
+          break;
+        }
+      pb->statements.push_back (parse_statement ());
     }
 
   return pb;
