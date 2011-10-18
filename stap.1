@@ -699,6 +699,13 @@ size.
 .RS
 .BR global " tiny_array[10]" , " normal_array" , " big_array[50000]"
 .RE
+.PP
+Arrays may be wrapped using the '%' character causing previously entered
+elements to be overwritten if more elements are inserted than the array can
+hold. This works for both associative and statistics typed arrays.
+.RS
+.BR global " wrapped_array1%[10]", " wrapped_array2%"
+.RE
 .\" XXX add statistics type here once it's supported
 
 .SS STATEMENTS
