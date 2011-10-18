@@ -2,6 +2,8 @@
 # Should not give an error when inserting 2 identical modules
 set test "Inserting 2 Identical Modules: Basic Stap Call"
 
+if {![installtest_p]} { untested $test; return }
+
 set failed1 1
 set failed2 1
 
