@@ -88,7 +88,12 @@ static void _stp_exit(void);
 #define assert_is_myproc() do {} while (0)
 #endif
 
-
+/* Translate user privilege mask to text. */
+static const char *privilege_to_text (int p) {
+  if ((p & STP_PR_STAPDEV)) return "stapdev";
+  if ((p & STP_PR_STAPUSR)) return "stapusr";
+  return "unknown";
+}
 
 #include "debug.h"
 

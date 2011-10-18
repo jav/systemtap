@@ -21,6 +21,8 @@ extern "C" {
 #include <assert.h>
 }
 
+#include "runtime/staprun/privilege.h"
+
 #if ENABLE_NLS
 #define _(string) gettext(string)
 #define _N(string, string_plural, count) \
@@ -232,16 +234,6 @@ struct stap_sigmasker {
       {
         sigprocmask (SIG_SETMASK, &old, NULL);
       }
-};
-
-enum privilege_t {
-  // Define the privilege levels in order where a higher value indicates a higher privilege level.
-  // These values cannot change in the future because they will be encoded into the generated
-  // modules in order to identify their privileg level now and in the future. So leave space around
-  // each for future privilege levels.
-  pr_stapusr = 10, pr_begin = pr_stapusr,
-  pr_stapdev = 20,
-  pr_end
 };
 
 privilege_t pr_next (privilege_t p);

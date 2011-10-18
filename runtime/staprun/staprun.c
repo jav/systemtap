@@ -22,6 +22,7 @@
 #define _XOPEN_SOURCE
 #define _BSD_SOURCE
 #include "staprun.h"
+#include "privilege.h"
 #include <string.h>
 #include <sys/uio.h>
 #include <glob.h>
@@ -135,12 +136,64 @@ static int enable_uprobes(void)
 	return 1; /* failure */
 }
 
+/* Determine the priviilege credentials of the current user. If the user is not root, this
+   is determined by the user's group memberships. */
+static int get_stp_privilege (void)
+{
+  gid_t gid, gidlist[NGROUPS_MAX];
+  int i, ngids;
+  gid_t stapdev_gid, stapusr_gid;
+  int stp_privilege;
+
+  /* If the real uid of the user is root, then this user has all privileges. */
+  if (getuid() == 0)
+    return pr_all;
+
+  /* These are the gids of the groups we are interested in. */
+  stapdev_gid = get_gid("stapdev");
+  stapusr_gid = get_gid("stapusr");
+
+  /* If neither group was found, then the group memberships are irrelevant.  */
+  if (stapdev_gid == (gid_t)-1 && stapusr_gid == (gid_t)-1)
+    return 0;
+
+  /* Obtain a list of the user's groups. */
+  ngids = getgroups(NGROUPS_MAX, gidlist);
+  if (ngids < 0)
+    {
+      perr("Unable to retrieve group list");
+      return 0;
+    }
+
+  /* The privilege credentials will be represented by a bit mask of the user's group memberships.
+     Start with an empty mask. */
+  stp_privilege = 0;
+
+  /* According to the getgroups() man page, getgroups() may not
+   * return the effective gid, so examine the effective gid first first followed by the groups
+   * gids obtained by getgroups. */
+  for (i = -1, gid = getegid(); i < ngids; ++i, gid = gidlist[i])
+    {
+      if (gid == stapdev_gid)
+	stp_privilege |= pr_stapdev;
+      else if (gid == stapusr_gid)
+	stp_privilege |= pr_stapusr;
+      if (stp_privilege == pr_all)
+	break;
+    }
+
+  return stp_privilege;
+}
+
 static int insert_stap_module(void)
 {
 	char special_options[128];
+	int stp_privilege;
 
-	/* Add the _stp_bufsize option.  */
-	if (snprintf_chk(special_options, sizeof (special_options), "_stp_bufsize=%d", buffer_size))
+	/* Add the _stp_bufsize option and the _stp_privilege option.  */
+	stp_privilege = get_stp_privilege ();
+	if (snprintf_chk(special_options, sizeof (special_options),
+			 "_stp_bufsize=%d _stp_privilege=0x%x", buffer_size, stp_privilege))
 		return -1;
 
 	return insert_module(modpath, special_options, modoptions, assert_stap_module_permissions);

@@ -1564,6 +1564,12 @@ c_unparser::emit_module_init ()
   // perform buildid-based checking if able
   o->newline() << "if (_stp_module_check()) rc = -EINVAL;";
 
+  // Perform checking on the user's credentials vs those required to load/run this module.
+  o->newline() << "if (_stp_privilege < STP_PRIVILEGE) {";
+  o->newline(1) << "_stp_error (\"Your privilege credentials (%s) are less than those required to run this module (%s)\", privilege_to_text(_stp_privilege), privilege_to_text(STP_PRIVILEGE));";
+  o->newline() << "rc = -EINVAL;";
+  o->newline(-1) << "}";
+
   o->newline(-1) << "}";
 
   o->newline() << "if (rc) goto out;";
@@ -6481,25 +6487,19 @@ translate_pass (systemtap_session& s)
 
       // This is at the very top of the file.
       // All "static" defines (not dependend on session state).
-      s.op->newline() << "#include\"runtime_defines.h\"";
+      s.op->newline() << "#include \"runtime_defines.h\"";
 
       // Generated macros describing the privilege level required to load/run this module.
-      s.op->newline() << "#define STP_PR_STAPUSR " << pr_stapusr;
-      s.op->newline() << "#define STP_PR_STAPDEV " << pr_stapdev;
-      s.op->newline() << "#define STP_PRIVILEGE " << s.privilege;
+      s.op->newline() << "#define STP_PR_LOWEST 0x" << hex << pr_begin << dec;
+      s.op->newline() << "#define STP_PR_STAPUSR 0x" << hex << pr_stapusr << dec;
+      s.op->newline() << "#define STP_PR_STAPDEV 0x" << hex << pr_stapdev << dec;
+      s.op->newline() << "#define STP_PRIVILEGE 0x" << hex << s.privilege << dec;
 
-      // Generate a section containing a list of the privilege levels authorized to load/run this
+      // Generate a section containing a mask of the privilege levels required to load/run this
       // module.
-      string privilege_list;
-      for (privilege_t p = s.privilege; p != pr_end; p = pr_next (p))
-	{
-	  if (! privilege_list.empty ())
-	    privilege_list += ",";
-	  privilege_list += pr_name (p);
-	}
-      s.op->newline() << "const char privilege_list[] "
-		      << "__attribute__ ((section (\".stap_privilege\"))) = "
-		      << "\"" << privilege_list << "\";";
+      s.op->newline() << "int stp_required_privilege "
+		      << "__attribute__ ((section (\".stap_privilege\")))"
+		      << " = STP_PRIVILEGE;";
 
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING " << nesting;

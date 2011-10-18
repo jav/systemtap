@@ -46,6 +46,7 @@ static gid_t _stp_gid;
 static atomic_t _stp_ctl_attached;
 
 static int _stp_bufsize;
+static int _stp_privilege;
 
 
 enum _stp_transport_state {
