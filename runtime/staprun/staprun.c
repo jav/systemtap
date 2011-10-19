@@ -37,6 +37,45 @@ extern long delete_module(const char *, unsigned int);
 int send_relocations ();
 int send_tzinfo ();
 
+static int remove_module(const char *name, int verb);
+
+static int stap_module_inserted = -1;
+
+static void term_signal_handler(int signum __attribute ((unused)))
+{
+	if (stap_module_inserted == 0) {
+		// We have to close the control channel so that
+		// remove_module() can open it back up (which it does
+		// to make sure the module is a systemtap module).
+		close_ctl_channel();
+		remove_module(modname, 1);
+		free(modname);
+	}
+	_exit(1);
+}
+
+void setup_term_signals(void)
+{
+	sigset_t s;
+	struct sigaction a;
+
+	/* blocking all signals while we set things up */
+	sigfillset(&s);
+	sigprocmask(SIG_SETMASK, &s, NULL);
+
+	/* handle signals */
+	memset(&a, 0, sizeof(a));
+	sigfillset(&a.sa_mask);
+	a.sa_handler = term_signal_handler;
+	sigaction(SIGHUP, &a, NULL);
+	sigaction(SIGINT, &a, NULL);
+	sigaction(SIGTERM, &a, NULL);
+	sigaction(SIGQUIT, &a, NULL);
+
+	/* unblock all signals */
+	sigemptyset(&s);
+	sigprocmask(SIG_SETMASK, &s, NULL);
+}
 
 static int run_as(int exec_p, uid_t uid, gid_t gid, const char *path, char *const argv[])
 {
@@ -196,10 +235,11 @@ static int insert_stap_module(void)
 			 "_stp_bufsize=%d _stp_privilege=0x%x", buffer_size, stp_privilege))
 		return -1;
 
-	return insert_module(modpath, special_options, modoptions, assert_stap_module_permissions);
+	stap_module_inserted = insert_module(modpath, special_options,
+					     modoptions,
+					     assert_stap_module_permissions);
+	return stap_module_inserted;
 }
-
-static int remove_module(const char *name, int verb);
 
 static void remove_all_modules(void)
 {
@@ -322,6 +362,7 @@ int main(int argc, char **argv)
 	}
 
 	setup_signals();
+	setup_term_signals();
 
 	parse_args(argc, argv);
 
