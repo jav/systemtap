@@ -80,7 +80,7 @@ static void __stp_free_ring_buffer(void)
 static int __stp_alloc_ring_buffer(void)
 {
 	int i;
-	unsigned long buffer_size = _stp_bufsize;
+	unsigned long buffer_size = _stp_bufsize * 1024 * 1024;
 
 	if (!alloc_cpumask_var(&_stp_relay_data.trace_reader_cpumask,
 			       (GFP_KERNEL & ~__GFP_WAIT)))
@@ -91,6 +91,8 @@ static int __stp_alloc_ring_buffer(void)
 		dbug_trans(1, "using default buffer size...\n");
 		buffer_size = _stp_nsubbufs * _stp_subbuf_size;
 	}
+        dbug_trans(1, "using buffer size %lu...\n", buffer_size);
+
 	/* The number passed to ring_buffer_alloc() is per cpu.  Our
 	 * 'buffer_size' is a total number of bytes to allocate.  So,
 	 * we need to divide buffer_size by the number of cpus. */
@@ -99,6 +101,21 @@ static int __stp_alloc_ring_buffer(void)
 	_stp_relay_data.rb = ring_buffer_alloc(buffer_size, 0);
 	if (!_stp_relay_data.rb)
 		goto fail;
+
+        /* Increment _stp_allocated_memory and
+           _stp_allocated_net_memory to approximately account for
+           buffers allocated by ring_buffer_alloc. */
+        {
+#ifndef DIV_ROUND_UP
+#define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
+#endif
+                u64 relay_pages;
+                relay_pages = DIV_ROUND_UP (buffer_size, PAGE_SIZE);
+                if (relay_pages < 2) relay_pages = 2;
+                relay_pages *= num_online_cpus();
+                _stp_allocated_net_memory += relay_pages * PAGE_SIZE;
+                _stp_allocated_memory += relay_pages * PAGE_SIZE;
+        }
 
 	dbug_trans(0, "size = %lu\n", ring_buffer_size(_stp_relay_data.rb));
 	return 0;
