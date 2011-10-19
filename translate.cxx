@@ -5300,7 +5300,8 @@ static void get_unwind_data (Dwfl_Module *m,
 	  *eh_frame = data->d_buf;
 	  *eh_len = data->d_size;
 	  // For ".dynamic" sections we want the offset, not absolute addr.
-	  if (dwfl_module_relocations (m) > 0)
+	  // Note we don't trust dwfl_module_relocations() for ET_EXEC.
+	  if (ehdr->e_type != ET_EXEC && dwfl_module_relocations (m) > 0)
 	    *eh_addr = shdr->sh_addr - start + bias;
 	  else
 	    *eh_addr = shdr->sh_addr;
@@ -5311,7 +5312,7 @@ static void get_unwind_data (Dwfl_Module *m,
           data = elf_rawdata(scn, NULL);
           *eh_frame_hdr = data->d_buf;
           *eh_frame_hdr_len = data->d_size;
-          if (dwfl_module_relocations (m) > 0)
+          if (ehdr->e_type != ET_EXEC && dwfl_module_relocations (m) > 0)
 	    *eh_frame_hdr_addr = shdr->sh_addr - start + bias;
 	  else
 	    *eh_frame_hdr_addr = shdr->sh_addr;
