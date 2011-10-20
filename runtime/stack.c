@@ -63,8 +63,6 @@ static void _stp_stack_print_fallback(unsigned long, int, int, int);
 
 #if defined (__ia64__)
 #include "stack-ia64.c"
-#elif defined (__powerpc__)
-#include "stack-ppc.c"
 #elif defined (__arm__)
 #include "stack-arm.c"
 #elif defined (__s390__) || defined (__s390x__)
