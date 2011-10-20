@@ -160,6 +160,9 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 	unsigned end, begin = 0;
 	unsigned long rel_addr = 0;
 
+	if (addr == 0)
+	  return NULL;
+
 	if (task)
 	  {
 	    unsigned long vm_start = 0;
