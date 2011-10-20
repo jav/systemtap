@@ -164,7 +164,10 @@ static struct pt_regs *_stp_get_uregs(struct context *c)
       c->uregs = _stp_current_pt_regs();
       if (c->uregs && _stp_task_pt_regs_valid(current, c->uregs))
 	c->probe_flags |= _STP_PROBE_STATE_FULL_UREGS;
-#ifdef STP_USE_DWARF_UNWINDER
+
+/* Sadly powerpc does support the dwarf unwinder, but doesn't have enough
+   CFI in the kernel to recover fully to user space. */
+#if defined(STP_USE_DWARF_UNWINDER) && !defined (__powerpc__)
       else if (c->uregs != NULL && c->kregs != NULL
 	       && ! (c->probe_flags & _STP_PROBE_STATE_USER_MODE))
 	{
