@@ -1,5 +1,7 @@
 # hash_add_buildid.exp
 
+set test "hash_add_buildid"
+
 # Since we need a clean cache directory, we'll use a temporary
 # systemtap directory and cache (add user name so make check and
 # sudo make installcheck don't clobber each others)
