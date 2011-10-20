@@ -22,15 +22,22 @@
 static void _stp_vma_match_vdso(struct task_struct *tsk)
 {
 /* vdso is arch specific */
-#ifdef STAPCONF_MM_CONTEXT_VDSO
+#if defined(STAPCONF_MM_CONTEXT_VDSO) || defined(STAPCONF_MM_CONTEXT_VDSO_BASE)
   int i, j;
   if (tsk->mm)
     {
       struct _stp_module *found = NULL;
+
+#ifdef STAPCONF_MM_CONTEXT_VDSO
       unsigned long vdso_addr = (unsigned long) tsk->mm->context.vdso;
+#else
+      unsigned long vdso_addr = tsk->mm->context.vdso_base;
+#endif
+
 #ifdef DEBUG_TASK_FINDER_VMA
       _dbug("tsk: %d vdso: 0x%lx\n", tsk->pid, vdso_addr);
 #endif
+
       for (i = 0; i < _stp_num_modules && found == NULL; i++) {
 	struct _stp_module *m = _stp_modules[i];
 	if (m->path[0] == '/'
