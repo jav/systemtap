@@ -170,12 +170,26 @@ static int _stp_vma_mmap_cb(struct stap_task_finder_target *tgt,
 						addr + length, path, NULL);
 #ifdef DEBUG_TASK_FINDER_VMA
 		    _stp_dbug(__FUNCTION__, __LINE__,
-			      "registered '%s' for %d (res:%d)\n",
+			      "registered '%s' for %d (res:%d) [%lx-%lx]\n",
 			      path, tsk->group_leader->pid,
-			      res);
+			      res, addr, addr + length);
 #endif
 		  }
 
+	} else if (path != NULL) {
+		// Once registered, we may want to extend an earlier
+		// registered region. A segment might be mapped with
+		// different flags for different offsets. If so we want
+		// to record the extended range so we can address more
+		// precisely to module names and symbols.
+		res = stap_extend_vma_map_info(tsk->group_leader,
+					       addr, addr + length);
+#ifdef DEBUG_TASK_FINDER_VMA
+		_stp_dbug(__FUNCTION__, __LINE__,
+			  "extended '%s' for %d (res:%d) [%lx-%lx]\n",
+			  path, tsk->group_leader->pid,
+			  res, addr, addr + length);
+#endif
 	}
 	return 0;
 }
