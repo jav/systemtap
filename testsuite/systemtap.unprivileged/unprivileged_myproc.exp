@@ -79,6 +79,7 @@ set valid_probe_types [list \
 # Add arguments to a probe type template.
 proc add_args { probe_type pid } {
     global exepath sopath
+    global addr_of_bar addr_of_libloopfunc
 
     set probe "$probe_type"
 
@@ -104,13 +105,11 @@ proc add_args { probe_type pid } {
     # Replace "library(string).function(string)" with "library(string.function("libloopfunc")"
     regsub -all "library\\(string\\).function\\(string\\)" $probe "library(string).function(\"libloopfunc\")" probe
     # Replace "library(string).function(number)" with "library(string).function($addr_of_libloopfunc)"
-    set addr_of_libloopfunc [exec objdump -d $sopath | awk {/<libloopfunc>/ { printf "0x%s\n",$1 }}]
     regsub -all "library\\(string\\).function\\(number\\)" $probe "library(string).function($addr_of_libloopfunc)" probe
 
     # Replace "function(string)" with "function("bar")"
     regsub -all "function\\(string\\)" $probe "function(\"bar\")" probe
     # Replace "function(number)" with "function($addr_of_bar)"
-    set addr_of_bar [exec objdump -d $exepath | awk {/<bar>/ { printf "0x%s\n",$1 }}]
     regsub -all "function\\(number\\)" $probe "function($addr_of_bar)" probe
 
     # Replace "label(string)" with "label("a")"
@@ -124,13 +123,11 @@ proc add_args { probe_type pid } {
     regsub -all "mark\\(string\\)" $probe "mark(\"main_enter\")" probe
 
     # Replace "library(string).statement(number)" with "library(string).statement($addr_of_libloopfunc)"
-    set addr_of_libloopfunc [exec objdump -d $sopath | awk {/<libloopfunc>/ { printf "0x%s\n",$1 }}]
     regsub -all "library\\(string\\).statement\\(number\\)" $probe "library(string).statement($addr_of_libloopfunc)" probe
     # Replace "library(string).statement(string)" with "library(string).statement("libloopfunc@libloop.c:*")"
     regsub -all "library\\(string\\).statement\\(string\\)" $probe "library(string).statement(\"libloopfunc@libloop.c:*\")" probe
 
     # Replace "statement(number)" with "statement($addr_of_bar)"
-    set addr_of_bar [exec objdump -d $exepath | awk {/<bar>/ { printf "0x%s\n",$1 }}]
     regsub -all "statement\\(number\\)" $probe "statement($addr_of_bar)" probe
     # Replace "statement(string)" with "statement("bar@loop.c:*")"
     regsub -all "statement\\(string\\)" $probe "statement(\"bar@loop.c:*\")" probe
@@ -293,6 +290,13 @@ if { $res == "" } {
     untested "$test Tests"
     return
 }
+
+# Extract needed addresses. Note, some architectures add a '.' to the
+# function name, so match that optionally.
+set addr_of_bar [exec objdump -d $exepath | awk {/<\.?bar>/ { printf "0x%s\n",$1 }}]
+verbose -log "addr_of_bar: $addr_of_bar"
+set addr_of_libloopfunc [exec objdump -d $sopath | awk {/<\.?libloopfunc>/ { printf "0x%s\n",$1 }}]
+verbose -log "addr_of_libloopfunc: $addr_of_libloopfunc"
 
 # Obtain a list of all process* probe types from stap
 verbose -log "eval exec stap --dump-probe-types | grep ^process"
