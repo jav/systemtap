@@ -34,7 +34,7 @@ proc proc_read_write_counted { test maxsize } {
 
     set value2 [string range $fullstring 0 [expr $maxsize - 2]]
     if { $value == $value2 } {
-	pass "$test received correct initial value"
+	pass "$test received correct initial value maxsize: $maxsize"
     } else {
 	fail "$test received incorrect initial value: $value ($value2)"
     }
