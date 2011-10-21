@@ -141,7 +141,7 @@ expect {
 
 catch { close}; catch { wait}
 
-error_handler [expr {$ok == 31}] "plt" "($ok != 31)"
+error_handler [expr {$ok == 31}] "plt library" "($ok != 31)"
 
 # test process.plt("glob")
 
