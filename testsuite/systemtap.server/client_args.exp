@@ -32,7 +32,6 @@ set invalid_options [list \
   "--client-options -R /path" \
   "-D \"foo;bar\"" \
   "-D 2=4" \
-  "-D \"foo;bar\"" \
   "--client-options -r /path" \
   "-S /path" \
   "--client-options -q" \
