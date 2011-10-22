@@ -414,7 +414,7 @@ if {$effective_pid != 0} {
 
 # Our server should now be trusted as a signer, separate from the previously
 # discovered trusted signing servers.
-list_servers "List current signing servers" online,signer
+list_servers "List current online signing servers" online,signer
 array unset current_signing_servers
 array set current_signing_servers [array get servers]
 
