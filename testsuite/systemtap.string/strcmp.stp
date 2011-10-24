@@ -1,0 +1,47 @@
+# Test that string-comparison works.
+# In particular, function results need to use temps.  (PR13283)
+
+function foo() { return "foo"; }
+function bar() { return "bar"; }
+function yn(x) { return x ? "yes" : "no" }
+
+probe begin {
+    println("")
+    printf("foo():\"%s\" bar():\"%s\"\n", foo(), bar())
+    println("")
+
+    println("foo() <  bar() ? ", yn(foo() <  bar()))
+    println("foo() <= bar() ? ", yn(foo() <= bar()))
+    println("foo() >  bar() ? ", yn(foo() >  bar()))
+    println("foo() >= bar() ? ", yn(foo() >= bar()))
+    println("foo() == bar() ? ", yn(foo() == bar()))
+    println("foo() != bar() ? ", yn(foo() != bar()))
+    println("")
+
+    println("\"foo\" <  bar() ? ", yn("foo" <  bar()))
+    println("\"foo\" <= bar() ? ", yn("foo" <= bar()))
+    println("\"foo\" >  bar() ? ", yn("foo" >  bar()))
+    println("\"foo\" >= bar() ? ", yn("foo" >= bar()))
+    println("\"foo\" == bar() ? ", yn("foo" == bar()))
+    println("\"foo\" != bar() ? ", yn("foo" != bar()))
+    println("")
+
+    println("foo() <  \"bar\" ? ", yn(foo() <  "bar"))
+    println("foo() <= \"bar\" ? ", yn(foo() <= "bar"))
+    println("foo() >  \"bar\" ? ", yn(foo() >  "bar"))
+    println("foo() >= \"bar\" ? ", yn(foo() >= "bar"))
+    println("foo() == \"bar\" ? ", yn(foo() == "bar"))
+    println("foo() != \"bar\" ? ", yn(foo() != "bar"))
+    println("")
+
+    println("\"foo\" <  \"bar\" ? ", yn("foo" <  "bar"))
+    println("\"foo\" <= \"bar\" ? ", yn("foo" <= "bar"))
+    println("\"foo\" >  \"bar\" ? ", yn("foo" >  "bar"))
+    println("\"foo\" >= \"bar\" ? ", yn("foo" >= "bar"))
+    println("\"foo\" == \"bar\" ? ", yn("foo" == "bar"))
+    println("\"foo\" != \"bar\" ? ", yn("foo" != "bar"))
+    println("")
+
+    exit()
+}
+

@@ -954,8 +954,9 @@ skip:
         throw parse_error (_("invalid nested substitution of command line arguments"), n);
       if (idx == 0 ||
           idx-1 >= session.args.size())
-        throw parse_error ("command line argument index " + lex_cast(idx)
-                           + " out of range [1-" + lex_cast(session.args.size()) + "]", n);
+        throw parse_error (_F("command line argument index %lu out of range [1-%lu]",
+                              (unsigned long) idx, (unsigned long) session.args.size()),
+                           n);
       const string& arg = session.args[idx-1];
       input_put ((c == '$') ? arg : lex_cast_qstring (arg), n);
       n->content.clear();
@@ -1207,24 +1208,26 @@ parser::parse ()
 	{
 	  print_error (pe);
           if (pe.skip_some) // for recovery
-            try
-              {
-                // Quietly swallow all tokens until the next '}'.
-                while (1)
+            // Quietly swallow all tokens until the next keyword we can start parsing from.
+            while (1)
+              try
+                {
                   {
                     const token* t = peek ();
                     if (! t)
                       break;
-                    next ();
-                    if (t->type == tok_operator && t->content == "}")
-                      break;
+                    if (t->type == tok_keyword && t->content == "probe") break;
+                    else if (t->type == tok_keyword && t->content == "global") break;
+                    else if (t->type == tok_keyword && t->content == "function") break;
+                    else if (t->type == tok_embedded) break;
+                    next(); // swallow it
                   }
-              }
-            catch (parse_error& pe2)
-              {
-                // parse error during recovery ... ugh
-                print_error (pe2);
-              }
+                }
+              catch (parse_error& pe2)
+                {
+                  // parse error during recovery ... ugh
+                  print_error (pe2);
+                }
         }
     }
 
@@ -1359,32 +1362,13 @@ parser::parse_stmt_block ()
 
   while (1)
     {
-      try
-	{
-	  t = peek ();
-	  if (t && t->type == tok_operator && t->content == "}")
-	    {
-	      next ();
-	      break;
-	    }
-
-          pb->statements.push_back (parse_statement ());
-	}
-      catch (parse_error& pe)
-	{
-	  print_error (pe);
-
-	  // Quietly swallow all tokens until the next ';' or '}'.
-	  while (1)
-	    {
-	      const token* t = peek ();
-	      if (! t) return 0;
-	      next ();
-	      if (t->type == tok_operator
-                  && (t->content == "}" || t->content == ";"))
-		break;
-	    }
-	}
+      t = peek ();
+      if (t && t->type == tok_operator && t->content == "}")
+        {
+          next ();
+          break;
+        }
+      pb->statements.push_back (parse_statement ());
     }
 
   return pb;
@@ -1499,6 +1483,13 @@ parser::parse_global (vector <vardecl*>& globals, vector<probe*>&)
       globals.push_back (d);
 
       t = peek ();
+
+      if(t && t->type == tok_operator && t->content == "%") //wrapping
+        {
+          d->wrap = true;
+          next();
+          t = peek();
+        }
 
       if (t && t->type == tok_operator && t->content == "[") // array size
 	{

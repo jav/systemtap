@@ -316,7 +316,7 @@ void system_cmd(char *cmd)
   if ((pid = fork()) < 0) {
     _perr("fork");
   } else if (pid == 0) {
-    if (execl("/bin/sh", "sh", "-c", cmd, NULL) < 0)
+    if (execlp("sh", "sh", "-c", cmd, NULL) < 0)
       perr("%s", cmd);
     _exit(1);
   }
@@ -505,7 +505,7 @@ void cleanup_and_exit(int detach, int rc)
                             (verbose >= 2) ? "-v" : "",
                             modname);
           if (rc >= 1) {
-                  execl("/bin/sh", "sh", "-c", cmd, NULL);
+                  execlp("sh", "sh", "-c", cmd, NULL);
                   /* should not return */
                   perror(staprun);
                   _exit(-1);
@@ -728,7 +728,7 @@ int stp_main_loop(void)
     case STP_START:
       {
         struct _stp_msg_start *t = &recvbuf.payload.start;
-        dbug(2, "probe_start() returned %d\n", t->res);
+        dbug(2, "systemtap_module_init() returned %d\n", t->res);
         if (t->res < 0) {
           if (target_cmd)
             kill(target_pid, SIGKILL);

@@ -13,10 +13,18 @@
 #ifndef _STP_UNWIND_H_
 #define _STP_UNWIND_H_
 
+struct unwind_frame_info
+{
+    struct pt_regs regs;
+    unsigned call_frame:1;
+};
+
 #if defined (__x86_64__)
 #include "x86_64.h"
 #elif  defined (__i386__)
 #include "i386.h"
+#elif defined (__powerpc64__)
+#include "ppc64.h"
 #else
 #error "Unsupported dwarf unwind architecture"
 #endif
@@ -51,6 +59,21 @@ static const struct {
 
 #undef PTREGS_INFO
 #undef EXTRA_INFO
+
+/* The reg_info array assumes dwarf register numbers start at zero and
+   are consecutive.  If that isn't the case for some architecture (e.g. ppc)
+   then redefine to map the given dwarf register number to the actual
+   reg_info index.  */
+#ifndef DWARF_REG_MAP
+#define DWARF_REG_MAP(r) r
+#endif
+
+/* The number of real registers in the register map. These are all assumed
+   to be the Same in the new frame. All others will be Unknown untill they
+   have been explictly set. (e.g. the x86 return register). */
+#ifndef UNW_NR_REAL_REGS
+#define UNW_NR_REAL_REGS ARRAY_SIZE(reg_info)
+#endif
 
 #ifndef REG_INVALID
 #define REG_INVALID(r) (reg_info[r].width == 0)
@@ -252,6 +275,7 @@ typedef   signed long sleb128_t;
 
 struct unwind_item {
 	enum item_location {
+		Same,
 		Nowhere,
 		Memory,
 		Register,
@@ -282,6 +306,12 @@ struct unwind_state {
 	sleb128_t dataAlign;
 	unsigned stackDepth:8;
 	struct unwind_reg_state reg[STP_MAX_STACK_DEPTH];
+	struct unwind_item cie_regs[ARRAY_SIZE(reg_info)];
+};
+
+struct unwind_context {
+    struct unwind_frame_info info;
+    struct unwind_state state;
 };
 
 static const struct cfa badCFA = { ARRAY_SIZE(reg_info), 1 };

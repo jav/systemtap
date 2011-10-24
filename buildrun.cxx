@@ -11,6 +11,7 @@
 #include "session.h"
 #include "util.h"
 #include "hash.h"
+#include "translate.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -65,14 +66,10 @@ run_make_cmd(systemtap_session& s, vector<string>& make_cmd,
       make_cmd.push_back("--no-print-directory");
     }
 
-  // NB: there appears to be no parallelism opportunity in the
-  // module-building makefiles, so while the following works, it
-  // doesn't seem to accomplish anything measurable as of F13.
-#if 0
+  // Exploit SMP parallelism, if available.
   long smp = sysconf(_SC_NPROCESSORS_ONLN);
-  if (smp > 1)
-    make_cmd.push_back("-j" + lex_cast(smp));
-#endif
+  if (smp >= 1)
+    make_cmd.push_back("-j" + lex_cast(smp+1));
 
   if (strverscmp (s.kernel_base_release.c_str(), "2.6.29") < 0)
     {
@@ -89,14 +86,14 @@ run_make_cmd(systemtap_session& s, vector<string>& make_cmd,
 }
 
 static vector<string>
-make_make_cmd(systemtap_session& s, const string& dir)
+make_any_make_cmd(systemtap_session& s, const string& dir, const string& target)
 {
   vector<string> make_cmd;
   make_cmd.push_back("make");
   make_cmd.push_back("-C");
   make_cmd.push_back(s.kernel_build_tree);
   make_cmd.push_back("M=" + dir); // need make-quoting?
-  make_cmd.push_back("modules");
+  make_cmd.push_back(target);
 
   // Add architecture, except for old powerpc (RHBZ669082)
   if (s.architecture != "powerpc" ||
@@ -107,6 +104,27 @@ make_make_cmd(systemtap_session& s, const string& dir)
   make_cmd.insert(make_cmd.end(), s.kbuildflags.begin(), s.kbuildflags.end());
 
   return make_cmd;
+}
+
+static vector<string>
+make_make_cmd(systemtap_session& s, const string& dir)
+{
+  return make_any_make_cmd(s, dir, "modules");
+}
+
+static vector<string>
+make_make_objs_cmd(systemtap_session& s, const string& dir)
+{
+  // Kbuild uses these rules to build external modules:
+  //
+  //   module-dirs := $(addprefix _module_,$(KBUILD_EXTMOD))
+  //   modules: $(module-dirs)
+  //       @$(kecho) '  Building modules, stage 2.';
+  //       $(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
+  //
+  // So if we're only interested in the stage 1 objects, we can
+  // cheat and make only the $(module-dirs) part.
+  return make_any_make_cmd(s, dir, "_module_" + dir);
 }
 
 static void
@@ -210,10 +228,10 @@ compile_pass (systemtap_session& s)
   // since such headers are cleansed of _KERNEL_ pieces that we need
 
   o << "STAPCONF_HEADER := " << s.tmpdir << "/" << s.stapconf_name << endl;
-  o << s.translated_source << ": $(STAPCONF_HEADER)" << endl;
   o << "$(STAPCONF_HEADER):" << endl;
   o << "\t@echo -n > $@" << endl;
   output_autoconf(s, o, "autoconf-hrtimer-rel.c", "STAPCONF_HRTIMER_REL", NULL);
+  output_autoconf(s, o, "autoconf-generated-compile.c", "STAPCONF_GENERATED_COMPILE", NULL);
   output_autoconf(s, o, "autoconf-hrtimer-getset-expires.c", "STAPCONF_HRTIMER_GETSET_EXPIRES", NULL);
   output_autoconf(s, o, "autoconf-inode-private.c", "STAPCONF_INODE_PRIVATE", NULL);
   output_autoconf(s, o, "autoconf-constant-tsc.c", "STAPCONF_CONSTANT_TSC", NULL);
@@ -257,6 +275,7 @@ compile_pass (systemtap_session& s)
   output_autoconf(s, o, "autoconf-stacktrace_ops-warning.c",
                   "STAPCONF_STACKTRACE_OPS_WARNING", NULL);
   output_autoconf(s, o, "autoconf-mm-context-vdso.c", "STAPCONF_MM_CONTEXT_VDSO", NULL);
+  output_autoconf(s, o, "autoconf-mm-context-vdso-base.c", "STAPCONF_MM_CONTEXT_VDSO_BASE", NULL);
   output_autoconf(s, o, "autoconf-blk-types.c", "STAPCONF_BLK_TYPES", NULL);
   output_autoconf(s, o, "autoconf-perf-structpid.c", "STAPCONF_PERF_STRUCTPID", NULL);
   output_autoconf(s, o, "perf_event_counter_context.c",
@@ -266,6 +285,7 @@ compile_pass (systemtap_session& s)
   output_exportconf(s, o, "path_lookup", "STAPCONF_PATH_LOOKUP");
   output_exportconf(s, o, "kern_path_parent", "STAPCONF_KERN_PATH_PARENT");
   output_exportconf(s, o, "vfs_path_lookup", "STAPCONF_VFS_PATH_LOOKUP");
+  output_autoconf(s, o, "autoconf-module-sect-attrs.c", "STAPCONF_MODULE_SECT_ATTRS", NULL);
 
   // used by tapset/timestamp_monotonic.stp
   output_exportconf(s, o, "cpu_clock", "STAPCONF_CPU_CLOCK");
@@ -311,6 +331,37 @@ compile_pass (systemtap_session& s)
   // XXX: this may help ppc toc overflow
   // o << "CFLAGS := $(subst -Os,-O2,$(CFLAGS)) -fminimal-toc" << endl;
   o << "obj-m := " << s.module_name << ".o" << endl;
+
+  // print out all the auxiliary source (->object) file names
+  o << s.module_name << "-y := ";
+  for (unsigned i=0; i<s.auxiliary_outputs.size(); i++)
+    {
+      string srcname = s.auxiliary_outputs[i]->filename;
+      assert (srcname != "" && srcname.rfind('/') != string::npos);
+      string objname = srcname.substr(srcname.rfind('/')+1); // basename
+      assert (objname != "" && objname[objname.size()-1] == 'c');
+      objname[objname.size()-1] = 'o'; // now objname
+      o << " " + objname;
+    }
+  // and once again, for the translated_source file.  It can't simply
+  // be named MODULENAME.c, since kbuild doesn't allow a foo.ko file
+  // consisting of multiple .o's to have foo.o/foo.c as a source.
+  // (It uses ld -r -o foo.o EACH.o EACH.o).
+  {
+    string srcname = s.translated_source;
+    assert (srcname != "" && srcname.rfind('/') != string::npos);
+    string objname = srcname.substr(srcname.rfind('/')+1); // basename
+    assert (objname != "" && objname[objname.size()-1] == 'c');
+    objname[objname.size()-1] = 'o'; // now objname
+    o << " " + objname;
+  }
+  o << endl;
+
+  // add all stapconf dependencies
+  o << s.translated_source << ": $(STAPCONF_HEADER)" << endl;
+  for (unsigned i=0; i<s.auxiliary_outputs.size(); i++)
+    o << s.auxiliary_outputs[i]->filename << ": $(STAPCONF_HEADER)" << endl;  
+
 
   o.close ();
 
@@ -543,13 +594,16 @@ make_run_command (systemtap_session& s, const string& remotedir,
 }
 
 
-// Build a tiny kernel module to query tracepoints
-int
-make_tracequery(systemtap_session& s, string& name,
-                const vector<string>& decls)
+// Build tiny kernel modules to query tracepoints.
+// Given a (header-file -> test-contents) map, compile them ASAP, and return
+// a (header-file -> obj-filename) map.
+
+map<string,string>
+make_tracequeries(systemtap_session& s, const map<string,string>& contents)
 {
   static unsigned tick = 0;
   string basename("tracequery_kmod_" + lex_cast(++tick));
+  map<string,string> objs;
 
   // create a subdirectory for the module
   string dir(s.tmpdir + "/" + basename);
@@ -558,70 +612,54 @@ make_tracequery(systemtap_session& s, string& name,
       if (! s.suppress_warnings)
         cerr << _("Warning: failed to create directory for querying tracepoints.") << endl;
       s.set_try_server ();
-      return 1;
+      return objs;
     }
-
-  name = dir + "/" + basename + ".ko";
 
   // create a simple Makefile
   string makefile(dir + "/Makefile");
   ofstream omf(makefile.c_str());
   // force debuginfo generation, and relax implicit functions
   omf << "EXTRA_CFLAGS := -g -Wno-implicit-function-declaration" << (s.omit_werror ? "" : " -Werror") << endl;
-  if (s.kernel_source_tree != "")
-    omf << "EXTRA_CFLAGS += -I" + s.kernel_source_tree << endl;
-  omf << "obj-m := " + basename + ".o" << endl;
-
   // RHBZ 655231: later rhel6 kernels' module-signing kbuild logic breaks out-of-tree modules
   omf << "CONFIG_MODULE_SIG := n" << endl;
 
+  if (s.kernel_source_tree != "")
+    omf << "EXTRA_CFLAGS += -I" + s.kernel_source_tree << endl;
+
+  omf << "obj-m := " << endl;
+  // write out each header-specific source file into a separate file
+  for (map<string,string>::const_iterator it = contents.begin(); it != contents.end(); it++)
+    {
+      string sbasename = basename + "_" + lex_cast(++tick); // suffixed
+
+      // write out source code
+      string srcname = dir + "/" + sbasename + ".c";
+      string src = it->second;
+      ofstream osrc(srcname.c_str());
+      osrc << src;
+      osrc.close();
+
+      // arrange to build it
+      omf << "obj-m += " + sbasename + ".o" << endl; // NB: without <dir> prefix
+      objs[it->first] = dir + "/" + sbasename + ".o";
+    }
   omf.close();
 
-  // create our source file
-  string source(dir + "/" + basename + ".c");
-  ofstream osrc(source.c_str());
-  osrc << "#ifdef CONFIG_TRACEPOINTS" << endl;
-  osrc << "#include <linux/tracepoint.h>" << endl;
-
-  // override DECLARE_TRACE to synthesize probe functions for us
-  osrc << "#undef DECLARE_TRACE" << endl;
-  osrc << "#define DECLARE_TRACE(name, proto, args) \\" << endl;
-  osrc << "  void stapprobe_##name(proto) {}" << endl;
-
-  // 2.6.35 added the NOARGS variant, but it's the same for us
-  osrc << "#undef DECLARE_TRACE_NOARGS" << endl;
-  osrc << "#define DECLARE_TRACE_NOARGS(name) \\" << endl;
-  osrc << "  DECLARE_TRACE(name, void, )" << endl;
-
-  // older tracepoints used DEFINE_TRACE, so redirect that too
-  osrc << "#undef DEFINE_TRACE" << endl;
-  osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
-  osrc << "  DECLARE_TRACE(name, TPPROTO(proto), TPARGS(args))" << endl;
-
-  // add the specified decls/#includes
-  for (unsigned z=0; z<decls.size(); z++)
-    osrc << "#undef TRACE_INCLUDE_FILE\n"
-         << "#undef TRACE_INCLUDE_PATH\n"
-         << decls[z] << "\n";
-
-  // finish up the module source
-  osrc << "#endif /* CONFIG_TRACEPOINTS */" << endl;
-  osrc.close();
-
   // make the module
-  vector<string> make_cmd = make_make_cmd(s, dir);
+  vector<string> make_cmd = make_make_objs_cmd(s, dir);
+  make_cmd.push_back ("-i"); // ignore errors, give rc 0 even in case of tracepoint header nits
   bool quiet = (s.verbose < 4);
   int rc = run_make_cmd(s, make_cmd, quiet, quiet);
   if (rc)
     s.set_try_server ();
 
-  // XXX: sometimes we fail a tracequery due to PR9993 / PR11649 type
-  // kernel trace header problems.  In this case, due to PR12729,
-  // we get a lovely "Warning: make exited with status: 2" but no
+  // Sometimes we fail a tracequery due to PR9993 / PR11649 type
+  // kernel trace header problems.  In this case, due to PR12729, we
+  // used to get a lovely "Warning: make exited with status: 2" but no
   // other useful diagnostic.  -vvvv would let a user see what's up,
   // but the user can't fix the problem even with that.
 
-  return rc;
+  return objs;
 }
 
 

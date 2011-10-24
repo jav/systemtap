@@ -1,9 +1,10 @@
 # ./syscalltimes -h
-USAGE: syscalltimes [-n pname]... [-p pid]... [-u username]...
+USAGE: syscalltimes [-n pname]... [-p pid]... [-u username]... [-c 'process']
                     [-v]... [-t] [-h]
     -n pname     # filter by this process name
     -p pid       # filter by this process ID
     -u username  # filter by this user
+    -c 'process' # run 'process' then exit to show totals
     -t           # print totals (default with filters: OFF
                                  default without filters: ON)
     -v           # print verbose output during SystemTap module creation

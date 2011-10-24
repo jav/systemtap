@@ -149,7 +149,8 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->last_stmt = 0;";
   o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = -1;"; // NB: PR10516 packs locals[] tighter
-  o->newline() << "c->regs = 0;";
+  o->newline() << "c->uregs = 0;";
+  o->newline() << "c->kregs = 0;";
   o->newline() << "#if defined __ia64__";
   o->newline() << "c->unwaddr = 0;";
   o->newline() << "#endif";
@@ -160,7 +161,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->probe_type = " << probe_type << ";";
   // reset Individual Probe State union
   o->newline() << "memset(&c->ips, 0, sizeof(c->ips));";
-  o->newline() << "c->regflags = 0;";
+  o->newline() << "c->probe_flags = 0;";
   o->newline() << "#ifdef STAP_NEED_REGPARM"; // i386 or x86_64 register.stp
   o->newline() << "c->regparm = 0;";
   o->newline() << "#endif";
@@ -296,6 +297,7 @@ static const string TOK_MARK("mark");
 static const string TOK_TRACE("trace");
 static const string TOK_LABEL("label");
 static const string TOK_LIBRARY("library");
+static const string TOK_PLT("plt");
 
 static int query_cu (Dwarf_Die * cudie, void * arg);
 static void query_addr(Dwarf_Addr addr, dwarf_query *q);
@@ -341,6 +343,7 @@ symbol_table
   func_info *lookup_symbol(const string& name);
   Dwarf_Addr lookup_symbol_address(const string& name);
   func_info *get_func_containing_address(Dwarf_Addr addr);
+  func_info *get_first_func();
 
   symbol_table(module_info *mi) : mod_info(mi) {}
   ~symbol_table();
@@ -404,19 +407,20 @@ struct dwarf_derived_probe: public derived_probe
   void emit_probe_local_init(translator_output * o);
   void getargs(std::list<std::string> &arg_set) const;
 
-  void emit_unprivileged_assertion (translator_output*);
+  void emit_privilege_assertion (translator_output*);
   void print_dupe_stamp(ostream& o);
 
   // Pattern registration helpers.
   static void register_statement_variants(match_node * root,
 					  dwarf_builder * dw,
-					  bool bind_unprivileged_p = false);
+					  privilege_t privilege);
   static void register_function_variants(match_node * root,
 					 dwarf_builder * dw,
-					 bool bind_unprivileged_p = false);
-  static void register_function_and_statement_variants(match_node * root,
+					 privilege_t privilege);
+  static void register_function_and_statement_variants(systemtap_session& s,
+						       match_node * root,
 						       dwarf_builder * dw,
-						       bool bind_unprivileged_p = false);
+						       privilege_t privilege);
   static void register_patterns(systemtap_session& s);
 
 protected:
@@ -464,7 +468,7 @@ struct uprobe_derived_probe: public dwarf_derived_probe
 
   void join_group (systemtap_session& s);
 
-  void emit_unprivileged_assertion (translator_output*);
+  void emit_privilege_assertion (translator_output*);
   void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged_process_owner (o); }
   void getargs(std::list<std::string> &arg_set) const;
   void saveargs(int nargs);
@@ -484,6 +488,7 @@ public:
   void enroll (dwarf_derived_probe* probe);
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
+  void emit_module_refresh (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
 };
 
@@ -508,7 +513,9 @@ struct base_query
   static bool get_number_param(literal_map_t const & params,
 			       string const & k, Dwarf_Addr & v);
   static void query_library_callback (void *object, const char *data);
+  static void query_plt_callback (void *object, const char *link, size_t addr);
   virtual void query_library (const char *data) = 0;
+  virtual void query_plt (const char *link, size_t addr) = 0;
 
 
   // Extracted parameters.
@@ -516,15 +523,18 @@ struct base_query
   bool has_module;
   bool has_process;
   bool has_library;
+  bool has_plt;
+  bool has_statement;
   string module_val; // has_kernel => module_val = "kernel"
   string path;	     // executable path if module is a .so
+  string plt_val;    // has_plt => plt wildcard
 
   virtual void handle_query_module() = 0;
 };
 
 
 base_query::base_query(dwflpp & dw, literal_map_t const & params):
-  sess(dw.sess), dw(dw), has_library(false)
+  sess(dw.sess), dw(dw), has_library(false), has_plt(false), has_statement(false)
 {
   has_kernel = has_null_param (params, TOK_KERNEL);
   if (has_kernel)
@@ -536,8 +546,16 @@ base_query::base_query(dwflpp & dw, literal_map_t const & params):
   else
     {
       string library_name;
+      long statement_num_val;
       has_process = get_string_param(params, TOK_PROCESS, module_val);
       has_library = get_string_param (params, TOK_LIBRARY, library_name);
+      if ((has_plt = has_null_param (params, TOK_PLT)))
+        plt_val = "*";
+      else has_plt = get_string_param (params, TOK_PLT, plt_val);
+      if (has_plt)
+	sess.consult_symtab = true;
+      has_statement = get_number_param(params, TOK_STATEMENT, statement_num_val);
+
       if (has_process)
         module_val = find_executable (module_val);
       if (has_library)
@@ -556,7 +574,8 @@ base_query::base_query(dwflpp & dw, literal_map_t const & params):
 }
 
 base_query::base_query(dwflpp & dw, const string & module_val)
-  : sess(dw.sess), dw(dw), has_library(false), module_val(module_val)
+  : sess(dw.sess), dw(dw), has_library(false), has_plt(false), has_statement(false),
+    module_val(module_val)
 {
   // NB: This uses '/' to distinguish between kernel modules and userspace,
   // which means that userspace modules won't get any PATH searching.
@@ -631,6 +650,7 @@ struct dwarf_query : public base_query
   void query_module_dwarf();
   void query_module_symtab();
   void query_library (const char *data);
+  void query_plt (const char *entry, size_t addr);
 
   void add_probe_point(string const & funcname,
 		       char const * filename,
@@ -902,13 +922,21 @@ dwarf_query::query_module_symtab()
       // Find the "function" in which the indicated address resides.
       Dwarf_Addr addr =
       		(has_function_num ? function_num_val : statement_num_val);
-      fi = sym_table->get_func_containing_address(addr);
+      if (has_plt)
+        {
+          // Use the raw address from the .plt
+          fi = sym_table->get_first_func();
+          fi->addr = addr;
+        }
+      else
+        fi = sym_table->get_func_containing_address(addr);
+
       if (!fi)
         {
-	  if (! sess.suppress_warnings)
-            cerr << _F("Warning: address %#" PRIx64 " out of range for module %s",
-                       addr, dw.module_name.c_str());
-          return;
+          if (! sess.suppress_warnings)
+                cerr << _F("Warning: address %#" PRIx64 " out of range for module %s\n",
+                    addr, dw.module_name.c_str());
+              return;
         }
       if (!null_die(&fi->die))
         {
@@ -917,7 +945,7 @@ dwarf_query::query_module_symtab()
           // match addr to any compilation unit, so addr must be
           // above that cu's address range.
 	  if (! sess.suppress_warnings)
-            cerr << _F("Warning: address %#" PRIx64 " maps to no known compilation unit in module %s",
+            cerr << _F("Warning: address %#" PRIx64 " maps to no known compilation unit in module %s\n",
                        addr, dw.module_name.c_str());
           return;
         }
@@ -954,17 +982,17 @@ dwarf_query::parse_function_spec(const string & spec)
   line_type = ABSOLUTE;
   line[0] = line[1] = 0;
 
-  size_t src_pos, line_pos, dash_pos, scope_pos, next_scope_pos;
+  size_t src_pos, line_pos, dash_pos, scope_pos;
 
   // look for named scopes
-  scope_pos = 0;
-  next_scope_pos = spec.find("::");
-  while (next_scope_pos != string::npos)
+  scope_pos = spec.rfind("::");
+  if (scope_pos != string::npos)
     {
-      scopes.push_back(spec.substr(scope_pos, next_scope_pos - scope_pos));
-      scope_pos = next_scope_pos + 2;
-      next_scope_pos = spec.find("::", scope_pos);
+      tokenize_cxx(spec.substr(0, scope_pos), scopes);
+      scope_pos += 2;
     }
+  else
+    scope_pos = 0;
 
   // look for a source separator
   src_pos = spec.find('@', scope_pos);
@@ -1087,7 +1115,14 @@ dwarf_query::add_probe_point(const string& dw_funcname,
 
   assert (! has_absolute); // already handled in dwarf_builder::build()
 
-  reloc_addr = dw.relocate_address(addr, reloc_section);
+  if (!has_plt)
+    reloc_addr = dw.relocate_address(addr, reloc_section);
+  else
+    {
+      // Set the reloc_section but use the plt entry for reloc_addr
+      dw.relocate_address(addr, reloc_section);
+      reloc_addr = addr;
+    }
 
   // If we originally used the linkage name, then let's call it that way
   const char* linkage_name;
@@ -1296,8 +1331,16 @@ query_addr(Dwarf_Addr addr, dwarf_query *q)
 
           func_info_map_t funcs(1, func);
           dw.resolve_prologue_endings (funcs);
-          if (funcs[0].prologue_end)
-            addr = funcs[0].prologue_end;
+          if (q->has_return) // PR13200
+            {
+              if (q->sess.verbose > 2)
+                clog << "ignoring prologue for .return probes" << endl;
+            }
+          else
+            {
+              if (funcs[0].prologue_end)
+                addr = funcs[0].prologue_end;
+            }
         }
     }
   else
@@ -1317,10 +1360,10 @@ query_addr(Dwarf_Addr addr, dwarf_query *q)
       if (!q->has_mark && (!address_line || address_line.addr() != addr))
         {
           stringstream msg;
-          msg << _F("address 0x%#" PRIx64 " does not match the beginning of a statement",
+          msg << _F("address %#" PRIx64 " does not match the beginning of a statement",
                     addr);
           if (address_line)
-            msg << _F(" (try 0x%#" PRIx64 ")", address_line.addr());
+            msg << _F(" (try %#" PRIx64 ")", address_line.addr());
           else
             msg << _F(" (no line info found for '%s', in module '%s')",
                       dw.cu_name().c_str(), dw.module_name.c_str());
@@ -1398,6 +1441,11 @@ query_func_info (Dwarf_Addr entrypc,
 	{
 	  // NB. dwarf_derived_probe::emit_registrations will emit a
 	  // kretprobe based on the entrypc in this case.
+          if (fi.prologue_end != 0 && q->has_return) // PR13200
+            {
+              if (q->sess.verbose > 2)
+                clog << "ignoring prologue for .return probes" << endl;
+            }
 	  query_statement (fi.name, fi.decl_file, fi.decl_line,
 			   &fi.die, entrypc, q);
 	}
@@ -1659,6 +1707,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
           && !q->has_statement_str) // PR 2608
         if (! q->filtered_functions.empty())
           q->dw.resolve_prologue_endings (q->filtered_functions);
+      // NB: we could skip the resolve_prologue_endings() call here for has_return case (PR13200),
+      // but don't have to.  We can resolve the prologue, just not actually use it in query_addr().
 
       if (q->spec_type == function_file_and_line)
         {
@@ -1828,7 +1878,7 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
     }
 
   if (q->sess.verbose>2)
-    clog << _F("focused on module '%s' = [0x%#" PRIx64 ", -0x%#" PRIx64 ", bias 0x%#" PRIx64 
+    clog << _F("focused on module '%s' = [%#" PRIx64 "-%#" PRIx64 ", bias %#" PRIx64 
                " file %s ELF machine %s|%s (code %d)\n",
                q->dw.module_name.c_str(), q->dw.module_start, q->dw.module_end,
                q->dw.module_bias, debug_filename, expect_machine.c_str(),
@@ -1935,10 +1985,13 @@ query_module (Dwfl_Module *mod,
       if (q->has_library && contains_glob_chars (q->path))
         // handle .library(GLOB)
         q->dw.iterate_over_libraries (&q->query_library_callback, q);
+      // .plt is translated to .plt.statement(N).  We only want to iterate for the
+      // .plt case
+      else if (q->has_plt && ! q->has_statement)
+        q->dw.iterate_over_plt (q, &q->query_plt_callback);
       else
         // search the module for matches of the probe point.
         q->handle_query_module();
-
 
       // If we know that there will be no more matches, abort early.
       if (q->dw.module_name_final_match(q->module_val) || pending_interrupts)
@@ -1998,6 +2051,67 @@ dwarf_query::query_library (const char *library)
   query_one_library (library, dw, user_lib, base_probe, base_loc, results);
 }
 
+struct plt_expanding_visitor: public var_expanding_visitor
+{
+  plt_expanding_visitor(const string & entry):
+    entry (entry)
+  {
+  }
+  const string & entry;
+
+  void visit_target_symbol (target_symbol* e);
+};
+
+
+void
+base_query::query_plt_callback (void *q, const char *entry, size_t address)
+{
+  base_query *me = (base_query*)q;
+  if (me->dw.function_name_matches_pattern (entry, me->plt_val))
+    me->query_plt (entry, address);
+}
+
+
+void
+query_one_plt (const char *entry, long addr, dwflpp & dw,
+    probe * base_probe, probe_point *base_loc,
+    vector<derived_probe *> & results)
+{
+      probe_point* specific_loc = new probe_point(*base_loc);
+      specific_loc->optional = true;
+      vector<probe_point::component*> derived_comps;
+
+      if (dw.sess.verbose > 2)
+        clog << _F("plt entry=%s\n", entry);
+
+      // query_module_symtab requires .plt to recognize that it can set the probe at
+      // a plt entry so we convert process.plt to process.plt.statement
+      vector<probe_point::component*>::iterator it;
+      for (it = specific_loc->components.begin();
+          it != specific_loc->components.end(); ++it)
+        if ((*it)->functor == TOK_PLT)
+          {
+            derived_comps.push_back(*it);
+            derived_comps.push_back(new probe_point::component(TOK_STATEMENT,
+                new literal_number(addr)));
+          }
+        else
+          derived_comps.push_back(*it);
+      probe_point* derived_loc = new probe_point(*specific_loc);
+      derived_loc->components = derived_comps;
+      probe *new_base = base_probe->create_alias(derived_loc, specific_loc);
+      string e = string(entry);
+      plt_expanding_visitor pltv (e);
+      pltv.replace (new_base->body);
+      derive_probes(dw.sess, new_base, results);
+}
+
+
+void
+dwarf_query::query_plt (const char *entry, size_t address)
+{
+  query_one_plt (entry, address, dw, base_probe, base_loc, results);
+}
 
 // This would more naturally fit into elaborate.cxx:semantic_pass_symbols,
 // but the needed declaration for module_cache is not available there.
@@ -3530,6 +3644,7 @@ struct dwarf_cast_query : public base_query
 
   void handle_query_module();
   void query_library (const char *) {}
+  void query_plt (const char *entry, size_t addr) {}
 };
 
 
@@ -4113,7 +4228,7 @@ dwarf_derived_probe::getargs(std::list<std::string> &arg_set) const
 
 
 void
-dwarf_derived_probe::emit_unprivileged_assertion (translator_output* o)
+dwarf_derived_probe::emit_privilege_assertion (translator_output* o)
 {
   if (has_process)
     {
@@ -4125,7 +4240,7 @@ dwarf_derived_probe::emit_unprivileged_assertion (translator_output* o)
 
   // Other probes must contain the default assertion which aborts
   // if executed by an unprivileged user.
-  derived_probe::emit_unprivileged_assertion (o);
+  derived_probe::emit_privilege_assertion (o);
 }
 
 
@@ -4148,40 +4263,41 @@ dwarf_derived_probe::print_dupe_stamp(ostream& o)
 void
 dwarf_derived_probe::register_statement_variants(match_node * root,
 						 dwarf_builder * dw,
-						 bool bind_unprivileged_p)
+						 privilege_t privilege)
 {
   root
-    ->bind_unprivileged(bind_unprivileged_p)
+    ->bind_privilege(privilege)
     ->bind(dw);
 }
 
 void
 dwarf_derived_probe::register_function_variants(match_node * root,
 						dwarf_builder * dw,
-						bool bind_unprivileged_p)
+						privilege_t privilege)
 {
   root
-    ->bind_unprivileged(bind_unprivileged_p)
-    ->bind(dw);
-  root->bind(TOK_INLINE)
-    ->bind_unprivileged(bind_unprivileged_p)
+    ->bind_privilege(privilege)
     ->bind(dw);
   root->bind(TOK_CALL)
-    ->bind_unprivileged(bind_unprivileged_p)
+    ->bind_privilege(privilege)
     ->bind(dw);
   root->bind(TOK_RETURN)
-    ->bind_unprivileged(bind_unprivileged_p)
+    ->bind_privilege(privilege)
     ->bind(dw);
-  root->bind(TOK_RETURN)
-    ->bind_unprivileged(bind_unprivileged_p)
-    ->bind_num(TOK_MAXACTIVE)->bind(dw);
+
+  if (privilege >= pr_stapdev) /* for process probes / uprobes, .maxactive() is unused. */
+    {
+      root->bind(TOK_RETURN)
+        ->bind_num(TOK_MAXACTIVE)->bind(dw);
+    }
 }
 
 void
 dwarf_derived_probe::register_function_and_statement_variants(
+  systemtap_session& s,
   match_node * root,
   dwarf_builder * dw,
-  bool bind_unprivileged_p
+  privilege_t privilege
 )
 {
   // Here we match 4 forms:
@@ -4191,10 +4307,25 @@ dwarf_derived_probe::register_function_and_statement_variants(
   // .statement("foo")
   // .statement(0xdeadbeef)
 
-  register_function_variants(root->bind_str(TOK_FUNCTION), dw, bind_unprivileged_p);
-  register_function_variants(root->bind_num(TOK_FUNCTION), dw, bind_unprivileged_p);
-  register_statement_variants(root->bind_str(TOK_STATEMENT), dw, bind_unprivileged_p);
-  register_statement_variants(root->bind_num(TOK_STATEMENT), dw, bind_unprivileged_p);
+  match_node *fv_root = root->bind_str(TOK_FUNCTION);
+  register_function_variants(fv_root, dw, privilege);
+  // ROOT.function("STRING") always gets the .inline variant.
+  fv_root->bind(TOK_INLINE)
+    ->bind_privilege(privilege)
+    ->bind(dw);
+
+  fv_root = root->bind_num(TOK_FUNCTION);
+  register_function_variants(fv_root, dw, privilege);
+  // ROOT.function(NUMBER).inline is deprecated in release 1.7 and removed thereafter.
+  if (strverscmp(s.compatible.c_str(), "1.7") <= 0)
+    {
+      fv_root->bind(TOK_INLINE)
+	->bind_privilege(privilege)
+	->bind(dw);
+    }
+
+  register_statement_variants(root->bind_str(TOK_STATEMENT), dw, privilege);
+  register_statement_variants(root->bind_num(TOK_STATEMENT), dw, privilege);
 }
 
 void
@@ -4206,8 +4337,8 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   update_visitor *filter = new dwarf_cast_expanding_visitor(s, *dw);
   s.code_filters.push_back(filter);
 
-  register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
-  register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
+  register_function_and_statement_variants(s, root->bind(TOK_KERNEL), dw, pr_stapdev);
+  register_function_and_statement_variants(s, root->bind_str(TOK_MODULE), dw, pr_stapdev);
 
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
     ->bind(dw);
@@ -4217,44 +4348,62 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind_str(TOK_MODULE)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind(dw);
 
-  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw,
-					   true/*bind_unprivileged*/);
-  register_function_and_statement_variants(root->bind(TOK_PROCESS), dw,
-					   true/*bind_unprivileged*/);
-  register_function_and_statement_variants(root->bind_str(TOK_PROCESS)
-                                           ->bind_str(TOK_LIBRARY), dw,
-					   true/*bind_unprivileged*/);
-  register_function_and_statement_variants(root->bind(TOK_PROCESS)
-                                           ->bind_str(TOK_LIBRARY), dw,
-					   true/*bind_unprivileged*/);
+  register_function_and_statement_variants(s, root->bind_str(TOK_PROCESS), dw, pr_stapusr);
+  register_function_and_statement_variants(s, root->bind(TOK_PROCESS), dw, pr_stapusr);
+  register_function_and_statement_variants(s, root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, pr_stapusr);
+  register_function_and_statement_variants(s, root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, pr_stapusr);
 
   root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind(TOK_PROCESS)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
   root->bind_str(TOK_PROCESS)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind(TOK_PLT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind(TOK_PLT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PLT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
+        ->bind_privilege(pr_stapusr)
+        ->bind(dw);
+  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
+        ->bind_privilege(pr_stapusr)
+        ->bind(dw);
 }
 
 void
@@ -4264,7 +4413,7 @@ dwarf_derived_probe::emit_probe_local_init(translator_output * o)
     {
       // if accessing $variables, emit bsp cache setup for speeding up
       o->newline() << "#if defined __ia64__";
-      o->newline() << "bspcache(c->unwaddr, c->regs);";
+      o->newline() << "bspcache(c->unwaddr, c->kregs);";
       o->newline() << "#endif";
     }
 }
@@ -4456,14 +4605,14 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << "];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
 				 "_STP_PROBE_HANDLER_KPROBE");
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->kregs = regs;";
 
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
   s.op->newline() << "{";
   s.op->indent(1);
-  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->kregs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
   s.op->newline() << "(*sdp->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
@@ -4493,7 +4642,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sp",
 				 "_STP_PROBE_HANDLER_KRETPROBE");
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->kregs = regs;";
 
   // for assisting runtime's backtrace logic and accessing kretprobe data packets
   s.op->newline() << "c->ips.krp.pi = inst;";
@@ -4503,7 +4652,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
   s.op->newline() << "{";
-  s.op->newline(1) << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline(1) << "unsigned long kprobes_ip = REG_IP(c->kregs);";
   s.op->newline() << "if (entry)";
   s.op->newline(1) << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
   s.op->newline(-1) << "else";
@@ -4634,6 +4783,98 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 
 
 void
+dwarf_derived_probe_group::emit_module_refresh (systemtap_session& s)
+{
+  s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
+  s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
+  s.op->newline() << "unsigned long relocated_addr = _stp_kmodule_relocate (sdp->module, sdp->section, sdp->address);";
+  s.op->newline() << "int rc;";
+
+  // new module arrived?
+  s.op->newline() << "if (sdp->registered_p == 0 && relocated_addr != 0) {";
+  s.op->newline(1) << "if (sdp->return_p) {";
+  s.op->newline(1) << "kp->u.krp.kp.addr = (void *) relocated_addr;";
+  s.op->newline() << "if (sdp->maxactive_p) {";
+  s.op->newline(1) << "kp->u.krp.maxactive = sdp->maxactive_val;";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "kp->u.krp.maxactive = KRETACTIVE;";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "kp->u.krp.handler = &enter_kretprobe_probe;";
+  s.op->newline() << "#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,25)";
+  s.op->newline() << "if (sdp->entry_probe) {";
+  s.op->newline(1) << "kp->u.krp.entry_handler = &enter_kretprobe_entry_probe;";
+  s.op->newline() << "kp->u.krp.data_size = sdp->saved_longs * sizeof(int64_t) + ";
+  s.op->newline() << "                      sdp->saved_strings * MAXSTRINGLEN;";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "#endif";
+  // to ensure safeness of bspcache, always use aggr_kprobe on ia64
+  s.op->newline() << "#ifdef __ia64__";
+  s.op->newline() << "kp->dummy.addr = kp->u.krp.kp.addr;";
+  s.op->newline() << "kp->dummy.pre_handler = NULL;";
+  s.op->newline() << "rc = register_kprobe (& kp->dummy);";
+  s.op->newline() << "if (rc == 0) {";
+  s.op->newline(1) << "rc = register_kretprobe (& kp->u.krp);";
+  s.op->newline() << "if (rc != 0)";
+  s.op->newline(1) << "unregister_kprobe (& kp->dummy);";
+  s.op->newline(-2) << "}";
+  s.op->newline() << "#else";
+  s.op->newline() << "rc = register_kretprobe (& kp->u.krp);";
+  s.op->newline() << "#endif";
+  s.op->newline(-1) << "} else {";
+  // to ensure safeness of bspcache, always use aggr_kprobe on ia64
+  s.op->newline(1) << "kp->u.kp.addr = (void *) relocated_addr;";
+  s.op->newline() << "kp->u.kp.pre_handler = &enter_kprobe_probe;";
+  s.op->newline() << "#ifdef __ia64__";
+  s.op->newline() << "kp->dummy.addr = kp->u.kp.addr;";
+  s.op->newline() << "kp->dummy.pre_handler = NULL;";
+  s.op->newline() << "rc = register_kprobe (& kp->dummy);";
+  s.op->newline() << "if (rc == 0) {";
+  s.op->newline(1) << "rc = register_kprobe (& kp->u.kp);";
+  s.op->newline() << "if (rc != 0)";
+  s.op->newline(1) << "unregister_kprobe (& kp->dummy);";
+  s.op->newline(-2) << "}";
+  s.op->newline() << "#else";
+  s.op->newline() << "rc = register_kprobe (& kp->u.kp);";
+  s.op->newline() << "#endif";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "if (rc == 0) sdp->registered_p = 1;";
+
+  // old module disappeared?
+  s.op->newline(-1) << "} else if (sdp->registered_p == 1 && relocated_addr == 0) {";
+  s.op->newline(1) << "if (sdp->return_p) {";
+  s.op->newline(1) << "unregister_kretprobe (&kp->u.krp);";
+  s.op->newline() << "atomic_add (kp->u.krp.nmissed, & skipped_count);";
+  s.op->newline() << "#ifdef STP_TIMING";
+  s.op->newline() << "if (kp->u.krp.nmissed)";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/1 on '%s': %d\\n\", sdp->probe->pp, kp->u.krp.nmissed);";
+  s.op->newline(-1) << "#endif";
+  s.op->newline() << "atomic_add (kp->u.krp.kp.nmissed, & skipped_count);";
+  s.op->newline() << "#ifdef STP_TIMING";
+  s.op->newline() << "if (kp->u.krp.kp.nmissed)";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kretprobe/2 on '%s': %lu\\n\", sdp->probe->pp, kp->u.krp.kp.nmissed);";
+  s.op->newline(-1) << "#endif";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "unregister_kprobe (&kp->u.kp);";
+  s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
+  s.op->newline() << "#ifdef STP_TIMING";
+  s.op->newline() << "if (kp->u.kp.nmissed)";
+  s.op->newline(1) << "_stp_warn (\"Skipped due to missed kprobe on '%s': %lu\\n\", sdp->probe->pp, kp->u.kp.nmissed);";
+  s.op->newline(-1) << "#endif";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "#if defined(__ia64__)";
+  s.op->newline() << "unregister_kprobe (&kp->dummy);";
+  s.op->newline() << "#endif";
+  s.op->newline() << "sdp->registered_p = 0;";
+  s.op->newline(-1) << "}";
+
+  s.op->newline(-1) << "}"; // for loop
+}
+
+
+
+
+void
 dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
   if (has_semaphores)
@@ -4736,6 +4977,7 @@ struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
   vector<string> arg_tokens;
 
   void visit_target_symbol (target_symbol* e);
+  void visit_cast_op (cast_op* e);
 };
 
 
@@ -4910,6 +5152,7 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
   void visit_target_symbol (target_symbol* e);
   void visit_target_symbol_arg (target_symbol* e);
   void visit_target_symbol_context (target_symbol* e);
+  void visit_cast_op (cast_op* e);
 };
 
 
@@ -5306,6 +5549,17 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 
 
 void
+sdt_uprobe_var_expanding_visitor::visit_cast_op (cast_op* e)
+{
+  // Fill in our current module context if needed
+  if (e->module.empty())
+    e->module = process_name;
+
+  var_expanding_visitor::visit_cast_op(e);
+}
+
+
+void
 sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   try
@@ -5411,6 +5665,38 @@ sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 }
 
 
+void
+sdt_kprobe_var_expanding_visitor::visit_cast_op (cast_op* e)
+{
+  // Fill in our current module context if needed
+  if (e->module.empty())
+    e->module = process_name;
+
+  var_expanding_visitor::visit_cast_op(e);
+}
+
+
+void
+plt_expanding_visitor::visit_target_symbol (target_symbol *e)
+{
+  try
+    {
+      if (e->name == "$$name")
+	{
+	  literal_string *myname = new literal_string (entry);
+	  myname->tok = e->tok;
+	  provide(myname);
+	  return;
+	}
+    }
+  catch (const semantic_error &er)
+    {
+      e->chain (er);
+      provide (e);
+    }
+}
+
+
 struct sdt_query : public base_query
 {
   sdt_query(probe * base_probe, probe_point * base_loc,
@@ -5418,6 +5704,7 @@ struct sdt_query : public base_query
             vector<derived_probe *> & results, const string user_lib);
 
   void query_library (const char *data);
+  void query_plt (const char *entry, size_t addr) {}
   void handle_query_module();
 
 private:
@@ -6265,6 +6552,10 @@ dwarf_builder::build(systemtap_session & sess,
 
       // FIXME: Hmm, how to test for the new utrace?
 #if 0
+      // There is a similar check in pass 4 (buildrun), but it is
+      // needed here too to make sure alternatives for optional
+      // (? or !) process probes are disposed and/or alternatives
+      // are selected.
       if (sess.kernel_config["CONFIG_UTRACE"] != string("y"))
 
         throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE"));
@@ -6400,7 +6691,7 @@ symbol_table::read_symbols(FILE *f, const string& path)
       line++;
       if (ret < 3)
         {
-          cerr << _F("Symbol table error: Line %d of symbol list from %s is not in correct format: address type name [module]",
+          cerr << _F("Symbol table error: Line %d of symbol list from %s is not in correct format: address type name [module]\n",
                      line, path.c_str());
           // Caller should delete symbol_table object.
           return info_absent;
@@ -6417,7 +6708,7 @@ symbol_table::read_symbols(FILE *f, const string& path)
 
   if (map_by_addr.size() < 1)
     {
-      cerr << _F("Symbol table error: %s contains no function symbols.",
+      cerr << _F("Symbol table error: %s contains no function symbols.\n",
                  path.c_str()) << endl;
       return info_absent;
     }
@@ -6443,7 +6734,7 @@ symbol_table::read_from_elf_file(const string &path,
   if (child <= 0 || !(f = fdopen(child_fd, "r")))
     {
       // nm failures are detected by stap_waitpid
-      cerr << _F("Internal error reading symbol table from %s -- %s",
+      cerr << _F("Internal error reading symbol table from %s -- %s\n",
                  path.c_str(), strerror(errno));
       return info_absent;
     }
@@ -6451,7 +6742,7 @@ symbol_table::read_from_elf_file(const string &path,
   if (fclose(f) || stap_waitpid(sess.verbose, child))
     {
       if (status == info_present && ! sess.suppress_warnings)
-        cerr << _F("Warning: nm cannot read symbol table from %s", path.c_str());
+        cerr << _F("Warning: nm cannot read symbol table from %s\n", path.c_str());
       return info_absent;
     }
   return status;
@@ -6465,7 +6756,7 @@ symbol_table::read_from_text_file(const string& path,
   if (!f)
     {
       if (! sess.suppress_warnings)
-        cerr << _F("Warning: cannot read symbol table from %s -- %s",
+        cerr << _F("Warning: cannot read symbol table from %s -- %s\n",
                    path.c_str(), strerror(errno));
       return info_absent;
     }
@@ -6554,6 +6845,13 @@ symbol_table::get_func_containing_address(Dwarf_Addr addr)
 }
 
 func_info *
+symbol_table::get_first_func()
+{
+  iterator_t iter = map_by_addr.begin();
+  return (iter)->second;
+}
+
+func_info *
 symbol_table::lookup_symbol(const string& name)
 {
   map<string, func_info*>::iterator i = map_by_name.find(name);
@@ -6615,7 +6913,7 @@ module_info::get_symtab(dwarf_query *q)
     {
       if (name == TOK_KERNEL && !sess.kernel_symtab_path.empty()
 	  && ! sess.suppress_warnings)
-        cerr << _F("Warning: reading symbol table from %s -- ignoring %s",
+        cerr << _F("Warning: reading symbol table from %s -- ignoring %s\n",
                    elf_path.c_str(), sess.kernel_symtab_path.c_str()) << endl;
       symtab_status = sym_table->get_from_elf();
     }
@@ -6625,7 +6923,7 @@ module_info::get_symtab(dwarf_query *q)
       if (sess.kernel_symtab_path.empty())
         {
           symtab_status = info_absent;
-          cerr << _("Error: Cannot find vmlinux."
+          cerr << _("Error: Cannot find vmlinux.\n"
                   "  Consider using --kmap instead of --kelf.")
                << endl;;
         }
@@ -6758,7 +7056,7 @@ uprobe_derived_probe::saveargs(int nargs)
 
 
 void
-uprobe_derived_probe::emit_unprivileged_assertion (translator_output* o)
+uprobe_derived_probe::emit_privilege_assertion (translator_output* o)
 {
   // These probes are allowed for unprivileged users, but only in the
   // context of processes which they own.
@@ -6922,15 +7220,15 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "atomic_dec (&c->busy);";
   s.op->newline() << "goto probe_epilogue;";
   s.op->newline(-1) << "}";
-  s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
+  s.op->newline() << "c->uregs = regs;";
+  s.op->newline() << "c->probe_flags |= _STP_PROBE_STATE_USER_MODE;";
 
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so
   // we don't confuse uprobes. PR10458
   s.op->newline() << "{";
   s.op->indent(1);
-  s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->uregs);";
   s.op->newline() << "SET_REG_IP(regs, inst->vaddr);";
   s.op->newline() << "(*sups->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
@@ -6953,15 +7251,15 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "goto probe_epilogue;";
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
+  s.op->newline() << "c->uregs = regs;";
+  s.op->newline() << "c->probe_flags |= _STP_PROBE_STATE_USER_MODE;";
 
   // Make it look like the IP is set as it would in the actual user
   // task when calling real probe handler. Reset IP regs on return, so
   // we don't confuse uprobes. PR10458
   s.op->newline() << "{";
   s.op->indent(1);
-  s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "unsigned long uprobes_ip = REG_IP(c->uregs);";
   s.op->newline() << "SET_REG_IP(regs, inst->ret_addr);";
   s.op->newline() << "(*sups->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
@@ -7330,14 +7628,14 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << "];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
 				 "_STP_PROBE_HANDLER_KPROBE");
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->kregs = regs;";
 
   // Make it look like the IP is set as it wouldn't have been replaced
   // by a breakpoint instruction when calling real probe handler. Reset
   // IP regs on return, so we don't confuse kprobes. PR10458
   s.op->newline() << "{";
   s.op->indent(1);
-  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->kregs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->addr);";
   s.op->newline() << "(*sdp->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
@@ -7364,7 +7662,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
 				 "_STP_PROBE_HANDLER_KRETPROBE");
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->kregs = regs;";
   s.op->newline() << "c->ips.krp.pi = inst;"; // for assisting runtime's backtrace logic
 
   // Make it look like the IP is set as it wouldn't have been replaced
@@ -7372,7 +7670,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // IP regs on return, so we don't confuse kprobes. PR10458
   s.op->newline() << "{";
   s.op->indent(1);
-  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->regs);";
+  s.op->newline() << "unsigned long kprobes_ip = REG_IP(c->kregs);";
   s.op->newline() << "SET_REG_IP(regs, (unsigned long) inst->rp->kp.addr);";
   s.op->newline() << "(*sdp->probe->ph) (c);";
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
@@ -7495,6 +7793,7 @@ kprobe_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "else sdp->registered_p = 1;";
   s.op->newline(-1) << "}"; // for loop
 }
+
 
 void
 kprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
@@ -7841,7 +8140,12 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct stap_hwbkpt_probe *sdp = &stap_hwbkpt_probes[i];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sdp->probe",
 				 "_STP_PROBE_HANDLER_HWBKPT");
-  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "if (user_mode(regs)) {";
+  s.op->newline(1)<< "c->probe_flags |= _STP_PROBE_STATE_USER_MODE;";
+  s.op->newline() << "c->uregs = regs;";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "c->kregs = regs;";
+  s.op->newline(-1) << "}";
   s.op->newline() << "(*sdp->probe->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
@@ -8359,6 +8663,7 @@ resolve_tracepoint_arg_type(tracepoint_arg& arg)
       return (dwarf_attr_die(&arg.type_die, DW_AT_type, &arg.type_die)
               && resolve_tracepoint_arg_type(arg));
     case DW_TAG_base_type:
+    case DW_TAG_enumeration_type:
       // base types will simply be treated as script longs
       arg.isptr = false;
       return true;
@@ -8418,8 +8723,9 @@ tracepoint_derived_probe::build_args(dwflpp&, Dwarf_Die& func_die)
           tparg.usable = resolve_tracepoint_arg_type(tparg);
           args.push_back(tparg);
           if (sess.verbose > 4)
-            clog << _F("found parameter for tracepoint '%s': type:'%s' name:'%s'",
-                       tracepoint_name.c_str(), tparg.c_type.c_str(), tparg.name.c_str()) << endl;
+            clog << _F("found parameter for tracepoint '%s': type:'%s' name:'%s' %s",
+                       tracepoint_name.c_str(), tparg.c_type.c_str(), tparg.name.c_str(),
+                       tparg.usable ? "ok" : "unavailable") << endl;
         }
     while (dwarf_siblingof(&arg, &arg) == 0);
 }
@@ -8450,7 +8756,7 @@ tracepoint_derived_probe::print_dupe_stamp(ostream& o)
 }
 
 
-static vector<string> tracepoint_extra_decls (systemtap_session& s)
+static vector<string> tracepoint_extra_decls (systemtap_session& s, const string& header)
 {
   vector<string> they_live;
   // PR 9993
@@ -8463,7 +8769,7 @@ static vector<string> tracepoint_extra_decls (systemtap_session& s)
     they_live.push_back ("#include <linux/kvm_host.h>");
   }
 
-  if (s.kernel_config["CONFIG_XFS_FS"] != string("")) {
+  if (header.find("xfs") != string::npos && s.kernel_config["CONFIG_XFS_FS"] != string("")) {
     they_live.push_back ("#define XFS_BIG_BLKNOS 1");
     if (s.kernel_source_tree != "")
       they_live.push_back ("#include \"fs/xfs/xfs_types.h\""); // in kernel-source tree
@@ -8474,7 +8780,7 @@ static vector<string> tracepoint_extra_decls (systemtap_session& s)
     they_live.push_back ("struct xfs_trans;");
   }
 
-  if (s.kernel_config["CONFIG_NFSD"] != string("")) {
+  if (header.find("nfs") != string::npos && s.kernel_config["CONFIG_NFSD"] != string("")) {
     they_live.push_back ("struct rpc_task;");
   }
 
@@ -8483,9 +8789,12 @@ static vector<string> tracepoint_extra_decls (systemtap_session& s)
   // linux 3.0
   they_live.push_back ("struct cpu_workqueue_struct;");
 
-  if (s.kernel_config["CONFIG_EXT4_FS"] != string(""))
+  if (header.find("ext4") != string::npos && s.kernel_config["CONFIG_EXT4_FS"] != string(""))
     if (s.kernel_source_tree != "")
       they_live.push_back ("#include \"fs/ext4/ext4.h\""); // in kernel-source tree
+
+  if (header.find("ext3") != string::npos && s.kernel_config["CONFIG_EXT3_FS"] != string(""))
+    they_live.push_back ("struct ext3_reserve_window_node;");
 
   return they_live;
 }
@@ -8500,54 +8809,89 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "/* ---- tracepoint probes ---- */";
   s.op->newline();
 
-  // PR9993: Add extra headers to work around undeclared types in individual
-  // include/trace/foo.h files
-  const vector<string>& extra_decls = tracepoint_extra_decls (s);
-  for (unsigned z=0; z<extra_decls.size(); z++)
-    s.op->newline() << extra_decls[z] << "\n";
+
+  // We create a MODULE_aux_N.c file for each tracepoint header, to allow them
+  // to be separately compiled.  That's because kernel tracepoint headers sometimes
+  // conflict.  PR13155.
+
+  map<string,translator_output*> per_header_aux;
+  // GC NB: the translator_output* structs are owned/retained by the systemtap_session.
 
   for (unsigned i = 0; i < probes.size(); ++i)
     {
       tracepoint_derived_probe *p = probes[i];
-
-      // emit a separate entry function for each probe, since tracepoints
-      // don't provide any sort of context pointer.
-      s.op->newline() << "#undef TRACE_INCLUDE_FILE";
-      s.op->newline() << "#undef TRACE_INCLUDE_PATH";
-
-      // strip include/ substring, the same way as done in get_tracequery_module()
       string header = p->header;
-      size_t root_pos = header.rfind("include/");
-      header = ((root_pos != string::npos) ? header.substr(root_pos + 8) : header);
-      s.op->newline() << "#include <" << header << ">";
 
-      // Starting in 2.6.35, at the same time NOARGS was added, the callback
-      // always has a void* as the first parameter. PR11599
-      s.op->newline() << "#ifdef DECLARE_TRACE_NOARGS";
-      s.op->newline() << "#define STAP_TP_DATA   , NULL";
-      s.op->newline() << "#define STAP_TP_PROTO  void *cb_data"
-                      << " __attribute__ ((unused))";
-      if (!p->args.empty())
-        s.op->line() << ",";
-      s.op->newline() << "#else";
-      s.op->newline() << "#define STAP_TP_DATA";
-      s.op->newline() << "#define STAP_TP_PROTO";
-      if (p->args.empty())
-        s.op->line() << " void";
-      s.op->newline() << "#endif";
+      // We cache the auxiliary output files on a per-header basis.  We don't
+      // need one aux file per tracepoint, only one per tracepoint-header.
+      translator_output *tpop = per_header_aux[header];
+      if (tpop == 0)
+        {
+          tpop = s.op_create_auxiliary();
+          per_header_aux[header] = tpop;
 
-      s.op->newline() << "static void enter_tracepoint_probe_" << i << "(";
-      s.op->newline(2) << "STAP_TP_PROTO";
+          // PR9993: Add extra headers to work around undeclared types in individual
+          // include/trace/foo.h files
+          const vector<string>& extra_decls = tracepoint_extra_decls (s, header);
+          for (unsigned z=0; z<extra_decls.size(); z++)
+            tpop->newline() << extra_decls[z] << "\n";
 
+          // strip include/ substring, the same way as done in get_tracequery_module()
+          size_t root_pos = header.rfind("include/");
+          header = ((root_pos != string::npos) ? header.substr(root_pos + 8) : header);
+          tpop->newline() << "#include <" << header << ">";
+
+          // Starting in 2.6.35, at the same time NOARGS was added, the callback
+          // always has a void* as the first parameter. PR11599
+          tpop->newline() << "#ifdef DECLARE_TRACE_NOARGS";
+          tpop->newline() << "#define STAP_TP_DATA   , NULL";
+          tpop->newline() << "#define STAP_TP_PROTO  void *cb_data"
+                          << " __attribute__ ((unused))";
+          if (!p->args.empty())
+            tpop->line() << ",";
+          tpop->newline() << "#else";
+          tpop->newline() << "#define STAP_TP_DATA";
+          tpop->newline() << "#define STAP_TP_PROTO";
+          if (p->args.empty())
+            tpop->line() << " void";
+          tpop->newline() << "#endif";
+
+          tpop->newline() << "#define intptr_t long";
+        }
+
+      // collect the args that are actually in use
+      vector<const tracepoint_arg*> used_args;
       for (unsigned j = 0; j < p->args.size(); ++j)
+        if (p->args[j].used)
+          used_args.push_back(&p->args[j]);
+
+      // forward-declare the generated-side tracepoint callback
+      tpop->newline() << "void enter_real_tracepoint_probe_" << i << "(";
+      tpop->indent(2);
+      if (used_args.empty())
+        tpop->line() << "void";
+      for (unsigned j = 0; j < used_args.size(); ++j)
         {
           if (j > 0)
-            s.op->line() << ",";
-          s.op->newline() << p->args[j].c_type << " __tracepoint_arg_" << p->args[j].name;
+            tpop->line() << ", ";
+          tpop->line() << "int64_t";
+        }
+      tpop->line() << ");";
+      tpop->indent(-2);
+
+      // define the generated-side tracepoint callback - in the main translator-output
+      s.op->newline() << "void enter_real_tracepoint_probe_" << i << "(";
+      s.op->indent(2);
+      if (used_args.empty())
+        s.op->newline() << "void";
+      for (unsigned j = 0; j < used_args.size(); ++j)
+        {
+          if (j > 0)
+            s.op->line() << ", ";
+          s.op->newline() << "int64_t __tracepoint_arg_" << used_args[j]->name;
         }
       s.op->newline() << ")";
       s.op->newline(-2) << "{";
-
       s.op->newline(1) << "struct stap_probe * const probe = "
                        << common_probe_init (p) << ";";
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "probe",
@@ -8555,37 +8899,61 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "c->ips.tracepoint_name = "
                       << lex_cast_qstring (p->tracepoint_name)
                       << ";";
-      for (unsigned j = 0; j < p->args.size(); ++j)
-        if (p->args[j].used)
-          {
-            s.op->newline() << "c->probe_locals." << p->name << ".__tracepoint_arg_"
-                            << p->args[j].name << " = (int64_t)";
-            s.op->line() << p->args[j].typecast;
-            s.op->line() << "__tracepoint_arg_" << p->args[j].name << ";";
-          }
+      for (unsigned j = 0; j < used_args.size(); ++j)
+        {
+          s.op->newline() << "c->probe_locals." << p->name
+                          << ".__tracepoint_arg_" << used_args[j]->name
+                          << " = __tracepoint_arg_" << used_args[j]->name << ";";
+        }
       s.op->newline() << "(*probe->ph) (c);";
       common_probe_entryfn_epilogue (s.op);
       s.op->newline(-1) << "}";
 
+      // define the real tracepoint callback function
+      tpop->newline() << "static void enter_tracepoint_probe_" << i << "(";
+      tpop->newline(2) << "STAP_TP_PROTO";
+      for (unsigned j = 0; j < p->args.size(); ++j)
+        {
+          if (j > 0)
+            tpop->line() << ", ";
+          tpop->newline() << p->args[j].c_type << " __tracepoint_arg_" << p->args[j].name;
+        }
+      tpop->newline() << ")";
+      tpop->newline(-2) << "{";
+      tpop->newline(1) << "enter_real_tracepoint_probe_" << i << "(";
+      tpop->indent(2);
+      for (unsigned j = 0; j < used_args.size(); ++j)
+        {
+          if (j > 0)
+            tpop->line() << ", ";
+          tpop->newline() << "(int64_t)" << used_args[j]->typecast
+                          << "__tracepoint_arg_" << used_args[j]->name;
+        }
+      tpop->newline() << ");";
+      tpop->newline(-3) << "}";
+
+
       // emit normalized registration functions
-      s.op->newline() << "static int register_tracepoint_probe_" << i << "(void) {";
-      s.op->newline(1) << "return register_trace_" << p->tracepoint_name
+      tpop->newline() << "int register_tracepoint_probe_" << i << "(void) {";
+      tpop->newline(1) << "return register_trace_" << p->tracepoint_name
                        << "(enter_tracepoint_probe_" << i << " STAP_TP_DATA);";
-      s.op->newline(-1) << "}";
+      tpop->newline(-1) << "}";
 
       // NB: we're not prepared to deal with unreg failures.  However, failures
       // can only occur if the tracepoint doesn't exist (yet?), or if we
       // weren't even registered.  The former should be OKed by the initial
       // registration call, and the latter is safe to ignore.
-      s.op->newline() << "static void unregister_tracepoint_probe_" << i << "(void) {";
-      s.op->newline(1) << "(void) unregister_trace_" << p->tracepoint_name
+      tpop->newline() << "void unregister_tracepoint_probe_" << i << "(void) {";
+      tpop->newline(1) << "(void) unregister_trace_" << p->tracepoint_name
                        << "(enter_tracepoint_probe_" << i << " STAP_TP_DATA);";
-      s.op->newline(-1) << "}";
-      s.op->newline();
+      tpop->newline(-1) << "}";
+      tpop->newline();
 
-      s.op->newline() << "#undef STAP_TP_DATA";
-      s.op->newline() << "#undef STAP_TP_PROTO";
-      s.op->newline();
+      // declare normalized registration functions
+      s.op->newline() << "int register_tracepoint_probe_" << i << "(void);";
+      s.op->newline() << "void unregister_tracepoint_probe_" << i << "(void);";
+
+      tpop->assert_0_indent();
     }
 
   // emit an array of registration functions for easy init/shutdown
@@ -8670,6 +9038,7 @@ struct tracepoint_query : public base_query
   int handle_query_cu(Dwarf_Die * cudie);
   int handle_query_func(Dwarf_Die * func);
   void query_library (const char *) {}
+  void query_plt (const char *entry, size_t addr) {}
 
   static int tracepoint_query_cu (Dwarf_Die * cudie, void * arg);
   static int tracepoint_query_func (Dwarf_Die * func, base_query * query);
@@ -8739,8 +9108,9 @@ struct tracepoint_builder: public derived_probe_builder
 private:
   dwflpp *dw;
   bool init_dw(systemtap_session& s);
-  string get_tracequery_module(systemtap_session& s,
-                               const vector<string>& headers);
+  void get_tracequery_modules(systemtap_session& s,
+                              const vector<string>& headers,
+                              vector<string>& modules);
 
 public:
 
@@ -8764,9 +9134,15 @@ public:
 };
 
 
-string
-tracepoint_builder::get_tracequery_module(systemtap_session& s,
-                                          const vector<string>& headers)
+
+// Create (or cache) one or more tracequery .o modules, based upon the
+// tracepoint-related header files given.  Return the generated or cached
+// modules[].
+
+void
+tracepoint_builder::get_tracequery_modules(systemtap_session& s,
+                                           const vector<string>& headers,
+                                           vector<string>& modules)
 {
   if (s.verbose > 2)
     {
@@ -8775,50 +9151,120 @@ tracepoint_builder::get_tracequery_module(systemtap_session& s,
         clog << "  " << headers[i] << endl;
     }
 
-  string tracequery_path;
-  if (s.use_cache)
+  map<string,string> headers_cache_obj;  // header name -> cache/.../tracequery_hash.o file name
+  // Map the headers to cache .o names.  Note that this has side-effects of
+  // creating the $SYSTEMTAP_DIR/.cache/XX/... directory and the hash-log file,
+  // so we prefer not to repeat this.
+  vector<string> uncached_headers;
+  for (size_t i=0; i<headers.size(); i++)
+    headers_cache_obj[headers[i]] = find_tracequery_hash(s, headers[i]);
+
+  // They may be in the cache already.
+  if (s.use_cache && !s.poison_cache)
+    for (size_t i=0; i<headers.size(); i++)
+      {
+        // see if the cached module exists
+        const string& tracequery_path = headers_cache_obj[headers[i]];
+        if (!tracequery_path.empty() && file_exists(tracequery_path))
+          {
+            if (s.verbose > 2)
+              clog << _F("Pass 2: using cached %s", tracequery_path.c_str()) << endl;
+
+            // an empty file is a cached failure
+            if (get_file_size(tracequery_path) > 0)
+              modules.push_back (tracequery_path);
+          }
+        else
+          uncached_headers.push_back(headers[i]);
+      }
+  else
+    uncached_headers = headers;
+
+  // If we have nothing left to search for, quit
+  if (uncached_headers.empty()) return;
+
+  map<string,string> headers_tracequery_src; // header -> C-source code mapping
+
+  // We could query several subsets of headers[] to make this go
+  // faster, but let's KISS and do one at a time.
+  for (size_t i=0; i<uncached_headers.size(); i++)
     {
-      // see if the cached module exists
-      tracequery_path = find_tracequery_hash(s, headers);
-      if (!tracequery_path.empty() && !s.poison_cache)
-        {
-          int fd = open(tracequery_path.c_str(), O_RDONLY);
-          if (fd != -1)
-            {
-              if (s.verbose > 2)
-                clog << _F("Pass 2: using cached %s", tracequery_path.c_str()) << endl;
-              close(fd);
-              return tracequery_path;
-            }
-        }
-    }
+      const string& header = uncached_headers[i];
 
-  // no cached module, time to make it
+      // create a tracequery source file
+      ostringstream osrc;
 
-  // PR9993: Add extra headers to work around undeclared types in individual
-  // include/trace/foo.h files
-  vector<string> short_decls = tracepoint_extra_decls(s);
+      // PR9993: Add extra headers to work around undeclared types in individual
+      // include/trace/foo.h files
+      vector<string> short_decls = tracepoint_extra_decls(s, header);
 
-  // add each requested tracepoint header
-  for (size_t i = 0; i < headers.size(); ++i)
-    {
-      const string &header = headers[i];
+      // add each requested tracepoint header
       size_t root_pos = header.rfind("include/");
-      short_decls.push_back(string("#include <") + 
+      short_decls.push_back(string("#include <") +
                             ((root_pos != string::npos) ? header.substr(root_pos + 8) : header) +
                             string(">"));
+
+      osrc << "#ifdef CONFIG_TRACEPOINTS" << endl;
+      osrc << "#include <linux/tracepoint.h>" << endl;
+
+      // the kernel has changed this naming a few times, previously TPPROTO,
+      // TP_PROTO, TPARGS, TP_ARGS, etc.  so let's just dupe the latest.
+      osrc << "#ifndef PARAMS" << endl;
+      osrc << "#define PARAMS(args...) args" << endl;
+      osrc << "#endif" << endl;
+
+      // override DECLARE_TRACE to synthesize probe functions for us
+      osrc << "#undef DECLARE_TRACE" << endl;
+      osrc << "#define DECLARE_TRACE(name, proto, args) \\" << endl;
+      osrc << "  void stapprobe_##name(proto) {}" << endl;
+
+      // 2.6.35 added the NOARGS variant, but it's the same for us
+      osrc << "#undef DECLARE_TRACE_NOARGS" << endl;
+      osrc << "#define DECLARE_TRACE_NOARGS(name) \\" << endl;
+      osrc << "  DECLARE_TRACE(name, void, )" << endl;
+
+      // 2.6.38 added the CONDITION variant, which can also just redirect
+      osrc << "#undef DECLARE_TRACE_CONDITION" << endl;
+      osrc << "#define DECLARE_TRACE_CONDITION(name, proto, args, cond) \\" << endl;
+      osrc << "  DECLARE_TRACE(name, PARAMS(proto), PARAMS(args))" << endl;
+
+      // older tracepoints used DEFINE_TRACE, so redirect that too
+      osrc << "#undef DEFINE_TRACE" << endl;
+      osrc << "#define DEFINE_TRACE(name, proto, args) \\" << endl;
+      osrc << "  DECLARE_TRACE(name, PARAMS(proto), PARAMS(args))" << endl;
+
+      // add the specified decls/#includes
+      for (unsigned z=0; z<short_decls.size(); z++)
+        osrc << "#undef TRACE_INCLUDE_FILE\n"
+             << "#undef TRACE_INCLUDE_PATH\n"
+             << short_decls[z] << "\n";
+
+      // finish up the module source
+      osrc << "#endif /* CONFIG_TRACEPOINTS */" << endl;
+
+      // save the source file away
+      headers_tracequery_src[header] = osrc.str();
     }
 
-  string tracequery_ko;
-  int rc = make_tracequery(s, tracequery_ko, short_decls);
-  if (rc != 0)
-    tracequery_ko = "/dev/null";
+  // now build them all together
+  map<string,string> tracequery_objs = make_tracequeries(s, headers_tracequery_src);
 
-  // try to save tracequery in the cache
+  // now plop them into the cache
   if (s.use_cache)
-    copy_file(tracequery_ko, tracequery_path, s.verbose > 2);
-
-  return tracequery_ko;
+    for (size_t i=0; i<uncached_headers.size(); i++)
+      {
+        const string& header = uncached_headers[i];
+        const string& tracequery_obj = tracequery_objs[header];
+        const string& tracequery_path = headers_cache_obj[header];
+        if (tracequery_obj !="" && file_exists(tracequery_obj))
+          {
+            copy_file(tracequery_obj, tracequery_path, s.verbose > 2);
+            modules.push_back (tracequery_path);
+          }
+        else
+          // cache an empty file for failures
+          copy_file("/dev/null", tracequery_path, s.verbose > 2);
+      }
 }
 
 
@@ -8880,6 +9326,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
     for (unsigned j=0; j<glob_suffixes.size(); j++)
       globs.push_back (glob_prefixes[i]+string("/")+glob_suffixes[j]);
 
+  set<string> duped_headers;
   for (unsigned z = 0; z < globs.size(); z++)
     {
       string glob_str = globs[z];
@@ -8898,26 +9345,19 @@ tracepoint_builder::init_dw(systemtap_session& s)
               endswith(header, "_event_types.h"))
             continue;
 
+          // skip identical headers from the build and source trees.
+          size_t root_pos = header.rfind("include/");
+          if (root_pos != string::npos &&
+              !duped_headers.insert(header.substr(root_pos + 8)).second)
+            continue;
+
           system_headers.push_back(header);
         }
       globfree(&trace_glob);
     }
 
-  // First attempt to do all system headers in one go
-  string tracequery_path = get_tracequery_module(s, system_headers);
-  // NB: An empty tracequery means that the header didn't compile correctly
-  if (get_file_size(tracequery_path))
-    tracequery_modules.push_back(tracequery_path);
-  else
-    // Otherwise try to do them one at a time (PR10424)
-    for (size_t i = 0; i < system_headers.size(); ++i)
-      {
-        if (pending_interrupts) return false;
-        vector<string> one_header(1, system_headers[i]);
-        tracequery_path = get_tracequery_module(s, one_header);
-        if (get_file_size(tracequery_path))
-          tracequery_modules.push_back(tracequery_path);
-      }
+  // Build tracequery modules
+  get_tracequery_modules(s, system_headers, tracequery_modules);
 
   // TODO: consider other sources of tracepoint headers too, like from
   // a command-line parameter or some environment or .systemtaprc
@@ -8963,11 +9403,11 @@ register_standard_tapsets(systemtap_session & s)
   // XXX: user-space starter set
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(new uprobe_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(TOK_RETURN)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_stapusr)
     ->bind(new uprobe_builder ());
 
   // kernel tracepoint probes

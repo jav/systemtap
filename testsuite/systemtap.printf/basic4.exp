@@ -1,3 +1,4 @@
 set test "basic4"
 set ::result_string {HelloWorldHelloWorld}
 stap_run2 $srcdir/$subdir/$test.stp
+stap_run2 $srcdir/$subdir/$test.stp -DSTP_LEGACY_PRINT

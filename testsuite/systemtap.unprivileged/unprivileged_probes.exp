@@ -1,0 +1,411 @@
+set test "unprivileged probes"
+
+set exepath "foo"
+set sopath "libfoo.so"
+
+# These probe types should be acceptable for unprivileged users
+set valid_probe_types [list \
+  "begin" \
+  "begin(number)" \
+  "end" \
+  "end(number)" \
+  "error" \
+  "error(number)" \
+  "never" \
+  "process.begin" \
+  "process.end" \
+  "process.function(number)" \
+  "process.function(number).call" \
+  "process.function(number).inline" \
+  "process.function(number).return" \
+  "process.function(string)" \
+  "process.function(string).call" \
+  "process.function(string).inline" \
+  "process.function(string).label(string)" \
+  "process.function(string).return" \
+  "process.library(string).function(number)" \
+  "process.library(string).function(number).call" \
+  "process.library(string).function(number).inline" \
+  "process.library(string).function(number).return" \
+  "process.library(string).function(string)" \
+  "process.library(string).function(string).call" \
+  "process.library(string).function(string).inline" \
+  "process.library(string).function(string).return" \
+  "process.library(string).mark(string)" \
+  "process.library(string).provider(string).mark(string)" \
+  "process.library(string).statement(number)" \
+  "process.library(string).statement(string)" \
+  "process.mark(string)" \
+  "process.statement(number)" \
+  "process.statement(string)" \
+  "process.syscall" \
+  "process.syscall.return" \
+  "process.thread.begin" \
+  "process.thread.end" \
+  "process(number).begin" \
+  "process(number).end" \
+  "process(number).statement(number).absolute" \
+  "process(number).statement(number).absolute.return" \
+  "process(number).syscall" \
+  "process(number).syscall.return" \
+  "process(number).thread.begin" \
+  "process(number).thread.end" \
+  "process(string).begin" \
+  "process(string).end" \
+  "process(string).function(number)" \
+  "process(string).function(number).call" \
+  "process(string).function(number).inline" \
+  "process(string).function(number).return" \
+  "process(string).function(string)" \
+  "process(string).function(string).call" \
+  "process(string).function(string).inline" \
+  "process(string).function(string).label(string)" \
+  "process(string).function(string).return" \
+  "process(string).library(string).function(number)" \
+  "process(string).library(string).function(number).call" \
+  "process(string).library(string).function(number).inline" \
+  "process(string).library(string).function(number).return" \
+  "process(string).library(string).function(string)" \
+  "process(string).library(string).function(string).call" \
+  "process(string).library(string).function(string).inline" \
+  "process(string).library(string).function(string).return" \
+  "process(string).library(string).mark(string)" \
+  "process(string).library(string).provider(string).mark(string)" \
+  "process(string).library(string).statement(number)" \
+  "process(string).library(string).statement(string)" \
+  "process(string).mark(string)" \
+  "process(string).provider(string).mark(string)" \
+  "process(string).statement(number)" \
+  "process(string).statement(string)" \
+  "process(string).syscall" \
+  "process(string).syscall.return" \
+  "process(string).thread.begin" \
+  "process(string).thread.end" \
+  "timer.hz(number)" \
+  "timer.jiffies(number)" \
+  "timer.jiffies(number).randomize(number)" \
+  "timer.ms(number)" \
+  "timer.ms(number).randomize(number)" \
+  "timer.msec(number)" \
+  "timer.msec(number).randomize(number)" \
+  "timer.ns(number)" \
+  "timer.ns(number).randomize(number)" \
+  "timer.nsec(number)" \
+  "timer.nsec(number).randomize(number)" \
+  "timer.s(number)" \
+  "timer.s(number).randomize(number)" \
+  "timer.sec(number)" \
+  "timer.sec(number).randomize(number)" \
+  "timer.us(number)" \
+  "timer.us(number).randomize(number)" \
+  "timer.usec(number)" \
+  "timer.usec(number).randomize(number)" \
+]
+
+# These probes should not be acceptable to pass 2 for unprivileged users
+set invalid_probe_types [list \
+  "process(string).insn" \
+  "kernel.data(number).length(number).rw" \
+  "kernel.data(number).length(number).write" \
+  "kernel.data(number).rw" \
+  "kernel.data(number).write" \
+  "kernel.data(string).rw" \
+  "kernel.data(string).write" \
+  "kernel.function(number)" \
+  "kernel.function(number).call" \
+  "kernel.function(number).inline" \
+  "kernel.function(number).return" \
+  "kernel.function(number).return.maxactive(number)" \
+  "kernel.function(string)" \
+  "kernel.function(string).call" \
+  "kernel.function(string).inline" \
+  "kernel.function(string).label(string)" \
+  "kernel.function(string).return" \
+  "kernel.function(string).return.maxactive(number)" \
+  "kernel.mark(string)" \
+  "kernel.mark(string).format(string)" \
+  "kernel.statement(number)" \
+  "kernel.statement(number).absolute" \
+  "kernel.statement(string)" \
+  "kernel.trace(string)" \
+  "kprobe.function(string)" \
+  "kprobe.function(string).return" \
+  "kprobe.function(string).return.maxactive(number)" \
+  "kprobe.module(string).function(string)" \
+  "kprobe.module(string).function(string).return" \
+  "kprobe.module(string).function(string).return.maxactive(number)" \
+  "kprobe.statement(number).absolute" \
+  "module(string).function(number)" \
+  "module(string).function(number).call" \
+  "module(string).function(number).inline" \
+  "module(string).function(number).return" \
+  "module(string).function(number).return.maxactive(number)" \
+  "module(string).function(string)" \
+  "module(string).function(string).call" \
+  "module(string).function(string).inline" \
+  "module(string).function(string).label(string)" \
+  "module(string).function(string).return" \
+  "module(string).function(string).return.maxactive(number)" \
+  "module(string).statement(number)" \
+  "module(string).statement(string)" \
+  "perf.type(number).config(number)" \
+  "perf.type(number).config(number).sample(number)" \
+  "process(number).insn" \
+  "process(number).insn.block" \
+  "process(string).insn.block" \
+  "procfs.read" \
+  "procfs.write" \
+  "procfs.read.maxsize(number)" \
+  "procfs.umask(number).read" \
+  "procfs.umask(number).read.maxsize(number)" \
+  "procfs.umask(number).write" \
+  "procfs(string).read" \
+  "procfs(string).read.maxsize(number)" \
+  "procfs(string).write" \
+  "procfs(string).umask(number).read" \
+  "procfs(string).umask(number).read.maxsize(number)" \
+  "procfs(string).umask(number).write" \
+  "timer.profile" \
+]
+
+# Add arguments to a probe type template.
+proc add_args { probe_type } {
+    global exepath sopath
+    global addr_of_bar addr_of_libfoofunc
+
+    set probe "$probe_type"
+
+    # Replace "hz(number)" with "hz(1000)"
+    regsub -all "hz\\(number\\)" $probe "hz(1000)" probe
+    # Replace "ns(number)" with "ns(100000)"
+    regsub -all "ns\\(number\\)" $probe "ns(100000)" probe
+    # Replace "nsec(number)" with "nsec(100000)"
+    regsub -all "nsec\\(number\\)" $probe "nsec(100000)" probe
+    # Replace "us(number)" with "us(100)"
+    regsub -all "us\\(number\\)" $probe "us(100)" probe
+    # Replace "usec(number)" with "usec(100)"
+    regsub -all "usec\\(number\\)" $probe "usec(100)" probe
+
+    # Replace "library(string).function(string).inline" with "library(string).function("ilibfoofunc").inline"
+    regsub -all "library\\(string\\).function\\(string\\).inline" $probe "library(string).function(\"ilibfoofunc\").inline" probe
+
+    # Replace "function(string).inline" with "function("ibar").inline"
+    regsub -all "function\\(string\\).inline" $probe "function(\"ibar\").inline" probe
+
+    # Replace "library(string).function(string)" with "library(string.function("libfoofunc")"
+    regsub -all "library\\(string\\).function\\(string\\)" $probe "library(string).function(\"libfoofunc\")" probe
+    # Replace "library(string).function(number)" with "library(string).function($addr_of_libfoofunc)"
+    regsub -all "library\\(string\\).function\\(number\\)" $probe "library(string).function($addr_of_libfoofunc)" probe
+
+    # Replace "function(string)" with "function("bar")"
+    regsub -all "function\\(string\\)" $probe "function(\"bar\")" probe
+    # Replace "function(number)" with "function($addr_of_bar)"
+    regsub -all "function\\(number\\)" $probe "function($addr_of_bar)" probe
+
+    # Replace "label(string)" with "label("a")"
+    regsub -all "label\\(string\\)" $probe "label(\"a\")" probe
+
+    # Replace "library(string).mark(string)" with "library(string).mark("libfoofunc_enter")"
+    regsub -all "library\\(string\\).mark\\(string\\)" $probe "library(string).mark(\"libfoofunc_enter\")" probe
+    # Replace "library(string).provider(string).mark(string)" with "library(string).provider(string).mark("libfoofunc_enter")"
+    regsub -all "library\\(string\\).provider\\(string\\).mark\\(string\\)" $probe "library(string).provider(string).mark(\"libfoofunc_enter\")" probe
+    # Replace "mark(string)" with "mark("main_enter")"
+    regsub -all "mark\\(string\\)" $probe "mark(\"main_enter\")" probe
+
+    # Replace "library(string).statement(number)" with "library(string).statement($addr_of_libfoofunc)"
+    regsub -all "library\\(string\\).statement\\(number\\)" $probe "library(string).statement($addr_of_libfoofunc)" probe
+    # Replace "library(string).statement(string)" with "library(string).statement("libfoofunc@libfoo.c:*")"
+    regsub -all "library\\(string\\).statement\\(string\\)" $probe "library(string).statement(\"libfoofunc@libfoo.c:*\")" probe
+
+    # Replace "statement(number)" with "statement($addr_of_bar)"
+    regsub -all "statement\\(number\\)" $probe "statement($addr_of_bar)" probe
+    # Replace "statement(string)" with "statement("bar@foo.c:*")"
+    regsub -all "statement\\(string\\)" $probe "statement(\"bar@foo.c:*\")" probe
+
+    # Replace "library(string)" with "library("$sopath")"
+    regsub -all "library\\(string\\)" $probe "library(\"$sopath\")" probe
+
+    # Replace "provider(string)" with "provider("_test_")"
+    regsub -all "provider\\(string\\)" $probe "provider(\"_test_\")" probe
+
+    # Replace "(number)" with "(10)"
+    regsub -all "\\(number\\)" $probe "(10)" probe
+    # Replace "(string)" with "(\"$exepath\")"
+    regsub -all "\\(string\\)" $probe "(\"./$exepath\")" probe
+
+    return "$probe"
+}
+
+# Add required extra options according to the probe type.
+proc extra_options { probe_type } {
+    global exepath
+
+    if {[regexp "^process" $probe_type] ||
+	[regexp "^end" $probe_type] ||
+	[regexp "^error" $probe_type]} {
+	return "-c ./$exepath"
+    }
+    return ""
+}
+
+# Test valid probe types
+proc test_valid_probes { use_alias } {
+    global valid_probe_types tested test
+
+    if { $use_alias } {
+	set with_alias " with alias"
+    } else {
+	set with_alias ""
+    }
+
+    foreach probe_type $valid_probe_types {
+	# There are currently some known and expected failures
+	switch $probe_type {
+	    process.library(string).function(number).inline -
+	    process(string).library(string).function(number).inline -
+	    process.function(number).inline -
+	    process(string).function(number).inline
+	    {
+		setup_xfail *-*-*
+	    }
+	}
+
+	# Test the probe type. If successful, the stap rc will be 0.
+	set probe [add_args $probe_type]
+
+	if { $use_alias } {
+	    set cmd [concat [list stap -p2 --unprivileged -e "probe myalias = $probe { println (\"Hello\"); exit (); } probe myalias {}"] [extra_options $probe_type]]
+	} else {
+	    set cmd [concat [list stap -p2 --unprivileged -e "probe $probe { println (\"Hello\"); exit (); }"] [extra_options $probe_type]]
+	}
+
+	verbose -log "eval exec $cmd"
+	if {! [catch {eval exec $cmd} res_stap]} {
+	    verbose -log $res_stap
+	    pass "$test: $probe_type$with_alias"
+	} else {
+	    verbose -log $res_stap
+	    fail "$test: $probe_type$with_alias"
+	}
+
+	# Indicate that this probe type has been tested
+	set tested($probe_type) 1
+    }
+}
+
+# Test invalid probe types
+proc test_invalid_probes { use_alias } {
+    global invalid_probe_types tested test
+
+    if { $use_alias } {
+	set with_alias " with alias"
+    } else {
+	set with_alias ""
+    }
+
+    set error_regexp1 ".*semantic error: probe point is not allowed for unprivileged users.*"
+    foreach probe_type $invalid_probe_types {
+	# Test the probe type. Each should fail with the expected message.
+	set probe [add_args $probe_type]
+	if { $use_alias } {
+	    set cmd [list stap --unprivileged -p2 -e "probe myalias = $probe {} probe myalias {}" ]
+	} else {
+	    set cmd [list stap --unprivileged -p2 -e "probe $probe {}" ]
+	}
+	verbose -log "eval exec $cmd"
+	catch {eval exec $cmd} res_stap
+	verbose -log $res_stap
+	if {[regexp $error_regexp1 $res_stap]} {
+	    pass "$test: $probe_type$with_alias"
+	} else {
+	    fail "$test: $probe_type$with_alias"
+	}
+
+	# Indicate that this probe type has been tested
+	set tested($probe_type) 1
+    }
+}
+
+# Need to build a user shared library.
+set libflags [sdt_includes]
+set libflags "$libflags additional_flags=-g"
+set libflags "$libflags additional_flags=-O"
+set libflags "$libflags additional_flags=-Wall"
+set libflags "$libflags additional_flags=-Werror"
+set libflags "$libflags additional_flags=-I."
+set libflags "$libflags additional_flags=-shared"
+set libflags "$libflags additional_flags=-fPIC"
+set res [target_compile $srcdir/$subdir/libfoo.c $sopath executable $libflags ]
+if { $res == "" } {
+    pass "$test library compile"
+} else {
+    fail "$test library compile: $res"
+    untested "$test Tests"
+    return
+}
+
+# Need to build a user application
+set exeflags "additional_flags=-g"
+set exeflags "$exeflags additional_flags=-O"
+set exeflags "$exeflags additional_flags=-lpthread"
+set exeflags "$exeflags [sdt_includes]"
+set exeflags "$exeflags additional_flags=-Wl,-rpath,[pwd]"
+set exeflags "$exeflags additional_flags=-L[pwd] additional_flags=-lfoo"
+set exeflags "$exeflags compiler=gcc"
+# ppc64 needs a more restrictive constraint for the probe args
+if {[regexp "^(x86_64|i.86)$" $::tcl_platform(machine)] == 0} {
+set exeflags "$exeflags additional_flags=-DSTAP_SDT_ARG_CONSTRAINT=nr"
+}
+set res [target_compile $srcdir/systemtap.unprivileged/foo.c $exepath executable "$exeflags"]
+if { $res == "" } {
+    pass "$test exe compile"
+} else {
+    fail "$test exe compile: $res"
+    untested "$test Tests"
+    return
+}
+
+# Extract needed addresses. Note, some architectures add a '.' to the
+# function name, so match that optionally.
+set addr_of_bar [exec objdump -d $exepath | awk {/<\.?bar>/ { printf "0x%s\n",$1 }}]
+verbose -log "addr_of_bar: $addr_of_bar"
+set addr_of_libfoofunc [exec objdump -d $sopath | awk {/<\.?libfoofunc>/ { printf "0x%s\n",$1 }}]
+verbose -log "addr_of_libfoofunc: $addr_of_libfoofunc"
+
+# Obtain a list of all supported probe types from stap
+verbose -log "eval exec stap --dump-probe-types"
+catch {eval exec stap --dump-probe-types} res_stap
+set all_probe_types [split $res_stap "\n"]
+
+# Initialize each probe type to untested
+foreach probe_type $all_probe_types {
+    verbose -log $probe_type
+    set tested($probe_type) 0
+}
+if {[llength all_probe_types] > 0} {
+    pass "$test: Obtain list of supported probe types"
+} else {
+    fail "$test: Obtain list of supported probe types"
+    untested "$test Tests"
+    return
+}
+
+# Now run the tests
+test_valid_probes 0
+test_valid_probes 1
+test_invalid_probes 0
+test_invalid_probes 1
+
+# Generate a failure for each untested probe type
+foreach probe_type $all_probe_types {
+    set status $tested($probe_type)
+    if {$status != 0} {
+	pass "$test: tested: $probe_type"
+    } else {
+	fail "$test: not tested: $probe_type"
+    }
+}
+
+# Cleanup
+catch {exec rm -f foo}
+catch {exec rm -f libfoo.so}

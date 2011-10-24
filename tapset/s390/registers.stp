@@ -43,20 +43,23 @@ function _stp_register_regs() {
  * says "32bit process"
  */
 function probing_32bit_app() %{ /* pure */
-	if (CONTEXT->regs)
-		THIS->__retvalue = (user_mode(CONTEXT->regs) &&
-				test_tsk_thread_flag(current, TIF_31BIT));
+	if ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+	    && _stp_is_compat_task())
+		THIS->__retvalue = 1;
 	else
 		THIS->__retvalue = 0;
 %}
 
-function _stp_probing_kernel: long () %{ /* pure */
-	THIS->__retvalue = !user_mode(CONTEXT->regs);
-%}
+function _stp_probing_kernel: long () {
+	return !user_mode();
+}
 
 function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
-	if (!CONTEXT->regs) {
+	struct pt_regs *regs;
+	regs = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+		? CONTEXT->uregs : CONTEXT->kregs);
+	if (!regs) {
 		CONTEXT->last_error = "No registers available in this context";
 		return;
 	}
@@ -69,12 +72,12 @@ function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	}
 
 	if (THIS->offset < sizeof(struct pt_regs) - 2 * sizeof(unsigned short))
-		memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset,
+		memcpy(&value, ((char *)regs) + THIS->offset,
 				sizeof(value));
 	else {
 		/* ilc or trap */
 		unsigned short us_value;
-		memcpy(&us_value, ((char *)CONTEXT->regs) + THIS->offset,
+		memcpy(&us_value, ((char *)regs) + THIS->offset,
 				sizeof(us_value));
 		value = us_value;	// not sign-extended
 	}

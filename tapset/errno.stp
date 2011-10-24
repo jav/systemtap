@@ -399,8 +399,19 @@ static long _stp_returnval(struct pt_regs *regs) {
 }
 %}
 
+/**
+ * sfunction returnval - Possible return value of probed function
+ *
+ * Description: Return the value of the register in which function values
+ * are typically returned. Can be used in probes where $return isn't
+ * available. This is only a guess of the actual return value and can be
+ * totally wrong. Normally only used in dwarfless probes.
+ */
 function returnval:long () %{ /* pure */
-	THIS->__retvalue = _stp_returnval(CONTEXT->regs);
+	struct pt_regs *regs;
+	regs = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+		? CONTEXT->uregs : CONTEXT->kregs);
+	THIS->__retvalue = _stp_returnval(regs);
 %}
 
 /**
@@ -417,8 +428,11 @@ function returnval:long () %{ /* pure */
  * return_str().
  */
 function returnstr:string (format:long) %{ /* pure */
-	if (CONTEXT->regs) {
-		long ret = _stp_returnval(CONTEXT->regs);
+	struct pt_regs *regs;
+	regs = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+		? CONTEXT->uregs : CONTEXT->kregs);
+	if (regs) {
+		long ret = _stp_returnval(regs);
 		if (ret < 0 && ret > -Maxerrno && errlist[-ret])
 			snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld (%s)", ret, errlist[-ret]);
 		else if (THIS->format == 2)

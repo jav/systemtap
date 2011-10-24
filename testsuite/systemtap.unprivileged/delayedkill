@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Wait for the specified number of seconds, then kill the given pid
+sleep $2
+kill $1

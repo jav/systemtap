@@ -57,6 +57,7 @@ typedef char string_t[MAXSTRINGLEN];
 #define STP_OVERLOAD
 #endif
 
+/* Defines for CONTEXT probe_type. */
 /* begin, end or never probe, triggered by stap module itself. */
 #define _STP_PROBE_HANDLER_BEEN            1
 /* user space instruction probe, trigger by utrace signal report. */
@@ -94,3 +95,9 @@ typedef char string_t[MAXSTRINGLEN];
 #define _STP_PROBE_HANDLER_HWBKPT         15
 /* kernel tracepoint probe, triggered by tracepoint event call. */
 #define _STP_PROBE_HANDLER_TRACEPOINT     16
+
+/* Defines for CONTEXT probe_flags. */
+/* Probe occured in user space, also indicate regs fully from user. */
+#define _STP_PROBE_STATE_USER_MODE  1
+/* _stp_get_uregs() was called and full user registers were recovered. */
+#define _STP_PROBE_STATE_FULL_UREGS 2

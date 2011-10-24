@@ -1,6 +1,6 @@
 #! /usr/bin/perl
 # Generates index files from examples .meta file info.
-# Copyright (C) 2008 Red Hat Inc.
+# Copyright (C) 2008-2011 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -71,7 +71,7 @@ sub add_meta_html(*;$) {
     my($file,$meta) = @_;
 
     my $name = $scripts{$meta}{name};
-    print $file "<li><a href=\"$name\">$name</a> ";
+    print $file "<a href=\"$name\">$name</a> ";
     print $file "- $scripts{$meta}{title}<br>\n";
 
     # Don't output these, the description mentions all these in general.
@@ -95,7 +95,7 @@ sub add_meta_html(*;$) {
 
     print $file "<p><font size=\"-2\"><pre># $usage</pre></font>";
 
-    print $file "</p></li>\n";
+    print $file "</p>\n";
 }
 
 my $HEADER = "SYSTEMTAP EXAMPLES INDEX\n"
@@ -130,7 +130,11 @@ print FULLHTML "<ul>\n";
 foreach $meta (sort keys %scripts) {
 
     add_meta_txt(\*FULLINDEX, $meta);
+    print FULLHTML "<li>";
+    print FULLHTML "<a name=\"".$scripts{$meta}{name}."\"></a>";
+    print FULLHTML "<a href=\"#".$scripts{$meta}{name}."\">&para;</a> ";
     add_meta_html(\*FULLHTML, $meta);
+    print FULLHTML "</li>";
 
     # Collect keywords
     foreach $keyword (split(/ /, $scripts{$meta}{keywords})) {
@@ -175,12 +179,15 @@ print KEYHTML "</tt></p>\n";
 foreach $keyword (sort keys %keywords) {
     print KEYINDEX "= " . (uc $keyword) . " =\n\n";
     print KEYHTML "<h3>" . '<a name="' . (uc $keyword) . '">'
+                  . "<a href=\"#". (uc $keyword) ."\">&para;</a> "
 		  . (uc $keyword) . "</a></h3>\n";
     print KEYHTML "<ul>\n";
 
     foreach $meta (sort @{$keywords{$keyword}}) {
 	add_meta_txt(\*KEYINDEX,$meta);
+        print KEYHTML "<li>";
 	add_meta_html(\*KEYHTML,$meta);
+        print KEYHTML "</li>";
     }
     print KEYHTML "</ul>\n";
 }

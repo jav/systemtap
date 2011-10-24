@@ -1,0 +1,9 @@
+global foo%[5]
+
+probe begin
+{
+  for (i=0; i<10; i++)
+    foo[i] = i;
+  exit();
+}
+

@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * x86_64 dwarf unwinder header file
- * Copyright (C) 2008, 2010 Red Hat Inc.
+ * Copyright (C) 2008, 2010, 2011 Red Hat Inc.
  * Copyright (C) 2002-2006 Novell, Inc.
  * 
  * This file is part of systemtap, and is free software.  You can
@@ -23,14 +23,6 @@
 
 /* these are simple for x86_64 */
 #define _stp_get_unaligned(ptr) (*(ptr))
-#define _stp_put_unaligned(val, ptr) ((void)( *(ptr) = (val) ))
-
-struct unwind_frame_info
-{
-	struct pt_regs regs;
-	struct task_struct *task;
-	unsigned call_frame:1;
-};
 
 #ifdef STAPCONF_X86_UNIREGS
 #define UNW_PC(frame)        (frame)->regs.ip
@@ -67,7 +59,7 @@ struct unwind_frame_info
 	PTREGS_INFO(r13), \
 	PTREGS_INFO(r14), \
 	PTREGS_INFO(r15), \
-	PTREGS_INFO(ip)
+	PTREGS_INFO(ip)	/* Note, placeholder for "fake" dwarf ret reg. */
 #else
 #define UNW_REGISTER_INFO \
 	PTREGS_INFO(rax), \
@@ -86,8 +78,10 @@ struct unwind_frame_info
 	PTREGS_INFO(r13), \
 	PTREGS_INFO(r14), \
 	PTREGS_INFO(r15), \
-	PTREGS_INFO(rip)
+	PTREGS_INFO(rip) /* Note, placeholder for "fake" dwarf ret reg. */
 #endif /* STAPCONF_X86_UNIREGS */
+
+#define UNW_NR_REAL_REGS 16
 
 #define UNW_DEFAULT_RA(raItem, dataAlign) \
 	((raItem).where == Memory && \
@@ -97,6 +91,11 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
                                             /*const*/ struct pt_regs *regs,
 					    int sanitize)
 {
+	if (&info->regs == regs) { /* happens when unwinding kernel->user */
+		info->call_frame = 1;
+		return;
+	}
+
 	memset(info, 0, sizeof(*info));
 	if (sanitize) {
 		info->regs.r11 = regs->r11;

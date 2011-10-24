@@ -59,6 +59,8 @@ if { $res != "" } {
     pass "$test compiling stmt_rel"
 }
 
+if {![installtest_p]} { untested "$test stmt_rel"; return }
+
 spawn stap -c ./stmt_rel.x -e "probe process(\"./stmt_rel.x\").statement(\"Move@stmt_rel.c+1\") {printf(\"Move %d\\n\",\$s1)}"
 expect {
     -timeout 180

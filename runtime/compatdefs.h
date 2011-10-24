@@ -34,6 +34,13 @@ static inline int _stp_is_compat_task(void)
   return test_thread_flag(TIF_32BIT);
 }
 
+#else
+
+static inline int _stp_is_compat_task(void)
+{
+  return 0;
+}
+
 #endif /* CONFIG_COMPAT */
 
 /* task_pt_regs is used in some core tapset functions, so try to make
@@ -55,6 +62,10 @@ static inline int _stp_is_compat_task(void)
 #define task_pt_regs(tsk)	ia64_task_regs(tsk)
 #endif
 #endif
+
+/* Always use _stp_current_pt_regs() in tapset/runtime code to make sure
+   the returned user pt_regs are sane. */
+#define _stp_current_pt_regs()	(current->mm ? task_pt_regs(current) : NULL)
 
 /* Whether all user registers are valid. If not the pt_regs needs,
  * architecture specific, scrubbing before usage (in the unwinder).

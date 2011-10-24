@@ -108,7 +108,7 @@ License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap = %{version}-%{release}
 Requires: systemtap-sdt-devel = %{version}-%{release}
-Requires: dejagnu which prelink
+Requires: dejagnu which prelink elfutils
 
 %description testsuite
 The testsuite allows testing of the entire SystemTap toolchain
@@ -120,16 +120,17 @@ Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap = %{version}-%{release}
-Requires: avahi avahi-tools nss mktemp
+Requires: nss mktemp
 Requires: zip unzip
 Requires(post): chkconfig
 Requires(preun): chkconfig
 Requires(preun): initscripts
 Requires(postun): initscripts
+BuildRequires: nss-devel avahi-devel
 
 %description server
 This is the remote script compilation server component of systemtap.
-It announces itself to local clients with avahi, and compiles systemtap
+It announces itself to local clients with avahi (if available), and compiles systemtap
 scripts to kernel objects on their demand.
 
 %package sdt-devel
@@ -420,6 +421,7 @@ exit 0
 %{_datadir}/%{name}/tapset
 
 %if %{with_bundled_elfutils}
+%dir %{_libdir}/%{name}
 %{_libdir}/%{name}/lib*.so*
 %endif
 
@@ -432,10 +434,12 @@ exit 0
 %{_bindir}/stapsh
 %{_bindir}/stap-merge
 %{_bindir}/stap-report
+%dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/stapio
 %{_libexecdir}/%{name}/stap-env
 %{_libexecdir}/%{name}/stap-authorize-cert
 %if %{with_crash}
+%dir %{_libdir}/%{name}
 %{_libdir}/%{name}/staplog.so*
 %endif
 %{_mandir}/man7/stappaths.7*
@@ -445,11 +449,13 @@ exit 0
 
 %files testsuite
 %defattr(-,root,root)
+%dir %{_datadir}/%{name}
 %{_datadir}/%{name}/testsuite
 
 %files server -f %{name}.lang
 %defattr(-,root,root)
 %{_bindir}/stap-server
+%dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/stap-serverd
 %{_libexecdir}/%{name}/stap-start-server
 %{_libexecdir}/%{name}/stap-stop-server
@@ -490,6 +496,7 @@ exit 0
 %files grapher
 %defattr(-,root,root)
 %{_bindir}/stapgraph
+%dir %{_datadir}/%{name}
 %{_datadir}/%{name}/*.glade
 %{_mandir}/man1/stapgraph.1*
 %endif

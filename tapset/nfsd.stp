@@ -320,10 +320,10 @@ probe nfsd.proc4.lookup.return =
  * @proto: transfer protocol
  * @version: nfs version
  * @fh: file handle (the first part is the length of the file handle)
- * @size:
+ * @size: read bytes
  * @count: read bytes
  * @offset: the offset of file 
- * @vec: struct kvec ,includes buf address in kernel address and length of each buffer
+ * @vec: struct kvec, includes buf address in kernel address and length of each buffer
  * @vlen: read blocks 
  */
 probe nfsd.proc.read = 
@@ -437,10 +437,10 @@ probe nfsd.proc4.read.return = kernel.function("nfsd4_read").return !,
  * @proto: transfer protocol
  * @version: nfs version
  * @fh: file handle (the first part is the length of the file handle)
- * @size:
+ * @size: read bytes
  * @count: read bytes
  * @offset: the offset of file 
- * @vec: struct kvec ,includes buf address in kernel address and length of each buffer
+ * @vec: struct kvec, includes buf address in kernel address and length of each buffer
  * @vlen: read blocks 
  * @stable: argp->stable
  */
@@ -565,7 +565,7 @@ probe nfsd.proc4.write.return =
  * @proto: transfer protocol
  * @version: nfs version
  * @fh: file handle (the first part is the length of the file handle)
- * @size:
+ * @size: read bytes
  * @count: read bytes
  * @offset: the offset of file 
  */
@@ -1040,11 +1040,11 @@ probe nfsd.close.return = kernel.function("nfsd_close").return !,
  *
  * @client_ip: the ip address of client
  * @fh: file handle (the first part is the length of the file handle)
- * @file: argument file,indicates if the file has been opened.
- * @size:
+ * @file: argument file, indicates if the file has been opened.
+ * @size: read bytes
  * @count: read bytes
  * @offset: the offset of file 
- * @vec: struct kvec ,includes buf address in kernel address and length of each buffer
+ * @vec: struct kvec, includes buf address in kernel address and length of each buffer
  * @vlen: read blocks 
  */
 probe nfsd.read = kernel.function("nfsd_read") !,
@@ -1081,11 +1081,11 @@ probe nfsd.read.return = kernel.function("nfsd_read").return !,
  *
  * @client_ip: the ip address of client
  * @fh: file handle (the first part is the length of the file handle)
- * @file: argument file,indicates if the file has been opened.
- * @size:
+ * @file: argument file, indicates if the file has been opened.
+ * @size: read bytes
  * @count: read bytes
  * @offset: the offset of file 
- * @vec: struct kvec ,includes buf address in kernel address and length of each buffer
+ * @vec: struct kvec, includes buf address in kernel address and length of each buffer
  * @vlen: read blocks 
  */
 probe nfsd.write = kernel.function("nfsd_write") !,
@@ -1127,7 +1127,7 @@ probe nfsd.write.return = kernel.function("nfsd_write").return !,
  * @client_ip: the ip address of client
  * @fh: file handle (the first part is the length of the file handle)
  * @flag: indicates whether this execution is a sync operation
- * @size:
+ * @size: read bytes
  * @count: read bytes
  * @offset: the offset of file
  */
@@ -1238,12 +1238,12 @@ probe nfsd.create.return = kernel.function("nfsd_create").return !,
  * @filelen: the length of file name
  * @iap_valid: Attribute flags
  * @iap_mode: file access mode
- * @createmode: create mode .The possible values could be: NFS3_CREATE_EXCLUSIVE,NFS3_CREATE_UNCHECKED,NFS3_CREATE_GUARDED
+ * @createmode: create mode .The possible values could be: NFS3_CREATE_EXCLUSIVE, NFS3_CREATE_UNCHECKED, or NFS3_CREATE_GUARDED
  * @truncp: trunp arguments, indicates if the file shouldbe truncate
 *  @verifier: file attributes (atime,mtime,mode). It's used to reset file attributes for CREATE_EXCLUSIVE
  *
  *  This probepoints is only called by nfsd3_proc_create and
- *  nfsd4_open(op_claim_type is NFS4_OPEN_CLAIM_NULL).
+ *  nfsd4_open when op_claim_type is NFS4_OPEN_CLAIM_NULL.
  */
 probe nfsd.createv3 = kernel.function("nfsd_create_v3") !,
                       module("nfsd").function("nfsd_create_v3") ?

@@ -3,3 +3,4 @@ set ::result_string {The string is <Foobar!>
 Foobar!XYZZY
 XYZZYFoobar!XYZZYFoobar!}
 stap_run2 $srcdir/$subdir/$test.stp
+stap_run2 $srcdir/$subdir/$test.stp -DSTP_LEGACY_PRINT

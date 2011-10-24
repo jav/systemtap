@@ -1,3 +1,6 @@
+#ifndef UTIL_H
+#define UTIL_H
+
 #include "config.h"
 #include <cstring>
 #include <cerrno>
@@ -17,6 +20,8 @@ extern "C" {
 #include <spawn.h>
 #include <assert.h>
 }
+
+#include "runtime/staprun/privilege.h"
 
 #if ENABLE_NLS
 #define _(string) gettext(string)
@@ -43,6 +48,7 @@ bool in_group_id (gid_t target_gid);
 std::string getmemusage ();
 void tokenize(const std::string& str, std::vector<std::string>& tokens,
 	      const std::string& delimiters);
+void tokenize_cxx(const std::string& str, std::vector<std::string>& tokens);
 std::string find_executable(const std::string& name,
 			    const std::string& env_path = "PATH");
 const std::string cmdstr_quoted(const std::string& cmd);
@@ -230,5 +236,9 @@ struct stap_sigmasker {
       }
 };
 
+privilege_t pr_next (privilege_t p);
+const char *pr_name (privilege_t p);
+
+#endif // UTIL_H
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

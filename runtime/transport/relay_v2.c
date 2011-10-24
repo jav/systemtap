@@ -305,7 +305,7 @@ static int _stp_transport_data_fs_init(void)
 	/* Create "trace" file. */
 	npages = _stp_subbuf_size * _stp_nsubbufs;
 #ifdef STP_BULKMODE
-	npages *= num_possible_cpus();
+	npages *= num_online_cpus();
 #endif
 	npages >>= PAGE_SHIFT;
 	si_meminfo(&si);
@@ -338,6 +338,18 @@ static int _stp_transport_data_fs_init(void)
 		rc = -ENOENT;
 		goto err;
 	}
+        /* Increment _stp_allocated_memory and _stp_allocated_net_memory to account for buffers
+           allocated by relay_open. */
+        {
+                u64 relay_mem;
+                relay_mem = _stp_subbuf_size * _stp_nsubbufs;
+#ifdef STP_BULKMODE
+                relay_mem *= num_online_cpus();
+#endif
+                _stp_allocated_net_memory += relay_mem;
+                _stp_allocated_memory += relay_mem;
+        }
+
 	dbug_trans(1, "returning 0...\n");
 	atomic_set (&_stp_relay_data.transport_state, STP_TRANSPORT_INITIALIZED);
 

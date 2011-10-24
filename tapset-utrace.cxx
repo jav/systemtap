@@ -63,7 +63,7 @@ struct utrace_derived_probe: public derived_probe
 			enum utrace_derived_probe_flags f);
   void join_group (systemtap_session& s);
 
-  void emit_unprivileged_assertion (translator_output*);
+  void emit_privilege_assertion (translator_output*);
   void print_dupe_stamp(ostream& o);
   void getargs (std::list<std::string> &arg_set) const;
 };
@@ -207,7 +207,7 @@ utrace_derived_probe::join_group (systemtap_session& s)
 
 
 void
-utrace_derived_probe::emit_unprivileged_assertion (translator_output* o)
+utrace_derived_probe::emit_privilege_assertion (translator_output* o)
 {
   // Process end probes can fire for unprivileged users even if the process
   // does not belong to the user. On example is that process.end will fire
@@ -880,8 +880,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "p->probe",
 				     "_STP_PROBE_HANDLER_UTRACE_SYSCALL");
-      s.op->newline() << "c->regs = regs;";
-      s.op->newline() << "c->regflags |= _STP_REGS_USER_FLAG;";
+      s.op->newline() << "c->uregs = regs;";
+      s.op->newline() << "c->probe_flags |= _STP_PROBE_STATE_USER_MODE;";
 
       // call probe function
       s.op->newline() << "(*p->probe->ph) (c);";
@@ -1121,22 +1121,22 @@ register_tapset_utrace(systemtap_session& s)
   for (unsigned i = 0; i < roots.size(); ++i)
     {
       roots[i]->bind(TOK_BEGIN)
-	->bind_unprivileged()
+	->bind_privilege(pr_stapusr)
 	->bind(builder);
       roots[i]->bind(TOK_END)
-	->bind_unprivileged()
+	->bind_privilege(pr_stapusr)
 	->bind(builder);
       roots[i]->bind(TOK_THREAD)->bind(TOK_BEGIN)
-	->bind_unprivileged()
+	->bind_privilege(pr_stapusr)
 	->bind(builder);
       roots[i]->bind(TOK_THREAD)->bind(TOK_END)
-	->bind_unprivileged()
+	->bind_privilege(pr_stapusr)
 	->bind(builder);
       roots[i]->bind(TOK_SYSCALL)
-	->bind_unprivileged()
+	->bind_privilege(pr_stapusr)
 	->bind(builder);
       roots[i]->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-	->bind_unprivileged()
+	->bind_privilege(pr_stapusr)
 	->bind(builder);
     }
 }

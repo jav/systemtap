@@ -1150,7 +1150,7 @@ compile_server_client::find_and_connect_to_server ()
 	  if (i->port == 0)
 	    {
 	      get_or_keep_compatible_server_info (s, online_servers, true/*keep*/);
-	      if (s.unprivileged)
+	      if (s.privilege < pr_stapdev)
 		get_or_keep_signing_server_info (s, online_servers, true/*keep*/);
 	    }
 
@@ -2068,7 +2068,7 @@ default_server_spec (const systemtap_session &s)
   //   'trusted' and 'signer' will only succeed if we have NSS
   //
   string working_string = "online,trusted,compatible";
-  if (s.unprivileged)
+  if (s.privilege < pr_stapdev)
     working_string += ",signer";
   return working_string;
 }

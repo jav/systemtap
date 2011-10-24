@@ -452,14 +452,32 @@ the user will be prompted to confirm the trust to be granted or revoked before
 the operation is performed.
 
 .TP
-.BI \-\-remote " [USER@]HOSTNAME"
-Set the execution target to the specified ssh host, optionally using a username
-not matching your own.  This option may be repeated to target multiple
-execution targets.  Passes 1-4 are completed locally as normal to build the
-script, and then pass 5 will copy the module to the target and run it.
+.BI \-\-dump-probe-types
+Dumps a list of supported probe types. If
+.IR \-\-unprivileged
+is also specified, the list will be limited to probe types available to unprivileged users.
+
+.TP
+.BI \-\-remote " URL"
+Set the execution target to the given host.  This option may be
+repeated to target multiple execution targets.  Passes 1-4 are
+completed locally as normal to build the script, and then pass 5 will
+copy the module to the target and run it.  Acceptable URL forms include:
+.B [USER@]HOSTNAME
+and
+.B ssh://[USER@]HOSTNAME/
+This mode uses ssh, optionally using a username not matching your own.
 If a custom ssh_config file is in use, add
 .B SendEnv LANG
 to retain internationalization functionality.
+The 
+.B direct://
+URL is available as a special loopback mode to run on the local host.
+
+.TP
+.BI \-\-remote\-prefix
+Prefix each line of remote output with "N:", where N is the index of the remote
+execution target from which the given line originated.
 
 .TP
 .BI \-\-download\-debuginfo " [OPTION]"
@@ -680,6 +698,13 @@ Note that this doesn't indicate the type of keys for the array, just the
 size.
 .RS
 .BR global " tiny_array[10]" , " normal_array" , " big_array[50000]"
+.RE
+.PP
+Arrays may be wrapped using the '%' character causing previously entered
+elements to be overwritten if more elements are inserted than the array can
+hold. This works for both associative and statistics typed arrays.
+.RS
+.BR global " wrapped_array1%[10]", " wrapped_array2%"
 .RE
 .\" XXX add statistics type here once it's supported
 

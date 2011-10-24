@@ -1,0 +1,18 @@
+# Normal Map Test
+set test  "map_wrap1.stp"
+set ::result_string {foo[9]=0x9
+foo[8]=0x8
+foo[7]=0x7
+foo[6]=0x6
+foo[5]=0x5}
+stap_run2 $srcdir/$subdir/$test
+
+# Statistics Valued Array Test
+set test "map_wrap2.stp"
+set ::result_string {foo[5] @count=1 @min=5 @max=5 @sum=5 @avg=5
+foo[7] @count=1 @min=7 @max=7 @sum=7 @avg=7
+foo[9] @count=1 @min=9 @max=9 @sum=9 @avg=9
+foo[6] @count=1 @min=6 @max=6 @sum=6 @avg=6
+foo[8] @count=1 @min=8 @max=8 @sum=8 @avg=8}
+stap_run2 $srcdir/$subdir/$test
+

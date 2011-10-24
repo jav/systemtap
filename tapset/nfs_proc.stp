@@ -1351,7 +1351,7 @@ probe nfs.proc.release.return = kernel.function("nfs_release").return !,
 }
 
 /**
- * probe nfs.proc.handle_exception - NFS client handling an NFSv4 exceptoin
+ * probe nfs.proc.handle_exception - NFS client handling an NFSv4 exception
  *
  * @errorcode: indicates the type of error
  *

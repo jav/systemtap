@@ -15,11 +15,6 @@
 
 #include "unwind/unwind.h"
 
-struct unwind_context {
-    struct unwind_frame_info info;
-    struct unwind_state state;
-};
-
 static uleb128_t get_uleb128(const u8 **pcur, const u8 *end)
 {
 	const u8 *cur = *pcur;
@@ -281,6 +276,9 @@ static int parse_fde_cie(const u32 *fde, const u32 *cie,
 
 	*retAddrReg = ((version <= 1)
 		       ? *ciePtr++ : get_uleb128(&ciePtr, *cieEnd));
+	dbug_unwind(1, "map retAddrReg value %ld to reg_info idx %ld\n",
+		    *retAddrReg, DWARF_REG_MAP(*retAddrReg));
+	*retAddrReg = DWARF_REG_MAP(*retAddrReg);
 
 	if (*aug == 'z') {
 		augLen = get_uleb128(&ciePtr, *cieEnd);
@@ -437,45 +435,68 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				break;
 			case DW_CFA_offset_extended:
 				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_offset_extended value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
 				set_rule(value, Memory, get_uleb128(&ptr.p8, end), state);
-				dbug_unwind(1, "DW_CFA_offset_extended\n");
 				break;
 			case DW_CFA_val_offset:
 				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_val_offset value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
 				set_rule(value, Value, get_uleb128(&ptr.p8, end), state);
-				dbug_unwind(1, "DW_CFA_val_offset\n");
 				break;
 			case DW_CFA_offset_extended_sf:
 				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_offset_extended_sf value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
 				set_rule(value, Memory, get_sleb128(&ptr.p8, end), state);
-				dbug_unwind(1, "DW_CFA_offset_extended_sf\n");
 				break;
 			case DW_CFA_val_offset_sf:
 				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_val_offset_sf value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
 				set_rule(value, Value, get_sleb128(&ptr.p8, end), state);
-				dbug_unwind(1, "DW_CFA_val_offset_sf\n");
+				break;
+			case DW_CFA_same_value:
+				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_same_value value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
+				set_rule(value, Same, 0, state);
 				break;
 			case DW_CFA_restore_extended:
-			case DW_CFA_undefined:
-			case DW_CFA_same_value:
-				set_rule(get_uleb128(&ptr.p8, end), Nowhere, 0, state);
-				dbug_unwind(1, "DW_CFA_undefined (instruction: 0x%x)\n", *(ptr.p8 - 1));
-				break;
-			case DW_CFA_register:
 				value = get_uleb128(&ptr.p8, end);
-				set_rule(value, Register, get_uleb128(&ptr.p8, end), state);
-				dbug_unwind(1, "DW_CFA_register\n");
+				dbug_unwind(1, "map DW_CFA_restore_extended value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
+				memcpy(&REG_STATE.regs[value], &state->cie_regs[value], sizeof(struct unwind_item));
 				break;
+			case DW_CFA_undefined:
+				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_undefined value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
+				set_rule(value, Nowhere, 0, state);
+				break;
+			case DW_CFA_register: {
+				uleb128_t reg_value;
+				value = get_uleb128(&ptr.p8, end);
+				reg_value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_register value %ld to reg_info idx %ld (reg_value %ld to reg_info idx %ld)\n", value, DWARF_REG_MAP(value), reg_value, DWARF_REG_MAP(reg_value));
+				value = DWARF_REG_MAP(value);
+				reg_value = DWARF_REG_MAP(reg_value);
+				set_rule(value, Register, reg_value, state);
+				break;
+			}
 			case DW_CFA_expression:
 				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_expression value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
 				set_expr_rule(value, Expr, &ptr.p8, end, state);
-				dbug_unwind(1, "DW_CFA_expression\n");
 				break;
 			case DW_CFA_val_expression:
 				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_val_expression value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
 				set_expr_rule(value, ValExpr, &ptr.p8, end,
 					      state);
-				dbug_unwind(1, "DW_CFA_val_expression\n");
 				break;
 			case DW_CFA_remember_state:
 				state->stackDepth++;
@@ -497,7 +518,9 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				dbug_unwind(1, "DW_CFA_restore_state (stackDepth=%d)\n", state->stackDepth);
 				break;
 			case DW_CFA_def_cfa:
-				REG_STATE.cfa.reg = get_uleb128(&ptr.p8, end);
+				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_def_cfa value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				REG_STATE.cfa.reg = value;
 				dbug_unwind(1, "DW_CFA_def_cfa reg=%ld\n", REG_STATE.cfa.reg);
 				/*nobreak */
 			case DW_CFA_def_cfa_offset:
@@ -505,16 +528,18 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				dbug_unwind(1, "DW_CFA_def_cfa_offset offs=%lx\n", REG_STATE.cfa.offs);
 				break;
 			case DW_CFA_def_cfa_sf:
-				REG_STATE.cfa.reg = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "DW_CFA_def_cfa_sf reg=%ld\n", REG_STATE.cfa.reg);
+				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_def_cfa_sf value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				REG_STATE.cfa.reg = value;
 				/*nobreak */
 			case DW_CFA_def_cfa_offset_sf:
 				REG_STATE.cfa.offs = get_sleb128(&ptr.p8, end) * state->dataAlign;
 				dbug_unwind(1, "DW_CFA_def_cfa_offset_sf offs=%lx\n", REG_STATE.cfa.offs);
 				break;
 			case DW_CFA_def_cfa_register:
-				REG_STATE.cfa.reg = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "DW_CFA_def_cfa_register reg=%ld\n", REG_STATE.cfa.reg);
+				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_def_cfa_register value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				REG_STATE.cfa.reg = value;
 				break;
 			case DW_CFA_def_cfa_expression: {
 				const u8 *cfa_expr = ptr.p8;
@@ -535,8 +560,9 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				break;
 			case DW_CFA_GNU_negative_offset_extended:
 				value = get_uleb128(&ptr.p8, end);
+				dbug_unwind(1, "map DW_CFA_GNU_negative_offset_extended value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				value = DWARF_REG_MAP(value);
 				set_rule(value, Memory, (uleb128_t)0 - get_uleb128(&ptr.p8, end), state);
-				dbug_unwind(1, "DW_CFA_GNU_negative_offset_extended\n");
 				break;
 			case DW_CFA_GNU_window_save:
 			default:
@@ -551,12 +577,15 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 			break;
 		case 2:
 			value = *ptr.p8++ & 0x3f;
+			dbug_unwind(1, "map DW_CFA_offset value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+			value = DWARF_REG_MAP(value);
 			set_rule(value, Memory, get_uleb128(&ptr.p8, end), state);
-			dbug_unwind(1, "DW_CFA_offset\n");
 			break;
 		case 3:
-			set_rule(*ptr.p8++ & 0x3f, Nowhere, 0, state);
-			dbug_unwind(1, "DW_CFA_restore\n");
+			value = *ptr.p8++ & 0x3f;
+			dbug_unwind(1, "map DW_CFA_restore value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+			value = DWARF_REG_MAP(value);
+			memcpy(&REG_STATE.regs[value], &state->cie_regs[value], sizeof(struct unwind_item));
 			break;
 		}
 		dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
@@ -647,7 +676,7 @@ adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
   }
 
   /* User space or kernel dynamic module. */
-  if (strcmp (s->name, ".dynamic") == 0)
+  if (tsk && strcmp (s->name, ".dynamic") == 0)
     stap_find_vma_map_info_user(tsk->group_leader, m, &vm_addr, NULL, NULL);
   else
     vm_addr = s->static_addr;
@@ -969,6 +998,9 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 		case DW_OP_breg0 ... DW_OP_breg31:
 			value = op - DW_OP_breg0;
 		breg:
+			dbug_unwind(1, "map DW_OP_breg value %ld to reg_info idx %ld\n",
+				    value, DWARF_REG_MAP(value));
+			value = DWARF_REG_MAP(value);
 			if (unlikely(value >= ARRAY_SIZE(reg_info))) {
 				_stp_warn("invalid register number %lu in CFI expression\n", value);
 				return 1;
@@ -1069,7 +1101,12 @@ static int unwind_frame(struct unwind_context *context,
 		goto err;
 	}
 
+	/* Sets all rules to default Same value. */
 	memset(state, 0, sizeof(*state));
+
+	/* All "fake" dwarf registers should start out Nowhere. */
+	for (i = UNW_NR_REAL_REGS; i < ARRAY_SIZE(REG_STATE.regs); ++i)
+		set_rule(i, Nowhere, 0, state);
 
 	fde = _stp_search_unwind_hdr(pc, tsk, m, s, is_ehframe);
 	dbug_unwind(1, "%s: fde=%lx\n", m->name, (unsigned long) fde);
@@ -1162,6 +1199,9 @@ static int unwind_frame(struct unwind_context *context,
 	if (!processCFI(cieStart, cieEnd, 0, ptrType, state))
 		goto err;
 
+	/* Store initial state for use with DW_CFA_restore... */
+	memcpy(&state->cie_regs, &REG_STATE, sizeof (REG_STATE));
+
 	/* Process Frame Description Entry (FDE) instructions. */
 	dbug_unwind (1, "processCFI for FDE\n");
 	if (!processCFI(fdeStart, fdeEnd, pc, ptrType, state)
@@ -1233,13 +1273,41 @@ static int unwind_frame(struct unwind_context *context,
 		if (REG_INVALID(i))
 			continue;
 		dbug_unwind(2, "register %d. where=%d\n", i, REG_STATE.regs[i].where);
-		switch (REG_STATE.regs[i].where) {
-		case Nowhere:
-			if (reg_info[i].width != sizeof(UNW_SP(frame))
-			    || &FRAME_REG(i, __typeof__(UNW_SP(frame)))
-			    != &UNW_SP(frame))
-				continue;
+		if (reg_info[i].width == sizeof(UNW_SP(frame))
+		     && (&FRAME_REG(i, __typeof__(UNW_SP(frame)))
+			 == &UNW_SP(frame))
+		     && (REG_STATE.regs[i].where == Same
+			 || REG_STATE.regs[i].where == Nowhere)) {
+			/* Special case SP if it is not explicitly set. */
 			UNW_SP(frame) = cfa;
+			continue;
+		}
+
+		if (reg_info[i].width == sizeof(UNW_PC(frame))
+		     && (&FRAME_REG(i, __typeof__(UNW_PC(frame)))
+			 == &UNW_PC(frame))
+		     && (REG_STATE.regs[i].where == Same
+			 || REG_STATE.regs[i].where == Nowhere)) {
+			/* Special case PC if it is not explicitly set. */
+			UNW_PC(frame) = FRAME_REG(retAddrReg, unsigned long);
+			continue;
+		}
+
+		switch (REG_STATE.regs[i].where) {
+		case Same:
+			/* Preserve register from current frame. */
+			break;
+		case Nowhere:
+			switch (reg_info[i].width) {
+#define CASE(n) case sizeof(u##n): \
+				FRAME_REG(i, u##n) = 0; \
+				break
+				CASES;
+#undef CASE
+			default:
+				_stp_warn("bad Register size (Nowhere)\n");
+				goto err;
+			}
 			break;
 		case Register:
 			switch (reg_info[i].width) {
@@ -1249,7 +1317,7 @@ static int unwind_frame(struct unwind_context *context,
 				CASES;
 #undef CASE
 			default:
-				_stp_warn("bad Register size\n");
+				_stp_warn("bad Register size (Register)\n");
 				goto err;
 			}
 			break;
@@ -1265,7 +1333,7 @@ static int unwind_frame(struct unwind_context *context,
 			addr = cfa + REG_STATE.regs[i].value * state->dataAlign;
 		value:
 			if (reg_info[i].width != sizeof(unsigned long)) {
-				_stp_warn("bad Register width\n");
+				_stp_warn("bad Register width for value state\n");
 				goto err;
 			}
 			FRAME_REG(i, unsigned long) = addr;

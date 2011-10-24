@@ -1,0 +1,12 @@
+#! stap -p2
+
+global foo%[5]
+global bar%[5]
+
+probe begin {
+  for(i=0; i<10; i++)
+  {
+    foo[i]=i;
+    bar[i] <<< i;
+  }
+}

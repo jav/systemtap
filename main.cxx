@@ -23,6 +23,7 @@
 #include "task_finder.h"
 #include "csclient.h"
 #include "remote.h"
+#include "tapsets.h"
 
 #include <libintl.h>
 #include <locale.h>
@@ -500,8 +501,9 @@ passes_0_4 (systemtap_session &s)
     }
 
   // Create the name of the C source file within the temporary
-  // directory.
-  s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
+  // directory.  Note the _src prefix, explained in
+  // buildrun.cxx:compile_pass()
+  s.translated_source = string(s.tmpdir) + "/" + s.module_name + "_src.c";
 
   PROBE1(stap, pass0__end, &s);
 
@@ -687,6 +689,10 @@ passes_0_4 (systemtap_session &s)
   s.verbose = s.perpass_verbose[1];
   PROBE1(stap, pass2__start, &s);
   rc = semantic_pass (s);
+
+  // Dump a list of known probe point types, if requested.
+  if (s.dump_probe_types)
+    s.pattern_root->dump (s);
 
   if (s.listing_mode || (rc == 0 && s.last_pass == 2))
     printscript(s, cout);
@@ -994,7 +1000,8 @@ main (int argc, char * const argv [])
 
       // Run the passes only if a script has been specified. The requirement for
       // a script has already been checked in systemtap_session::check_options.
-      if (ss.have_script)
+      // Run the passes also if a dump of supported probe types has been requested via a server.
+      if (ss.have_script || (ss.dump_probe_types && ! s.specified_servers.empty ()))
         {
           // Run passes 0-4 for each unique session,
           // either locally or using a compile-server.
@@ -1007,6 +1014,12 @@ main (int argc, char * const argv [])
                 rc = passes_0_4_again_with_server (ss);
             }
         }
+      else if (ss.dump_probe_types)
+	{
+	  // Dump a list of known probe point types, if requested.
+	  register_standard_tapsets(ss);
+	  ss.pattern_root->dump (ss);
+	}
     }
 
   // Run pass 5, if requested

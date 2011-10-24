@@ -13,7 +13,6 @@
 #define _VSPRINTF_C_
 
 #include "print.h"
-#include "transport/transport.h"
 
 static int skip_atoi(const char **s)
 {
@@ -22,8 +21,6 @@ static int skip_atoi(const char **s)
 		i = i*10 + *((*s)++) - '0';
 	return i;
 }
-
-enum print_flag {STP_ZEROPAD=1, STP_SIGN=2, STP_PLUS=4, STP_SPACE=8, STP_LEFT=16, STP_SPECIAL=32, STP_LARGE=64};
 
 /*
  * Changes to number() will require a corresponding change to number_size below,
@@ -201,6 +198,98 @@ static int number_size(uint64_t num, int base, int size, int precision, enum pri
 
 }
 
+static char *
+_stp_vsprint_memory(char * str, char * end, const char * ptr,
+		    int width, int precision,
+		    char format, enum print_flag flags)
+{
+	int i, len = 0;
+	struct context * __restrict__ c;
+
+	if (format == 's') {
+		if ((unsigned long)ptr < PAGE_SIZE)
+			ptr = "<NULL>";
+		len = strnlen(ptr, precision);
+	}
+	else if (precision > 0)
+		len = precision;
+	else
+		len = 1;
+
+	if (!(flags & STP_LEFT)) {
+		int actlen = len;
+		if (format == 'M')
+			actlen = len * 2;
+		while (actlen < width-- && str <= end)
+			*str++ = ' ';
+	}
+
+	if (format == 'M') { /* stolen from kernel: trace_seq_putmem_hex() */
+		const char _stp_hex_asc[] = "0123456789abcdef";
+
+		c = contexts[smp_processor_id()];
+		for (i = 0; i < len && str < end; i++) {
+			unsigned char c_tmp = kread((unsigned char *)(ptr));
+			ptr++;
+			*str++ = _stp_hex_asc[(c_tmp & 0xf0) >> 4];
+			*str++ = _stp_hex_asc[(c_tmp & 0x0f)];
+		}
+		len = len * 2; /* the actual length */
+	}
+	else if (format == 'm') {
+		c = contexts[smp_processor_id()];
+		for (i = 0; i < len && str <= end; ++i) {
+			*str++ = kread((unsigned char *)(ptr));
+			ptr++;
+		}
+	}
+	else				/* %s format */
+		for (i = 0; i < len && str <= end; ++i)
+			*str++ = *ptr++;
+
+	while (len < width-- && str <= end)
+		*str++ = ' ';
+
+	if (flags & STP_ZEROPAD && str <= end)
+		*str++ = '\0';
+
+	return str;
+
+	/* We've caught a deref fault.  Make sure the string is null
+	 * terminated. and return. */
+deref_fault:
+	if (str <= end)
+		*str = '\0';
+	return NULL;
+}
+
+static int
+_stp_vsprint_memory_size(const char * ptr, int width, int precision,
+			 char format, enum print_flag flags)
+{
+	int len = 0;
+
+	if (format == 's') {
+		if ((unsigned long)ptr < PAGE_SIZE)
+			ptr = "<NULL>";
+		len = strnlen(ptr, precision);
+	}
+	else if (precision > 0)
+		len = precision;
+	else
+		len = 1;
+
+	if (format == 'M')
+		len = len * 2; /* hex dump print size */
+
+	len = max(len, width);
+
+	if (flags & STP_ZEROPAD)
+		len++;
+
+	return len;
+}
+
 static int check_binary_precision (int precision) {
   /* precision can be unspecified (-1) or one of 1, 2, 4 or 8.  */
   switch (precision) {
@@ -217,6 +306,89 @@ static int check_binary_precision (int precision) {
   return precision;
 }
 
+static char *
+_stp_vsprint_binary(char * str, char * end, int64_t num,
+		    int width, int precision, enum print_flag flags)
+{
+	/* Only certain values are valid for the precision.  */
+	precision = check_binary_precision (precision);
+
+	/* Unspecified field width defaults to the specified
+	   precision and vice versa. If neither is specified,
+	   then both default to 8.  */
+	if (width == -1) {
+		if (precision == -1) {
+			width = 8;
+			precision = 8;
+		}
+		else
+			width = precision;
+	}
+	else if (precision == -1) {
+		precision = check_binary_precision (width);
+		if (precision == -1)
+			precision = 8;
+	}
+
+	if (!(flags & STP_LEFT))
+		while (precision < width-- && str <= end)
+			*str++ = '\0';
+
+	if ((str + precision - 1) <= end) {
+#ifdef __ia64__
+		memcpy(str, &num, precision); //to prevent unaligned access
+#else
+		switch(precision) {
+			case 1:
+				*(int8_t *)str = (int8_t)num;
+				break;
+			case 2:
+				*(int16_t *)str = (int16_t)num;
+				break;
+			case 4:
+				*(int32_t *)str = (int32_t)num;
+				break;
+			default: // "%.8b" by default
+			case 8:
+				*(int64_t *)str = num;
+				break;
+		}
+#endif
+		str += precision;
+	}
+
+	while (precision < width-- && str <= end)
+		*str++ = '\0';
+
+	return str;
+}
+
+static int
+_stp_vsprint_binary_size(int64_t num, int width, int precision)
+{
+	/* Only certain values are valid for the precision.  */
+	precision = check_binary_precision (precision);
+
+	/* Unspecified field width defaults to the specified
+	   precision and vice versa. If neither is specified,
+	   then both default to 8.  */
+	if (width == -1) {
+		if (precision == -1) {
+			width = 8;
+			precision = 8;
+		}
+		else
+			width = precision;
+	}
+	else if (precision == -1) {
+		precision = check_binary_precision (width);
+		if (precision == -1)
+			precision = 8;
+	}
+
+	return max(precision, width);
+}
+
 static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
 	int len;
@@ -229,6 +401,7 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 	int precision;		/* min. # of digits for integers; max
 				   number of chars for from string */
 	int qualifier;		/* 'h', 'l', or 'L' for integer fields */
+	int num_bytes = 0;
 
 	/* Reject out-of-range values early */
 	if (unlikely((int) size < 0))
@@ -243,7 +416,6 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 	 */
 	if (buf == NULL) {
 	  const char* fmt_copy = fmt;
-	  int num_bytes = 0;
           va_list args_copy;
 
           va_copy(args_copy, args);
@@ -312,73 +484,19 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                     switch (*fmt_copy) {
                     case 'b':
                             num = va_arg(args_copy, int64_t);
-
-                            /* Only certain values are valid for the precision.  */
-                            precision = check_binary_precision (precision);
-
-                            /* Unspecified field width defaults to the specified
-                               precision and vice versa. If neither is specified,
-                               then both default to 8.  */
-                            if (field_width == -1) {
-                              if (precision == -1) {
-                                field_width = 8;
-                                precision = 8;
-                              }
-                              else
-                                field_width = precision;
-                            }
-                            else if (precision == -1) {
-                              precision = check_binary_precision (field_width);
-                              if (precision == -1)
-                                precision = 8;
-                            }
-
-                            len = precision;
-                            if (!(flags & STP_LEFT)) {
-                              while (len < field_width--) {
-                                num_bytes++;
-                              }
-                            }
-
-                            num_bytes += precision;
-
-                            while (len < field_width--)
-                              num_bytes++;
-
+                            num_bytes += _stp_vsprint_binary_size(num,
+                                            field_width, precision);
                             continue;
 
                     case 's':
                     case 'M':
                     case 'm':
                             s = va_arg(args_copy, char *);
-                            if ((unsigned long)s < PAGE_SIZE)
-                                    s = "<NULL>";
-
-                            if (*fmt_copy == 's')
-                              len = strnlen(s, precision);
-                            else if (precision > 0)
-                              len = precision;
-                            else
-                              len = 1;
-
-                            if (*fmt_copy == 'M')
-                               len = len * 2; /* hex dump print size */
-
-                            if (!(flags & STP_LEFT)) {
-                              while (len < field_width--) {
-                                num_bytes++;
-                              }
-                            }
-
-                            num_bytes += len;
-
-                            while (len < field_width--) {
-                              num_bytes++;
-                            }
-                            if(flags & STP_ZEROPAD) {
-                              num_bytes++;
-                            }
+                            num_bytes += _stp_vsprint_memory_size(s,
+                                            field_width, precision,
+                                            *fmt_copy, flags);
                             continue;
+
                     case 'X':
                             flags |= STP_LARGE;
                     case 'x':
@@ -552,126 +670,24 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 		switch (*fmt) {
 		case 'b':
 			num = va_arg(args, int64_t);
-
-			/* Only certain values are valid for the precision.  */
-			precision = check_binary_precision (precision);
-
-			/* Unspecified field width defaults to the specified
-			   precision and vice versa. If neither is specified,
-			   then both default to 8.  */
-			if (field_width == -1) {
-			  if (precision == -1) {
-			    field_width = 8;
-			    precision = 8;
-			  }
-			  else
-			    field_width = precision;
-			}
-			else if (precision == -1) {
-			  precision = check_binary_precision (field_width);
-			  if (precision == -1)
-			    precision = 8;
-			}
-
-			len = precision;
-			if (!(flags & STP_LEFT)) {
-				while (len < field_width--) {
-					if (str <= end)
-						*str = '\0';
-					++str;
-				}
-			}
-#ifdef __ia64__
-			if ((str + precision - 1) <= end)
-				memcpy(str, &num, precision); //to prevent unaligned access
-			str += precision;
-#else
-			switch(precision) {
-			case 1:
-				if(str <= end)
-					*(int8_t *)str = (int8_t)num;
-				++str;
-				break;
-			case 2:
-				if((str + 1) <= end)
-					*(int16_t *)str = (int16_t)num;
-				str+=2;
-				break;
-			case 4:
-				if((str + 3) <= end)
-					*(int32_t *)str = num;
-				str+=4;
-				break;
-			default: // "%.8b" by default
-			case 8:
-				if((str + 7) <= end)
-					*(int64_t *)str = num;
-				str+=8;
-				break;
-			}
-#endif
-			while (len < field_width--) {
-				if (str <= end)
-					*str = '\0';
-				++str;
-			}
+			str = _stp_vsprint_binary(str, end, num,
+					field_width, precision, flags);
 			continue;
 
 		case 's':
 	        case 'M':
 		case 'm':
 			s = va_arg(args, char *);
-			if ((unsigned long)s < PAGE_SIZE)
-				s = "<NULL>";
-
-			if (*fmt == 's')
-			  len = strnlen(s, precision);
-			else if (precision > 0)
-			  len = precision;
-			else
-			  len = 1;
-
-			if (!(flags & STP_LEFT)) {
-				int actlen = len;
-				if (*fmt == 'M')
-                                    actlen = len * 2;
-                                while (actlen < field_width--) {
-					if (str <= end)
-						*str = ' ';
-					++str;
-				}
-			}
-			if (*fmt == 'M') { /* stolen from kernel: trace_seq_putmem_hex() */
-				const char _stp_hex_asc[] = "0123456789abcdef";
-				int j;
-			        for (i = 0, j = 0; i < len; i++) {
-			               *str = _stp_hex_asc[((*s) & 0xf0) >> 4];
-				       str++;
-			               *str = _stp_hex_asc[((*s) & 0x0f)];
-				       str++; s++;
-			         }
-				len = len * 2; /* the actual length */
-			}
-			else {
-                                for (i = 0; i < len; ++i) {
-                                        if (str <= end) {
-                                                *str = *s;
-                                        }
-                                        ++str; ++s;
-                                }
-			}
-
-			while (len < field_width--) {
-				if (str <= end)
-					*str = ' ';
-				++str;
-			}
-			if(flags & STP_ZEROPAD) {
-				if (str <= end)
-				       *str = '\0';
-			       ++str;
+			str = _stp_vsprint_memory(str, end, s,
+					field_width, precision,
+					*fmt, flags);
+			if (unlikely(str == NULL)) {
+				if (num_bytes > 0)
+					_stp_unreserve_bytes(num_bytes);
+				return 0;
 			}
 			continue;
+
 		case 'X':
 			flags |= STP_LARGE;
 		case 'x':

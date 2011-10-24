@@ -2,7 +2,7 @@
  *
  * staprun.c - SystemTap module loader
  *
- * Copyright (C) 2005-2010 Red Hat, Inc.
+ * Copyright (C) 2005-2011 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #define _XOPEN_SOURCE
 #define _BSD_SOURCE
 #include "staprun.h"
+#include "privilege.h"
 #include <string.h>
 #include <sys/uio.h>
 #include <glob.h>
@@ -36,6 +37,45 @@ extern long delete_module(const char *, unsigned int);
 int send_relocations ();
 int send_tzinfo ();
 
+static int remove_module(const char *name, int verb);
+
+static int stap_module_inserted = -1;
+
+static void term_signal_handler(int signum __attribute ((unused)))
+{
+	if (stap_module_inserted == 0) {
+		// We have to close the control channel so that
+		// remove_module() can open it back up (which it does
+		// to make sure the module is a systemtap module).
+		close_ctl_channel();
+		remove_module(modname, 1);
+		free(modname);
+	}
+	_exit(1);
+}
+
+void setup_term_signals(void)
+{
+	sigset_t s;
+	struct sigaction a;
+
+	/* blocking all signals while we set things up */
+	sigfillset(&s);
+	sigprocmask(SIG_SETMASK, &s, NULL);
+
+	/* handle signals */
+	memset(&a, 0, sizeof(a));
+	sigfillset(&a.sa_mask);
+	a.sa_handler = term_signal_handler;
+	sigaction(SIGHUP, &a, NULL);
+	sigaction(SIGINT, &a, NULL);
+	sigaction(SIGTERM, &a, NULL);
+	sigaction(SIGQUIT, &a, NULL);
+
+	/* unblock all signals */
+	sigemptyset(&s);
+	sigprocmask(SIG_SETMASK, &s, NULL);
+}
 
 static int run_as(int exec_p, uid_t uid, gid_t gid, const char *path, char *const argv[])
 {
@@ -135,18 +175,71 @@ static int enable_uprobes(void)
 	return 1; /* failure */
 }
 
+/* Determine the priviilege credentials of the current user. If the user is not root, this
+   is determined by the user's group memberships. */
+static int get_stp_privilege (void)
+{
+  gid_t gid, gidlist[NGROUPS_MAX];
+  int i, ngids;
+  gid_t stapdev_gid, stapusr_gid;
+  int stp_privilege;
+
+  /* If the real uid of the user is root, then this user has all privileges. */
+  if (getuid() == 0)
+    return pr_all;
+
+  /* These are the gids of the groups we are interested in. */
+  stapdev_gid = get_gid("stapdev");
+  stapusr_gid = get_gid("stapusr");
+
+  /* If neither group was found, then the group memberships are irrelevant.  */
+  if (stapdev_gid == (gid_t)-1 && stapusr_gid == (gid_t)-1)
+    return 0;
+
+  /* Obtain a list of the user's groups. */
+  ngids = getgroups(NGROUPS_MAX, gidlist);
+  if (ngids < 0)
+    {
+      perr("Unable to retrieve group list");
+      return 0;
+    }
+
+  /* The privilege credentials will be represented by a bit mask of the user's group memberships.
+     Start with an empty mask. */
+  stp_privilege = 0;
+
+  /* According to the getgroups() man page, getgroups() may not
+   * return the effective gid, so examine the effective gid first first followed by the groups
+   * gids obtained by getgroups. */
+  for (i = -1, gid = getegid(); i < ngids; ++i, gid = gidlist[i])
+    {
+      if (gid == stapdev_gid)
+	stp_privilege |= pr_stapdev;
+      else if (gid == stapusr_gid)
+	stp_privilege |= pr_stapusr;
+      if (stp_privilege == pr_all)
+	break;
+    }
+
+  return stp_privilege;
+}
+
 static int insert_stap_module(void)
 {
 	char special_options[128];
+	int stp_privilege;
 
-	/* Add the _stp_bufsize option.  */
-	if (snprintf_chk(special_options, sizeof (special_options), "_stp_bufsize=%d", buffer_size))
+	/* Add the _stp_bufsize option and the _stp_privilege option.  */
+	stp_privilege = get_stp_privilege ();
+	if (snprintf_chk(special_options, sizeof (special_options),
+			 "_stp_bufsize=%d _stp_privilege=0x%x", buffer_size, stp_privilege))
 		return -1;
 
-	return insert_module(modpath, special_options, modoptions, assert_stap_module_permissions);
+	stap_module_inserted = insert_module(modpath, special_options,
+					     modoptions,
+					     assert_stap_module_permissions);
+	return stap_module_inserted;
 }
-
-static int remove_module(const char *name, int verb);
 
 static void remove_all_modules(void)
 {
@@ -269,6 +362,7 @@ int main(int argc, char **argv)
 	}
 
 	setup_signals();
+	setup_term_signals();
 
 	parse_args(argc, argv);
 
@@ -472,6 +566,12 @@ void send_relocation_modules ()
           /* Now we destructively modify the string, but by now the file
              is open so we won't need the full name again. */
           *module_name_end = '\0';
+
+          /* PR6503.  /sys/module/.../sections/...init.... sometimes contain
+             non-0 addresses, even though the respective module-initialization
+             sections were already unloaded.  We override the addresses here. */
+          if (strstr (section_name, "init.") != NULL) /* .init.text, .devinit.rodata, ... */
+             section_address = 0;
 
           send_a_relocation (module_name, section_name, section_address);
         }

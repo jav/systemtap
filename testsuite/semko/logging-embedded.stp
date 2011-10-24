@@ -1,0 +1,7 @@
+#! stap -p2
+
+// build-test the guru-only function (note lack of -g above)
+
+probe begin {
+      printk(0,"Zoink!  The paper tape punch is burning chads!")
+}

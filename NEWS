@@ -1,10 +1,40 @@
 * What's new in version 1.7
 
+- Parse errors no longer generate a cascade of false errors.  Instead, a
+  parse error skips the rest of the current probe or function, and resumes
+  at the next one.  This should generate fewer and better messages.
+
+- Global array wrapping is now supported for both associative and statistics typed
+  arrays using the '%' character to signify a wrapped array. For example,
+  'global foo%[100]' would allow the array 'foo' to be wrapped if more than 100
+  elements are inserted.
+
+- process("...").library("...").plt("...") probes are now supported.  Wildcards
+  are supported in the plt-name part, to refer to any function in the program
+  linkage table which matches the glob pattern and the rest of the probe point.
+
+- A new option, --dump-probe-types, will dump a list of supported probe types.
+  If --unprivileged is also specified, the list will be limited to probe types
+  which are available to unprivileged users.
+
 - Systemtap can now automatically download the required debuginfo
   using abrt. The --download-debuginfo[=OPTION] can be used to
   control this feature. Possible values are: 'yes', 'no', 'ask',
   and a positive number representing the timeout desired. The 
   default behavior is to not automatically download the debuginfo.
+
+- On 2.6.29+ kernels, systemtap can now probe kernel modules that
+  arrive and/or depart during the run-time of a session.  This allows
+  probing of device driver initialization functions, which had been
+  blacklisted.
+
+- The following probe types are deprecated in release 1.7 and will be removed in release 1.8:
+      kernel.function(number).inline
+      module(string).function(number).inline
+      process.function(number).inline
+      process.library(string).function(number).inline
+      process(string).function(number).inline
+      process(string).library(string).function(number).inline
 
 * What's new in version 1.6, 2011-07-25
 

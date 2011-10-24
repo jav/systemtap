@@ -334,24 +334,24 @@ struct print_format: public expression
   bool print_with_newline;
   bool print_char;
 
+  // XXX match runtime/vsprintf.c's print_flag
+  // ... for use with number() & number_size()
   enum format_flag
     {
       fmt_flag_zeropad = 1,
-      fmt_flag_plus = 2,
-      fmt_flag_space = 4,
-      fmt_flag_left = 8,
-      fmt_flag_special = 16
+      fmt_flag_sign = 2,
+      fmt_flag_plus = 4,
+      fmt_flag_space = 8,
+      fmt_flag_left = 16,
+      fmt_flag_special = 32,
+      fmt_flag_large = 64,
     };
 
   enum conversion_type
     {
       conv_unspecified,
-      conv_signed_decimal,
-      conv_unsigned_decimal,
-      conv_unsigned_octal,
-      conv_unsigned_ptr,
-      conv_unsigned_uppercase_hex,
-      conv_unsigned_lowercase_hex,
+      conv_pointer,
+      conv_number,
       conv_string,
       conv_char,
       conv_memory,
@@ -377,6 +377,7 @@ struct print_format: public expression
   struct format_component
   {
     unsigned long flags;
+    unsigned base;
     unsigned width;
     unsigned precision;
     width_type widthtype;
@@ -399,6 +400,8 @@ struct print_format: public expression
       type = conv_unspecified;
       literal_string.clear();
     }
+    inline void set_flag(format_flag f) { flags |= f; }
+    inline bool test_flag(format_flag f) const { return flags & f; }
   };
 
   std::string raw_components;
@@ -493,6 +496,7 @@ struct vardecl: public symboldecl
   std::vector<exp_type> index_types; // for arrays only
   literal *init; // for global scalars only
   bool skip_init; // for probe locals only, don't init on entry
+  bool wrap;
 };
 
 

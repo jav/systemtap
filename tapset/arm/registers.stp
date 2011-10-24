@@ -29,7 +29,13 @@ function _stp_register_regs() {
 
 function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
-	if (!CONTEXT->regs) {
+	struct pt_regs *regs;
+	if (c->probe_flags & _STP_PROBE_STATE_USER_MODE) {
+		regs = CONTEXT->uregs;
+	} else {
+		regs = CONTEXT->kregs;
+	}
+	if (!regs) {
 		CONTEXT->last_error = "No registers available in this context";
 		return;
 	}
@@ -39,13 +45,13 @@ function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 		CONTEXT->last_error = CONTEXT->error_buffer;
 		return;
 	}
-	memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset, sizeof(value));
+	memcpy(&value, ((char *)regs) + THIS->offset, sizeof(value));
 	THIS->__retvalue = value;
 %}
 
-function _stp_probing_kernel:long () %{ /* pure */
-	THIS->__retvalue = !user_mode(CONTEXT->regs);
-%}
+function _stp_probing_kernel:long () {
+	return !user_mode();
+}
 
 /* Return the named register value as a signed value. */
 function register:long (name:string) {

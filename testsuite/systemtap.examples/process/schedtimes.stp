@@ -2,6 +2,13 @@
 
 ############################################################
 # Schedtimes.stp
+#
+# Copyright (C) 2009 Red Hat, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+
 # Author: Jason Baron <jbaron@redhat.com>
 # profiles threads and displays their run times, queued times,
 # wait times, including i/o wait times.

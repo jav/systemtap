@@ -1,0 +1,4 @@
+#! stap -p4
+
+# jiffies is a global that needs to be pulled from the symbol table.
+probe kernel.function("schedule_timeout") { println($jiffies) }

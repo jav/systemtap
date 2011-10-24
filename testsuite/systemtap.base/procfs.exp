@@ -44,17 +44,17 @@ proc proc_read_write {} {
     # make sure it got set to '200'
     set value [proc_read_value $test $path]
     if { $value == "200" } {
-	pass "$test received correct value"
+	pass "$test received correct value: 200"
     } else {
 	fail "$test received incorrect value: $value"
     }
 
     # read it again to make sure nothing changed
-    set value [proc_read_value $test $path]
+    set value [proc_read_value "$test again" $path]
     if { $value == "200" } {
-	pass "$test received correct value"
+	pass "$test received correct value: 200 again"
     } else {
-	fail "$test received incorrect value: $value"
+	fail "$test received incorrect value: $value again"
     }
 
     # write a new value of 'hello'
@@ -63,7 +63,7 @@ proc proc_read_write {} {
     # make sure it got set to 'hello'
     set value [proc_read_value $test $path]
     if { $value == "hello" } {
-	pass "$test received correct value"
+	pass "$test received correct value: hello"
     } else {
 	fail "$test received incorrect value: $value"
     }
@@ -74,7 +74,7 @@ proc proc_read_write {} {
     # make sure it got set to 'goodbye'
     set value [proc_read_value $test $path]
     if { $value == "goodbye" } {
-	pass "$test received correct value"
+	pass "$test received correct value: goodbye"
     } else {
 	fail "$test received incorrect value: $value"
     }

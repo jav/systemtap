@@ -5090,6 +5090,20 @@ fi
 LOCALEDIR="$localedir"
 
 
+if test "${enable_sdt_probes+set}" != set; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking to see if sdt probes should be the default" >&5
+$as_echo_n "checking to see if sdt probes should be the default... " >&6; }
+  if { echo '#if __GNUC__ < 4'
+       echo ' yes '
+       echo '#endif'; } | ${CC} -E - | grep yes > /dev/null; then
+    enable_sdt_probes=no
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+  else
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+  fi
+fi
 # Check whether --enable-sdt-probes was given.
 if test "${enable_sdt_probes+set}" = set; then :
   enableval=$enable_sdt_probes;
@@ -5773,9 +5787,10 @@ if test "x$ac_cv_lib_elf_elf_getshdrstrndx" = xyes; then :
 
 $as_echo "#define HAVE_ELF_GETSHDRSTRNDX 1" >>confdefs.h
 
+  staprun_LIBS="$staprun_LIBS -lelf"
+
 fi
 
-staprun_LIBS="$staprun_LIBS -lelf"
 LIBS="$save_LIBS"
 
 

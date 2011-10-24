@@ -47,7 +47,10 @@ function _stp_register_regs() {
 
 function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
-	if (!CONTEXT->regs) {
+	struct pt_regs *regs;
+	regs = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+		? CONTEXT->uregs : CONTEXT->kregs);
+	if (!regs) {
 		CONTEXT->last_error = "No registers available in this context";
 		return;
 	}
@@ -57,7 +60,7 @@ function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 		CONTEXT->last_error = CONTEXT->error_buffer;
 		return;
 	}
-	memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset, sizeof(value));
+	memcpy(&value, ((char *)regs) + THIS->offset, sizeof(value));
 	THIS->__retvalue = value;
 %}
 
@@ -117,11 +120,14 @@ function u_register:long (name:string) {
  */
 function _stp_arg:long (argnum:long, sign_extend:long, truncate:long) %{ /* pure */
 	long val;
+	struct pt_regs *regs;
 	int result, n, nr_regargs;
 	size_t argsz = sizeof(long);
+	regs = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+		? CONTEXT->uregs : CONTEXT->kregs);
 
 	THIS->__retvalue = 0;
-	if (!CONTEXT->regs) {
+	if (!regs) {
 		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
 			"cannot access function args in this context");
 		CONTEXT->last_error = CONTEXT->error_buffer;
@@ -130,14 +136,21 @@ function _stp_arg:long (argnum:long, sign_extend:long, truncate:long) %{ /* pure
 	if (THIS->argnum < 1)
 		goto bad_argnum;
 	n = (int) THIS->argnum;
-	nr_regargs = _stp_get_regparm(CONTEXT->regparm, CONTEXT->regs);
-	if (_stp_probing_32bit_app(CONTEXT->regs)) {
-		argsz = sizeof(int);
-		result = _stp_get_arg32_by_number(n, nr_regargs, CONTEXT->regs,
-									&val);
+	if (CONTEXT->regparm == 0) {
+		/* Default */
+		if ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+		    && _stp_is_compat_task())
+			nr_regargs = 0;
+		else
+			nr_regargs = 6;
 	} else
-		result = _stp_get_arg64_by_number(n, nr_regargs, CONTEXT->regs,
-									&val);
+		nr_regargs = (CONTEXT->regparm & _STP_REGPARM_MASK);
+	if ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+	    && _stp_is_compat_task()) {
+		argsz = sizeof(int);
+		result = _stp_get_arg32_by_number(n, nr_regargs, regs, &val);
+	} else
+		result = _stp_get_arg64_by_number(n, nr_regargs, regs, &val);
 	switch (result) {
 	case 0:
 		/* Arg is in register. */
@@ -188,7 +201,8 @@ deref_fault: /* branched to from kread() */
 %}
 
 function probing_32bit_app() %{ /* pure */
-	THIS->__retvalue = _stp_probing_32bit_app(CONTEXT->regs);
+	THIS->__retvalue = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+			    && _stp_is_compat_task());
 %}
 
 /* Return the value of function arg #argnum (1=first arg) as a signed int. */
@@ -247,8 +261,8 @@ function asmlinkage() %{ /* pure */ %}
 function fastcall() %{ /* pure */ %}
 
 function regparm(n:long) %{
-	if (_stp_probing_32bit_app(CONTEXT->regs) &&
-					(THIS->n < 0 || THIS->n > 3)) {
+	if ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+	    && _stp_is_compat_task() && (THIS->n < 0 || THIS->n > 3)) {
 		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
 			"For -m32 programs, "
 			"regparm value must be in the range 0-3.");

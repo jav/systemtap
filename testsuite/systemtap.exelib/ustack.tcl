@@ -43,6 +43,7 @@ expect {
     -re {^ 0x[a-f0-9]+ : lib_main\+0x[^\r\n]+\r\n} {incr lib_main; exp_continue}
     -re {^ 0x[a-f0-9]+ : lib_func\+0x[^\r\n]+\r\n} {incr lib_func; exp_continue}
     -re {^ 0x[a-f0-9]+ : _[^\r\n]+\r\n} {incr start_func; exp_continue}
+    -re {^ 0x[a-f0-9]+ : [^\r\n]+/libc-[^\r\n]+\r\n} {incr start_func; exp_continue}
     timeout { fail "ustack-$testname (timeout)"; exec kill -INT -[exp_pid] }
     eof { }
 }

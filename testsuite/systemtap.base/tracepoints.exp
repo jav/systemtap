@@ -1,3 +1,4 @@
+set test "tracepoints"
 
 set tracepoints {}
 spawn stap -l {kernel.trace("*")}
@@ -11,6 +12,7 @@ expect {
     eof {}
 }
 catch {close}; catch { wait }
+pass "$test list [llength $tracepoints]"
 
 # Use this to test each tracepoint individually.
 #foreach tp $tracepoints {
@@ -29,12 +31,11 @@ foreach tp $tracepoints {
 }
 send_log "Trying stap -w -p4 -e $script\n"
 if {[catch {exec stap -w -p4 -e "$script"} res]} {
-	fail "tracepoints $res"
+	fail "$test $res"
 } else {
-	pass "tracepoints"
+    pass "$test"
 }
 
-set test "tracepoints"
 if {![installtest_p]} { untested $test; return }
 set ::result_string {tracepoints OK}
 stap_run2 $srcdir/$subdir/$test.stp

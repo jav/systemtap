@@ -1,15 +1,4 @@
-# Don't attempt these tests if TOOL_OPTS=server has been specified. This is
-# because TOOL_OPTS=server starts a server using setup_server which creates
-# a dummy stap on the PATH which always specifies --use-server. We don't want
-# that here. We want to use the real stap and supply client-side options
-# as we see fit.
-if {[use_server_p]} then {
-    untested "Compile-Server Client Tests"
-    return
-}
-
-# There is no server running as part of the test suite. So let's start with
-# a clean slate in terms of trust.
+# Let's start with a clean slate in terms of trust.
 exec rm -fr $env(SYSTEMTAP_DIR)/ssl
 
 # Test the --list-servers option and return an array of the servers found.
@@ -164,7 +153,7 @@ if {$failed == 0} {
 }
 
 # Now start our own server and make sure we can work with it.
-if {! [start_server]} {
+if {! [setup_server]} {
     untested "Compile-server client tests against a server"
     return;
 }
@@ -283,6 +272,14 @@ if {[regexp {^ host=([^ ]*).*} $our_servers(0) match host_name]} {
 } else {
     fail $test
 }
+
+# Compile and run a simple hello test, selecting the server automatically
+if {[installtest_p]} then {
+    set test "Hello from server"
+    set rc [stap_run_batch $srcdir/systemtap.server/hello.stp $use_server]
+    if {$rc == 0} { pass $test } else { fail $test }
+}
+
 set cmd [concat stap --trust-servers=ssl,revoke,no-prompt --use-server=$host_name]
 send_log "executing: $cmd\n"
 eval spawn $cmd
@@ -417,7 +414,7 @@ if {$effective_pid != 0} {
 
 # Our server should now be trusted as a signer, separate from the previously
 # discovered trusted signing servers.
-list_servers "List current signing servers" online,signer
+list_servers "List current online signing servers" online,signer
 array unset current_signing_servers
 array set current_signing_servers [array get servers]
 
@@ -565,7 +562,7 @@ if {$no_module == 0} {
     }
 }
 set test "Load and run signed module when trusted"
-if {$no_module == 1} {
+if {$no_module == 1 || ! [installtest_p]} {
     untested "$test"
 } else {
     set failed 1
@@ -644,7 +641,7 @@ if {$no_module == 0} {
     }
 }
 set test "Load and run signed module when not trusted"
-if {$no_module == 1} {
+if {$no_module == 1 || ! [installtest_p]} {
     untested "$test"
 } else {
     set failed 1

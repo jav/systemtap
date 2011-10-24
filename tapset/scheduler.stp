@@ -21,7 +21,8 @@ function __is_idle:long()
 %}
 
 
-/** probe scheduler.cpu_off - Process is about to stop running on a cpu
+/**
+ * probe scheduler.cpu_off - Process is about to stop running on a cpu
  *
  * @name: name of the probe point
  * @task_prev: the process leaving the cpu (same as current)
@@ -42,7 +43,8 @@ probe scheduler.cpu_off =
 }
 
 
-/** probe scheduler.cpu_on - Process is beginning execution on a cpu
+/**
+ * probe scheduler.cpu_on - Process is beginning execution on a cpu
  *
  * @name: name of the probe point
  * @task_prev: the process that was previously running on this cpu
@@ -58,7 +60,8 @@ probe scheduler.cpu_on = kernel.function("finish_task_switch") ?
 }
 
 
-/* probe scheduler.tick - Schedulers internal tick, a processes timeslice accounting is updated
+/**
+ * probe scheduler.tick - Schedulers internal tick, a processes timeslice accounting is updated
  *
  *  @name: name of the probe point
  *  @idle: boolean indicating whether current is the idle process
@@ -71,7 +74,8 @@ probe scheduler.tick = kernel.function("scheduler_tick")
     idle = __is_idle()
 }
 
-/* probe scheduler.balance - A cpu attemptint to find more work.
+/**
+ * probe scheduler.balance - A cpu attempting to find more work.
  * 
  * @name: name of the probe point
  *

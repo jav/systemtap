@@ -59,12 +59,16 @@ function _stp_register_regs() {
 }
 
 function probing_32bit_app() %{ /* pure */
-        THIS->__retvalue = _stp_probing_32bit_app(CONTEXT->regs);
+        THIS->__retvalue = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+			    && _stp_is_compat_task());
 %}
 
 function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
-	if (!CONTEXT->regs) {
+	struct pt_regs *regs;
+	regs = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+		? CONTEXT->uregs : CONTEXT->kregs);
+	if (!regs) {
 		CONTEXT->last_error = "No registers available in this context";
 		return;
 	}
@@ -75,7 +79,7 @@ function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 		CONTEXT->last_error = CONTEXT->error_buffer;
 		return;
 	}
-	memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset, sizeof(value));
+	memcpy(&value, ((char *)regs) + THIS->offset, sizeof(value));
 	THIS->__retvalue = value;
 %}
 

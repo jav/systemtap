@@ -20,11 +20,9 @@
 #define STP_CTL_BUFFER_SIZE 256
 #endif
 
-/* how often the work queue wakes up and checks buffers */
-#define STP_WORK_TIMER (HZ/100)
-
 static unsigned _stp_nsubbufs;
 static unsigned _stp_subbuf_size;
+static pid_t _stp_target;
 
 static int _stp_transport_init(void);
 static void _stp_transport_close(void);
@@ -48,6 +46,7 @@ static gid_t _stp_gid;
 static atomic_t _stp_ctl_attached;
 
 static int _stp_bufsize;
+static int _stp_privilege;
 
 
 enum _stp_transport_state {

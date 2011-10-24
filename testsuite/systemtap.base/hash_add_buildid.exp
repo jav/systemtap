@@ -1,0 +1,113 @@
+# hash_add_buildid.exp
+
+set test "hash_add_buildid"
+
+# Since we need a clean cache directory, we'll use a temporary
+# systemtap directory and cache (add user name so make check and
+# sudo make installcheck don't clobber each others)
+set exe hash_add_buildid
+set at_least_one_run 0
+set passed 0
+set local_systemtap_dir [exec pwd]/.cache_test-[exec whoami]
+exec /bin/rm -rf $local_systemtap_dir
+exec /bin/mkdir $local_systemtap_dir
+if [info exists env(SYSTEMTAP_DIR)] {
+    set old_systemtap_dir $env(SYSTEMTAP_DIR)
+}
+set env(SYSTEMTAP_DIR) $local_systemtap_dir
+
+# Set up the script we'll use.
+set basic_script {"probe process(\"hash_add_buildid\").function(\"main\") { println(1) }" }
+
+# Force 64-bit (when necessary) to be sure of what we're testing.
+switch -regexp $::tcl_platform(machine) {
+    {^i\d86$} { set arches [list "-default"] }
+    {^x86_64$} { set arches [list "-m64" "-m32" "ia64" "ppc" "s390"]}
+    default { unsupported "$test"; return }
+}
+
+foreach arch $arches {
+
+  set test_flags "additional_flags=-g"
+
+  if {$arch != "-default"} {
+    set test_flags "$test_flags additional_flags=$arch"
+  }
+
+
+  # Compile hash_add_buildid1.c and change the timestamp
+  # of the binary
+  exec cp $srcdir/$subdir/hash_add_buildid1.c $local_systemtap_dir/hash_add_buildid.c
+  set res [target_compile $local_systemtap_dir/hash_add_buildid.c $exe executable "$test_flags"]
+  if { $res != "" } {
+    continue
+  }
+
+  # Check that the build ID exists on this system
+  set cmd [concat {/usr/bin/eu-readelf -n hash_add_buildid}]
+  eval spawn $cmd
+  expect {
+    -timeout 180
+    -re {^[^\r\n]*GNU_BUILD_ID[^\r\n]*\r\n} {
+     set passed 1
+     exp_continue
+    }
+    -re {^[^\r\n]*\r\n} {
+      exp_continue
+    }
+    timeout {
+    set passed 0
+    }
+  }
+  catch close
+
+  if {$passed == 0} {
+    continue
+  }
+
+  # Change the timestamp to a known value
+  file mtime $exe 970399800
+  file stat $exe stat1
+
+  # The 1st compilation of a script won't be cached,
+  # the 2nd should not be cached either.
+  cache_compile RUN1-($arch) [F_UNCACHED_COMPILE] $basic_script
+
+  # Recompile the test binary using hash_add_buildid2.c
+  # and change the timestamp to the same as the previous one.
+  exec cp $srcdir/$subdir/hash_add_buildid2.c $local_systemtap_dir/hash_add_buildid.c
+  set res [target_compile $local_systemtap_dir/hash_add_buildid.c $exe executable "$test_flags"]
+  if { $res != "" } {
+    continue
+  }
+
+  #Change the timestamp to the same as the previous one.
+  file mtime $exe 970399800
+  file stat $exe stat2
+
+  # This one should also not be cached.
+  cache_compile RUN2-($arch) [F_UNCACHED_COMPILE] $basic_script
+  set at_least_one_run 1
+
+  if {$stat1(size)!=$stat2(size)} {
+    fail "$exe.c file sizes are not the same"
+  }
+  if {$stat1(mtime) != $stat2(mtime)} {
+    fail "$exe.c files don't have the same timestamp"
+  }
+}
+
+if {$passed == 0} {
+  untested "$exe no build id available"
+} elseif {$at_least_one_run == 0 } {
+  fail "$exe arch not supported"
+}
+
+# Cleanup.
+exec /bin/rm -rf $local_systemtap_dir
+if [info exists old_systemtap_dir] {
+    set env(SYSTEMTAP_DIR) $old_systemtap_dir
+} else {
+    unset env(SYSTEMTAP_DIR)
+}
+

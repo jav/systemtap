@@ -193,6 +193,16 @@ keywords: disk
   # stap disktop.stp -c "sleep 0.2"
 
 
+io/mbrwatch.stp - Monitor read/write of MBR (boot sector) area of block devices
+keywords: io monitoring disk
+
+   The mbrwatch.stp script reports any attempted reads/writes of the
+  first few sectors of a raw block device.
+
+  # stap mbrwatch.stp -c "dd of=/dev/null count=1 if=/dev/`grep -v major \
+  /proc/partitions | grep . | awk '{print $4}' | head -1`"
+
+
 network/nfsd_unlink.stp - Find which client is removing nfs files on server
 keywords: nfs disk
 
@@ -501,7 +511,7 @@ keywords: io
 
 
 io/mbrwatch.stp - Monitor read/write of MBR (boot sector) area of block devices
-keywords: io monitoring
+keywords: io monitoring disk
 
    The mbrwatch.stp script reports any attempted reads/writes of the
   first few sectors of a raw block device.
@@ -541,7 +551,7 @@ keywords: io
 
 
 io/ttyspy.stp - Monitor tty typing.
-keywords: io tty per-process monitoring
+keywords: io tty monitoring
 
   The ttyspy.stp script uses tty_audit hooks to monitor recent typing
   activity on the system, printing a scrolling record of recent
@@ -779,7 +789,7 @@ keywords: monitoring
 
 
 io/mbrwatch.stp - Monitor read/write of MBR (boot sector) area of block devices
-keywords: io monitoring
+keywords: io monitoring disk
 
    The mbrwatch.stp script reports any attempted reads/writes of the
   first few sectors of a raw block device.
@@ -789,7 +799,7 @@ keywords: io monitoring
 
 
 io/ttyspy.stp - Monitor tty typing.
-keywords: io tty per-process monitoring
+keywords: io tty monitoring
 
   The ttyspy.stp script uses tty_audit hooks to monitor recent typing
   activity on the system, printing a scrolling record of recent
@@ -828,7 +838,7 @@ keywords: network device traffic
 
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
-keywords: network traffic per-process
+keywords: network traffic
 
   Every five seconds the nettop.stp script prints out a list of
   processed (PID and command) with the number of packets sent/received
@@ -963,29 +973,6 @@ keywords: memory numa
   # stap numa_faults.stp -c "sleep 0.2"
 
 
-= PER-PROCESS =
-
-io/ttyspy.stp - Monitor tty typing.
-keywords: io tty per-process monitoring
-
-  The ttyspy.stp script uses tty_audit hooks to monitor recent typing
-  activity on the system, printing a scrolling record of recent
-  keystrokes, on a per-tty basis.
-
-  # stap --skip-badvars -g ttyspy.stp -c "sleep 1"
-
-
-network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
-keywords: network traffic per-process
-
-  Every five seconds the nettop.stp script prints out a list of
-  processed (PID and command) with the number of packets sent/received
-  and the amount of data sent/received by the process during that
-  interval.
-
-  # stap nettop.stp -c "sleep 0.2"
-
-
 = PID =
 
 general/eventcount.stp - Event Counter for eventcount.stp
@@ -1087,6 +1074,18 @@ keywords: process scheduler time tracepoint
   specific PID.
 
   # stap schedtimes.stp -c "sleep 0.2"
+
+
+process/wait4time.stp - Trace Time Spent in wait4 Syscalls
+keywords: syscall process
+
+  The script watches each wait4 syscall on the system. At the end of
+  each wait4 syscall the script prints out a line with a timestamp in
+  microseconds, the pid, the executable name in parentheses, the
+  "wait4:" key, the duration of the wait and the PID that the wait4 was
+  waiting for. If the waited for PID is not specified , it is "-1".
+
+  # stap wait4time.stp -c "sleep 0.2"
 
 
 = PROFILING =
@@ -1618,8 +1617,17 @@ keywords: syscall
   # stap syscalls_by_proc.stp -c "sleep 0.2"
 
 
+process/syscalltimes - System wide syscall statistics with filtering on exec, uid or pid.
+keywords: syscall
+
+  Combination shell/systemtap script to measure system call counts and
+  times.  Can be filtered by process IDs, process names and users.
+
+  # ./syscalltimes -c 'sleep 0.2'
+
+
 process/wait4time.stp - Trace Time Spent in wait4 Syscalls
-keywords: syscall wait4
+keywords: syscall process
 
   The script watches each wait4 syscall on the system. At the end of
   each wait4 syscall the script prints out a line with a timestamp in
@@ -1829,7 +1837,7 @@ keywords: network device traffic
 
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
-keywords: network traffic per-process
+keywords: network traffic
 
   Every five seconds the nettop.stp script prints out a list of
   processed (PID and command) with the number of packets sent/received
@@ -1852,7 +1860,7 @@ keywords: network traffic
 = TTY =
 
 io/ttyspy.stp - Monitor tty typing.
-keywords: io tty per-process monitoring
+keywords: io tty monitoring
 
   The ttyspy.stp script uses tty_audit hooks to monitor recent typing
   activity on the system, printing a scrolling record of recent
@@ -1871,20 +1879,6 @@ keywords: disk cpu use graph
   and CPU USE.
 
   # stap graphs.stp -c "sleep 0.2"
-
-
-= WAIT4 =
-
-process/wait4time.stp - Trace Time Spent in wait4 Syscalls
-keywords: syscall wait4
-
-  The script watches each wait4 syscall on the system. At the end of
-  each wait4 syscall the script prints out a line with a timestamp in
-  microseconds, the pid, the executable name in parentheses, the
-  "wait4:" key, the duration of the wait and the PID that the wait4 was
-  waiting for. If the waited for PID is not specified , it is "-1".
-
-  # stap wait4time.stp -c "sleep 0.2"
 
 
 = WALL-CLOCK =

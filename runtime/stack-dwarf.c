@@ -29,12 +29,11 @@ static int _stp_valid_pc_addr(unsigned long addr, struct task_struct *tsk)
 	return addr != 0L && tsk != NULL ? ok : ! ok;
 }
 
-static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
-			      struct task_struct *tsk,
+static void __stp_dwarf_stack_print(struct pt_regs *regs, int verbose,
+			      int levels, struct task_struct *tsk,
 			      struct unwind_context *uwcontext,
 			      struct uretprobe_instance *ri, int uregs_valid)
 {
-#ifdef STP_USE_DWARF_UNWINDER
 	struct unwind_frame_info *info = &uwcontext->info;
 	int sanitize = tsk && ! uregs_valid;
 	arch_unw_init_frame_info(info, regs, sanitize);
@@ -70,5 +69,4 @@ static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels,
 						  verbose, levels, 0);
 		return;
 	}
-#endif
 }

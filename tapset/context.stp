@@ -15,12 +15,14 @@
 /**
  * sfunction print_regs - Print a register dump
  * 
- * Description: This function prints a register dump.
+ * Description: This function prints a register dump. Does nothing if no registers are available for the probe point.
  */
 function print_regs ()
 %{
-	if (CONTEXT->regs) {
-		_stp_print_regs (CONTEXT->regs);
+	if ((c->probe_flags & _STP_PROBE_STATE_USER_MODE) && CONTEXT->uregs) {
+		_stp_print_regs (CONTEXT->uregs);
+	} else if (CONTEXT->kregs) {
+		_stp_print_regs (CONTEXT->kregs);
 	}
 %}
 
@@ -232,7 +234,9 @@ function pp:string ()
  */
 function registers_valid:long ()
 %{ /* pure */ /* unprivileged */
-	THIS->__retvalue = (CONTEXT->regs != NULL);
+	THIS->__retvalue = ((c->probe_flags & _STP_PROBE_STATE_USER_MODE)
+			    ? (CONTEXT->uregs != NULL)
+			    : (CONTEXT->kregs != NULL));
 %}
 
 /**
@@ -242,11 +246,8 @@ function registers_valid:long ()
  */
 function user_mode:long ()
 %{ /* pure */ /* unprivileged */
-  if (CONTEXT->regs && (CONTEXT->regflags & _STP_REGS_USER_FLAG)) {
-    THIS->__retvalue = 1;
-  } else {
-    THIS->__retvalue = 0;
-  }
+  THIS->__retvalue = (CONTEXT->probe_flags
+		      & _STP_PROBE_STATE_USER_MODE) ? 1 : 0;
 %}
 
 /**
@@ -352,7 +353,11 @@ function stack_unused:long ()
  */
 function addr:long ()
 %{ /* pure */
-  THIS->__retvalue = (intptr_t)(CONTEXT->regs ? REG_IP(CONTEXT->regs) : 0);
+  if (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE) {
+    THIS->__retvalue = (intptr_t)(CONTEXT->uregs ? REG_IP(CONTEXT->uregs) : 0);
+  } else {
+    THIS->__retvalue = (intptr_t)(CONTEXT->kregs ? REG_IP(CONTEXT->kregs) : 0);
+  }
 %}
 
 /**
@@ -362,20 +367,22 @@ function addr:long ()
  * task was at when the probe occurred. When the current running task
  * isn't a user space thread, or the address cannot be found, zero
  * is returned. Can be used to see where the current task is combined
- * with usymname() or symdata(). Often the task will be in the VDSO
+ * with usymname() or usymdata(). Often the task will be in the VDSO
  * where it entered the kernel.
  */
 function uaddr:long ()
 %{ /* pure */ /* myproc-unprivileged */
-  int64_t addr = 0;
-  if (current->mm)
-    {
-      struct pt_regs *uregs;
-      uregs = task_pt_regs(current);
-      if (uregs)
-        addr = (int64_t) REG_IP(uregs);
-    }
-  THIS->__retvalue = addr;
+  struct pt_regs *uregs;
+
+  if (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
+    uregs = CONTEXT->uregs;
+  else
+    uregs = _stp_current_pt_regs();
+
+  if (uregs)
+    THIS->__retvalue = (int64_t) REG_IP(uregs);
+  else
+    THIS->__retvalue = 0;
 %}
 
 

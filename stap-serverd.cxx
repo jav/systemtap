@@ -36,6 +36,8 @@ extern "C" {
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 #include <nspr.h>
 #include <ssl.h>
@@ -580,6 +582,23 @@ static void
 initialize (int argc, char **argv) {
   setup_signals (& handle_interrupt);
 
+  // Seed the random number generator. Used to generate noise used during key generation.
+  srand (time (NULL));
+
+  // Initial values.
+  client_version = "1.0"; // Assumed until discovered otherwise
+  use_db_password = false;
+  port = 0;
+  keep_temp = false;
+  struct utsname utsname;
+  uname (& utsname);
+  uname_r = utsname.release;
+  arch = normalize_machine (utsname.machine);
+
+  // Parse the arguments. This also starts the server log, if any, and should be done before
+  // any messages are issued.
+  parse_options (argc, argv);
+
   // PR11197: security prophylactics.
   // 1) Reject use as root, except via a special environment variable.
   if (! getenv ("STAP_PR11197_OVERRIDE")) {
@@ -587,8 +606,11 @@ initialize (int argc, char **argv) {
       fatal ("For security reasons, invocation of stap-serverd as root is not supported.");
   }
   // 2) resource limits should be set if the user is the 'stap-server' daemon.
-  string login = getlogin ();
-  if (login == "stap-server") {
+  struct passwd *pw = getpwuid (geteuid ());
+  if (! pw)
+    fatal (_F("Unable to determine effective user name: %s", strerror (errno)));
+  string username = pw->pw_name;
+  if (username == "stap-server") {
     // First obtain the current limits.
     int rc = getrlimit (RLIMIT_FSIZE, & our_RLIMIT_FSIZE);
     rc |= getrlimit (RLIMIT_STACK, & our_RLIMIT_STACK);
@@ -617,24 +639,8 @@ initialize (int argc, char **argv) {
   else
     set_rlimits = false;
 
-  // Seed the random number generator. Used to generate noise used during key generation.
-  srand (time (NULL));
-
-  // Initial values.
-  client_version = "1.0"; // Assumed until discovered otherwise
-  use_db_password = false;
-  port = 0;
-  keep_temp = false;
-  struct utsname utsname;
-  uname (& utsname);
-  uname_r = utsname.release;
-  arch = normalize_machine (utsname.machine);
-
-  // Parse the arguments.
-  parse_options (argc, argv);
-
   pid_t pid = getpid ();
-  log (_F("===== compile server pid %d starting =====", pid));
+  log (_F("===== compile server pid %d starting as %s =====", pid, username.c_str ()));
 
   // Where is the ssl certificate/key database?
   if (cert_db_path.empty ())

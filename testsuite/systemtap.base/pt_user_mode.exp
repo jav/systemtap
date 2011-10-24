@@ -1,0 +1,10 @@
+# Check that perf/timer probes trigger in both kernel and user space.
+set test "pt_user_mode"
+
+proc run_test_load {} {
+    # do something silly that uses both user and kernel time.
+    catch { exec dd if=/dev/zero of=/dev/null bs=17 count=502432 conv=ebcdic }
+    return 0
+}
+
+stap_run $srcdir/$subdir/$test.stp run_test_load $all_pass_string

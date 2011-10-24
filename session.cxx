@@ -100,6 +100,7 @@ systemtap_session::systemtap_session ():
   panic_warnings = false;
   listing_mode = false;
   listing_mode_vars = false;
+  dump_probe_types = false;
 
 #ifdef ENABLE_PROLOGUES
   prologue_searching = true;
@@ -131,7 +132,7 @@ systemtap_session::systemtap_session ():
   ignore_dwarf = false;
   load_only = false;
   skip_badvars = false;
-  unprivileged = false;
+  privilege = pr_stapdev;
   omit_werror = false;
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
@@ -266,6 +267,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   panic_warnings = other.panic_warnings;
   listing_mode = other.listing_mode;
   listing_mode_vars = other.listing_mode_vars;
+  dump_probe_types = other.dump_probe_types;
 
   prologue_searching = other.prologue_searching;
 
@@ -293,7 +295,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   ignore_dwarf = other.ignore_dwarf;
   load_only = other.load_only;
   skip_badvars = other.skip_badvars;
-  unprivileged = other.unprivileged;
+  privilege = other.privilege;
   omit_werror = other.omit_werror;
   compatible = other.compatible;
   unwindsym_ldd = other.unwindsym_ldd;
@@ -481,7 +483,7 @@ systemtap_session::usage (int exitcode)
     "   -q         generate information on tapset coverage\n"
 #endif /* HAVE_LIBSQLITE3 */
     "   --unprivileged\n"
-    "              restrict usage to features available to unprivileged users\n"
+    "              equivalent to --privilege=stapusr\n"
 #if 0 /* PR6864: disable temporarily; should merge with -d somehow */
     "   --kelf     make do with symbol table from vmlinux\n"
     "   --kmap[=FILE]\n"
@@ -519,6 +521,8 @@ systemtap_session::usage (int exitcode)
     "   --download-debuginfo[=OPTION]\n"
     "              automatically download debuginfo."
     "              yes,no,ask,<timeout value>\n"
+    "   --dump-probe-types\n"
+    "              show a list of available probe types.\n"
     , compatible.c_str()) << endl
   ;
 
@@ -568,6 +572,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_REMOTE_PREFIX 24
 #define LONG_OPT_TMPDIR 25
 #define LONG_OPT_DOWNLOAD_DEBUGINFO 26
+#define LONG_OPT_DUMP_PROBE_TYPES 27
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -602,6 +607,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "version", 0, &long_opt, LONG_OPT_VERSION },
         { "tmpdir", 1, &long_opt, LONG_OPT_TMPDIR },
         { "download-debuginfo", 2, &long_opt, LONG_OPT_DOWNLOAD_DEBUGINFO },
+        { "dump-probe-types", 0, &long_opt, LONG_OPT_DUMP_PROBE_TYPES },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -939,7 +945,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      break;
 	    case LONG_OPT_UNPRIVILEGED:
 	      push_server_opt = true;
-	      unprivileged = true;
+	      privilege = pr_stapusr;
               /* NB: for server security, it is essential that once this flag is
                  set, no future flag be able to unset it. */
 	      break;
@@ -1092,6 +1098,11 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               systemtap_v_check = true;
               break;
 
+	    case LONG_OPT_DUMP_PROBE_TYPES:
+	      push_server_opt = true;
+	      dump_probe_types = true;
+	      break;
+
             default:
               // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
               cerr << _F("Unhandled long argument id %d", long_opt) << endl;
@@ -1147,8 +1158,9 @@ systemtap_session::check_options (int argc, char * const argv [])
   // NB: this is also triggered if stap is invoked with no arguments at all
   if (! have_script)
     {
-      // We don't need a script if --list-servers or --trust-servers was specified
-      if (server_status_strings.empty () && server_trust_spec.empty ())
+      // We don't need a script if --list-servers, --trust-servers or --dump-probe-types was
+      // specified.
+      if (server_status_strings.empty () && server_trust_spec.empty () && ! dump_probe_types)
 	{
 	  cerr << _("A script must be specified.") << endl;
 	  usage(1);
@@ -1189,11 +1201,11 @@ systemtap_session::check_options (int argc, char * const argv [])
 	  if (! stgr || ! in_group_id (stgr->gr_gid))
 	    {
               automatic_server_mode = true;
-	      if (! unprivileged)
+	      if (privilege >= pr_stapdev)
 		{
                   if (perpass_verbose[0] > 1)
                     cerr << _("Using --unprivileged for member of the group stapusr") << endl;
-		  unprivileged = true;
+		  privilege = pr_stapusr;
 		  server_args.push_back ("--unprivileged");
 		}
 	      if (specified_servers.empty ())
@@ -1206,7 +1218,7 @@ systemtap_session::check_options (int argc, char * const argv [])
 	}
     }
 
-  if (client_options && unprivileged && ! client_options_disallowed.empty ())
+  if (client_options && privilege < pr_stapdev && ! client_options_disallowed.empty ())
     {
       cerr << _F("You can't specify %s when --unprivileged is specified.",
                  client_options_disallowed.c_str()) << endl;
@@ -1217,7 +1229,7 @@ systemtap_session::check_options (int argc, char * const argv [])
       cerr << _F("You can't specify %s and %s together.", "-c", "-x") << endl;
       usage (1);
     }
-  if (unprivileged && guru_mode)
+  if (privilege < pr_stapdev && guru_mode)
     {
       cerr << _F("You can't specify %s and %s together.", "-g", "--unprivileged") << endl;
       usage (1);
@@ -1387,7 +1399,7 @@ systemtap_session::register_library_aliases()
                     }
 		  // PR 12916: All probe aliases are OK for unprivileged users. The actual
 		  // referenced probe points will be checked when the alias is resolved.
-		  mn->bind_unprivileged ();
+		  mn->bind_privilege (pr_stapusr);
                   mn->bind(new alias_expansion_builder(alias));
                 }
             }
@@ -1535,6 +1547,18 @@ systemtap_session::print_warning (const string& message_str, const token* tok)
       if (tok) { print_error_source (clog, align_warning, tok); }
     }
 }
+
+
+translator_output* systemtap_session::op_create_auxiliary()
+{
+  static int counter = 0;
+  string tmpname = this->tmpdir + "/" + this->module_name + "_aux_" + lex_cast(counter++) + ".c";
+  translator_output* n = new translator_output (tmpname);
+  auxiliary_outputs.push_back (n);
+  return n;
+}
+
+
 
 // --------------------------------------------------------------------------
 

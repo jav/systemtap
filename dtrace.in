@@ -127,13 +127,13 @@ class _provider(object):
                     args_string = ('%s %s' % (args_string, arg.strip()))
                 if (not args_string):
                     c = 0
-                    stap_str = "STAP_PROBE(%s,%s" % \
+                    stap_str = "DTRACE_PROBE(%s,%s" % \
                     (self.provider,this_probe)
                 else:
                     c += 1
                     typedefs = self.__typedef_append (typedefs, this_probe,
                                                       arg, c, add_typedefs)
-                    stap_str = "STAP_PROBE%d(%s,%s" % \
+                    stap_str = "DTRACE_PROBE%d(%s,%s" % \
                         (c,self.provider,this_probe)
                 define_str = "#define %s(" % (this_probe_canon)
                 i = 1
