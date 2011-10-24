@@ -443,7 +443,6 @@ __stp_utrace_attach(struct task_struct *tsk,
 		    enum utrace_resume_action action)
 {
 	struct utrace_engine *engine;
-	struct mm_struct *mm;
 	int rc = 0;
 
 	// Ignore invalid tasks.
@@ -458,10 +457,12 @@ __stp_utrace_attach(struct task_struct *tsk,
 
 	// Ignore threads with no mm (which are either kernel threads
 	// or "mortally wounded" threads).
-	mm = get_task_mm(tsk);
-	if (! mm)
+	//
+	// Note we're not calling get_task_mm()/mmput() here.  Since
+	// we're in the the context of that task, the mm should stick
+	// around without locking it (and mmput() can sleep).
+	if (! tsk->mm)
 		return EPERM;
-	mmput(mm);
 
 	/* FIXME: for now do nothing. */
 	engine = utrace_attach_task(tsk, UTRACE_ATTACH_CREATE, ops, data);
@@ -626,7 +627,11 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	unsigned long offset = 0;
 	unsigned long vm_flags = 0;
 
-	mm = get_task_mm(tsk);
+	// __stp_call_mmap_callbacks_with_addr() is only called when
+	// tsk is current, so there isn't any danger of mm going
+	// away.  So, we don't need to call get_task_mm()/mmput()
+	// (which avoids the possibility of sleeping).
+	mm = tsk->mm;
 	if (! mm)
 		return;
 
@@ -644,7 +649,6 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 		mmpath_buf = _stp_kmalloc(PATH_MAX);
 		if (mmpath_buf == NULL) {
 			up_read(&mm->mmap_sem);
-			mmput(mm);
 			_stp_error("Unable to allocate space for path");
 			return;
 		}
@@ -680,7 +684,6 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	// Cleanup.
 	if (mmpath_buf)
 		_stp_kfree(mmpath_buf);
-	mmput(mm);
 	return;
 }
 
@@ -876,8 +879,12 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	    || match_tsk == NULL || match_tsk->pid <= 0)
 		return;
 
-	/* Grab the path associated with the path_tsk. */
-	mm = get_task_mm(path_tsk);
+	// Grab the path associated with the path_tsk.
+	//
+	// Note we're not calling get_task_mm()/mmput() here.  Since
+	// we're in the the context of path_task, the mm should stick
+	// around without locking it (and mmput() can sleep).
+	mm = path_tsk->mm;
 	if (! mm) {
 		/* If the thread doesn't have a mm_struct, it is
 		 * a kernel thread which we need to skip. */
@@ -887,14 +894,12 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	// Allocate space for a path
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
 	if (mmpath_buf == NULL) {
-		mmput(mm);
 		_stp_error("Unable to allocate space for path");
 		return;
 	}
 
 	// Grab the path associated with the new task
 	mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
-	mmput(mm);			/* We're done with mm */
 	if (mmpath == NULL || IS_ERR(mmpath)) {
 		int rc = -PTR_ERR(mmpath);
 		if (rc != ENOENT)
@@ -1087,16 +1092,19 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 	struct vma_cache_t *vma_cache = NULL;
 	struct vma_cache_t *vma_cache_p; 
 
-	/* Call the mmap_callback for every vma associated with
-	 * a file. */
-	mm = get_task_mm(tsk);
+	// Call the mmap_callback for every vma associated with
+	// a file.
+	//
+	// Note we're not calling get_task_mm()/mmput() here.  Since
+	// we're in the the context of that task, the mm should stick
+	// around without locking it (and mmput() can sleep).
+	mm = tsk->mm;
 	if (! mm)
 		return;
 
 	// Allocate space for a path
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
 	if (mmpath_buf == NULL) {
-		mmput(mm);
 		_stp_error("Unable to allocate space for path");
 		return;
 	}
@@ -1190,7 +1198,6 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 		_stp_kfree(vma_cache);
 	}
 
-	mmput(mm);		/* We're done with mm */
 	_stp_kfree(mmpath_buf);
 }
 
@@ -1506,7 +1513,11 @@ stap_start_task_finder(void)
 			goto stf_err;
 		}
 
-		/* Grab the path associated with this task. */
+		// Grab the path associated with this task.
+		//
+		// Note we *are* calling get_task_mm()/mmput() here.
+		// We're not in the context of tsk, so we need to make
+		// sure the mm sticks around (if it exists).
 		mm = get_task_mm(tsk);
 		if (! mm) {
 		    /* If the thread doesn't have a mm_struct, it is
