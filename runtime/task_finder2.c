@@ -1482,94 +1482,94 @@ stap_start_task_finder(void)
 	 * threads, so we can report on their memory maps. But, for now... */
 	rcu_read_lock();
 	do_each_thread(grp, tsk) {
-	    struct mm_struct *mm;
-	    char *mmpath;
-	    size_t mmpathlen;
-	    struct list_head *tgt_node;
+		struct mm_struct *mm;
+		char *mmpath;
+		size_t mmpathlen;
+		struct list_head *tgt_node;
 
-	    /* Skip over processes other than that specified with
-	     * stap -c or -x. */
-	    if (_stp_target && tsk->tgid != _stp_target)
-		continue;
+		/* Skip over processes other than that specified with
+		 * stap -c or -x. */
+		if (_stp_target && tsk->tgid != _stp_target)
+			continue;
 
-	    rc = __stp_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
-				     __STP_TASK_FINDER_EVENTS,
-				     UTRACE_RESUME);
-	    if (rc == EPERM) {
-		/* Ignore EPERM errors, which mean this wasn't
-		 * a thread we can attach to. */
-		rc = 0;
-		continue;
-	    }
-	    else if (rc != 0) {
-		/* If we get a real error, quit. */
-		goto stf_err;
-	    }
+		rc = __stp_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
+					 __STP_TASK_FINDER_EVENTS,
+					 UTRACE_RESUME);
+		if (rc == EPERM) {
+			/* Ignore EPERM errors, which mean this wasn't
+			 * a thread we can attach to. */
+			rc = 0;
+			continue;
+		}
+		else if (rc != 0) {
+			/* If we get a real error, quit. */
+			goto stf_err;
+		}
 
-	    /* Grab the path associated with this task. */
-	    mm = get_task_mm(tsk);
-	    if (! mm) {
-		/* If the thread doesn't have a mm_struct, it is
-		 * a kernel thread which we need to skip. */
-		continue;
-	    }
-	    mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
-	    mmput(mm);		/* We're done with mm */
-	    if (mmpath == NULL || IS_ERR(mmpath)) {
-		rc = -PTR_ERR(mmpath);
-		if (rc == ENOENT) {
+		/* Grab the path associated with this task. */
+		mm = get_task_mm(tsk);
+		if (! mm) {
+		    /* If the thread doesn't have a mm_struct, it is
+		     * a kernel thread which we need to skip. */
 		    continue;
 		}
-		else {
-		    _stp_error("Unable to get path (error %d) for pid %d",
-			       rc, (int)tsk->pid);
-		    goto stf_err;
+		mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
+		mmput(mm);		/* We're done with mm */
+		if (mmpath == NULL || IS_ERR(mmpath)) {
+			rc = -PTR_ERR(mmpath);
+			if (rc == ENOENT) {
+				continue;
+			}
+			else {
+				_stp_error("Unable to get path (error %d) for pid %d",
+					   rc, (int)tsk->pid);
+				goto stf_err;
+			}
 		}
-	    }
 
-	    /* Check the thread's exe's path/pid against our list. */
+		/* Check the thread's exe's path/pid against our list. */
 #ifdef STAPCONF_TASK_UID
-	    tsk_euid = tsk->euid;
+		tsk_euid = tsk->euid;
 #else
-	    tsk_euid = task_euid(tsk);
+		tsk_euid = task_euid(tsk);
 #endif
-	    mmpathlen = strlen(mmpath);
-	    list_for_each(tgt_node, &__stp_task_finder_list) {
-		struct stap_task_finder_target *tgt;
+		mmpathlen = strlen(mmpath);
+		list_for_each(tgt_node, &__stp_task_finder_list) {
+			struct stap_task_finder_target *tgt;
 
-		tgt = list_entry(tgt_node,
-				 struct stap_task_finder_target, list);
-		if (tgt == NULL)
-		    continue;
-		/* procname-based target */
-		else if (tgt->pathlen > 0
-			 && (tgt->pathlen != mmpathlen
-			     || strcmp(tgt->procname, mmpath) != 0))
-		    continue;
-		/* pid-based target */
-		else if (tgt->pid != 0 && tgt->pid != tsk->pid)
-		    continue;
-		/* Notice that "pid == 0" (which means to
-		 * probe all threads) falls through. */
+			tgt = list_entry(tgt_node,
+					 struct stap_task_finder_target, list);
+			if (tgt == NULL)
+				continue;
+			/* procname-based target */
+			else if (tgt->pathlen > 0
+				 && (tgt->pathlen != mmpathlen
+				     || strcmp(tgt->procname, mmpath) != 0))
+				continue;
+			/* pid-based target */
+			else if (tgt->pid != 0 && tgt->pid != tsk->pid)
+				continue;
+			/* Notice that "pid == 0" (which means to
+			 * probe all threads) falls through. */
 
 #if STP_PRIVILEGE < STP_PR_STAPDEV
-		/* Make sure unprivileged users only probe their own threads.  */
-		if (_stp_uid != tsk_euid) {
-		    if (tgt->pid != 0 || _stp_target) {
-			_stp_warn("Process %d does not belong to unprivileged user %d",
-				  tsk->pid, _stp_uid);
-		    }
-		    continue;
-		}
+			/* Make sure unprivileged users only probe their own threads.  */
+			if (_stp_uid != tsk_euid) {
+				if (tgt->pid != 0 || _stp_target) {
+					_stp_warn("Process %d does not belong to unprivileged user %d",
+						  tsk->pid, _stp_uid);
+				}
+				continue;
+			}
 #endif
 
-		// Set up events we need for attached tasks.
-		rc = __stp_utrace_attach(tsk, &tgt->ops, tgt,
-					 __STP_ATTACHED_TASK_EVENTS,
-					 UTRACE_STOP);
-		if (rc != 0 && rc != EPERM)
-		    goto stf_err;
-		tgt->engine_attached = 1;
+			// Set up events we need for attached tasks.
+			rc = __stp_utrace_attach(tsk, &tgt->ops, tgt,
+						 __STP_ATTACHED_TASK_EVENTS,
+						 UTRACE_STOP);
+			if (rc != 0 && rc != EPERM)
+				goto stf_err;
+			tgt->engine_attached = 1;
 		}
 	} while_each_thread(grp, tsk);
 stf_err:
