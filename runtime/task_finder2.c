@@ -643,7 +643,10 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 		// Allocate space for a path
 		mmpath_buf = _stp_kmalloc(PATH_MAX);
 		if (mmpath_buf == NULL) {
+			up_read(&mm->mmap_sem);
+			mmput(mm);
 			_stp_error("Unable to allocate space for path");
+			return;
 		}
 		else {
 			// Grab the path associated with this vma.
