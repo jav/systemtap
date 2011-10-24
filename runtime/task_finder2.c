@@ -780,7 +780,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 		/* Notice that "pid == 0" (which means to probe all
 		 * threads) falls through. */
 
-#ifndef STP_PRIVILEGED
+#if STP_PRIVILEGE < STP_PR_STAPDEV
 		/* Make sure unprivileged users only probe their own threads. */
 		if (_stp_uid != tsk_euid) {
 			if (tgt->pid != 0) {
@@ -1552,7 +1552,7 @@ stap_start_task_finder(void)
 		/* Notice that "pid == 0" (which means to
 		 * probe all threads) falls through. */
 
-#ifndef STP_PRIVILEGED
+#if STP_PRIVILEGE < STP_PR_STAPDEV
 		/* Make sure unprivileged users only probe their own threads.  */
 		if (_stp_uid != tsk_euid) {
 		    if (tgt->pid != 0 || _stp_target) {
