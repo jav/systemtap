@@ -169,7 +169,7 @@ derived_probe::emit_privilege_assertion (translator_output* o)
 {
   // Emit code which will cause compilation to fail if it is compiled in
   // unprivileged mode.
-  o->newline() << "#if STP_PRIVILEGE < STP_PR_STAPDEV";
+  o->newline() << "#if ! STP_PRIVILEGE_CONTAINS(STP_PRIVILEGE, STP_PR_STAPDEV)";
   o->newline() << "#error Internal Error: Probe ";
   probe::printsig (o->line());
   o->line()    << " generated in --unprivileged mode";
@@ -182,7 +182,7 @@ derived_probe::emit_process_owner_assertion (translator_output* o)
 {
   // Emit code which will abort should the current target not belong to the
   // user in unprivileged mode.
-  o->newline() << "#if STP_PRIVILEGE < STP_PR_STAPDEV";
+  o->newline() << "#if ! STP_PRIVILEGE_CONTAINS(STP_PRIVILEGE, STP_PR_STAPDEV)";
   o->newline(1)  << "if (! is_myproc ()) {";
   o->newline(1)  << "snprintf(c->error_buffer, sizeof(c->error_buffer),";
   o->newline()   << "         \"Internal Error: Process %d does not belong to user %d in probe %s in --unprivileged mode\",";

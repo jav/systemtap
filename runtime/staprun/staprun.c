@@ -35,7 +35,8 @@ char *__name__ = "staprun";
 extern long delete_module(const char *, unsigned int);
 
 int send_relocations ();
-int send_tzinfo ();
+void send_tzinfo ();
+void send_privilege_credentials ();
 
 static int remove_module(const char *name, int verb);
 
@@ -175,9 +176,9 @@ static int enable_uprobes(void)
 	return 1; /* failure */
 }
 
-/* Determine the priviilege credentials of the current user. If the user is not root, this
+/* Determine the privilege credentials of the current user. If the user is not root, this
    is determined by the user's group memberships. */
-static int get_stp_privilege (void)
+static int get_privilege_credentials (void)
 {
   gid_t gid, gidlist[NGROUPS_MAX];
   int i, ngids;
@@ -209,7 +210,7 @@ static int get_stp_privilege (void)
   stp_privilege = 0;
 
   /* According to the getgroups() man page, getgroups() may not
-   * return the effective gid, so examine the effective gid first first followed by the groups
+   * return the effective gid, so examine the effective gid first first followed by the group
    * gids obtained by getgroups. */
   for (i = -1, gid = getegid(); i < ngids; ++i, gid = gidlist[i])
     {
@@ -227,12 +228,10 @@ static int get_stp_privilege (void)
 static int insert_stap_module(void)
 {
 	char special_options[128];
-	int stp_privilege;
 
-	/* Add the _stp_bufsize option and the _stp_privilege option.  */
-	stp_privilege = get_stp_privilege ();
+	/* Add the _stp_bufsize option.  */
 	if (snprintf_chk(special_options, sizeof (special_options),
-			 "_stp_bufsize=%d _stp_privilege=0x%x", buffer_size, stp_privilege))
+			 "_stp_bufsize=%d", buffer_size))
 		return -1;
 
 	stap_module_inserted = insert_module(modpath, special_options,
@@ -308,11 +307,13 @@ static int remove_module(const char *name, int verb)
 
 int init_staprun(void)
 {
+	int rc;
 	dbug(2, "init_staprun\n");
 
 	if (mountfs() < 0)
 		return -1;
 
+	rc = 0;
 	if (delete_mod)
 		exit(remove_module(modname, 1));
 	else if (!attach_mod) {
@@ -327,12 +328,18 @@ int init_staprun(void)
                            advise people to use -R. */
 			return -1;
 		}
-		if (send_relocations() < 0)
-			return -1;
-                if (send_tzinfo() < 0)
-                        return -1;
+		rc = init_ctl_channel (modname, 0);
+		if (rc >= 0) {
+		  rc = send_relocations();
+		  if (rc >= 0) {
+		    rc = 0;
+		    send_privilege_credentials();
+		    send_tzinfo();
+		  }
+		  close_ctl_channel ();
+		}
 	}
-	return 0;
+	return rc;
 }
 
 int main(int argc, char **argv)
@@ -599,25 +606,17 @@ void send_relocation_modules ()
 int send_relocations ()
 {
   int rc;
-  rc = init_ctl_channel (modname, 0);
-  if (rc < 0) goto out;
   rc = send_relocation_kernel ();
   send_relocation_modules ();
-  close_ctl_channel ();
- out:
   return rc;
 }
 
 
-int send_tzinfo ()
+void send_tzinfo ()
 {
-  int rc;
   struct _stp_msg_tzinfo tzi;
   time_t now_t;
   struct tm* now;
-
-  rc = init_ctl_channel (modname, 0);
-  if (rc < 0) goto out;
 
   /* NB: This is not good enough; it sends DST-unaware numbers. */
 #if 0
@@ -632,7 +631,11 @@ int send_tzinfo ()
   strncpy (tzi.tz_name, now->tm_zone, STP_TZ_NAME_LEN);
 
   send_request(STP_TZINFO, & tzi, sizeof(tzi));
-  close_ctl_channel ();
- out:
-  return rc;
+}
+
+void send_privilege_credentials ()
+{
+  struct _stp_msg_privilege_credentials pc;
+  pc.pc_group_mask = get_privilege_credentials ();
+  send_request(STP_PRIVILEGE_CREDENTIALS, & pc, sizeof(pc));
 }

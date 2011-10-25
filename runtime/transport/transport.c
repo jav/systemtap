@@ -69,10 +69,6 @@ static int _stp_bufsize;
 module_param(_stp_bufsize, int, 0);
 MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 
-static int _stp_privilege;
-module_param(_stp_privilege, int, 0);
-MODULE_PARM_DESC(_stp_privilege, "user's privilege credentials");
-
 /* forward declarations */
 static void systemtap_module_exit(void);
 static int systemtap_module_init(void);
@@ -305,16 +301,6 @@ static int _stp_transport_init(void)
 		}
 		_stp_nsubbufs = size / _stp_subbuf_size;
 		dbug_trans(1, "Using %d subbufs of size %d\n", _stp_nsubbufs, _stp_subbuf_size);
-	}
-
-	if (_stp_privilege) {
-		dbug_trans(1, "User's privilege credentials given as 0x%x\n", _stp_privilege);
-	}
-	else {
-		/* This module was loaded by an old instance of staprun which does not pass the
-		   user's privilege credentials. We must assume the lowest credentials. */
-		_stp_privilege = STP_PR_LOWEST;
-		dbug_trans(1, "User's privilege credentials default to 0x%x\n", _stp_privilege);
 	}
 
 	if (_stp_transport_fs_init(THIS_MODULE->name) != 0)
@@ -580,6 +566,13 @@ static void _stp_handle_tzinfo (struct _stp_msg_tzinfo* tzi)
          * for example if MAXSTRINGLEN < STP_TZ_NAME_LEN-1 */
 }
 
+
+static int32_t _stp_privilege_credentials = 0;
+
+static void _stp_handle_privilege_credentials (struct _stp_msg_privilege_credentials* pc)
+{
+  _stp_privilege_credentials = pc->pc_group_mask;
+}
 
 
 #endif /* _TRANSPORT_C_ */

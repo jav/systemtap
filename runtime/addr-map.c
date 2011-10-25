@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Map of addresses to disallow.
- * Copyright (C) 2005-2009 Red Hat Inc.
+ * Copyright (C) 2005-20011 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -104,7 +104,7 @@ lookup_addr_aux(unsigned long addr, size_t size, struct addr_map* map)
   return 0;
 }
 
-#if STP_PRIVILEGE < STP_PR_STAPDEV
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
 #include <asm/processor.h> /* For TASK_SIZE */
 #endif
 
@@ -117,7 +117,7 @@ lookup_bad_addr(unsigned long addr, size_t size)
   if (size == 0 || ULONG_MAX - addr < size - 1)
     return 1;
 
-#if STP_PRIVILEGE < STP_PR_STAPDEV
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
   /* Unprivileged users must not access memory while the context
      does not refer to their own process.  */
   if (! is_myproc ())

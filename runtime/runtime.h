@@ -76,7 +76,21 @@ static void _stp_exit(void);
 
 #define is_myproc() (STP_CURRENT_EUID == _stp_uid)
 
-#if STP_PRIVILEGE < STP_PR_STAPDEV
+/* Check whether the required privilege level has been attained. */
+#define STP_PRIVILEGE_CONTAINS(actualPrivilege, requiredPrivilege) ( \
+  ((actualPrivilege) & (requiredPrivilege)) == (requiredPrivilege) \
+)
+
+/* Translate user privilege mask to text. */
+static const char *privilege_to_text (int p) {
+  if (STP_PRIVILEGE_CONTAINS (p, STP_PR_STAPDEV)) return "stapdev";
+  if (STP_PRIVILEGE_CONTAINS (p, STP_PR_STAPUSR)) return "stapusr";
+  return "unknown";
+}
+
+#if STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
+#define assert_is_myproc() do {} while (0)
+#else
 #define assert_is_myproc() do { \
   if (! is_myproc()) { \
     snprintf (CONTEXT->error_buffer, MAXSTRINGLEN, STAP_MSG_RUNTIME_H_01, \
@@ -84,16 +98,7 @@ static void _stp_exit(void);
     CONTEXT->last_error = CONTEXT->error_buffer; \
     goto out; \
   } } while (0)
-#else
-#define assert_is_myproc() do {} while (0)
 #endif
-
-/* Translate user privilege mask to text. */
-static const char *privilege_to_text (int p) {
-  if ((p & STP_PR_STAPDEV)) return "stapdev";
-  if ((p & STP_PR_STAPUSR)) return "stapusr";
-  return "unknown";
-}
 
 #include "debug.h"
 

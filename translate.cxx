@@ -1565,8 +1565,21 @@ c_unparser::emit_module_init ()
   o->newline() << "if (_stp_module_check()) rc = -EINVAL;";
 
   // Perform checking on the user's credentials vs those required to load/run this module.
-  o->newline() << "if (_stp_privilege < STP_PRIVILEGE) {";
-  o->newline(1) << "_stp_error (\"Your privilege credentials (%s) are less than those required to run this module (%s)\", privilege_to_text(_stp_privilege), privilege_to_text(STP_PRIVILEGE));";
+  o->newline() << "if (_stp_privilege_credentials == 0) {";
+  o->newline(1) << "_stp_privilege_credentials = STP_PR_LOWEST;";
+  o->newline() << "#ifdef DEBUG_PRIVILEGE";
+  o->newline() << "_dbug(\"User's privilege credentials default to %s\\n\",";
+  o->newline() << "      privilege_to_text(_stp_privilege_credentials));";
+  o->newline() << "#endif";
+  o->newline(-1) << "}";
+  o->newline() << "#ifdef DEBUG_PRIVILEGE";
+  o->newline() << "else";
+  o->newline(1) << "_dbug(\"User's privilege credentials provided as %s\\n\",";
+  o->newline() << "      privilege_to_text(_stp_privilege_credentials));";
+  o->newline(-1) << "#endif";
+  o->newline() << "if (! STP_PRIVILEGE_CONTAINS(_stp_privilege_credentials, STP_PRIVILEGE)) {";
+  o->newline(1) << "_stp_error (\"Your privilege credentials (%s) are unsufficient to run this module (%s required)\",";
+  o->newline () << "            privilege_to_text(_stp_privilege_credentials), privilege_to_text(STP_PRIVILEGE));";
   o->newline() << "rc = -EINVAL;";
   o->newline(-1) << "}";
 

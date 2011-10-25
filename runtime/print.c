@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Print Functions
- * Copyright (C) 2007-2009 Red Hat Inc.
+ * Copyright (C) 2007-20011 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -232,7 +232,7 @@ static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
                "%s: systemtap: %s, base: %p"
                ", memory: %ludata/%lutext/%uctx/%unet/%ualloc kb"
                ", probes: %d"
-#if STP_PRIVILEGE < STP_PR_STAPDEV
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
                ", unpriv-uid: %d"
 #endif
                "\n",
@@ -252,7 +252,7 @@ static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
 	       (_stp_allocated_memory - _stp_allocated_net_memory - ctx)/1024,
                /* (un-double-counting net/ctx because they're also stp_alloc'd) */
                num_probes
-#if STP_PRIVILEGE < STP_PR_STAPDEV
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
                , _stp_uid
 #endif
                 );
