@@ -76,6 +76,9 @@ enum
 	/** Send by staprun to notify module of current timezone.
             Only send once at startup.  */
         STP_TZINFO,
+	/** Send by staprun to notify module of the user's privilege credentials.
+            Only send once at startup.  */
+        STP_PRIVILEGE_CREDENTIALS,
 	/** Max number of message types, sanity check only.  */
 	STP_MAX_CMD
 };
@@ -97,6 +100,7 @@ static const char *_stp_command_name[] = {
 	"STP_REALTIME_DATA",
 	"STP_REQUEST_EXIT",
 	"STP_TZINFO",
+	"STP_PRIVILEGE_CREDENTIALS",
 };
 #endif /* DEBUG_TRANS */
 
@@ -154,4 +158,9 @@ struct _stp_msg_tzinfo
 {
         int64_t tz_gmtoff;
         char tz_name[STP_TZ_NAME_LEN];
+};
+
+struct _stp_msg_privilege_credentials
+{
+        int32_t pc_group_mask;
 };

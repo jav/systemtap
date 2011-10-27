@@ -457,7 +457,14 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 	struct vm_area_struct *vma;
 	char *rc = NULL;
 
-	down_read(&mm->mmap_sem);
+	// The down_read() function can sleep, so we'll call
+	// down_read_trylock() instead, which can fail.  If if fails,
+	// we'll just pretend this task didn't have a path.
+	if (!mm || ! down_read_trylock(&mm->mmap_sem)) {
+		*buf = '\0';
+		return ERR_PTR(-ENOENT);
+	}
+
 	vma = mm->mmap;
 	while (vma) {
 		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file)
@@ -857,7 +864,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 		/* Notice that "pid == 0" (which means to probe all
 		 * threads) falls through. */
 
-#if STP_PRIVILEGE < STP_PR_STAPDEV
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
 		/* Make sure unprivileged users only probe their own threads. */
 		if (_stp_uid != tsk_euid) {
 			if (tgt->pid != 0) {
@@ -1623,17 +1630,20 @@ stap_start_task_finder(void)
 
 		// Grab the path associated with this task.
 		//
-		// Note we *are* calling get_task_mm()/mmput() here.
-		// We're not in the context of tsk, so we need to make
-		// sure the mm sticks around (if it exists).
-		mm = get_task_mm(tsk);
-		if (! mm) {
+		// Note we aren't calling get_task_mm()/mmput() here.
+		// Instead we're calling task_lock()/task_unlock().
+		// We really only need to lock the mm, but mmput() can
+		// sleep so we can't call it.  Also note that
+		// __stp_get_mm_path() grabs the mmap semaphore, which
+		// should also keep us safe.
+		task_lock(tsk);
+		if (! tsk->mm) {
 		    /* If the thread doesn't have a mm_struct, it is
 		     * a kernel thread which we need to skip. */
 		    continue;
 		}
-		mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
-		mmput(mm);		/* We're done with mm */
+		mmpath = __stp_get_mm_path(tsk->mm, mmpath_buf, PATH_MAX);
+		task_unlock(tsk);
 		if (mmpath == NULL || IS_ERR(mmpath)) {
 			rc = -PTR_ERR(mmpath);
 			if (rc == ENOENT) {
@@ -1671,7 +1681,7 @@ stap_start_task_finder(void)
 			/* Notice that "pid == 0" (which means to
 			 * probe all threads) falls through. */
 
-#if STP_PRIVILEGE < STP_PR_STAPDEV
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
 			/* Make sure unprivileged users only probe their own threads.  */
 			if (_stp_uid != tsk_euid) {
 				if (tgt->pid != 0 || _stp_target) {
