@@ -297,7 +297,7 @@ static struct utrace *__task_utrace_struct(struct task_struct *task)
  */
 static bool utrace_task_alloc(struct task_struct *task)
 {
-	struct utrace *utrace = kmem_cache_zalloc(utrace_cachep, GFP_KERNEL);
+	struct utrace *utrace = kmem_cache_zalloc(utrace_cachep, GFP_IOFS);
 	struct utrace *u;
 
 	if (unlikely(!utrace))
@@ -530,7 +530,7 @@ struct utrace_engine *utrace_attach_task(
 		utrace = task_utrace_struct(target);
 	}
 
-	engine = kmem_cache_alloc(utrace_engine_cachep, GFP_KERNEL);
+	engine = kmem_cache_alloc(utrace_engine_cachep, GFP_IOFS);
 	if (unlikely(!engine))
 		return ERR_PTR(-ENOMEM);
 
@@ -1706,13 +1706,10 @@ static bool finish_callback(struct task_struct *task, struct utrace *utrace,
 	utrace->reporting = NULL;
 
 	/*
-	 * We've just done an engine callback.  These are allowed to sleep,
-	 * though all well-behaved ones restrict that to blocking kalloc()
-	 * or quickly-acquired mutex_lock() and the like.  This is a good
-	 * place to make sure tracing engines don't introduce too much
-	 * latency under voluntary preemption.
+	 * We've just done an engine callback.  These are *not*
+	 * allowed to sleep, unlike the original utrace (since
+	 * tracepiont handlers aren't allowed to sleep).
 	 */
-	might_sleep();
 
 	return engine->ops == &utrace_detached_ops;
 }
