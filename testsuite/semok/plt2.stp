@@ -1,0 +1,4 @@
+#! /bin/sh
+
+# this should read the plt from -c stap
+stap -p2 -e 'probe process.plt { exit() }' -c stap

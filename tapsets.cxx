@@ -421,6 +421,12 @@ struct dwarf_derived_probe: public derived_probe
 						       match_node * root,
 						       dwarf_builder * dw,
 						       privilege_t privilege);
+  static void register_sdt_variants(systemtap_session& s,
+				    match_node * root,
+				    dwarf_builder * dw);
+  static void register_plt_variants(systemtap_session& s,
+				    match_node * root,
+				    dwarf_builder * dw);
   static void register_patterns(systemtap_session& s);
 
 protected:
@@ -4329,6 +4335,38 @@ dwarf_derived_probe::register_function_and_statement_variants(
 }
 
 void
+dwarf_derived_probe::register_sdt_variants(systemtap_session& s,
+					   match_node * root,
+					   dwarf_builder * dw)
+{
+  root->bind_str(TOK_MARK)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+}
+
+void
+dwarf_derived_probe::register_plt_variants(systemtap_session& s,
+					   match_node * root,
+					   dwarf_builder * dw)
+{
+  root->bind(TOK_PLT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PLT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+}
+
+void
 dwarf_derived_probe::register_patterns(systemtap_session& s)
 {
   match_node* root = s.pattern_root;
@@ -4359,51 +4397,16 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   root->bind(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
     ->bind_privilege(pr_stapusr)
     ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind(TOK_PROCESS)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind(TOK_PLT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind(TOK_PLT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PLT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
-        ->bind_privilege(pr_stapusr)
-        ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
-        ->bind_privilege(pr_stapusr)
-        ->bind(dw);
+
+  register_sdt_variants(s, root->bind(TOK_PROCESS), dw);
+  register_sdt_variants(s, root->bind_str(TOK_PROCESS), dw);
+  register_sdt_variants(s, root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw);
+  register_sdt_variants(s, root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw);
+
+  register_plt_variants(s, root->bind(TOK_PROCESS), dw);
+  register_plt_variants(s, root->bind_str(TOK_PROCESS), dw);
+  register_plt_variants(s, root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw);
+  register_plt_variants(s, root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw);
 }
 
 void
