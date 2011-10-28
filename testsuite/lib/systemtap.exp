@@ -253,7 +253,10 @@ if {[catch {exec stap -p4 -e {probe begin {exit()}}} result]} {
 # NB: if one introduced a [kernel_debuginfo_p] proc like the
 # ones for uprobes/utrace above, and sprinkled it throughout,
 # then this wouldn't have to be a failing condition.
-if {[catch {exec stap -p4 -e {probe syscall.open {println (argstr)}}} result]} {
+# Note the --skip-badvars -w, we just care there is some debuginfo,
+# it is allowed have bad var location descriptors (which will cause
+# some tests to fail of course).
+if {[catch {exec stap --skip-badvars -w -p4 -e {probe syscall.open {println (argstr)}}} result]} {
     puts "\n\n\n**** failed systemtap kernel-debuginfo smoke test:\n"
     puts $result
 #    puts "****\n"
