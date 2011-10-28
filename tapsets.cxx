@@ -5688,6 +5688,12 @@ plt_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  provide(myname);
 	  return;
 	}
+
+      // variable not found -> throw a semantic error
+      // (only to be caught right away, but this may be more complex later...)
+      string alternatives = "$$name";
+      throw semantic_error(_F("unable to find plt variable '%s' (alternatives: %s)",
+                              e->name.c_str(), alternatives.c_str()), e->tok);
     }
   catch (const semantic_error &er)
     {
