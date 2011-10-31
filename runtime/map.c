@@ -192,9 +192,9 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 		for (i = 0; i < max_entries; i++) {
 			/* Called at module init time, so user context.  */
 			if (cpu < 0)
-				tmp = _stp_kmalloc_gfp(size, GFP_KERNEL);
+				tmp = _stp_kmalloc_gfp(size, STP_ALLOC_SLEEP_FLAGS);
 			else
-				tmp = _stp_kmalloc_node_gfp(size, cpu_to_node(cpu), GFP_KERNEL);
+				tmp = _stp_kmalloc_node_gfp(size, cpu_to_node(cpu), STP_ALLOC_SLEEP_FLAGS);
 		
 			if (!tmp)
 				return -1;
@@ -213,7 +213,7 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_size)
 {
 	/* Called from module_init, so user context, may sleep alloc. */
-	MAP m = (MAP) _stp_kzalloc_gfp(sizeof(struct map_root), GFP_KERNEL);
+	MAP m = (MAP) _stp_kzalloc_gfp(sizeof(struct map_root), STP_ALLOC_SLEEP_FLAGS);
 	if (m == NULL)
 		return NULL;
 
@@ -232,7 +232,7 @@ static PMAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data
 	MAP map, m;
 
 	/* Called from module_init, so user context, may sleep alloc. */
-	PMAP pmap = (PMAP) _stp_kzalloc_gfp(sizeof(struct pmap), GFP_KERNEL);
+	PMAP pmap = (PMAP) _stp_kzalloc_gfp(sizeof(struct pmap), STP_ALLOC_SLEEP_FLAGS);
 	if (pmap == NULL)
 		return NULL;
 

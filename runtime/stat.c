@@ -98,7 +98,7 @@ static Stat _stp_stat_init (int type, ...)
 		va_end (ap);
 	}
 	/* Called from module_init, so user context, may sleep alloc. */
-	st = (Stat) _stp_kmalloc_gfp (sizeof(struct _Stat), GFP_KERNEL);
+	st = (Stat) _stp_kmalloc_gfp (sizeof(struct _Stat), STP_ALLOC_SLEEP_FLAGS);
 	if (st == NULL)
 		return NULL;
 	
@@ -117,7 +117,7 @@ static Stat _stp_stat_init (int type, ...)
 	}
 #endif
 	
-	agg = (stat *)_stp_kmalloc_gfp(size, GFP_KERNEL);
+	agg = (stat *)_stp_kmalloc_gfp(size, STP_ALLOC_SLEEP_FLAGS);
 	if (agg == NULL)
 		goto exit2;
 
