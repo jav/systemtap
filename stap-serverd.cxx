@@ -968,10 +968,13 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
   for (unsigned i=0; environ[i]; i++)
     {
       vector<string> environTok;
-      const char *value = getenv(environTok[0].c_str());
-      if (!value) continue;
       tokenize(environ[i], environTok, "=");
-      envMap[environTok[0]] = string(value);
+      if (environTok.empty())
+	continue;
+      if (environTok.size() < 2)
+	envMap[environTok[0]] = ""; // variable is set with empty value
+      else
+	envMap[environTok[0]] = environTok[1];
     }
 
   /* Create regular expression objects to verify lines read from file. Should not allow
