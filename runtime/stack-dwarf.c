@@ -21,12 +21,18 @@ static int _stp_valid_pc_addr(unsigned long addr, struct task_struct *tsk)
 {
 	/* Just a simple check of whether the the address can be accessed
 	   as a user space address. Zero is always bad. */
+
+/* FIXME for s390x PR13350. */
+#if defined (__s390__) || defined (__s390x__)
+       return addr != 0L;
+#else
 	int ok;
 	mm_segment_t oldfs = get_fs();
 	set_fs(USER_DS);
 	ok = access_ok(VERIFY_READ, (long *) (intptr_t) addr, sizeof(long));
 	set_fs(oldfs);
 	return addr != 0L && tsk != NULL ? ok : ! ok;
+#endif
 }
 
 static void __stp_dwarf_stack_print(struct pt_regs *regs, int verbose,

@@ -112,11 +112,11 @@ static struct
 
 #define _stp_seq_inc() (atomic_inc_return(&_stp_seq.seq))
 
-/* dwarf unwinder only tested so far on i386, x86_64 and ppc64.
+/* dwarf unwinder only tested so far on i386, x86_64, ppc64 and s390x.
    Only define STP_USE_DWARF_UNWINDER when STP_NEED_UNWIND_DATA,
    as set through a pragma:unwind in one of the [u]context-unwind.stp
    functions. */
-#if (defined(__i386__) || defined(__x86_64__) || defined(__powerpc64__))
+#if (defined(__i386__) || defined(__x86_64__) || defined(__powerpc64__)) || defined (__s390x__)
 #ifdef STP_NEED_UNWIND_DATA
 #ifndef STP_USE_DWARF_UNWINDER
 #define STP_USE_DWARF_UNWINDER
