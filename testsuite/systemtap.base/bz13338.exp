@@ -1,0 +1,14 @@
+set test bz13338
+
+spawn stap -vvl {process("/usr/bin/?").function("main")}
+set ok 0
+set ko 0
+expect {
+    -timeout 60
+    -re {[process^\r\n]*function..main@[^\r\n]*\r\n} { incr ok; exp_continue }
+    {Expanded process("/usr/bin/[") to process("/usr/bin/[")\r\n} { incr ko }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+if {$ok > 0 && $ko == 0} then { pass "$test" } else { fail "$test $ok $ko" }

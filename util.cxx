@@ -783,10 +783,57 @@ int regexp_match (const string& value, const string& re, vector<string>& matches
 
 bool contains_glob_chars (const string& str)
 {
-  return (str.find("*") != str.npos ||
-          str.find("?") != str.npos ||
-          str.find("[") != str.npos);
+  for (unsigned i=0; i<str.size(); i++)
+    {
+      char this_char = str[i];
+      if (this_char == '\\' && (str.size() > i+1))
+        {
+          // PR13338: skip the escape backslash and the escaped character
+          i++;
+          continue;
+        }
+      if (this_char == '*' || this_char == '?' || this_char == '[')
+        return true;
+    }
+
+  return false;
 }
+
+
+// PR13338: we need these functions to be able to pass through glob metacharacters
+// through the recursive process("...*...") expansion process.
+string escape_glob_chars (const string& str)
+{
+  string op;
+  for (unsigned i=0; i<str.size(); i++)
+    {
+      char this_char = str[i];
+      if (this_char == '*' || this_char == '?' || this_char == '[')
+        op += '\\';
+      op += this_char;
+    }
+  return op;
+}
+
+string unescape_glob_chars (const string& str)
+{
+  string op;
+  for (unsigned i=0; i<str.size(); i++)
+    {
+      char this_char = str[i];
+      if (this_char == '\\' && (str.size() > i+1) )
+        {
+          op += str[i+1];
+          i++;
+          continue;
+        }
+      op += this_char;
+    }
+
+  return op;
+}
+
+
 
 string
 normalize_machine(const string& machine)
