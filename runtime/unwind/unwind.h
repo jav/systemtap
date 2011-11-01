@@ -79,6 +79,20 @@ static const struct {
 #define REG_INVALID(r) (reg_info[r].width == 0)
 #endif
 
+/* Whether the stack pointer should be set from the CFA.
+   If this isn't what the architecture wants, then it should define
+   this as zero.  */
+#ifndef UNW_SP_FROM_CFA
+#define UNW_SP_FROM_CFA 1
+#endif
+
+/* Whether the instruction pointer should be set from the return address
+   column.  If this isn't what the architecture wants, then it should
+   define this as zero.  */
+#ifndef UNW_PC_FROM_RA
+#define UNW_PC_FROM_RA 1
+#endif
+
 #define DW_CFA_nop                          0x00
 #define DW_CFA_set_loc                      0x01
 #define DW_CFA_advance_loc1                 0x02

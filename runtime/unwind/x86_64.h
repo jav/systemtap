@@ -81,7 +81,11 @@
 	PTREGS_INFO(rip) /* Note, placeholder for "fake" dwarf ret reg. */
 #endif /* STAPCONF_X86_UNIREGS */
 
+#define UNW_PC_IDX 16
+#define UNW_SP_IDX 7
+
 #define UNW_NR_REAL_REGS 16
+#define UNW_PC_FROM_RA 0 /* Because rip == return address column already. */
 
 #define UNW_DEFAULT_RA(raItem, dataAlign) \
 	((raItem).where == Memory && \

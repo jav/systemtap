@@ -1273,25 +1273,20 @@ static int unwind_frame(struct unwind_context *context,
 		if (REG_INVALID(i))
 			continue;
 		dbug_unwind(2, "register %d. where=%d\n", i, REG_STATE.regs[i].where);
-		if (reg_info[i].width == sizeof(UNW_SP(frame))
-		     && (&FRAME_REG(i, __typeof__(UNW_SP(frame)))
-			 == &UNW_SP(frame))
-		     && (REG_STATE.regs[i].where == Same
-			 || REG_STATE.regs[i].where == Nowhere)) {
-			/* Special case SP if it is not explicitly set. */
+
+#if (UNW_SP_FROM_CFA == 1)
+		if (i == UNW_SP_IDX) {
 			UNW_SP(frame) = cfa;
 			continue;
 		}
+#endif
 
-		if (reg_info[i].width == sizeof(UNW_PC(frame))
-		     && (&FRAME_REG(i, __typeof__(UNW_PC(frame)))
-			 == &UNW_PC(frame))
-		     && (REG_STATE.regs[i].where == Same
-			 || REG_STATE.regs[i].where == Nowhere)) {
-			/* Special case PC if it is not explicitly set. */
+#if (UNW_PC_FROM_RA == 1)
+		if (i == UNW_PC_IDX) {
 			UNW_PC(frame) = FRAME_REG(retAddrReg, unsigned long);
 			continue;
 		}
+#endif
 
 		switch (REG_STATE.regs[i].where) {
 		case Same:

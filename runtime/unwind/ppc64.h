@@ -74,6 +74,9 @@
          : (r == 66) ? 33 /* ctr */		\
          : 9999)
 
+#define UNW_PC_IDX 35
+#define UNW_SP_IDX 1
+
 #define UNW_NR_REAL_REGS 35 /* We don't count nip. */
 
 #define UNW_DEFAULT_RA(raItem, dataAlign) \
