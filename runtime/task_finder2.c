@@ -753,7 +753,7 @@ __stp_call_mprotect_callbacks(struct stap_task_finder_target *tgt,
 static inline void
 __stp_utrace_attach_match_filename(struct task_struct *tsk,
 				   const char * const filename,
-				   int register_p, int process_p)
+				   int process_p)
 {
 	size_t filelen;
 	struct list_head *tgt_node;
@@ -802,62 +802,16 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 #endif
 
 
-		// Set up events we need for attached tasks. When
-		// register_p is set, we won't actually call the
-		// callbacks here - we'll call it when the thread gets
-		// quiesced.  When register_p isn't set, we can go
-		// ahead and call the callbacks.
-		if (register_p) {
-#if 0
-			/* FIXME: This is a first stab here. In the
-			 * brave new world we won't stop the task,
-			 * we'll go ahead and call the callbacks and
-			 * add it to the task's list of callbacks. */
-
-			// Call the callbacks
-			__stp_call_callbacks(tgt, tsk, register_p, process_p);
-
-			/* If this is just a thread other than the
-			   thread group leader, don't bother inform
-			   map callback clients about its memory map,
-			   since they will simply duplicate each
-			   other. */
-			if (tgt->mmap_events == 1 && tsk->tgid == tsk->pid) {
-				__stp_call_mmap_callbacks_for_task(tgt, tsk);
-			}
-			rc = __stp_utrace_attach(tsk, &tgt->ops,
-						 tgt,
-						 __STP_ATTACHED_TASK_EVENTS);
-#else
-			rc = __stp_utrace_attach(tsk, &tgt->ops,
-						 tgt,
-						 __STP_ATTACHED_TASK_EVENTS,
-						 UTRACE_STOP);
-#endif
-			if (rc != 0 && rc != EPERM)
-				break;
-			tgt->engine_attached = 1;
-		}
-		else {
-			// Call the callbacks, then detach.
-			__stp_call_callbacks(tgt, tsk, register_p, process_p);
-			/* FIXME: Here we need to remove this from
-			 * the task's list of callbacks
-			 */
-#if 0
-			rc = stap_utrace_detach(tsk, &tgt->ops);
-			if (rc != 0)
-				break;
-#else
-			printk(KERN_ERR "%s:%d ***UNHANDLED***\n", __FUNCTION__,
-			       __LINE__);
-#endif
-
-			// Note that we don't want to set
-			// engine_attached to 0 here - only
-			// when *all* threads using this
-			// engine have been detached.
-		}
+		// Set up events we need for attached tasks. We won't
+		// actually call the callbacks here - we'll call them
+		// when the thread gets quiesced.
+		rc = __stp_utrace_attach(tsk, &tgt->ops,
+					 tgt,
+					 __STP_ATTACHED_TASK_EVENTS,
+					 UTRACE_STOP);
+		if (rc != 0 && rc != EPERM)
+			break;
+		tgt->engine_attached = 1;
 	}
 }
 
@@ -872,8 +826,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 
 static void
 __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
-			      struct task_struct *match_tsk, int register_p,
-			      int process_p)
+			      struct task_struct *match_tsk, int process_p)
 {
 	struct mm_struct *mm;
 	char *mmpath_buf;
@@ -920,7 +873,7 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 			  match_tsk, mmpath, register_p, process_p);
 #endif
 		__stp_utrace_attach_match_filename(match_tsk, mmpath,
-						   register_p, process_p);
+						   process_p);
 	}
 
 	_stp_kfree(mmpath_buf);
@@ -935,9 +888,6 @@ __stp_utrace_task_finder_report_clone(u32 action,
 {
 	int rc;
 
-#if 0
-	printk(KERN_ERR "%s:%d entry\n", __FUNCTION__, __LINE__);
-#endif
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
 		debug_task_finder_detach();
 		return UTRACE_DETACH;
@@ -953,7 +903,7 @@ __stp_utrace_task_finder_report_clone(u32 action,
 		return UTRACE_RESUME;
 	}
 
-	__stp_utrace_attach_match_tsk(current, child, 1,
+	__stp_utrace_attach_match_tsk(current, child,
 				      (clone_flags & CLONE_THREAD) == 0);
 	__stp_tf_handler_end();
 	return UTRACE_RESUME;
@@ -985,12 +935,7 @@ __stp_utrace_task_finder_report_exec(u32 action,
 	// We assume that all exec's are exec'ing a new process.  Note
 	// that we don't use bprm->filename, since that path can be
 	// relative.
-#if 0
-	_stp_dbug(__FUNCTION__, __LINE__,
-		  "calling __stp_utrace_attach_match_tsk(%p, %p, 1, 1)\n",
-		  current, current);
-#endif
-	__stp_utrace_attach_match_tsk(current, current, 1, 1);
+	__stp_utrace_attach_match_tsk(current, current, 1);
 
 	__stp_tf_handler_end();
 	return UTRACE_RESUME;
