@@ -65,7 +65,7 @@ static void _stp_stack_print_fallback(unsigned long, int, int, int);
 #include "stack-ia64.c"
 #elif defined (__arm__)
 #include "stack-arm.c"
-#elif defined (__s390__) || defined (__s390x__)
+#elif defined (__s390__)
 #include "stack-s390.c"
 #else
 #ifndef STP_USE_DWARF_UNWINDER

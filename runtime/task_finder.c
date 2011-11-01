@@ -830,7 +830,7 @@ __stp_call_mprotect_callbacks(struct stap_task_finder_target *tgt,
 static inline void
 __stp_utrace_attach_match_filename(struct task_struct *tsk,
 				   const char * const filename,
-				   int register_p, int process_p)
+				   int process_p)
 {
 	size_t filelen;
 	struct list_head *tgt_node;
@@ -876,32 +876,16 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 #endif
 
 
-		// Set up events we need for attached tasks. When
-		// register_p is set, we won't actually call the
-		// callbacks here - we'll call it when the thread gets
-		// quiesced.  When register_p isn't set, we can go
-		// ahead and call the callbacks.
-		if (register_p) {
-			rc = __stp_utrace_attach(tsk, &tgt->ops,
-						 tgt,
-						 __STP_ATTACHED_TASK_EVENTS,
-						 UTRACE_STOP);
-			if (rc != 0 && rc != EPERM)
-				break;
-			tgt->engine_attached = 1;
-		}
-		else {
-			// Call the callbacks, then detach.
-			__stp_call_callbacks(tgt, tsk, register_p, process_p);
-			rc = stap_utrace_detach(tsk, &tgt->ops);
-			if (rc != 0)
-				break;
-
-			// Note that we don't want to set
-			// engine_attached to 0 here - only
-			// when *all* threads using this
-			// engine have been detached.
-		}
+		// Set up events we need for attached tasks. We won't
+		// actually call the callbacks here - we'll call them
+		// when the thread gets quiesced.
+		rc = __stp_utrace_attach(tsk, &tgt->ops,
+					 tgt,
+					 __STP_ATTACHED_TASK_EVENTS,
+					 UTRACE_STOP);
+		if (rc != 0 && rc != EPERM)
+			break;
+		tgt->engine_attached = 1;
 	}
 }
 
@@ -916,8 +900,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 
 static void
 __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
-			      struct task_struct *match_tsk, int register_p,
-			      int process_p)
+			      struct task_struct *match_tsk, int process_p)
 {
 	struct mm_struct *mm;
 	char *mmpath_buf;
@@ -956,7 +939,7 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	}
 	else {
 		__stp_utrace_attach_match_filename(match_tsk, mmpath,
-						   register_p, process_p);
+						   process_p);
 	}
 
 	_stp_kfree(mmpath_buf);
@@ -1006,7 +989,7 @@ __stp_utrace_task_finder_report_clone(enum utrace_resume_action action,
 		return UTRACE_RESUME;
 	}
 
-	__stp_utrace_attach_match_tsk(parent, child, 1,
+	__stp_utrace_attach_match_tsk(parent, child,
 				      (clone_flags & CLONE_THREAD) == 0);
 	__stp_tf_handler_end();
 	return UTRACE_RESUME;
@@ -1059,7 +1042,7 @@ __stp_utrace_task_finder_report_exec(enum utrace_resume_action action,
 	// We assume that all exec's are exec'ing a new process.  Note
 	// that we don't use bprm->filename, since that path can be
 	// relative.
-	__stp_utrace_attach_match_tsk(tsk, tsk, 1, 1);
+	__stp_utrace_attach_match_tsk(tsk, tsk, 1);
 
 	__stp_tf_handler_end();
 	return UTRACE_RESUME;

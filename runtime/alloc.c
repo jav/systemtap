@@ -14,8 +14,12 @@
 #include <linux/percpu.h>
 
 static int _stp_allocated_net_memory = 0;
+/* Default, and should be "safe" from anywhere. */
 #define STP_ALLOC_FLAGS ((GFP_KERNEL | __GFP_NORETRY | __GFP_NOWARN) \
 			 & ~__GFP_WAIT)
+/* May only be used in context that can sleep. __GFP_NORETRY is to
+   suppress the oom-killer from kicking in. */
+#define STP_ALLOC_SLEEP_FLAGS (GFP_KERNEL | __GFP_NORETRY)
 
 /* #define DEBUG_MEM */
 /*

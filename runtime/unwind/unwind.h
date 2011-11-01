@@ -25,6 +25,8 @@ struct unwind_frame_info
 #include "i386.h"
 #elif defined (__powerpc64__)
 #include "ppc64.h"
+#elif defined (__s390x__)
+#include "s390x.h"
 #else
 #error "Unsupported dwarf unwind architecture"
 #endif
@@ -77,6 +79,20 @@ static const struct {
 
 #ifndef REG_INVALID
 #define REG_INVALID(r) (reg_info[r].width == 0)
+#endif
+
+/* Whether the stack pointer should be set from the CFA.
+   If this isn't what the architecture wants, then it should define
+   this as zero.  */
+#ifndef UNW_SP_FROM_CFA
+#define UNW_SP_FROM_CFA 1
+#endif
+
+/* Whether the instruction pointer should be set from the return address
+   column.  If this isn't what the architecture wants, then it should
+   define this as zero.  */
+#ifndef UNW_PC_FROM_RA
+#define UNW_PC_FROM_RA 1
 #endif
 
 #define DW_CFA_nop                          0x00

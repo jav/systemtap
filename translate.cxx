@@ -1610,7 +1610,7 @@ c_unparser::emit_module_init ()
   o->newline() << "for_each_possible_cpu(cpu) {";
   o->indent(1);
   // Module init, so in user context, safe to use "sleeping" allocation.
-  o->newline() << "contexts[cpu] = _stp_kzalloc_gfp(sizeof(struct context), GFP_KERNEL);";
+  o->newline() << "contexts[cpu] = _stp_kzalloc_gfp(sizeof(struct context), STP_ALLOC_SLEEP_FLAGS);";
   o->newline() << "if (contexts[cpu] == NULL) {";
   o->indent(1);
   o->newline() << "_stp_error (\"context (size %lu) allocation failed\", (unsigned long) sizeof (struct context));";

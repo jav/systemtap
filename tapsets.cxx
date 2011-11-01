@@ -421,6 +421,12 @@ struct dwarf_derived_probe: public derived_probe
 						       match_node * root,
 						       dwarf_builder * dw,
 						       privilege_t privilege);
+  static void register_sdt_variants(systemtap_session& s,
+				    match_node * root,
+				    dwarf_builder * dw);
+  static void register_plt_variants(systemtap_session& s,
+				    match_node * root,
+				    dwarf_builder * dw);
   static void register_patterns(systemtap_session& s);
 
 protected:
@@ -4309,8 +4315,11 @@ dwarf_derived_probe::register_function_and_statement_variants(
 
   match_node *fv_root = root->bind_str(TOK_FUNCTION);
   register_function_variants(fv_root, dw, privilege);
-  // ROOT.function("STRING") always gets the .inline variant.
+  // ROOT.function("STRING") always gets the .inline and .label variants.
   fv_root->bind(TOK_INLINE)
+    ->bind_privilege(privilege)
+    ->bind(dw);
+  fv_root->bind_str(TOK_LABEL)
     ->bind_privilege(privilege)
     ->bind(dw);
 
@@ -4329,6 +4338,38 @@ dwarf_derived_probe::register_function_and_statement_variants(
 }
 
 void
+dwarf_derived_probe::register_sdt_variants(systemtap_session& s,
+					   match_node * root,
+					   dwarf_builder * dw)
+{
+  root->bind_str(TOK_MARK)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+}
+
+void
+dwarf_derived_probe::register_plt_variants(systemtap_session& s,
+					   match_node * root,
+					   dwarf_builder * dw)
+{
+  root->bind(TOK_PLT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PLT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+  root->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
+    ->bind_privilege(pr_stapusr)
+    ->bind(dw);
+}
+
+void
 dwarf_derived_probe::register_patterns(systemtap_session& s)
 {
   match_node* root = s.pattern_root;
@@ -4339,71 +4380,21 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
 
   register_function_and_statement_variants(s, root->bind(TOK_KERNEL), dw, pr_stapdev);
   register_function_and_statement_variants(s, root->bind_str(TOK_MODULE), dw, pr_stapdev);
-
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
     ->bind(dw);
-  root->bind(TOK_KERNEL)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
-    ->bind(dw);
 
-  root->bind_str(TOK_MODULE)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
-    ->bind(dw);
-
-  register_function_and_statement_variants(s, root->bind_str(TOK_PROCESS), dw, pr_stapusr);
-  register_function_and_statement_variants(s, root->bind(TOK_PROCESS), dw, pr_stapusr);
-  register_function_and_statement_variants(s, root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, pr_stapusr);
-  register_function_and_statement_variants(s, root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY), dw, pr_stapusr);
-
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind(TOK_PROCESS)->bind_str(TOK_FUNCTION)->bind_str(TOK_LABEL)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind(TOK_PROCESS)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind(TOK_PLT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind(TOK_PLT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PLT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
-    ->bind_privilege(pr_stapusr)
-    ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
-        ->bind_privilege(pr_stapusr)
-        ->bind(dw);
-  root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY)->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
-        ->bind_privilege(pr_stapusr)
-        ->bind(dw);
+  match_node* uprobes[] = {
+      root->bind(TOK_PROCESS),
+      root->bind_str(TOK_PROCESS),
+      root->bind(TOK_PROCESS)->bind_str(TOK_LIBRARY),
+      root->bind_str(TOK_PROCESS)->bind_str(TOK_LIBRARY),
+  };
+  for (size_t i = 0; i < sizeof(uprobes) / sizeof(*uprobes); ++i)
+    {
+      register_function_and_statement_variants(s, uprobes[i], dw, pr_stapusr);
+      register_sdt_variants(s, uprobes[i], dw);
+      register_plt_variants(s, uprobes[i], dw);
+    }
 }
 
 void
@@ -5688,6 +5679,12 @@ plt_expanding_visitor::visit_target_symbol (target_symbol *e)
 	  provide(myname);
 	  return;
 	}
+
+      // variable not found -> throw a semantic error
+      // (only to be caught right away, but this may be more complex later...)
+      string alternatives = "$$name";
+      throw semantic_error(_F("unable to find plt variable '%s' (alternatives: %s)",
+                              e->name.c_str(), alternatives.c_str()), e->tok);
     }
   catch (const semantic_error &er)
     {

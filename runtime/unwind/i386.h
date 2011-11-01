@@ -56,7 +56,11 @@
 
 #endif /* STAPCONF_X86_UNIREGS */
 
+#define UNW_PC_IDX 8
+#define UNW_SP_IDX 4
+
 #define UNW_NR_REAL_REGS 8
+#define UNW_PC_FROM_RA 0 /* Because [e]ip == return address column already. */
 
 #define UNW_DEFAULT_RA(raItem, dataAlign) \
 	((raItem).where == Memory && \
