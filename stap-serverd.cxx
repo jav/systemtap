@@ -968,8 +968,10 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
   for (unsigned i=0; environ[i]; i++)
     {
       vector<string> environTok;
+      const char *value = getenv(environTok[0].c_str());
+      if (!value) continue;
       tokenize(environ[i], environTok, "=");
-      envMap[environTok[0]] = (string)getenv(environTok[0].c_str());
+      envMap[environTok[0]] = string(value);
     }
 
   /* Create regular expression objects to verify lines read from file. Should not allow
@@ -993,6 +995,11 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
       string value;
       size_t pos;
       pos = line.find("=");
+      if (pos == string::npos)
+        {
+          client_error(_F("Localization key=value line '%s' cannot be parsed", line.c_str()));
+	  continue;
+        }
       key = line.substr(0, pos);
       pos++;
       value = line.substr(pos);

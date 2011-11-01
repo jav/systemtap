@@ -727,10 +727,7 @@ void assert_regexp_match (const string& name, const string& value, const string&
     {
       r = new regex_t;
       int rc = regcomp (r, re.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED);
-      if (rc) {
-        cerr << _F("regcomp %s (%s) error rc= %d", re.c_str(), name.c_str(), rc) << endl;
-        exit(1);
-      }
+      assert (rc == 0);
       compiled[re] = r;
     }
   else
@@ -757,10 +754,7 @@ int regexp_match (const string& value, const string& re, vector<string>& matches
     {
       r = new regex_t;
       int rc = regcomp (r, re.c_str(), REG_EXTENDED); /* REG_ICASE? */
-      if (rc) {
-        cerr << _F("regcomp %s error rc=%d", re.c_str(), rc) << endl;
-        return rc;
-      }
+      assert (rc == 0);
       compiled[re] = r;
     }
   else
