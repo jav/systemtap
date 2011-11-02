@@ -367,9 +367,9 @@ if { $res == "" } {
 
 # Extract needed addresses. Note, some architectures add a '.' to the
 # function name, so match that optionally.
-set addr_of_bar [exec objdump -d $exepath | awk {/<\.?bar>/ { printf "0x%s\n",$1 }}]
+set addr_of_bar [exec objdump -d $exepath | awk {/<\.?bar>:/ { printf "0x%s\n",$1 }}]
 verbose -log "addr_of_bar: $addr_of_bar"
-set addr_of_libfoofunc [exec objdump -d $sopath | awk {/<\.?libfoofunc>/ { printf "0x%s\n",$1 }}]
+set addr_of_libfoofunc [exec objdump -d $sopath | awk {/<\.?libfoofunc>:/ { printf "0x%s\n",$1 }}]
 verbose -log "addr_of_libfoofunc: $addr_of_libfoofunc"
 
 # Obtain a list of all supported probe types from stap
