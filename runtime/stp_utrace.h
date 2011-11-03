@@ -16,17 +16,19 @@ enum utrace_events {
 	_UTRACE_EVENT_CLONE,	/* Successful clone/fork/vfork just done.  */
 	_UTRACE_EVENT_EXEC,	/* Successful execve just completed.  */
 	_UTRACE_EVENT_EXIT,	/* Thread exit in progress.  */
-#if 1
+#if 0
 	_UTRACE_EVENT_DEATH,	/* Thread has died.  */
 #endif
 	_UTRACE_EVENT_SYSCALL_ENTRY, /* User entered kernel for system call. */
 	_UTRACE_EVENT_SYSCALL_EXIT, /* Returning to user after system call.  */
+#if 0
 	_UTRACE_EVENT_SIGNAL,	/* Signal delivery will run a user handler.  */
 	_UTRACE_EVENT_SIGNAL_IGN, /* No-op signal to be delivered.  */
 	_UTRACE_EVENT_SIGNAL_STOP, /* Signal delivery will suspend.  */
 	_UTRACE_EVENT_SIGNAL_TERM, /* Signal delivery will terminate.  */
 	_UTRACE_EVENT_SIGNAL_CORE, /* Signal delivery will dump core.  */
 	_UTRACE_EVENT_JCTL,	/* Job control stop or continue completed.  */
+#endif
 	_UTRACE_NEVENTS
 };
 #define UTRACE_EVENT(type)	(1UL << _UTRACE_EVENT_##type)
@@ -53,7 +55,7 @@ enum utrace_events {
 /*
  * The event reports triggered synchronously by task death.
  */
-#define _UTRACE_DEATH_EVENTS (UTRACE_EVENT(DEATH) | UTRACE_EVENT(QUIESCE))
+#define _UTRACE_DEATH_EVENTS (/*UTRACE_EVENT(DEATH) |*/ UTRACE_EVENT(QUIESCE))
 
 /*
  * Flags for utrace_attach_task() and utrace_attach_pid().
@@ -322,9 +324,9 @@ static inline void utrace_engine_put(struct utrace_engine *engine)
  *	the engine's @data member.
  */
 struct utrace_engine_ops {
-#if 1
 	u32 (*report_quiesce)(u32 action, struct utrace_engine *engine,
 			      unsigned long event);
+#if 0
 	u32 (*report_signal)(u32 action, struct utrace_engine *engine,
 			     struct pt_regs *regs,
 			     siginfo_t *info,
@@ -334,7 +336,7 @@ struct utrace_engine_ops {
 	u32 (*report_clone)(u32 action, struct utrace_engine *engine,
 			    unsigned long clone_flags,
 			    struct task_struct *child);
-#if 1
+#if 0
 	u32 (*report_jctl)(u32 action, struct utrace_engine *engine,
 			   int type, int notify);
 #endif
@@ -348,7 +350,7 @@ struct utrace_engine_ops {
 				   struct pt_regs *regs);
 	u32 (*report_exit)(u32 action, struct utrace_engine *engine,
 			   long code);
-#if 1
+#if 0
 	u32 (*report_death)(struct utrace_engine *engine,
 			    bool group_dead, int signal);
 #endif
@@ -391,10 +393,10 @@ int __must_check utrace_barrier(struct task_struct *,
  */
 enum utrace_resume_action {
 	UTRACE_STOP,
-	UTRACE_INTERRUPT,
+//	UTRACE_INTERRUPT,
 	UTRACE_REPORT,
-	UTRACE_SINGLESTEP,
-	UTRACE_BLOCKSTEP,
+//	UTRACE_SINGLESTEP,
+//	UTRACE_BLOCKSTEP,
 	UTRACE_RESUME,
 	UTRACE_DETACH,
 	UTRACE_RESUME_MAX

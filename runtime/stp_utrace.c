@@ -88,9 +88,13 @@ struct utrace {
 	struct utrace_engine *reporting;
 
 	enum utrace_resume_action resume:UTRACE_RESUME_BITS;
+#if 0
 	unsigned int signal_handler:1;
+#endif
 	unsigned int vfork_stop:1; /* need utrace_stop() before vfork wait */
+#if 0
 	unsigned int death:1;	/* in utrace_report_death() now */
+#endif
 	unsigned int reap:1;	/* release_task() has run */
 	unsigned int pending_attach:1; /* need splice_attaching() */
 
@@ -810,12 +814,14 @@ int utrace_set_events(struct task_struct *target,
 	old_utrace_flags = utrace->utrace_flags;
 	old_flags = engine->flags & ~ENGINE_STOP;
 
+#if 0
 	/*
 	 * If utrace_report_death() is already progress now,
 	 * it's too late to clear the death event bits.
 	 */
 	if (((old_flags & ~events) & _UTRACE_DEATH_EVENTS) && utrace->death)
 		goto unlock;
+#endif
 
 	/*
 	 * When setting these flags, it's essential that we really
@@ -977,7 +983,9 @@ static bool utrace_reset(struct task_struct *task, struct utrace *utrace)
 		 * This ensures that utrace_release_task() knows
 		 * positively that utrace_report_death() can never run.
 		 */
+#if 0
 		BUG_ON(utrace->death);
+#endif
 		flags &= UTRACE_EVENT(REAP);
 	} else if (!(flags & UTRACE_EVENT_SYSCALL) &&
 		   test_tsk_thread_flag(task, TIF_SYSCALL_TRACE)) {
@@ -989,7 +997,9 @@ static bool utrace_reset(struct task_struct *task, struct utrace *utrace)
 		 * No more engines, cleared out the utrace.
 		 */
 		utrace->resume = UTRACE_RESUME;
+#if 0
 		utrace->signal_handler = 0;
+#endif
 	}
 
 	/*
@@ -1043,9 +1053,11 @@ relock:
 		 * Ensure a reporting pass when we're resumed.
 		 */
 		utrace->resume = action;
+#if 0
 		if (action == UTRACE_INTERRUPT)
 			set_thread_flag(TIF_SIGPENDING);
 		else
+#endif
 			set_thread_flag(TIF_NOTIFY_RESUME);
 	}
 
@@ -1142,12 +1154,14 @@ void utrace_maybe_reap(struct task_struct *target, struct utrace *utrace,
 			return;
 		}
 	} else {
+#if 0
 		/*
 		 * After we unlock with this flag clear, any competing
 		 * utrace_control/utrace_set_events calls know that we've
 		 * finished our callbacks and any detach bookkeeping.
 		 */
 		utrace->death = 0;
+#endif
 
 		if (!utrace->reap) {
 			/*
@@ -1210,6 +1224,7 @@ static inline int utrace_control_dead(struct task_struct *target,
 	if (action != UTRACE_DETACH || unlikely(utrace->reap))
 		return -ESRCH;
 
+#if 0
 	if (unlikely(utrace->death))
 		/*
 		 * We have already started the death report.  We can't
@@ -1217,6 +1232,7 @@ static inline int utrace_control_dead(struct task_struct *target,
 		 * so tell the caller they will happen.
 		 */
 		return -EALREADY;
+#endif
 
 	return 0;
 }
@@ -1606,11 +1622,11 @@ static enum utrace_resume_action start_report(struct utrace *utrace)
 {
 	enum utrace_resume_action resume = utrace->resume;
 	if (utrace->pending_attach ||
-	    (resume > UTRACE_INTERRUPT && resume < UTRACE_RESUME)) {
+	    (resume > /*UTRACE_INTERRUPT*/ UTRACE_STOP && resume < UTRACE_RESUME)) {
 		spin_lock(&utrace->lock);
 		splice_attaching(utrace);
 		resume = utrace->resume;
-		if (resume > UTRACE_INTERRUPT)
+		if (resume > /*UTRACE_INTERRUPT*/ UTRACE_STOP)
 			utrace->resume = UTRACE_RESUME;
 		spin_unlock(&utrace->lock);
 	}
@@ -1648,9 +1664,11 @@ static void finish_report(struct task_struct *task, struct utrace *utrace,
 		spin_lock(&utrace->lock);
 		utrace->resume = resume;
 		/* FIXME: Hmm, unsure about calling set_tsk_thread_flag()... */
+#if 0
 		if (resume == UTRACE_INTERRUPT)
 			set_tsk_thread_flag(task, TIF_SIGPENDING);
 		else
+#endif
 			set_tsk_thread_flag(task, TIF_NOTIFY_RESUME);
 		spin_unlock(&utrace->lock);
 	}
@@ -2100,6 +2118,7 @@ void utrace_finish_vfork(struct task_struct *task)
 	}
 }
 
+#if 0
 /*
  * Called iff UTRACE_EVENT(JCTL) flag is set.
  *
@@ -2118,6 +2137,7 @@ void utrace_report_jctl(int notify, int what)
 
 	spin_lock_irq(&task->sighand->siglock);
 }
+#endif
 
 /*
  * Called iff UTRACE_EVENT(EXIT) flag is set.
@@ -2146,6 +2166,7 @@ static void utrace_report_exit(void *cb_data __attribute__ ((unused)),
 	}
 }
 
+#if 0
 /*
  * Called iff UTRACE_EVENT(DEATH) or UTRACE_EVENT(QUIESCE) flag is set.
  *
@@ -2183,6 +2204,7 @@ void utrace_report_death(struct task_struct *task, struct utrace *utrace,
 
 	utrace_maybe_reap(task, utrace, false);
 }
+#endif
 
 /*
  * Finish the last reporting pass before returning to user mode.
@@ -2261,6 +2283,7 @@ void utrace_resume(struct task_struct *task, struct pt_regs *regs)
 	 */
 	local_irq_enable();
 
+#if 0
 	/*
 	 * If this flag is still set it's because there was a signal
 	 * handler setup done but no report_signal following it.  Clear
@@ -2271,6 +2294,7 @@ void utrace_resume(struct task_struct *task, struct pt_regs *regs)
 		utrace->signal_handler = 0;
 		spin_unlock(&utrace->lock);
 	}
+#endif
 
 	/*
 	 * Update our bookkeeping even if there are no callbacks made here.
@@ -2315,6 +2339,7 @@ void utrace_resume(struct task_struct *task, struct pt_regs *regs)
 	finish_resume_report(task, utrace, &report);
 }
 
+#if 0
 /*
  * Return true if current has forced signal_pending().
  *
@@ -2326,6 +2351,7 @@ bool utrace_interrupt_pending(void)
 {
 	return task_utrace_struct(current)->resume == UTRACE_INTERRUPT;
 }
+#endif
 
 /*
  * Take the siglock and push @info back on our queue.
@@ -2689,7 +2715,6 @@ int utrace_get_signal(struct task_struct *task, struct pt_regs *regs,
 
 	return signr;
 }
-#endif
 
 /*
  * This gets called after a signal handler has been set up.
@@ -2717,6 +2742,7 @@ void utrace_signal_handler(struct task_struct *task, int stepping)
 
 	spin_unlock(&utrace->lock);
 }
+#endif
 
 /**
  * utrace_prepare_examine - prepare to examine thread state
