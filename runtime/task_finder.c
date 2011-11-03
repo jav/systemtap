@@ -6,8 +6,8 @@
 #define STP_CAN_USE_INTERNAL_UTRACE
 #endif
 
-#define STP_USE_TASK_FINDER2
-#ifdef STP_USE_TASK_FINDER2
+#define STP_TASK_FINDER2
+#ifdef STP_TASK_FINDER2
 #ifdef CONFIG_UTRACE
 /* We don't want any inclusion of <linux/utrace.h> */
 #undef CONFIG_UTRACE
@@ -18,7 +18,7 @@
 #undef STAPCONF_UPROBE_GET_PC
 #endif	/* STAPCONF_UPROBE_GET_PC */
 #endif	/* CONFIG_UTRACE */
-#endif	/* STP_USE_TASK_FINDER2 */
+#endif	/* STP_TASK_FINDER2 */
 
 /*
  * Which utrace shall we use?
