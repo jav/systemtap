@@ -6385,6 +6385,7 @@ dwarf_builder::build(systemtap_session & sess,
             location->components[0]->arg = new literal_string(module_name);
           wordfree (& words);
         } 
+
       // PR6456  process("/bin/*")  glob handling
       if (contains_glob_chars (module_name))
         {
@@ -6421,13 +6422,17 @@ dwarf_builder::build(systemtap_session & sess,
                   char *cf = canonicalize_file_name (globbed);
                   if (cf) globbed = cf;
 
-                  if (sess.verbose > 1)
-                    clog << _F("Expanded process(\"%s\") to process(\"%s\")",
-                               module_name.c_str(), globbed) << endl;
                   // synthesize a new probe_point, with the glob-expanded string
                   probe_point *pp = new probe_point (*location);
+                  // PR13338: quote results to prevent recursion
+                  string eglobbed = escape_glob_chars (globbed);
+
+                  if (sess.verbose > 1)
+                    clog << _F("Expanded process(\"%s\") to process(\"%s\")",
+                               module_name.c_str(), eglobbed.c_str()) << endl;
+
                   probe_point::component* ppc = new probe_point::component (TOK_PROCESS,
-                                                                            new literal_string (globbed));
+                                                                            new literal_string (eglobbed));
                   ppc->tok = location->components[0]->tok; // overwrite [0] slot, pattern matched above
                   pp->components[0] = ppc;
 
@@ -6451,6 +6456,8 @@ dwarf_builder::build(systemtap_session & sess,
           return; // avoid falling through
         }
 
+      // PR13338: unquote glob results
+      module_name = unescape_glob_chars (module_name);
       user_path = find_executable (module_name); // canonicalize it
 
       // if the executable starts with "#!", we look for the interpreter of the script
