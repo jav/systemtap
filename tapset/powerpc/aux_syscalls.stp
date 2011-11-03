@@ -10,6 +10,33 @@
 #ifndef PPC_PTRACE_DELHWDEBUG
 # define PPC_PTRACE_DELHWDEBUG 0x87
 #endif
+#ifndef PTRACE_GETVSRREGS
+# define PTRACE_GETVSRREGS 27
+#endif
+#ifndef PTRACE_SETVSRREGS
+# define PTRACE_SETVSRREGS 28
+#endif
+#ifndef PTRACE_GETREGS
+# define PTRACE_GETREGS 12
+#endif
+#ifndef PTRACE_SETREGS
+# define PTRACE_SETREGS 13
+#endif
+#ifndef PTRACE_GETFPREGS
+# define PTRACE_GETFPREGS 14
+#endif
+#ifndef PTRACE_SETFPREGS
+# define PTRACE_SETFPREGS 15
+#endif
+#ifndef PTRACE_GETREGS64
+# define PTRACE_GETREGS64 22
+#endif
+#ifndef PTRACE_SETREGS64
+# define PTRACE_SETREGS64 23
+#endif
+#ifndef PTRACE_SINGLEBLOCK
+# define PTRACE_SINGLEBLOCK 0x100
+#endif
 %}
 function _arch_ptrace_argstr(request, pid, addr, data)
 {
