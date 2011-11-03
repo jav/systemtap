@@ -13,6 +13,22 @@
 #ifndef _STP_UTRACE_C
 #define _STP_UTRACE_C
 
+/*
+ * Which internal utrace implementation shall we use?
+ * (1) STAPCONF_UTRACE_VIA_TRACEPOINTS - Pure tracepoints (preferred).
+ * (2) STAPCONF_UTRACE_VIA_FTRACE - Tracepoints, plus a bit of ftrace.
+ */
+
+#if (!defined(STAPCONF_UTRACE_VIA_TRACEPOINTS) \
+     && !defined(STAPCONF_UTRACE_VIA_FTRACE))
+#error "STAPCONF_UTRACE_VIA_TRACEPOINTS or STAPCONF_UTRACE_VIA_FTRACE must be defined."
+#endif
+#if (defined(STAPCONF_UTRACE_VIA_TRACEPOINTS) \
+     && defined(STAPCONF_UTRACE_VIA_FTRACE))
+/* If we've got both, prefer STAPCONF_UTRACE_VIA_TRACEPOINTS. */
+#undef STAPCONF_UTRACE_VIA_FTRACE
+#endif /* STAPCONF_UTRACE_VIA_TRACEPOINTS and STAPCONF_UTRACE_VIA_FTRACE */
+
 #include "stp_utrace.h"
 #include <linux/list.h>
 #if 0
@@ -31,7 +47,9 @@
 #if 0
 #include <linux/seq_file.h>
 #endif
+#ifdef STAPCONF_UTRACE_VIA_FTRACE
 #include <linux/ftrace.h>
+#endif	/* STAPCONF_UTRACE_VIA_FTRACE */
 #include <linux/spinlock.h>
 #include <trace/events/sched.h>
 #include <trace/events/syscalls.h>
@@ -107,12 +125,19 @@ static void utrace_report_syscall_entry(void *cb_data __attribute__ ((unused)),
 static void utrace_report_syscall_exit(void *cb_data __attribute__ ((unused)),
 				       struct pt_regs *regs, long ret);
 
-static void utrace_report_exec(unsigned long ip, unsigned long parent_ip);
+#ifdef STAPCONF_UTRACE_VIA_TRACEPOINTS
+static void utrace_report_exec(void *cb_data __attribute__ ((unused)),
+			       struct task_struct *task,
+			       struct linux_binprm *bprm __attribute__ ((unused)));
+#else  /* STAPCONF_UTRACE_VIA_FTRACE */
+static void utrace_report_exec(unsigned long ip __attribute__ ((unused)),
+			       unsigned long parent_ip __attribute__ ((unused)));
 
 static struct ftrace_ops utrace_report_exec_ops __read_mostly =
 {
     .func = utrace_report_exec,
 };
+#endif  /* STAPCONF_UTRACE_VIA_FTRACE */
 
 #define __UTRACE_UNREGISTERED	0
 #define __UTRACE_REGISTERED	1
@@ -157,6 +182,13 @@ int /* __init */ utrace_init(void)
 		goto error4;
 	}
 
+#ifdef STAPCONF_UTRACE_VIA_TRACEPOINTS
+	rc = register_trace_sched_process_exec(utrace_report_exec, NULL);
+	if (unlikely(rc != 0)) {
+		_stp_error("register_sched_process_exec failed: %d", rc);
+		goto error5;
+	}
+#else  /* STAPCONF_UTRACE_VIA_FTRACE */
 	report_exec_name = "*" __stringify(proc_exec_connector);
 	ftrace_set_filter(&utrace_report_exec_ops, report_exec_name,
 			  strlen(report_exec_name), 1);
@@ -165,6 +197,7 @@ int /* __init */ utrace_init(void)
 		_stp_error("register_ftrace_function failed: %d", rc);
 		goto error5;
 	}
+#endif  /* STAPCONF_UTRACE_VIA_FTRACE */
 
 	atomic_set(&utrace_state, __UTRACE_REGISTERED);
 
@@ -245,7 +278,11 @@ void utrace_shutdown(void)
 #ifdef STP_TF_DEBUG
 	printk(KERN_ERR "%s:%d entry\n", __FUNCTION__, __LINE__);
 #endif
+#ifdef STAPCONF_UTRACE_VIA_TRACEPOINTS
+	unregister_trace_sched_process_exec(utrace_report_exec, NULL);
+#else  /* STAPCONF_UTRACE_VIA_FTRACE */
 	unregister_ftrace_function(&utrace_report_exec_ops);
+#endif  /* STAPCONF_UTRACE_VIA_FTRACE */
 	unregister_trace_sched_process_fork(utrace_report_clone, NULL);
 	unregister_trace_sched_process_exit(utrace_report_exit, NULL);
 	unregister_trace_sys_enter(utrace_report_syscall_entry, NULL);
@@ -1834,9 +1871,18 @@ static const struct utrace_engine_ops *start_callback(
  */
 //void utrace_report_exec(struct linux_binfmt *fmt, struct linux_binprm *bprm,
 //			struct pt_regs *regs)
-static void utrace_report_exec(unsigned long ip, unsigned long parent_ip)
+#ifdef STAPCONF_UTRACE_VIA_TRACEPOINTS
+static void utrace_report_exec(void *cb_data __attribute__ ((unused)),
+			       struct task_struct *task,
+			       struct linux_binprm *bprm __attribute__ ((unused)))
+#else  /* STAPCONF_UTRACE_VIA_FTRACE */
+static void utrace_report_exec(unsigned long ip __attribute__ ((unused)),
+			       unsigned long parent_ip __attribute__ ((unused)))
+#endif  /* STAPCONF_UTRACE_VIA_FTRACE */
 {
+#ifdef STAPCONF_UTRACE_VIA_FTRACE
 	struct task_struct *task = current;
+#endif
 	struct utrace *utrace = task_utrace_struct(task);
 
 	if (utrace && utrace->utrace_flags & UTRACE_EVENT(EXEC)) {

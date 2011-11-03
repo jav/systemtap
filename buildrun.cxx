@@ -287,6 +287,9 @@ compile_pass (systemtap_session& s)
   output_exportconf(s, o, "vfs_path_lookup", "STAPCONF_VFS_PATH_LOOKUP");
   output_autoconf(s, o, "autoconf-module-sect-attrs.c", "STAPCONF_MODULE_SECT_ATTRS", NULL);
 
+  output_autoconf(s, o, "autoconf-utrace-via-tracepoints.c", "STAPCONF_UTRACE_VIA_TRACEPOINTS", NULL);
+  output_autoconf(s, o, "autoconf-utrace-via-ftrace.c", "STAPCONF_UTRACE_VIA_FTRACE", NULL);
+
   // used by tapset/timestamp_monotonic.stp
   output_exportconf(s, o, "cpu_clock", "STAPCONF_CPU_CLOCK");
   output_exportconf(s, o, "local_clock", "STAPCONF_LOCAL_CLOCK");

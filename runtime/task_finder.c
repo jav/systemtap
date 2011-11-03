@@ -1,35 +1,44 @@
 #ifndef TASK_FINDER_C
 #define TASK_FINDER_C
 
-#define STP_TASK_FINDER2
-
-#if ! defined(CONFIG_UTRACE)
-
-#ifdef STP_TASK_FINDER2
-#include "task_finder2.c"
-#else
-/* Dummy definitions for use in sym.c */
-struct stap_task_finder_target { };
-static int stap_start_task_finder(void) { return 0; }
-static void stap_stop_task_finder(void) { }
+#if (defined(STAPCONF_UTRACE_VIA_TRACEPOINTS) \
+     || defined(STAPCONF_UTRACE_VIA_FTRACE))
+#define STP_CAN_USE_INTERNAL_UTRACE
 #endif
 
-#else  /* defined(CONFIG_UTRACE) */
-
-#ifdef STP_TASK_FINDER2
+#define STP_USE_TASK_FINDER2
+#ifdef STP_USE_TASK_FINDER2
 #ifdef CONFIG_UTRACE
 /* We don't want any inclusion of <linux/utrace.h> */
 #undef CONFIG_UTRACE
 
-/* FIXME: We have to Override this autconf since we just undefined
+/* FIXME: We have to override this autconf since we just undefined
  * CONFIG_UTRACE and it would have failed. */
 #ifdef STAPCONF_UPROBE_GET_PC
 #undef STAPCONF_UPROBE_GET_PC
-#endif
+#endif	/* STAPCONF_UPROBE_GET_PC */
+#endif	/* CONFIG_UTRACE */
+#endif	/* STP_USE_TASK_FINDER2 */
 
-#endif
+/*
+ * Which utrace shall we use?
+ * (1) Built-in kernel utrace (preferred), indicated by
+ * CONFIG_UTRACE.
+ * (2) Internal utrace.  Requires either
+ * STAPCONF_UTRACE_VIA_TRACEPOINTS or STAPCONF_UTRACE_VIA_FTRACE.
+ * (3) If we don't have either (old kernels), just define some dummy
+ * functions.
+ */
+
+#if !defined(CONFIG_UTRACE) && !defined(STP_CAN_USE_INTERNAL_UTRACE)
+/* Dummy definitions for use in sym.c */
+struct stap_task_finder_target { };
+static int stap_start_task_finder(void) { return 0; }
+static void stap_stop_task_finder(void) { }
+#else  /* CONFIG_UTRACE || STP_CAN_USE_INTERNAL_UTRACE */
+#if !defined(CONFIG_UTRACE)
 #include "task_finder2.c"
-#else 
+#else  /* CONFIG_UTRACE */
 #include <linux/utrace.h>
 #include <linux/list.h>
 #include <linux/binfmts.h>
@@ -1724,6 +1733,6 @@ stap_stop_task_finder(void)
 	debug_task_finder_report();
 }
 
-#endif /* STP_USE_TRACEPOINT_TASK_FINDER */
-#endif /* defined(CONFIG_UTRACE) */
+#endif /* CONFIG_UTRACE || STP_CAN_USE_INTERNAL_UTRACE */
+#endif /* CONFIG_UTRACE */
 #endif /* TASK_FINDER_C */
