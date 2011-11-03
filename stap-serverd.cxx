@@ -965,17 +965,29 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
   const set<string> &locVars = localization_variables();
 
   /* Copy the global environ variable into the map */
-  for (unsigned i=0; environ[i]; i++)
-    {
-      vector<string> environTok;
-      tokenize(environ[i], environTok, "=");
-      if (environTok.empty())
-	continue;
-      if (environTok.size() < 2)
-	envMap[environTok[0]] = ""; // variable is set with empty value
-      else
-	envMap[environTok[0]] = environTok[1];
-    }
+   if(environ != NULL)
+     {
+      for (unsigned i=0; environ[i]; i++)
+        {
+          vector<string> matches;
+          /* regexp_match returns the whole string in [0], the key in [1], and the value in [2]
+           * and if there is an embeded control character in the string, [3] will contain the
+           * characters after it, otherwise it will be empty. */
+          int rc = regexp_match(environ[i], "^([^=]*)=([[:print:]]+)(.*)$", matches);
+
+          if(rc == 0 && !matches[1].empty()) //if matches[2] is empty, thats ok - the key was set without a value.
+            {
+              /* Note: Ideally we would need to quote & unquote the env. variable strings
+               * possibly with nss/base64.h routines to handle an embedded control characters,
+               * but for now, we simply drop the offending variable entirely and print a warning */
+
+                if(matches[3].empty())
+                  envMap[matches[1]] = matches[2];
+                else
+                  server_error(_F("Warning: Ignoring '%s' environment variable due to embedded control character in value.", matches[1].c_str()));
+            }
+        }
+     }
 
   /* Create regular expression objects to verify lines read from file. Should not allow
      spaces, ctrl characters, etc */
