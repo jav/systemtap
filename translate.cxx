@@ -5307,7 +5307,9 @@ static void get_unwind_data (Dwfl_Module *m,
       bool eh_frame_hdr_seen = false;
       shdr = gelf_getshdr(scn, &shdr_mem);
       const char* scn_name = elf_strptr(elf, ehdr->e_shstrndx, shdr->sh_name);
-      if (!eh_frame_seen && strcmp(scn_name, ".eh_frame") == 0)
+      if (!eh_frame_seen
+	  && strcmp(scn_name, ".eh_frame") == 0
+	  && shdr->sh_type == SHT_PROGBITS)
 	{
 	  data = elf_rawdata(scn, NULL);
 	  *eh_frame = data->d_buf;
@@ -5320,7 +5322,9 @@ static void get_unwind_data (Dwfl_Module *m,
 	    *eh_addr = shdr->sh_addr;
 	  eh_frame_seen = true;
 	}
-      else if (!eh_frame_hdr_seen && strcmp(scn_name, ".eh_frame_hdr") == 0)
+      else if (!eh_frame_hdr_seen
+	       && strcmp(scn_name, ".eh_frame_hdr") == 0
+	       && shdr->sh_type == SHT_PROGBITS)
         {
           data = elf_rawdata(scn, NULL);
           *eh_frame_hdr = data->d_buf;
