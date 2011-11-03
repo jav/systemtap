@@ -685,7 +685,7 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	struct vm_area_struct *vma;
 	char *mmpath_buf = NULL;
 	char *mmpath = NULL;
-	struct dentry *dentry;
+	struct dentry *dentry = NULL;
 	unsigned long length = 0;
 	unsigned long offset = 0;
 	unsigned long vm_flags = 0;
