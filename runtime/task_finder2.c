@@ -338,37 +338,10 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 static void
 __stp_task_finder_cleanup(void)
 {
-	struct list_head *tgt_node, *tgt_next;
-	struct stap_task_finder_target *tgt;
-
+	// The utrace_shutdown() function detaches and deletes
+	// everything for us - we don't have to go through each
+	// engine.
 	utrace_shutdown();
-
-#if 0
-	/* FIXME: in the brave new world, we should be able to
-	 * cleanup by shutting down the new utrace (by removing its
-	 * global handlers), instead of by removing each individual
-	 * engine.  Hmm, we'd also have to free all the data we've
-	 * allocated. */
-
-	// Walk the main list, cleaning up as we go.
-	list_for_each_safe(tgt_node, tgt_next, &__stp_task_finder_list) {
-		tgt = list_entry(tgt_node, struct stap_task_finder_target,
-				 list);
-		if (tgt == NULL)
-			continue;
-
-		if (tgt->engine_attached) {
-			stap_utrace_detach_ops(&tgt->ops);
-			tgt->engine_attached = 0;
-		}
-
-		// Notice we're not walking the callback_list here.
-		// There isn't anything to clean up and doing it would
-		// mess up callbacks in progress.
-
-		list_del(&tgt->list);
-	}
-#endif
 }
 
 static char *
@@ -471,7 +444,6 @@ __stp_utrace_attach(struct task_struct *tsk,
 	if (! tsk->mm)
 		return EPERM;
 
-	/* FIXME: for now do nothing. */
 	engine = utrace_attach_task(tsk, UTRACE_ATTACH_CREATE, ops, data);
 	if (IS_ERR(engine)) {
 		int error = -PTR_ERR(engine);

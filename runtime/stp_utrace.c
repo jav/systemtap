@@ -151,7 +151,9 @@ int /* __init */ utrace_init(void)
 {
 	int i;
 	int rc = -1;
+#ifdef STAPCONF_UTRACE_VIA_FTRACE
 	char *report_exec_name;
+#endif
 
 	/* initialize the list heads */
 	for (i = 0; i < TASK_UTRACE_TABLE_SIZE; i++) {
@@ -364,7 +366,6 @@ static bool utrace_task_alloc(struct task_struct *task)
 	return true;
 }
 
-#if 0
 /* FIXME: Without this, we've got a (temporary) memory leak.  When a
  * task exits, its utrace structure won't get freed.  However, when
  * the stap module exits, the utrace struct will get freed. */
@@ -374,9 +375,16 @@ static bool utrace_task_alloc(struct task_struct *task)
  */
 void utrace_free_task(struct task_struct *task)
 {
-	kmem_cache_free(utrace_cachep, task->utrace);
+	struct utrace *utrace;
+
+	spin_lock(&task_utrace_lock);
+	utrace = __task_utrace_struct(task);
+	if (utrace)
+		hlist_del(&utrace->hlist);
+	spin_unlock(&task_utrace_lock);
+	if (utrace)
+		kmem_cache_free(utrace_cachep, task->utrace);
 }
-#endif
 
 static struct utrace *task_utrace_struct(struct task_struct *task)
 {
