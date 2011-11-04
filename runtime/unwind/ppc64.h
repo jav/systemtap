@@ -66,12 +66,15 @@
    ignore status registers, floating point, vectors and special registers
    (most of which aren't available in pt_regs anyway). Also we placed nip
    last since we use that as UNW_PC register and it needs to be filled in.
+   Note that we handle both the .eh_frame and .debug_frame numbering at
+   the same time. There is potential overlap though. 64 maps to cr in one
+   and mq in the other...
    Everything else is mapped to an invalid register number 9999. */
 #define DWARF_REG_MAP(r) \
-        ((r >= 0 && r <= 31) ? r /* r0 - r31 */	\
-         : (r == 64) ? 32 /* mq/softe/spr0 */	\
-         : (r == 65) ? 34 /* link */		\
-         : (r == 66) ? 33 /* ctr */		\
+        ((r >= 0 && r <= 31) ? r /* r0 - r31 */			\
+         : (r == 64 || r == 100) ? 32 /* mq/softe/spr0 */	\
+         : (r == 65 || r == 108) ? 34 /* link */		\
+         : (r == 66 || r == 109) ? 33 /* ctr */			\
          : 9999)
 
 #define UNW_PC_IDX 35

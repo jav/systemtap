@@ -85,6 +85,14 @@
 #define MREMAP_SYSCALL_NO(tsk)		163
 #endif
 
+#if defined(__arm__)
+#define MMAP_SYSCALL_NO(tsk)		90
+#define MMAP2_SYSCALL_NO(tsk)		192
+#define MPROTECT_SYSCALL_NO(tsk)	125
+#define MUNMAP_SYSCALL_NO(tsk)		91
+#define MREMAP_SYSCALL_NO(tsk)		163
+#endif
+
 #if !defined(MMAP_SYSCALL_NO) || !defined(MMAP2_SYSCALL_NO)		\
 	|| !defined(MPROTECT_SYSCALL_NO) || !defined(MUNMAP_SYSCALL_NO)	\
 	|| !defined(MREMAP_SYSCALL_NO)
@@ -146,6 +154,14 @@ syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 }
 #endif
 
+#if defined(__arm__)
+static inline long
+syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
+{
+	return regs->ARM_r7;
+}
+#endif
+
 #if defined(__i386__) || defined(__x86_64__)
 static inline long
 syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
@@ -196,6 +212,14 @@ syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
 }
 #endif
 
+#if defined(__arm__)
+static inline long
+syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
+{
+	return regs->ARM_r0;
+}
+
+#endif
 #if defined(__i386__) || defined(__x86_64__)
 static inline void
 syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
@@ -487,6 +511,20 @@ syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
 		if (!n--) break;
 		*args++ = regs->args[0] & mask;
 	}
+}
+#endif
+
+#if defined(__arm__)
+static inline void
+syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
+		      unsigned int i, unsigned int n, unsigned long *args)
+{
+	if (i + n > 6) {
+		_stp_error("invalid syscall arg request");
+		return;
+	}
+
+	memcpy(args, &regs->uregs[i], n * sizeof(args[0]));
 }
 #endif
 

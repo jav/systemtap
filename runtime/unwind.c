@@ -1142,7 +1142,7 @@ static int unwind_frame(struct unwind_context *context,
 	       if it didn't exist. These should never be missing except
 	       when there are toolchain bugs. */
 	    unsigned long tableSize;
-	    _stp_warn("No binary search table for debug frame, doing slow linear search for %s\n", m->name);
+	    _stp_warn("No binary search table for %s frame, doing slow linear search for %s\n", (is_ehframe ? "eh" : "debug"), m->name);
 	    for (fde = table, tableSize = table_len; cie = NULL, tableSize > sizeof(*fde)
 		 && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
 			dbug_unwind(3, "fde=%lx tableSize=%d\n", (long)*fde, (int)tableSize);

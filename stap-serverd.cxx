@@ -965,17 +965,21 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
   const set<string> &locVars = localization_variables();
 
   /* Copy the global environ variable into the map */
-  for (unsigned i=0; environ[i]; i++)
-    {
-      vector<string> environTok;
-      tokenize(environ[i], environTok, "=");
-      if (environTok.empty())
-	continue;
-      if (environTok.size() < 2)
-	envMap[environTok[0]] = ""; // variable is set with empty value
-      else
-	envMap[environTok[0]] = environTok[1];
-    }
+   if(environ != NULL)
+     {
+      for (unsigned i=0; environ[i]; i++)
+        {
+          string line = (string)environ[i];
+
+          /* Find the first '=' sign */
+          size_t pos = line.find("=");
+
+          /* Make sure it found an '=' sign */
+          if(pos != string::npos)
+            /* Everything before the '=' sign is the key, and everything after is the value. */ 
+            envMap[line.substr(0, pos)] = line.substr(pos+1); 
+        }
+     }
 
   /* Create regular expression objects to verify lines read from file. Should not allow
      spaces, ctrl characters, etc */
