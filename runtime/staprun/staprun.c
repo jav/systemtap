@@ -305,6 +305,44 @@ static int remove_module(const char *name, int verb)
 	return 0;
 }
 
+
+/* As per PR13193, some kernels have a buggy kprobes-optimization code,
+   which results in BUG/panics in certain circumstances.  We turn off
+   kprobes optimization as a conservative measure, unless told otherwise
+   by an environment variable.
+*/
+void disable_kprobes_optimization()
+{
+        /* Test if the file exists at all. */
+        const char* proc_kprobes = "/proc/sys/debug/kprobes-optimization";
+        char prev;
+        int rc, fd;
+
+        if (getenv ("STAP_PR13193_OVERRIDE"))
+                return;
+
+        /* See the initial state; if it's already disabled, we do nothing. */
+        fd = open (proc_kprobes, O_RDONLY);
+        if (fd < 0) 
+                return;
+        rc = read (fd, &prev, sizeof(prev));
+        (void) close (fd);
+        if (rc < 1 || prev == '0') /* Already disabled or unavailable */
+                return;
+
+        fd = open (proc_kprobes, O_WRONLY);
+        if (fd < 0) 
+                return;
+        prev = '0'; /* really, next */
+        rc = write (fd, &prev, sizeof(prev));
+        (void) close (fd);
+        if (rc == 1)
+                dbug(1, "Disabled %s.\n", proc_kprobes);
+        else
+                dbug(1, "Error %d/%d disabling %s.\n", rc, errno, proc_kprobes);
+}
+
+
 int init_staprun(void)
 {
 	int rc;
@@ -319,6 +357,9 @@ int init_staprun(void)
 	else if (!attach_mod) {
 		if (need_uprobes && enable_uprobes() != 0)
 			return -1;
+
+                disable_kprobes_optimization();
+
 		if (insert_stap_module() < 0) {
 #ifdef HAVE_ELF_GETSHDRSTRNDX
 			if(!rename_mod && errno == EEXIST)
