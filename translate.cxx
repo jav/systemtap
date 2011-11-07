@@ -1857,6 +1857,12 @@ c_unparser::emit_module_exit ()
   o->newline(-1) << "}";
   o->newline(-1) << "}";
 
+  // NB: PR13386 points out that _stp_printf may be called from contexts
+  // without already active preempt disabling, which breaks various uses
+  // of smp_processor_id().  So we temporary block preemption around this
+  // whole printing block.  XXX: get_cpu() / put_cpu() may work just as well.
+  o->newline() << "preempt_disable();";
+
   // print per probe point timing/alibi statistics
   o->newline() << "#if defined(STP_TIMING) || defined(STP_ALIBI)";
   o->newline() << "_stp_printf(\"----- probe hit report: \\n\");";
@@ -1920,6 +1926,10 @@ c_unparser::emit_module_exit ()
   o->newline () << "#endif";
   o->newline() << "_stp_print_flush();";
   o->newline(-1) << "}";
+
+  // NB: PR13386 needs to restore preemption-blocking counts
+  o->newline() << "preempt_enable_no_resched();";
+
   o->newline(-1) << "}\n";
 }
 
