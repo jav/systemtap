@@ -144,6 +144,7 @@ systemtap_session::systemtap_session ():
   use_remote_prefix = false;
   systemtap_v_check = false;
   download_dbinfo = 0;
+  native_build = true; // presumed
 
   /*  adding in the XDG_DATA_DIRS variable path,
    *  this searches in conjunction with SYSTEMTAP_TAPSET
@@ -250,6 +251,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   kernel_build_tree = "/lib/modules/" + kernel_release + "/build";
   architecture = machine = normalize_machine(arch);
   setup_kernel_release(kern.c_str());
+  native_build = false; // assumed; XXX: could be computed as in check_options()
 
   // These are all copied in the same order as the default ctor did above.
 
@@ -1253,14 +1255,15 @@ systemtap_session::check_options (int argc, char * const argv [])
       usage(1);
     }
   // Warn in case the target kernel release doesn't match the running one.
-  if (last_pass > 4 &&
-      (release != kernel_release ||
-       machine != architecture)) // NB: squashed ARCH by PR4186 logic
-   {
-     if(! suppress_warnings)
-       cerr << _("WARNING: kernel release/architecture mismatch with host forces last-pass 4.") << endl;
-     last_pass = 4;
-   }
+  native_build = (release == kernel_release &&
+                  machine == architecture); // NB: squashed ARCH by PR4186 logic
+
+  if (last_pass > 4 && !native_build)
+    {
+      if(! suppress_warnings)
+        cerr << _("WARNING: kernel release/architecture mismatch with host forces last-pass 4.") << endl;
+      last_pass = 4;
+    }
   if(download_dbinfo != 0 && access ("/usr/bin/abrt-action-install-debuginfo-to-abrt-cache", X_OK) < 0)
     {
       if(! suppress_warnings)

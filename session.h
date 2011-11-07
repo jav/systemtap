@@ -143,6 +143,7 @@ public:
   std::set<std::string> kernel_exports;
   std::string machine;
   std::string architecture;
+  bool native_build;
   std::string runtime_path;
   bool runtime_specified;
   std::string data_path;
