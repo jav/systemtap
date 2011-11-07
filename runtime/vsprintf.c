@@ -228,7 +228,8 @@ _stp_vsprint_memory(char * str, char * end, const char * ptr,
 		const char _stp_hex_asc[] = "0123456789abcdef";
 
 		c = contexts[smp_processor_id()];
-		for (i = 0; i < len && str < end; i++) {
+                /* PR13386: Skip if called with null context */
+                if (c) for (i = 0; i < len && str < end; i++) {
 			unsigned char c_tmp = kread((unsigned char *)(ptr));
 			ptr++;
 			*str++ = _stp_hex_asc[(c_tmp & 0xf0) >> 4];
@@ -238,7 +239,8 @@ _stp_vsprint_memory(char * str, char * end, const char * ptr,
 	}
 	else if (format == 'm') {
 		c = contexts[smp_processor_id()];
-		for (i = 0; i < len && str <= end; ++i) {
+                /* PR13386: Skip if called with null context */
+		if (c) for (i = 0; i < len && str <= end; ++i) {
 			*str++ = kread((unsigned char *)(ptr));
 			ptr++;
 		}
