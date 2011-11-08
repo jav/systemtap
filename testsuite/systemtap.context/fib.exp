@@ -16,6 +16,13 @@ set testexe   "[pwd]/$test"
 set testflags "additional_flags=-g additional_flags=-O0"
 set teststp   "$testpath/$test.stp"
 
+# When possible explicitly set 64 bit mode if kernel is 64 bit.
+switch -regexp $::tcl_platform(machine) {
+    {^(x86_64|ppc64|s390x)$} {
+        set testflags "$testflags additional_flags=-m64"
+    }
+}
+
 set res [target_compile $testsrc $testexe executable $testflags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
