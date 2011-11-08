@@ -5,6 +5,10 @@ if {! [installtest_p]} { untested $test; return }
 set nr_cpus [exec sh -c "grep ^processor /proc/cpuinfo | wc -l"]
 if {$nr_cpus < 2} { unsupported $test; return }
 
+# See PR13332 skipped.exp testcase can freeze processes/system
+untested "$test PR13332 skipped.exp testcase can freeze processes/system"
+return
+
 set script {
 global f
 probe timer.profile { f++; snooze() }

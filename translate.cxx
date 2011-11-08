@@ -1566,21 +1566,30 @@ c_unparser::emit_module_init ()
 
   // Perform checking on the user's credentials vs those required to load/run this module.
   o->newline() << "if (_stp_privilege_credentials == 0) {";
-  o->newline(1) << "_stp_privilege_credentials = STP_PR_LOWEST;";
+  o->newline(1) << "if (STP_PRIVILEGE_CONTAINS(STP_PRIVILEGE, STP_PR_STAPDEV) ||";
+  o->newline() << "    STP_PRIVILEGE_CONTAINS(STP_PRIVILEGE, STP_PR_STAPUSR)) {";
+  o->newline(1) << "_stp_privilege_credentials = STP_PRIVILEGE;";
   o->newline() << "#ifdef DEBUG_PRIVILEGE";
-  o->newline() << "_dbug(\"User's privilege credentials default to %s\\n\",";
+  o->newline(1) << "_dbug(\"User's privilege credentials default to %s\\n\",";
   o->newline() << "      privilege_to_text(_stp_privilege_credentials));";
-  o->newline() << "#endif";
+  o->newline(-1) << "#endif";
   o->newline(-1) << "}";
-  o->newline() << "#ifdef DEBUG_PRIVILEGE";
-  o->newline() << "else";
+  o->newline() << "else {";
+  o->newline(1) << "_stp_error (\"Unable to verify that you have the required privilege credentials to run this module (%s required). You must use staprun version 1.7 or higher.\",";
+  o->newline() << "            privilege_to_text(STP_PRIVILEGE));";
+  o->newline() << "rc = -EINVAL;";
+  o->newline(-1) << "}";
+  o->newline(-1) << "}";
+  o->newline() << "else {";
+  o->newline(1) << "#ifdef DEBUG_PRIVILEGE";
   o->newline(1) << "_dbug(\"User's privilege credentials provided as %s\\n\",";
   o->newline() << "      privilege_to_text(_stp_privilege_credentials));";
   o->newline(-1) << "#endif";
   o->newline() << "if (! STP_PRIVILEGE_CONTAINS(_stp_privilege_credentials, STP_PRIVILEGE)) {";
-  o->newline(1) << "_stp_error (\"Your privilege credentials (%s) are unsufficient to run this module (%s required)\",";
+  o->newline(1) << "_stp_error (\"Your privilege credentials (%s) are unsufficient to run this module (%s required).\",";
   o->newline () << "            privilege_to_text(_stp_privilege_credentials), privilege_to_text(STP_PRIVILEGE));";
   o->newline() << "rc = -EINVAL;";
+  o->newline(-1) << "}";
   o->newline(-1) << "}";
 
   o->newline(-1) << "}";
@@ -1857,6 +1866,12 @@ c_unparser::emit_module_exit ()
   o->newline(-1) << "}";
   o->newline(-1) << "}";
 
+  // NB: PR13386 points out that _stp_printf may be called from contexts
+  // without already active preempt disabling, which breaks various uses
+  // of smp_processor_id().  So we temporary block preemption around this
+  // whole printing block.  XXX: get_cpu() / put_cpu() may work just as well.
+  o->newline() << "preempt_disable();";
+
   // print per probe point timing/alibi statistics
   o->newline() << "#if defined(STP_TIMING) || defined(STP_ALIBI)";
   o->newline() << "_stp_printf(\"----- probe hit report: \\n\");";
@@ -1920,6 +1935,10 @@ c_unparser::emit_module_exit ()
   o->newline () << "#endif";
   o->newline() << "_stp_print_flush();";
   o->newline(-1) << "}";
+
+  // NB: PR13386 needs to restore preemption-blocking counts
+  o->newline() << "preempt_enable_no_resched();";
+
   o->newline(-1) << "}\n";
 }
 

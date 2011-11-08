@@ -7,7 +7,7 @@ if {! [installtest_p]} {
 
 # jffs2 and ext2 seem to cover a span of kernels
 
-spawn stap -t $srcdir/$subdir/bz6503.stp -c "( (/sbin/modprobe jffs2 ; /sbin/modprobe ext2);wait;sleep 3;(/sbin/rmmod jffs2& /sbin/rmmod ext2&); wait) 2>/dev/null"
+spawn stap -t $srcdir/$subdir/bz6503.stp -c "( (/sbin/modprobe jffs2; /sbin/modprobe ext2);wait;(/sbin/rmmod jffs2& /sbin/rmmod ext2&); wait) 2>/dev/null"
 set ok 0
 set ko 0
 expect {

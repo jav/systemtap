@@ -1,5 +1,5 @@
 // Setup routines for creating fully populated DWFLs. Used in pass 2 and 3.
-// Copyright (C) 2009 Red Hat, Inc.
+// Copyright (C) 2009-2011 Red Hat, Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -690,15 +690,9 @@ get_kernel_build_id(systemtap_session &s)
 {
   bool found = false;
   string hex;
-  // Get the kernel information
-  struct utsname kernelinfo;
-  if( uname(&kernelinfo) < 0)
-    return "";
 
   // Try to find BuildID from vmlinux.id
-  string kernel_buildID_path = "/lib/modules/"
-                              + (string)kernelinfo.release
-                              + "/build/vmlinux.id";
+  string kernel_buildID_path = s.kernel_build_tree + "/vmlinux.id";
   if(s.verbose > 1)
     clog << _F("Attempting to extract kernel debuginfo build ID from %s", kernel_buildID_path.c_str()) << endl;
   ifstream buildIDfile;
@@ -715,7 +709,7 @@ get_kernel_build_id(systemtap_session &s)
 
   // Try to find BuildID from the notes file if the above didn't work and we are
   // building a native module
-  if(found == false && s.release == kernelinfo.release)
+  if(found == false && s.native_build)
     {
       if(s.verbose > 1)
         clog << _("Attempting to extract kernel debuginfo build ID from /sys/kernel/notes") << endl;
