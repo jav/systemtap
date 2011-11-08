@@ -2204,7 +2204,9 @@ static void utrace_report_death(void *cb_data __attribute__ ((unused)),
 	 *
 	 * Because of this, 'exit_state' won't be set yet (as it would
 	 * have been when the original utrace hit this code).
-	 //BUG_ON(!task->exit_state);
+	 *
+	 * BUG_ON(!task->exit_state);
+	 */
 
 	/*
 	 * We are presently considered "quiescent"--which is accurate
