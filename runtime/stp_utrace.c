@@ -92,9 +92,7 @@ struct utrace {
 	unsigned int signal_handler:1;
 #endif
 	unsigned int vfork_stop:1; /* need utrace_stop() before vfork wait */
-#if 0
 	unsigned int death:1;	/* in utrace_report_death() now */
-#endif
 	unsigned int reap:1;	/* release_task() has run */
 	unsigned int pending_attach:1; /* need splice_attaching() */
 
@@ -122,8 +120,8 @@ static const struct utrace_engine_ops utrace_detached_ops; /* forward decl */
 static void utrace_report_clone(void *cb_data __attribute__ ((unused)),
 				struct task_struct *task,
 				struct task_struct *child);
-static void utrace_report_exit(void *cb_data __attribute__ ((unused)),
-			       struct task_struct *task);
+static void utrace_report_death(void *cb_data __attribute__ ((unused)),
+				struct task_struct *task);
 static void utrace_report_syscall_entry(void *cb_data __attribute__ ((unused)),
 					struct pt_regs *regs, long id);
 static void utrace_report_syscall_exit(void *cb_data __attribute__ ((unused)),
@@ -173,7 +171,7 @@ int /* __init */ utrace_init(void)
 		_stp_error("register_trace_sched_process_fork failed: %d", rc);
 		goto error;
 	}
-	rc = register_trace_sched_process_exit(utrace_report_exit, NULL);
+	rc = register_trace_sched_process_exit(utrace_report_death, NULL);
 	if (unlikely(rc != 0)) {
 		_stp_error("register_trace_sched_process_exit failed: %d", rc);
 		goto error2;
@@ -215,7 +213,7 @@ error5:
 error4:
 	unregister_trace_sys_enter(utrace_report_syscall_entry, NULL);
 error3:
-	unregister_trace_sched_process_exit(utrace_report_exit, NULL);
+	unregister_trace_sched_process_exit(utrace_report_death, NULL);
 error2:
 	unregister_trace_sched_process_fork(utrace_report_clone, NULL);
 	tracepoint_synchronize_unregister();
@@ -291,7 +289,7 @@ void utrace_shutdown(void)
 	unregister_ftrace_function(&utrace_report_exec_ops);
 #endif  /* STAPCONF_UTRACE_VIA_FTRACE */
 	unregister_trace_sched_process_fork(utrace_report_clone, NULL);
-	unregister_trace_sched_process_exit(utrace_report_exit, NULL);
+	unregister_trace_sched_process_exit(utrace_report_death, NULL);
 	unregister_trace_sys_enter(utrace_report_syscall_entry, NULL);
 	unregister_trace_sys_exit(utrace_report_syscall_exit, NULL);
 	tracepoint_synchronize_unregister();
@@ -823,7 +821,7 @@ int utrace_set_events(struct task_struct *target,
 	old_utrace_flags = utrace->utrace_flags;
 	old_flags = engine->flags & ~ENGINE_STOP;
 
-#if 0
+#if 1
 	/*
 	 * If utrace_report_death() is already progress now,
 	 * it's too late to clear the death event bits.
@@ -992,7 +990,7 @@ static bool utrace_reset(struct task_struct *task, struct utrace *utrace)
 		 * This ensures that utrace_release_task() knows
 		 * positively that utrace_report_death() can never run.
 		 */
-#if 0
+#if 1
 		BUG_ON(utrace->death);
 #endif
 		flags &= UTRACE_EVENT(REAP);
@@ -1163,7 +1161,7 @@ void utrace_maybe_reap(struct task_struct *target, struct utrace *utrace,
 			return;
 		}
 	} else {
-#if 0
+#if 1
 		/*
 		 * After we unlock with this flag clear, any competing
 		 * utrace_control/utrace_set_events calls know that we've
@@ -1233,7 +1231,7 @@ static inline int utrace_control_dead(struct task_struct *target,
 	if (action != UTRACE_DETACH || unlikely(utrace->reap))
 		return -ESRCH;
 
-#if 0
+#if 1
 	if (unlikely(utrace->death))
 		/*
 		 * We have already started the death report.  We can't
@@ -2152,6 +2150,7 @@ void utrace_report_jctl(int notify, int what)
 /*
  * Called iff UTRACE_EVENT(EXIT) flag is set.
  */
+#if 0
 static void utrace_report_exit(void *cb_data __attribute__ ((unused)),
 			       struct task_struct *task)
 {
@@ -2175,8 +2174,9 @@ static void utrace_report_exit(void *cb_data __attribute__ ((unused)),
 			utrace_stop(task, utrace, report.resume_action);
 	}
 }
+#endif
 
-#if 0
+#if 1
 /*
  * Called iff UTRACE_EVENT(DEATH) or UTRACE_EVENT(QUIESCE) flag is set.
  *
@@ -2184,12 +2184,27 @@ static void utrace_report_exit(void *cb_data __attribute__ ((unused)),
  * For this reason, utrace_release_task checks for the event bits that get
  * us here, and delays its cleanup for us to do.
  */
-void utrace_report_death(struct task_struct *task, struct utrace *utrace,
-			 bool group_dead, int signal)
+static void utrace_report_death(void *cb_data __attribute__ ((unused)),
+				struct task_struct *task)
 {
+	struct utrace *utrace = task_utrace_struct(task);
 	INIT_REPORT(report);
 
-	BUG_ON(!task->exit_state);
+#ifdef STP_TF_DEBUG
+	printk(KERN_ERR "%s:%d - task %p, utrace %p, flags %lx\n", __FUNCTION__, __LINE__, task, utrace, utrace ? utrace->utrace_flags : 0);
+#endif
+	if (!utrace || !(utrace->utrace_flags & UTRACE_EVENT(DEATH)))
+		return;
+
+	/* This code is called from the 'sched_process_exit'
+	 * tracepoint, which really corresponds more to UTRACE_EXIT
+	 * (thread exit in progress) than to UTRACE_DEATH (thread has
+	 * died).  But utrace_report_death() calls
+	 * utrace_maybe_reap(), which does cleanup that we need.
+	 *
+	 * Because of this, 'exit_state' won't be set yet (as it would
+	 * have been when the original utrace hit this code).
+	 //BUG_ON(!task->exit_state);
 
 	/*
 	 * We are presently considered "quiescent"--which is accurate
@@ -2210,7 +2225,7 @@ void utrace_report_death(struct task_struct *task, struct utrace *utrace,
 	spin_unlock(&utrace->lock);
 
 	REPORT_CALLBACKS(, task, utrace, &report, UTRACE_EVENT(DEATH),
-			 report_death, engine, group_dead, signal);
+			 report_death, engine, -1/*group_dead*/, -1/*signal*/);
 
 	utrace_maybe_reap(task, utrace, false);
 }

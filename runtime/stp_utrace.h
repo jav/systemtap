@@ -15,10 +15,10 @@ enum utrace_events {
 	_UTRACE_EVENT_REAP,  	/* Zombie reaped, no more tracing possible.  */
 	_UTRACE_EVENT_CLONE,	/* Successful clone/fork/vfork just done.  */
 	_UTRACE_EVENT_EXEC,	/* Successful execve just completed.  */
-	_UTRACE_EVENT_EXIT,	/* Thread exit in progress.  */
 #if 0
-	_UTRACE_EVENT_DEATH,	/* Thread has died.  */
+	_UTRACE_EVENT_EXIT,	/* Thread exit in progress.  */
 #endif
+	_UTRACE_EVENT_DEATH,	/* Thread has died.  */
 	_UTRACE_EVENT_SYSCALL_ENTRY, /* User entered kernel for system call. */
 	_UTRACE_EVENT_SYSCALL_EXIT, /* Returning to user after system call.  */
 #if 0
@@ -55,7 +55,7 @@ enum utrace_events {
 /*
  * The event reports triggered synchronously by task death.
  */
-#define _UTRACE_DEATH_EVENTS (/*UTRACE_EVENT(DEATH) |*/ UTRACE_EVENT(QUIESCE))
+#define _UTRACE_DEATH_EVENTS (UTRACE_EVENT(DEATH) | UTRACE_EVENT(QUIESCE))
 
 /*
  * Flags for utrace_attach_task() and utrace_attach_pid().
@@ -348,12 +348,12 @@ struct utrace_engine_ops {
 				    struct pt_regs *regs);
 	u32 (*report_syscall_exit)(u32 action, struct utrace_engine *engine,
 				   struct pt_regs *regs);
+#if 0
 	u32 (*report_exit)(u32 action, struct utrace_engine *engine,
 			   long code);
-#if 0
+#endif
 	u32 (*report_death)(struct utrace_engine *engine,
 			    bool group_dead, int signal);
-#endif
 	void (*report_reap)(struct utrace_engine *engine,
 			    struct task_struct *task);
 	void (*release)(void *data);
