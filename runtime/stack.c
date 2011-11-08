@@ -224,98 +224,52 @@ static struct pt_regs *_stp_get_uregs(struct context *c)
  * @param verbose _STP_SYM_FULL or _STP_SYM_BRIEF
  */
 
-static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
+static void _stp_stack_kernel_print(struct context *c, int sym_flags)
 {
 	struct pt_regs *regs = NULL;
-	struct task_struct *tsk = NULL;
-	int uregs_valid = 0;
-	struct uretprobe_instance *ri;
 
-	if (c->probe_type == _STP_PROBE_HANDLER_URETPROBE)
-		ri = c->ips.ri;
-#ifdef STAPCONF_UPROBE_GET_PC
-	else if (c->probe_type == _STP_PROBE_HANDLER_UPROBE)
-		ri = GET_PC_URETPROBE_NONE;
-#endif
-	else
-		ri = NULL;
-
-	if (stack_flags == _STP_STACK_KERNEL) {
-		if (! c->kregs) {
-			/* For the kernel we can use an inexact fallback.
-			   When compiled with frame pointers we can do
-			   a pretty good guess at the stack value,
-			   otherwise let dump_stack guess it
-			   (and skip some framework frames). */
+	if (! c->kregs) {
+		/* For the kernel we can use an inexact fallback.
+		   When compiled with frame pointers we can do
+		   a pretty good guess at the stack value,
+		   otherwise let dump_stack guess it
+		   (and skip some framework frames). */
 #if defined(STAPCONF_KERNEL_STACKTRACE)
-			unsigned long sp;
-			int skip;
+		unsigned long sp;
+		int skip;
 #ifdef CONFIG_FRAME_POINTER
-			sp  = *(unsigned long *) __builtin_frame_address (0);
-			skip = 1; /* Skip just this frame. */
+		sp  = *(unsigned long *) __builtin_frame_address (0);
+		skip = 1; /* Skip just this frame. */
 #else
-			sp = 0;
-			skip = 5; /* yes, that many framework frames. */
+		sp = 0;
+		skip = 5; /* yes, that many framework frames. */
 #endif
-			_stp_stack_print_fallback(sp, sym_flags,
-						  MAXBACKTRACE, skip);
+		_stp_stack_print_fallback(sp, sym_flags,
+					  MAXBACKTRACE, skip);
 #else
-			if (sym_flags & _STP_SYM_SYMBOL)
-				_stp_printf("<no kernel backtrace at %s>\n",
-					    c->probe_point);
-			else
-				_stp_print("\n");
+		if (sym_flags & _STP_SYM_SYMBOL)
+			_stp_printf("<no kernel backtrace at %s>\n",
+				    c->probe_point);
+		else
+			_stp_print("\n");
 #endif
-			return;
-		} else {
-			regs = c->kregs;
-			ri = NULL; /* This is a hint for GCC so that it can
-				      eliminate the call to uprobe_get_pc()
-				      in __stp_stack_print() below. */
-		}
-	} else if (stack_flags == _STP_STACK_USER) {
-		regs = _stp_get_uregs(c);
-		uregs_valid = c->probe_flags & _STP_PROBE_STATE_FULL_UREGS;
-
-		if (! current->mm || ! regs) {
-			if (sym_flags & _STP_SYM_SYMBOL)
-				_stp_printf("<no user backtrace at %s>\n",
-					    c->probe_point);
-			else
-				_stp_print("\n");
-			return;
-		} else {
-			tsk = current;
-		}
+		return;
+	} else {
+		regs = c->kregs;
 	}
 
 	/* print the current address */
-	if (stack_flags == _STP_STACK_KERNEL
-	    && c->probe_type == _STP_PROBE_HANDLER_KRETPROBE
-	    && c->ips.krp.pi) {
+	if (c->probe_type == _STP_PROBE_HANDLER_KRETPROBE && c->ips.krp.pi) {
 		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
 			_stp_print("Returning from: ");
 			_stp_print_addr((unsigned long)_stp_probe_addr_r(c->ips.krp.pi),
-					sym_flags, tsk);
+					sym_flags, NULL);
 			_stp_print("Returning to  : ");
 		}
 		_stp_print_addr((unsigned long)_stp_ret_addr_r(c->ips.krp.pi),
-				sym_flags, tsk);
-#ifdef STAPCONF_UPROBE_GET_PC
-	} else if (stack_flags == _STP_STACK_USER
-		   && c->probe_type == _STP_PROBE_HANDLER_URETPROBE
-		   && ri) {
-		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
-			_stp_print("Returning from: ");
-			/* ... otherwise this dereference fails */
-			_stp_print_addr(ri->rp->u.vaddr, sym_flags, tsk);
-			_stp_print("Returning to  : ");
-			_stp_print_addr(ri->ret_addr, sym_flags, tsk);
-		} else
-			_stp_print_addr(ri->ret_addr, sym_flags, tsk);
-#endif
+				sym_flags, NULL);
 	} else {
-		_stp_print_addr(REG_IP(regs), sym_flags, tsk);
+		_stp_print_addr(REG_IP(regs), sym_flags, NULL);
 	}
 
 	/* print rest of stack... */
@@ -325,11 +279,71 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
 		c->uregs = NULL;
 		c->probe_flags &= ~_STP_PROBE_STATE_FULL_UREGS;
 	}
-	__stp_dwarf_stack_print(regs, sym_flags, MAXBACKTRACE, tsk,
-				&c->uwcontext, ri, uregs_valid);
+	__stp_dwarf_stack_kernel_print(regs, sym_flags, MAXBACKTRACE,
+				       &c->uwcontext);
 #else
-	__stp_stack_print(regs, sym_flags, MAXBACKTRACE, tsk,
+	/* Arch specific fallback for kernel backtraces. */
+	__stp_stack_print(regs, sym_flags, MAXBACKTRACE, NULL,
 			  &c->uwcontext, ri, uregs_valid);
+#endif
+}
+
+static void _stp_stack_user_print(struct context *c, int sym_flags)
+{
+	struct pt_regs *regs = NULL;
+	int uregs_valid = 0;
+	struct uretprobe_instance *ri = NULL;
+
+	if (c->probe_type == _STP_PROBE_HANDLER_URETPROBE)
+		ri = c->ips.ri;
+#ifdef STAPCONF_UPROBE_GET_PC
+	else if (c->probe_type == _STP_PROBE_HANDLER_UPROBE)
+		ri = GET_PC_URETPROBE_NONE;
+#endif
+
+	regs = _stp_get_uregs(c);
+	uregs_valid = c->probe_flags & _STP_PROBE_STATE_FULL_UREGS;
+
+	if (! current->mm || ! regs) {
+		if (sym_flags & _STP_SYM_SYMBOL)
+			_stp_printf("<no user backtrace at %s>\n",
+				    c->probe_point);
+		else
+			_stp_print("\n");
+		return;
+	}
+
+	/* print the current address */
+#ifdef STAPCONF_UPROBE_GET_PC
+	if (c->probe_type == _STP_PROBE_HANDLER_URETPROBE && ri) {
+		if ((sym_flags & _STP_SYM_FULL) == _STP_SYM_FULL) {
+			_stp_print("Returning from: ");
+			/* ... otherwise this dereference fails */
+			_stp_print_addr(ri->rp->u.vaddr, sym_flags, current);
+			_stp_print("Returning to  : ");
+			_stp_print_addr(ri->ret_addr, sym_flags, current);
+		} else
+			_stp_print_addr(ri->ret_addr, sym_flags, current);
+#endif
+	} else {
+		_stp_print_addr(REG_IP(regs), sym_flags, current);
+	}
+
+	/* print rest of stack... */
+#ifdef STP_USE_DWARF_UNWINDER
+	if (c->uregs == &c->uwcontext.info.regs) {
+		/* Unwinder needs the reg state, clear uregs ref. */
+		c->uregs = NULL;
+		c->probe_flags &= ~_STP_PROBE_STATE_FULL_UREGS;
+	}
+	__stp_dwarf_stack_user_print(regs, sym_flags, MAXBACKTRACE,
+				     &c->uwcontext, ri, uregs_valid);
+#else
+	/* User stack traces only supported for arches with dwarf unwinder. */
+	if (sym_flags & _STP_SYM_SYMBOL)
+		_stp_printf("<no user backtrace support on arch>\n");
+	else
+		_stp_print("\n");
 #endif
 }
 
@@ -339,8 +353,8 @@ static void _stp_stack_print(struct context *c, int sym_flags, int stack_flags)
  * @param regs A pointer to the struct pt_regs.
  * @returns void
  */
-static void _stp_stack_sprint(char *str, int size, struct context* c,
-			      int sym_flags, int stack_flags)
+static void _stp_stack_kernel_sprint(char *str, int size, struct context* c,
+				     int sym_flags)
 {
 	/* To get an hex string, we use a simple trick.
 	 * First flush the print buffer,
@@ -350,7 +364,24 @@ static void _stp_stack_sprint(char *str, int size, struct context* c,
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	_stp_print_flush();
 
-	_stp_stack_print(c, sym_flags, stack_flags);
+	_stp_stack_kernel_print(c, sym_flags);
+
+	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
+	pb->len = 0;
+}
+
+static void _stp_stack_user_sprint(char *str, int size, struct context* c,
+				   int sym_flags)
+{
+	/* To get an hex string, we use a simple trick.
+	 * First flush the print buffer,
+	 * then call _stp_stack_print,
+	 * then copy the result into the output string
+	 * and clear the print buffer. */
+	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
+	_stp_print_flush();
+
+	_stp_stack_user_print(c, sym_flags);
 
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;

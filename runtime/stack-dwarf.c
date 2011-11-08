@@ -35,17 +35,43 @@ static int _stp_valid_pc_addr(unsigned long addr, struct task_struct *tsk)
 #endif
 }
 
-static void __stp_dwarf_stack_print(struct pt_regs *regs, int verbose,
-			      int levels, struct task_struct *tsk,
-			      struct unwind_context *uwcontext,
+static void __stp_dwarf_stack_kernel_print(struct pt_regs *regs, int verbose,
+			      int levels, struct unwind_context *uwcontext)
+{
+	struct unwind_frame_info *info = &uwcontext->info;
+	arch_unw_init_frame_info(info, regs, false);
+
+	while (levels) {
+		int ret = unwind(uwcontext, NULL);
+		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(info), UNW_SP(info));
+		if (ret == 0 && _stp_valid_pc_addr(UNW_PC(info), NULL)) {
+			_stp_print_addr(UNW_PC(info), verbose, NULL);
+			levels--;
+			if (UNW_PC(info) != _stp_kretprobe_trampoline)
+			  continue;
+		}
+		/* If an error happened or we hit a kretprobe trampoline,
+		 * and the current pc frame address is still valid kernel
+		 * address use fallback backtrace, unless user task backtrace.
+		 * FIXME: is there a way to unwind across kretprobe
+		 * trampolines? PR9999. */
+		if ((ret < 0 || UNW_PC(info) == _stp_kretprobe_trampoline))
+			_stp_stack_print_fallback(UNW_SP(info),
+						  verbose, levels, 0);
+		return;
+	}
+}
+
+
+static void __stp_dwarf_stack_user_print(struct pt_regs *regs, int verbose,
+			      int levels, struct unwind_context *uwcontext,
 			      struct uretprobe_instance *ri, int uregs_valid)
 {
 	struct unwind_frame_info *info = &uwcontext->info;
-	int sanitize = tsk && ! uregs_valid;
-	arch_unw_init_frame_info(info, regs, sanitize);
+	arch_unw_init_frame_info(info, regs, ! uregs_valid);
 
 	while (levels) {
-		int ret = unwind(uwcontext, tsk);
+		int ret = unwind(uwcontext, current);
 #ifdef STAPCONF_UPROBE_GET_PC
                 unsigned long maybe_pc = 0;
                 if (ri) {
@@ -58,21 +84,15 @@ static void __stp_dwarf_stack_print(struct pt_regs *regs, int verbose,
                 }
 #endif
 		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(info), UNW_SP(info));
-		if (ret == 0 && _stp_valid_pc_addr(UNW_PC(info), tsk)) {
-			_stp_print_addr(UNW_PC(info), verbose, tsk);
+		if (ret == 0 && _stp_valid_pc_addr(UNW_PC(info), current)) {
+			_stp_print_addr(UNW_PC(info), verbose, current);
 			levels--;
-			if (UNW_PC(info) != _stp_kretprobe_trampoline)
-			  continue;
+			continue;
 		}
-		/* If an error happened or we hit a kretprobe trampoline,
-		 * and the current pc frame address is still valid kernel
-		 * address use fallback backtrace, unless user task backtrace.
-		 * FIXME: is there a way to unwind across kretprobe
-		 * trampolines? PR9999. */
-		if ((ret < 0 || UNW_PC(info) == _stp_kretprobe_trampoline)
-		    && ! tsk)
-			_stp_stack_print_fallback(UNW_SP(info),
-						  verbose, levels, 0);
+
+		/* If an error happened or the PC becomes invalid, then
+		 * we are done, _stp_stack_print_fallback is only for
+		 * kernel space. */
 		return;
 	}
 }
