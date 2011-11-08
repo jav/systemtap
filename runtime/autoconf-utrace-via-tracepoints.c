@@ -21,6 +21,7 @@ void __sched_process_exit(void *cb_data __attribute__((unused)),
 
 void __sched_process_exec(void *cb_data __attribute__ ((unused)),
 			  struct task_struct *task __attribute__((unused)),
+			  pid_t old_pid __attribute__((unused)),
 			  struct linux_binprm *bprm __attribute__((unused)))
 {
 	return;

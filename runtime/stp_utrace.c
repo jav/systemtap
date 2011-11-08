@@ -132,6 +132,7 @@ static void utrace_report_syscall_exit(void *cb_data __attribute__ ((unused)),
 #ifdef STAPCONF_UTRACE_VIA_TRACEPOINTS
 static void utrace_report_exec(void *cb_data __attribute__ ((unused)),
 			       struct task_struct *task,
+			       pid_t old_pid __attribute__((unused)),
 			       struct linux_binprm *bprm __attribute__ ((unused)));
 #else  /* STAPCONF_UTRACE_VIA_FTRACE */
 static void utrace_report_exec(unsigned long ip __attribute__ ((unused)),
@@ -383,7 +384,7 @@ void utrace_free_task(struct task_struct *task)
 		hlist_del(&utrace->hlist);
 	spin_unlock(&task_utrace_lock);
 	if (utrace)
-		kmem_cache_free(utrace_cachep, task->utrace);
+		kmem_cache_free(utrace_cachep, utrace);
 }
 
 static struct utrace *task_utrace_struct(struct task_struct *task)
@@ -1900,6 +1901,7 @@ static const struct utrace_engine_ops *start_callback(
 #ifdef STAPCONF_UTRACE_VIA_TRACEPOINTS
 static void utrace_report_exec(void *cb_data __attribute__ ((unused)),
 			       struct task_struct *task,
+			       pid_t old_pid __attribute__((unused)),
 			       struct linux_binprm *bprm __attribute__ ((unused)))
 #else  /* STAPCONF_UTRACE_VIA_FTRACE */
 static void utrace_report_exec(unsigned long ip __attribute__ ((unused)),
