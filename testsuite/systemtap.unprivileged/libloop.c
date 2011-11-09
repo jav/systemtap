@@ -10,6 +10,8 @@ inline int ilibloopfunc (void) {
 
 int libloopfunc (void) {
   int i, j = 0;
+  if (0) goto a;
+ a:
   STAP_PROBE(_test_, libloopfunc_enter);
   for (i = 0; i < 10; ++i)
     j += ilibloopfunc ();
