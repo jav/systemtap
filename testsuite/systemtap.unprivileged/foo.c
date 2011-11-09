@@ -10,7 +10,7 @@ void *bar (void *b) {
 }
 
 /* We need an inline function. */
-inline void ibar (void) {
+inline void __attribute__ ((always_inline)) ibar (void) {
 /* We need a threaded app. */
   void *x;
   STAP_PROBE(_test_, main_enter);
