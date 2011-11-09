@@ -5,7 +5,7 @@ set test "Invalid Server Client Arguments"
 set test_file $srcdir/systemtap.server/test.stp
 
 # Test invalid combinations.
-set error_regexp ".*(ERROR)|(You can't specify .* when --unprivileged is specified).*"
+set error_regexp ".*(ERROR)|(You can't specify .* when --privilege=stapusr is specified).*"
 
 set invalid_options [list \
   "--unprivileged --client-options -B X=Y" \

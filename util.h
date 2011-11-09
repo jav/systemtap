@@ -240,6 +240,7 @@ struct stap_sigmasker {
 
 privilege_t pr_next (privilege_t p);
 const char *pr_name (privilege_t p);
+bool pr_contains (privilege_t actual, privilege_t required);
 
 #endif // UTIL_H
 

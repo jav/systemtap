@@ -71,8 +71,8 @@ proc test_embedded_C { use_wrapper } {
 	if {"$funcname" == "_wait_status_str"} {
 	    set funcname "_signal_name"
 	}
-	set emsg1 "semantic error: function may not be used when --unprivileged is specified: identifier '$funcname'"
-	set emsg2 "semantic error: embedded expression may not be used when --unprivileged is specified"
+	set emsg1 "semantic error: function may not be used when --privilege=stapusr is specified: identifier '$funcname'"
+	set emsg2 "semantic error: embedded expression may not be used when --privilege=stapusr is specified"
 	set found [expr [regexp ".*$emsg1.*" $res_stap] || [regexp ".*$emsg2.*" $res_stap]]
 
 	# Evaluate the result based upon the function's status

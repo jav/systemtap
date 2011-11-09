@@ -4291,7 +4291,7 @@ dwarf_derived_probe::register_function_variants(match_node * root,
     ->bind_privilege(privilege)
     ->bind(dw);
 
-  if (privilege >= pr_stapdev) /* for process probes / uprobes, .maxactive() is unused. */
+  if (! pr_contains (privilege, pr_stapusr)) /* for process probes / uprobes, .maxactive() is unused. */
     {
       root->bind(TOK_RETURN)
         ->bind_num(TOK_MAXACTIVE)->bind(dw);
@@ -4343,10 +4343,10 @@ dwarf_derived_probe::register_sdt_variants(systemtap_session& s,
 					   dwarf_builder * dw)
 {
   root->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(dw);
   root->bind_str(TOK_PROVIDER)->bind_str(TOK_MARK)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(dw);
 }
 
@@ -4356,16 +4356,16 @@ dwarf_derived_probe::register_plt_variants(systemtap_session& s,
 					   dwarf_builder * dw)
 {
   root->bind(TOK_PLT)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(dw);
   root->bind_str(TOK_PLT)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(dw);
   root->bind(TOK_PLT)->bind_num(TOK_STATEMENT)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(dw);
   root->bind_str(TOK_PLT)->bind_num(TOK_STATEMENT)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(dw);
 }
 
@@ -4391,7 +4391,7 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   };
   for (size_t i = 0; i < sizeof(uprobes) / sizeof(*uprobes); ++i)
     {
-      register_function_and_statement_variants(s, uprobes[i], dw, pr_stapusr);
+      register_function_and_statement_variants(s, uprobes[i], dw, pr_all);
       register_sdt_variants(s, uprobes[i], dw);
       register_plt_variants(s, uprobes[i], dw);
     }
@@ -9403,11 +9403,11 @@ register_standard_tapsets(systemtap_session & s)
   // XXX: user-space starter set
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(new uprobe_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(TOK_RETURN)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(new uprobe_builder ());
 
   // kernel tracepoint probes

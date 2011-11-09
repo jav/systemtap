@@ -325,7 +325,7 @@ proc test_invalid_probes { use_alias } {
 	set with_alias ""
     }
 
-    set error_regexp1 ".*semantic error: probe point is not allowed for unprivileged users.*"
+    set error_regexp1 ".*semantic error: probe point is not allowed for --privilege=stapusr.*"
     foreach probe_type $invalid_probe_types {
 	# Test the probe type. Each should fail with the expected message.
 	set probe [add_args $probe_type]

@@ -1,5 +1,5 @@
 // tapset for timers
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -614,66 +614,66 @@ register_tapset_timers(systemtap_session& s)
   root = root->bind(TOK_TIMER);
 
   root->bind_num("s")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("s")->bind_num("randomize")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("sec")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("sec")->bind_num("randomize")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   root->bind_num("ms")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("ms")->bind_num("randomize")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("msec")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("msec")->bind_num("randomize")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   root->bind_num("us")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("us")->bind_num("randomize")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("usec")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("usec")->bind_num("randomize")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   root->bind_num("ns")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("ns")->bind_num("randomize")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("nsec")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("nsec")->bind_num("randomize")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   root->bind_num("jiffies")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("jiffies")->bind_num("randomize")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   root->bind_num("hz")
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   // Not ok for unprivileged users, because register_timer_hook only allows a
