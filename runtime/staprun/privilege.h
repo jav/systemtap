@@ -4,8 +4,8 @@
 enum privilege_t {
   // Define the privilege levels in order where a higher value indicates a higher privilege level.
   // NOTE:
-  //   - Values must be a power of 2 between 0x1 and 0x40000000 inclusive, since they will be used
-  //     to form a bit mask of type int must be remain non-negative.
+  //   - Values must be a power of 2 between 0x1 and 0x80000000 inclusive, since they will be used
+  //     to form a bit set.
   //   - These values cannot change in the future because they will be encoded into the generated
   //     modules in order to identify their required privilege level now and in the future. So
   //     leave space around each for possible future intermediate privilege levels.

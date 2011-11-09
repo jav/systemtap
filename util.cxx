@@ -930,5 +930,9 @@ const char *pr_name (privilege_t p)
   return "unknown";
 }
 
+bool pr_contains (privilege_t actual, privilege_t required)
+{
+  return (actual & required) == required;
+}
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

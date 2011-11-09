@@ -484,6 +484,8 @@ systemtap_session::usage (int exitcode)
 #ifdef HAVE_LIBSQLITE3
     "   -q         generate information on tapset coverage\n"
 #endif /* HAVE_LIBSQLITE3 */
+    "   --privilege=PRIVILEGE_LEVEL\n"
+    "              check the script for constructs not allowed at the given privilege level\n"
     "   --unprivileged\n"
     "              equivalent to --privilege=stapusr\n"
 #if 0 /* PR6864: disable temporarily; should merge with -d somehow */
@@ -575,6 +577,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_TMPDIR 25
 #define LONG_OPT_DOWNLOAD_DEBUGINFO 26
 #define LONG_OPT_DUMP_PROBE_TYPES 27
+#define LONG_OPT_PRIVILEGE 28
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -610,6 +613,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "tmpdir", 1, &long_opt, LONG_OPT_TMPDIR },
         { "download-debuginfo", 2, &long_opt, LONG_OPT_DOWNLOAD_DEBUGINFO },
         { "dump-probe-types", 0, &long_opt, LONG_OPT_DUMP_PROBE_TYPES },
+        { "privilege", 1, &long_opt, LONG_OPT_PRIVILEGE },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -945,6 +949,20 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      push_server_opt = true;
 	      skip_badvars = true;
 	      break;
+	    case LONG_OPT_PRIVILEGE:
+	      push_server_opt = true;
+	      if (strcmp (optarg, "stapdev") == 0)
+		privilege = pr_stapdev;
+	      else if (strcmp (optarg, "stapusr") == 0)
+		privilege = pr_stapusr;
+	      else
+		{
+		  cerr << _F("Invalid argument '%s' for --privilege.", optarg) << endl;
+		  return 1;
+		}
+              /* NB: for server security, it is essential that once this flag is
+                 set, no future flag be able to unset it. */
+	      break;
 	    case LONG_OPT_UNPRIVILEGED:
 	      push_server_opt = true;
 	      privilege = pr_stapusr;
@@ -1203,7 +1221,7 @@ systemtap_session::check_options (int argc, char * const argv [])
 	  if (! stgr || ! in_group_id (stgr->gr_gid))
 	    {
               automatic_server_mode = true;
-	      if (privilege >= pr_stapdev)
+	      if (privilege != pr_stapusr)
 		{
                   if (perpass_verbose[0] > 1)
                     cerr << _("Using --unprivileged for member of the group stapusr") << endl;
@@ -1220,10 +1238,12 @@ systemtap_session::check_options (int argc, char * const argv [])
 	}
     }
 
-  if (client_options && privilege < pr_stapdev && ! client_options_disallowed.empty ())
+  if (client_options && ! pr_contains (privilege, pr_stapdev) && ! client_options_disallowed.empty ())
     {
-      cerr << _F("You can't specify %s when --unprivileged is specified.",
-                 client_options_disallowed.c_str()) << endl;
+      cerr << _F("You can't specify %s when --privilege=%s is specified.",
+                 client_options_disallowed.c_str(),
+		 pr_name (privilege))
+	   << endl;
       usage (1);
     }
   if ((cmd != "") && (target_pid))
@@ -1231,9 +1251,10 @@ systemtap_session::check_options (int argc, char * const argv [])
       cerr << _F("You can't specify %s and %s together.", "-c", "-x") << endl;
       usage (1);
     }
-  if (privilege < pr_stapdev && guru_mode)
+  if (! pr_contains (privilege, pr_stapdev) && guru_mode)
     {
-      cerr << _F("You can't specify %s and %s together.", "-g", "--unprivileged") << endl;
+      cerr << _F("You can't specify %s and --privilege=%s together.", "-g", pr_name (privilege))
+	   << endl;
       usage (1);
     }
   if (!kernel_symtab_path.empty())
@@ -1400,9 +1421,9 @@ systemtap_session::register_library_aliases()
                                                 comp->functor.c_str()));
                       mn = mn->bind(comp->functor);
                     }
-		  // PR 12916: All probe aliases are OK for unprivileged users. The actual
+		  // PR 12916: All probe aliases are OK for all users. The actual
 		  // referenced probe points will be checked when the alias is resolved.
-		  mn->bind_privilege (pr_stapusr);
+		  mn->bind_privilege (pr_all);
                   mn->bind(new alias_expansion_builder(alias));
                 }
             }

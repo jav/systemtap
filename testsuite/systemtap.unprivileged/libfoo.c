@@ -6,5 +6,7 @@ inline void ilibfoofunc (void) {
 
 void libfoofunc (void) {
   STAP_PROBE(_test_, libfoofunc_enter);
+  if (0) goto a;
+ a:
   ilibfoofunc ();
 }

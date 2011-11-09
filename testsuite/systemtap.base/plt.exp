@@ -87,14 +87,15 @@ expect {
     -re {asctime 1\r\n} { incr ok; exp_continue }
     -re {fputs 3\r\n} { incr ok; exp_continue }
     -re {strftime 2\r\n} { incr ok; exp_continue }
-    -re {__cxa_finalize 1\r\n} { incr ok; exp_continue }
+    -re {__cxa_finalize \d\r\n} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof {  }
 }
 
 catch { close}; catch { wait}
 
-error_handler [expr {$ok == 31}] "plt" "($ok != 31)"
+# The number of __cxa_finalize can be different or non-existent.
+error_handler [expr {$ok == 31 || $ok == 32}] "plt" "($ok != 31 || $ok != 32)"
 
 # test process.library.plt
 
@@ -113,7 +114,7 @@ expect {
     -re {strcpy 2\r\n} { incr ok; exp_continue }
     -re {open 2\r\n} { incr ok; exp_continue }
     -re {open3 1\r\n} { incr ok; exp_continue }
-    -re {free 4\r\n} { incr ok; exp_continue }
+    -re {free \d+\r\n} { incr ok; exp_continue }
     -re {basename2 1\r\n} { incr ok; exp_continue }
     -re {__xpg_basename 1\r\n} { incr ok; exp_continue }
     -re {critters 1\r\n} { incr ok; exp_continue }
@@ -134,14 +135,15 @@ expect {
     -re {asctime 1\r\n} { incr ok; exp_continue }
     -re {fputs 3\r\n} { incr ok; exp_continue }
     -re {strftime 2\r\n} { incr ok; exp_continue }
-    -re {__cxa_finalize 1\r\n} { incr ok; exp_continue }
+    -re {__cxa_finalize \d\r\n} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof {  }
 }
 
 catch { close}; catch { wait}
 
-error_handler [expr {$ok == 31}] "plt library" "($ok != 31)"
+# The number of __cxa_finalize can be different or non-existent.
+error_handler [expr {$ok == 31 || $ok == 32}] "plt library" "($ok != 31 || $ok != 32)"
 
 # test process.plt("glob")
 

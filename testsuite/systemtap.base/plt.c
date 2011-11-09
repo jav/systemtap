@@ -1,5 +1,6 @@
-#include <libgen.h>
+#define _GNU_SOURCE
 #include <string.h>
+#include <libgen.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>

@@ -1,5 +1,5 @@
 // tapset for begin/end/error/never
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -221,28 +221,28 @@ register_tapset_been(systemtap_session& s)
   match_node* root = s.pattern_root;
 
   root->bind(TOK_BEGIN)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(BEGIN));
   root->bind_num(TOK_BEGIN)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(BEGIN));
 
   root->bind(TOK_END)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(END));
   root->bind_num(TOK_END)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(END));
 
   root->bind(TOK_ERROR)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(ERROR));
   root->bind_num(TOK_ERROR)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(ERROR));
 
   root->bind(TOK_NEVER)
-    ->bind_privilege(pr_stapusr)
+    ->bind_privilege(pr_all)
     ->bind(new never_builder());
 }
 

@@ -23,6 +23,10 @@ set valid_probe_types [list \
   "process.function(string).inline" \
   "process.function(string).label(string)" \
   "process.function(string).return" \
+  "process.plt" \
+  "process.plt.statement(number)" \
+  "process.plt(string)" \
+  "process.plt(string).statement(number)" \
   "process.library(string).function(number)" \
   "process.library(string).function(number).call" \
   "process.library(string).function(number).inline" \
@@ -31,10 +35,16 @@ set valid_probe_types [list \
   "process.library(string).function(string).call" \
   "process.library(string).function(string).inline" \
   "process.library(string).function(string).return" \
+  "process.library(string).function(string).label(string)" \
+  "process.library(string).plt" \
+  "process.library(string).plt.statement(number)" \
+  "process.library(string).plt(string)" \
+  "process.library(string).plt(string).statement(number)" \
   "process.library(string).mark(string)" \
   "process.library(string).provider(string).mark(string)" \
   "process.library(string).statement(number)" \
   "process.library(string).statement(string)" \
+  "process.provider(string).mark(string)" \
   "process.mark(string)" \
   "process.statement(number)" \
   "process.statement(string)" \
@@ -69,14 +79,23 @@ set valid_probe_types [list \
   "process(string).library(string).function(string).call" \
   "process(string).library(string).function(string).inline" \
   "process(string).library(string).function(string).return" \
+  "process(string).library(string).function(string).label(string)" \
   "process(string).library(string).mark(string)" \
   "process(string).library(string).provider(string).mark(string)" \
   "process(string).library(string).statement(number)" \
   "process(string).library(string).statement(string)" \
+  "process(string).library(string).plt" \
+  "process(string).library(string).plt.statement(number)" \
+  "process(string).library(string).plt(string)" \
+  "process(string).library(string).plt(string).statement(number)" \
   "process(string).mark(string)" \
   "process(string).provider(string).mark(string)" \
   "process(string).statement(number)" \
   "process(string).statement(string)" \
+  "process(string).plt" \
+  "process(string).plt.statement(number)" \
+  "process(string).plt(string)" \
+  "process(string).plt(string).statement(number)" \
   "process(string).syscall" \
   "process(string).syscall.return" \
   "process(string).thread.begin" \
@@ -228,6 +247,9 @@ proc add_args { probe_type } {
     # Replace "provider(string)" with "provider("_test_")"
     regsub -all "provider\\(string\\)" $probe "provider(\"_test_\")" probe
 
+    # Replace plt with plt("*") (all shlib calls)
+    regsub -all "plt\\(string\\)" $probe "plt(\"*\")" probe
+
     # Replace "(number)" with "(10)"
     regsub -all "\\(number\\)" $probe "(10)" probe
     # Replace "(string)" with "(\"$exepath\")"
@@ -268,6 +290,16 @@ proc test_valid_probes { use_alias } {
 	    {
 		setup_xfail *-*-*
 	    }
+	    process.function(string).inline -
+	    process(string).function(string).inline
+	    {
+		# These tests fail on systems with gcc 4.6 because gcc doesn't inline the function
+		# "ibar" in foo.c.
+		catch {eval exec gcc -v} res_gcc
+		if {[regexp "gcc version 4.6" $res_gcc]} {
+		    setup_kfail 13394 *-*-*
+		}
+	    }
 	}
 
 	# Test the probe type. If successful, the stap rc will be 0.
@@ -303,7 +335,7 @@ proc test_invalid_probes { use_alias } {
 	set with_alias ""
     }
 
-    set error_regexp1 ".*semantic error: probe point is not allowed for unprivileged users.*"
+    set error_regexp1 ".*semantic error: probe point is not allowed for --privilege=stapusr.*"
     foreach probe_type $invalid_probe_types {
 	# Test the probe type. Each should fail with the expected message.
 	set probe [add_args $probe_type]

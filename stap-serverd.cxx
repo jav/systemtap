@@ -1079,7 +1079,6 @@ handleRequest (const string &requestDirName, const string &responseDirName)
   unsigned u;
   unsigned i;
   FILE* f;
-  int unprivileged = 0;
 
   // Save the server version. Do this early, so the client knows what version of the server
   // it is dealing with, even if the request is not fully completed.
@@ -1170,29 +1169,47 @@ handleRequest (const string &requestDirName, const string &responseDirName)
 
   string stapstdout = responseDirName + "/stdout";
 
-  /* Check for the unprivileged flag; we need this so that we can decide to sign the module. */
+  /* Check for the privilege flag; we need this so that we can decide to sign the module. */
+  privilege_t privilege = pr_stapdev; // Until specified otherwise.
   for (i=0; i < stapargv.size (); i++)
     {
       if (stapargv[i] == "--unprivileged")
 	{
-	  unprivileged=1;
+	  privilege = pr_stapusr;
 	  break;
+	}
+      if (stapargv[i].substr (0, 12) == "--privilege=")
+	{
+	  string arg = stapargv[i].substr (12);
+	  if (arg == "stapdev")
+	    {
+	      // privilege is already pr_stapdev
+	      break;
+	    }
+	  if (arg == "stapusr")
+	    {
+	      privilege = pr_stapusr;
+	      break;
+	    }
+	  // Not fatal, but generate a message.
+	  server_error (_F("Unknown argument to --privilege: %s", arg.c_str ()));
 	}
     }
   /* NB: but it's not that easy!  What if an attacker passes
-     --unprivileged as some sort of argument-parameter, so that the
+     --unprivileged or --privilege=XXX as some sort of argument-parameter, so that the
      translator does not interpret it as an --unprivileged mode flag,
      but something else?  Then it could generate unrestrained modules,
      but silly we might still sign it, and let the attacker get away
      with murder.  And yet we don't want to fully getopt-parse the
      args here for duplication of effort.
 
-     So let's do a hack: forcefully add --unprivileged to stapargv[]
+     So let's do a hack: forcefully add --privilege=XXX to stapargv[]
      near the front in this case, something which a later option
      cannot undo. */
-  if (unprivileged)
+  if (! pr_contains (privilege, pr_stapdev))
     {
-      stapargv.insert (stapargv.begin () + 1, "--unprivileged"); /* better not be resettable by later option */
+      string opt = string("--privilege=") + pr_name (privilege);
+      stapargv.insert (stapargv.begin () + 1, opt); /* better not be resettable by later option */
     }
 
   // Environment variables (possibly empty) to be passed to spawn_and_wait().
@@ -1214,9 +1231,8 @@ handleRequest (const string &requestDirName, const string &responseDirName)
       fclose(f);
     }
 
-  /* In unprivileged mode, if we have a module built, we need to
-     sign the sucker. */
-  if (unprivileged)
+  /* In unprivileged mode, if we have a module built, we need to sign the sucker. */
+  if (! pr_contains (privilege, pr_stapdev))
     {
       glob_t globber;
       char pattern[PATH_MAX];
@@ -1259,7 +1275,7 @@ handleRequest (const string &requestDirName, const string &responseDirName)
 	uprobes_response = uprobes_ko;
 
       /* In unprivileged mode, we need a signature on uprobes as well. */
-      if (unprivileged)
+      if (! pr_contains (privilege, pr_stapdev))
         {
           sign_file (cert_db_path, server_cert_nickname(),
                      uprobes_response, uprobes_response + ".sgn");
