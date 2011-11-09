@@ -39,14 +39,7 @@
 #endif
 #include <linux/sched.h>
 #include <linux/freezer.h>
-#if 0
-#include <linux/module.h>
-#include <linux/init.h>
-#endif
 #include <linux/slab.h>
-#if 0
-#include <linux/seq_file.h>
-#endif
 #ifdef STAPCONF_UTRACE_VIA_FTRACE
 #include <linux/ftrace.h>
 #endif	/* STAPCONF_UTRACE_VIA_FTRACE */
@@ -146,7 +139,7 @@ static struct ftrace_ops utrace_report_exec_ops __read_mostly =
 #define __UTRACE_REGISTERED	1
 static atomic_t utrace_state = ATOMIC_INIT(__UTRACE_UNREGISTERED);
 
-int /* __init */ utrace_init(void)
+int utrace_init(void)
 {
 	int i;
 	int rc = -1;
@@ -224,9 +217,8 @@ error:
 		kmem_cache_destroy(utrace_engine_cachep);
 	return rc;
 }
-//module_init(utrace_init);
 
-int /* __exit */ utrace_exit(void)
+int utrace_exit(void)
 {
 	utrace_shutdown();
 
@@ -236,15 +228,20 @@ int /* __exit */ utrace_exit(void)
 		kmem_cache_destroy(utrace_engine_cachep);
 	return 0;
 }
-//module_exit(utrace_exit);
 
-static void utrace_free(struct utrace *utrace)
+/*
+ * Clean up everything associated with @task.utrace.
+ *
+ * This routine must be called under the task_utrace_lock.
+ */
+static void utrace_cleanup(struct utrace *utrace)
 {
 	struct utrace_engine *engine, *next;
 
-#ifdef STP_TF_DEBUG
-	printk(KERN_ERR "%s:%d - locking %p\n", __FUNCTION__, __LINE__, utrace);
-#endif
+	lockdep_assert_held(&task_utrace_lock);
+
+	/* Free engines associated with the struct utrace, starting
+	 * with the 'attached' list then doing the 'attaching' list. */
 	spin_lock(&utrace->lock);
 	list_for_each_entry_safe(engine, next, &utrace->attached, entry) {
 #ifdef STP_TF_DEBUG
@@ -254,16 +251,14 @@ static void utrace_free(struct utrace *utrace)
 	    list_del_init(&engine->entry);
 	    /* FIXME: hmm, should this be utrace_engine_put()? */
 	    kmem_cache_free(utrace_engine_cachep, engine);
-	    //utrace_engine_put(engine);
 	}
 	list_for_each_entry_safe(engine, next, &utrace->attaching, entry) {
 	    list_del(&engine->entry);
 	    kmem_cache_free(utrace_engine_cachep, engine);
 	}
 	spin_unlock(&utrace->lock);
-#ifdef STP_TF_DEBUG
-	printk(KERN_ERR "%s:%d - unlocking %p\n", __FUNCTION__, __LINE__, utrace);
-#endif
+
+	/* Free the struct utrace itself. */
 	kmem_cache_free(utrace_cachep, utrace);
 #ifdef STP_TF_DEBUG
 	printk(KERN_ERR "%s:%d exit\n", __FUNCTION__, __LINE__);
@@ -306,7 +301,7 @@ void utrace_shutdown(void)
 		head = &task_utrace_table[i];
 		hlist_for_each_entry_safe(utrace, node, node2, head, hlist) {
 			hlist_del(&utrace->hlist);
-			utrace_free(utrace);
+			utrace_cleanup(utrace);
 		}
 	}
 	spin_unlock(&task_utrace_lock);
@@ -321,6 +316,7 @@ static struct utrace *__task_utrace_struct(struct task_struct *task)
 	struct hlist_node *node;
 	struct utrace *utrace;
 
+	lockdep_assert_held(&task_utrace_lock);
 	head = &task_utrace_table[hash_ptr(task, TASK_UTRACE_HASH_BITS)];
 	hlist_for_each_entry(utrace, node, head, hlist) {
 		if (utrace->task == task)
@@ -365,24 +361,35 @@ static bool utrace_task_alloc(struct task_struct *task)
 	return true;
 }
 
-/* FIXME: Without this, we've got a (temporary) memory leak.  When a
- * task exits, its utrace structure won't get freed.  However, when
- * the stap module exits, the utrace struct will get freed. */
 /*
- * This is called via tracehook_free_task() from free_task()
- * when @task is being deallocated.
+ * Correctly free a @utrace structure.
+ *
+ * Originally, this function was called via tracehook_free_task() from
+ * free_task() when @task is being deallocated. But free_task() has no
+ * tracepoint we can easily hook.
  */
-void utrace_free_task(struct task_struct *task)
+static void utrace_free(struct utrace *utrace)
 {
-	struct utrace *utrace;
+	if (unlikely(!utrace))
+		return;
 
+	/* Remove this utrace from the mapping list of tasks to
+	 * struct utrace. */
 	spin_lock(&task_utrace_lock);
-	utrace = __task_utrace_struct(task);
-	if (utrace)
-		hlist_del(&utrace->hlist);
+	hlist_del(&utrace->hlist);
 	spin_unlock(&task_utrace_lock);
-	if (utrace)
-		kmem_cache_free(utrace_cachep, utrace);
+
+	/* Free the utrace struct. */
+#ifdef STP_TF_DEBUG
+	if (unlikely(utrace->reporting)
+	    || unlikely(!list_empty(&utrace->attached))
+	    || unlikely(!list_empty(&utrace->attaching)))
+		printk(KERN_ERR "%s:%d - reporting? %p, attached empty %d, attaching empty %d\n",
+		       __FUNCTION__, __LINE__, utrace->reporting,
+		       list_empty(&utrace->attached),
+		       list_empty(&utrace->attaching));
+#endif
+	kmem_cache_free(utrace_cachep, utrace);
 }
 
 static struct utrace *task_utrace_struct(struct task_struct *task)
@@ -1894,8 +1901,6 @@ static const struct utrace_engine_ops *start_callback(
 /*
  * Called iff UTRACE_EVENT(EXEC) flag is set.
  */
-//void utrace_report_exec(struct linux_binfmt *fmt, struct linux_binprm *bprm,
-//			struct pt_regs *regs)
 #ifdef STAPCONF_UTRACE_VIA_TRACEPOINTS
 static void utrace_report_exec(void *cb_data __attribute__ ((unused)),
 			       struct task_struct *task,
@@ -2176,7 +2181,6 @@ static void utrace_report_exit(void *cb_data __attribute__ ((unused)),
 }
 #endif
 
-#if 1
 /*
  * Called iff UTRACE_EVENT(DEATH) or UTRACE_EVENT(QUIESCE) flag is set.
  *
@@ -2230,8 +2234,8 @@ static void utrace_report_death(void *cb_data __attribute__ ((unused)),
 			 report_death, engine, -1/*group_dead*/, -1/*signal*/);
 
 	utrace_maybe_reap(task, utrace, false);
+	utrace_free(utrace);
 }
-#endif
 
 /*
  * Finish the last reporting pass before returning to user mode.
@@ -2888,15 +2892,5 @@ int utrace_finish_examine(struct task_struct *target,
  * code.  We put the export here to ensure no machine forgets it.
  */
 //EXPORT_SYMBOL_GPL(task_user_regset_view);
-
-#if 0
-/*
- * Called with rcu_read_lock() held.
- */
-void task_utrace_proc_status(struct seq_file *m, struct task_struct *p)
-{
-	seq_printf(m, "Utrace:\t%lx\n", p->utrace_flags);
-}
-#endif
 
 #endif	/* _STP_UTRACE_C */
