@@ -1,5 +1,5 @@
 // tapset for timers
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -40,7 +40,7 @@ struct timer_derived_probe: public derived_probe
 
   // No assertion need be emitted, since this probe is allowed for unprivileged
   // users.
-  void emit_unprivileged_assertion (translator_output*) {}
+  void emit_privilege_assertion (translator_output*) {}
   void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged (o); }
 };
 
@@ -210,7 +210,7 @@ struct hrtimer_derived_probe: public derived_probe
 
   // No assertion need be emitted, since these probes are allowed for
   // unprivileged users.
-  void emit_unprivileged_assertion (translator_output*) {}
+  void emit_privilege_assertion (translator_output*) {}
   void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged (o); }
 };
 
@@ -614,66 +614,66 @@ register_tapset_timers(systemtap_session& s)
   root = root->bind(TOK_TIMER);
 
   root->bind_num("s")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("s")->bind_num("randomize")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("sec")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("sec")->bind_num("randomize")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   root->bind_num("ms")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("ms")->bind_num("randomize")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("msec")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("msec")->bind_num("randomize")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   root->bind_num("us")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("us")->bind_num("randomize")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("usec")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("usec")->bind_num("randomize")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   root->bind_num("ns")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("ns")->bind_num("randomize")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("nsec")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("nsec")->bind_num("randomize")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   root->bind_num("jiffies")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
   root->bind_num("jiffies")->bind_num("randomize")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   root->bind_num("hz")
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(builder);
 
   // Not ok for unprivileged users, because register_timer_hook only allows a

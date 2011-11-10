@@ -56,11 +56,11 @@ if { [error_handler [expr {[file exists $hpath] && [file exists $opath]}] "dtrac
 set F additional_flags
 set flags "$F=[sdt_includes] $F=$opath $F=-I. $F=-shared $F=-fPIC $F=-DNO_MAIN $F=-g"
 set res [target_compile $srcdir/$subdir/sdt_misc.c $sopath executable $flags ]
-if { [error_handler [expr {$res == ""}] "target_compile"] } { return }
+if { [error_handler [expr {$res == ""}] "target_compile libsdt.so"] } { return }
 
 set flags "$F=-Wl,-rpath,[pwd] $F=-L[pwd] $F=-lsdt $F=-DONLY_MAIN $F=-g"
 set res [target_compile $srcdir/$subdir/sdt_misc.c $exepath executable $flags ]
-if { [error_handler [expr {$res == ""}] "target_compile"] } { return }
+if { [error_handler [expr {$res == ""}] "target_compile sdt_misc.x"] } { return }
 
 # Test globbing
 

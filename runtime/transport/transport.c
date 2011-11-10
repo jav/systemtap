@@ -2,7 +2,7 @@
  * transport.c - stp transport functions
  *
  * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Red Hat Inc, 2005-2010
+ * Copyright (C) Red Hat Inc, 2005-2011
  * Copyright (C) Intel Corporation, 2006
  *
  * This file is part of systemtap, and is free software.  You can
@@ -566,6 +566,13 @@ static void _stp_handle_tzinfo (struct _stp_msg_tzinfo* tzi)
          * for example if MAXSTRINGLEN < STP_TZ_NAME_LEN-1 */
 }
 
+
+static int32_t _stp_privilege_credentials = 0;
+
+static void _stp_handle_privilege_credentials (struct _stp_msg_privilege_credentials* pc)
+{
+  _stp_privilege_credentials = pc->pc_group_mask;
+}
 
 
 #endif /* _TRANSPORT_C_ */

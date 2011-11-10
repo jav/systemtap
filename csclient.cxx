@@ -1150,7 +1150,7 @@ compile_server_client::find_and_connect_to_server ()
 	  if (i->port == 0)
 	    {
 	      get_or_keep_compatible_server_info (s, online_servers, true/*keep*/);
-	      if (s.unprivileged)
+	      if (! pr_contains (s.privilege, pr_stapdev))
 		get_or_keep_signing_server_info (s, online_servers, true/*keep*/);
 	    }
 
@@ -2058,7 +2058,7 @@ default_server_spec (const systemtap_session &s)
 {
   // If the --use-server option has been used
   //   the default is 'specified'
-  // otherwise if the --unprivileged has been used
+  // otherwise if --privilege=X has been used, where X is not stapdev,
   //   the default is online,trusted,compatible,signer
   // otherwise
   //   the default is online,compatible
@@ -2068,7 +2068,7 @@ default_server_spec (const systemtap_session &s)
   //   'trusted' and 'signer' will only succeed if we have NSS
   //
   string working_string = "online,trusted,compatible";
-  if (s.unprivileged)
+  if (! pr_contains (s.privilege, pr_stapdev))
     working_string += ",signer";
   return working_string;
 }
@@ -2815,10 +2815,12 @@ resolve_host (
 	new_server.host_name = hbuf;
 
       // Don't resolve to localhost or localhost.localdomain, unless that's
-      // what was asked for.
+      // what was asked for, or unless only an ip address was given.
       if ((new_server.host_name == "localhost" ||
 	   new_server.host_name == "localhost.localdomain") &&
-	  new_server.host_name != server.host_name)
+	  new_server.host_name != "localhost" &&
+	  new_server.host_name != "localhost.localdomain" &&
+	  ! new_server.host_name.empty ())
 	continue;
 
       // Add the new resolved server to the list.

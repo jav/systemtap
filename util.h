@@ -1,3 +1,6 @@
+#ifndef UTIL_H
+#define UTIL_H
+
 #include "config.h"
 #include <cstring>
 #include <cerrno>
@@ -17,6 +20,8 @@ extern "C" {
 #include <spawn.h>
 #include <assert.h>
 }
+
+#include "runtime/staprun/privilege.h"
 
 #if ENABLE_NLS
 #define _(string) gettext(string)
@@ -61,6 +66,8 @@ int kill_stap_spawn(int sig);
 void assert_regexp_match (const std::string& name, const std::string& value, const std::string& re);
 int regexp_match (const std::string& value, const std::string& re, std::vector<std::string>& matches);
 bool contains_glob_chars (const std::string &str);
+std::string escape_glob_chars (const std::string& str);
+std::string unescape_glob_chars (const std::string& str);
 std::string kernel_release_from_build_tree (const std::string &kernel_build_tree, int verbose = 0);
 std::string normalize_machine(const std::string& machine);
 std::string autosprintf(const char* format, ...) __attribute__ ((format (printf, 1, 2)));
@@ -231,5 +238,10 @@ struct stap_sigmasker {
       }
 };
 
+privilege_t pr_next (privilege_t p);
+const char *pr_name (privilege_t p);
+bool pr_contains (privilege_t actual, privilege_t required);
+
+#endif // UTIL_H
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

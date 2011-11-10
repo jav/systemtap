@@ -2,7 +2,7 @@ title: Trace Time Spent in wait4 Syscalls
 name: wait4time.stp
 version: 1.0
 author: Daniel Berrange and Will Cohen
-keywords: syscall wait4
+keywords: syscall process
 subsystem: syscall
 status: production
 exit: user-controlled

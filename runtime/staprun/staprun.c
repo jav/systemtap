@@ -22,6 +22,7 @@
 #define _XOPEN_SOURCE
 #define _BSD_SOURCE
 #include "staprun.h"
+#include "privilege.h"
 #include <string.h>
 #include <sys/uio.h>
 #include <glob.h>
@@ -34,8 +35,48 @@ char *__name__ = "staprun";
 extern long delete_module(const char *, unsigned int);
 
 int send_relocations ();
-int send_tzinfo ();
+void send_tzinfo ();
+void send_privilege_credentials ();
 
+static int remove_module(const char *name, int verb);
+
+static int stap_module_inserted = -1;
+
+static void term_signal_handler(int signum __attribute ((unused)))
+{
+	if (stap_module_inserted == 0) {
+		// We have to close the control channel so that
+		// remove_module() can open it back up (which it does
+		// to make sure the module is a systemtap module).
+		close_ctl_channel();
+		remove_module(modname, 1);
+		free(modname);
+	}
+	_exit(1);
+}
+
+void setup_term_signals(void)
+{
+	sigset_t s;
+	struct sigaction a;
+
+	/* blocking all signals while we set things up */
+	sigfillset(&s);
+	sigprocmask(SIG_SETMASK, &s, NULL);
+
+	/* handle signals */
+	memset(&a, 0, sizeof(a));
+	sigfillset(&a.sa_mask);
+	a.sa_handler = term_signal_handler;
+	sigaction(SIGHUP, &a, NULL);
+	sigaction(SIGINT, &a, NULL);
+	sigaction(SIGTERM, &a, NULL);
+	sigaction(SIGQUIT, &a, NULL);
+
+	/* unblock all signals */
+	sigemptyset(&s);
+	sigprocmask(SIG_SETMASK, &s, NULL);
+}
 
 static int run_as(int exec_p, uid_t uid, gid_t gid, const char *path, char *const argv[])
 {
@@ -135,18 +176,69 @@ static int enable_uprobes(void)
 	return 1; /* failure */
 }
 
+/* Determine the privilege credentials of the current user. If the user is not root, this
+   is determined by the user's group memberships. */
+static int get_privilege_credentials (void)
+{
+  gid_t gid, gidlist[NGROUPS_MAX];
+  int i, ngids;
+  gid_t stapdev_gid, stapusr_gid;
+  int stp_privilege;
+
+  /* If the real uid of the user is root, then this user has all privileges. */
+  if (getuid() == 0)
+    return pr_all;
+
+  /* These are the gids of the groups we are interested in. */
+  stapdev_gid = get_gid("stapdev");
+  stapusr_gid = get_gid("stapusr");
+
+  /* If neither group was found, then the group memberships are irrelevant.  */
+  if (stapdev_gid == (gid_t)-1 && stapusr_gid == (gid_t)-1)
+    return 0;
+
+  /* Obtain a list of the user's groups. */
+  ngids = getgroups(NGROUPS_MAX, gidlist);
+  if (ngids < 0)
+    {
+      perr("Unable to retrieve group list");
+      return 0;
+    }
+
+  /* The privilege credentials will be represented by a bit mask of the user's group memberships.
+     Start with an empty mask. */
+  stp_privilege = 0;
+
+  /* According to the getgroups() man page, getgroups() may not
+   * return the effective gid, so examine the effective gid first first followed by the group
+   * gids obtained by getgroups. */
+  for (i = -1, gid = getegid(); i < ngids; ++i, gid = gidlist[i])
+    {
+      if (gid == stapdev_gid)
+	stp_privilege |= pr_stapdev;
+      else if (gid == stapusr_gid)
+	stp_privilege |= pr_stapusr;
+      if (stp_privilege == pr_all)
+	break;
+    }
+
+  return stp_privilege;
+}
+
 static int insert_stap_module(void)
 {
 	char special_options[128];
 
 	/* Add the _stp_bufsize option.  */
-	if (snprintf_chk(special_options, sizeof (special_options), "_stp_bufsize=%d", buffer_size))
+	if (snprintf_chk(special_options, sizeof (special_options),
+			 "_stp_bufsize=%d", buffer_size))
 		return -1;
 
-	return insert_module(modpath, special_options, modoptions, assert_stap_module_permissions);
+	stap_module_inserted = insert_module(modpath, special_options,
+					     modoptions,
+					     assert_stap_module_permissions);
+	return stap_module_inserted;
 }
-
-static int remove_module(const char *name, int verb);
 
 static void remove_all_modules(void)
 {
@@ -213,18 +305,61 @@ static int remove_module(const char *name, int verb)
 	return 0;
 }
 
+
+/* As per PR13193, some kernels have a buggy kprobes-optimization code,
+   which results in BUG/panics in certain circumstances.  We turn off
+   kprobes optimization as a conservative measure, unless told otherwise
+   by an environment variable.
+*/
+void disable_kprobes_optimization()
+{
+        /* Test if the file exists at all. */
+        const char* proc_kprobes = "/proc/sys/debug/kprobes-optimization";
+        char prev;
+        int rc, fd;
+
+        if (getenv ("STAP_PR13193_OVERRIDE"))
+                return;
+
+        /* See the initial state; if it's already disabled, we do nothing. */
+        fd = open (proc_kprobes, O_RDONLY);
+        if (fd < 0) 
+                return;
+        rc = read (fd, &prev, sizeof(prev));
+        (void) close (fd);
+        if (rc < 1 || prev == '0') /* Already disabled or unavailable */
+                return;
+
+        fd = open (proc_kprobes, O_WRONLY);
+        if (fd < 0) 
+                return;
+        prev = '0'; /* really, next */
+        rc = write (fd, &prev, sizeof(prev));
+        (void) close (fd);
+        if (rc == 1)
+                dbug(1, "Disabled %s.\n", proc_kprobes);
+        else
+                dbug(1, "Error %d/%d disabling %s.\n", rc, errno, proc_kprobes);
+}
+
+
 int init_staprun(void)
 {
+	int rc;
 	dbug(2, "init_staprun\n");
 
 	if (mountfs() < 0)
 		return -1;
 
+	rc = 0;
 	if (delete_mod)
 		exit(remove_module(modname, 1));
 	else if (!attach_mod) {
 		if (need_uprobes && enable_uprobes() != 0)
 			return -1;
+
+                disable_kprobes_optimization();
+
 		if (insert_stap_module() < 0) {
 #ifdef HAVE_ELF_GETSHDRSTRNDX
 			if(!rename_mod && errno == EEXIST)
@@ -234,12 +369,18 @@ int init_staprun(void)
                            advise people to use -R. */
 			return -1;
 		}
-		if (send_relocations() < 0)
-			return -1;
-                if (send_tzinfo() < 0)
-                        return -1;
+		rc = init_ctl_channel (modname, 0);
+		if (rc >= 0) {
+		  rc = send_relocations();
+		  if (rc >= 0) {
+		    rc = 0;
+		    send_privilege_credentials();
+		    send_tzinfo();
+		  }
+		  close_ctl_channel ();
+		}
 	}
-	return 0;
+	return rc;
 }
 
 int main(int argc, char **argv)
@@ -269,6 +410,7 @@ int main(int argc, char **argv)
 	}
 
 	setup_signals();
+	setup_term_signals();
 
 	parse_args(argc, argv);
 
@@ -505,25 +647,17 @@ void send_relocation_modules ()
 int send_relocations ()
 {
   int rc;
-  rc = init_ctl_channel (modname, 0);
-  if (rc < 0) goto out;
   rc = send_relocation_kernel ();
   send_relocation_modules ();
-  close_ctl_channel ();
- out:
   return rc;
 }
 
 
-int send_tzinfo ()
+void send_tzinfo ()
 {
-  int rc;
   struct _stp_msg_tzinfo tzi;
   time_t now_t;
   struct tm* now;
-
-  rc = init_ctl_channel (modname, 0);
-  if (rc < 0) goto out;
 
   /* NB: This is not good enough; it sends DST-unaware numbers. */
 #if 0
@@ -538,7 +672,11 @@ int send_tzinfo ()
   strncpy (tzi.tz_name, now->tm_zone, STP_TZ_NAME_LEN);
 
   send_request(STP_TZINFO, & tzi, sizeof(tzi));
-  close_ctl_channel ();
- out:
-  return rc;
+}
+
+void send_privilege_credentials ()
+{
+  struct _stp_msg_privilege_credentials pc;
+  pc.pc_group_mask = get_privilege_credentials ();
+  send_request(STP_PRIVILEGE_CREDENTIALS, & pc, sizeof(pc));
 }

@@ -113,6 +113,15 @@ static int _stp_transport_data_fs_init(void)
 		rc = -ENOENT;
 		goto err;
 	}
+        {
+                u64 relay_mem;
+                relay_mem = _stp_subbuf_size * _stp_nsubbufs;
+#ifdef STP_BULKMODE
+                relay_mem *= num_online_cpus();
+#endif
+                _stp_allocated_net_memory += relay_mem;
+                _stp_allocated_memory += relay_mem;
+        }
 
 	/* now set ownership */
 	for_each_online_cpu(i) {

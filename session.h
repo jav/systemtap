@@ -26,6 +26,8 @@ extern "C" {
 #include <elfutils/libdw.h>
 }
 
+#include "runtime/staprun/privilege.h"
+
 #if ENABLE_NLS
 #define _(string) gettext(string)
 #define _N(string, string_plural, count) \
@@ -141,6 +143,7 @@ public:
   std::set<std::string> kernel_exports;
   std::string machine;
   std::string architecture;
+  bool native_build;
   std::string runtime_path;
   bool runtime_specified;
   std::string data_path;
@@ -175,7 +178,7 @@ public:
   std::string uprobes_hash;
   bool load_only; // flight recorder mode
   bool omit_werror;
-  bool unprivileged;
+  privilege_t privilege;
   bool systemtap_v_check;
   bool tmpdir_opt_set;
   bool dump_probe_types;
@@ -300,6 +303,7 @@ public:
 
   // unparser data
   translator_output* op;
+  std::vector<translator_output*> auxiliary_outputs;
   unparser* up;
 
   // some symbol addresses
@@ -322,6 +326,8 @@ public:
   unsigned num_errors () { return seen_errors.size() + (panic_warnings ? seen_warnings.size() : 0); }
 
   std::set<std::string> rpms_to_install;
+
+  translator_output* op_create_auxiliary();
 
   // void print_error (const parse_error& e);
   const token* last_token;

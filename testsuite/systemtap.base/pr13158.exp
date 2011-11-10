@@ -1,0 +1,55 @@
+set TEST_NAME "pr13158"
+if {![installtest_p]} { untested $TEST_NAME; return }
+
+# This is a section of the original rename_module.exp test that caused
+# the problem of a systemtap module sticking around to be found.  That
+# test case bug found a real problem  - that staprun didn't handle
+# SIGINT.
+
+########## Inserting 2 Identical Modules: Staprun without -R #################
+# Should give an error when inserting 2 identical modules 
+# when calling staprun directly without using -R
+set test "$TEST_NAME: Inserting 2 Identical Modules: Staprun without -R"
+set failed 0
+set compile { exec stap -e {probe begin{printf("Hello\n");}} -p4 }
+set module_path [eval $compile] 
+set module_name [file rootname [file tail $module_path]]
+
+spawn staprun $module_path
+set firstid $spawn_id
+
+spawn staprun $module_path
+set secondid $spawn_id
+
+# Make sure it fails
+expect {
+	-re {^Error inserting module .*: File exists\r\n} {
+		exp_continue
+	}
+	-re {^Rerun with staprun option '\-R' to rename this module.\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed 1		
+	}
+}
+
+# Kill both of the hanging processes
+set firstpid [exp_pid -i $firstid]
+set secondpid [exp_pid -i $secondid]
+exec kill $firstpid
+exec kill $secondpid
+catch { wait -i $firstid; wait -i $secondid; close }
+if {$failed} {
+	fail "$test"
+    } else {
+	pass "$test"
+}
+
+# Is the module still loaded?
+if {[catch { exec lsmod | grep -q $module_name }]} {
+    pass "$TEST_NAME: module was correctly removed"
+} else {
+    fail "$TEST_NAME: module is still loaded!"
+    catch {exec staprun -d $module_name}
+}

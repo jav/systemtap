@@ -1,5 +1,18 @@
 * What's new in version 1.7
 
+- Parse errors no longer generate a cascade of false errors.  Instead, a
+  parse error skips the rest of the current probe or function, and resumes
+  at the next one.  This should generate fewer and better messages.
+
+- Global array wrapping is now supported for both associative and statistics typed
+  arrays using the '%' character to signify a wrapped array. For example,
+  'global foo%[100]' would allow the array 'foo' to be wrapped if more than 100
+  elements are inserted.
+
+- process("...").library("...").plt("...") probes are now supported.  Wildcards
+  are supported in the plt-name part, to refer to any function in the program
+  linkage table which matches the glob pattern and the rest of the probe point.
+
 - A new option, --dump-probe-types, will dump a list of supported probe types.
   If --unprivileged is also specified, the list will be limited to probe types
   which are available to unprivileged users.

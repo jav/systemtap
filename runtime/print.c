@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Print Functions
- * Copyright (C) 2007-2009 Red Hat Inc.
+ * Copyright (C) 2007-20011 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -13,7 +13,6 @@
 
 
 #include "string.h"
-#include "vsprintf.c"
 #include "print.h"
 #include "transport/transport.c"
 #include "vsprintf.c"
@@ -44,7 +43,9 @@ typedef struct __stp_pbuf {
 static void *Stp_pbuf = NULL;
 
 /** private buffer for _stp_vlog() */
+#ifndef STP_LOG_BUF_LEN
 #define STP_LOG_BUF_LEN 256
+#endif
 
 typedef char _stp_lbuf[STP_LOG_BUF_LEN];
 static void *Stp_lbuf = NULL;
@@ -107,10 +108,11 @@ static inline void _stp_print_flush(void)
 	local_irq_restore(flags);
 }
 #else
-#define _stp_print_flush() \
-	EXPORT_FN(stp_print_flush)(per_cpu_ptr(Stp_pbuf, smp_processor_id()))
+static inline void _stp_print_flush(void)
+{
+	EXPORT_FN(stp_print_flush)(per_cpu_ptr(Stp_pbuf, smp_processor_id()));
+}
 #endif
-
 #ifndef STP_MAXBINARYARGS
 #define STP_MAXBINARYARGS 127
 #endif
@@ -135,6 +137,16 @@ static void * _stp_reserve_bytes (int numbytes)
 	return ret;
 }
 
+
+static void _stp_unreserve_bytes (int numbytes)
+{
+	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
+
+	if (unlikely(numbytes == 0 || numbytes > pb->len))
+		return;
+
+	pb->len -= numbytes;
+}
 
 /** Write 64-bit args directly into the output stream.
  * This function takes a variable number of 64-bit arguments
@@ -220,7 +232,7 @@ static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
                "%s: systemtap: %s, base: %p"
                ", memory: %ludata/%lutext/%uctx/%unet/%ualloc kb"
                ", probes: %d"
-#ifndef STP_PRIVILEGED
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
                ", unpriv-uid: %d"
 #endif
                "\n",
@@ -240,7 +252,7 @@ static void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
 	       (_stp_allocated_memory - _stp_allocated_net_memory - ctx)/1024,
                /* (un-double-counting net/ctx because they're also stp_alloc'd) */
                num_probes
-#ifndef STP_PRIVILEGED
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
                , _stp_uid
 #endif
                 );

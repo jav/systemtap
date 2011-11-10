@@ -727,10 +727,7 @@ void assert_regexp_match (const string& name, const string& value, const string&
     {
       r = new regex_t;
       int rc = regcomp (r, re.c_str(), REG_ICASE|REG_NOSUB|REG_EXTENDED);
-      if (rc) {
-        cerr << _F("regcomp %s (%s) error rc= %d", re.c_str(), name.c_str(), rc) << endl;
-        exit(1);
-      }
+      assert (rc == 0);
       compiled[re] = r;
     }
   else
@@ -757,10 +754,7 @@ int regexp_match (const string& value, const string& re, vector<string>& matches
     {
       r = new regex_t;
       int rc = regcomp (r, re.c_str(), REG_EXTENDED); /* REG_ICASE? */
-      if (rc) {
-        cerr << _F("regcomp %s error rc=%d", re.c_str(), rc) << endl;
-        return rc;
-      }
+      assert (rc == 0);
       compiled[re] = r;
     }
   else
@@ -789,10 +783,57 @@ int regexp_match (const string& value, const string& re, vector<string>& matches
 
 bool contains_glob_chars (const string& str)
 {
-  return (str.find("*") != str.npos ||
-          str.find("?") != str.npos ||
-          str.find("[") != str.npos);
+  for (unsigned i=0; i<str.size(); i++)
+    {
+      char this_char = str[i];
+      if (this_char == '\\' && (str.size() > i+1))
+        {
+          // PR13338: skip the escape backslash and the escaped character
+          i++;
+          continue;
+        }
+      if (this_char == '*' || this_char == '?' || this_char == '[')
+        return true;
+    }
+
+  return false;
 }
+
+
+// PR13338: we need these functions to be able to pass through glob metacharacters
+// through the recursive process("...*...") expansion process.
+string escape_glob_chars (const string& str)
+{
+  string op;
+  for (unsigned i=0; i<str.size(); i++)
+    {
+      char this_char = str[i];
+      if (this_char == '*' || this_char == '?' || this_char == '[')
+        op += '\\';
+      op += this_char;
+    }
+  return op;
+}
+
+string unescape_glob_chars (const string& str)
+{
+  string op;
+  for (unsigned i=0; i<str.size(); i++)
+    {
+      char this_char = str[i];
+      if (this_char == '\\' && (str.size() > i+1) )
+        {
+          op += str[i+1];
+          i++;
+          continue;
+        }
+      op += this_char;
+    }
+
+  return op;
+}
+
+
 
 string
 normalize_machine(const string& machine)
@@ -860,5 +901,38 @@ std::string autosprintf(const char* format, ...)
   return s; /* by copy */
 }
 
+privilege_t pr_next (privilege_t p)
+{
+  switch (p)
+    {
+    case pr_stapusr:
+      p = pr_stapdev;
+      break;
+    case pr_stapdev:
+    default:
+      p = pr_end;
+      break;
+    }
+  return p;
+}
+
+const char *pr_name (privilege_t p)
+{
+  switch (p)
+    {
+    case pr_stapusr:
+      return "stapusr";
+    case pr_stapdev:
+      return "stapdev";
+    default:
+      break;
+    }
+  return "unknown";
+}
+
+bool pr_contains (privilege_t actual, privilege_t required)
+{
+  return (actual & required) == required;
+}
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

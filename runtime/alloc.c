@@ -14,8 +14,12 @@
 #include <linux/percpu.h>
 
 static int _stp_allocated_net_memory = 0;
+/* Default, and should be "safe" from anywhere. */
 #define STP_ALLOC_FLAGS ((GFP_KERNEL | __GFP_NORETRY | __GFP_NOWARN) \
 			 & ~__GFP_WAIT)
+/* May only be used in context that can sleep. __GFP_NORETRY is to
+   suppress the oom-killer from kicking in. */
+#define STP_ALLOC_SLEEP_FLAGS (GFP_KERNEL | __GFP_NORETRY)
 
 /* #define DEBUG_MEM */
 /*
@@ -45,7 +49,7 @@ static DEFINE_SPINLOCK(_stp_mem_lock);
 #define MEM_MAGIC 0xc11cf77f
 #define MEM_FENCE_SIZE 32
 
-enum _stp_memtype { MEM_KMALLOC, MEM_VMALLOC, MEM_PERCPU };
+enum _stp_memtype { MEM_KMALLOC, MEM_PERCPU };
 
 typedef struct {
 	char *alloc;
@@ -54,7 +58,6 @@ typedef struct {
 
 static const _stp_malloc_type const _stp_malloc_types[] = {
 	{"kmalloc", "kfree"},
-	{"vmalloc", "vfree"},
 	{"alloc_percpu", "free_percpu"}
 };
 
@@ -167,10 +170,6 @@ static void _stp_mem_debug_free(void *addr, enum _stp_memtype type)
 		free_percpu(addr);
 		kfree(p);
 		break;
-	case MEM_VMALLOC:
-		_stp_check_mem_fence(addr, m->len);
-		vfree(addr - MEM_FENCE_SIZE);		
-		break;
 	default:
 		printk("SYSTEMTAP ERROR: Attempted to free memory at addr %p len=%d with unknown allocation type.\n", addr, (int)m->len);
 	}
@@ -209,9 +208,6 @@ static void _stp_mem_debug_validate(void *addr)
 		break;
 	case MEM_PERCPU:
 		/* do nothing */
-		break;
-	case MEM_VMALLOC:
-		_stp_check_mem_fence(addr, m->len);
 		break;
 	default:
 		printk("SYSTEMTAP ERROR: Attempted to validate memory at addr %p len=%d with unknown allocation type.\n", addr, (int)m->len);
@@ -254,7 +250,7 @@ static void _stp_mem_debug_validate(void *addr)
 #endif
 #endif
 
-static void *_stp_kmalloc(size_t size)
+static void *_stp_kmalloc_gfp(size_t size, gfp_t gfp_mask)
 {
 	void *ret;
 #ifdef STP_MAXMEMORY
@@ -264,13 +260,13 @@ static void *_stp_kmalloc(size_t size)
 	}
 #endif
 #ifdef DEBUG_MEM
-	ret = kmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
+	ret = kmalloc(size + MEM_DEBUG_SIZE, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 	}
 #else
-	ret = kmalloc(size, STP_ALLOC_FLAGS);
+	ret = kmalloc(size, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 	}
@@ -278,7 +274,12 @@ static void *_stp_kmalloc(size_t size)
 	return ret;
 }
 
-static void *_stp_kzalloc(size_t size)
+static void *_stp_kmalloc(size_t size)
+{
+	return _stp_kmalloc_gfp(size, STP_ALLOC_FLAGS);
+}
+
+static void *_stp_kzalloc_gfp(size_t size, gfp_t gfp_mask)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
 {
 	void *ret;
@@ -289,14 +290,14 @@ static void *_stp_kzalloc(size_t size)
 	}
 #endif
 #ifdef DEBUG_MEM
-	ret = kmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
+	ret = kmalloc(size + MEM_DEBUG_SIZE, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 		memset (ret, 0, size);
 	}
 #else
-	ret = kmalloc(size, STP_ALLOC_FLAGS);
+	ret = kmalloc(size, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 		memset (ret, 0, size);
@@ -314,13 +315,13 @@ static void *_stp_kzalloc(size_t size)
 	}
 #endif
 #ifdef DEBUG_MEM
-	ret = kzalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS);
+	ret = kzalloc(size + MEM_DEBUG_SIZE, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 	}
 #else
-	ret = kzalloc(size, STP_ALLOC_FLAGS);
+	ret = kzalloc(size, gfp_mask);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 	}
@@ -329,28 +330,9 @@ static void *_stp_kzalloc(size_t size)
 }
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15) */
 
-static void *_stp_vmalloc(unsigned long size)
+static void *_stp_kzalloc(size_t size)
 {
-	void *ret;
-#ifdef STP_MAXMEMORY
-	if ((_STP_MODULE_CORE_SIZE + _stp_allocated_memory + size)
-	    > (STP_MAXMEMORY * 1024)) {
-		return NULL;
-	}
-#endif
-#ifdef DEBUG_MEM
-	ret = __vmalloc(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS, PAGE_KERNEL);
-	if (likely(ret)) {
-	        _stp_allocated_memory += size;
-		ret = _stp_mem_debug_setup(ret, size, MEM_VMALLOC);
-	}
-#else
-	ret = __vmalloc(size, STP_ALLOC_FLAGS, PAGE_KERNEL);
-	if (likely(ret)) {
-	        _stp_allocated_memory += size;
-	}
-#endif
-	return ret;
+  return _stp_kzalloc_gfp(size, STP_ALLOC_FLAGS);
 }
 
 #ifdef PCPU_MIN_UNIT_SIZE
@@ -359,6 +341,7 @@ static void *_stp_vmalloc(unsigned long size)
 #define _STP_MAX_PERCPU_SIZE 131072
 #endif
 
+/* Note, calls __alloc_percpu which may sleep and always uses GFP_KERNEL. */
 static void *_stp_alloc_percpu(size_t size)
 {
 	void *ret;
@@ -381,7 +364,7 @@ static void *_stp_alloc_percpu(size_t size)
 #endif
 #ifdef DEBUG_MEM
 	if (likely(ret)) {
-		struct _stp_mem_entry *m = kmalloc(sizeof(struct _stp_mem_entry), STP_ALLOC_FLAGS);
+		struct _stp_mem_entry *m = kmalloc(sizeof(struct _stp_mem_entry), GFP_KERNEL);
 		if (unlikely(m == NULL)) {
 			free_percpu(ret);
 			return NULL;
@@ -399,8 +382,9 @@ static void *_stp_alloc_percpu(size_t size)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,12)
 #define _stp_kmalloc_node(size,node) _stp_kmalloc(size)
+#define _stp_kmalloc_node_gfp(size,node,gfp) _stp_kmalloc_gfp(size,gfp)
 #else
-static void *_stp_kmalloc_node(size_t size, int node)
+static void *_stp_kmalloc_node_gfp(size_t size, int node, gfp_t gfp_mask)
 {
 	void *ret;
 #ifdef STP_MAXMEMORY
@@ -410,18 +394,22 @@ static void *_stp_kmalloc_node(size_t size, int node)
 	}
 #endif
 #ifdef DEBUG_MEM
-	ret = kmalloc_node(size + MEM_DEBUG_SIZE, STP_ALLOC_FLAGS, node);
+	ret = kmalloc_node(size + MEM_DEBUG_SIZE, gfp_mask, node);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 		ret = _stp_mem_debug_setup(ret, size, MEM_KMALLOC);
 	}
 #else
-	ret = kmalloc_node(size, STP_ALLOC_FLAGS, node);
+	ret = kmalloc_node(size, gfp_mask, node);
 	if (likely(ret)) {
 	        _stp_allocated_memory += size;
 	}
 #endif
 	return ret;
+}
+static void *_stp_kmalloc_node(size_t size, int node)
+{
+	return _stp_kmalloc_node_gfp(size, node, STP_ALLOC_FLAGS);
 }
 #endif /* LINUX_VERSION_CODE */
 
@@ -431,15 +419,6 @@ static void _stp_kfree(void *addr)
 	_stp_mem_debug_free(addr, MEM_KMALLOC);
 #else
 	kfree(addr);
-#endif
-}
-
-static void _stp_vfree(void *addr)
-{
-#ifdef DEBUG_MEM
-	_stp_mem_debug_free(addr, MEM_VMALLOC);
-#else
-	vfree(addr);
 #endif
 }
 
@@ -480,10 +459,6 @@ static void _stp_mem_debug_done(void)
 		case MEM_PERCPU:
 			free_percpu(m->addr);
 			kfree(p);
-			break;
-		case MEM_VMALLOC:
-			_stp_check_mem_fence(m->addr, m->len);
-			vfree(m->addr - MEM_FENCE_SIZE);		
 			break;
 		default:
 			printk("SYSTEMTAP ERROR: Attempted to free memory at addr %p len=%d with unknown allocation type.\n", m->addr, (int)m->len);

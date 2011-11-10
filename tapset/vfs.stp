@@ -15,9 +15,6 @@
   We don't want to have to do a bdevname() call every time
   we want a devname, so we'll hash them here.
 */
-/* XXX: Is this hashing really that helpful?  The call to bdevname()
- * isn't very involved... */
-global __devnames
 function __find_bdevname:string(dev:long, bdev:long)
 {
 	/* bdevname() can't do anything without an actual bdev, so let's just
@@ -25,10 +22,7 @@ function __find_bdevname:string(dev:long, bdev:long)
 	if (bdev == 0)
 		return "N/A"
 
-	if (dev in __devnames)
-		return __devnames[dev]
-
-	return __devnames[dev] = bdevname(bdev)
+	return bdevname(bdev)
 }
 
 /* deprecated */

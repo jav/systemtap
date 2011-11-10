@@ -18,7 +18,7 @@ send_log "executing: $cmd\n"
 eval spawn $cmd
 expect {
 	-timeout 150
-	-re {^Server: Localization key '.utf8' not found in global list\r\n} {
+        -re {^Server: Localization key=value line [^\r\n]*\r\n} {
 		set failed 0
 		exp_continue
 	}

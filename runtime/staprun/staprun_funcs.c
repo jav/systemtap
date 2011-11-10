@@ -557,6 +557,17 @@ check_uprobes_module_path (
   return 0;
 }
 
+/* Obtain the gid of the given group. */
+gid_t get_gid (const char *group_name)
+{
+  struct group *stgr;
+  /* If we couldn't find the group, return an invalid number. */
+  stgr = getgrnam(group_name);
+  if (stgr == NULL)
+    return (gid_t)-1;
+  return stgr->gr_gid;
+}
+
 /*
  * Check the user's group membership.
  *
@@ -580,29 +591,11 @@ check_groups (
 	gid_t gid, gidlist[NGROUPS_MAX];
 	gid_t stapdev_gid, stapusr_gid;
 	int i, ngids;
-	struct group *stgr;
 
-	/* Lookup the gid for group "stapdev" */
+	/* Lookup the gid for groups "stapdev" and "stapusr" */
 	errno = 0;
-	stgr = getgrnam("stapdev");
-	/* If we couldn't find the group, just set the gid to an
-	 * invalid number.  Just because this group doesn't exist
-	 * doesn't mean the other group doesn't exist. */
-	if (stgr == NULL)
-		stapdev_gid = (gid_t)-1;
-	else
-		stapdev_gid = stgr->gr_gid;
-
-	/* Lookup the gid for group "stapusr" */
-	errno = 0;
-	stgr = getgrnam("stapusr");
-	/* If we couldn't find the group, just set the gid to an
-	 * invalid number.  Just because this group doesn't exist
-	 * doesn't mean the other group doesn't exist. */
-	if (stgr == NULL)
-		stapusr_gid = (gid_t)-1;
-	else
-		stapusr_gid = stgr->gr_gid;
+	stapdev_gid = get_gid("stapdev");
+	stapusr_gid = get_gid("stapusr");
 
 	/* If neither group was found, then return -2.  */
 	if (stapdev_gid == (gid_t)-1 && stapusr_gid == (gid_t)-1)

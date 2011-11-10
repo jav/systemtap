@@ -1,0 +1,4 @@
+#! /bin/sh
+
+# this is an error without a -c cmd
+stap -p2 -e 'probe process.plt { exit() }'

@@ -745,6 +745,13 @@ add_client_cert (const string &inFileName, const string &db_path)
   SECItem certDER;
   certDER.len = info.st_size;
   certDER.data = (unsigned char *)PORT_Alloc (certDER.len);
+  if (certDER.data == NULL)
+    {
+      nsscommon_error (_F("Could not allocate certDER\n%s",
+			  strerror (errno)));
+      fclose (inFile);
+      return SECFailure;
+    }
   size_t read = fread (certDER.data, 1, certDER.len, inFile);
   fclose (inFile);
   if (read != certDER.len)

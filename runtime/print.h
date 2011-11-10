@@ -13,5 +13,11 @@
 static int _stp_print_init(void);
 static void _stp_print_cleanup(void);
 static void *_stp_reserve_bytes(int numbytes);
+static void _stp_unreserve_bytes (int numbytes);
+static void _stp_printf(const char *fmt, ...);
+static void _stp_print(const char *str);
+static inline void _stp_print_flush(void);
+
+#include "vsprintf.h"
 
 #endif /* _STP_PRINT_H_ */

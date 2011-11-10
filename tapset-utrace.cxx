@@ -1,5 +1,5 @@
 // utrace tapset
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -63,7 +63,7 @@ struct utrace_derived_probe: public derived_probe
 			enum utrace_derived_probe_flags f);
   void join_group (systemtap_session& s);
 
-  void emit_unprivileged_assertion (translator_output*);
+  void emit_privilege_assertion (translator_output*);
   void print_dupe_stamp(ostream& o);
   void getargs (std::list<std::string> &arg_set) const;
 };
@@ -204,7 +204,7 @@ utrace_derived_probe::join_group (systemtap_session& s)
 
 
 void
-utrace_derived_probe::emit_unprivileged_assertion (translator_output* o)
+utrace_derived_probe::emit_privilege_assertion (translator_output* o)
 {
   // Process end probes can fire for unprivileged users even if the process
   // does not belong to the user. On example is that process.end will fire
@@ -1102,22 +1102,22 @@ register_tapset_utrace(systemtap_session& s)
   for (unsigned i = 0; i < roots.size(); ++i)
     {
       roots[i]->bind(TOK_BEGIN)
-	->bind_unprivileged()
+	->bind_privilege(pr_all)
 	->bind(builder);
       roots[i]->bind(TOK_END)
-	->bind_unprivileged()
+	->bind_privilege(pr_all)
 	->bind(builder);
       roots[i]->bind(TOK_THREAD)->bind(TOK_BEGIN)
-	->bind_unprivileged()
+	->bind_privilege(pr_all)
 	->bind(builder);
       roots[i]->bind(TOK_THREAD)->bind(TOK_END)
-	->bind_unprivileged()
+	->bind_privilege(pr_all)
 	->bind(builder);
       roots[i]->bind(TOK_SYSCALL)
-	->bind_unprivileged()
+	->bind_privilege(pr_all)
 	->bind(builder);
       roots[i]->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-	->bind_unprivileged()
+	->bind_privilege(pr_all)
 	->bind(builder);
     }
 }

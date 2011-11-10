@@ -69,6 +69,7 @@ expect {
 
 # libc/ld/startup
     -re {^ 0x[a-f0-9]+ : _[^\r\n]+\r\n} {incr start_func; exp_continue}
+    -re {^ 0x[a-f0-9]+ : [^\r\n]+/libc-[^\r\n]+\r\n} {incr start_func; exp_continue}
 
     timeout { fail "libmarkunamestack-$testname (timeout)"; exec kill -INT -[exp_pid] }
     eof { }

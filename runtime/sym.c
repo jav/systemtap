@@ -140,7 +140,8 @@ static struct _stp_module *_stp_umod_lookup(unsigned long addr,
     if (user != NULL)
       {
 	struct _stp_module *m = (struct _stp_module *)user;
-	dbug_sym(1, "found module %s at 0x%lx\n", m->path, *vm_start);
+	dbug_sym(1, "found module %s at 0x%lx\n", m->path,
+		 vm_start ? *vm_start : 0);
 	return m;
       }
   return NULL;
@@ -158,6 +159,9 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 	struct _stp_symbol *s = NULL;
 	unsigned end, begin = 0;
 	unsigned long rel_addr = 0;
+
+	if (addr == 0)
+	  return NULL;
 
 	if (task)
 	  {
@@ -437,8 +441,11 @@ static int _stp_snprint_addr(char *str, size_t len, unsigned long address,
   else
     poststr = "";
 
-  if (flags & (_STP_SYM_SYMBOL | _STP_SYM_MODULE))
+  if (flags & (_STP_SYM_SYMBOL | _STP_SYM_MODULE)) {
     name = _stp_kallsyms_lookup(address, &size, &offset, &modname, task);
+    if (name && name[0] == '.')
+      name++;
+  }
 
   if (modname && (flags & _STP_SYM_MODULE_BASENAME)) {
      char *slash = strrchr (modname, '/');

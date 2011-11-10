@@ -1,0 +1,6 @@
+#! stap -p2
+
+probe process("stap").plt {
+    println($$name)
+    println(@defined($no_such_var) ? $no_such_var : 0)
+}

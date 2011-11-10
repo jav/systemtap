@@ -4,3 +4,4 @@ set ::result_string {Test passed}
 # make sure we run some dummy workload, so the script doesn't block
 # forever waiting for an open syscall
 stap_run2 $srcdir/$subdir/$test.stp -w -c "/bin/sh < /dev/null"
+stap_run2 $srcdir/$subdir/$test.stp -w -c "/bin/sh < /dev/null" -DSTP_LEGACY_PRINT

@@ -501,8 +501,9 @@ passes_0_4 (systemtap_session &s)
     }
 
   // Create the name of the C source file within the temporary
-  // directory.
-  s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
+  // directory.  Note the _src prefix, explained in
+  // buildrun.cxx:compile_pass()
+  s.translated_source = string(s.tmpdir) + "/" + s.module_name + "_src.c";
 
   PROBE1(stap, pass0__end, &s);
 

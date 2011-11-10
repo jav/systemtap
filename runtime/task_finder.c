@@ -436,7 +436,14 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 	struct vm_area_struct *vma;
 	char *rc = NULL;
 
-	down_read(&mm->mmap_sem);
+	// The down_read() function can sleep, so we'll call
+	// down_read_trylock() instead, which can fail.  If if fails,
+	// we'll just pretend this task didn't have a path.
+	if (!mm || ! down_read_trylock(&mm->mmap_sem)) {
+		*buf = '\0';
+		return ERR_PTR(-ENOENT);
+	}
+
 	vma = mm->mmap;
 	while (vma) {
 		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file)
@@ -502,7 +509,6 @@ __stp_utrace_attach(struct task_struct *tsk,
 		    enum utrace_resume_action action)
 {
 	struct utrace_engine *engine;
-	struct mm_struct *mm;
 	int rc = 0;
 
 	// Ignore invalid tasks.
@@ -517,10 +523,12 @@ __stp_utrace_attach(struct task_struct *tsk,
 
 	// Ignore threads with no mm (which are either kernel threads
 	// or "mortally wounded" threads).
-	mm = get_task_mm(tsk);
-	if (! mm)
+	//
+	// Note we're not calling get_task_mm()/mmput() here.  Since
+	// we're in the the context of that task, the mm should stick
+	// around without locking it (and mmput() can sleep).
+	if (! tsk->mm)
 		return EPERM;
-	mmput(mm);
 
 	engine = utrace_attach_task(tsk, UTRACE_ATTACH_CREATE, ops, data);
 	if (IS_ERR(engine)) {
@@ -677,12 +685,16 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	struct vm_area_struct *vma;
 	char *mmpath_buf = NULL;
 	char *mmpath = NULL;
-	struct dentry *dentry;
+	struct dentry *dentry = NULL;
 	unsigned long length = 0;
 	unsigned long offset = 0;
 	unsigned long vm_flags = 0;
 
-	mm = get_task_mm(tsk);
+	// __stp_call_mmap_callbacks_with_addr() is only called when
+	// tsk is current, so there isn't any danger of mm going
+	// away.  So, we don't need to call get_task_mm()/mmput()
+	// (which avoids the possibility of sleeping).
+	mm = tsk->mm;
 	if (! mm)
 		return;
 
@@ -700,7 +712,6 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 		mmpath_buf = _stp_kmalloc(PATH_MAX);
 		if (mmpath_buf == NULL) {
 			up_read(&mm->mmap_sem);
-			mmput(mm);
 			_stp_error("Unable to allocate space for path");
 			return;
 		}
@@ -736,7 +747,6 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	// Cleanup.
 	if (mmpath_buf)
 		_stp_kfree(mmpath_buf);
-	mmput(mm);
 	return;
 }
 
@@ -799,7 +809,7 @@ __stp_call_mprotect_callbacks(struct stap_task_finder_target *tgt,
 static inline void
 __stp_utrace_attach_match_filename(struct task_struct *tsk,
 				   const char * const filename,
-				   int register_p, int process_p)
+				   int process_p)
 {
 	size_t filelen;
 	struct list_head *tgt_node;
@@ -833,7 +843,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 		/* Notice that "pid == 0" (which means to probe all
 		 * threads) falls through. */
 
-#ifndef STP_PRIVILEGED
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
 		/* Make sure unprivileged users only probe their own threads. */
 		if (_stp_uid != tsk_euid) {
 			if (tgt->pid != 0) {
@@ -845,32 +855,16 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 #endif
 
 
-		// Set up events we need for attached tasks. When
-		// register_p is set, we won't actually call the
-		// callbacks here - we'll call it when the thread gets
-		// quiesced.  When register_p isn't set, we can go
-		// ahead and call the callbacks.
-		if (register_p) {
-			rc = __stp_utrace_attach(tsk, &tgt->ops,
-						 tgt,
-						 __STP_ATTACHED_TASK_EVENTS,
-						 UTRACE_STOP);
-			if (rc != 0 && rc != EPERM)
-				break;
-			tgt->engine_attached = 1;
-		}
-		else {
-			// Call the callbacks, then detach.
-			__stp_call_callbacks(tgt, tsk, register_p, process_p);
-			rc = stap_utrace_detach(tsk, &tgt->ops);
-			if (rc != 0)
-				break;
-
-			// Note that we don't want to set
-			// engine_attached to 0 here - only
-			// when *all* threads using this
-			// engine have been detached.
-		}
+		// Set up events we need for attached tasks. We won't
+		// actually call the callbacks here - we'll call them
+		// when the thread gets quiesced.
+		rc = __stp_utrace_attach(tsk, &tgt->ops,
+					 tgt,
+					 __STP_ATTACHED_TASK_EVENTS,
+					 UTRACE_STOP);
+		if (rc != 0 && rc != EPERM)
+			break;
+		tgt->engine_attached = 1;
 	}
 }
 
@@ -885,8 +879,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 
 static void
 __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
-			      struct task_struct *match_tsk, int register_p,
-			      int process_p)
+			      struct task_struct *match_tsk, int process_p)
 {
 	struct mm_struct *mm;
 	char *mmpath_buf;
@@ -896,8 +889,12 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	    || match_tsk == NULL || match_tsk->pid <= 0)
 		return;
 
-	/* Grab the path associated with the path_tsk. */
-	mm = get_task_mm(path_tsk);
+	// Grab the path associated with the path_tsk.
+	//
+	// Note we're not calling get_task_mm()/mmput() here.  Since
+	// we're in the the context of path_task, the mm should stick
+	// around without locking it (and mmput() can sleep).
+	mm = path_tsk->mm;
 	if (! mm) {
 		/* If the thread doesn't have a mm_struct, it is
 		 * a kernel thread which we need to skip. */
@@ -907,14 +904,12 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	// Allocate space for a path
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
 	if (mmpath_buf == NULL) {
-		mmput(mm);
 		_stp_error("Unable to allocate space for path");
 		return;
 	}
 
 	// Grab the path associated with the new task
 	mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
-	mmput(mm);			/* We're done with mm */
 	if (mmpath == NULL || IS_ERR(mmpath)) {
 		int rc = -PTR_ERR(mmpath);
 		if (rc != ENOENT)
@@ -923,7 +918,7 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	}
 	else {
 		__stp_utrace_attach_match_filename(match_tsk, mmpath,
-						   register_p, process_p);
+						   process_p);
 	}
 
 	_stp_kfree(mmpath_buf);
@@ -973,7 +968,7 @@ __stp_utrace_task_finder_report_clone(enum utrace_resume_action action,
 		return UTRACE_RESUME;
 	}
 
-	__stp_utrace_attach_match_tsk(parent, child, 1,
+	__stp_utrace_attach_match_tsk(parent, child,
 				      (clone_flags & CLONE_THREAD) == 0);
 	__stp_tf_handler_end();
 	return UTRACE_RESUME;
@@ -1026,7 +1021,7 @@ __stp_utrace_task_finder_report_exec(enum utrace_resume_action action,
 	// We assume that all exec's are exec'ing a new process.  Note
 	// that we don't use bprm->filename, since that path can be
 	// relative.
-	__stp_utrace_attach_match_tsk(tsk, tsk, 1, 1);
+	__stp_utrace_attach_match_tsk(tsk, tsk, 1);
 
 	__stp_tf_handler_end();
 	return UTRACE_RESUME;
@@ -1183,16 +1178,19 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 	struct vma_cache_t *vma_cache = NULL;
 	struct vma_cache_t *vma_cache_p; 
 
-	/* Call the mmap_callback for every vma associated with
-	 * a file. */
-	mm = get_task_mm(tsk);
+	// Call the mmap_callback for every vma associated with
+	// a file.
+	//
+	// Note we're not calling get_task_mm()/mmput() here.  Since
+	// we're in the the context of that task, the mm should stick
+	// around without locking it (and mmput() can sleep).
+	mm = tsk->mm;
 	if (! mm)
 		return;
 
 	// Allocate space for a path
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
 	if (mmpath_buf == NULL) {
-		mmput(mm);
 		_stp_error("Unable to allocate space for path");
 		return;
 	}
@@ -1286,7 +1284,6 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 		_stp_kfree(vma_cache);
 	}
 
-	mmput(mm);		/* We're done with mm */
 	_stp_kfree(mmpath_buf);
 }
 
@@ -1593,15 +1590,22 @@ stap_start_task_finder(void)
 			goto stf_err;
 		}
 
-		/* Grab the path associated with this task. */
-		mm = get_task_mm(tsk);
-		if (! mm) {
+		// Grab the path associated with this task.
+		//
+		// Note we aren't calling get_task_mm()/mmput() here.
+		// Instead we're calling task_lock()/task_unlock().
+		// We really only need to lock the mm, but mmput() can
+		// sleep so we can't call it.  Also note that
+		// __stp_get_mm_path() grabs the mmap semaphore, which
+		// should also keep us safe.
+		task_lock(tsk);
+		if (! tsk->mm) {
 		    /* If the thread doesn't have a mm_struct, it is
 		     * a kernel thread which we need to skip. */
 		    continue;
 		}
-		mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
-		mmput(mm);		/* We're done with mm */
+		mmpath = __stp_get_mm_path(tsk->mm, mmpath_buf, PATH_MAX);
+		task_unlock(tsk);
 		if (mmpath == NULL || IS_ERR(mmpath)) {
 			rc = -PTR_ERR(mmpath);
 			if (rc == ENOENT) {
@@ -1639,7 +1643,7 @@ stap_start_task_finder(void)
 			/* Notice that "pid == 0" (which means to
 			 * probe all threads) falls through. */
 
-#ifndef STP_PRIVILEGED
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
 			/* Make sure unprivileged users only probe their own threads.  */
 			if (_stp_uid != tsk_euid) {
 				if (tgt->pid != 0 || _stp_target) {

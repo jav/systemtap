@@ -76,7 +76,21 @@ static void _stp_exit(void);
 
 #define is_myproc() (STP_CURRENT_EUID == _stp_uid)
 
-#ifndef STP_PRIVILEGED
+/* Check whether the required privilege level has been attained. */
+#define STP_PRIVILEGE_CONTAINS(actualPrivilege, requiredPrivilege) ( \
+  ((actualPrivilege) & (requiredPrivilege)) == (requiredPrivilege) \
+)
+
+/* Translate user privilege mask to text. */
+static const char *privilege_to_text (int p) {
+  if (STP_PRIVILEGE_CONTAINS (p, STP_PR_STAPDEV)) return "stapdev";
+  if (STP_PRIVILEGE_CONTAINS (p, STP_PR_STAPUSR)) return "stapusr";
+  return "unknown";
+}
+
+#if STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
+#define assert_is_myproc() do {} while (0)
+#else
 #define assert_is_myproc() do { \
   if (! is_myproc()) { \
     snprintf (CONTEXT->error_buffer, MAXSTRINGLEN, STAP_MSG_RUNTIME_H_01, \
@@ -84,11 +98,7 @@ static void _stp_exit(void);
     CONTEXT->last_error = CONTEXT->error_buffer; \
     goto out; \
   } } while (0)
-#else
-#define assert_is_myproc() do {} while (0)
 #endif
-
-
 
 #include "debug.h"
 
@@ -102,11 +112,11 @@ static struct
 
 #define _stp_seq_inc() (atomic_inc_return(&_stp_seq.seq))
 
-/* dwarf unwinder only tested so far on i386 and x86_64.
+/* dwarf unwinder only tested so far on i386, x86_64, ppc64 and s390x.
    Only define STP_USE_DWARF_UNWINDER when STP_NEED_UNWIND_DATA,
    as set through a pragma:unwind in one of the [u]context-unwind.stp
    functions. */
-#if (defined(__i386__) || defined(__x86_64__))
+#if (defined(__i386__) || defined(__x86_64__) || defined(__powerpc64__)) || defined (__s390x__)
 #ifdef STP_NEED_UNWIND_DATA
 #ifndef STP_USE_DWARF_UNWINDER
 #define STP_USE_DWARF_UNWINDER
@@ -115,9 +125,8 @@ static struct
 #endif
 
 #include "alloc.c"
-#include "print.c"
+#include "print.h"
 #include "string.c"
-#include "io.c"
 #include "arith.c"
 #include "copy.c"
 #include "regs.c"
@@ -131,7 +140,7 @@ static struct
 #endif
 #include "addr-map.c"
 
-/* DWARF unwinder only tested so far on i386 and x86_64.
+/* DWARF unwinder only tested so far on i386, x86_64 and ppc64.
    We only need to compile in the unwinder when both STP_NEED_UNWIND_DATA
    (set when a stap script defines pragma:unwind, as done in
    [u]context-unwind.stp) is defined and the architecture actually supports

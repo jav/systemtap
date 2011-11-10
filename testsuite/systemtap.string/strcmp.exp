@@ -1,0 +1,36 @@
+set test "strcmp"
+
+set ::result_string {
+foo():"foo" bar():"bar"
+
+foo() <  bar() ? no
+foo() <= bar() ? no
+foo() >  bar() ? yes
+foo() >= bar() ? yes
+foo() == bar() ? no
+foo() != bar() ? yes
+
+"foo" <  bar() ? no
+"foo" <= bar() ? no
+"foo" >  bar() ? yes
+"foo" >= bar() ? yes
+"foo" == bar() ? no
+"foo" != bar() ? yes
+
+foo() <  "bar" ? no
+foo() <= "bar" ? no
+foo() >  "bar" ? yes
+foo() >= "bar" ? yes
+foo() == "bar" ? no
+foo() != "bar" ? yes
+
+"foo" <  "bar" ? no
+"foo" <= "bar" ? no
+"foo" >  "bar" ? yes
+"foo" >= "bar" ? yes
+"foo" == "bar" ? no
+"foo" != "bar" ? yes
+}
+
+stap_run2 $srcdir/$subdir/$test.stp
+

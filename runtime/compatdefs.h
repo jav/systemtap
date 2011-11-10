@@ -63,6 +63,10 @@ static inline int _stp_is_compat_task(void)
 #endif
 #endif
 
+/* Always use _stp_current_pt_regs() in tapset/runtime code to make sure
+   the returned user pt_regs are sane. */
+#define _stp_current_pt_regs()	(current->mm ? task_pt_regs(current) : NULL)
+
 /* Whether all user registers are valid. If not the pt_regs needs,
  * architecture specific, scrubbing before usage (in the unwinder).
  * XXX Currently very simple heuristics, just check arch. Should

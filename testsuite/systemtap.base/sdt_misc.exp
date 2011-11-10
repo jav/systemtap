@@ -54,9 +54,9 @@ if {[catch {exec $dtrace $v_flag --types -G -s $srcdir/$subdir/sdt_misc_.d} res]
     verbose -log "unable to run $dtrace: $res"
 }
 if {[file exists $sup_hpath] && [file exists $sup_opath]} then {
-    pass "$test dtrace $v_flag"
+    pass "$test dtrace $pbtype_mssg"
 } else {
-    fail "$test dtrace $v_flag"
+    fail "$test dtrace $pbtype_mssg"
     cleanup_handler $verbose
     return
 }
@@ -239,12 +239,12 @@ catch {close}; catch {wait}
 
 if { $notok != 0 || $ok == 0} {
     if { [lindex $type_xfail $j] || $notok == $uns_notok} {
-	xfail "$test types $fail $pbtype_mssg $extra_type_mssg"
+	xfail "$test types $fail $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
     } else {
-	fail "$test types $fail $pbtype_mssg $extra_type_mssg"
+	fail "$test types $fail $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
     }
 } else {
-    pass "$test types $pbtype_mssg $extra_type_mssg"
+    pass "$test types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
 }
 } ; # end type_pedantics_idx
 } ; # end extra_type_flags
@@ -308,10 +308,10 @@ set loop_exepath "[pwd]/sdt_misc_${pbtype_mssg}_loop_shared.x"
 set res [target_compile $srcdir/$subdir/sdt_misc.c $loop_exepath executable $loop_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "$test compiling $pbtype_mssg -DLOOP"
+    fail "$test compiling $pbtype_mssg -DLOOP with markers in a shared object"
     return
 } else {
-    pass "$test compiling $pbtype_mssg -DLOOP"
+    pass "$test compiling $pbtype_mssg -DLOOP with markers in a shared object"
 }
 
 # This is perhaps a wee bit clumsy

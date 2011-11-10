@@ -44,14 +44,15 @@ if { $lines == 6 } {
 }
 
 set result_funcs [list "main+*" "func+*" "func2+*" "func+*" "main+*"]
-
+set lnr 0
 foreach expected $result_funcs output $output_lines {
     if {$expected != ""} {
         if [string match $expected $output] {
-            pass "$test"
+            pass "$test match line $lnr $expected"
         } else {
-            fail "$test $output"
+            fail "$test match line $lnr $expected $output"
         }
+        incr lnr;
     } else {
         break;
     }
@@ -60,5 +61,5 @@ foreach expected $result_funcs output $output_lines {
 if [string match "main *" [lindex $output_lines 5]] {
     fail "$test return from main"
 } else {
-    pass "$test"
+    pass "$test return from main"
 }

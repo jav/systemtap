@@ -1,0 +1,18 @@
+set test bz13338
+
+spawn stap -vvl {process("/usr/bin/?").function("main")}
+set ok 0
+set ko 0
+expect {
+    -timeout 60
+    # this will only match if sufficient *-debuginfo happens to be installed
+    -re {[process^\r\n]*function..main@[^\r\n]*\r\n} { incr ok; exp_continue }
+    # this is the buggy old case
+    {Expanded process("/usr/bin/[") to process("/usr/bin/[")\r\n} { incr ko }
+    # this will show if the base RPMs are installed, even without -debuginfo
+    -re {Expanded process[^\r\n]*\r\n} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+if {$ok > 0 && $ko == 0} then { pass "$test" } else { fail "$test $ok $ko" }

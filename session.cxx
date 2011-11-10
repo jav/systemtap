@@ -132,7 +132,7 @@ systemtap_session::systemtap_session ():
   ignore_dwarf = false;
   load_only = false;
   skip_badvars = false;
-  unprivileged = false;
+  privilege = pr_stapdev;
   omit_werror = false;
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
@@ -144,6 +144,7 @@ systemtap_session::systemtap_session ():
   use_remote_prefix = false;
   systemtap_v_check = false;
   download_dbinfo = 0;
+  native_build = true; // presumed
 
   /*  adding in the XDG_DATA_DIRS variable path,
    *  this searches in conjunction with SYSTEMTAP_TAPSET
@@ -250,6 +251,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   kernel_build_tree = "/lib/modules/" + kernel_release + "/build";
   architecture = machine = normalize_machine(arch);
   setup_kernel_release(kern.c_str());
+  native_build = false; // assumed; XXX: could be computed as in check_options()
 
   // These are all copied in the same order as the default ctor did above.
 
@@ -295,7 +297,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   ignore_dwarf = other.ignore_dwarf;
   load_only = other.load_only;
   skip_badvars = other.skip_badvars;
-  unprivileged = other.unprivileged;
+  privilege = other.privilege;
   omit_werror = other.omit_werror;
   compatible = other.compatible;
   unwindsym_ldd = other.unwindsym_ldd;
@@ -482,8 +484,10 @@ systemtap_session::usage (int exitcode)
 #ifdef HAVE_LIBSQLITE3
     "   -q         generate information on tapset coverage\n"
 #endif /* HAVE_LIBSQLITE3 */
+    "   --privilege=PRIVILEGE_LEVEL\n"
+    "              check the script for constructs not allowed at the given privilege level\n"
     "   --unprivileged\n"
-    "              restrict usage to features available to unprivileged users\n"
+    "              equivalent to --privilege=stapusr\n"
 #if 0 /* PR6864: disable temporarily; should merge with -d somehow */
     "   --kelf     make do with symbol table from vmlinux\n"
     "   --kmap[=FILE]\n"
@@ -517,9 +521,9 @@ systemtap_session::usage (int exitcode)
     "   --remote-prefix\n"
     "              prefix each line of remote output with a host index.\n"
     "   --tmpdir=NAME\n"
-    "              specify name of temporary directory to be used."
+    "              specify name of temporary directory to be used.\n"
     "   --download-debuginfo[=OPTION]\n"
-    "              automatically download debuginfo."
+    "              automatically download debuginfo using ABRT.\n"
     "              yes,no,ask,<timeout value>\n"
     "   --dump-probe-types\n"
     "              show a list of available probe types.\n"
@@ -573,6 +577,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_TMPDIR 25
 #define LONG_OPT_DOWNLOAD_DEBUGINFO 26
 #define LONG_OPT_DUMP_PROBE_TYPES 27
+#define LONG_OPT_PRIVILEGE 28
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -608,6 +613,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "tmpdir", 1, &long_opt, LONG_OPT_TMPDIR },
         { "download-debuginfo", 2, &long_opt, LONG_OPT_DOWNLOAD_DEBUGINFO },
         { "dump-probe-types", 0, &long_opt, LONG_OPT_DUMP_PROBE_TYPES },
+        { "privilege", 1, &long_opt, LONG_OPT_PRIVILEGE },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -943,9 +949,23 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      push_server_opt = true;
 	      skip_badvars = true;
 	      break;
+	    case LONG_OPT_PRIVILEGE:
+	      push_server_opt = true;
+	      if (strcmp (optarg, "stapdev") == 0)
+		privilege = pr_stapdev;
+	      else if (strcmp (optarg, "stapusr") == 0)
+		privilege = pr_stapusr;
+	      else
+		{
+		  cerr << _F("Invalid argument '%s' for --privilege.", optarg) << endl;
+		  return 1;
+		}
+              /* NB: for server security, it is essential that once this flag is
+                 set, no future flag be able to unset it. */
+	      break;
 	    case LONG_OPT_UNPRIVILEGED:
 	      push_server_opt = true;
-	      unprivileged = true;
+	      privilege = pr_stapusr;
               /* NB: for server security, it is essential that once this flag is
                  set, no future flag be able to unset it. */
 	      break;
@@ -1201,11 +1221,11 @@ systemtap_session::check_options (int argc, char * const argv [])
 	  if (! stgr || ! in_group_id (stgr->gr_gid))
 	    {
               automatic_server_mode = true;
-	      if (! unprivileged)
+	      if (privilege != pr_stapusr)
 		{
                   if (perpass_verbose[0] > 1)
                     cerr << _("Using --unprivileged for member of the group stapusr") << endl;
-		  unprivileged = true;
+		  privilege = pr_stapusr;
 		  server_args.push_back ("--unprivileged");
 		}
 	      if (specified_servers.empty ())
@@ -1218,10 +1238,12 @@ systemtap_session::check_options (int argc, char * const argv [])
 	}
     }
 
-  if (client_options && unprivileged && ! client_options_disallowed.empty ())
+  if (client_options && ! pr_contains (privilege, pr_stapdev) && ! client_options_disallowed.empty ())
     {
-      cerr << _F("You can't specify %s when --unprivileged is specified.",
-                 client_options_disallowed.c_str()) << endl;
+      cerr << _F("You can't specify %s when --privilege=%s is specified.",
+                 client_options_disallowed.c_str(),
+		 pr_name (privilege))
+	   << endl;
       usage (1);
     }
   if ((cmd != "") && (target_pid))
@@ -1229,9 +1251,10 @@ systemtap_session::check_options (int argc, char * const argv [])
       cerr << _F("You can't specify %s and %s together.", "-c", "-x") << endl;
       usage (1);
     }
-  if (unprivileged && guru_mode)
+  if (! pr_contains (privilege, pr_stapdev) && guru_mode)
     {
-      cerr << _F("You can't specify %s and %s together.", "-g", "--unprivileged") << endl;
+      cerr << _F("You can't specify %s and --privilege=%s together.", "-g", pr_name (privilege))
+	   << endl;
       usage (1);
     }
   if (!kernel_symtab_path.empty())
@@ -1253,14 +1276,15 @@ systemtap_session::check_options (int argc, char * const argv [])
       usage(1);
     }
   // Warn in case the target kernel release doesn't match the running one.
-  if (last_pass > 4 &&
-      (release != kernel_release ||
-       machine != architecture)) // NB: squashed ARCH by PR4186 logic
-   {
-     if(! suppress_warnings)
-       cerr << _("WARNING: kernel release/architecture mismatch with host forces last-pass 4.") << endl;
-     last_pass = 4;
-   }
+  native_build = (release == kernel_release &&
+                  machine == architecture); // NB: squashed ARCH by PR4186 logic
+
+  if (last_pass > 4 && !native_build)
+    {
+      if(! suppress_warnings)
+        cerr << _("WARNING: kernel release/architecture mismatch with host forces last-pass 4.") << endl;
+      last_pass = 4;
+    }
   if(download_dbinfo != 0 && access ("/usr/bin/abrt-action-install-debuginfo-to-abrt-cache", X_OK) < 0)
     {
       if(! suppress_warnings)
@@ -1397,9 +1421,9 @@ systemtap_session::register_library_aliases()
                                                 comp->functor.c_str()));
                       mn = mn->bind(comp->functor);
                     }
-		  // PR 12916: All probe aliases are OK for unprivileged users. The actual
+		  // PR 12916: All probe aliases are OK for all users. The actual
 		  // referenced probe points will be checked when the alias is resolved.
-		  mn->bind_unprivileged ();
+		  mn->bind_privilege (pr_all);
                   mn->bind(new alias_expansion_builder(alias));
                 }
             }
@@ -1547,6 +1571,18 @@ systemtap_session::print_warning (const string& message_str, const token* tok)
       if (tok) { print_error_source (clog, align_warning, tok); }
     }
 }
+
+
+translator_output* systemtap_session::op_create_auxiliary()
+{
+  static int counter = 0;
+  string tmpname = this->tmpdir + "/" + this->module_name + "_aux_" + lex_cast(counter++) + ".c";
+  translator_output* n = new translator_output (tmpname);
+  auxiliary_outputs.push_back (n);
+  return n;
+}
+
+
 
 // --------------------------------------------------------------------------
 

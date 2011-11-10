@@ -48,11 +48,11 @@ set ok 0
 set res [target_compile $label_srcpath $label_exepath executable $label_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "compiling labels.c -g"
+    fail "compiling labels.c $label_flags"
     catch {exec rm -f $label_srcpath $label_stppath}
     return
 } else {
-    pass "compiling labels.c -g"
+    pass "compiling labels.c $label_flags"
 }
 
 # line number error (expect no output at all, since no label found)
@@ -68,7 +68,7 @@ expect {
 }
 wait
 
-if {$ok == 0} { pass "$test :N .label" } { fail "$test :N .label $ok" }
+if {$ok == 0} { pass "$test :N .label $ok" } { fail "$test :N .label $ok" }
 
 # line number 
 
@@ -83,7 +83,7 @@ expect {
 }
 wait
 
-if {$ok == 1} { pass "$test :N .label" } { fail "$test :N .label $ok" }
+if {$ok == 1} { pass "$test :N .label $ok" } { fail "$test :N .label $ok" }
 
 # list of labels
 
@@ -160,11 +160,11 @@ set label_flags "additional_flags=-g additional_flags=-shared additional_flags=-
 set res [target_compile $label_srcpath $label_sopath executable $label_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
-    fail "compiling labels.c -g"
+    fail "compiling labels.c $label_flags"
     catch {exec rm -f $label_srcpath $label_stppath}
     return
 } else {
-    pass "compiling labels.c -g"
+    pass "compiling labels.c $label_flags"
 }
 
 # label in a shared object

@@ -1,4 +1,7 @@
 set test "unprivileged embedded C"
+set arch [exec uname -i]
+# normalize arch; PR4186
+set arch [normalize_arch $arch]
 
 # Add arguments to a probe type template.
 proc add_args { prototype } {
@@ -15,7 +18,7 @@ proc add_args { prototype } {
 
 # Test valid probe types
 proc test_embedded_C { use_wrapper } {
-    global prototype_info test
+    global prototype_info test arch
 
     if { $use_wrapper } {
 	set with_wrapper " with wrapper"
@@ -30,6 +33,27 @@ proc test_embedded_C { use_wrapper } {
 	set tokens [split $info ";"]
 	set prototype [lindex $tokens 0]
 	set status [lindex $tokens 1]
+
+	# Deprecated function will be untested
+	switch "$prototype" {
+	    "cpuid ()"
+	    {
+		untested "$test: $status: $prototype"
+		continue
+	    }
+	}
+	
+	# Filter arch-specific tests
+	if { "$arch" != "ia64" } {
+	    switch "$prototype" {
+		"_ia64_pipe0()" -
+		"_ia64_pipe1()"
+		{
+		    untested "$test: $status: $prototype"
+		    continue
+		}
+	    }
+	}
 
 	# Test calling the function. If successful, the stap rc will be 0.
 	set call [add_args $prototype]
@@ -47,8 +71,8 @@ proc test_embedded_C { use_wrapper } {
 	if {"$funcname" == "_wait_status_str"} {
 	    set funcname "_signal_name"
 	}
-	set emsg1 "semantic error: function may not be used when --unprivileged is specified: identifier '$funcname'"
-	set emsg2 "semantic error: embedded expression may not be used when --unprivileged is specified"
+	set emsg1 "semantic error: function may not be used when --privilege=stapusr is specified: identifier '$funcname'"
+	set emsg2 "semantic error: embedded expression may not be used when --privilege=stapusr is specified"
 	set found [expr [regexp ".*$emsg1.*" $res_stap] || [regexp ".*$emsg2.*" $res_stap]]
 
 	# Evaluate the result based upon the function's status
@@ -64,6 +88,10 @@ proc test_embedded_C { use_wrapper } {
 	    {
 		# There should be a message excluding this function
 		set passed $found
+	    }
+	    default
+	    {
+		set passed 0
 	    }
 	}
 

@@ -2746,7 +2746,8 @@ dwflpp::vardie_from_symtable (Dwarf_Die *vardie, Dwarf_Addr *addr)
       if (symname
 	  && ! strcmp (name, symname)
 	  && sym.st_shndx != SHN_UNDEF
-	  && GELF_ST_TYPE (sym.st_info) == STT_OBJECT)
+	  && (GELF_ST_TYPE (sym.st_info) == STT_NOTYPE // PR13284
+	      || GELF_ST_TYPE (sym.st_info) == STT_OBJECT))
 	*addr = sym.st_value;
     }
 

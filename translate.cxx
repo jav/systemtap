@@ -69,16 +69,16 @@ struct c_unparser: public unparser, public visitor
   unsigned tmpvar_counter;
   unsigned label_counter;
   unsigned action_counter;
-  bool probe_or_function_needs_deref_fault_handler;
 
   varuse_collecting_visitor vcv_needs_global_locks;
 
   map<string, string> probe_contents;
 
+  map<pair<bool, string>, string> compiled_printfs;
+
   c_unparser (systemtap_session* ss):
     session (ss), o (ss->op), current_probe(0), current_function (0),
     tmpvar_counter (0), label_counter (0), action_counter(0),
-    probe_or_function_needs_deref_fault_handler(false),
     vcv_needs_global_locks (*ss) {}
   ~c_unparser () {}
 
@@ -96,6 +96,11 @@ struct c_unparser: public unparser, public visitor
   void emit_locks (const varuse_collecting_visitor& v);
   void emit_probe (derived_probe* v);
   void emit_unlocks (const varuse_collecting_visitor& v);
+
+  void emit_compiled_printfs ();
+  void emit_compiled_printf_locals ();
+  void declare_compiled_printf (bool print_to_stream, const string& format);
+  const string& get_compiled_printf (bool print_to_stream, const string& format);
 
   // for use by stats (pmap) foreach
   set<string> aggregations_active;
@@ -217,7 +222,7 @@ struct c_tmpcounter:
   // void visit_logical_or_expr (logical_or_expr* e);
   // void visit_logical_and_expr (logical_and_expr* e);
   void visit_array_in (array_in* e);
-  // void visit_comparison (comparison* e);
+  void visit_comparison (comparison* e);
   void visit_concatenation (concatenation* e);
   // void visit_ternary_expression (ternary_expression* e);
   void visit_assignment (assignment* e);
@@ -551,14 +556,15 @@ struct mapvar
 {
   vector<exp_type> index_types;
   int maxsize;
+  bool wrap;
   mapvar (bool local, exp_type ty,
 	  statistic_decl const & sd,
 	  string const & name,
 	  vector<exp_type> const & index_types,
-	  int maxsize)
+	  int maxsize, bool wrap)
     : var (local, ty, sd, name),
       index_types (index_types),
-      maxsize (maxsize)
+      maxsize (maxsize), wrap(wrap)
   {}
 
   static string shortname(exp_type e);
@@ -723,6 +729,13 @@ struct mapvar
     // Check for errors during allocation.
     string suffix = "if (" + value () + " == NULL) rc = -ENOMEM;";
 
+    if(wrap == true)
+      {
+        if(mtype == "pmap")
+          suffix = suffix + " else { stp_for_each_cpu(cpu) { MAP mp = per_cpu_ptr(" + value() + "->map, cpu); mp->wrap = 1; }} ";
+        else
+          suffix = suffix + " else " + value() + "->wrap = 1;";
+      }
     if (type() == pe_stats)
       {
 	switch (sdecl().type)
@@ -867,7 +880,8 @@ translator_output::translator_output (const string& filename, size_t bufsize):
   buf (new char[bufsize]),
   o2 (new ofstream (filename.c_str ())),
   o (*o2),
-  tablevel (0)
+  tablevel (0),
+  filename (filename)
 {
   o2->rdbuf()->pubsetbuf(buf, bufsize);
 }
@@ -1044,6 +1058,9 @@ c_unparser::emit_common_header ()
   o->newline() << "#error \"MAXNESTING must be positive\"";
   o->newline() << "#endif";
 
+  // Use a separate union for compiled-printf locals, no nesting required.
+  emit_compiled_printf_locals ();
+
   o->newline(-1) << "};\n";
   o->newline() << "static struct context *contexts[NR_CPUS] = { NULL };\n";
 
@@ -1056,7 +1073,355 @@ c_unparser::emit_common_header ()
   o->newline() << "#include \"time.c\"";  // Don't we all need more?
   o->newline() << "#endif";
 
+  emit_compiled_printfs();
+
   o->newline();
+}
+
+
+void
+c_unparser::declare_compiled_printf (bool print_to_stream, const string& format)
+{
+  pair<bool, string> index (print_to_stream, format);
+  map<pair<bool, string>, string>::iterator it = compiled_printfs.find(index);
+  if (it == compiled_printfs.end())
+    compiled_printfs[index] = (print_to_stream ? "stp_printf_" : "stp_sprintf_")
+      + lex_cast(compiled_printfs.size() + 1);
+}
+
+const string&
+c_unparser::get_compiled_printf (bool print_to_stream, const string& format)
+{
+  map<pair<bool, string>, string>::iterator it =
+    compiled_printfs.find(make_pair(print_to_stream, format));
+  if (it == compiled_printfs.end())
+    throw semantic_error (_("internal error translating printf"));
+  return it->second;
+}
+
+void
+c_unparser::emit_compiled_printf_locals ()
+{
+  o->newline() << "#ifndef STP_LEGACY_PRINT";
+  o->newline() << "union {";
+  o->indent(1);
+  map<pair<bool, string>, string>::iterator it;
+  for (it = compiled_printfs.begin(); it != compiled_printfs.end(); ++it)
+    {
+      bool print_to_stream = it->first.first;
+      const string& format_string = it->first.second;
+      const string& name = it->second;
+      vector<print_format::format_component> components =
+	print_format::string_to_components(format_string);
+
+      o->newline() << "struct " << name << "_locals {";
+      o->indent(1);
+
+      size_t arg_ix = 0;
+      vector<print_format::format_component>::const_iterator c;
+      for (c = components.begin(); c != components.end(); ++c)
+	{
+	  if (c->type == print_format::conv_literal)
+	    continue;
+
+	  // Take note of the width and precision arguments, if any.
+	  if (c->widthtype == print_format::width_dynamic)
+	    o->newline() << "int64_t arg" << arg_ix++ << ";";
+	  if (c->prectype == print_format::prec_dynamic)
+	    o->newline() << "int64_t arg" << arg_ix++ << ";";
+
+	  // Output the actual argument.
+	  switch (c->type)
+	    {
+	    case print_format::conv_pointer:
+	    case print_format::conv_number:
+	    case print_format::conv_char:
+	    case print_format::conv_memory:
+	    case print_format::conv_memory_hex:
+	    case print_format::conv_binary:
+	      o->newline() << "int64_t arg" << arg_ix++ << ";";
+	      break;
+
+	    case print_format::conv_string:
+	      // NB: Since we know incoming strings are immutable, we can use
+	      // const char* rather than a private char[] copy.  This is a
+	      // special case of the sort of optimizations desired in PR11528.
+	      o->newline() << "const char* arg" << arg_ix++ << ";";
+	      break;
+
+	    default:
+	      assert(false); // XXX
+	      break;
+	    }
+	}
+
+
+      if (!print_to_stream)
+	o->newline() << "char * __retvalue;";
+
+      o->newline(-1) << "} " << name << ";";
+    }
+  o->newline(-1) << "} printf_locals;";
+  o->newline() << "#endif // STP_LEGACY_PRINT";
+}
+
+void
+c_unparser::emit_compiled_printfs ()
+{
+  o->newline() << "#ifndef STP_LEGACY_PRINT";
+  map<pair<bool, string>, string>::iterator it;
+  for (it = compiled_printfs.begin(); it != compiled_printfs.end(); ++it)
+    {
+      bool print_to_stream = it->first.first;
+      const string& format_string = it->first.second;
+      const string& name = it->second;
+      vector<print_format::format_component> components =
+	print_format::string_to_components(format_string);
+
+      o->newline();
+
+      // Might be nice to output the format string in a comment, but we'd have
+      // to be extra careful about format strings not escaping the comment...
+      o->newline() << "static noinline void " << name
+		   << " (struct context* __restrict__ c) {";
+      o->newline(1) << "struct " << name << "_locals * __restrict__ l = "
+		    << "& c->printf_locals." << name << ";";
+      o->newline() << "char *str = NULL, *end = NULL;";
+
+      if (print_to_stream)
+        {
+	  // Compute the buffer size needed for these arguments.
+	  size_t arg_ix = 0;
+	  o->newline() << "int num_bytes = 0;";
+	  o->newline() << "{";
+	  o->indent(1);
+	  vector<print_format::format_component>::const_iterator c;
+	  for (c = components.begin(); c != components.end(); ++c)
+	    {
+	      if (c->type == print_format::conv_literal)
+		{
+		  literal_string ls(c->literal_string);
+		  o->newline() << "num_bytes += sizeof(";
+		  visit_literal_string(&ls);
+		  o->line() << ") - 1;"; // don't count the '\0'
+		  continue;
+		}
+
+	      o->newline() << "{";
+	      o->indent(1);
+
+	      o->newline() << "int width = ";
+	      if (c->widthtype == print_format::width_dynamic)
+		o->line() << "clamp_t(int, l->arg" << arg_ix++
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else if (c->widthtype == print_format::width_static)
+		o->line() << "clamp_t(int, " << c->width
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else
+		o->line() << "-1;";
+
+	      o->newline() << "int precision = ";
+	      if (c->prectype == print_format::prec_dynamic)
+		o->line() << "clamp_t(int, l->arg" << arg_ix++
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else if (c->prectype == print_format::prec_static)
+		o->line() << "clamp_t(int, " << c->precision
+		          << ", 0, STP_BUFFER_SIZE);";
+	      else
+		o->line() << "-1;";
+
+	      string value = "l->arg" + lex_cast(arg_ix++);
+	      switch (c->type)
+		{
+		case print_format::conv_pointer:
+		  // NB: stap < 1.3 had odd %p behavior... see _stp_vsnprintf
+		  if (strverscmp(session->compatible.c_str(), "1.3") < 0)
+		    {
+		      o->newline() << "unsigned long ptr_value = " << value << ";";
+		      o->newline() << "if (width == -1)";
+		      o->newline(1) << "width = 2 + 2 * sizeof(void*);";
+		      o->newline(-1) << "precision = width - 2;";
+		      if (!c->test_flag(print_format::fmt_flag_left))
+			o->newline() << "precision = min_t(int, precision, 2 * sizeof(void*));";
+		      o->newline() << "num_bytes += number_size(ptr_value, "
+			<< c->base << ", width, precision, " << c->flags << ");";
+		      break;
+		    }
+		  // else fall-through to conv_number
+		case print_format::conv_number:
+		  o->newline() << "num_bytes += number_size(" << value << ", "
+			       << c->base << ", width, precision, " << c->flags << ");";
+		  break;
+
+		case print_format::conv_char:
+		  o->newline() << "num_bytes += max(width, 1);";
+		  break;
+
+		case print_format::conv_string:
+		  o->newline() << "num_bytes += _stp_vsprint_memory_size("
+			       << value << ", width, precision, 's', "
+			       << c->flags << ");";
+		  break;
+
+		case print_format::conv_memory:
+		case print_format::conv_memory_hex:
+		  o->newline() << "num_bytes += _stp_vsprint_memory_size("
+			       << "(const char*)(intptr_t)" << value
+			       << ", width, precision, '"
+			       << ((c->type == print_format::conv_memory) ? "m" : "M")
+			       << "', " << c->flags << ");";
+		  break;
+
+		case print_format::conv_binary:
+		  o->newline() << "num_bytes += _stp_vsprint_binary_size("
+			       << value << ", width, precision);";
+		  break;
+
+		default:
+		  assert(false); // XXX
+		  break;
+		}
+
+	      o->newline(-1) << "}";
+	    }
+
+	  o->newline() << "num_bytes = clamp(num_bytes, 0, STP_BUFFER_SIZE);";
+	  o->newline() << "str = (char*)_stp_reserve_bytes(num_bytes);";
+	  o->newline() << "end = str ? str + num_bytes - 1 : 0;";
+	  o->newline(-1) << "}";
+        }
+      else // !print_to_stream
+	{
+	  // String results are a known buffer and size;
+	  o->newline() << "str = l->__retvalue;";
+	  o->newline() << "end = str + MAXSTRINGLEN - 1;";
+	}
+
+      o->newline() << "if (str && str <= end) {";
+      o->indent(1);
+
+      // Generate code to print the actual arguments.
+      size_t arg_ix = 0;
+      vector<print_format::format_component>::const_iterator c;
+      for (c = components.begin(); c != components.end(); ++c)
+	{
+	  if (c->type == print_format::conv_literal)
+	    {
+	      literal_string ls(c->literal_string);
+	      o->newline() << "{";
+	      o->newline(1) << "const char *src = ";
+	      visit_literal_string(&ls);
+	      o->line() << ";";
+	      o->newline() << "while (*src && str <= end)";
+	      o->newline(1) << "*str++ = *src++;";
+	      o->newline(-2) << "}";
+	      continue;
+	    }
+
+	  o->newline() << "{";
+	  o->indent(1);
+
+	  o->newline() << "int width = ";
+	  if (c->widthtype == print_format::width_dynamic)
+	    o->line() << "clamp_t(int, l->arg" << arg_ix++
+		      << ", 0, end - str + 1);";
+	  else if (c->widthtype == print_format::width_static)
+	    o->line() << "clamp_t(int, " << c->width
+		      << ", 0, end - str + 1);";
+	  else
+	    o->line() << "-1;";
+
+	  o->newline() << "int precision = ";
+	  if (c->prectype == print_format::prec_dynamic)
+	    o->line() << "clamp_t(int, l->arg" << arg_ix++
+		      << ", 0, end - str + 1);";
+	  else if (c->prectype == print_format::prec_static)
+	    o->line() << "clamp_t(int, " << c->precision
+		      << ", 0, end - str + 1);";
+	  else
+	    o->line() << "-1;";
+
+	  string value = "l->arg" + lex_cast(arg_ix++);
+	  switch (c->type)
+	    {
+	    case print_format::conv_pointer:
+	      // NB: stap < 1.3 had odd %p behavior... see _stp_vsnprintf
+	      if (strverscmp(session->compatible.c_str(), "1.3") < 0)
+		{
+		  o->newline() << "unsigned long ptr_value = " << value << ";";
+		  o->newline() << "if (width == -1)";
+		  o->newline(1) << "width = 2 + 2 * sizeof(void*);";
+		  o->newline(-1) << "precision = width - 2;";
+		  if (!c->test_flag(print_format::fmt_flag_left))
+		    o->newline() << "precision = min_t(int, precision, 2 * sizeof(void*));";
+		  o->newline() << "str = number(str, end, ptr_value, "
+		    << c->base << ", width, precision, " << c->flags << ");";
+		  break;
+		}
+	      // else fall-through to conv_number
+	    case print_format::conv_number:
+	      o->newline() << "str = number(str, end, " << value << ", "
+			   << c->base << ", width, precision, " << c->flags << ");";
+	      break;
+
+	    case print_format::conv_char:
+	      if (c->test_flag(print_format::fmt_flag_left))
+		o->newline() << "*str++ = " << value << ";";
+	      o->newline() << "while (width-- > 1 && str <= end)";
+	      o->newline(1) << "*str++ = ' ';";
+	      o->indent(-1);
+	      if (!c->test_flag(print_format::fmt_flag_left))
+		o->newline() << "*str++ = " << value << ";";
+	      break;
+
+	    case print_format::conv_string:
+	      o->newline() << "str = _stp_vsprint_memory(str, end, "
+			   << value << ", width, precision, 's', "
+			   << c->flags << ");";
+	      break;
+
+	    case print_format::conv_memory:
+	    case print_format::conv_memory_hex:
+	      o->newline() << "str = _stp_vsprint_memory(str, end, "
+			   << "(const char*)(intptr_t)" << value
+			   << ", width, precision, '"
+			   << ((c->type == print_format::conv_memory) ? "m" : "M")
+			   << "', " << c->flags << ");";
+	      o->newline() << "if (unlikely(str == NULL)) {";
+	      o->indent(1);
+	      if (print_to_stream)
+		  o->newline() << "_stp_unreserve_bytes(num_bytes);";
+	      o->newline() << "return;";
+	      o->newline(-1) << "}";
+	      break;
+
+	    case print_format::conv_binary:
+	      o->newline() << "str = _stp_vsprint_binary(str, end, "
+			   << value << ", width, precision, "
+			   << c->flags << ");";
+	      break;
+
+	    default:
+	      assert(false); // XXX
+	      break;
+	    }
+	  o->newline(-1) << "}";
+	}
+
+      if (!print_to_stream)
+	{
+	  o->newline() << "if (str <= end)";
+	  o->newline(1) << "*str = '\\0';";
+	  o->newline(-1) << "else";
+	  o->newline(1) << "*end = '\\0';";
+	  o->indent(-1);
+	}
+
+      o->newline(-1) << "}";
+
+      o->newline(-1) << "}";
+    }
+  o->newline() << "#endif // STP_LEGACY_PRINT";
 }
 
 
@@ -1199,6 +1564,34 @@ c_unparser::emit_module_init ()
   // perform buildid-based checking if able
   o->newline() << "if (_stp_module_check()) rc = -EINVAL;";
 
+  // Perform checking on the user's credentials vs those required to load/run this module.
+  o->newline() << "if (_stp_privilege_credentials == 0) {";
+  o->newline(1) << "if (STP_PRIVILEGE_CONTAINS(STP_PRIVILEGE, STP_PR_STAPDEV) ||";
+  o->newline() << "    STP_PRIVILEGE_CONTAINS(STP_PRIVILEGE, STP_PR_STAPUSR)) {";
+  o->newline(1) << "_stp_privilege_credentials = STP_PRIVILEGE;";
+  o->newline() << "#ifdef DEBUG_PRIVILEGE";
+  o->newline(1) << "_dbug(\"User's privilege credentials default to %s\\n\",";
+  o->newline() << "      privilege_to_text(_stp_privilege_credentials));";
+  o->newline(-1) << "#endif";
+  o->newline(-1) << "}";
+  o->newline() << "else {";
+  o->newline(1) << "_stp_error (\"Unable to verify that you have the required privilege credentials to run this module (%s required). You must use staprun version 1.7 or higher.\",";
+  o->newline() << "            privilege_to_text(STP_PRIVILEGE));";
+  o->newline() << "rc = -EINVAL;";
+  o->newline(-1) << "}";
+  o->newline(-1) << "}";
+  o->newline() << "else {";
+  o->newline(1) << "#ifdef DEBUG_PRIVILEGE";
+  o->newline(1) << "_dbug(\"User's privilege credentials provided as %s\\n\",";
+  o->newline() << "      privilege_to_text(_stp_privilege_credentials));";
+  o->newline(-1) << "#endif";
+  o->newline() << "if (! STP_PRIVILEGE_CONTAINS(_stp_privilege_credentials, STP_PRIVILEGE)) {";
+  o->newline(1) << "_stp_error (\"Your privilege credentials (%s) are unsufficient to run this module (%s required).\",";
+  o->newline () << "            privilege_to_text(_stp_privilege_credentials), privilege_to_text(STP_PRIVILEGE));";
+  o->newline() << "rc = -EINVAL;";
+  o->newline(-1) << "}";
+  o->newline(-1) << "}";
+
   o->newline(-1) << "}";
 
   o->newline() << "if (rc) goto out;";
@@ -1225,7 +1618,8 @@ c_unparser::emit_module_init ()
   // per-cpu context
   o->newline() << "for_each_possible_cpu(cpu) {";
   o->indent(1);
-  o->newline() << "contexts[cpu] = _stp_kzalloc(sizeof(struct context));";
+  // Module init, so in user context, safe to use "sleeping" allocation.
+  o->newline() << "contexts[cpu] = _stp_kzalloc_gfp(sizeof(struct context), STP_ALLOC_SLEEP_FLAGS);";
   o->newline() << "if (contexts[cpu] == NULL) {";
   o->indent(1);
   o->newline() << "_stp_error (\"context (size %lu) allocation failed\", (unsigned long) sizeof (struct context));";
@@ -1472,6 +1866,12 @@ c_unparser::emit_module_exit ()
   o->newline(-1) << "}";
   o->newline(-1) << "}";
 
+  // NB: PR13386 points out that _stp_printf may be called from contexts
+  // without already active preempt disabling, which breaks various uses
+  // of smp_processor_id().  So we temporary block preemption around this
+  // whole printing block.  XXX: get_cpu() / put_cpu() may work just as well.
+  o->newline() << "preempt_disable();";
+
   // print per probe point timing/alibi statistics
   o->newline() << "#if defined(STP_TIMING) || defined(STP_ALIBI)";
   o->newline() << "_stp_printf(\"----- probe hit report: \\n\");";
@@ -1535,6 +1935,10 @@ c_unparser::emit_module_exit ()
   o->newline () << "#endif";
   o->newline() << "_stp_print_flush();";
   o->newline(-1) << "}";
+
+  // NB: PR13386 needs to restore preemption-blocking counts
+  o->newline() << "preempt_enable_no_resched();";
+
   o->newline(-1) << "}\n";
 }
 
@@ -1595,19 +1999,12 @@ c_unparser::emit_function (functiondecl* v)
     }
 
   o->newline() << "#define return goto out"; // redirect embedded-C return
-  this->probe_or_function_needs_deref_fault_handler = false;
   v->body->visit (this);
   o->newline() << "#undef return";
 
   this->current_function = 0;
 
   record_actions(0, v->body->tok, true);
-
-  if (this->probe_or_function_needs_deref_fault_handler) {
-    // Emit this handler only if the body included a
-    // print/printf/etc. using a string or memory buffer!
-    o->newline() << "CATCH_DEREF_FAULT ();";
-  }
 
   o->newline(-1) << "out:";
   o->newline(1) << "if (0) goto out;"; // make sure out: is marked used
@@ -1696,8 +2093,6 @@ c_unparser::emit_probe (derived_probe* v)
     }
   else // This probe is unique.  Remember it and output it.
     {
-      this->probe_or_function_needs_deref_fault_handler = false;
-
       o->newline();
       o->newline() << "static void " << v->name << " (struct context * __restrict__ c) ";
       o->line () << "{";
@@ -1721,7 +2116,7 @@ c_unparser::emit_probe (derived_probe* v)
       o->newline() << "(void) l;"; // make sure "l" is marked used
 
       // Emit runtime safety net for unprivileged mode.
-      v->emit_unprivileged_assertion (o);
+      v->emit_privilege_assertion (o);
 
       // emit probe local initialization block
       v->emit_probe_local_init(o);
@@ -1754,12 +2149,6 @@ c_unparser::emit_probe (derived_probe* v)
       v->body->visit (this);
 
       record_actions(0, v->body->tok, true);
-
-      if (this->probe_or_function_needs_deref_fault_handler) {
-	// Emit this handler only if the body included a
-	// print/printf/etc. using a string or memory buffer!
-	o->newline() << "CATCH_DEREF_FAULT ();";
-      }
 
       o->newline(-1) << "out:";
       // NB: no need to uninitialize locals, except if arrays/stats can
@@ -2355,7 +2744,7 @@ c_unparser::getmap(vardecl *v, token const *tok)
   if (i != session->stat_decls.end())
     sd = i->second;
   return mapvar (is_local (v, tok), v->type, sd,
-      v->name, v->index_types, v->maxsize);
+      v->name, v->index_types, v->maxsize, v->wrap);
 }
 
 
@@ -3450,6 +3839,23 @@ c_unparser::visit_array_in (array_in* e)
 
 
 void
+c_tmpcounter::visit_comparison (comparison* e)
+{
+  // When computing string operands, their results may be in overlapping
+  // __retvalue memory, so we need to save at least one in a tmpvar.
+  if (e->left->type == pe_string)
+    {
+      tmpvar left = parent->gensym (pe_string);
+      if (e->left->tok->type != tok_string)
+        left.declare (*parent);
+    }
+
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+
+void
 c_unparser::visit_comparison (comparison* e)
 {
   o->line() << "(";
@@ -3459,12 +3865,19 @@ c_unparser::visit_comparison (comparison* e)
       if (e->right->type != pe_string)
         throw semantic_error (_("expected string types"), e->tok);
 
-      o->line() << "strncmp (";
-      e->left->visit (this);
-      o->line() << ", ";
+      o->line() << "({";
+      o->indent(1);
+
+      tmpvar left = gensym (pe_string);
+      if (e->left->tok->type == tok_string)
+        left.override(c_expression(e->left));
+      else
+        c_assign (left.value(), e->left, "assignment");
+
+      o->newline() << "strncmp (" << left << ", ";
       e->right->visit (this);
-      o->line() << ", MAXSTRINGLEN";
-      o->line() << ") " << e->op << " 0";
+      o->line() << ", MAXSTRINGLEN) " << e->op << " 0;";
+      o->newline(-1) << "})";
     }
   else if (e->left->type == pe_long)
     {
@@ -4291,6 +4704,81 @@ c_unparser::visit_functioncall (functioncall* e)
                  << ".__retvalue;";
 }
 
+
+static int
+preprocess_print_format(print_format* e, vector<tmpvar>& tmp,
+                        vector<print_format::format_component>& components,
+                        string& format_string)
+{
+  int use_print = 0;
+
+  if (e->print_with_format)
+    {
+      format_string = e->raw_components;
+      components = e->components;
+    }
+  else
+    {
+      string delim;
+      if (e->print_with_delim)
+	{
+	  stringstream escaped_delim;
+	  const string& dstr = e->delimiter.literal_string;
+	  for (string::const_iterator i = dstr.begin();
+	       i != dstr.end(); ++i)
+	    {
+	      if (*i == '%')
+		escaped_delim << '%';
+	      escaped_delim << *i;
+	    }
+	  delim = escaped_delim.str();
+	}
+
+      // Synthesize a print-format string if the user didn't
+      // provide one; the synthetic string simply contains one
+      // directive for each argument.
+      stringstream format;
+      for (unsigned i = 0; i < e->args.size(); ++i)
+	{
+	  if (i > 0 && e->print_with_delim)
+	    format << delim;
+	  switch (e->args[i]->type)
+	    {
+	    default:
+	    case pe_unknown:
+	      throw semantic_error(_("cannot print unknown expression type"), e->args[i]->tok);
+	    case pe_stats:
+	      throw semantic_error(_("cannot print a raw stats object"), e->args[i]->tok);
+	    case pe_long:
+	      format << "%d";
+	      break;
+	    case pe_string:
+	      format << "%s";
+	      break;
+	    }
+	}
+      if (e->print_with_newline)
+	format << "\\n";
+
+      format_string = format.str();
+      components = print_format::string_to_components(format_string);
+    }
+
+
+  if ((tmp.size() == 0 && format_string.find("%%") == string::npos)
+      || (tmp.size() == 1 && format_string == "%s"))
+    use_print = 1;
+  else if (tmp.size() == 1
+	   && e->args[0]->tok->type == tok_string
+	   && format_string == "%s\\n")
+    {
+      use_print = 1;
+      tmp[0].override(tmp[0].value() + "\"\\n\"");
+    }
+
+  return use_print;
+}
+
 void
 c_tmpcounter::visit_print_format (print_format* e)
 {
@@ -4311,9 +4799,11 @@ c_tmpcounter::visit_print_format (print_format* e)
   else
     {
       // One temporary per argument
+      vector<tmpvar> tmp;
       for (unsigned i=0; i < e->args.size(); i++)
 	{
 	  tmpvar t = parent->gensym (e->args[i]->type);
+	  tmp.push_back(t);
 	  if (e->args[i]->type == pe_unknown)
 	    {
 	      throw semantic_error(_("unknown type of arg to print operator"),
@@ -4331,6 +4821,15 @@ c_tmpcounter::visit_print_format (print_format* e)
       tmpvar res = parent->gensym (ty);
       if (ty == pe_string)
 	res.declare (*parent);
+
+      // Munge so we can find our compiled printf
+      vector<print_format::format_component> components;
+      string format_string;
+      int use_print = preprocess_print_format(e, tmp, components, format_string);
+
+      // If not in a shortcut case, declare the compiled printf
+      if (!(e->print_to_stream && (e->print_char || use_print)))
+	parent->declare_compiled_printf(e->print_to_stream, format_string);
     }
 }
 
@@ -4408,71 +4907,20 @@ c_unparser::visit_print_format (print_format* e)
 		      "print format actual argument evaluation");
 	}
 
-      std::vector<print_format::format_component> components;
-
-      if (e->print_with_format)
-	{
-	  components = e->components;
-	}
-      else
-	{
-	  // Synthesize a print-format string if the user didn't
-	  // provide one; the synthetic string simply contains one
-	  // directive for each argument.
-	  for (unsigned i = 0; i < e->args.size(); ++i)
-	    {
-	      if (i > 0 && e->print_with_delim)
-		components.push_back (e->delimiter);
-	      print_format::format_component curr;
-	      curr.clear();
-	      switch (e->args[i]->type)
-		{
-		case pe_unknown:
-		  throw semantic_error(_("cannot print unknown expression type"), e->args[i]->tok);
-		case pe_stats:
-		  throw semantic_error(_("cannot print a raw stats object"), e->args[i]->tok);
-		case pe_long:
-		  curr.type = print_format::conv_signed_decimal;
-		  break;
-		case pe_string:
-		  curr.type = print_format::conv_string;
-		  break;
-		}
-	      components.push_back (curr);
-	    }
-
-	  if (e->print_with_newline)
-	    {
-	      print_format::format_component curr;
-	      curr.clear();
-	      curr.type = print_format::conv_literal;
-	      curr.literal_string = "\\n";
-	      components.push_back (curr);
-	    }
-	}
-
       // Allocate the result
       exp_type ty = e->print_to_stream ? pe_long : pe_string;
       tmpvar res = gensym (ty);
-      int use_print = 0;
 
-      string format_string = print_format::components_to_string(components);
-      if ((tmp.size() == 0 && format_string.find("%%") == std::string::npos)
-          || (tmp.size() == 1 && format_string == "%s"))
-	use_print = 1;
-      else if (tmp.size() == 1
-	       && e->args[0]->tok->type == tok_string
-	       && format_string == "%s\\n")
-	{
-	  use_print = 1;
-	  tmp[0].override(tmp[0].value() + "\"\\n\"");
-	  components[0].type = print_format::conv_literal;
-	}
+      // Munge so we can find our compiled printf
+      vector<print_format::format_component> components;
+      string format_string, format_string_out;
+      int use_print = preprocess_print_format(e, tmp, components, format_string);
+      format_string_out = print_format::components_to_string(components);
 
       // Make the [s]printf call...
 
-      // Generate code to check that any pointer arguments are actually accessible.  */
-      int arg_ix = 0;
+      // Generate code to check that any pointer arguments are actually accessible.
+      size_t arg_ix = 0;
       for (unsigned i = 0; i < components.size(); ++i) {
 	if (components[i].type == print_format::conv_literal)
 	  continue;
@@ -4504,25 +4952,20 @@ c_unparser::visit_print_format (print_format* e)
 	      mem_size = "1LL";
 
 	    /* Limit how much can be printed at a time. (see also PR10490) */
+	    o->newline() << "c->last_stmt = " << lex_cast_qstring(*prec_tok) << ";";
 	    o->newline() << "if (" << mem_size << " > 1024) {";
 	    o->newline(1) << "snprintf(c->error_buffer, sizeof(c->error_buffer), "
 			  << "\"%lld is too many bytes for a memory dump\", (long long)"
 			  << mem_size << ");";
 	    o->newline() << "c->last_error = c->error_buffer;";
-	    o->newline() << "c->last_stmt = " << lex_cast_qstring(*prec_tok) << ";";
 	    o->newline() << "goto out;";
 	    o->newline(-1) << "}";
-
-	    /* Generate a noop call to deref_buffer.  */
-	    this->probe_or_function_needs_deref_fault_handler = true;
-	    o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->args[arg_ix]->tok) << ";";
-	    o->newline() << "deref_buffer (0, " << tmp[arg_ix].value() << ", "
-			 << mem_size << " ?: 1LL);";
 	  }
 
 	++arg_ix;
       }
 
+      // Shortcuts for cases that aren't formatted at all
       if (e->print_to_stream)
         {
 	  if (e->print_char)
@@ -4531,7 +4974,7 @@ c_unparser::visit_print_format (print_format* e)
 	      if (tmp.size())
 		o->line() << tmp[0].value() << ");";
 	      else
-		o->line() << '"' << format_string << "\");";
+		o->line() << '"' << format_string_out << "\");";
 	      return;
 	    }
 	  if (use_print)
@@ -4540,45 +4983,67 @@ c_unparser::visit_print_format (print_format* e)
 	      if (tmp.size())
 		o->line() << tmp[0].value() << ");";
 	      else
-		o->line() << '"' << format_string << "\");";
+		o->line() << '"' << format_string_out << "\");";
 	      return;
 	    }
+	}
 
-	  // We'll just hardcode the result of 0 instead of using the
-	  // temporary.
-	  res.override("((int64_t)0LL)");
-	  o->newline() << "_stp_printf (";
-        }
+      // The default it to use the new compiled-printf, but one can fall back
+      // to the old code with -DSTP_LEGACY_PRINT if desired.
+      o->newline() << "#ifndef STP_LEGACY_PRINT";
+      o->indent(1);
+
+      // Copy all arguments to the compiled-printf's space, then call it
+      const string& compiled_printf =
+	get_compiled_printf (e->print_to_stream, format_string);
+      for (unsigned i = 0; i < tmp.size(); ++i)
+	o->newline() << "c->printf_locals." << compiled_printf
+		     << ".arg" << i << " = " << tmp[i].value() << ";";
+      if (e->print_to_stream)
+	// We'll just hardcode the result of 0 instead of using the
+	// temporary.
+	res.override("((int64_t)0LL)");
+      else
+	o->newline() << "c->printf_locals." << compiled_printf
+		     << ".__retvalue = " << res.value() << ";";
+      o->newline() << compiled_printf << " (c);";
+
+      o->newline(-1) << "#else // STP_LEGACY_PRINT";
+      o->indent(1);
+
+      // Generate the legacy call that goes through _stp_vsnprintf.
+      if (e->print_to_stream)
+	o->newline() << "_stp_printf (";
       else
 	o->newline() << "_stp_snprintf (" << res.value() << ", MAXSTRINGLEN, ";
+      o->line() << '"' << format_string_out << '"';
 
-      o->line() << '"' << format_string << '"';
-
-      /* Generate the actual arguments. Make sure that they match the expected type of the
-	 format specifier.  */
+      // Make sure arguments match the expected type of the format specifier.
       arg_ix = 0;
-      for (unsigned i = 0; i < components.size(); ++i) {
-	if (components[i].type == print_format::conv_literal)
-	  continue;
+      for (unsigned i = 0; i < components.size(); ++i)
+	{
+	  if (components[i].type == print_format::conv_literal)
+	    continue;
 
-	/* Cast the width and precision arguments, if any, to 'int'.  */
-	if (components[i].widthtype == print_format::width_dynamic)
-	  o->line() << ", (int)" << tmp[arg_ix++].value();
-	if (components[i].prectype == print_format::prec_dynamic)
-	  o->line() << ", (int)" << tmp[arg_ix++].value();
+	  /* Cast the width and precision arguments, if any, to 'int'.  */
+	  if (components[i].widthtype == print_format::width_dynamic)
+	    o->line() << ", (int)" << tmp[arg_ix++].value();
+	  if (components[i].prectype == print_format::prec_dynamic)
+	    o->line() << ", (int)" << tmp[arg_ix++].value();
 
-	/* The type of the %m argument is 'char*'.  */
-	if (components[i].type == print_format::conv_memory
-	    || components[i].type == print_format::conv_memory_hex)
-	  o->line() << ", (char*)(uintptr_t)" << tmp[arg_ix++].value();
-	/* The type of the %c argument is 'int'.  */
-	else if (components[i].type == print_format::conv_char)
-	  o->line() << ", (int)" << tmp[arg_ix++].value();
-	else if (arg_ix < (int) tmp.size())
-	  o->line() << ", " << tmp[arg_ix++].value();
-      }
-
+	  /* The type of the %m argument is 'char*'.  */
+	  if (components[i].type == print_format::conv_memory
+	      || components[i].type == print_format::conv_memory_hex)
+	    o->line() << ", (char*)(uintptr_t)" << tmp[arg_ix++].value();
+	  /* The type of the %c argument is 'int'.  */
+	  else if (components[i].type == print_format::conv_char)
+	    o->line() << ", (int)" << tmp[arg_ix++].value();
+	  else if (arg_ix < tmp.size())
+	    o->line() << ", " << tmp[arg_ix++].value();
+	}
       o->line() << ");";
+      o->newline(-1) << "#endif // STP_LEGACY_PRINT";
+      o->newline() << "if (unlikely(c->last_error)) goto out;";
       o->newline() << res.value() << ";";
     }
 }
@@ -4690,16 +5155,39 @@ c_unparser::visit_hist_op (hist_op*)
 }
 
 
+typedef map<Dwarf_Addr,const char*> addrmap_t; // NB: plain map, sorted by address
 
 struct unwindsym_dump_context
 {
   systemtap_session& session;
   ostream& output;
   unsigned stp_module_index;
+
+  int build_id_len;
+  unsigned char *build_id_bits;
+  GElf_Addr build_id_vaddr;
+
   unsigned long stp_kretprobe_trampoline_addr;
+  Dwarf_Addr stext_offset;
+
+  vector<pair<string,unsigned> > seclist; // encountered relocation bases
+                                          // (section names and sizes)
+  map<unsigned, addrmap_t> addrmap; // per-relocation-base sorted addrmap
+
+  void *debug_frame;
+  size_t debug_len;
+  void *debug_frame_hdr;
+  size_t debug_frame_hdr_len;
+  Dwarf_Addr debug_frame_off;
+  void *eh_frame;
+  void *eh_frame_hdr;
+  size_t eh_len;
+  size_t eh_frame_hdr_len;
+  Dwarf_Addr eh_addr;
+  Dwarf_Addr eh_frame_hdr_addr;
+
   set<string> undone_unwindsym_modules;
 };
-
 
 static void create_debug_frame_hdr (const unsigned char e_ident[],
 				    Elf_Data *debug_frame,
@@ -4818,8 +5306,7 @@ static void get_unwind_data (Dwfl_Module *m,
 			     size_t *debug_frame_hdr_len,
 			     Dwarf_Addr *debug_frame_off,
 			     Dwarf_Addr *eh_frame_hdr_addr,
-			     systemtap_session& session,
-			     Dwfl_Module *mod)
+			     systemtap_session& session)
 {
   Dwarf_Addr start, bias = 0;
   GElf_Ehdr *ehdr, ehdr_mem;
@@ -4839,24 +5326,29 @@ static void get_unwind_data (Dwfl_Module *m,
       bool eh_frame_hdr_seen = false;
       shdr = gelf_getshdr(scn, &shdr_mem);
       const char* scn_name = elf_strptr(elf, ehdr->e_shstrndx, shdr->sh_name);
-      if (!eh_frame_seen && strcmp(scn_name, ".eh_frame") == 0)
+      if (!eh_frame_seen
+	  && strcmp(scn_name, ".eh_frame") == 0
+	  && shdr->sh_type == SHT_PROGBITS)
 	{
 	  data = elf_rawdata(scn, NULL);
 	  *eh_frame = data->d_buf;
 	  *eh_len = data->d_size;
 	  // For ".dynamic" sections we want the offset, not absolute addr.
-	  if (dwfl_module_relocations (m) > 0)
+	  // Note we don't trust dwfl_module_relocations() for ET_EXEC.
+	  if (ehdr->e_type != ET_EXEC && dwfl_module_relocations (m) > 0)
 	    *eh_addr = shdr->sh_addr - start + bias;
 	  else
 	    *eh_addr = shdr->sh_addr;
 	  eh_frame_seen = true;
 	}
-      else if (!eh_frame_hdr_seen && strcmp(scn_name, ".eh_frame_hdr") == 0)
+      else if (!eh_frame_hdr_seen
+	       && strcmp(scn_name, ".eh_frame_hdr") == 0
+	       && shdr->sh_type == SHT_PROGBITS)
         {
           data = elf_rawdata(scn, NULL);
           *eh_frame_hdr = data->d_buf;
           *eh_frame_hdr_len = data->d_size;
-          if (dwfl_module_relocations (m) > 0)
+          if (ehdr->e_type != ET_EXEC && dwfl_module_relocations (m) > 0)
 	    *eh_frame_hdr_addr = shdr->sh_addr - start + bias;
 	  else
 	    *eh_frame_hdr_addr = shdr->sh_addr;
@@ -4887,47 +5379,15 @@ static void get_unwind_data (Dwfl_Module *m,
   if (*debug_frame != NULL && *debug_len > 0)
     create_debug_frame_hdr (ehdr->e_ident, data,
 			    debug_frame_hdr, debug_frame_hdr_len,
-			    debug_frame_off, session, mod);
+			    debug_frame_off, session, m);
 }
 
 static int
-dump_unwindsyms (Dwfl_Module *m,
-                 void **userdata __attribute__ ((unused)),
-                 const char *name,
-                 Dwarf_Addr base,
-                 void *arg)
+dump_build_id (Dwfl_Module *m,
+	       unwindsym_dump_context *c,
+	       const char *name, Dwarf_Addr base)
 {
-  unwindsym_dump_context* c = (unwindsym_dump_context*) arg;
-  assert (c);
-  unsigned stpmod_idx = c->stp_module_index;
-
   string modname = name;
-
-  if (pending_interrupts)
-    return DWARF_CB_ABORT;
-
-  // skip modules/files we're not actually interested in
-  if (c->session.unwindsym_modules.find(modname) == c->session.unwindsym_modules.end())
-    return DWARF_CB_OK;
-
-  c->stp_module_index ++;
-
-  if (c->session.verbose > 1)
-    clog << "dump_unwindsyms " << name
-         << " index=" << stpmod_idx
-         << " base=0x" << hex << base << dec << endl;
-
-  // We want to extract several bits of information:
-  //
-  // - parts of the program-header that map the file's physical offsets to the text section
-  // - section table: just a list of section (relocation) base addresses
-  // - symbol table of the text-like sections, with all addresses relativized to each base
-  // - the contents of .debug_frame section, for unwinding purposes
-  //
-  // In the future, we'll also care about data symbols.
-
-  int syments = dwfl_module_getsymtab(m);
-  dwfl_assert (_F("Getting symbol table for %s", modname.c_str()), syments >= 0);
 
   //extract build-id from debuginfo file
   int build_id_len = 0;
@@ -4945,7 +5405,7 @@ dump_unwindsyms (Dwfl_Module *m,
         int i;
 
         i = dwfl_module_relocate_address (m, &reloc_vaddr);
-        dwfl_assert ("dwfl_module_relocate_address", i >= 0);
+        dwfl_assert ("dwfl_module_relocate_address reloc_vaddr", i >= 0);
 
         secname = dwfl_module_relocation_info (m, i, NULL);
 
@@ -4970,33 +5430,125 @@ dump_unwindsyms (Dwfl_Module *m,
         clog << _F("Found build-id in %s, length %d, start at %#" PRIx64,
                    name, build_id_len, build_id_vaddr) << endl;
       }
+
+    c->build_id_len = build_id_len;
+    c->build_id_vaddr = build_id_vaddr;
+    c->build_id_bits = build_id_bits;
   }
 
-  // Get the canonical path of the main file for comparison at runtime.
-  // When given directly by the user through -d or in case of the kernel
-  // name and path might differ. path should be used for matching.
-  // Use end as sanity check when resolving symbol addresses and to
-  // calculate size for .dynamic and .absolute sections.
-  const char *mainfile;
+  return DWARF_CB_OK;
+}
+
+static int
+dump_section_list (Dwfl_Module *m,
+                   unwindsym_dump_context *c,
+                   const char *name, Dwarf_Addr base)
+{
+  // Depending on ELF section names normally means you are doing it WRONG.
+  // Sadly it seems we do need it for the kernel modules. Which are ET_REL
+  // files, which are "dynamically loaded" by the kernel. We keep a section
+  // list for them to know which symbol corresponds to which section.
+  //
+  // Luckily for the kernel, normal executables (ET_EXEC) or shared
+  // libraries (ET_DYN) we don't need it. We just have one "section",
+  // which we will just give the arbitrary names "_stext", ".absolute"
+  // or ".dynamic"
+
+  string modname = name;
+
+  // Use start and end as to calculate size for _stext, .dynamic and
+  // .absolute sections.
   Dwarf_Addr start, end;
-  dwfl_module_info (m, NULL, &start, &end, NULL, NULL, &mainfile, NULL);
+  dwfl_module_info (m, NULL, &start, &end, NULL, NULL, NULL, NULL);
 
   // Look up the relocation basis for symbols
   int n = dwfl_module_relocations (m);
-
   dwfl_assert ("dwfl_module_relocations", n >= 0);
 
+ if (n == 0)
+    {
+      // ET_EXEC, no relocations.
+      string secname = ".absolute";
+      unsigned size = end - start;
+      c->seclist.push_back (make_pair (secname, size));
+      return DWARF_CB_OK;
+    }
+  else if (n == 1)
+    {
+      // kernel or shared library (ET_DYN).
+      string secname;
+      secname = (modname == "kernel") ? "_stext" : ".dynamic";
+      unsigned size = end - start;
+      c->seclist.push_back (make_pair (secname, size));
+      return DWARF_CB_OK;
+    }
+  else if (n > 1)
+    {
+      // ET_REL, kernel module.
+      string secname;
+      unsigned size;
+      Dwarf_Addr bias;
+      GElf_Ehdr *ehdr, ehdr_mem;
+      GElf_Shdr *shdr, shdr_mem;
+      Elf *elf = dwfl_module_getelf(m, &bias);
+      ehdr = gelf_getehdr(elf, &ehdr_mem);
+      Elf_Scn *scn = NULL;
+      while ((scn = elf_nextscn(elf, scn)))
+	{
+	  // Just the "normal" sections with program bits please.
+	  shdr = gelf_getshdr(scn, &shdr_mem);
+	  if ((shdr->sh_type == SHT_PROGBITS || shdr->sh_type == SHT_NOBITS)
+	      && (shdr->sh_flags & SHF_ALLOC))
+	    {
+	      size = shdr->sh_size;
+	      const char* scn_name = elf_strptr(elf, ehdr->e_shstrndx,
+						shdr->sh_name);
+	      secname = scn_name;
+	      c->seclist.push_back (make_pair (secname, size));
+	    }
+	}
+
+      return DWARF_CB_OK;
+    }
+
+  // Impossible... dflw_assert above will have triggered.
+  return DWARF_CB_ABORT;
+}
+
+static int
+dump_symbol_tables (Dwfl_Module *m,
+		    unwindsym_dump_context *c,
+		    const char *modname, Dwarf_Addr base)
+{
+  // Use end as sanity check when resolving symbol addresses.
+  Dwarf_Addr end;
+  dwfl_module_info (m, NULL, NULL, &end, NULL, NULL, NULL, NULL);
+
+  int syments = dwfl_module_getsymtab(m);
+  dwfl_assert (_F("Getting symbol table for %s", modname), syments >= 0);
+
+  // Look up the relocation basis for symbols
+  int n = dwfl_module_relocations (m);
+  dwfl_assert ("dwfl_module_relocations", n >= 0);
+
+  /* Needed on ppc64, for function descriptors. */
+  Dwarf_Addr elf_bias;
+  GElf_Ehdr *ehdr, ehdr_mem;
+  Elf *elf;
+  elf = dwfl_module_getelf(m, &elf_bias);
+  ehdr = gelf_getehdr(elf, &ehdr_mem);
 
   // XXX: unfortunate duplication with tapsets.cxx:emit_address()
 
-  typedef map<Dwarf_Addr,const char*> addrmap_t; // NB: plain map, sorted by address
-  vector<pair<string,unsigned> > seclist; // encountered relocation bases
-					// (section names and sizes)
-  map<unsigned, addrmap_t> addrmap; // per-relocation-base sorted addrmap
-
+  // extra_offset is for the special kernel case.
   Dwarf_Addr extra_offset = 0;
+  Dwarf_Addr kretprobe_trampoline_addr = (unsigned long) -1;
+  int is_kernel = !strcmp(modname, "kernel");
 
-  for (int i = 0; i < syments; ++i)
+  /* Set to bail early if we are just examining the kernel
+     and don't need anything more. */
+  int done = 0;
+  for (int i = 0; i < syments && !done; ++i)
     {
       if (pending_interrupts)
         return DWARF_CB_ABORT;
@@ -5007,45 +5559,112 @@ dump_unwindsyms (Dwfl_Module *m,
       const char *name = dwfl_module_getsym(m, i, &sym, &shndxp);
       if (name)
         {
-          // NB: Yey, we found the kernel's _stext value.
-          // Sess.sym_stext may be unset (0) at this point, since
-          // there may have been no kernel probes set.  We could
-          // use tapsets.cxx:lookup_symbol_address(), but then
-          // we're already iterating over the same data here...
-          if (modname == "kernel" && !strcmp(name, "_stext"))
-            {
-              int ki;
-              extra_offset = sym.st_value;
-              ki = dwfl_module_relocate_address (m, &extra_offset);
-              dwfl_assert ("dwfl_module_relocate_address extra_offset",
-                           ki >= 0);
-              if (c->session.verbose > 2)
-                clog << _F("Found kernel _stext extra offset %#" PRIx64, extra_offset) << endl;
+          Dwarf_Addr sym_addr = sym.st_value;
+
+	  // We always need two special values from the kernel.
+	  // _stext for extra_offset and kretprobe_trampoline_holder
+	  // for the unwinder.
+          if (is_kernel)
+	    {
+	      // NB: Yey, we found the kernel's _stext value.
+	      // Sess.sym_stext may be unset (0) at this point, since
+	      // there may have been no kernel probes set.  We could
+	      // use tapsets.cxx:lookup_symbol_address(), but then
+	      // we're already iterating over the same data here...
+	      if (! strcmp(name, "_stext"))
+		{
+		  int ki;
+		  extra_offset = sym_addr;
+		  ki = dwfl_module_relocate_address (m, &extra_offset);
+		  dwfl_assert ("dwfl_module_relocate_address extra_offset",
+			       ki >= 0);
+
+		  if (c->session.verbose > 2)
+		    clog << _F("Found kernel _stext extra offset %#" PRIx64,
+			       extra_offset) << endl;
+
+		  if (! c->session.need_symbols
+		      && (kretprobe_trampoline_addr != (unsigned long) -1
+			  || ! c->session.need_unwind))
+		    done = 1;
+		}
+	      else if (kretprobe_trampoline_addr == (unsigned long) -1
+		       && c->session.need_unwind
+		       && ! strcmp(name, "kretprobe_trampoline_holder"))
+		{
+		  int ki;
+                  kretprobe_trampoline_addr = sym_addr;
+                  ki = dwfl_module_relocate_address(m,
+						    &kretprobe_trampoline_addr);
+                  dwfl_assert ("dwfl_module_relocate_address, kretprobe_trampoline_addr", ki >= 0);
+
+		  if (! c->session.need_symbols
+		      && extra_offset != 0)
+		    done = 1;
+		}
             }
 
 	  // We are only interested in "real" symbols.
-	  // We omit symbols that have suspicious addresses (before base,
-	  // or after end).
-          if ((GELF_ST_TYPE (sym.st_info) == STT_FUNC ||
-               GELF_ST_TYPE (sym.st_info) == STT_NOTYPE || // PR10206 ppc fn-desc are in .opd
-               GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: also need .data
+	  // We omit symbols that have suspicious addresses
+	  // (before base, or after end).
+          if (!done && c->session.need_symbols
+	      && (GELF_ST_TYPE (sym.st_info) == STT_FUNC
+		  || (GELF_ST_TYPE (sym.st_info) == STT_NOTYPE
+		      && ehdr->e_type == ET_REL) // PR10206 ppc fn-desc in .opd
+		  || GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: .data
                && !(sym.st_shndx == SHN_UNDEF	// Value undefined,
 		    || shndxp == (GElf_Word) -1	// in a non-allocated section,
-		    || sym.st_value >= end	// beyond current module,
-		    || sym.st_value < base))	// before first section.
+		    || sym_addr >= end	// beyond current module,
+		    || sym_addr < base))	// before first section.
             {
-              Dwarf_Addr sym_addr = sym.st_value;
-              Dwarf_Addr save_addr = sym_addr;
               const char *secname = NULL;
+              unsigned secidx = 0; /* Most things have just one section. */
+	      Dwarf_Addr func_desc_addr = 0; /* Function descriptor */
+
+	      /* PPC64 uses function descriptors.
+		 Note: for kernel ET_REL modules we rely on finding the
+		 .function symbols instead of going through the opd function
+		 descriptors. */
+	      if (ehdr->e_machine == EM_PPC64
+		  && GELF_ST_TYPE (sym.st_info) == STT_FUNC
+		  && ehdr->e_type != ET_REL)
+		{
+		  Elf64_Addr opd_addr;
+		  Dwarf_Addr opd_bias;
+		  Elf_Scn *opd;
+
+		  func_desc_addr = sym_addr;
+
+		  opd = dwfl_module_address_section (m, &sym_addr, &opd_bias);
+		  dwfl_assert ("dwfl_module_address_section opd", opd != NULL);
+
+		  Elf_Data *opd_data = elf_rawdata (opd, NULL);
+		  assert(opd_data != NULL);
+
+		  Elf_Data opd_in, opd_out;
+		  opd_out.d_buf = &opd_addr;
+		  opd_in.d_buf = (char *) opd_data->d_buf + sym_addr;
+		  opd_out.d_size = opd_in.d_size = sizeof (Elf64_Addr);
+		  opd_out.d_type = opd_in.d_type = ELF_T_ADDR;
+		  if (elf64_xlatetom (&opd_out, &opd_in,
+				      ehdr->e_ident[EI_DATA]) == NULL)
+		    throw runtime_error ("elf64_xlatetom failed");
+
+		  // So the real address of the function is...
+		  sym_addr = opd_addr + opd_bias;
+		}
 
               if (n > 0) // only try to relocate if there exist relocation bases
                 {
                   int ki = dwfl_module_relocate_address (m, &sym_addr);
-                  dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
+                  dwfl_assert ("dwfl_module_relocate_address sym_addr", ki >= 0);
                   secname = dwfl_module_relocation_info (m, ki, NULL);
+
+		  if (func_desc_addr != 0)
+		    dwfl_module_relocate_address (m, &func_desc_addr);
 		}
 
-              if (n == 1 && modname == "kernel")
+              if (n == 1 && is_kernel)
                 {
                   // This is a symbol within a (possibly relocatable)
                   // kernel image.
@@ -5060,13 +5679,9 @@ dump_unwindsyms (Dwfl_Module *m,
 		    continue;
 
                   secname = "_stext";
-                  // NB: don't subtract session.sym_stext, which could be inconveniently NULL.
-                  // Instead, sym_addr will get compensated later via extra_offset.
-
-                  // We need to note this for the unwinder.
-                  if (c->stp_kretprobe_trampoline_addr == (unsigned long) -1
-                      && ! strcmp (name, "kretprobe_trampoline_holder"))
-                    c->stp_kretprobe_trampoline_addr = sym_addr;
+                  // NB: don't subtract session.sym_stext, which could be
+                  // inconveniently NULL. Instead, sym_addr will get
+                  // compensated later via extra_offset.
                 }
               else if (n > 0)
                 {
@@ -5077,71 +5692,84 @@ dump_unwindsyms (Dwfl_Module *m,
                   // like shared libraries, as their relocation base
                   // is implicit.
                   if (secname[0] == '\0')
-                    secname = ".dynamic";
+		    secname = ".dynamic";
+		  else
+		    {
+		      // Compute our section number
+		      for (secidx = 0; secidx < c->seclist.size(); secidx++)
+			if (c->seclist[secidx].first==secname)
+			  break;
+
+		      if (secidx == c->seclist.size()) // whoa! We messed up...
+			{
+			  string m = _F("%s has unknown section %s for sym %s",
+					modname, secname, name);
+			  throw runtime_error(m);
+			}
+		    }
                 }
               else
                 {
                   assert (n == 0);
-                  // sym_addr is absolute, as it must be since there are no relocation bases
+                  // sym_addr is absolute, as it must be since there are
+                  // no relocation bases
                   secname = ".absolute"; // sentinel
                 }
 
-              // Compute our section number
-              unsigned secidx;
-              for (secidx=0; secidx<seclist.size(); secidx++)
-                if (seclist[secidx].first==secname) break;
-
-              if (secidx == seclist.size()) // new section name
-		{
-                  // absolute, dynamic or kernel have just one relocation
-                  // section, which covers the whole module address range.
-                  unsigned size;
-                  if (n <= 1)
-                    size = end - start;
-                  else
-                   {
-                     Dwarf_Addr b;
-                     Elf_Scn *scn;
-                     GElf_Shdr *shdr, shdr_mem;
-                     scn = dwfl_module_address_section (m, &save_addr, &b);
-                     assert (scn != NULL);
-                     shdr = gelf_getshdr(scn, &shdr_mem);
-                     size = shdr->sh_size;
-                   }
-                  seclist.push_back (make_pair(secname,size));
-		}
-
-              // If we don't actually need the symbols then we did all
-              // of the above just to get the section names... we can
-              // probably do that in some more efficient way...
-              if (c->session.need_symbols)
-                (addrmap[secidx])[sym_addr] = name;
+              (c->addrmap[secidx])[sym_addr] = name;
+	      /* If we have a function descriptor, register that address
+	         under the same name */
+	      if (func_desc_addr != 0)
+		(c->addrmap[secidx])[func_desc_addr] = name;
             }
         }
     }
 
-  // Must be relative to actual kernel load address.
-  if (c->stp_kretprobe_trampoline_addr != (unsigned long) -1)
-    c->stp_kretprobe_trampoline_addr -= extra_offset;
+  if (is_kernel)
+    {
+      c->stext_offset = extra_offset;
+      // Must be relative to actual kernel load address.
+      if (kretprobe_trampoline_addr != (unsigned long) -1)
+	c->stp_kretprobe_trampoline_addr = (kretprobe_trampoline_addr
+					    - extra_offset);
+    }
 
+  return DWARF_CB_OK;
+}
+
+static int
+dump_unwind_tables (Dwfl_Module *m,
+		    unwindsym_dump_context *c,
+		    const char *name, Dwarf_Addr base)
+{
   // Add unwind data to be included if it exists for this module.
-  void *debug_frame = NULL;
-  size_t debug_len = 0;
-  void *debug_frame_hdr = NULL;
-  size_t debug_frame_hdr_len = 0;
-  Dwarf_Addr debug_frame_off = 0;
-  void *eh_frame = NULL;
-  void *eh_frame_hdr = NULL;
-  size_t eh_len = 0;
-  size_t eh_frame_hdr_len = 0;
-  Dwarf_Addr eh_addr = 0;
-  Dwarf_Addr eh_frame_hdr_addr = 0;
+  get_unwind_data (m, &c->debug_frame, &c->eh_frame,
+		   &c->debug_len, &c->eh_len,
+		   &c->eh_addr, &c->eh_frame_hdr, &c->eh_frame_hdr_len,
+		   &c->debug_frame_hdr, &c->debug_frame_hdr_len,
+		   &c->debug_frame_off, &c->eh_frame_hdr_addr,
+                   c->session);
+  return DWARF_CB_OK;
+}
 
-  if (c->session.need_unwind)
-    get_unwind_data (m, &debug_frame, &eh_frame, &debug_len, &eh_len, &eh_addr,
-                     &eh_frame_hdr, &eh_frame_hdr_len, &debug_frame_hdr,
-                     &debug_frame_hdr_len, &debug_frame_off, &eh_frame_hdr_addr,
-                     c->session, m);
+static int
+dump_unwindsym_cxt (Dwfl_Module *m,
+		    unwindsym_dump_context *c,
+		    const char *name, Dwarf_Addr base)
+{
+  string modname = name;
+  unsigned stpmod_idx = c->stp_module_index;
+  void *debug_frame = c->debug_frame;
+  size_t debug_len = c->debug_len;
+  void *debug_frame_hdr = c->debug_frame_hdr;
+  size_t debug_frame_hdr_len = c->debug_frame_hdr_len;
+  Dwarf_Addr debug_frame_off = c->debug_frame_off;
+  void *eh_frame = c->eh_frame;
+  void *eh_frame_hdr = c->eh_frame_hdr;
+  size_t eh_len = c->eh_len;
+  size_t eh_frame_hdr_len = c->eh_frame_hdr_len;
+  Dwarf_Addr eh_addr = c->eh_addr;
+  Dwarf_Addr eh_frame_hdr_addr = c->eh_frame_hdr_addr;
 
   if (debug_frame != NULL && debug_len > 0)
     {
@@ -5227,19 +5855,22 @@ dump_unwindsyms (Dwfl_Module *m,
 				  + ", " + dwfl_errmsg (-1));
     }
 
-  for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
+  for (unsigned secidx = 0; secidx < c->seclist.size(); secidx++)
     {
       c->output << "static struct _stp_symbol "
                 << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {\n";
 
+      string secname = c->seclist[secidx].first;
+      Dwarf_Addr extra_offset;
+      extra_offset = (secname == "_stext") ? c->stext_offset : 0;
+
       // Only include symbols if they will be used
       if (c->session.need_symbols)
 	{
-
 	  // We write out a *sorted* symbol table, so the runtime doesn't
 	  // have to sort them later.
-	  for (addrmap_t::iterator it = addrmap[secidx].begin();
-	       it != addrmap[secidx].end(); it++)
+	  for (addrmap_t::iterator it = c->addrmap[secidx].begin();
+	       it != c->addrmap[secidx].end(); it++)
 	    {
 	      // skip symbols that occur before our chosen base address
 	      if (it->first < extra_offset)
@@ -5253,7 +5884,6 @@ dump_unwindsyms (Dwfl_Module *m,
       c->output << "};\n";
 
       /* For now output debug_frame index only in "magic" sections. */
-      string secname = seclist[secidx].first;
       if (secname == ".dynamic" || secname == ".absolute"
 	  || secname == ".text" || secname == "_stext")
 	{
@@ -5292,16 +5922,16 @@ dump_unwindsyms (Dwfl_Module *m,
   // there is just one section that covers the whole address space of
   // the module. For kernel modules (ET_REL) there can be multiple
   // sections that get relocated separately.
-  for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
+  for (unsigned secidx = 0; secidx < c->seclist.size(); secidx++)
     {
       c->output << "{\n"
-                << ".name = " << lex_cast_qstring(seclist[secidx].first) << ",\n"
-                << ".size = 0x" << hex << seclist[secidx].second << dec << ",\n"
+                << ".name = " << lex_cast_qstring(c->seclist[secidx].first) << ",\n"
+                << ".size = 0x" << hex << c->seclist[secidx].second << dec << ",\n"
                 << ".symbols = _stp_module_" << stpmod_idx << "_symbols_" << secidx << ",\n"
-                << ".num_symbols = " << addrmap[secidx].size() << ",\n";
+                << ".num_symbols = " << c->addrmap[secidx].size() << ",\n";
 
       /* For now output debug_frame index only in "magic" sections. */
-      string secname = seclist[secidx].first;
+      string secname = c->seclist[secidx].first;
       if (debug_frame_hdr && (secname == ".dynamic" || secname == ".absolute"
 			      || secname == ".text" || secname == "_stext"))
 	{
@@ -5336,6 +5966,12 @@ dump_unwindsyms (Dwfl_Module *m,
 	c->output << "},\n";
     }
   c->output << "};\n";
+
+  // Get the canonical path of the main file for comparison at runtime.
+  // When given directly by the user through -d or in case of the kernel
+  // name and path might differ. path should be used for matching.
+  const char *mainfile;
+  dwfl_module_info (m, NULL, NULL, NULL, NULL, NULL, &mainfile, NULL);
 
   // For user space modules store canonical path and base name.
   // For kernel modules just the name itself.
@@ -5406,15 +6042,15 @@ dump_unwindsyms (Dwfl_Module *m,
    * See also:
    *    http://sourceware.org/ml/systemtap/2009-q4/msg00574.html
    */
-  if (build_id_len > 0
-      && (modname != "kernel" || (build_id_vaddr > base + extra_offset))) {
+  if (c->build_id_len > 0
+      && (modname != "kernel" || (c->build_id_vaddr > base + c->stext_offset))) {
     c->output << ".build_id_bits = \"" ;
-    for (int j=0; j<build_id_len;j++)
+    for (int j=0; j<c->build_id_len;j++)
       c->output << "\\x" << hex
-                << (unsigned short) *(build_id_bits+j) << dec;
+                << (unsigned short) *(c->build_id_bits+j) << dec;
 
     c->output << "\",\n";
-    c->output << ".build_id_len = " << build_id_len << ",\n";
+    c->output << ".build_id_len = " << c->build_id_len << ",\n";
 
     /* XXX: kernel data boot-time relocation works differently from text.
        This hack assumes that offset between _stext and build id
@@ -5422,12 +6058,12 @@ dump_unwindsyms (Dwfl_Module *m,
        correct either.  We may instead need a relocation basis different
        from _stext, such as __start_notes.  */
     if (modname == "kernel")
-      c->output << ".build_id_offset = 0x" << hex << build_id_vaddr - (base + extra_offset)
+      c->output << ".build_id_offset = 0x" << hex << c->build_id_vaddr - (base + c->stext_offset)
                 << dec << ",\n";
     // ET_DYN: task finder gives the load address. ET_EXEC: this is absolute address
     else
       c->output << ".build_id_offset = 0x" << hex
-                << build_id_vaddr /* - base */
+                << c->build_id_vaddr /* - base */
                 << dec << ",\n";
   } else
     c->output << ".build_id_len = 0,\n";
@@ -5444,6 +6080,80 @@ dump_unwindsyms (Dwfl_Module *m,
   if (debug_frame_hdr) free (debug_frame_hdr);
 
   return DWARF_CB_OK;
+}
+
+static int
+dump_unwindsyms (Dwfl_Module *m,
+                 void **userdata __attribute__ ((unused)),
+                 const char *name,
+                 Dwarf_Addr base,
+                 void *arg)
+{
+  if (pending_interrupts)
+    return DWARF_CB_ABORT;
+
+  unwindsym_dump_context *c = (unwindsym_dump_context*) arg;
+  assert (c);
+
+  // skip modules/files we're not actually interested in
+  string modname = name;
+  if (c->session.unwindsym_modules.find(modname)
+      == c->session.unwindsym_modules.end())
+    return DWARF_CB_OK;
+
+  if (c->session.verbose > 1)
+    clog << "dump_unwindsyms " << name
+         << " index=" << c->stp_module_index
+         << " base=0x" << hex << base << dec << endl;
+
+  // We want to extract several bits of information:
+  //
+  // - parts of the program-header that map the file's physical offsets to the text section
+  // - section table: just a list of section (relocation) base addresses
+  // - symbol table of the text-like sections, with all addresses relativized to each base
+  // - the contents of .debug_frame and/or .eh_frame section, for unwinding purposes
+
+  int res = DWARF_CB_OK;
+
+  c->build_id_len = 0;
+  c->build_id_vaddr = 0;
+  c->build_id_bits = NULL;
+  res = dump_build_id (m, c, name, base);
+
+  c->seclist.clear();
+  if (res == DWARF_CB_OK)
+    res = dump_section_list(m, c, name, base);
+
+  // We always need to check the symbols of the kernel if we use it,
+  // for the extra_offset (also used for build_ids) and possibly
+  // stp_kretprobe_trampoline_addr for the dwarf unwinder.
+  c->addrmap.clear();
+  if (res == DWARF_CB_OK
+      && (c->session.need_symbols || ! strcmp(name, "kernel")))
+    res = dump_symbol_tables (m, c, name, base);
+
+  c->debug_frame = NULL;
+  c->debug_len = 0;
+  c->debug_frame_hdr = NULL;
+  c->debug_frame_hdr_len = 0;
+  c->debug_frame_off = 0;
+  c->eh_frame = NULL;
+  c->eh_frame_hdr = NULL;
+  c->eh_len = 0;
+  c->eh_frame_hdr_len = 0;
+  c->eh_addr = 0;
+  c->eh_frame_hdr_addr = 0;
+  if (res == DWARF_CB_OK && c->session.need_unwind)
+    res = dump_unwind_tables (m, c, name, base);
+
+  /* And finally dump everything collected in the output. */
+  if (res == DWARF_CB_OK)
+    res = dump_unwindsym_cxt (m, c, name, base);
+
+  if (res == DWARF_CB_OK)
+    c->stp_module_index++;
+
+  return res;
 }
 
 
@@ -5565,7 +6275,26 @@ emit_symbol_data (systemtap_session& s)
 
   ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
 
-  unwindsym_dump_context ctx = { s, kallsyms_out, 0, ~0, s.unwindsym_modules };
+  vector<pair<string,unsigned> > seclist;
+  map<unsigned, addrmap_t> addrmap;
+  unwindsym_dump_context ctx = { s, kallsyms_out,
+				 0, /* module index */
+				 0, NULL, 0, /* build_id len, bits, vaddr */
+				 ~0, /* stp_kretprobe_trampoline_addr */
+				 0, /* stext_offset */
+				 seclist, addrmap,
+				 NULL, /* debug_frame */
+				 0, /* debug_len */
+				 NULL, /* debug_frame_hdr */
+				 0, /* debug_frame_hdr_len */
+				 0, /* debug_frame_off */
+				 NULL, /* eh_frame */
+				 NULL, /* eh_frame_hdr */
+				 0, /* eh_len */
+				 0, /* eh_frame_hdr_len */
+				 0, /* eh_addr */
+				 0, /* eh_frame_hdr_addr */
+				 s.unwindsym_modules };
 
   // Micro optimization, mainly to speed up tiny regression tests
   // using just begin probe.
@@ -5745,6 +6474,7 @@ translate_pass (systemtap_session& s)
   int rc = 0;
 
   s.op = new translator_output (s.translated_source);
+  // additional outputs might be found in s.auxiliary_outputs
   c_unparser cup (& s);
   s.up = & cup;
   translate_runtime(s);
@@ -5794,10 +6524,19 @@ translate_pass (systemtap_session& s)
 
       // This is at the very top of the file.
       // All "static" defines (not dependend on session state).
-      s.op->newline() << "#include\"runtime_defines.h\"";
+      s.op->newline() << "#include \"runtime_defines.h\"";
 
-      if (! s.unprivileged)
-	s.op->newline() << "#define STP_PRIVILEGED 1";
+      // Generated macros describing the privilege level required to load/run this module.
+      s.op->newline() << "#define STP_PR_LOWEST 0x" << hex << pr_begin << dec;
+      s.op->newline() << "#define STP_PR_STAPUSR 0x" << hex << pr_stapusr << dec;
+      s.op->newline() << "#define STP_PR_STAPDEV 0x" << hex << pr_stapdev << dec;
+      s.op->newline() << "#define STP_PRIVILEGE 0x" << hex << s.privilege << dec;
+
+      // Generate a section containing a mask of the privilege levels required to load/run this
+      // module.
+      s.op->newline() << "int stp_required_privilege "
+		      << "__attribute__ ((section (\".stap_privilege\")))"
+		      << " = STP_PRIVILEGE;";
 
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING " << nesting;
@@ -5841,6 +6580,7 @@ translate_pass (systemtap_session& s)
 
       s.up->emit_common_header (); // context etc.
 
+      s.op->newline() << "#include \"runtime_context.h\"";
       if (s.need_unwind)
 	s.op->newline() << "#include \"stack.c\"";
 

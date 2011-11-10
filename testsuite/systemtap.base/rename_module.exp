@@ -1,13 +1,20 @@
+if {![installtest_p]} { untested "rename_module"; return }
+
+# Script we'll use while testing:
+set script {probe begin{printf("Hello\n");}}
+
 ########## Inserting 2 Identical Modules: Basic Stap call #################
 # Should not give an error when inserting 2 identical modules
 set test "Inserting 2 Identical Modules: Basic Stap Call"
+
+if {![installtest_p]} { untested $test; return }
 
 set failed1 1
 set failed2 1
 
 # Run first module. Stays running since no exit() call.
 # Also keep track of its PID, so we can kill it later.
-spawn stap -e {probe begin{printf("Hello\n");}}
+spawn stap -e $script
 set firstid $spawn_id
 
 # Run second, identical module. Before, it would cause an
@@ -16,7 +23,7 @@ set firstid $spawn_id
 # renamed.
 # Note: The outputs must also be the same - they will have 
 # different names to begin with otherwise.
-spawn stap -e {probe begin{printf("Hello\n");}}
+spawn stap -e $script
 set secondid $spawn_id
 
 # Make sure they both output "Hello"
@@ -31,35 +38,59 @@ expect {
 	}
 }
 
-# Kill both of the hanging processes
-set firstpid [exp_pid -i $firstid]
-set secondpid [exp_pid -i $secondid]
-exec kill $firstpid
-exec kill $secondpid
-catch { wait -i $firstid; wait -i $secondid; close }
+# Kill both of the spawned processes
+catch {exec kill -INT -[exp_pid -i $firstid]; close -i $firstid; wait -i $firstid}
+catch {exec kill -INT -[exp_pid -i $secondid]; close -i $secondid; wait -i $secondid}
 
-if {$failed1 == 1 || $failed2 == 1} {
-	fail "$test"
-    } else {
+if {$failed1 || $failed2} {
+	fail "$test ($failed1, $failed2)"
+} else {
 	pass "$test"
 }
+
+
+########## Compile test module #################
+# Compile the module we'll be using for the rest of the tests (which
+# is actually already compiled, but we need the filename of the cached
+# module).
+set test "test module"
+if {[catch { exec stap -e $script -p4 } module]} {
+    verbose -log "$module"
+    fail "$test - compile problem"
+    return
+} elseif {![file exists $module]} {
+    verbose -log "$module"
+    fail "$test - file exist problem"
+    return
+} else {
+    pass "$test compiles"
+}
+
 
 ########## Inserting 2 Identical Modules: Staprun without -R #################
 # Should give an error when inserting 2 identical modules 
 # when calling staprun directly without using -R
 set test "Inserting 2 Identical Modules: Staprun without -R"
-set failed 0
-set compile { exec stap -e {probe begin{printf("Hello\n");}} -p4 }
-set module [eval $compile] 
+set failed1 1
+set failed2 0
 
 spawn staprun $module
 set firstid $spawn_id
 
+# Make sure the first staprun works
+expect {
+	-i $firstid Hello {
+		set failed1 0
+		exp_continue
+	} 
+}
+
 spawn staprun $module
 set secondid $spawn_id
 
-# Make sure it fails
+# Make sure the second staprun fails
 expect {
+	-timeout 60
 	-re {^Error inserting module .*: File exists\r\n} {
 		exp_continue
 	}
@@ -67,19 +98,20 @@ expect {
 		exp_continue
 	}
 	-re {^[^\r\n]*\r\n} {
-		set failed 1		
+		set failed2 1		
+		exp_continue
 	}
+	timeout { set failed2 1 }
 }
 
-# Kill both of the hanging processes
-set firstpid [exp_pid -i $firstid]
-set secondpid [exp_pid -i $secondid]
-exec kill $firstpid
-exec kill $secondpid
-catch { wait -i $firstid; wait -i $secondid; close }
-if {$failed} {
-	fail "$test"
-    } else {
+# Kill both of the spawned processes
+catch {exec kill -INT -[exp_pid -i $firstid]; close -i $firstid; wait -i $firstid}
+catch {exec kill -INT -[exp_pid -i $secondid]; close -i $secondid; wait -i $secondid}
+
+if {$failed1 || $failed2} {
+	verbose -log "$failed1, $failed2"
+	fail "$test ($failed1, $failed2)"
+} else {
 	pass "$test"
 }
 
@@ -90,8 +122,6 @@ if {$failed} {
 set test "Inserting 2 Identical Modules: Staprun with -R"
 set failed1 1
 set failed2 1
-set compile { exec stap -e {probe begin{printf("Hello\n");}} -p4 }
-set module [eval $compile] 
 
 spawn staprun -R $module
 set firstid $spawn_id
@@ -111,15 +141,12 @@ expect {
 	}
 }
 
-# Kill both of the hanging processes
-set firstpid [exp_pid -i $firstid]
-set secondpid [exp_pid -i $secondid]
-exec kill $firstpid
-exec kill $secondpid
-catch { wait -i $firstid; wait -i $secondid; close }
+# Kill both of the spawned processes
+catch {exec kill -INT -[exp_pid -i $firstid]; close -i $firstid; wait -i $firstid}
+catch {exec kill -INT -[exp_pid -i $secondid]; close -i $secondid; wait -i $secondid}
 
 if {$failed1 || $failed2} {
-	fail "$test"
-    } else {
+	fail "$test ($failed1, $failed2)"
+} else {
 	pass "$test"
 }

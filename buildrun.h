@@ -18,8 +18,7 @@ std::vector<std::string> make_run_command (systemtap_session& s,
                                            const std::string& remotedir="",
                                            const std::string& version=VERSION);
 
-int make_tracequery(systemtap_session& s, std::string& name,
-                    const std::vector<std::string>& headers);
+std::map<std::string,std::string> make_tracequeries(systemtap_session& s, const std::map<std::string,std::string>& contents);
 int make_typequery(systemtap_session& s, std::string& module);
 
 #endif // BUILDRUN_H

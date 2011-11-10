@@ -34,7 +34,12 @@ set testsrc     "$testpath/uprobes_exe.c"
 set testsrclib  "$testpath/uprobes_lib.c"
 set testlibdir  "."
 
-set arches [list "default"]
+# When possible explicitly set 64 bit mode if kernel is 64 bit.
+switch -regexp $::tcl_platform(machine) {
+    {^(x86_64|ppc64|s390x)$} { set arches [list "-m64"] }
+    default { set arches [list "default"] }
+}
+
 # BUG! non-default arch breaks mark and ustack tests PR10318 and PR10272
 #switch -regexp $::tcl_platform(machine) {
 #    {^(x86_64|ppc64)$} { lappend arches "-m32" }

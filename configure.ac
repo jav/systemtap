@@ -535,12 +535,21 @@ if test $build_elfutils = yes -a $enable_translator = yes; then
   # So we must make sure to pass those settings to elfutils configure.
   elfutils_rpath="-Wl,--enable-new-dtags,-rpath,${libdir}/${PACKAGE_NAME}"
   here=`pwd`
+  # Check whether this is a source release, or a source checkout.
+  # We need --enable-maintainer-mode if it isn't a source release.
+  # elfutils.spec is only distributed in source releases.
+  if test -f ${elfutils_srcdir}/elfutils.spec; then
+	need_maintainer_option=""
+  else
+	need_maintainer_option="--enable-maintainer-mode"
+  fi
   (mkdir -p build-elfutils && cd build-elfutils &&
    bash ${elfutils_srcdir}/configure --enable-libebl-subdir=${PACKAGE_NAME} \
 				--includedir="${here}/include-elfutils" \
 				--libdir="${here}/lib-elfutils" \
 				--exec-prefix="$exec_prefix" \
 				--prefix="$prefix" \
+				${need_maintainer_option} \
 				CFLAGS="${CFLAGS/-Wall/} $gnu89_inline_flag" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
    if test -f ${elfutils_srcdir}/config/version.h.in; then

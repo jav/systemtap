@@ -5,7 +5,7 @@ mark cast: {._M_dataplus={._M_p="Hello World!"}}
 }
 
 set srcfile "$srcdir/$subdir/$test.cxx"
-set test_flags "compiler=g++ additional_flags=-g"
+set test_flags "compiler=g++ additional_flags=-g [sdt_includes]"
 set res [target_compile "$srcfile" $test.exe executable "$test_flags"]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2

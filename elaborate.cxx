@@ -165,11 +165,11 @@ derived_probe::script_location () const
 
 
 void
-derived_probe::emit_unprivileged_assertion (translator_output* o)
+derived_probe::emit_privilege_assertion (translator_output* o)
 {
   // Emit code which will cause compilation to fail if it is compiled in
   // unprivileged mode.
-  o->newline() << "#ifndef STP_PRIVILEGED";
+  o->newline() << "#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)";
   o->newline() << "#error Internal Error: Probe ";
   probe::printsig (o->line());
   o->line()    << " generated in --unprivileged mode";
@@ -182,7 +182,7 @@ derived_probe::emit_process_owner_assertion (translator_output* o)
 {
   // Emit code which will abort should the current target not belong to the
   // user in unprivileged mode.
-  o->newline()   << "#ifndef STP_PRIVILEGED";
+  o->newline() << "#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)";
   o->newline(1)  << "if (! is_myproc ()) {";
   o->newline(1)  << "snprintf(c->error_buffer, sizeof(c->error_buffer),";
   o->newline()   << "         \"Internal Error: Process %d does not belong to user %d in probe %s in --unprivileged mode\",";
@@ -348,7 +348,7 @@ match_key::globmatch(match_key const & other) const
 // ------------------------------------------------------------------------
 
 match_node::match_node() :
-  unprivileged_ok(false)
+  privilege(pr_stapdev)
 {
 }
 
@@ -391,9 +391,9 @@ match_node::bind_num(string const & k)
 }
 
 match_node *
-match_node::bind_unprivileged(bool b)
+match_node::bind_privilege(privilege_t p)
 {
-  unprivileged_ok = b;
+  privilege = p;
   return this;
 }
 
@@ -416,9 +416,10 @@ match_node::find_and_build (systemtap_session& s,
                                    loc->components.back()->tok);
         }
 
-      if (s.unprivileged && ! unprivileged_ok)
+      if (! pr_contains (privilege, s.privilege))
 	{
-          throw semantic_error (_("probe point is not allowed for unprivileged users"),
+          throw semantic_error (_F("probe point is not allowed for --privilege=%s",
+				   pr_name (s.privilege)),
                                 loc->components.back()->tok);
 	}
 
@@ -613,7 +614,7 @@ match_node::dump (systemtap_session &s, const string &name)
 
       // In unprivileged mode, don't show the probes which are not allowed for unprivileged
       // users.
-      if (! s.unprivileged || unprivileged_ok)
+      if (pr_contains (privilege, s.privilege))
 	{
 	  cout << name << endl;
 	  break; // we need only print one instance.
@@ -3842,6 +3843,10 @@ semantic_pass_types (systemtap_session& s)
           vardecl* gd = s.globals[j];
           if (gd->type == pe_unknown)
             ti.unresolved (gd->tok);
+          if(gd->arity == 0 && gd->wrap == true)
+            {
+              throw semantic_error (_("wrapping not supported for scalars"), gd->tok);
+            }
         }
 
       if (ti.num_newly_resolved == 0) // converged
@@ -4735,12 +4740,8 @@ typeresolution_info::visit_print_format (print_format* e)
 	      assert (false);
 	      break;
 
-	    case print_format::conv_signed_decimal:
-	    case print_format::conv_unsigned_decimal:
-	    case print_format::conv_unsigned_octal:
-	    case print_format::conv_unsigned_ptr:
-	    case print_format::conv_unsigned_uppercase_hex:
-	    case print_format::conv_unsigned_lowercase_hex:
+	    case print_format::conv_pointer:
+	    case print_format::conv_number:
 	    case print_format::conv_binary:
 	    case print_format::conv_char:
 	    case print_format::conv_memory:
@@ -4916,7 +4917,7 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 	}
       if (!tok_resolved)
 	{
-          msg << _F("type mismatch ( %s vs. %s )",
+          msg << _F("type mismatch (%s vs. %s)",
                     lex_cast(t1).c_str(), lex_cast(t2).c_str());
 	}
       else
@@ -4930,14 +4931,14 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 		  break;
 		}
 	    }
-          msg << _F("type mismatch ( %s vs. %s )",
+          msg << _F("type mismatch (%s vs. %s)",
                     lex_cast(t1).c_str(), lex_cast(t2).c_str());
 	  if (!tok_printed)
 	    {
 	      //error for possible mismatch in the earlier resolved token
 	      printed_toks.push_back (resolved_toks[i]);
 	      stringstream type_msg;
-              type_msg << _F("type was first inferred here ( %s )", lex_cast(t2).c_str());
+              type_msg << _F("type was first inferred here (%s)", lex_cast(t2).c_str());
 	      err1 = new semantic_error (type_msg.str(), resolved_toks[i]);
 	    }
 	}

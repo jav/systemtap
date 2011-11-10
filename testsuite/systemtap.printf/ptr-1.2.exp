@@ -74,3 +74,4 @@ if {$::tcl_platform(wordSize) == 8} {
 0x12345678"
 }
 stap_run2 $srcdir/$subdir/$test.stp --compatible=1.2
+stap_run2 $srcdir/$subdir/$test.stp --compatible=1.2 -DSTP_LEGACY_PRINT

@@ -226,7 +226,7 @@ find_script_hash (systemtap_session& s, const string& script)
   h.add("Ignore Dwarf (--ignore-dwarf): ", s.ignore_dwarf);		// --ignore-dwarf
   h.add("Consult Symtab (--kelf, --kmap): ", s.consult_symtab);		// --kelf, --kmap
   h.add("Skip Badvars (--skip-badvars): ", s.skip_badvars);		// --skip-badvars
-  h.add("Unprivileged (--unprivileged): ", s.unprivileged);		// --unprivileged
+  h.add("Privilege (--privilege): ", s.privilege);			// --privilege=
   h.add("Compatible (--compatible): ", s.compatible);			// --compatible
   h.add("Omit Werror (undocumented): ", s.omit_werror);		        // undocumented, evil
   if (!s.kernel_symtab_path.empty())	// --kmap
@@ -287,7 +287,7 @@ find_script_hash (systemtap_session& s, const string& script)
   s.hash_path = hashdir + "/" + s.module_name + ".ko";
 
   // Update C source name with new module_name.
-  s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
+  s.translated_source = string(s.tmpdir) + "/" + s.module_name + "_src.c";
   create_hash_log(string("script_hash"), h.get_parms(), result,
                   hashdir + "/" + s.module_name + "_hash.log");
 }
@@ -316,13 +316,12 @@ find_stapconf_hash (systemtap_session& s)
 
 
 string
-find_tracequery_hash (systemtap_session& s, const vector<string>& headers)
+find_tracequery_hash (systemtap_session& s, const string& header)
 {
   hash h(get_base_hash(s));
 
-  // Add the tracepoint headers to the computed hash
-  for (size_t i = 0; i < headers.size(); ++i)
-    h.add_path("Headers ", headers[i]);
+  // Add the tracepoint header to the computed hash
+  h.add_path("Header ", header);
 
   // Add any custom kbuild flags
   for (unsigned i = 0; i < s.kbuildflags.size(); i++)
@@ -332,11 +331,11 @@ find_tracequery_hash (systemtap_session& s, const vector<string>& headers)
   string result, hashdir;
   h.result(result);
   if (!create_hashdir(s, result, hashdir))
-    return "";
+    return ""; // XXX: as opposed to throwing an exception?
 
   create_hash_log(string("tracequery_hash"), h.get_parms(), result,
                   hashdir + "/tracequery_" + result + "_hash.log");
-  return hashdir + "/tracequery_" + result + ".ko";
+  return hashdir + "/tracequery_" + result + ".o";
 }
 
 

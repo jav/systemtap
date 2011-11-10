@@ -287,7 +287,7 @@ keywords: io
 
 
 io/mbrwatch.stp - Monitor read/write of MBR (boot sector) area of block devices
-keywords: io monitoring
+keywords: io monitoring disk
 
    The mbrwatch.stp script reports any attempted reads/writes of the
   first few sectors of a raw block device.
@@ -327,7 +327,7 @@ keywords: io
 
 
 io/ttyspy.stp - Monitor tty typing.
-keywords: io tty per-process monitoring
+keywords: io tty monitoring
 
   The ttyspy.stp script uses tty_audit hooks to monitor recent typing
   activity on the system, printing a scrolling record of recent
@@ -531,7 +531,7 @@ keywords: network device traffic
 
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
-keywords: network traffic per-process
+keywords: network traffic
 
   Every five seconds the nettop.stp script prints out a list of
   processed (PID and command) with the number of packets sent/received
@@ -860,7 +860,7 @@ keywords: syscall
 
 
 process/wait4time.stp - Trace Time Spent in wait4 Syscalls
-keywords: syscall wait4
+keywords: syscall process
 
   The script watches each wait4 syscall on the system. At the end of
   each wait4 syscall the script prints out a line with a timestamp in

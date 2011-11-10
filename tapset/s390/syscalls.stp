@@ -148,7 +148,7 @@ probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
 	name = "sigaltstack"
 	uss_uaddr = $uss
 	uoss_uaddr = $uoss
-	regs = %{ task_pt_regs(current) %}
+	regs = %{ _stp_current_pt_regs() %}
 	argstr = sprintf("%p, %p", $uss, $uoss)
 }
 probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return

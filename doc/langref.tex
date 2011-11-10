@@ -1144,6 +1144,17 @@ probe process("...").library("...").function("....") { ... }
 \end{vindent}
 The library name may use wildcards.
 
+The first syntax in the following will probe the functions in the program
+linkage table of a particular process.  The second syntax will also add the
+program linkage tables of libraries required by that process.  .plt("...") can
+be specified to match particular plt entries.
+\begin{vindent}
+\begin{verbatim}
+probe process("...").plt { ... }
+probe process("...").plt process("...").library("...").plt { ... }
+\end{verbatim}
+\end{vindent}
+
 \subsubsection{Instruction probes}
 \label{sec:insnprobes}
 Constructs:
@@ -2120,8 +2131,21 @@ global ARRAY[<size>]
 \end{verbatim}
 \end{vindent}
 If you do not specify the size parameter, then the array is created to hold
-MAXMAPENTRIES number of elements
+MAXMAPENTRIES number of elements.
 
+\subsection{Array wrapping\label{sub:Array-Wrapping}}
+
+Arrays may be wrapped using the percentage symbol (\%) causing previously entered
+elements to be overwritten if more elements are inserted than the array can
+hold. This works for both regular and statistics typed arrays.
+
+You can mark arrays for wrapping as follows:
+
+\begin{vindent}
+\begin{verbatim}
+global ARRAY1%[<size>], ARRAY2%
+\end{verbatim}
+\end{vindent}
 
 \subsection{Iteration, foreach}
 \index{foreach}
@@ -2155,7 +2179,10 @@ Aggregate instances are used to collect statistics on numerical values, when
 it is important to accumulate new data quickly and in large volume. These
 instances operate without exclusive locks, and store only aggregated stream
 statistics. Aggregates make sense only for global variables. They are stored
-individually or as elements of an associative array.
+individually or as elements of an associative array. For information about 
+wrapping associative arrays with statistics elements, see section~\ref{sub:Array-Wrapping}
+
+
 
 \subsection{The aggregation (\textless\hspace{1 sp}\textless\hspace{1 sp}\textless) operator}
 \index{\textless\hspace{1 sp}\textless\hspace{1 sp}\textless}

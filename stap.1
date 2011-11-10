@@ -317,7 +317,7 @@ group \fIstapusr\fR, then \fIstap\fR will automatically
 add \fI\-\-unprivileged\fR to the options already specified.
 
 .TP
-\fB\-\-use\-server \fR[\fIHOSTNAME\fR[\fI:PORT\fR] | \fIIP_ADDRESS\fR[\fI:PORT\fR] | \fICERT_SERIAL\fR]
+\fB\-\-use\-server\fR[=\fIHOSTNAME\fR[\fI:PORT\fR] | =\fIIP_ADDRESS\fR[\fI:PORT\fR] | =\fICERT_SERIAL\fR]
 Specify compile\-server(s) to be used for compilation and/or in conjunction
 with
 .I \-\-list\-servers
@@ -351,7 +351,7 @@ is not a member of the group \fIstapdev\fR, but is a member of the group
 add \fI\-\-use\-server\fR to the options already specified.
 
 .TP
-\fB\-\-use\-server\-on\-error \fR[\fByes\fR|\fBno\fR]
+\fB\-\-use\-server\-on\-error\fR[=\fByes\fR|=\fBno\fR]
 Instructs stap to retry compilation of a script using a compile server if
 compilation on the local host fails in a manner which suggests that it might
 succeed using a server.
@@ -365,7 +365,7 @@ re\-compilation attempt as if \fI\-\-use\-server\fR was specified with no
 arguments.
 
 .TP
-.BI \-\-list\-servers " [SERVERS]"
+.BI \-\-list\-servers "[=SERVERS]"
 Display the status of the requested
 .IR SERVERS ,
 where
@@ -410,7 +410,7 @@ then the default servers for
 are listed.
 
 .TP
-.BI \-\-trust\-servers " [TRUST_SPEC]"
+.BI \-\-trust\-servers "[=TRUST_SPEC]"
 Grant or revoke trust in compile\-servers, specified using
 .IR \-\-use\-server
 as specified by TRUST_SPEC,
@@ -458,17 +458,29 @@ Dumps a list of supported probe types. If
 is also specified, the list will be limited to probe types available to unprivileged users.
 
 .TP
-.BI \-\-remote " [USER@]HOSTNAME"
-Set the execution target to the specified ssh host, optionally using a username
-not matching your own.  This option may be repeated to target multiple
-execution targets.  Passes 1-4 are completed locally as normal to build the
-script, and then pass 5 will copy the module to the target and run it.
+.BI \-\-remote " URL"
+Set the execution target to the given host.  This option may be
+repeated to target multiple execution targets.  Passes 1-4 are
+completed locally as normal to build the script, and then pass 5 will
+copy the module to the target and run it.  Acceptable URL forms include:
+.B [USER@]HOSTNAME
+and
+.B ssh://[USER@]HOSTNAME/
+This mode uses ssh, optionally using a username not matching your own.
 If a custom ssh_config file is in use, add
 .B SendEnv LANG
 to retain internationalization functionality.
+The 
+.B direct://
+URL is available as a special loopback mode to run on the local host.
 
 .TP
-.BI \-\-download\-debuginfo " [OPTION]"
+.BI \-\-remote\-prefix
+Prefix each line of remote output with "N:", where N is the index of the remote
+execution target from which the given line originated.
+
+.TP
+.BI \-\-download\-debuginfo "[=OPTION]"
 Enable, disable or set a timeout for the automatic debuginfo downloading feature
 offered by abrt as specified by OPTION, where OPTION is one of the following:
 .RS
@@ -686,6 +698,13 @@ Note that this doesn't indicate the type of keys for the array, just the
 size.
 .RS
 .BR global " tiny_array[10]" , " normal_array" , " big_array[50000]"
+.RE
+.PP
+Arrays may be wrapped using the '%' character causing previously entered
+elements to be overwritten if more elements are inserted than the array can
+hold. This works for both associative and statistics typed arrays.
+.RS
+.BR global " wrapped_array1%[10]", " wrapped_array2%"
 .RE
 .\" XXX add statistics type here once it's supported
 

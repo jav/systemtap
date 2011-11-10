@@ -131,6 +131,27 @@ __stp_tf_get_vma_map_entry_internal(struct task_struct *tsk,
 	return NULL;
 }
 
+// Get vma_entry if the vma with the given vm_end is present in the vma map
+// hash table for the tsk.  Returns NULL if not present.
+// The __stp_tf_vma_lock must be read locked before calling this function.
+static struct __stp_tf_vma_entry *
+__stp_tf_get_vma_map_entry_end_internal(struct task_struct *tsk,
+					unsigned long vm_end)
+{
+	struct hlist_head *head;
+	struct hlist_node *node;
+	struct __stp_tf_vma_entry *entry;
+
+	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
+	hlist_for_each_entry(entry, node, head, hlist) {
+		if (tsk->pid == entry->pid
+		    && vm_end == entry->vm_end) {
+			return entry;
+		}
+	}
+	return NULL;
+}
+
 
 // Add the vma info to the vma map hash table.
 // Caller is responsible for name lifetime.
@@ -185,6 +206,33 @@ stap_add_vma_map_info(struct task_struct *tsk,
 	hlist_add_head(&entry->hlist, head);
 	write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
 	return 0;
+}
+
+// Extend the vma info vm_end in the vma map hash table if there is already
+// a vma_info which ends precisely where this new one starts for the given
+// task. Returns zero on success, -ESRCH if no existing matching entry could
+// be found.
+static int
+stap_extend_vma_map_info(struct task_struct *tsk,
+			 unsigned long vm_start, unsigned long vm_end)
+{
+	struct hlist_head *head;
+	struct hlist_node *node;
+	struct __stp_tf_vma_entry *entry;
+
+	unsigned long flags;
+	int res = -ESRCH; // Entry not there or doesn't match.
+
+	// Take a write lock, since we are most likely going to write
+	// to the entry after reading, if its vm_end matches our vm_start.
+	write_lock_irqsave(&__stp_tf_vma_lock, flags);
+	entry = __stp_tf_get_vma_map_entry_end_internal(tsk, vm_start);
+	if (entry != NULL) {
+		entry->vm_end = vm_end;
+		res = 0;
+	}
+	write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
+	return res;
 }
 
 

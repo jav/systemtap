@@ -27,11 +27,18 @@ static DEFINE_SPINLOCK(_stp_ctl_special_msg_lock);
 
 static void _stp_cleanup_and_exit(int send_exit);
 static void _stp_handle_tzinfo (struct _stp_msg_tzinfo* tzi);
+static void _stp_handle_privilege_credentials (struct _stp_msg_privilege_credentials* pc);
 
 static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
 	u32 type;
 	static int started = 0;
+
+#ifdef STAPCONF_TASK_UID
+	uid_t euid = current->euid;
+#else
+	uid_t euid = current_euid();
+#endif
 
 	if (count < sizeof(u32))
 		return 0;
@@ -70,12 +77,16 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 		return -EINVAL;
 #endif
 	case STP_RELOCATION:
+		if (euid != 0)
+			return -EPERM;
           	_stp_do_relocation (buf, count);
           	break;
 
         case STP_TZINFO:
         {
                 struct _stp_msg_tzinfo tzi;
+		if (euid != 0)
+			return -EPERM;
                 if (count < sizeof(tzi))
                         return 0;
                 if (copy_from_user(&tzi, buf, sizeof(tzi)))
@@ -84,11 +95,26 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
         }
         break;
 
+        case STP_PRIVILEGE_CREDENTIALS:
+        {
+                struct _stp_msg_privilege_credentials pc;
+		if (euid != 0)
+			return -EPERM;
+                if (count < sizeof(pc))
+                        return 0;
+                if (copy_from_user(&pc, buf, sizeof(pc)))
+                        return -EFAULT;
+                _stp_handle_privilege_credentials(&pc);
+        }
+        break;
+
 	case STP_READY:
 		break;
 
 	default:
-		errk("invalid command type %d\n", type);
+#ifdef DEBUG_TRANS
+		dbug_trans2("invalid command type %d\n", type);
+#endif
 		return -EINVAL;
 	}
 

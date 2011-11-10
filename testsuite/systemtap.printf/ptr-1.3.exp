@@ -67,3 +67,4 @@ set ::result_string "0x0
 0x00000000000012345678X"
 
 stap_run2 $srcdir/$subdir/$test.stp --compatible=1.3
+stap_run2 $srcdir/$subdir/$test.stp --compatible=1.3 -DSTP_LEGACY_PRINT

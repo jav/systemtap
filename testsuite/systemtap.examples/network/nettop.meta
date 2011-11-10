@@ -2,7 +2,7 @@ title: Periodic Listing of Processes Using Network Interfaces
 name: nettop.stp
 version: 1.0
 author: anonymous
-keywords: network traffic per-process
+keywords: network traffic
 subsystem: network
 status: production
 exit: user-controlled

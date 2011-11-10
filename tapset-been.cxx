@@ -1,5 +1,5 @@
 // tapset for begin/end/error/never
-// Copyright (C) 2005-2010 Red Hat Inc.
+// Copyright (C) 2005-2011 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -54,7 +54,7 @@ struct be_derived_probe: public derived_probe
 
   // No assertion need be emitted, since these probes are allowed for
   // unprivileged users.
-  void emit_unprivileged_assertion (translator_output*) {}
+  void emit_privilege_assertion (translator_output*) {}
 
   void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged (o); }
 
@@ -191,7 +191,7 @@ struct never_derived_probe: public derived_probe
 {
   never_derived_probe (probe* p, probe_point* l): derived_probe (p, l) {}
   void join_group (systemtap_session&) { /* thus no probe_group */ }
-  void emit_unprivileged_assertion (translator_output*) {}
+  void emit_privilege_assertion (translator_output*) {}
   void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged (o); }
 };
 
@@ -221,28 +221,28 @@ register_tapset_been(systemtap_session& s)
   match_node* root = s.pattern_root;
 
   root->bind(TOK_BEGIN)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(BEGIN));
   root->bind_num(TOK_BEGIN)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(BEGIN));
 
   root->bind(TOK_END)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(END));
   root->bind_num(TOK_END)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(END));
 
   root->bind(TOK_ERROR)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(ERROR));
   root->bind_num(TOK_ERROR)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(new be_builder(ERROR));
 
   root->bind(TOK_NEVER)
-    ->bind_unprivileged()
+    ->bind_privilege(pr_all)
     ->bind(new never_builder());
 }
 

@@ -16,29 +16,30 @@
 #include <fstream>
 #include <cstring>
 #include <cassert>
+#include <sstream>
+#include <vector>
 
 extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <glob.h>
+#include <regex.h>
 }
 
 using namespace std;
 
 
 #define SYSTEMTAP_CACHE_MAX_FILENAME "cache_mb_limit"
-#define SYSTEMTAP_CACHE_DEFAULT_MB 64
+#define SYSTEMTAP_CACHE_DEFAULT_MB 256
 
 struct cache_ent_info {
-  string path;
-  bool is_module;
-  size_t size;
-  long weight;  //lower == removed earlier
+  vector<string> paths;
+  off_t size; // sum across all paths
+  time_t mtime; // newest of all paths
 
-  cache_ent_info(const string& path, bool is_module);
-  bool operator<(const struct cache_ent_info& other) const
-  { return weight < other.weight; }
+  cache_ent_info(const vector<string>& paths);
+  bool operator<(const struct cache_ent_info& other) const;
   void unlink() const;
 };
 
@@ -250,104 +251,80 @@ clean_cache(systemtap_session& s)
                        s.cache_path.c_str(), SYSTEMTAP_CACHE_MAX_FILENAME) << endl;
         }
 
-      //glob for all kernel modules in the cache dir
+      // glob for all files that look like hashes
       glob_t cache_glob;
-      string glob_str = s.cache_path + "/*/*.ko";
-      glob(glob_str.c_str(), 0, NULL, &cache_glob);
+      ostringstream glob_pattern;
+      glob_pattern << s.cache_path << "/*/*";
+      for (unsigned int i = 0; i < 32; i++)
+        glob_pattern << "[[:xdigit:]]";
+      glob_pattern << "*";
+      int rc = glob(glob_pattern.str().c_str(), 0, NULL, &cache_glob);
+      if (rc) {
+        cerr << _F("clean_cache glob error rc=%d", rc) << endl;
+        return;
+      }
 
+      regex_t hash_len_re;
+      rc = regcomp (&hash_len_re, "([[:xdigit:]]{32}_[[:digit:]]+)", REG_EXTENDED);
+      if (rc) {
+        cerr << _F("clean_cache regcomp error rc=%d", rc) << endl;
+        globfree(&cache_glob);
+        return;
+      }
 
-      set<struct cache_ent_info> cache_contents;
-      unsigned long cache_size_b = 0;
-
-      //grab info for each cache entry (.ko and .c)
-      for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
+      // group all files with the same HASH_LEN
+      map<string, vector<string> > cache_groups;
+      for (size_t i = 0; i < cache_glob.gl_pathc; i++)
         {
-          string cache_ent_path = cache_glob.gl_pathv[i];
-          cache_ent_path.resize(cache_ent_path.length() - 3);
-
-          struct cache_ent_info cur_info(cache_ent_path, true);
-          if (cur_info.size != 0 && cur_info.weight != 0)
-            {
-              cache_size_b += cur_info.size;
-              cache_contents.insert(cur_info);
-            }
+          const char* path = cache_glob.gl_pathv[i];
+          regmatch_t hash_len;
+          rc = regexec(&hash_len_re, path, 1, &hash_len, 0);
+          if (rc || hash_len.rm_so == -1 || hash_len.rm_eo == -1)
+            cache_groups[path].push_back(path); // ungrouped
+          else
+            cache_groups[string(path + hash_len.rm_so,
+                                hash_len.rm_eo - hash_len.rm_so)]
+              .push_back(path);
         }
-
+      regfree(&hash_len_re);
       globfree(&cache_glob);
 
-      //grab info for each typequery user module (.so)
-      glob_str = s.cache_path + "/*/*.so";
-      glob(glob_str.c_str(), 0, NULL, &cache_glob);
-      for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
+
+      // create each cache entry and accumulate the sum
+      off_t cache_size_b = 0;
+      set<cache_ent_info> cache_contents;
+      for (map<string, vector<string> >::const_iterator it = cache_groups.begin();
+           it != cache_groups.end(); ++it)
         {
-          string cache_ent_path = cache_glob.gl_pathv[i];
-          struct cache_ent_info cur_info(cache_ent_path, false);
-          if (cur_info.size != 0 && cur_info.weight != 0)
-            {
-              cache_size_b += cur_info.size;
-              cache_contents.insert(cur_info);
-            }
+          cache_ent_info cur_info(it->second);
+          if (cache_contents.insert(cur_info).second)
+            cache_size_b += cur_info.size;
         }
 
-      globfree(&cache_glob);
-
-      //grab info for each stapconf cache entry (.h)
-      glob_str = s.cache_path + "/*/*.h";
-      glob(glob_str.c_str(), 0, NULL, &cache_glob);
-      for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
-        {
-          string cache_ent_path = cache_glob.gl_pathv[i];
-          struct cache_ent_info cur_info(cache_ent_path, false);
-          if (cur_info.size != 0 && cur_info.weight != 0)
-            {
-              cache_size_b += cur_info.size;
-              cache_contents.insert(cur_info);
-            }
-        }
-
-      globfree(&cache_glob);
-
-      // grab info for each staphash log file (.log)
-      glob_str = s.cache_path + "/*/*.log";
-      glob(glob_str.c_str(), 0, NULL, &cache_glob);
-      for (unsigned int i = 0; i < cache_glob.gl_pathc; i++)
-        {
-          string cache_ent_path = cache_glob.gl_pathv[i];
-          struct cache_ent_info cur_info(cache_ent_path, false);
-          if (cur_info.size != 0 && cur_info.weight != 0)
-            {
-              cache_size_b += cur_info.size;
-              cache_contents.insert(cur_info);
-            }
-        }
-
-      globfree(&cache_glob);
-
-      set<struct cache_ent_info>::iterator i;
       unsigned long r_cache_size = cache_size_b;
-      string removed_dirs = "";
+      vector<const cache_ent_info*> removed;
 
       //unlink .ko and .c until the cache size is under the limit
-      for (i = cache_contents.begin(); i != cache_contents.end(); ++i)
+      for (set<cache_ent_info>::iterator i = cache_contents.begin();
+           i != cache_contents.end(); ++i)
         {
-          if ( (r_cache_size / 1024 / 1024) < cache_mb_max)    //convert r_cache_size to MiB
+          if (r_cache_size < cache_mb_max * 1024 * 1024) //convert cache_mb_max to bytes
             break;
 
-          PROBE1(stap, cache__clean, (i->path).c_str());
           //remove this (*i) cache_entry, add to removed list
+          for (size_t j = 0; j < i->paths.size(); ++j)
+            PROBE1(stap, cache__clean, i->paths[j].c_str());
           i->unlink();
           r_cache_size -= i->size;
-          removed_dirs += i->path + ", ";
+          removed.push_back(&*i);
         }
 
-      cache_contents.clear();
-
-      if (s.verbose > 1 && removed_dirs != "")
+      if (s.verbose > 1 && !removed.empty())
         {
-          //remove trailing ", "
-          removed_dirs = removed_dirs.substr(0, removed_dirs.length() - 2);
-          clog << _("Cache cleaning successful, removed entries: ")
-               << removed_dirs << endl;
+          clog << _("Cache cleaning successful, removed entries: ") << endl;
+          for (size_t i = 0; i < removed.size(); ++i)
+            for (size_t j = 0; j < removed[i]->paths.size(); ++j)
+              clog << "  " << removed[i]->paths[j] << endl;
         }
     }
   else
@@ -357,65 +334,45 @@ clean_cache(systemtap_session& s)
     }
 }
 
-//Assign a weight for a particular file. A lower weight
-// will be removed before a higher weight.
-//TODO: for now use system mtime... later base a
-// weighting on size, ctime, atime etc..
-static long
-get_file_weight(const string &path)
+
+cache_ent_info::cache_ent_info(const vector<string>& paths):
+  paths(paths), size(0), mtime(0)
 {
-  time_t dir_mtime = 0;
-  struct stat dir_stat_info;
-
-  if (stat(path.c_str(), &dir_stat_info) == 0)
-    //GNU struct stat defines st_atime as st_atim.tv_sec
-    // but it doesnt seem to work properly in practice
-    // so use st_atim.tv_sec -- bad for portability?
-    dir_mtime = dir_stat_info.st_mtim.tv_sec;
-
-  return dir_mtime;
+  struct stat file_info;
+  for (size_t i = 0; i < paths.size(); ++i)
+    if (stat(paths[i].c_str(), &file_info) == 0)
+      {
+        size += file_info.st_size;
+        if (file_info.st_mtime > mtime)
+          mtime = file_info.st_mtime;
+      }
 }
 
 
-cache_ent_info::cache_ent_info(const string& path, bool is_module):
-  path(path), is_module(is_module)
+// The ordering here determines the order that
+// files will be removed from the cache.
+bool
+cache_ent_info::operator<(const struct cache_ent_info& other) const
 {
-  if (is_module)
-    {
-      string mod_path    = path + ".ko";
-      string modsgn_path = path + ".ko.sgn";
-      string source_path = path + ".c";
-      string hash_path = path + ".log";
-      size = get_file_size(mod_path)
-        + get_file_size(modsgn_path)
-        + get_file_size(source_path)
-        + get_file_size(hash_path);
-      weight = get_file_weight(mod_path);
-    }
-  else
-    {
-      size = get_file_size(path);
-      weight = get_file_weight(path);
-    }
+  if (mtime != other.mtime)
+    return mtime < other.mtime;
+  if (size != other.size)
+    return size < other.size;
+  if (paths.size() != other.paths.size())
+    return paths.size() < other.paths.size();
+  for (size_t i = 0; i < paths.size(); ++i)
+    if (paths[i] != other.paths[i])
+      return paths[i] < other.paths[i];
+  return false;
 }
 
 
 void
 cache_ent_info::unlink() const
 {
-  if (is_module)
-    {
-      string mod_path    = path + ".ko";
-      string modsgn_path = path + ".ko.sgn";
-      string source_path = path + ".c";
-      string hash_path = path + ".log";
-      ::unlink(mod_path.c_str());
-      ::unlink(modsgn_path.c_str());
-      ::unlink(source_path.c_str());
-      ::unlink(hash_path.c_str());
-    }
-  else
-    ::unlink(path.c_str());
+  for (size_t i = 0; i < paths.size(); ++i)
+    ::unlink(paths[i].c_str());
 }
+
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
