@@ -324,10 +324,12 @@ static void _stp_stack_user_print(struct context *c, int sym_flags)
 			_stp_print_addr(ri->ret_addr, sym_flags, current);
 		} else
 			_stp_print_addr(ri->ret_addr, sym_flags, current);
-#endif
 	} else {
 		_stp_print_addr(REG_IP(regs), sym_flags, current);
 	}
+#else
+	_stp_print_addr(REG_IP(regs), sym_flags, current);
+#endif
 
 	/* print rest of stack... */
 #ifdef STP_USE_DWARF_UNWINDER
