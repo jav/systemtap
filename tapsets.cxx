@@ -5126,7 +5126,10 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
 
     need_debug_info = false;
     tokenize(arg_string, arg_tokens, " ");
-    assert(arg_count <= 10);
+    if (probe_type == uprobe3_type)
+      assert(arg_count <= 12);
+    else
+      assert(arg_count <= 10);
   }
 
   systemtap_session& session;
@@ -5172,7 +5175,6 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
   else if (e->name == "$$vars" || e->name == "$$parms")
     {
       e->assert_no_components("sdt", true);
-      assert(arg_count <= 10);
 
       // Convert $$vars to sprintf of a list of vars which we recursively evaluate
       // NB: we synthesize a new token here rather than reusing

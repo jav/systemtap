@@ -16,17 +16,19 @@
 # define _SDT_ASM_3(a, b, c)		a,b,c;
 # define _SDT_ASM_5(a, b, c, d, e)	a,b,c,d,e;
 # define _SDT_ASM_STRING_1(x)		.asciz #x;
-# define _SDT_DEPAREN_0()			/* empty */
-# define _SDT_DEPAREN_1(a)			a
-# define _SDT_DEPAREN_2(a,b)			a b
-# define _SDT_DEPAREN_3(a,b,c)			a b c
-# define _SDT_DEPAREN_4(a,b,c,d)		a b c d
-# define _SDT_DEPAREN_5(a,b,c,d,e)		a b c d e
-# define _SDT_DEPAREN_6(a,b,c,d,e,f)		a b c d e f
-# define _SDT_DEPAREN_7(a,b,c,d,e,f,g)		a b c d e f g
-# define _SDT_DEPAREN_8(a,b,c,d,e,f,g,h)	a b c d e f g h
-# define _SDT_DEPAREN_9(a,b,c,d,e,f,g,h,i)	a b c d e f g h i
-# define _SDT_DEPAREN_10(a,b,c,d,e,f,g,h,i,j)	a b c d e f g h i j
+# define _SDT_DEPAREN_0()				/* empty */
+# define _SDT_DEPAREN_1(a)				a
+# define _SDT_DEPAREN_2(a,b)				a b
+# define _SDT_DEPAREN_3(a,b,c)				a b c
+# define _SDT_DEPAREN_4(a,b,c,d)			a b c d
+# define _SDT_DEPAREN_5(a,b,c,d,e)			a b c d e
+# define _SDT_DEPAREN_6(a,b,c,d,e,f)			a b c d e f
+# define _SDT_DEPAREN_7(a,b,c,d,e,f,g)			a b c d e f g
+# define _SDT_DEPAREN_8(a,b,c,d,e,f,g,h)		a b c d e f g h
+# define _SDT_DEPAREN_9(a,b,c,d,e,f,g,h,i)		a b c d e f g h i
+# define _SDT_DEPAREN_10(a,b,c,d,e,f,g,h,i,j)		a b c d e f g h i j
+# define _SDT_DEPAREN_11(a,b,c,d,e,f,g,h,i,j,k)		a b c d e f g h i j k
+# define _SDT_DEPAREN_12(a,b,c,d,e,f,g,h,i,j,k,l)	a b c d e f g h i j k l
 #else
 # include <stdint.h>
 # define _SDT_PROBE(provider, name, n, arglist) \
@@ -211,6 +213,8 @@ __extension__ extern unsigned long long __sdt_unsp;
 #define _SDT_ASM_TEMPLATE_8		_SDT_ASM_TEMPLATE_7 _SDT_ARGFMT(8)
 #define _SDT_ASM_TEMPLATE_9		_SDT_ASM_TEMPLATE_8 _SDT_ARGFMT(9)
 #define _SDT_ASM_TEMPLATE_10		_SDT_ASM_TEMPLATE_9 _SDT_ARGFMT(10)
+#define _SDT_ASM_TEMPLATE_11		_SDT_ASM_TEMPLATE_10 _SDT_ARGFMT(11)
+#define _SDT_ASM_TEMPLATE_12		_SDT_ASM_TEMPLATE_11 _SDT_ARGFMT(12)
 #define _SDT_ASM_OPERANDS_0()		[__sdt_dummy] "g" (0)
 #define _SDT_ASM_OPERANDS_1(arg1)	_SDT_ARG(1, arg1)
 #define _SDT_ASM_OPERANDS_2(arg1, arg2) \
@@ -234,6 +238,12 @@ __extension__ extern unsigned long long __sdt_unsp;
 #define _SDT_ASM_OPERANDS_10(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10) \
   _SDT_ASM_OPERANDS_9(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9), \
     _SDT_ARG(10, arg10)
+#define _SDT_ASM_OPERANDS_11(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11) \
+  _SDT_ASM_OPERANDS_10(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10), \
+    _SDT_ARG(11, arg11)
+#define _SDT_ASM_OPERANDS_12(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12) \
+  _SDT_ASM_OPERANDS_11(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11), \
+    _SDT_ARG(12, arg12)
 
 /* These macros can be used in C, C++, or assembly code.
    In assembly code the arguments should use normal assembly operand syntax.  */
@@ -261,6 +271,12 @@ __extension__ extern unsigned long long __sdt_unsp;
 #define STAP_PROBE10(provider,name,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10) \
   _SDT_PROBE(provider, name, 10, \
 	     (arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10))
+#define STAP_PROBE11(provider,name,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11) \
+  _SDT_PROBE(provider, name, 11, \
+	     (arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11))
+#define STAP_PROBE12(provider,name,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12) \
+  _SDT_PROBE(provider, name, 12, \
+	     (arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12))
 
 /* This STAP_PROBEV macro can be used in variadic scenarios, where the
    number of probe arguments is not known until compile time.  Since
@@ -276,8 +292,8 @@ __extension__ extern unsigned long long __sdt_unsp;
    called without any arguments.  */
 
 #ifdef SDT_USE_VARIADIC
-#define _SDT_NARG(...) __SDT_NARG(__VA_ARGS__, 10,9,8,7,6,5,4,3,2,1,0)
-#define __SDT_NARG(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10, N, ...) N
+#define _SDT_NARG(...) __SDT_NARG(__VA_ARGS__, 12,11,10,9,8,7,6,5,4,3,2,1,0)
+#define __SDT_NARG(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12, N, ...) N
 #define _SDT_PROBE_N(provider, name, N, ...) \
   _SDT_PROBE(provider, name, N, (__VA_ARGS__))
 #define STAP_PROBEV(provider, name, ...) \
@@ -362,6 +378,10 @@ __extension__ extern unsigned long long __sdt_unsp;
   STAP_PROBE9(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9)
 #define DTRACE_PROBE10(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10) \
   STAP_PROBE10(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10)
+#define DTRACE_PROBE11(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10,parm11) \
+  STAP_PROBE11(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10,parm11)
+#define DTRACE_PROBE12(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10,parm11,parm12) \
+  STAP_PROBE12(provider,probe,parm1,parm2,parm3,parm4,parm5,parm6,parm7,parm8,parm9,parm10,parm11,parm12)
 
 
 #endif /* sys/sdt.h */

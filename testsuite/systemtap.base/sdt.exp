@@ -1,5 +1,5 @@
 set test "sdt"
-set ::result_string {_
+set result_string10 {_
 1
 1 2
 1 2 3
@@ -10,6 +10,9 @@ set ::result_string {_
 1 2 3 4 5 6 7 8
 1 2 3 4 5 6 7 8 9
 1 2 3 4 5 6 7 8 9 10}
+set result_string12 {
+1 2 3 4 5 6 7 8 9 10 11
+1 2 3 4 5 6 7 8 9 10 11 12}
 
 set extra_flags {{additional_flags=-O2}
     {additional_flags=-O3}
@@ -99,6 +102,10 @@ if {[installtest_p] && [utrace_p] && [uprobes_p]} {
 	set FAIL xfail
     } else {
 	set FAIL fail
+    }
+    set ::result_string $result_string10
+    if { $pbtype_mssg == "uprobe" } {
+	append ::result_string $result_string12
     }
     sdt_stap_run "$test $extra_mssg $type_pedantic_mssg $pbtype_mssg" -w $FAIL $srcdir/$subdir/$test.stp $testprog -c ./$testprog
 } else {
