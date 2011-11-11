@@ -290,16 +290,6 @@ proc test_valid_probes { use_alias } {
 	    {
 		setup_xfail *-*-*
 	    }
-	    process.function(string).inline -
-	    process(string).function(string).inline
-	    {
-		# These tests fail on systems with gcc 4.6 because gcc doesn't inline the function
-		# "ibar" in foo.c.
-		catch {eval exec gcc -v} res_gcc
-		if {[regexp "gcc version 4.6" $res_gcc]} {
-		    setup_kfail 13394 *-*-*
-		}
-	    }
 	}
 
 	# Test the probe type. If successful, the stap rc will be 0.
