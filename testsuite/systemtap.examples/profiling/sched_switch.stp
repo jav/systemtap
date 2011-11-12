@@ -9,6 +9,9 @@
  * The usage is sched_switch.stp <"pid"/"name"> pid/name
  */
 
+global target_pid
+global target_name
+
 function state_calc(state) {
 	if(state == 0)
 	status = "R"
@@ -28,16 +31,15 @@ function state_calc(state) {
 }
 probe scheduler.wakeup
 {
-	 %( $# == 2 %?
-
-	if(@1 == "pid")
-		if (task_pid != $2 && pid() != $2)
-			next
-	if(@1 == "name")
-		if (task_execname(task) != @2 && execname() != @2)
+	if (target_pid != 0
+	    && task_pid != target_pid
+	    && pid() != target_pid)
 			next
 
-         %)
+	if (target_name != ""
+	    && task_execname(task) != target_name
+	    && execname() != target_name)
+			next
 
 	printf("%-16s%5d%5d%d:%d:%s + %d:%d:%s %16s\n",
                 execname(), task_cpu(task), gettimeofday_ns(),
@@ -47,17 +49,34 @@ probe scheduler.wakeup
 }
 probe scheduler.ctxswitch
 {
-	%( $# == 2 %?
-	
-	if(@1 == "pid") 
-		if (next_pid != $2 && prev_pid != $2)
+	if (target_pid != 0
+	    && next_pid != target_pid
+	    && prev_pid != target_pid)
 			next
-	if(@1 == "name")
-		if (prev_task_name != @2 && next_task_name != @2)
-			next 
-	%)
+
+	if (target_name != ""
+	    && prev_task_name != target_name
+	    && next_task_name != target_name)
+			next
 
 	printf("%-16s%5d%5d%d:%d:%s ==> %d:%d:%s %16s\n",prev_task_name,
 		task_cpu(prev_task),gettimeofday_ns(),prev_pid,prev_priority,state_calc(prevtsk_state),next_pid,
 		next_priority,state_calc(nexttsk_state),next_task_name)
+}
+probe begin
+{
+	target_pid = 0
+	target_name = ""
+
+	%( $# == 1 || $# > 2 %?
+		log("Wrong number of arguments, use none, 'pid nr' or 'name proc'")
+		exit()
+	%)
+
+	%( $# == 2 %?
+		if(@1 == "pid") 
+			target_pid = strtol(@2, 10)
+		if(@1 == "name")
+			target_name = @2
+	%)
 }
