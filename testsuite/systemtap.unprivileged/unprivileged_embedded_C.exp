@@ -3,6 +3,14 @@ set arch [exec uname -i]
 # normalize arch; PR4186
 set arch [normalize_arch $arch]
 
+# Some functions are only "native" for certain kernel versions.
+set kv [exec uname -r | cut -f1 -d-]
+set kvbits [split $kv .]
+set k1 [lindex $kvbits 0]
+set k2 [lindex $kvbits 1]
+set k3 [lindex $kvbits 2]
+verbose -log "kernel version $k1.$k2.$k3"
+
 # Add arguments to a probe type template.
 proc add_args { prototype } {
     set call "$prototype"
@@ -19,6 +27,7 @@ proc add_args { prototype } {
 # Test valid probe types
 proc test_embedded_C { use_wrapper } {
     global prototype_info test arch
+    global k1 k2 k3
 
     if { $use_wrapper } {
 	set with_wrapper " with wrapper"
@@ -54,6 +63,15 @@ proc test_embedded_C { use_wrapper } {
 		}
 	    }
 	}
+
+	# Before 2.6.21 __get_skb_iphdr wasn't native.
+	if { "$prototype" == "__get_skb_iphdr(long)" } {
+		if {($k1*256*256 + $k2*256 + $k3) < (2*256*256 + 6*256 + 21)} {
+			untested "$test: $status: $prototype"
+			continue
+		}
+	}
+
 
 	# Test calling the function. If successful, the stap rc will be 0.
 	set call [add_args $prototype]
