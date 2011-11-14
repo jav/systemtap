@@ -5407,7 +5407,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
           if (dwarf_regs.find (regname) == dwarf_regs.end())
             goto not_matched;
 
-          for (int i=1; i < 3; i++)
+          for (int i=1; i <= 3; i++)
             if (matches[i].length())
               try
                 {
@@ -5497,7 +5497,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
           if (dwarf_regs.find (indexregname) == dwarf_regs.end())
             goto not_matched;
 
-          for (int i = 1; i < 3; i++) // up to three OFFSET terms
+          for (int i = 1; i <= 3; i++) // up to three OFFSET terms
             if (matches[i].length())
               try
                 {
