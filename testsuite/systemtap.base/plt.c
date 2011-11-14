@@ -42,22 +42,24 @@ savestring (const char *ptr)
 int
 open2 (char *str1, char *str2, int flags)
 {
+  char *end;
   char *name = (char *) alloca (strlen (str1) + strlen (str2) + 1);
-  stpcpy (stpcpy (name, str1), str2);
-  return open (name, flags);
+  end = stpcpy (stpcpy (name, str1), str2);
+  return open (name, flags) && end == name;
 }
 
 int
 open3 (char *str1, char *str2, int flags)
 {
+  char *end;
   char *name = (char *) malloc (strlen (str1) + strlen (str2) + 1);
   int desc;
   if (name == 0)
     fatal ("virtual memory exceeded");
-  stpcpy (stpcpy (name, str1), str2);
+  end = stpcpy (stpcpy (name, str1), str2);
   desc = open (name, flags);
   free (name);
-  return desc;
+  return desc && end == str1;
 }
 
 char *
@@ -190,7 +192,7 @@ print_widget (FILE *stream,
 
 int
 print_widget_arginfo (const struct printf_info *info, size_t n,
-		      int *argtypes, int *size)
+		      int *argtypes)
 {
   /* We always take exactly one argument and this is a pointer to the
      structure.. */
@@ -208,7 +210,7 @@ widgets (void)
   mywidget.name = "mywidget";
 
   /* Register the print function for widgets. */
-  register_printf_specifier ('W', print_widget, print_widget_arginfo);
+  register_printf_function ('W', print_widget, print_widget_arginfo);
 
   /* Now print the widget. */
   printf ("|%W|\n", &mywidget);
