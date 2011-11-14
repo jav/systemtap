@@ -1,6 +1,11 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
+
+#ifdef LOOP
+static struct timespec req = {0, 200000000};
+#endif
 
 #ifndef ONLY_MAIN
 #include "sdt_misc_.h"
@@ -28,6 +33,7 @@ bar (int i)
 #ifdef LOOP
   while (!loop_check())
     {
+      nanosleep(&req, NULL);
     }
 #endif
 #ifndef NO_SLEEP
@@ -99,7 +105,7 @@ main ()
   baz(3,(char*)"abc");
   buz(4);
 #ifdef LOOP
-  while (1) {}
+  while (1) {nanosleep(&req, NULL);}
 #endif
   return 0;
 }
