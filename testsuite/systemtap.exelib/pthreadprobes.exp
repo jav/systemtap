@@ -35,6 +35,8 @@ if {[catch {exec stap $cmd2 -c ./$test } res3]} {
    return
 }
 
+verbose -log "$res3"
+
 set cond_broadcast_correct 0
 set cond_destroy_correct 0
 set cond_init_correct 0
@@ -90,6 +92,13 @@ foreach line $res3 {
     }
     if  {[regexp "mutex_release=13" $line]} {
        set mutex_release_correct 1
+    }
+    # pthread_mutex_timedlock is called with a timeout of 1 second in a 
+    # loop while the mutex is held by the other thread for about 5 seconds
+    # resulting in a couple of entries resulting in a ETIMEDOUT before it
+    # is actually acquired.  Expect 2 till 6 tries before success.
+    if  {[regexp {mutex_timedlock_entry=[2-6]} $line]} {
+       set mutex_timedlock_entry_correct 1
     }
     if  {[regexp "mutex_timedlock_acquired=1" $line]} {
        set mutex_timedlock_acquired_correct 1
