@@ -39,7 +39,7 @@ proc stap_direct_and_with_client {stap options} {
 	    }
 	    # Some other options can cause errors which occur before the one for -I/.
 	    # If one of these errors occurs, then fall through to the normal test.
-	    -re {^ERROR: Safety pattern mismatch for -D parameter .*\r\n} {
+	    -re {^ERROR: Safety pattern mismatch for -. parameter .*\r\n} {
 		set fallthrough 1
 	    }
 	    -re {^.*\r\n} { exp_continue }
@@ -66,10 +66,23 @@ proc stap_direct_and_with_client {stap options} {
     verbose -log $res_stap_client
 
     # Now check the output
+    set skip 0
     set n 0
     set expected [split $res_stap "\n"]
     set received [split $res_stap_client "\n"]
     foreach line $received {
+	# Instructed to skip a line?
+	if {$skip} {
+	    set skip [expr $skip - 1]
+	    verbose -log "skipping: $line"
+	    continue
+	}
+	# Ignore warnings about the domain name on the certificate not matching
+	if {[regexp {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:} $line]} {
+	    set skip 1
+	    verbose -log "skipping: $line"
+	    continue
+	}
 	set expected_line [lindex $expected $n]
 	# Some messages contain the names of files or directories
 	# and will be prefixed for the client.
@@ -113,7 +126,7 @@ proc stap_direct_and_with_client {stap options} {
 	}
 	incr n
     }
-    if {$n == [llength $expected] && [llength $expected] == [llength $received]} {
+    if {$n == [llength $expected] && [llength $expected] <= [llength $received]} {
 	# Test passes
 	return 1
     }
@@ -178,6 +191,7 @@ set previously_fixed [list \
   "-p1 1\\nbzg3 -ebf -Do -ckrll=\\;oh -\S4 -I /" \
   "-p1 -I -e\\;/ -Dhn6 -cejijqmi0 -S3-k -" \
   "-p1 -I/ -e/ -D -c\\n1v\\;nd8 -S--" \
+  "-p1 -I/ -e0xzu -Dxrk -c*sum8fe  -St546jn" \
 ]
 
 set i 0

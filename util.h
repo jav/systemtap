@@ -21,7 +21,7 @@ extern "C" {
 #include <assert.h>
 }
 
-#include "runtime/staprun/privilege.h"
+#include "privilege.h"
 
 #if ENABLE_NLS
 #define _(string) gettext(string)
@@ -44,6 +44,7 @@ bool copy_file(const std::string& src, const std::string& dest,
                bool verbose=false);
 int create_dir(const char *dir, int mode = 0777);
 int remove_file_or_dir(const char *dir);
+extern "C" gid_t get_gid (const char *group_name);
 bool in_group_id (gid_t target_gid);
 std::string getmemusage ();
 void tokenize(const std::string& str, std::vector<std::string>& tokens,
@@ -237,10 +238,6 @@ struct stap_sigmasker {
         sigprocmask (SIG_SETMASK, &old, NULL);
       }
 };
-
-privilege_t pr_next (privilege_t p);
-const char *pr_name (privilege_t p);
-bool pr_contains (privilege_t actual, privilege_t required);
 
 #endif // UTIL_H
 

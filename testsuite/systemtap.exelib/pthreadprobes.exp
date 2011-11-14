@@ -35,6 +35,8 @@ if {[catch {exec stap $cmd2 -c ./$test } res3]} {
    return
 }
 
+verbose -log "$res3"
+
 set cond_broadcast_correct 0
 set cond_destroy_correct 0
 set cond_init_correct 0
@@ -91,6 +93,13 @@ foreach line $res3 {
     if  {[regexp "mutex_release=13" $line]} {
        set mutex_release_correct 1
     }
+    # pthread_mutex_timedlock is called with a timeout of 1 second in a 
+    # loop while the mutex is held by the other thread for about 5 seconds
+    # resulting in a couple of entries resulting in a ETIMEDOUT before it
+    # is actually acquired.  Expect 2 till 6 tries before success.
+    if  {[regexp {mutex_timedlock_entry=[2-6]} $line]} {
+       set mutex_timedlock_entry_correct 1
+    }
     if  {[regexp "mutex_timedlock_acquired=1" $line]} {
        set mutex_timedlock_acquired_correct 1
     }
@@ -120,121 +129,121 @@ foreach line $res3 {
 if { $cond_broadcast_correct == 0 } { 
  fail "$test cond_broadcast"
 } else {
- pass "$test"
+ pass "$test cond_broadcast"
 }
 
 if { $cond_destroy_correct == 0 } {
  fail "$test cond_destroy"
 } else {
- pass "$test"
+ pass "$test cond_destroy"
 }
 
 if { $cond_init_correct == 0 } {
  fail "$test cond_init"
 } else {
- pass "$test"
+ pass "$test cond_init"
 }
 
 if { $cond_signal_correct == 0 } {
  fail "$test cond_signal"
 } else {
- pass "$test"
+ pass "$test cond_signal"
 }
 
 if { $cond_timedwait_correct == 0 } {
  fail "$test cond_timedwait"
 } else {
- pass "$test"
+ pass "$test cond_timedwait"
 }
 
 if { $cond_wait_correct == 0 } {
  fail "$test cond_wait"
 } else {
- pass "$test"
+ pass "$test cond_wait"
 }
 
 if { $mutex_acquired_correct == 0 } {
  fail "$test mutex_acquired"
 } else {
- pass "$test"
+ pass "$test mutex_acquired"
 }
 
 if { $mutex_destroy_correct == 0 } {
  fail "$test mutex_destroy"
 } else {
- pass "$test"
+ pass "$test mutex_destroy"
 }
 
 if { $mutex_entry_correct == 0 } {
  fail "$test mutex_entry"
 } else {
- pass "$test"
+ pass "$test mutex_entry"
 }
 
 if { $mutex_init_correct == 0 } {
  fail "$test mutex_init"
 } else {
- pass "$test"
+ pass "$test mutex_init"
 }
 
 if { $mutex_release_correct == 0 } {
  fail "$test mutex_release"
 } else {
- pass "$test"
+ pass "$test mutex_release"
 }
 
 if { $mutex_timedlock_acquired_correct == 0 } {
  fail "$test mutex_timedlock_acquired"
 } else {
- pass "$test"
+ pass "$test mutex_timedlock_acquired"
 }
 
 if { $mutex_timedlock_entry_correct == 0 } {
  fail "$test mutex_timedlock_entry"
 } else {
- pass "$test"
+ pass "$test mutex_timedlock_entry"
 }
 
 if { $pthread_create_correct == 0 } {
  fail "$test pthread_create"
 } else {
- pass "$test"
+ pass "$test pthread_create"
 }
 
 if { $pthread_join_correct == 0 } {
  fail "$test pthread_join"
 } else {
- pass "$test"
+ pass "$test pthread_join"
 }
 
 if { $pthread_join_ret_correct == 0 } {
  fail "$test pthread_join_ret"
 } else {
- pass "$test"
+ pass "$test pthread_join_ret"
 }
 
 if { $pthread_start_correct == 0 } {
  fail "$test pthread_start"
 } else {
- pass "$test"
+ pass "$test pthread_start"
 }
 
 if { $rdlock_entry_correct == 0 } {
  fail "$test rdlock_entry"
 } else {
- pass "$test"
+ pass "$test rdlock_entry"
 }
 
 if { $rwlock_destroy_correct == 0 } {
  fail "$test rwlock_destroy"
 } else {
- pass "$test"
+ pass "$test rwlock_destroy"
 }
 
 if { $wrlock_entry_correct == 0 } {
  fail "$test wrlock_entry"
 } else {
- pass "$test"
+ pass "$test wrlock_entry"
 }
 
 exec rm -f $test

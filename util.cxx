@@ -225,6 +225,17 @@ remove_file_or_dir (const char *name)
   return 0;
 }
 
+/* Obtain the gid of the given group. */
+gid_t get_gid (const char *group_name)
+{
+  struct group *stgr;
+  /* If we couldn't find the group, return an invalid number. */
+  stgr = getgrnam(group_name);
+  if (stgr == NULL)
+    return (gid_t)-1;
+  return stgr->gr_gid;
+}
+
 // Determine whether the current user is in the given group
 // by gid.
 bool
@@ -899,40 +910,6 @@ std::string autosprintf(const char* format, ...)
   va_end (args);
   free (str);
   return s; /* by copy */
-}
-
-privilege_t pr_next (privilege_t p)
-{
-  switch (p)
-    {
-    case pr_stapusr:
-      p = pr_stapdev;
-      break;
-    case pr_stapdev:
-    default:
-      p = pr_end;
-      break;
-    }
-  return p;
-}
-
-const char *pr_name (privilege_t p)
-{
-  switch (p)
-    {
-    case pr_stapusr:
-      return "stapusr";
-    case pr_stapdev:
-      return "stapdev";
-    default:
-      break;
-    }
-  return "unknown";
-}
-
-bool pr_contains (privilege_t actual, privilege_t required)
-{
-  return (actual & required) == required;
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

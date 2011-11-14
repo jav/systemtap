@@ -5142,7 +5142,10 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
 
     need_debug_info = false;
     tokenize(arg_string, arg_tokens, " ");
-    assert(arg_count <= 10);
+    if (probe_type == uprobe3_type)
+      assert(arg_count <= 12);
+    else
+      assert(arg_count <= 10);
   }
 
   systemtap_session& session;
@@ -5188,7 +5191,6 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
   else if (e->name == "$$vars" || e->name == "$$parms")
     {
       e->assert_no_components("sdt", true);
-      assert(arg_count <= 10);
 
       // Convert $$vars to sprintf of a list of vars which we recursively evaluate
       // NB: we synthesize a new token here rather than reusing
@@ -5261,9 +5263,10 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
       // expression.  If we can't, we warn, back down to need_debug_info
       // and hope for the best.  Here is the syntax for a few architectures.
       // Note that the power iN syntax is only for V3 sdt.h; gcc emits the i.
-      //      literal	reg	reg	reg +	
+      //
+      //      literal	reg	reg	reg +	base+index*size+offset
       //	      	      indirect offset
-      // x86	$N	%rR	(%rR)	N(%rR)
+      // x86	$N	%rR	(%rR)	N(%rR)  O(%bR,%iR,S)
       // power	iN	R	(R)	N(R)
       // ia64	N	rR	[r16]	
       // s390	N	%rR	0(rR)	N(r15)
@@ -5414,15 +5417,13 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
           string regname;
           int64_t disp = 0;
 
-          int idx;
-          for (idx = matches.size() - 1; idx > 0; idx--)
-            if (matches[idx].length())
-              {
-                regname = matches[idx];
-                break;
-              }
 
-          for (int i=1; i < idx; i++)
+          if (matches[4].length())
+            regname = matches[4];
+          if (dwarf_regs.find (regname) == dwarf_regs.end())
+            goto not_matched;
+
+          for (int i=1; i <= 3; i++)
             if (matches[i].length())
               try
                 {
@@ -5435,10 +5436,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
                                       // value, unfortunately
                   }
 
-              if (dwarf_regs.find (regname) != dwarf_regs.end()) // known register
-                {
                   // synthesize user_long(%{fetch_register(R)%} + D)
-
                   embedded_expr *get_arg1 = new embedded_expr;
                   get_arg1->tok = e->tok;
                   get_arg1->code = string("/* unprivileged */ /* pure */")
@@ -5480,8 +5478,104 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
                   argexpr = fc;
                   goto matched;
                 }
-              // invalid register name, fall through
+
+      // test for OFFSET(BASE_REGISTER,INDEX_REGISTER[,SCALE]) where OFFSET is +-N+-N+-N
+      // NB: Despite PR11821, we can use regnames here, since the parentheses
+      // make things unambiguous. (Note: gdb/stap-probe.c also parses this)
+      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-]?[0-9]*)([+-]?[0-9]*)[(](")+regnames+string("),(")+regnames+string(")(,[1248])?[)]$"), matches);
+      if (! rc)
+        {
+          string baseregname;
+          string indexregname;
+          int64_t disp = 0;
+          short scale = 1;
+
+          if (matches[6].length())
+            try
+              {
+                scale = lex_cast<short>(matches[6].substr(1)); // NB: skip the comma!
+                // We could verify that scale is one of 1,2,4,8,
+                // but it doesn't really matter.  An erroneous
+                // address merely results in run-time errors.
         }
+            catch (const runtime_error &f) // unparseable scale
+              {
+                  goto not_matched;
+              }
+
+          if (matches[4].length())
+            baseregname = matches[4];
+          if (dwarf_regs.find (baseregname) == dwarf_regs.end())
+            goto not_matched;
+
+          if (matches[5].length())
+            indexregname = matches[5];
+          if (dwarf_regs.find (indexregname) == dwarf_regs.end())
+            goto not_matched;
+
+          for (int i = 1; i <= 3; i++) // up to three OFFSET terms
+            if (matches[i].length())
+              try
+                {
+                  disp += lex_cast<int64_t>(matches[i]); // should decode positive/negative hex/decimal
+                }
+              catch (const runtime_error& f) // unparseable offset
+                {
+                  goto not_matched; // can't just 'break' out of
+                  // this case or use a sentinel
+                  // value, unfortunately
+                }
+
+          // synthesize user_long(%{fetch_register(R1)+fetch_register(R2)*N%} + D)
+
+          embedded_expr *get_arg1 = new embedded_expr;
+          string regfn = is_user_module (process_name)
+            ? string("u_fetch_register")
+            : string("k_fetch_register"); // NB: in practice sdt.h probes are for userspace only
+
+          get_arg1->tok = e->tok;
+          get_arg1->code = string("/* unprivileged */ /* pure */")
+            + regfn + string("(")+lex_cast(dwarf_regs[baseregname].first)+string(")")
+            + string("+(")
+            + regfn + string("(")+lex_cast(dwarf_regs[indexregname].first)+string(")")
+            + string("*")
+            + lex_cast(scale)
+            + string(")");
+
+          // NB: could plop this +DISPLACEMENT bit into the embedded-c expression too
+          literal_number* inc = new literal_number(disp);
+          inc->tok = e->tok;
+
+          binary_expression *be = new binary_expression;
+          be->tok = e->tok;
+          be->left = get_arg1;
+          be->op = "+";
+          be->right = inc;
+
+          functioncall *fc = new functioncall;
+          switch (precision)
+            {
+            case 1: case -1:
+              fc->function = "user_int8"; break;
+            case 2:
+              fc->function = "user_uint16"; break;
+            case -2:
+              fc->function = "user_int16"; break;
+            case 4:
+              fc->function = "user_uint32"; break;
+            case -4:
+              fc->function = "user_int32"; break;
+            case 8: case -8:
+              fc->function = "user_int64"; break;
+            default: fc->function = "user_long";
+            }
+          fc->tok = e->tok;
+          fc->args.push_back(be);
+
+          argexpr = fc;
+          goto matched;
+        }
+
 
     not_matched:
       // The asmarg operand was not recognized.  Back down to dwarf.

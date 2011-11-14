@@ -16,7 +16,7 @@ struct cull
   unsigned long long i;
 };
 
-void
+int
 t1 (int i)
 {
   int a[] = { 17, 23 };
@@ -29,9 +29,10 @@ t1 (int i)
   STAP_PROBE(test, t1);
   c.i = i;
   srandom (c.i + 4);
+  return a[0] + a[1];
 }
 
-void
+int
 t2 (unsigned int i)
 {
   int a[] = { 17, 23 };
@@ -44,9 +45,10 @@ t2 (unsigned int i)
   STAP_PROBE(test, t2);
   c.i = i;
   srandom (c.i + 4);
+  return a[0] + a[1];
 }
 
-void
+int
 t3 (unsigned long long i)
 {
   int a[] = { 17, 23 };
@@ -59,13 +61,14 @@ t3 (unsigned long long i)
   STAP_PROBE(test, t3);
   c.i = i;
   srandom (c.i + 4);
+  return a[0] + a[1];
 }
 
 int
 main (int argc, char **argv)
 {
-  t1 (42);
-  t2 (42);
-  t3 (42);
-  return 0;
+  int i1 = t1 (42);
+  int i2 = t2 (42);
+  int i3 = t3 (42);
+  return 2*i1 - i2 - i3;
 }

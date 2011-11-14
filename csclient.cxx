@@ -2814,15 +2814,6 @@ resolve_host (
       if (status == 0)
 	new_server.host_name = hbuf;
 
-      // Don't resolve to localhost or localhost.localdomain, unless that's
-      // what was asked for, or unless only an ip address was given.
-      if ((new_server.host_name == "localhost" ||
-	   new_server.host_name == "localhost.localdomain") &&
-	  new_server.host_name != "localhost" &&
-	  new_server.host_name != "localhost.localdomain" &&
-	  ! new_server.host_name.empty ())
-	continue;
-
       // Add the new resolved server to the list.
       add_server_info (new_server, resolved_servers);
     }

@@ -52,3 +52,13 @@ probe process(@1).mark("mark_j")
 {
   printf("%d %d %d %d %d %d %d %d %d %d\n", $arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8, $arg9, $arg10);
 }
+
+probe process(@1).mark("mark_k") ?
+{
+  printf("%d %d %d %d %d %d %d %d %d %d %d\n", $arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8, $arg9, $arg10, $arg11);
+}
+
+probe process(@1).mark("mark_l") ?
+{
+  printf("%d %d %d %d %d %d %d %d %d %d %d %d\n", $arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8, $arg9, $arg10, $arg11, $arg12);
+}

@@ -23,7 +23,7 @@ extern "C" {
 #include <elfutils/libdw.h>
 }
 
-#include "runtime/staprun/privilege.h"
+#include "privilege.h"
 // ------------------------------------------------------------------------
 
 struct derived_probe;

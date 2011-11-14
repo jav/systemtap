@@ -120,7 +120,7 @@ to specify servers to be managed.
  the given nickname is found, and the action is 'start' (or an action behaving
  like 'start' (see below), the server will be started with the given nickname.
  If no configuration with the given nickname is found, and the action is not
- 'start' (or an action behaving like 'start', it is an error. If a nickname is
+ 'start' (or an action behaving like 'start'), it is an error. If a nickname is
  not specified for a server, its nickname will be its process id.
 
 2.3.10 -p pid
