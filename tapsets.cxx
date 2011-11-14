@@ -5395,7 +5395,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
       // test for OFFSET(REGISTER) where OFFSET is +-N+-N+-N
       // NB: Despite PR11821, we can use regnames here, since the parentheses
       // make things unambiguous. (Note: gdb/stap-probe.c also parses this)
-      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-]?[0-9]*)([+-]?[0-9]*)[(](")+regnames+string(")[)]$"), matches);
+      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-][0-9]*)([+-][0-9]*)[(](")+regnames+string(")[)]$"), matches);
       if (! rc)
         {
           string regname;
@@ -5466,7 +5466,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
       // test for OFFSET(BASE_REGISTER,INDEX_REGISTER[,SCALE]) where OFFSET is +-N+-N+-N
       // NB: Despite PR11821, we can use regnames here, since the parentheses
       // make things unambiguous. (Note: gdb/stap-probe.c also parses this)
-      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-]?[0-9]*)([+-]?[0-9]*)[(](")+regnames+string("),(")+regnames+string(")(,[1248])?[)]$"), matches);
+      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-][0-9]*)([+-][0-9]*)[(](")+regnames+string("),(")+regnames+string(")(,[1248])?[)]$"), matches);
       if (! rc)
         {
           string baseregname;
