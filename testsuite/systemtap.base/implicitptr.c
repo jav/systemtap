@@ -23,7 +23,7 @@ struct S
 
 int u[6];
 
-static inline void
+static inline int
 add (struct S *a, struct S *b, int c)
 {
   *a->x += *b->x;
@@ -35,21 +35,23 @@ add (struct S *a, struct S *b, int c)
   a = b;
  l2: MARK (add_l2);
   u[c + 2]++;
+  return *a->x + *b->x + a->y + b->y;
 }
 
 static int
 bar (int i)
 {
   int j = i;
+  int k;
   struct S p[2] = { { &i, i * 2 }, { &j, j * 2 } };
  l1: MARK (bar_l1);
-  add (&p[0], &p[1], 0);
+  k = add (&p[0], &p[1], 0);
  l2: MARK (bar_l2);
   p[0].x = &j;
   p[1].x = &i;
-  add (&p[0], &p[1], 3);
+  k += add (&p[0], &p[1], 3);
  l3: MARK (bar_l3);
-  return i + j;
+  return i + j + k;
 }
 
 int x = 22;
