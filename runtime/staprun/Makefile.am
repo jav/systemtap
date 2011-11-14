@@ -14,13 +14,13 @@ AM_LDFLAGS = @PIELDFLAGS@
 bin_PROGRAMS = staprun stap-merge stapsh
 pkglibexec_PROGRAMS = stapio
 
-staprun_SOURCES = staprun.c staprun_funcs.c ctl.c common.c
+staprun_SOURCES = staprun.c staprun_funcs.c ctl.c common.c ../../privilege.cxx ../../util.cxx
 staprun_CFLAGS = $(AM_CFLAGS) -DSINGLE_THREADED
 staprun_CXXFLAGS = $(AM_CXXFLAGS) -DSINGLE_THREADED
 staprun_LDADD = $(staprun_LIBS)
 
 if HAVE_NSS
-staprun_SOURCES += modverify.c ../../nsscommon.cxx ../../util.cxx
+staprun_SOURCES += modverify.c ../../nsscommon.cxx
 staprun_CFLAGS += $(nss_CFLAGS)
 staprun_CXXFLAGS += $(nss_CFLAGS)
 staprun_LDADD += $(nss_LIBS)

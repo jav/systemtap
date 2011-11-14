@@ -172,7 +172,6 @@ int insert_module(const char *path, const char *special_options,
 		  char **options, assert_permissions_func apf);
 
 int rename_module(void* module_file, const __off_t st_size);
-gid_t get_gid (const char *group_name);
 
 int mountfs(void);
 void start_symbol_thread(void);

@@ -33,6 +33,7 @@
 typedef int (*check_module_path_func)(const char *module_path, int module_fd);
 
 extern long init_module(void *, unsigned long, const char *);
+extern gid_t get_gid (const char *group_name);
 
 /* Module errors get translated. */
 const char *moderror(int err)
@@ -555,17 +556,6 @@ check_uprobes_module_path (
 )
 {
   return 0;
-}
-
-/* Obtain the gid of the given group. */
-gid_t get_gid (const char *group_name)
-{
-  struct group *stgr;
-  /* If we couldn't find the group, return an invalid number. */
-  stgr = getgrnam(group_name);
-  if (stgr == NULL)
-    return (gid_t)-1;
-  return stgr->gr_gid;
 }
 
 /*

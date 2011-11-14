@@ -26,7 +26,7 @@ extern "C" {
 #include <elfutils/libdw.h>
 }
 
-#include "runtime/staprun/privilege.h"
+#include "privilege.h"
 
 #if ENABLE_NLS
 #define _(string) gettext(string)
