@@ -571,6 +571,41 @@ keywords: io scheduler backtrace
   # stap sleepingBeauties.stp -c "sleep 0.2"
 
 
+virtualization/qemu_io.stp - Tally the number of user-space qemu io on each io port
+keywords: virtualization qemu kvm io
+
+  The qemu_io.stp script tallies the number of times each of the IO
+  port on the guest virtual machines is touched by a input or output
+  operation. When the script exits, it prints a count of the number of
+  times each IO port read and written.
+
+  # stap qemu_io.stp -c "sleep 0.2"
+
+
+= KVM =
+
+virtualization/qemu_count.stp - Tally the number of user-space qemu events
+keywords: virtualization qemu kvm
+
+  The qemu_count.stp script tallies the number of times each of the
+  user-space qemu probepoints is encountered. When the script exits, it
+  prints a list of the number of times each user-space qemu probepoint
+  is encountered.
+
+  # stap qemu_count.stp -c "sleep 0.2"
+
+
+virtualization/qemu_io.stp - Tally the number of user-space qemu io on each io port
+keywords: virtualization qemu kvm io
+
+  The qemu_io.stp script tallies the number of times each of the IO
+  port on the guest virtual machines is touched by a input or output
+  operation. When the script exits, it prints a count of the number of
+  times each IO port read and written.
+
+  # stap qemu_io.stp -c "sleep 0.2"
+
+
 = LOCKING =
 
 locks/bkl.stp - Tracing Contention on Big Kernel Lock (BKL)
@@ -1257,6 +1292,30 @@ keywords: profiling
   # stap topsys.stp -c "sleep 0.2"
 
 
+= QEMU =
+
+virtualization/qemu_count.stp - Tally the number of user-space qemu events
+keywords: virtualization qemu kvm
+
+  The qemu_count.stp script tallies the number of times each of the
+  user-space qemu probepoints is encountered. When the script exits, it
+  prints a list of the number of times each user-space qemu probepoint
+  is encountered.
+
+  # stap qemu_count.stp -c "sleep 0.2"
+
+
+virtualization/qemu_io.stp - Tally the number of user-space qemu io on each io port
+keywords: virtualization qemu kvm io
+
+  The qemu_io.stp script tallies the number of times each of the IO
+  port on the guest virtual machines is touched by a input or output
+  operation. When the script exits, it prints a count of the number of
+  times each IO port read and written.
+
+  # stap qemu_io.stp -c "sleep 0.2"
+
+
 = READ =
 
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
@@ -1879,6 +1938,30 @@ keywords: disk cpu use graph
   and CPU USE.
 
   # stap graphs.stp -c "sleep 0.2"
+
+
+= VIRTUALIZATION =
+
+virtualization/qemu_count.stp - Tally the number of user-space qemu events
+keywords: virtualization qemu kvm
+
+  The qemu_count.stp script tallies the number of times each of the
+  user-space qemu probepoints is encountered. When the script exits, it
+  prints a list of the number of times each user-space qemu probepoint
+  is encountered.
+
+  # stap qemu_count.stp -c "sleep 0.2"
+
+
+virtualization/qemu_io.stp - Tally the number of user-space qemu io on each io port
+keywords: virtualization qemu kvm io
+
+  The qemu_io.stp script tallies the number of times each of the IO
+  port on the guest virtual machines is touched by a input or output
+  operation. When the script exits, it prints a count of the number of
+  times each IO port read and written.
+
+  # stap qemu_io.stp -c "sleep 0.2"
 
 
 = WALL-CLOCK =
