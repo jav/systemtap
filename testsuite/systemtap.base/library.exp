@@ -8,14 +8,14 @@ proc cleanup_handler { verbose } {
 }
 
 proc error_handler { res message } {
-global verbose
+global verbose test
 if { $res == 0 } {
     verbose $message 2
-    fail $message
+    fail "$test $message"
     cleanup_handler $verbose
     return 1
 } else {
-    pass $message
+    pass "$test $message"
     return 0
 }
 }
