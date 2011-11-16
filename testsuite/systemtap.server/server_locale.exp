@@ -1,7 +1,7 @@
 ########### Startup Server #############
 # Don't attempt these tests if the client/server are not available
 if {! [setup_server]} then {
-    untested "Server Tests"
+    untested "Server Locale Tests"
     return
 }
 ######################################################
@@ -12,6 +12,7 @@ if {! [setup_server]} then {
 # Should not allow embedded '\n' in Environment Variables
 set test "Embedded '\\n' in Env Vars"
 
+set skip 0
 set failed 1
 set cmd [concat env \"LANG=en_US\\n.utf8\" stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} $use_server]
 send_log "executing: $cmd\n"
@@ -25,7 +26,15 @@ expect {
 	-re {^Hello\r\n} {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -48,6 +57,7 @@ if {$failed != 0} {
 # There are many disallowed chars, but let's just try one
 set test "Embedded ';' in Env Vars"
 
+set skip 0
 set failed 1
 set cmd [concat env \"LANG=en_US\;.utf8\" stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} $use_server]
 send_log "executing: $cmd\n"
@@ -62,7 +72,15 @@ expect {
 	-re {^Hello\r\n} {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1
 	}
 	timeout {
@@ -84,6 +102,7 @@ if {$failed != 0} {
 # Should allow "_.-@=" in Environment Variables
 set test "Use of '_.-@=' in Env Vars"
 
+set skip 0
 set failed 0
 set cmd [concat env LANG=en_US.utf-8@toronto=test stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} $use_server]
 send_log "executing: $cmd\n"
@@ -93,7 +112,15 @@ expect {
 	-re "^Hello\r\n" {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -118,6 +145,7 @@ if {$failed != 0} {
 #Run a basic execution test in French. Should return only "Bonjour".
 set test "LANG Proper Syntax Test (French)"
 
+set skip 0
 set failed 0
 set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} $use_server]
 send_log "executing: $cmd\n"
@@ -127,7 +155,15 @@ expect {
 	-re "^Bonjour\r\n" {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -148,6 +184,7 @@ if {$failed != 0} {
 #Run a basic execution test in English. Should return only "Hello".
 set test "LANG Proper Syntax Test (English)"
 
+set skip 0
 set failed 0
 set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} $use_server]
 send_log "executing: $cmd\n"
@@ -157,7 +194,15 @@ expect {
 	-re "^Hello\r\n" {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -177,6 +222,7 @@ if {$failed != 0} {
 # Run an execution test with a syntax error, in French.
 set test "LANG Bad Syntax Test (French)"
 
+set skip 0
 set failed 0
 set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} $use_server]
 send_log "executing: $cmd\n"
@@ -210,7 +256,15 @@ expect {
 	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1		
 	}
 	timeout { 
@@ -230,6 +284,7 @@ if {$failed != 0} {
 # Run an execution test with a syntax error, in English.
 set test "LANG Bad Syntax Test (English)"
 
+set skip 0
 set failed 0
 set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} $use_server]
 send_log "executing: $cmd\n"
@@ -260,7 +315,15 @@ expect {
 	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1		
 	}
 	timeout { 
@@ -280,6 +343,7 @@ if {$failed != 0} {
 #Run a basic execution test in French with -k.
 set test "LANG Proper Syntax Test (French, -k)"
 
+set skip 0
 set failed 0
 set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} $use_server -k]
 send_log "executing: $cmd\n"
@@ -292,7 +356,15 @@ expect {
 	-re {^Conservation du répertoire temporaire "/tmp/stap......"\r\n} {
 		exp_continue	
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -312,6 +384,7 @@ if {$failed != 0} {
 #Run a basic execution test in English with -k.
 set test "LANG Proper Syntax Test (English, -k)"
 
+set skip 0
 set failed 0
 set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} $use_server -k]
 send_log "executing: $cmd\n"
@@ -324,7 +397,15 @@ expect {
 	-re {^Keeping temporary directory "/tmp/stap......"\r\n} {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -344,6 +425,7 @@ if {$failed != 0} {
 # Run an execution test with a syntax error, in French, with -k.
 set test "LANG Bad Syntax Test (French, -k)"
 
+set skip 0
 set failed 0
 set cmd [concat env LANG=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} $use_server -k]
 send_log "executing: $cmd\n"
@@ -382,7 +464,15 @@ expect {
 	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -402,6 +492,7 @@ if {$failed != 0} {
 # Run an execution test with a syntax error, in English, with -k.
 set test "LANG Bad Syntax Test (English, -k)"
 
+set skip 0
 set failed 0
 set cmd [concat env LANG=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} $use_server -k]
 send_log "executing: $cmd\n"
@@ -435,7 +526,15 @@ expect {
 	-re {^Keeping temporary directory "/tmp/stap......"\r\n} {
 		exp_continue		
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1		
 	}
 	timeout { 
@@ -459,6 +558,7 @@ if {$failed != 0} {
 #Run a basic execution test in French. Should return only "Bonjour".
 set test "LC_ALL Proper Syntax Test (French)"
 
+set skip 0
 set failed 0
 set cmd [concat env LC_ALL=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} $use_server]
 send_log "executing: $cmd\n"
@@ -468,7 +568,15 @@ expect {
 	-re "^Bonjour\r\n" {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -488,6 +596,7 @@ if {$failed != 0} {
 #Run a basic execution test in English. Should return only "Hello".
 set test "LC_ALL Proper Syntax Test (English)"
 
+set skip 0
 set failed 0
 set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} $use_server]
 send_log "executing: $cmd\n"
@@ -497,7 +606,15 @@ expect {
 	-re "^Hello\r\n" {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -550,7 +667,15 @@ expect {
 	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1		
 	}
 	timeout { 
@@ -570,6 +695,7 @@ if {$failed != 0} {
 # Run an execution test with a syntax error, in English.
 set test "LC_ALL Bad Syntax Test (English)"
 
+set skip 0
 set failed 0
 set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} $use_server]
 send_log "executing: $cmd\n"
@@ -600,7 +726,15 @@ expect {
 	-re {^Passes: via server failed.  Try again with another '-v' option.\r\n} {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1		
 	}
 	timeout { 
@@ -620,6 +754,7 @@ if {$failed != 0} {
 #Run a basic execution test in French with -k.
 set test "LC_ALL Proper Syntax Test (French, -k)"
 
+set skip 0
 set failed 0
 set cmd [concat env LC_ALL=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\\n\"\)\; exit\(\)\;\}\} $use_server -k]
 send_log "executing: $cmd\n"
@@ -632,7 +767,15 @@ expect {
 	-re {^Conservation du répertoire temporaire "/tmp/stap......"\r\n} {
 		exp_continue	
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -653,6 +796,7 @@ if {$failed != 0} {
 #Run a basic execution test in English with -k.
 set test "LC_ALL Proper Syntax Test (English, -k)"
 
+set skip 0
 set failed 0
 set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\\n\"\)\; exit\(\)\;\}\} $use_server -k]
 send_log "executing: $cmd\n"
@@ -665,7 +809,15 @@ expect {
 	-re {^Keeping temporary directory "/tmp/stap......"\r\n} {
 		exp_continue
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -685,6 +837,7 @@ if {$failed != 0} {
 # Run an execution test with a syntax error, in French, with -k.
 set test "LC_ALL Bad Syntax Test (French, -k)"
 
+set skip 0
 set failed 0
 set cmd [concat env LC_ALL=fr_FR.utf8 stap -e \{probe begin\{printf\(\"Bonjour\)\; exit\(\)\;\}\} $use_server -k]
 send_log "executing: $cmd\n"
@@ -723,7 +876,15 @@ expect {
 	-re {^Conservation du répertoire temporaire "/tmp/stap......"\r\n} {
 		exp_continue	
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1	
 	}
 	timeout { 
@@ -744,6 +905,7 @@ if {$failed != 0} {
 # Run an execution test with a syntax error, in English, with -k.
 set test "LC_ALL Bad Syntax Test (English, -k)"
 
+set skip 0
 set failed 0
 set cmd [concat env LC_ALL=en_US.utf8 stap -e \{probe begin\{printf\(\"Hello\)\; exit\(\)\;\}\} $use_server -k]
 send_log "executing: $cmd\n"
@@ -777,7 +939,15 @@ expect {
 	-re {^Keeping temporary directory "/tmp/stap......"\r\n} {
 		exp_continue		
 	}
+        -re {^WARNING: The domain name, [^,]*, does not match the DNS name\(s\) on the server certificate:\r\n} {
+		set skip 1
+		exp_continue
+	}
 	-re {^[^\r\n]*\r\n} {
+		if {$skip} {
+			set skip [expr $skip - 1]
+			exp_continue
+		}
 		set failed 1		
 	}
 	timeout { 

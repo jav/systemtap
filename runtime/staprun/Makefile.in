@@ -36,7 +36,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = staprun$(EXEEXT) stap-merge$(EXEEXT) stapsh$(EXEEXT)
 pkglibexec_PROGRAMS = stapio$(EXEEXT)
-@HAVE_NSS_TRUE@am__append_1 = modverify.c ../../nsscommon.cxx ../../util.cxx
+@HAVE_NSS_TRUE@am__append_1 = modverify.c ../../nsscommon.cxx
 @HAVE_NSS_TRUE@am__append_2 = $(nss_CFLAGS)
 @HAVE_NSS_TRUE@am__append_3 = $(nss_CFLAGS)
 @HAVE_NSS_TRUE@am__append_4 = $(nss_LIBS)
@@ -69,11 +69,11 @@ am_stapio_OBJECTS = stapio.$(OBJEXT) mainloop.$(OBJEXT) \
 stapio_OBJECTS = $(am_stapio_OBJECTS)
 stapio_DEPENDENCIES =
 @HAVE_NSS_TRUE@am__objects_1 = staprun-modverify.$(OBJEXT) \
-@HAVE_NSS_TRUE@	staprun-nsscommon.$(OBJEXT) \
-@HAVE_NSS_TRUE@	staprun-util.$(OBJEXT)
+@HAVE_NSS_TRUE@	staprun-nsscommon.$(OBJEXT)
 am_staprun_OBJECTS = staprun-staprun.$(OBJEXT) \
 	staprun-staprun_funcs.$(OBJEXT) staprun-ctl.$(OBJEXT) \
-	staprun-common.$(OBJEXT) $(am__objects_1)
+	staprun-common.$(OBJEXT) staprun-privilege.$(OBJEXT) \
+	staprun-util.$(OBJEXT) $(am__objects_1)
 staprun_OBJECTS = $(am_staprun_OBJECTS)
 am__DEPENDENCIES_1 =
 @HAVE_NSS_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
@@ -259,7 +259,7 @@ AM_CPPFLAGS = -D_GNU_SOURCE -I$(srcdir)/../../includes \
 	-DPKGLIBDIR='"$(pkglibexecdir)"' -DLOCALEDIR='"$(localedir)"'
 AM_LDFLAGS = @PIELDFLAGS@
 staprun_SOURCES = staprun.c staprun_funcs.c ctl.c common.c \
-	$(am__append_1)
+	../../privilege.cxx ../../util.cxx $(am__append_1)
 staprun_CFLAGS = $(AM_CFLAGS) -DSINGLE_THREADED $(am__append_2)
 staprun_CXXFLAGS = $(AM_CXXFLAGS) -DSINGLE_THREADED $(am__append_3)
 staprun_LDADD = $(staprun_LIBS) $(am__append_4)
@@ -436,6 +436,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-ctl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-modverify.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-nsscommon.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-privilege.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-staprun.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-staprun_funcs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-util.Po@am__quote@
@@ -585,21 +586,21 @@ stapsh-stapsh.obj: stapsh.c
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
-staprun-nsscommon.o: ../../nsscommon.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -MT staprun-nsscommon.o -MD -MP -MF $(DEPDIR)/staprun-nsscommon.Tpo -c -o staprun-nsscommon.o `test -f '../../nsscommon.cxx' || echo '$(srcdir)/'`../../nsscommon.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/staprun-nsscommon.Tpo $(DEPDIR)/staprun-nsscommon.Po
+staprun-privilege.o: ../../privilege.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -MT staprun-privilege.o -MD -MP -MF $(DEPDIR)/staprun-privilege.Tpo -c -o staprun-privilege.o `test -f '../../privilege.cxx' || echo '$(srcdir)/'`../../privilege.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/staprun-privilege.Tpo $(DEPDIR)/staprun-privilege.Po
 @am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../nsscommon.cxx' object='staprun-nsscommon.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../privilege.cxx' object='staprun-privilege.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -c -o staprun-nsscommon.o `test -f '../../nsscommon.cxx' || echo '$(srcdir)/'`../../nsscommon.cxx
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -c -o staprun-privilege.o `test -f '../../privilege.cxx' || echo '$(srcdir)/'`../../privilege.cxx
 
-staprun-nsscommon.obj: ../../nsscommon.cxx
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -MT staprun-nsscommon.obj -MD -MP -MF $(DEPDIR)/staprun-nsscommon.Tpo -c -o staprun-nsscommon.obj `if test -f '../../nsscommon.cxx'; then $(CYGPATH_W) '../../nsscommon.cxx'; else $(CYGPATH_W) '$(srcdir)/../../nsscommon.cxx'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/staprun-nsscommon.Tpo $(DEPDIR)/staprun-nsscommon.Po
+staprun-privilege.obj: ../../privilege.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -MT staprun-privilege.obj -MD -MP -MF $(DEPDIR)/staprun-privilege.Tpo -c -o staprun-privilege.obj `if test -f '../../privilege.cxx'; then $(CYGPATH_W) '../../privilege.cxx'; else $(CYGPATH_W) '$(srcdir)/../../privilege.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/staprun-privilege.Tpo $(DEPDIR)/staprun-privilege.Po
 @am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../nsscommon.cxx' object='staprun-nsscommon.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../privilege.cxx' object='staprun-privilege.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -c -o staprun-nsscommon.obj `if test -f '../../nsscommon.cxx'; then $(CYGPATH_W) '../../nsscommon.cxx'; else $(CYGPATH_W) '$(srcdir)/../../nsscommon.cxx'; fi`
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -c -o staprun-privilege.obj `if test -f '../../privilege.cxx'; then $(CYGPATH_W) '../../privilege.cxx'; else $(CYGPATH_W) '$(srcdir)/../../privilege.cxx'; fi`
 
 staprun-util.o: ../../util.cxx
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -MT staprun-util.o -MD -MP -MF $(DEPDIR)/staprun-util.Tpo -c -o staprun-util.o `test -f '../../util.cxx' || echo '$(srcdir)/'`../../util.cxx
@@ -616,6 +617,22 @@ staprun-util.obj: ../../util.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../util.cxx' object='staprun-util.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -c -o staprun-util.obj `if test -f '../../util.cxx'; then $(CYGPATH_W) '../../util.cxx'; else $(CYGPATH_W) '$(srcdir)/../../util.cxx'; fi`
+
+staprun-nsscommon.o: ../../nsscommon.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -MT staprun-nsscommon.o -MD -MP -MF $(DEPDIR)/staprun-nsscommon.Tpo -c -o staprun-nsscommon.o `test -f '../../nsscommon.cxx' || echo '$(srcdir)/'`../../nsscommon.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/staprun-nsscommon.Tpo $(DEPDIR)/staprun-nsscommon.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../nsscommon.cxx' object='staprun-nsscommon.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -c -o staprun-nsscommon.o `test -f '../../nsscommon.cxx' || echo '$(srcdir)/'`../../nsscommon.cxx
+
+staprun-nsscommon.obj: ../../nsscommon.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -MT staprun-nsscommon.obj -MD -MP -MF $(DEPDIR)/staprun-nsscommon.Tpo -c -o staprun-nsscommon.obj `if test -f '../../nsscommon.cxx'; then $(CYGPATH_W) '../../nsscommon.cxx'; else $(CYGPATH_W) '$(srcdir)/../../nsscommon.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/staprun-nsscommon.Tpo $(DEPDIR)/staprun-nsscommon.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../../nsscommon.cxx' object='staprun-nsscommon.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CXXFLAGS) $(CXXFLAGS) -c -o staprun-nsscommon.obj `if test -f '../../nsscommon.cxx'; then $(CYGPATH_W) '../../nsscommon.cxx'; else $(CYGPATH_W) '$(srcdir)/../../nsscommon.cxx'; fi`
 install-man8: $(man_MANS)
 	@$(NORMAL_INSTALL)
 	test -z "$(man8dir)" || $(MKDIR_P) "$(DESTDIR)$(man8dir)"

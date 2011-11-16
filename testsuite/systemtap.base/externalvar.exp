@@ -32,17 +32,31 @@ if { $res != "" } {
 set output {exevar_c = 42
 exevar_i = 2
 exevar_l = 21
+stat_exevar_c = 42
+stat_exevar_i = 2
+stat_exevar_l = 21
 exe_s->i = 1
 exe_s->l = 2
 exe_s->c = 3
+stat_exe_s->i = 1
+stat_exe_s->l = 2
+stat_exe_s->c = 3
 exe_s->s1 = 0x0
 exe_s == exe_s->s2
+stat_exe_s->s1 = 0x0
+stat_exe_s == exe_s->s2
 libvar = 42
+stat_libvar = 42
 lib_s->i = 1
 lib_s->l = 2
 lib_s->c = 3
+stat_lib_s->i = 1
+stat_lib_s->l = 2
+stat_lib_s->c = 3
 lib_s == lib_s->s1
-lib_s->s2 = 0x0}
+lib_s->s2 = 0x0
+stat_lib_s == lib_s->s1
+stat_lib_s->s2 = 0x0}
 
 # Got to run stap with both the exe and the libraries used as -d args.
 set cmd [concat stap -d $testso -d $testexe -c $testexe $testpath/$test.stp]

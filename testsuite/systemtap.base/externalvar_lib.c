@@ -23,6 +23,9 @@ struct libstruct
 int libvar;
 struct libstruct *lib_s;
 
+static int stat_libvar;
+static struct libstruct *stat_lib_s;
+
 static void
 lib_call ()
 {
@@ -33,11 +36,13 @@ void
 lib_main ()
 {
   libvar = 42;
+  stat_libvar = libvar;
   lib_s = (struct libstruct *) malloc(sizeof(struct libstruct));
   lib_s->i = 1;
   lib_s->l = 2;
   lib_s->c = 3;
   lib_s->s1 = lib_s;
   lib_s->s2 = NULL;
+  stat_lib_s = lib_s;
   lib_call ();
 }

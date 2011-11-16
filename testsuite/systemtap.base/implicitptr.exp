@@ -14,7 +14,7 @@ set listspec "process(\"$test.exe\").statement(\"foo@*:7\")"
 proc exe_uses_implicit_ptr {exe} {
   if {[catch {exec readelf --debug-dump=info,loc $exe | \
 		  egrep -q {implicit_pointer| f2 .*User defined location op}} \
-	   results options]} {
+	   results]} {
     verbose -log "exe_uses_implicit_ptr caught: $results"
     return 0
   } else {
@@ -55,8 +55,13 @@ foreach opt $opt_flags {
     pass "probe listing $test$opt (ijkl)"
   } else {
     verbose -log "listified: $listing"
-    fail "probe listing $test$opt"
-    set avail -1
+    if {[exe_uses_implicit_ptr $test.exe]} {
+      fail "probe listing $test$opt"
+      set avail -1
+    } else {
+      untested "probe listing $test$opt"
+      set avail 0
+    }
   }
 
   if {$avail} {

@@ -28,6 +28,11 @@ int exevar_i;
 long exevar_l;
 struct exestruct *exe_s;
 
+static char stat_exevar_c;
+static int stat_exevar_i;
+static long stat_exevar_l;
+static struct exestruct *stat_exe_s;
+
 static void
 main_call ()
 {
@@ -39,14 +44,18 @@ int
 main ()
 {
   exevar_c = 42;
+  stat_exevar_c = exevar_c;
   exevar_i = 2;
+  stat_exevar_i = exevar_i;
   exevar_l = 21;
+  stat_exevar_l = exevar_l;
   exe_s = (struct exestruct *) malloc(sizeof(struct exestruct));
   exe_s->i =1;
   exe_s->l =2;
   exe_s->c =3;
   exe_s->s1 = NULL;
   exe_s->s2 = exe_s;
+  stat_exe_s = exe_s;
   main_call ();
   return 0;
 }
