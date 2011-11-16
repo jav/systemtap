@@ -372,6 +372,15 @@ int __must_check utrace_set_events(struct task_struct *,
 int __must_check utrace_barrier(struct task_struct *,
 				struct utrace_engine *);
 
+/*
+ * Version number of the API defined in this file.  This will change
+ * whenever a tracing engine's code would need some updates to keep
+ * working.  We maintain this here for the benefit of tracing engine code
+ * that is developed concurrently with utrace API improvements before they
+ * are merged into the kernel, making LINUX_VERSION_CODE checks unwieldy.
+ */
+#define UTRACE_API_VERSION	20110727
+
 /* FIXME: do we need all these?  We certainly can't support:
  * SINGLESTEP, BLOCKSTEP, REPORT, INTERRUPT, STOP */
 /**
