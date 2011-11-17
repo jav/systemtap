@@ -1,6 +1,8 @@
 set test "cast-scope"
 set ::result_string {function direct: {._M_dataplus={._M_p="Hello World!"}}
 function cast: {._M_dataplus={._M_p="Hello World!"}}
+statement direct: {._M_dataplus={._M_p="Hello World!"}}
+statement cast: {._M_dataplus={._M_p="Hello World!"}}
 mark cast: {._M_dataplus={._M_p="Hello World!"}}
 }
 

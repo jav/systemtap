@@ -4,9 +4,17 @@ probe process("externalvar").function("main_call")
   printf("exevar_i = %d\n", $exevar_i);
   printf("exevar_l = %d\n", $exevar_l);
 
+  printf("stat_exevar_c = %d\n", $stat_exevar_c);
+  printf("stat_exevar_i = %d\n", $stat_exevar_i);
+  printf("stat_exevar_l = %d\n", $stat_exevar_l);
+
   printf("exe_s->i = %d\n", $exe_s->i);
   printf("exe_s->l = %d\n", $exe_s->l);
   printf("exe_s->c = %d\n", $exe_s->c);
+
+  printf("stat_exe_s->i = %d\n", $stat_exe_s->i);
+  printf("stat_exe_s->l = %d\n", $stat_exe_s->l);
+  printf("stat_exe_s->c = %d\n", $stat_exe_s->c);
 
   printf("exe_s->s1 = 0x%x\n", $exe_s->s1);
   if ($exe_s == $exe_s->s2)
@@ -17,15 +25,31 @@ probe process("externalvar").function("main_call")
     {
       printf("exe_s != exe_s->s2\n");
     }
+
+  printf("stat_exe_s->s1 = 0x%x\n", $stat_exe_s->s1);
+  if ($stat_exe_s == $exe_s->s2)
+    {
+      printf("stat_exe_s == exe_s->s2\n");
+    }
+  else
+    {
+      printf("stat_exe_s != exe_s->s2\n");
+    }
 }
 
 probe process("libexternalvar.so").function("lib_call")
 {
   printf("libvar = %d\n", $libvar);
 
+  printf("stat_libvar = %d\n", $stat_libvar);
+
   printf("lib_s->i = %d\n", $lib_s->i);
   printf("lib_s->l = %d\n", $lib_s->l);
   printf("lib_s->c = %d\n", $lib_s->c);
+
+  printf("stat_lib_s->i = %d\n", $stat_lib_s->i);
+  printf("stat_lib_s->l = %d\n", $stat_lib_s->l);
+  printf("stat_lib_s->c = %d\n", $stat_lib_s->c);
 
   if ($lib_s == $lib_s->s1)
     {
@@ -36,4 +60,14 @@ probe process("libexternalvar.so").function("lib_call")
       printf("lib_s != lib_s->s2\n");
     }
   printf("lib_s->s2 = 0x%x\n", $lib_s->s2);
+
+  if ($stat_lib_s == $lib_s->s1)
+    {
+      printf("stat_lib_s == lib_s->s1\n");
+    }
+  else
+    {
+      printf("stat_lib_s != lib_s->s2\n");
+    }
+  printf("stat_lib_s->s2 = 0x%x\n", $stat_lib_s->s2);
 }
