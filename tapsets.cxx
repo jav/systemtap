@@ -3943,6 +3943,17 @@ dwarf_derived_probe::join_group (systemtap_session& s)
 }
 
 
+void
+check_process_probe_kernel_support(systemtap_session& s)
+{
+  // If we've got utrace, we're good to go.
+  if (s.kernel_config["CONFIG_UTRACE"] == "y")
+    return;
+
+  throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE"));
+}
+
+
 dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                                          const string& filename,
                                          int line,
@@ -6648,16 +6659,11 @@ dwarf_builder::build(systemtap_session & sess,
       else
 	module_name = user_path; // canonicalize it
 
-      // FIXME: Hmm, how to test for the new utrace?
-#if 0
       // There is a similar check in pass 4 (buildrun), but it is
       // needed here too to make sure alternatives for optional
       // (? or !) process probes are disposed and/or alternatives
       // are selected.
-      if (sess.kernel_config["CONFIG_UTRACE"] != string("y"))
-
-        throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE"));
-#endif
+      check_process_probe_kernel_support(sess);
 
       // user-space target; we use one dwflpp instance per module name
       // (= program or shared library)

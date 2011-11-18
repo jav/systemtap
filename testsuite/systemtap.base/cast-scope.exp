@@ -1,6 +1,8 @@
 set test "cast-scope"
 set ::result_string {function direct: {._M_dataplus={._M_p="Hello World!"}}
 function cast: {._M_dataplus={._M_p="Hello World!"}}
+statement direct: {._M_dataplus={._M_p="Hello World!"}}
+statement cast: {._M_dataplus={._M_p="Hello World!"}}
 mark cast: {._M_dataplus={._M_p="Hello World!"}}
 }
 
@@ -18,7 +20,7 @@ if { $res != "" } {
 
 set stpfile "$srcdir/$subdir/$test.stp"
 if {[installtest_p] && [uprobes_p]} {
-  stap_run3 "$test" "$stpfile" $test.exe -c ./$test.exe
+  stap_run3 "$test" "$stpfile" -c ./$test.exe
 } else {
   untested "$test"
 }
