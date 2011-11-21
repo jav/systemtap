@@ -6,20 +6,6 @@
 #define STP_CAN_USE_INTERNAL_UTRACE
 #endif
 
-#define STP_TASK_FINDER2
-#ifdef STP_TASK_FINDER2
-#ifdef CONFIG_UTRACE
-/* We don't want any inclusion of <linux/utrace.h> */
-#undef CONFIG_UTRACE
-
-/* FIXME: We have to override this autconf since we just undefined
- * CONFIG_UTRACE and it would have failed. */
-#ifdef STAPCONF_UPROBE_GET_PC
-#undef STAPCONF_UPROBE_GET_PC
-#endif	/* STAPCONF_UPROBE_GET_PC */
-#endif	/* CONFIG_UTRACE */
-#endif	/* STP_TASK_FINDER2 */
-
 /*
  * Which utrace shall we use?
  * (1) Built-in kernel utrace (preferred), indicated by
