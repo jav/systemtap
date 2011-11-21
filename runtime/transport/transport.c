@@ -97,7 +97,11 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 #ifdef STAPCONF_VM_AREA
 		{ /* PR9740: workaround for kernel valloc bug. */
 			void *dummy;
+#ifdef STAPCONF_VM_AREA_PTE
+			dummy = alloc_vm_area (PAGE_SIZE, NULL);
+#else
 			dummy = alloc_vm_area (PAGE_SIZE);
+#endif
 			free_vm_area (dummy);
 		}
 #endif
