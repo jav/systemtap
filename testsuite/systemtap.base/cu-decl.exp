@@ -9,17 +9,23 @@ set script {
 }
 
 set sources "$srcdir/$subdir/$test-1.c $srcdir/$subdir/$test-2.c"
-set res [target_compile $sources $test executable "additional_flags=-g"]
-if { $res != "" } {
-    verbose "target_compile failed: $res" 2
-    fail "$test target compilation"
-    untested "$test"
-} else {
-    pass "$test target compilation"
+set flags "additional_flags=-g"
+for {set i 0} {$i < [all_compile_flags]} {incr i} {
+  set extra_flag [all_compile_flag $i]
+  set extra_name [all_compile_flag_name $i]
+
+  set res [target_compile $sources $test executable "$flags $extra_flag"]
+  if { $res != "" } {
+      verbose "target_compile failed: $res" 2
+      fail "$test-$extra_name target compilation"
+      untested "$test-$extra_name"
+  } else {
+      pass "$test-$extra_name target compilation"
+  }
+  if {![utrace_p]} {
+      untested "$test-$extra_name: no kernel utrace support found"
+  } else {
+      stap_compile $test-$extra_name 1 "{$script}"
+  }
+  catch {exec rm $test}
 }
-if {![utrace_p]} {
-    untested "$test : no kernel utrace support found"
-} else {
-    stap_compile $test 1 "{$script}"
-}
-catch {exec rm $test}

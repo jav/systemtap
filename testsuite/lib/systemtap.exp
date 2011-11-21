@@ -1,4 +1,5 @@
 load_lib site.exp
+load_lib "compile_flags.exp"
 
 proc installtest_p {} {
     global TOOL_OPTIONS
@@ -267,6 +268,45 @@ if {[catch {exec stap --skip-badvars -w -p2 -e {probe syscall.open {println (arg
     exit 1
 }
 
+# Make sure all development packages for the supported ABIs (-m64 -m32/-m31)
+# are installed by building a quick hello.c and hello.cxx program with both.
+set source "hello.c"
+set hello_file [open $source "w"]
+puts $hello_file "#include <stdio.h>"
+puts $hello_file "int main () { printf(\"Hello World!\"); return 0; }"
+close $hello_file
+for {set i 0} {$i < [arch_compile_flags]} {incr i} {
+  set flags "additional_flags=-g compiler=gcc [arch_compile_flag $i]"
+  set exe "hello-[arch_compile_flag_name $i]"
+  set result [target_compile $source $exe executable $flags]
+  if { $result != "" } {
+    puts "\n\n\n**** failed gcc [arch_compile_flag_name $i] smoke test:\n"
+    puts $result
+    puts "Please install libgcc and glibc development packages for [arch_compile_flag_name $i]\n"
+    puts "\n**** aborting testing.\n"
+    cleanup
+    exit 1
+  }
+}
+set source "hello.cxx"
+set hello_file [open $source "w"]
+puts $hello_file "#include <iostream>"
+puts $hello_file "using namespace std;"
+puts $hello_file "int main () { cout << \"Hello World!\" << endl; return 0; }"
+close $hello_file
+for {set i 0} {$i < [arch_compile_flags]} {incr i} {
+  set flags "additional_flags=-g compiler=g++ [arch_compile_flag $i]"
+  set exe "hello-[arch_compile_flag_name $i]"
+  set result [target_compile $source $exe executable $flags]
+  if { $result != "" } {
+    puts "\n\n\n**** failed g++ [arch_compile_flag_name $i] smoke test:\n"
+    puts $result
+    puts "Please install libstdc++-devel package for [arch_compile_flag_name $i]\n"
+    puts "\n**** aborting testing.\n"
+    cleanup
+    exit 1
+  }
+}
 
 proc systemtap_init {args} {}
 proc systemtap_version {} {}
