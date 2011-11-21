@@ -3950,7 +3950,27 @@ check_process_probe_kernel_support(systemtap_session& s)
   if (s.kernel_config["CONFIG_UTRACE"] == "y")
     return;
 
-  throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE"));
+  // We don't have utrace.  For process probes that aren't
+  // uprobes-based, we just need the task_finder.  The task_finder
+  // needs CONFIG_TRACEPOINTS and specific tracepoints (and perhaps
+  // some CONFIG_FTRACE support).  There are specific autoconf tests
+  // for its needs.
+  //
+  // We'll just require CONFIG_TRACEPOINTS here as a quick-and-dirty
+  // approximation.
+  if (! s.need_uprobes && s.kernel_config["CONFIG_TRACEPOINTS"] == "y")
+    return;
+
+  // For uprobes-based process probes, CONFIG_ARCH_SUPPORTS_UPROBES is
+  // defined by the builtin inode-uprobes, so it makes a reasonable
+  // indicator of the new API.
+  if (s.need_uprobes
+      && s.kernel_config["CONFIG_TRACEPOINTS"] == "y"
+      && s.kernel_config["CONFIG_ARCH_SUPPORTS_UPROBES"] == "y"
+      && s.kernel_config["CONFIG_UPROBES"] == "y")
+    return;
+
+  throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE or CONFIG_TRACEPOINTS/CONFIG_ARCH_SUPPORTS_UPROBES/CONFIG_UPROBES"));
 }
 
 
