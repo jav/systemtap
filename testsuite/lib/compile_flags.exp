@@ -1,0 +1,98 @@
+# Number of different compile flags for this arch.
+proc arch_compile_flags {} {
+  switch -regexp $::tcl_platform(machine) {
+    {^(x86_64|ppc64|s390x)$} { return 2 }
+    default { return 1}
+  }
+}
+
+# Additional compile flag to use for with target_compile.
+# Given INDEX starts at zero and should be smaller than the number
+# returned by arch_compile_flags.
+proc arch_compile_flag { INDEX } {
+  if { [arch_compile_flags] == 1 } {
+    return ""
+  }
+
+  switch $INDEX {
+    0 {
+      return "additional_flags=-m64"
+    }
+    1 {
+      switch -regexp $::tcl_platform(machine) {
+        {^s390x$} { return "additional_flags=-m31" }
+        default { return "additional_flags=-m32" }
+      }
+    }
+  }
+}
+
+# Name of compile flag to use in generated files or user/test messages.
+# Given INDEX starts at zero and should be smaller than the number
+# returned by arch_compile_flags.
+proc arch_compile_flag_name { INDEX } {
+  if { [arch_compile_flags] == 1 } {
+    switch -regexp $::tcl_platform(machine) {
+      {^ia64$} { return "m64" }
+      {^s390$} { return "m31" }
+      default { return "m32" }
+    }
+  }
+
+  switch $INDEX {
+    0 {
+      return "m64"
+    }
+    1 {
+      switch -regexp $::tcl_platform(machine) {
+        {^s390x$} { return "m31" }
+        default { return "m32" }
+      }
+    }
+  }
+}
+
+# Number of different combinations of compile flags.
+proc all_compile_flags {} {
+  return [expr 3 * [arch_compile_flags]]
+}
+
+
+# Additional compile flag to use for with target_compile.
+# Given INDEX starts at zero and should be smaller than the number
+# returned by all_compile_flags.
+proc all_compile_flag { INDEX } {
+  if { $INDEX < [arch_compile_flags] } {
+    set opt_flag ""
+    set arch_index $INDEX
+  } else {
+    if { $INDEX < [expr 2 * [arch_compile_flags]] } {
+      set opt_flag "additional_flags=-O"
+      set arch_index [expr $INDEX-[arch_compile_flags]]
+    } else {
+      set opt_flag "additional_flags=-O2"
+      set arch_index [expr $INDEX-(2*[arch_compile_flags])]
+    }
+  }
+  return "[arch_compile_flag $arch_index] $opt_flag"
+}
+
+# Name of compile flag to use in generated files or user/test messages.
+# Given INDEX starts at zero and should be smaller than the number
+# returned by arch_compile_flags.
+proc all_compile_flag_name { INDEX } {
+  if { $INDEX < [arch_compile_flags] } {
+    set opt_name ""
+    set arch_index $INDEX
+  } else {
+    if { $INDEX < [expr 2 * [arch_compile_flags]] } {
+      set opt_name "-O"
+      set arch_index [expr $INDEX-[arch_compile_flags]]
+    } else {
+      set opt_name "-O2"
+      set arch_index [expr $INDEX-(2*[arch_compile_flags])]
+    }
+  }
+  return "[arch_compile_flag_name $arch_index]$opt_name"
+}
+
