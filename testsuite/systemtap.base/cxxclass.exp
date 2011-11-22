@@ -35,7 +35,7 @@ for {set i 0} {$i < [all_compile_flags]} {incr i} {
   if {[installtest_p] && [uprobes_p]} {
     stap_run3 "$test-$extra_name" -w $srcdir/$subdir/$test.stp $test.exe -c ./$test.exe
   } else {
-    untested "$test-$extraname"
+    untested "$test-$extra_name"
   }
   catch {exec rm -f $test.exe}
 }
