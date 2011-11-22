@@ -1885,7 +1885,7 @@ dwflpp::die_entrypc (Dwarf_Die * die, Dwarf_Addr * addr)
     }
 
   if (sess.verbose > 2)
-    clog << _F("entry-pc lookup (%s dieoffset: %s) = %#" PRIx64 " (rc %d", lookup_method.c_str(), 
+    clog << _F("entry-pc lookup (%s dieoffset: %s) = %#" PRIx64 " (rc %d)", lookup_method.c_str(), 
                lex_cast_hex(dwarf_dieoffset(die)).c_str(), *addr, rc) << endl;
 
   return (rc == 0);
