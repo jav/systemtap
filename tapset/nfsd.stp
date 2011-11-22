@@ -1245,7 +1245,9 @@ probe nfsd.create.return = kernel.function("nfsd_create").return !,
  *  This probepoints is only called by nfsd3_proc_create and
  *  nfsd4_open when op_claim_type is NFS4_OPEN_CLAIM_NULL.
  */
-probe nfsd.createv3 = kernel.function("nfsd_create_v3") !,
+probe nfsd.createv3 = kernel.function("do_nfsd_create") !,
+                      module("nfsd").function("do_nfsd_create") !,
+                      kernel.function("nfsd_create_v3") !,
                       module("nfsd").function("nfsd_create_v3") ?
 {
 	client_ip = addr_from_rqst_str($rqstp)
@@ -1265,6 +1267,8 @@ probe nfsd.createv3 = kernel.function("nfsd_create_v3") !,
 }
 
 probe nfsd.createv3.return =
+		kernel.function("do_nfsd_create").return !,
+		module("nfsd").function("do_nfsd_create").return !,
 		kernel.function("nfsd_create_v3").return !,
 		module("nfsd").function("nfsd_create_v3").return ?
 {
