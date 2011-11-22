@@ -25,29 +25,44 @@ proc add_args { prototype } {
 }
 
 # Test valid probe types
-proc test_embedded_C { use_wrapper } {
+proc test_embedded_C { privilege } {
     global prototype_info test arch
     global k1 k2 k3
 
-    if { $use_wrapper } {
-	set with_wrapper " with wrapper"
-    } else {
-	set with_wrapper ""
-    }
+    set emsg2 "semantic error: embedded expression may not be used when --privilege=stapusr is specified"
 
+    # Test using --unprivileged and --privilege=stapusr. They should be equivalent
+    set stapusr_options [list --unprivileged --privilege=stapusr ]
+    # Test using no option and --privilege=stapdev. They should be equivalent
+    set stapdev_options [list "" --privilege=stapdev ]
+
+    set selector 0
     foreach info $prototype_info {
 	verbose -log "testing $info"
+
+	# Select the proper --privilege option
+	switch $privilege {
+	    stapusr {
+		set option [lindex $stapusr_options $selector]
+	    }
+	    stapdev {
+		set option [lindex $stapdev_options $selector]
+	    }
+	    default {
+		set option "--privilege=$privilege"
+	    }
+	}
 
 	# Separate the prototype and its status.
 	set tokens [split $info ";"]
 	set prototype [lindex $tokens 0]
 	set status [lindex $tokens 1]
 
-	# Deprecated function will be untested
+	# Deprecated functions will be untested
 	switch "$prototype" {
 	    "cpuid ()"
 	    {
-		untested "$test: $status: $prototype"
+		untested "$test: $status: $option: $prototype"
 		continue
 	    }
 	}
@@ -58,7 +73,7 @@ proc test_embedded_C { use_wrapper } {
 		"_ia64_pipe0()" -
 		"_ia64_pipe1()"
 		{
-		    untested "$test: $status: $prototype"
+		    untested "$test: $status: $option: $prototype"
 		    continue
 		}
 	    }
@@ -75,7 +90,7 @@ proc test_embedded_C { use_wrapper } {
 
 	# Test calling the function. If successful, the stap rc will be 0.
 	set call [add_args $prototype]
-	set cmd [concat [list stap -p2 --unprivileged -e "probe begin { $call }"]]
+	set cmd [concat [list stap -p2 $option -e "probe begin { $call }"]]
 	verbose -log "eval exec $cmd"
 	set rc [catch {eval exec $cmd} res_stap]
 	verbose -log $res_stap
@@ -90,10 +105,9 @@ proc test_embedded_C { use_wrapper } {
 	    set funcname "_signal_name"
 	}
 	set emsg1 "semantic error: function may not be used when --privilege=stapusr is specified: identifier '$funcname'"
-	set emsg2 "semantic error: embedded expression may not be used when --privilege=stapusr is specified"
 	set found [expr [regexp ".*$emsg1.*" $res_stap] || [regexp ".*$emsg2.*" $res_stap]]
 
-	# Evaluate the result based upon the function's status
+	# Evaluate the result based upon the function's status and the privilege level
 	switch $status {
 	    unprivileged -
 	    myproc-unprivileged -
@@ -104,20 +118,27 @@ proc test_embedded_C { use_wrapper } {
 	    }
 	    privileged
 	    {
-		# There should be a message excluding this function
-		set passed $found
+		if {$privilege == "stapusr"} {
+		    # There should be a message excluding this function
+		    set passed $found
+		} else {
+		    # There should be no message excluding this function
+		    set passed [expr ! $found]
+		}
 	    }
 	    default
 	    {
 		set passed 0
 	    }
 	}
-
+	
 	if {$passed} {
-	    pass "$test: $status: $prototype"
+	    pass "$test: $status: $option: $prototype"
 	} else {
-	    fail "$test: $status: $prototype"
+	    fail "$test: $status: $option: $prototype"
 	}
+
+	set selector [expr ($selector + 1) % 2]
     }
 }
 
@@ -142,4 +163,6 @@ if {[llength prototype_info] > 0} {
 }
 
 # Now run the tests
-test_embedded_C 0
+test_embedded_C stapusr
+test_embedded_C stapsys
+#test_embedded_C stapdev

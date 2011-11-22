@@ -84,11 +84,13 @@ static void _stp_exit(void);
 /* Translate user privilege mask to text. */
 static const char *privilege_to_text (int p) {
   if (STP_PRIVILEGE_CONTAINS (p, STP_PR_STAPDEV)) return "stapdev";
+  if (STP_PRIVILEGE_CONTAINS (p, STP_PR_STAPSYS)) return "stapsys";
   if (STP_PRIVILEGE_CONTAINS (p, STP_PR_STAPUSR)) return "stapusr";
   return "unknown";
 }
 
-#if STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
+#if STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV) || \
+    STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPSYS)
 #define assert_is_myproc() do {} while (0)
 #else
 #define assert_is_myproc() do { \

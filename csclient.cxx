@@ -2061,7 +2061,7 @@ default_server_spec (const systemtap_session &s)
   // otherwise if --privilege=X has been used, where X is not stapdev,
   //   the default is online,trusted,compatible,signer
   // otherwise
-  //   the default is online,compatible
+  //   the default is online,trusted,compatible
   //
   // Having said that,
   //   'online' and 'compatible' will only succeed if we have avahi

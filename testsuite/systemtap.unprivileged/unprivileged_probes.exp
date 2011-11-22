@@ -4,7 +4,7 @@ set exepath "foo"
 set sopath "libfoo.so"
 
 # These probe types should be acceptable for unprivileged users
-set valid_probe_types [list \
+set unrestricted_probe_types [list \
   "begin" \
   "begin(number)" \
   "end" \
@@ -122,7 +122,7 @@ set valid_probe_types [list \
 ]
 
 # These probes should not be acceptable to pass 2 for unprivileged users
-set invalid_probe_types [list \
+set restricted_probe_types [list \
   "process(string).insn" \
   "kernel.data(number).length(number).rw" \
   "kernel.data(number).length(number).write" \
@@ -270,17 +270,32 @@ proc extra_options { probe_type } {
     return ""
 }
 
-# Test valid probe types
-proc test_valid_probes { use_alias } {
-    global valid_probe_types tested test
+# Test unrestricted probe types
+proc test_unrestricted_probes { privilege } {
+    global unrestricted_probe_types tested allowed test
 
-    if { $use_alias } {
-	set with_alias " with alias"
-    } else {
-	set with_alias ""
-    }
+    # Test using --unprivileged and --privilege=stapusr. They should be equivalent
+    set stapusr_options [list --unprivileged --privilege=stapusr ]
+    # Test using no option and --privilege=stapdev. They should be equivalent
+    set stapdev_options [list "" --privilege=stapdev ]
+    # Alternate use of additional settings (e.g. use_alias)
+    set no_yes [list 0 1]
 
-    foreach probe_type $valid_probe_types {
+    set selector 0
+    foreach probe_type $unrestricted_probe_types {
+	switch $privilege {
+	    stapusr {
+		set option [lindex $stapusr_options $selector]
+	    }
+	    stapdev {
+		set option [lindex $stapdev_options $selector]
+	    }
+	    default {
+		set option "--privilege=$privilege"
+	    }
+	}
+	set use_alias [lindex $no_yes $selector]
+
 	# There are currently some known and expected failures
 	switch $probe_type {
 	    process.library(string).function(number).inline -
@@ -296,55 +311,79 @@ proc test_valid_probes { use_alias } {
 	set probe [add_args $probe_type]
 
 	if { $use_alias } {
-	    set cmd [concat [list stap -p2 --unprivileged -e "probe myalias = $probe { println (\"Hello\"); exit (); } probe myalias {}"] [extra_options $probe_type]]
+	    set with_alias " with alias"
+	    set cmd [concat [list stap -p2 $option -e "probe myalias = $probe { println (\"Hello\"); exit (); } probe myalias {}"] [extra_options $probe_type]]
 	} else {
-	    set cmd [concat [list stap -p2 --unprivileged -e "probe $probe { println (\"Hello\"); exit (); }"] [extra_options $probe_type]]
+	    set with_alias ""
+	    set cmd [concat [list stap -p2 $option -e "probe $probe { println (\"Hello\"); exit (); }"] [extra_options $probe_type]]
 	}
 
 	verbose -log "eval exec $cmd"
-	if {! [catch {eval exec $cmd} res_stap]} {
+	if {! [catch {eval exec $cmd} res_stap] == $allowed($probe_type,$privilege)} {
 	    verbose -log $res_stap
-	    pass "$test: $probe_type$with_alias"
+	    pass "$test: $option $probe_type$with_alias"
 	} else {
 	    verbose -log $res_stap
-	    fail "$test: $probe_type$with_alias"
+	    fail "$test: $option $probe_type$with_alias"
 	}
 
 	# Indicate that this probe type has been tested
 	set tested($probe_type) 1
+
+	set selector [expr ($selector + 1) % 2]
     }
 }
 
-# Test invalid probe types
-proc test_invalid_probes { use_alias } {
-    global invalid_probe_types tested test
-
-    if { $use_alias } {
-	set with_alias " with alias"
-    } else {
-	set with_alias ""
-    }
+# Test restricted probe types
+proc test_restricted_probes { privilege } {
+    global restricted_probe_types tested allowed test
 
     set error_regexp1 ".*semantic error: probe point is not allowed for --privilege=stapusr.*"
-    foreach probe_type $invalid_probe_types {
+
+    # Test using --unprivileged and --privilege=stapusr. They should be equivalent
+    set stapusr_options [list --unprivileged --privilege=stapusr ]
+    # Test using no option and --privilege=stapdev. They should be equivalent
+    set stapdev_options [list "" --privilege=stapdev ]
+    # Alternate use of additional settings (e.g. use_alias)
+    set no_yes [list 0 1]
+
+    set selector 0
+    foreach probe_type $restricted_probe_types {
+	switch $privilege {
+	    stapusr {
+		set option [lindex $stapusr_options $selector]
+	    }
+	    stapdev {
+		set option [lindex $stapdev_options $selector]
+	    }
+	    default {
+		set option "--privilege=$privilege"
+	    }
+	}
+	set use_alias [lindex $no_yes $selector]
+
 	# Test the probe type. Each should fail with the expected message.
 	set probe [add_args $probe_type]
 	if { $use_alias } {
-	    set cmd [list stap --unprivileged -p2 -e "probe myalias = $probe {} probe myalias {}" ]
+	    set with_alias " with alias"
+	    set cmd [list stap $option -p2 -e "probe myalias = $probe {} probe myalias {}" ]
 	} else {
-	    set cmd [list stap --unprivileged -p2 -e "probe $probe {}" ]
+	    set with_alias ""
+	    set cmd [list stap $option -p2 -e "probe $probe {}" ]
 	}
 	verbose -log "eval exec $cmd"
 	catch {eval exec $cmd} res_stap
 	verbose -log $res_stap
-	if {[regexp $error_regexp1 $res_stap]} {
-	    pass "$test: $probe_type$with_alias"
+	if {! [regexp $error_regexp1 $res_stap] == $allowed($probe_type,$privilege)} {
+	    pass "$test: $option $probe_type$with_alias"
 	} else {
-	    fail "$test: $probe_type$with_alias"
+	    fail "$test: $option $probe_type$with_alias"
 	}
 
 	# Indicate that this probe type has been tested
 	set tested($probe_type) 1
+
+	set selector [expr ($selector + 1) % 2]
     }
 }
 
@@ -412,11 +451,25 @@ if {[llength all_probe_types] > 0} {
     return
 }
 
+# Initialize the expected result of running each kind of probe type with various privilege levels.
+foreach probe_type $unrestricted_probe_types {
+    set allowed($probe_type,stapusr) 1
+    set allowed($probe_type,stapsys) 1
+    set allowed($probe_type,stapdev) 1
+}
+foreach probe_type $restricted_probe_types {
+    set allowed($probe_type,stapusr) 0
+    set allowed($probe_type,stapsys) 1
+    set allowed($probe_type,stapdev) 1
+}
+
 # Now run the tests
-test_valid_probes 0
-test_valid_probes 1
-test_invalid_probes 0
-test_invalid_probes 1
+test_unrestricted_probes stapusr
+test_unrestricted_probes stapsys
+#test_unrestricted_probes stapdev
+test_restricted_probes stapusr
+test_restricted_probes stapsys
+#test_restricted_probes stapdev
 
 # Generate a failure for each untested probe type
 foreach probe_type $all_probe_types {

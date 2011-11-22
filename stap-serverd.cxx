@@ -1186,6 +1186,11 @@ handleRequest (const string &requestDirName, const string &responseDirName)
 	      // privilege is already pr_stapdev
 	      break;
 	    }
+	  if (arg == "stapsys")
+	    {
+	      privilege = pr_stapsys;
+	      break;
+	    }
 	  if (arg == "stapusr")
 	    {
 	      privilege = pr_stapusr;

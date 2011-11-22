@@ -4322,7 +4322,8 @@ dwarf_derived_probe::register_function_variants(match_node * root,
     ->bind_privilege(privilege)
     ->bind(dw);
 
-  if (! pr_contains (privilege, pr_stapusr)) /* for process probes / uprobes, .maxactive() is unused. */
+  // For process probes / uprobes, .maxactive() is unused.
+  if (! pr_contains (privilege, pr_stapusr))
     {
       root->bind(TOK_RETURN)
         ->bind_num(TOK_MAXACTIVE)->bind(dw);

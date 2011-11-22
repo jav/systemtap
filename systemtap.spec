@@ -318,6 +318,7 @@ getent group stap-server >/dev/null || groupadd -g 155 -r stap-server || groupad
 
 %pre runtime
 getent group stapdev >/dev/null || groupadd -r stapdev
+getent group stapsys >/dev/null || groupadd -r stapsys
 getent group stapusr >/dev/null || groupadd -r stapusr
 exit 0
 

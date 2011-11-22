@@ -5,8 +5,6 @@ set test "Invalid Server Client Arguments"
 set test_file $srcdir/systemtap.server/test.stp
 
 # Test invalid combinations.
-set error_regexp ".*(ERROR)|(You can't specify .* when --privilege=stapusr is specified).*"
-
 set invalid_options [list \
   "--unprivileged --client-options -B X=Y" \
   "--unprivileged --client-options -D X=Y" \
@@ -39,14 +37,39 @@ set invalid_options [list \
 ]
 
 foreach options $invalid_options {
+    set error_regexp ".*(ERROR)|(You can't specify .* when --privilege=stapusr is specified).*"
     verbose -log "eval exec stap $options"
     catch {eval exec stap $test_file -p1 $options} res_stap
     verbose -log $res_stap
-
     if {[regexp $error_regexp $res_stap]} {
 	pass "$test: $options"
     } else {
 	fail "$test: $options"
+    }
+
+    # We should get the same result substituting --unprivileged with --privilege=stapusr
+    if {[regsub -all {\-\-unprivileged} $options "--privilege=stapusr" options]} {
+	verbose -log "eval exec stap $options"
+	catch {eval exec stap $test_file -p1 $options} res_stap
+	verbose -log $res_stap
+	if {[regexp $error_regexp $res_stap]} {
+	    pass "$test: $options"
+	} else {
+	    fail "$test: $options"
+	}
+
+	# We should get the same result substituting --privilege=stapusr with --privilege=stapsys
+	if {[regsub -all {\-\-privilege=stapusr} $options "--privilege=stapsys" options]} {
+	    set error_regexp ".*(ERROR)|(You can't specify .* when --privilege=stapsys is specified).*"
+	    verbose -log "eval exec stap $options"
+	    catch {eval exec stap $test_file -p1 $options} res_stap
+	    verbose -log $res_stap
+	    if {[regexp $error_regexp $res_stap]} {
+		pass "$test: $options"
+	    } else {
+		fail "$test: $options"
+	    }
+	}
     }
 }
 
@@ -119,4 +142,14 @@ set valid_options [list \
 set ::result_string "$no_error_result"
 foreach options $valid_options {
     eval stap_run_exact {"$test: $options"} $test_file -p1 $options
+
+    # We should get the same result substituting --unprivileged with --privilege=stapusr
+    if {[regsub -all {\-\-unprivileged} $options "--privilege=stapusr" options]} {
+	eval stap_run_exact {"$test: $options"} $test_file -p1 $options
+
+	# We should get the same result substituting --privilege=stapusr with --privilege=stapsys
+	if {[regsub -all {\-\-privilege=stapusr} $options "--privilege=stapsys" options]} {
+	    eval stap_run_exact {"$test: $options"} $test_file -p1 $options
+	}
+    }
 }

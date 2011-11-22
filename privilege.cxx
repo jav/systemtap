@@ -30,6 +30,9 @@ privilege_t pr_next (privilege_t p)
   switch (p)
     {
     case pr_stapusr:
+      p = pr_stapsys;
+      break;
+    case pr_stapsys:
       p = pr_stapdev;
       break;
     case pr_stapdev:
@@ -46,6 +49,8 @@ const char *pr_name (privilege_t p)
     {
     case pr_stapusr:
       return "stapusr";
+    case pr_stapsys:
+      return "stapsys";
     case pr_stapdev:
       return "stapdev";
     default:
@@ -63,10 +68,6 @@ int pr_contains (privilege_t actual, privilege_t required)
    is determined by the user's group memberships. */
 privilege_t get_privilege_credentials (void)
 {
-  gid_t gid, gidlist[NGROUPS_MAX];
-  int i, ngids;
-  gid_t stapdev_gid, stapusr_gid;
-
   static privilege_t stp_privilege = pr_unknown;
 
   /* Have we already computed this? */
@@ -80,39 +81,44 @@ privilege_t get_privilege_credentials (void)
       return stp_privilege;
     }
 
-  /* These are the gids of the groups we are interested in. */
-  stapdev_gid = get_gid("stapdev");
-  stapusr_gid = get_gid("stapusr");
+  /* The privilege credentials will be represented by a bit mask of the user's group memberships.
+     Start with an empty mask. */
+  stp_privilege = pr_none;
 
-  /* If neither group was found, then the group memberships are irrelevant.  */
-  if (stapdev_gid == (gid_t)-1 && stapusr_gid == (gid_t)-1)
-    {
-      stp_privilege = pr_none;
-      return stp_privilege;
-    }
+  /* These are the gids of the groups we are interested in. */
+  gid_t stapdev_gid = get_gid("stapdev");
+  gid_t stapsys_gid = get_gid("stapsys");
+  gid_t stapusr_gid = get_gid("stapusr");
+
+  /* If none of the groups was found, then the group memberships are irrelevant.  */
+  if (stapdev_gid == (gid_t)-1 && stapsys_gid == (gid_t)-1 && stapusr_gid == (gid_t)-1)
+    return stp_privilege;
 
   /* Obtain a list of the user's groups. */
-  ngids = getgroups(NGROUPS_MAX, gidlist);
+  gid_t gidlist[NGROUPS_MAX];
+  int ngids = getgroups(NGROUPS_MAX, gidlist);
   if (ngids < 0)
     {
       cerr << _("Unable to retrieve group list") << endl;
-      stp_privilege = pr_none;
       return stp_privilege;
     }
 
-  /* The privilege credentials will be represented by a bit mask of the user's group memberships.
-     Start with an empty mask. */
   stp_privilege = pr_none;
 
   /* According to the getgroups() man page, getgroups() may not
    * return the effective gid, so examine the effective gid first first followed by the group
    * gids obtained by getgroups. */
+  int i;
+  gid_t gid;
   for (i = -1, gid = getegid(); i < ngids; ++i, gid = gidlist[i])
     {
       if (gid == stapdev_gid)
-	stp_privilege = privilege_t (stp_privilege | pr_stapdev);
+	stp_privilege = privilege_t (stp_privilege | pr_stapdev | pr_stapsys | pr_stapusr);
+      else if (gid == stapsys_gid)
+	stp_privilege = privilege_t (stp_privilege | pr_stapsys | pr_stapusr);
       else if (gid == stapusr_gid)
 	stp_privilege = privilege_t (stp_privilege | pr_stapusr);
+
       if (stp_privilege == pr_all)
 	break;
     }
