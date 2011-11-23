@@ -1229,37 +1229,38 @@ systemtap_session::check_options (int argc, char * const argv [])
     {
       // What is the user's privilege level?
       privilege_t credentials = get_privilege_credentials ();
+      if (! pr_contains (credentials, privilege)) {
+	{
+	  // We do not have the privilege credentials specified on the command line. Lower
+	  // the privilege level to match our credentials.
+	  if (pr_contains (credentials, pr_stapsys))
+	    {
+	      if (perpass_verbose[0] > 1)
+		cerr << _("Using --privilege=stapsys for member of the group stapsys") << endl;
+	      privilege = pr_stapsys;
+	      server_args.push_back ("--privilege=stapsys");
+	    }
+	  else if (pr_contains (credentials, pr_stapusr))
+	    {
+	      if (perpass_verbose[0] > 1)
+		cerr << _("Using --privilege=stapusr for member of the group stapusr") << endl;
+	      privilege = pr_stapusr;
+	      server_args.push_back ("--privilege=stapusr");
+	    }
+	  else
+	    {
+	      // Completely unprivileged user.
+	      cerr << _("You are trying to run systemtap as a normal user.\n"
+			"You should either be root, or be part of "
+			"the group \"stapusr\" and possibly one of the groups \"stapsys\" or \"stapdev\".\n");
+	      usage (1); // does not return.
+	    }
+	}
+      }
+      // Add --use-server if not already specified and the user's (lack of) credentials require
+      // it for pass 5.
       if (! pr_contains (credentials, pr_stapdev))
 	{
-	  if (pr_contains (privilege, pr_stapdev))
-	    {
-	      // We are not a fully privileged user, but a lower --privilege has not been specified.
-	      // Determine the proper --privilege setting.
-	      if (pr_contains (credentials, pr_stapsys))
-		{
-		  if (perpass_verbose[0] > 1)
-		    cerr << _("Using --privilege=stapsys for member of the group stapsys") << endl;
-		  privilege = pr_stapsys;
-		  server_args.push_back ("--privilege=stapsys");
-		}
-	      else if (pr_contains (credentials, pr_stapusr))
-		{
-		  if (perpass_verbose[0] > 1)
-		    cerr << _("Using --privilege=stapusr for member of the group stapusr") << endl;
-		  privilege = pr_stapusr;
-		  server_args.push_back ("--privilege=stapusr");
-		}
-	      else
-		{
-		  // Completely unprivileged user.
-		  cerr << _("You are trying to run systemtap as a normal user.\n"
-			    "You should either be root, or be part of "
-			    "group \"stapusr\" and possibly one of the groups \"stapsys\" or \"stapdev\".\n");
-		  usage (1); // does not return.
-		}
-	    }
-	  // Add --use-server if not already specified. The user's (lack of) credentials require
-	  // it for pass 5.
 	  if (specified_servers.empty ())
 	    {
 	      if (perpass_verbose[0] > 1)

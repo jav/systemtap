@@ -1169,33 +1169,22 @@ handleRequest (const string &requestDirName, const string &responseDirName)
 
   string stapstdout = responseDirName + "/stdout";
 
-  /* Check for the privilege flag; we need this so that we can decide to sign the module. */
+  /* Check for the privilege flag; we need this so that we can decide to sign the module.
+     There may be more than one such flag. Obey the last one. */
   privilege_t privilege = pr_stapdev; // Until specified otherwise.
   for (i=0; i < stapargv.size (); i++)
     {
       if (stapargv[i] == "--unprivileged")
-	{
-	  privilege = pr_stapusr;
-	  break;
-	}
-      if (stapargv[i].substr (0, 12) == "--privilege=")
+	privilege = pr_stapusr;
+      else if (stapargv[i].substr (0, 12) == "--privilege=")
 	{
 	  string arg = stapargv[i].substr (12);
 	  if (arg == "stapdev")
-	    {
-	      // privilege is already pr_stapdev
-	      break;
-	    }
-	  if (arg == "stapsys")
-	    {
-	      privilege = pr_stapsys;
-	      break;
-	    }
-	  if (arg == "stapusr")
-	    {
-	      privilege = pr_stapusr;
-	      break;
-	    }
+	    privilege = pr_stapdev;
+	  else if (arg == "stapsys")
+	    privilege = pr_stapsys;
+	  else if (arg == "stapusr")
+	    privilege = pr_stapusr;
 	  // Not fatal, but generate a message.
 	  server_error (_F("Unknown argument to --privilege: %s", arg.c_str ()));
 	}

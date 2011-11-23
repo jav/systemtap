@@ -6536,7 +6536,7 @@ translate_pass (systemtap_session& s)
       // Generate a section containing a mask of the privilege levels required to load/run this
       // module.
       s.op->newline() << "int stp_required_privilege "
-		      << "__attribute__ ((section (\".stap_privilege\")))"
+		      << "__attribute__ ((section (\"" << STAP_PRIVILEGE_SECTION <<"\")))"
 		      << " = STP_PRIVILEGE;";
 
       s.op->newline() << "#ifndef MAXNESTING";
