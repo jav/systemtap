@@ -25,7 +25,7 @@ proc add_args { prototype } {
 }
 
 # Test valid probe types
-proc test_embedded_C { privilege } {
+proc test_embedded_C { privilege test_fraction } {
     global prototype_info test arch
     global k1 k2 k3
 
@@ -36,8 +36,10 @@ proc test_embedded_C { privilege } {
     # Test using no option and --privilege=stapdev. They should be equivalent
     set stapdev_options [list "" --privilege=stapdev ]
 
+    set test_num 0
     set selector 0
     foreach info $prototype_info {
+	set test_num [expr $test_num + 1]
 	verbose -log "testing $info"
 
 	# Select the proper --privilege option
@@ -58,6 +60,12 @@ proc test_embedded_C { privilege } {
 	set prototype [lindex $tokens 0]
 	set status [lindex $tokens 1]
 
+	# Only test the specified fraction of the functions
+	if {[expr $test_num % $test_fraction] != 0} {
+	    untested "$test: $status: $option: $prototype"
+	    continue
+	}
+	    
 	# Deprecated functions will be untested
 	switch "$prototype" {
 	    "cpuid ()"
@@ -162,7 +170,15 @@ if {[llength prototype_info] > 0} {
     return
 }
 
+if {! [info exists env(SYSTEMTAP_TEST_ALL_EMBEDDED_C)]} {
+    # Test a subset (1/5) of the tapset functions containing embedded C code.
+    set test_fraction 5
+} else {
+    # Test all of the tapset functions containing embedded C code.
+    set test_fraction 1
+}
+
 # Now run the tests
-test_embedded_C stapusr
-test_embedded_C stapsys
-#test_embedded_C stapdev
+test_embedded_C stapusr $test_fraction
+test_embedded_C stapsys $test_fraction
+#test_embedded_C stapdev $test_fraction
