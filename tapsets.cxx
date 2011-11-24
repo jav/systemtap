@@ -2804,6 +2804,21 @@ dwarf_pretty_print::print_chars (Dwarf_Die* start_type, target_symbol* e,
   return false;
 }
 
+// PR10601: adapt to kernel-vs-userspace loc2c-runtime
+static const string EMBEDDED_FETCH_DEREF_KERNEL = string("\n")
+	+ "#define fetch_register k_fetch_register\n"
+	+ "#define store_register k_store_register\n";
+
+static const string EMBEDDED_FETCH_DEREF_USER = string("\n")
+	+ "#define fetch_register u_fetch_register\n"
+	+ "#define store_register u_store_register\n";
+
+#define EMBEDDED_FETCH_DEREF(U) \
+	(U ? EMBEDDED_FETCH_DEREF_USER : EMBEDDED_FETCH_DEREF_KERNEL)
+
+static const string EMBEDDED_FETCH_DEREF_DONE = string("\n")
+	+ "#undef fetch_register\n"
+	+ "#undef store_register\n";
 
 expression*
 dwarf_pretty_print::deref (target_symbol* e)
@@ -2832,9 +2847,7 @@ dwarf_pretty_print::deref (target_symbol* e)
   fcall->tok = e->tok;
   fcall->function = fdecl->name;
 
-  // PR10601: adapt to kernel-vs-userspace loc2c-runtime
-  ec->code += "\n#define fetch_register " + string(userspace_p?"u":"k") + "_fetch_register\n";
-  ec->code += "#define store_register " + string(userspace_p?"u":"k") + "_store_register\n";
+  ec->code += EMBEDDED_FETCH_DEREF(userspace_p);
 
   if (pointer)
     {
@@ -2870,9 +2883,7 @@ dwarf_pretty_print::deref (target_symbol* e)
   ec->code += "/* pure */";
   ec->code += "/* unprivileged */";
 
-  // PR10601
-  ec->code += "\n#undef fetch_register\n";
-  ec->code += "\n#undef store_register\n";
+  ec->code += EMBEDDED_FETCH_DEREF_DONE;
 
   fdecl->join (dw.sess);
   return fcall;
@@ -3472,9 +3483,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
                       + "_" + e->name.substr(1)
                       + "_" + lex_cast(tick++));
 
-      // PR10601: adapt to kernel-vs-userspace loc2c-runtime
-      ec->code += "\n#define fetch_register " + string(q.has_process?"u":"k") + "_fetch_register\n";
-      ec->code += "#define store_register " + string(q.has_process?"u":"k") + "_store_register\n";
+      ec->code += EMBEDDED_FETCH_DEREF(q.has_process);
 
       if (q.has_return && (e->name == "$return"))
         {
@@ -3498,10 +3507,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
         ec->code += "/* pure */";
 
       ec->code += "/* unprivileged */";
-
-      // PR10601
-      ec->code += "\n#undef fetch_register\n";
-      ec->code += "\n#undef store_register\n";
+      ec->code += EMBEDDED_FETCH_DEREF_DONE;
 
       fdecl->name = fname;
       fdecl->body = ec;
@@ -3740,10 +3746,7 @@ dwarf_cast_query::handle_query_module()
   ec->tok = e.tok;
   fdecl->body = ec;
 
-  // PR10601: adapt to kernel-vs-userspace loc2c-runtime
-  ec->code += "\n#define fetch_register " + string(userspace_p?"u":"k") + "_fetch_register\n";
-  ec->code += "#define store_register " + string(userspace_p?"u":"k") + "_store_register\n";
-
+  ec->code += EMBEDDED_FETCH_DEREF(userspace_p);
   ec->code += code;
 
   // Give the fdecl an argument for the pointer we're trying to cast
@@ -3784,10 +3787,7 @@ dwarf_cast_query::handle_query_module()
     ec->code += "/* pure */";
 
   ec->code += "/* unprivileged */";
-
-  // PR10601
-  ec->code += "\n#undef fetch_register\n";
-  ec->code += "\n#undef store_register\n";
+  ec->code += EMBEDDED_FETCH_DEREF_DONE;
 
   fdecl->join (dw.sess);
 
@@ -8551,10 +8551,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       fdecl->name = fname;
       fdecl->body = ec;
 
-      // PR10601: adapt to kernel-vs-userspace loc2c-runtime
-      ec->code += "\n#define fetch_register k_fetch_register\n";
-      ec->code += "#define store_register k_store_register\n";
-
+      ec->code += EMBEDDED_FETCH_DEREF(false);
       ec->code += dw.literal_stmt_for_pointer (&arg->type_die, e,
                                                   lvalue, fdecl->type);
 
@@ -8596,10 +8593,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
         ec->code += "/* pure */";
 
       ec->code += "/* unprivileged */";
-
-      // PR10601
-      ec->code += "\n#undef fetch_register\n";
-      ec->code += "\n#undef store_register\n";
+      ec->code += EMBEDDED_FETCH_DEREF_DONE;
 
       fdecl->join (dw.sess);
 
