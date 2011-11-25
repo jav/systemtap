@@ -977,22 +977,6 @@ extern void __store_deref_bad(void);
     (dst);								      \
   })
 
-#define deref_buffer(dst, addr, numbytes)				      \
-  ({									      \
-    uintptr_t _addr;							      \
-    size_t _len;							      \
-    unsigned char _c;							      \
-    char *_d = (dst);							      \
-    for (_len = (numbytes), _addr = (uintptr_t)(addr);			      \
-	 _len >= 1;			                                      \
-	 --_len, ++_addr) {						      \
-      _c = deref (1, _addr);						      \
-      if (_d)								      \
-	 *_d++ = _c;							      \
-    }                                                                         \
-    (dst);								      \
-  })
-
 #define store_deref_string(src, addr, maxbytes)				      \
   ({									      \
     uintptr_t _addr;							      \
