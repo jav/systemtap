@@ -16,7 +16,7 @@
  * Requires the use of guru mode (-g).
  */
 function set_kernel_string (addr:long, val:string) %{ /* guru */
-  store_deref_string (THIS->val, THIS->addr, MAXSTRINGLEN);
+  store_kderef_string (THIS->val, THIS->addr, MAXSTRINGLEN);
   if (0) {
 deref_fault: /* branched to from store_deref_string() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
@@ -37,7 +37,7 @@ deref_fault: /* branched to from store_deref_string() */
  */
 function set_kernel_string_n (addr:long, n:long, val:string) %{ /* guru */
   int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
-  store_deref_string (THIS->val, THIS->addr, len);
+  store_kderef_string (THIS->val, THIS->addr, len);
   if (0) {
 deref_fault: /* branched to from store_deref_string() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),

@@ -2806,19 +2806,25 @@ dwarf_pretty_print::print_chars (Dwarf_Die* start_type, target_symbol* e,
 
 // PR10601: adapt to kernel-vs-userspace loc2c-runtime
 static const string EMBEDDED_FETCH_DEREF_KERNEL = string("\n")
-	+ "#define fetch_register k_fetch_register\n"
-	+ "#define store_register k_store_register\n";
+  + "#define fetch_register k_fetch_register\n"
+  + "#define store_register k_store_register\n"
+  + "#define deref kderef\n"
+  + "#define store_deref store_kderef\n";
 
 static const string EMBEDDED_FETCH_DEREF_USER = string("\n")
-	+ "#define fetch_register u_fetch_register\n"
-	+ "#define store_register u_store_register\n";
+  + "#define fetch_register u_fetch_register\n"
+  + "#define store_register u_store_register\n"
+  + "#define deref uderef\n"
+  + "#define store_deref store_uderef\n";
 
 #define EMBEDDED_FETCH_DEREF(U) \
-	(U ? EMBEDDED_FETCH_DEREF_USER : EMBEDDED_FETCH_DEREF_KERNEL)
+  (U ? EMBEDDED_FETCH_DEREF_USER : EMBEDDED_FETCH_DEREF_KERNEL)
 
 static const string EMBEDDED_FETCH_DEREF_DONE = string("\n")
-	+ "#undef fetch_register\n"
-	+ "#undef store_register\n";
+  + "#undef fetch_register\n"
+  + "#undef store_register\n"
+  + "#undef deref\n"
+  + "#undef store_deref\n";
 
 expression*
 dwarf_pretty_print::deref (target_symbol* e)

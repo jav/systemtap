@@ -17,7 +17,7 @@
  */
 function kernel_string:string (addr:long) %{ /* pure */
   char *destination = THIS->__retvalue;
-  deref_string (destination, THIS->addr, MAXSTRINGLEN);
+  kderef_string (destination, THIS->addr, MAXSTRINGLEN);
   if (0) {
 deref_fault: /* branched to from deref_string() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
@@ -50,7 +50,7 @@ function kernel_string2:string (addr:long, err_msg:string) {
 function kernel_string_n:string (addr:long, n:long) %{ /* pure */
   char *destination = THIS->__retvalue;
   int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
-  deref_string (destination, THIS->addr, len);
+  kderef_string (destination, THIS->addr, len);
   if (0) {
 deref_fault: /* branched to from deref_string() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),

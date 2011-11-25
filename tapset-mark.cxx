@@ -440,7 +440,7 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
 	  o->newline() << "{ " << mark_args[i]->c_type
 		       << " tmp_str = va_arg(*c->ips.kmark.mark_va_list, "
 		       << mark_args[i]->c_type << ");";
-	  o->newline() << "deref_string (" << localname
+	  o->newline() << "kderef_string (" << localname
 		       << ", tmp_str, MAXSTRINGLEN); }";
 	  deref_fault_needed = true;
 	  break;
