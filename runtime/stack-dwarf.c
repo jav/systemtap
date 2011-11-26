@@ -42,7 +42,7 @@ static void __stp_dwarf_stack_kernel_print(struct pt_regs *regs, int verbose,
 	arch_unw_init_frame_info(info, regs, false);
 
 	while (levels) {
-		int ret = unwind(uwcontext, NULL);
+		int ret = unwind(uwcontext, 0);
 		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(info), UNW_SP(info));
 		if (ret == 0 && _stp_valid_pc_addr(UNW_PC(info), NULL)) {
 			_stp_print_addr(UNW_PC(info), verbose, NULL);
@@ -71,7 +71,7 @@ static void __stp_dwarf_stack_user_print(struct pt_regs *regs, int verbose,
 	arch_unw_init_frame_info(info, regs, ! uregs_valid);
 
 	while (levels) {
-		int ret = unwind(uwcontext, current);
+		int ret = unwind(uwcontext, 1);
 #ifdef STAPCONF_UPROBE_GET_PC
                 unsigned long maybe_pc = 0;
                 if (ri) {

@@ -195,7 +195,7 @@ static struct pt_regs *_stp_get_uregs(struct context *c)
 	  while (levels > 0 && ret == 0 && UNW_PC(info) != REG_IP(c->uregs))
 	    {
 	      levels--;
-	      ret = unwind(&c->uwcontext, NULL);
+	      ret = unwind(&c->uwcontext, 0);
 	      dbug_unwind(1, "unwind levels: %d, ret: %d, pc=0x%lx\n",
 			  levels, ret, UNW_PC(info));
 	    }
