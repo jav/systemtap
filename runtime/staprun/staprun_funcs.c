@@ -194,10 +194,10 @@ int insert_module(
 	return 0;
 }
 
+#ifdef HAVE_ELF_GETSHDRSTRNDX
 static Elf_Scn *
 find_section_in_module(const void* module_file, const __off_t st_size, const char *section_name)
 {
-#ifdef HAVE_ELF_GETSHDRSTRNDX
 	char *name;
 	size_t shstrndx;
 	Elf* elf;
@@ -232,10 +232,16 @@ find_section_in_module(const void* module_file, const __off_t st_size, const cha
   		 }
   	}
 	return scn;
-#else /* no elf */
-	return NULL;
-#endif
 }
+#else /* no elf */
+static Elf_Scn *
+find_section_in_module(const void* v __attribute__((unused)),
+                       const __off_t o __attribute__((unused)),
+                       const char *c __attribute__((unused)))
+{
+	return NULL;
+}
+#endif
 
 int
 rename_module(void* module_file, const __off_t st_size)
