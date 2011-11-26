@@ -7,6 +7,8 @@
   --privilege=stapusr is equivalent to specifying the existing --unprivileged
   option. --privilege=stapdev is the default. See man stap(1) for details.
 
+- Scripts that use kernel.trace("...") probes compile much faster.
+
 - SDT can now define up to 12 arguments in a probe point.
 
 - Parse errors no longer generate a cascade of false errors.  Instead, a
