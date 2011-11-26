@@ -818,111 +818,80 @@ extern void __store_deref_bad(void);
 
 #elif defined (__s390__) || defined (__s390x__)
 
-#ifndef EX_TABLE
-/*
- * Helper macro for exception table entries
- */
-#ifndef __s390x__
-#define EX_TABLE(_fault,_target)				\
-		".section __ex_table,\"a\"\n"			\
-		"       .align 4\n"				\
-		"       .long  " #_fault "," #_target "\n"	\
-		".previous\n"
-#else
-#define EX_TABLE(_fault,_target)				\
-		".section __ex_table,\"a\"\n"			\
-		"       .align 8\n"				\
-		"       .quad  " #_fault "," #_target "\n"	\
-		".previous\n"
-#endif
-#endif
+/* Use same __get_user() and __put_user() for both user and kernel
+   addresses, but make sure set_fs() is called appropriately first. */
 
-#define __stp_get_asm(x, addr, err, size)			\
-({								\
-	asm volatile(						\
-		"0: mvc  0(%2,%4),0(%3)\n"			\
-		"1:\n"						\
-		".section .fixup,\"ax\"\n"			\
-		"2: lghi    %0,%5\n"				\
-		"   jg     1b\n"				\
-		".previous\n"					\
-		EX_TABLE(0b,2b)					\
-		: "+&d" (err), "=m" (x)				\
-		: "i" (size),"a"(addr),				\
-		"a" (&(x)),"K" (-EFAULT)			\
-		: "cc");					\
-})
+#define uderef(size, addr) ({ \
+    u8 _b; u16 _w; u32 _l; u64 _q; \
+    uintptr_t _a = (uintptr_t) addr; \
+    intptr_t _v = 0; \
+    int _bad = 0; \
+    mm_segment_t _oldfs = get_fs(); \
+    set_fs (USER_DS); \
+    switch (size) { \
+      case 1: _bad = __get_user(_b, (u8 *)(_a)); _v = _b; break; \
+      case 2: _bad = __get_user(_w, (u16 *)(_a)); _v = _w; break; \
+      case 4: _bad = __get_user(_l, (u32 *)(_a)); _v = _l; break; \
+      case 8: _bad = __get_user(_q, (u64 *)(_a)); _v = _q; break; \
+      default: __get_user_bad(); \
+    } \
+    set_fs (_oldfs); \
+    if (_bad) \
+      DEREF_FAULT(addr); \
+    _v; \
+  })
 
-#define __stp_put_asm(x, addr, err)				\
-({								\
-	asm volatile(						\
-		"0: stc %2,0(%1)\n"				\
-		"1:\n"						\
-		".section .fixup,\"ax\"\n"			\
-		"2: lghi    %0,%3\n"				\
-		"   jg     1b\n"				\
-		".previous\n"					\
-		EX_TABLE(0b,2b)					\
-		: "+&d" (err)					\
-		: "a"(addr),					\
-		"r"(x),"K"(-EFAULT)				\
-		: "cc");					\
-})
+#define store_uderef(size, addr, value) ({ \
+    int _bad = 0; \
+    mm_segment_t _oldfs = get_fs(); \
+    set_fs (USER_DS); \
+    switch (size) {		 \
+      case 1: _bad = __put_user(((u8)(value)), ((u8 *)(addr))); break; \
+      case 2: _bad = __put_user(((u16)(value)), ((u16 *)(addr))); break; \
+      case 4: _bad = __put_user(((u32)(value)), ((u32 *)(addr))); break; \
+      case 8: _bad = __put_user(((u64)(value)), ((u64 *)(addr))); break; \
+      default: __put_user_bad(); \
+    } \
+    set_fs (_oldfs); \
+    if (_bad) \
+	STORE_DEREF_FAULT(addr); \
+  })
 
-#define uderef(size, addr)					\
-({								\
-	u8 _b; u16 _w; u32 _l; u64 _q;				\
-	int _bad = 0;						\
-	intptr_t _v = 0;					\
-        if (lookup_bad_addr((unsigned long)addr, size))		\
-          _bad = 1;                                             \
-        else                                                    \
-          switch (size) {		                	\
-          case 1: {                                             \
-		__stp_get_asm(_b, addr, _bad, 1);		\
-		_v = _b;					\
-		break;						\
-          };                                                    \
-          case 2: {						\
-		__stp_get_asm(_w, addr, _bad, 2);		\
-		_v = _w;					\
-		break;						\
-          };                                                    \
-          case 4: {						\
-		__stp_get_asm(_l, addr, _bad, 4);		\
-		_v = _l;					\
-		break;						\
-          };                                                    \
-          case 8: {						\
-		__stp_get_asm(_q, addr, _bad, 8);		\
-		_v = _q;					\
-		break;						\
-          };                                                    \
-          default:						\
-		_bad = -EFAULT;					\
-	}							\
-	if (_bad)						\
-		DEREF_FAULT(addr);				\
-	_v;							\
-})
+#define kderef(size, addr) ({ \
+    u8 _b; u16 _w; u32 _l; u64 _q; \
+    uintptr_t _a = (uintptr_t) addr; \
+    intptr_t _v = 0; \
+    int _bad = 0; \
+    mm_segment_t _oldfs = get_fs(); \
+    set_fs (KERNEL_DS); \
+    switch (size) { \
+      case 1: _bad = __get_user(_b, (u8 *)(_a)); _v = _b; break; \
+      case 2: _bad = __get_user(_w, (u16 *)(_a)); _v = _w; break; \
+      case 4: _bad = __get_user(_l, (u32 *)(_a)); _v = _l; break; \
+      case 8: _bad = __get_user(_q, (u64 *)(_a)); _v = _q; break; \
+      default: __get_user_bad(); \
+    } \
+    set_fs (_oldfs); \
+    if (_bad) \
+      DEREF_FAULT(addr); \
+    _v; \
+  })
 
-#define store_uderef(size, addr, value)                          \
-({                                                              \
-        int _bad = 0;                                           \
-	int i;							\
-        if (lookup_bad_addr((unsigned long)addr, size))		\
-          _bad = 1;                                             \
-        else                                                    \
-          for(i=0;i<size;i++){                                  \
-            __stp_put_asm((u8)(value>>((size-i-1)*8)&0xff),     \
-                          (u64)addr+i,_bad);                    \
-            if (_bad)                                           \
-              break;                                            \
-          }                                                     \
-        if (_bad)                                               \
-          STORE_DEREF_FAULT(addr);                              \
-})
-
+#define store_kderef(size, addr, value) ({ \
+    int _bad = 0; \
+    mm_segment_t _oldfs = get_fs(); \
+    set_fs (KERNEL_DS); \
+    switch (size) { \
+      case 1: _bad = __put_user(((u8)(value)), ((u8 *)(addr))); break; \
+      case 2: _bad = __put_user(((u16)(value)), ((u16 *)(addr))); break; \
+      case 4: _bad = __put_user(((u32)(value)), ((u32 *)(addr))); break; \
+      case 8: _bad = __put_user(((u64)(value)), ((u64 *)(addr))); break; \
+      default: __put_user_bad(); \
+    } \
+    set_fs (_oldfs); \
+    if (_bad) \
+	STORE_DEREF_FAULT(addr); \
+  })
 
 #endif /* (s390) || (s390x) */
 
