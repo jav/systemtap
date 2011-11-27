@@ -5,11 +5,14 @@ set test "remote"
 
 if {[info exists env(SYSTEMTAP_TESTREMOTES)]} {
   set remotes [split $env(SYSTEMTAP_TESTREMOTES) ,]
-} else { set remotes [list] }
+}
+if {[llength $remotes] == 0} {
+  set remotes {direct: stapsh:}
+}
 set batch_remotes [list]
 
+verbose -log "$test: using $remotes"
 if {![llength $remotes] || ![installtest_p]} { untested $test; return }
-verbose -log "$test: $remotes"
 
 # Test each remote individually
 foreach remote $remotes {
