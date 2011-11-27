@@ -29,12 +29,13 @@ class remote {
 
   protected:
     systemtap_session* s;
-    std::string prefix;
+    std::string prefix; // stap --remote-prefix
+    std::string staprun_r_arg; // PR13354 data: remote_uri()/remote_idx()
 
     remote(systemtap_session& s): s(&s) {}
 
   public:
-    static remote* create(systemtap_session& s, const std::string& uri);
+    static remote* create(systemtap_session& s, const std::string& uri, int idx);
     static int run(const std::vector<remote*>& remotes);
 
     systemtap_session* get_session() { return s; }

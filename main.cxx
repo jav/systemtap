@@ -969,11 +969,16 @@ main (int argc, char * const argv [])
 
   // Prepare connections for each specified remote target.
   vector<remote*> targets;
+  bool fake_remote=false;
   if (s.remote_uris.empty())
-    s.remote_uris.push_back("direct:");
+    {
+      fake_remote=true;
+      s.remote_uris.push_back("direct:");
+    }
   for (unsigned i = 0; rc == 0 && i < s.remote_uris.size(); ++i)
     {
-      remote *target = remote::create(s, s.remote_uris[i]);
+      // PR13354: pass remote id#/url only in non --remote=HOST cases
+      remote *target = remote::create(s, s.remote_uris[i], fake_remote?-1:i);
       if (target)
         targets.push_back(target);
       else

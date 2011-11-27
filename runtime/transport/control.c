@@ -28,6 +28,8 @@ static DEFINE_SPINLOCK(_stp_ctl_special_msg_lock);
 static void _stp_cleanup_and_exit(int send_exit);
 static void _stp_handle_tzinfo (struct _stp_msg_tzinfo* tzi);
 static void _stp_handle_privilege_credentials (struct _stp_msg_privilege_credentials* pc);
+static void _stp_handle_remote_id (struct _stp_msg_remote_id* rem);
+
 
 static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
@@ -105,6 +107,19 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
                 if (copy_from_user(&pc, buf, sizeof(pc)))
                         return -EFAULT;
                 _stp_handle_privilege_credentials(&pc);
+        }
+        break;
+
+        case STP_REMOTE_ID:
+        {
+                struct _stp_msg_remote_id rem;
+		if (euid != 0)
+			return -EPERM;
+                if (count < sizeof(rem))
+                        return 0;
+                if (copy_from_user(&rem, buf, sizeof(rem)))
+                        return -EFAULT;
+                _stp_handle_remote_id(&rem);
         }
         break;
 
