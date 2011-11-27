@@ -1,5 +1,8 @@
 * What's new in version 1.7
 
+- The tapset functions remote_id() and remote_uri() identify the member of a
+  swarm of "stap --remote FOO --remote BAR baz.stp" concurrent executions.
+
 - Systemtap now supports a new privilege level and group, "stapsys", which
   is equivalent to the privilege afforded by membership in the group "stapdev",
   except that guru mode (-g) functionality may not be used. To support this, a
