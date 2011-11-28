@@ -132,7 +132,8 @@ static int _stp_vma_mmap_cb(struct stap_task_finder_target *tgt,
 	// We are only interested in the first load of the whole module that
 	// is executable. We register whether or not we know the module,
 	// so we can later lookup the name given an address for this task.
-	if (path != NULL && offset == 0 && (vm_flags & VM_EXEC)) {
+	if (path != NULL && offset == 0 && (vm_flags & VM_EXEC)
+	    && stap_find_vma_map_info(tsk, addr, NULL, NULL, NULL, NULL) != 0) {
 		for (i = 0; i < _stp_num_modules; i++) {
 			if (strcmp(path, _stp_modules[i]->path) == 0)
 			{
