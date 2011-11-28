@@ -414,12 +414,18 @@ int mountfs(void)
  *
  * Returns: -1 on errors, 0 on failure, 1 on success.
  */
+#if ! HAVE_NSS
+static int
+check_signature(const char *path __attribute__((unused)),
+		const void *module_data __attribute__((unused)),
+		off_t module_size __attribute__((unused)))
+{
+  return MODULE_UNTRUSTED;
+}
+#else
 static int
 check_signature(const char *path, const void *module_data, off_t module_size)
 {
-#if ! HAVE_NSS
-  return MODULE_UNTRUSTED;
-#else
   char signature_realpath[PATH_MAX];
   int rc;
 
@@ -439,8 +445,8 @@ check_signature(const char *path, const void *module_data, off_t module_size)
   dbug(2, "verify_module returns %d\n", rc);
 
   return rc;
-#endif /* HAVE_NSS */
 }
+#endif /* HAVE_NSS */
 
 /*
  * For stap modules which have not been signed by a trusted signer,
