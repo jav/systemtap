@@ -978,7 +978,8 @@ main (int argc, char * const argv [])
   for (unsigned i = 0; rc == 0 && i < s.remote_uris.size(); ++i)
     {
       // PR13354: pass remote id#/url only in non --remote=HOST cases
-      remote *target = remote::create(s, s.remote_uris[i], fake_remote?-1:i);
+      remote *target = remote::create(s, s.remote_uris[i],
+                                      fake_remote ? -1 : (int)i);
       if (target)
         targets.push_back(target);
       else
