@@ -1,0 +1,21 @@
+set test "cast-user"
+set ::result_string {binary sa_family OK
+binary sa_data OK
+header sa_family OK
+header sa_data OK}
+
+set srcfile "$srcdir/$subdir/$test.c"
+set stpfile "$srcdir/$subdir/$test.stp"
+set exefile "[pwd]/$test.exe"
+set test_flags "additional_flags=-g"
+set res [target_compile "$srcfile" "$exefile" executable "$test_flags"]
+if { $res != "" } {
+  verbose "target_compile failed: $res" 2
+  fail "$test compile"
+  untested "$test"
+  return
+} else {
+  pass "$test compile"
+}
+
+stap_run3 $test "$stpfile" "$exefile" -c "$exefile"

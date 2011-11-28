@@ -1,0 +1,36 @@
+probe syscall.bind!, nd_syscall.bind
+{
+    if (pid() != target()) next
+
+    sa = my_addr_uaddr
+    family = 0xffff
+    data = 42
+
+    // Compare sa_family and sa_data using the target binary
+
+    cast_family = @cast(sa, "sockaddr", @1)->sa_family
+    if (family == cast_family)
+        println("binary sa_family OK")
+    else
+        printf("binary sa_family %#x != %#x\n", family, cast_family)
+
+    cast_data = @cast(sa, "sockaddr", @1)->sa_data[0]
+    if (data == cast_data)
+        println("binary sa_data OK")
+    else
+        printf("binary sa_data %d != %d\n", data, cast_data)
+
+    // Compare sa_family and sa_data using a generated user module
+
+    cast_family = @cast(sa, "sockaddr", "<sys/socket.h>")->sa_family
+    if (family == cast_family)
+        println("header sa_family OK")
+    else
+        printf("header sa_family %#x != %#x\n", family, cast_family)
+
+    cast_data = @cast(sa, "sockaddr", "<sys/socket.h>")->sa_data[0]
+    if (data == cast_data)
+        println("header sa_data OK")
+    else
+        printf("header sa_data %d != %d\n", data, cast_data)
+}

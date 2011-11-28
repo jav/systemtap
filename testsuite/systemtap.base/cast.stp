@@ -32,14 +32,6 @@ probe begin
     else
         printf("execname \"%s\" != \"%s\"\n", name, cast_name)
 
-    // Compare sa_data using a generated user module
-    data = 42
-    cast_data = @cast(get_sockaddr(data), "sockaddr", "<sys/socket.h>")->sa_data[0]
-    if (data == cast_data)
-        println("sa_data OK")
-    else
-        printf("sa_data %d != %d\n", data, cast_data)
-
     // Compare usage counter values through a struct address
     usage = @cast(curr, "task_struct")->usage->counter
     pusage = & @cast(curr, "task_struct")->usage
@@ -51,13 +43,3 @@ probe begin
 
     exit()
 }
-
-%{
-#include <linux/socket.h>
-%}
-
-function get_sockaddr:long(data:long) %{
-    static struct sockaddr sa = {0};
-    sa.sa_data[0] = THIS->data;
-    THIS->__retvalue = (long)&sa;
-%}
