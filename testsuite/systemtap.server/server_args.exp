@@ -26,7 +26,7 @@ proc stap_direct_and_with_client {stap options} {
 
     # If the options contain -I/ or the equivalent, then the client will balk.
     # So test that the client balks.
-    if {[regexp "\-I */$" $options] || [regexp "\-I */ " $options]} {
+    if {[regexp -- "\-I */$" $options] || [regexp -- "\-I */ " $options]} {
 	set passed 0
 	set fallthrough 0
 	set cmd [concat stap $options $use_server]
