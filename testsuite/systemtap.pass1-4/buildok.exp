@@ -3,6 +3,51 @@ foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
     set test $self/[file tail $file]
     verbose -log "Running $file"
     set rc [stap_run_batch $file]
-    buildok_known_failures $test $rc
+
+    switch $test {
+        # Use setup_kfail <pr number> <target triplet> for known bugs
+        # Use setup_kfail GCC <target triplet> for debuginfo-quality problems
+        #
+	# Any test that uses nd_syscalls probes do not work on ia64
+	buildok/fortyfive.stp -
+	buildok/nd_syscalls-all-probes.stp -
+	buildok/nd_syscalls-detailed.stp -
+	buildok/nd_syscalls2-detailed.stp -
+	buildok/nd_syscalls-arch-detailed.stp {
+	    if {$rc != 0 && [istarget ia64-*-*]} { setup_kfail 6971 ia64-*-* } }
+
+	buildok/memory-write_shared_copy.stp {
+		if {$rc != 0} { setup_kfail 1155 *-*-* } }
+	buildok/networking-change_rx_flag.stp {
+		if {$rc != 0} { setup_kfail GCC *-*-* } }
+	buildok/nfs_proc-detailed.stp -
+	buildok/nfsd-detailed.stp -
+	buildok/rpc-detailed.stp -
+	buildok/vfs-detailed.stp -
+	buildok/nfs-fop.check_flags.stp {
+		if {$rc != 0} { setup_kfail GCC *-*-* } }
+	buildok/memory-mmap.stp { 
+                if {$rc != 0} { setup_kfail GCC *-*-* } }
+	buildok/memory-write_shared_copy.stp {
+		if {$rc != 0} { setup_kfail GCC *-*-* } }
+        buildok/per-process-syscall.stp {
+		if {![utrace_p]} { setup_kfail UTRACE *-*-*} }
+	buildok/signal-check_ignored.stp {
+		if {$rc != 0} { setup_kfail GCC *-*-* } }
+	buildok/signal-handle.stp {
+                if {$rc != 0} { setup_kfail GCC *-*-* } }
+	buildok/scheduler-cpu_off.stp {
+		if {$rc != 0} { setup_kfail GCC *-*-* } }
+	buildok/scheduler-ctxswitch.stp {
+		if {$rc != 0} { setup_kfail GCC *-*-* } }
+	buildok/scheduler-migrate.stp {
+		if {$rc != 0} { setup_kfail GCC *-*-* } }
+	buildok/tty-resize.stp {
+		if {$rc != 0} { setup_kfail GCC *-*-* } }
+	buildok/ucontext-symbols-embedded.stp {
+		if {$rc != 0 && ![uprobes_p]} { setup_kfail UPROBES *-*-* } }
+	buildok/ucontext-unwind-embedded.stp {
+		if {$rc != 0 && ![uprobes_p]} { setup_kfail UPROBES *-*-* } }
+    }
     if {$rc == 0} { pass $test } else { fail $test }
 }
