@@ -1,31 +1,52 @@
-set test uprobes
+# We've got 3 main tests:
+# (1) uprobes_call, which probes function entry
+# (2) uprobes_return, which probes function exit
+# (3) uprobes, which combines the above two tests
 
+# 'test_array' holds the name of each test and its expected number of
+# output lines
+set test_array(uprobes_call) 5
+set test_array(uprobes_return) 5
+set test_array(uprobes) 10
+
+set test uprobes
 catch {exec gcc -g -o jennie $srcdir/$subdir/jennie.c} err
 if {$err == "" && [file exists jennie]} then { pass "$test compile" } else { fail "$test compile" }
 
 if {! [uprobes_p]} {
-    untested "$test -p4"; untested "$test -p5"
+    foreach test [lsort [array names test_array]] {
+	untested "$test -p4"; untested "$test -p5"
+    }
     return
 }
 
-set rc [stap_run_batch $srcdir/$subdir/uprobes.stp]
-if {$rc == 0} then { pass "$test -p4" } else { fail "$test -p4" }
+foreach test [lsort [array names test_array]] {
+    # Try to compile the script
+    set rc [stap_run_batch $srcdir/$subdir/${test}.stp]
+    if {$rc == 0} then { pass "$test -p4"} else { fail "$test -p4" }
 
-if {! [installtest_p]} {
-    untested "$test -p5";
-    return
-}
+    if {! [installtest_p]} {
+	untested "$test -p5";
+	continue
+    } elseif {$rc != 0} {
+	# If the compile failed, don't bother trying to run it.
+	fail "$test -p5";
+	continue
+    }	
 
-spawn stap $srcdir/$subdir/uprobes.stp -w -c "./jennie 1 2 3 4"
-set ok 0
-expect {
-    -re {^process[^\r\n]+jennie[^\r\n]+main[^\r\n]+arg[cv]=0x[0-9a-f]+\ +arg[cv]=0x[0-9a-f]+\r\n} { incr ok; exp_continue }
-    -re {^process[^\r\n]+jennie[^\r\n]+main[^\r\n]+return=0x0\r\n} { incr ok; exp_continue }
-    -timeout 30
-    timeout { }
-    eof { }
+    # Try to run the script
+    spawn stap $srcdir/$subdir/${test}.stp -w -c "./jennie 1 2 3 4"
+    set ok 0
+    expect {
+	-re {^process[^\r\n]+jennie[^\r\n]+main[^\r\n]+arg[cv]=0x[0-9a-f]+\ +arg[cv]=0x[0-9a-f]+\r\n} { incr ok; exp_continue }
+	-re {^process[^\r\n]+jennie[^\r\n]+main[^\r\n]+return=0x0\r\n} { incr ok; exp_continue }
+	-timeout 30
+	timeout { }
+	eof { }
+    }
+    if {$ok == $test_array($test)} then { pass "$test -p5"
+    } else { fail "$test -p5 ($ok)" }
+    catch {wait; close}
 }
-if {$ok == 10} then { pass "$test -p5" } else { fail "$test -p5 ($ok)" }
-catch {wait; close}
 
 catch {exec rm -f jennie}
