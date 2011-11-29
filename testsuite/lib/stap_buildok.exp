@@ -17,6 +17,8 @@ proc buildok_known_failures {test rc} {
 	buildok/nd_syscalls-arch-detailed.stp {
 	    if {$rc != 0 && [istarget ia64-*-*]} { setup_kfail 6971 ia64-*-* } }
 
+	buildok/memory-write_shared_copy.stp {
+		if {$rc != 0} { setup_kfail 1155 *-*-* } }
 	buildok/networking-change_rx_flag.stp {
 		if {$rc != 0} { setup_xfail *-*-* } }
 	buildok/nfs-fop.check_flags.stp {
