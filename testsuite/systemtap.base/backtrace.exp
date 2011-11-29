@@ -2,6 +2,10 @@ set test "backtrace"
 
 if {![installtest_p]} { untested $test; return }
 
+if {![istarget "x86_64-*-*"] && ![istarget "i*86-*-*"]} {
+  setup_kfail 10739 [istarget]
+}
+
 set ok 0
 set ok2 0
 spawn stap $srcdir/$subdir/backtrace.stp
