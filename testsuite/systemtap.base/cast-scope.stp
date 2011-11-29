@@ -4,7 +4,7 @@ probe process.function("length@cast-scope.cxx")
   println("function cast: ", @cast($str, "std::string")$$)
 }
 
-probe process.statement("length@cast-scope.cxx+2")
+probe process.statement("length@cast-scope.cxx+4")
 {
   println("statement direct: ", $str$$)
   println("statement cast: ", @cast($str, "std::string")$$)
