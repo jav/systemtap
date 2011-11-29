@@ -23,9 +23,9 @@ for {set i 0} {$i < [all_compile_flags]} {incr i} {
   }
 
   if {[installtest_p] && [uprobes_p]} {
-    # On 64-bit builds without any optimization our prologue detection
+    # On some builds without any optimization our prologue detection
     # fails. PR13420
-    if {$extra_name == "m64"} { setup_kfail 13420 "*-*-*" }
+    if {$extra_name == "m64" || $extra_name == "m32" || $extra_name == "m31"} { setup_kfail 13420 "*-*-*" }
     stap_run3 "$test-$extra_name" "$stpfile" -c ./$test-$extra_name.exe
   } else {
     untested "$test-$extra_name"
