@@ -50,7 +50,7 @@
 struct uretprobe_instance;
 #endif
 
-#if defined(STAPCONF_KERNEL_STACKTRACE)
+#if defined(STAPCONF_KERNEL_STACKTRACE) || defined(STAPCONF_KERNEL_STACKTRACE_NO_BP)
 #include <linux/stacktrace.h>
 #include <asm/stacktrace.h>
 #endif
@@ -73,7 +73,7 @@ static void _stp_stack_print_fallback(unsigned long, int, int, int);
 #endif
 #endif
 
-#if defined(STAPCONF_KERNEL_STACKTRACE)
+#if defined(STAPCONF_KERNEL_STACKTRACE) || defined(STAPCONF_KERNEL_STACKTRACE_NO_BP)
 
 struct print_stack_data
 {
@@ -131,8 +131,14 @@ static void _stp_stack_print_fallback(unsigned long stack,
         print_data.flags = sym_flags;
         print_data.levels = levels;
         print_data.skip = skip;
+#if defined(STAPCONF_KERNEL_STACKTRACE)
         dump_trace(current, NULL, (long *)stack, 0, &print_stack_ops,
                    &print_data);
+#else
+	/* STAPCONF_KERNEL_STACKTRACE_NO_BP */
+        dump_trace(current, NULL, (long *)stack, &print_stack_ops,
+                   &print_data);
+#endif
 }
 #else
 static void _stp_stack_print_fallback(unsigned long s, int v, int l, int k) {
@@ -140,7 +146,7 @@ static void _stp_stack_print_fallback(unsigned long s, int v, int l, int k) {
 	_stp_print_addr(0, v | _STP_SYM_INEXACT, NULL);
 }
 
-#endif /* defined(STAPCONF_KERNEL_STACKTRACE) */
+#endif /* defined(STAPCONF_KERNEL_STACKTRACE) || defined(STAPCONF_KERNEL_STACKTRACE_NO_BP) */
 
 // Without KPROBES very little works atm.
 // But this file is unconditionally imported, while these two functions are only
@@ -234,7 +240,7 @@ static void _stp_stack_kernel_print(struct context *c, int sym_flags)
 		   a pretty good guess at the stack value,
 		   otherwise let dump_stack guess it
 		   (and skip some framework frames). */
-#if defined(STAPCONF_KERNEL_STACKTRACE)
+#if defined(STAPCONF_KERNEL_STACKTRACE) || defined(STAPCONF_KERNEL_STACKTRACE_NO_BP)
 		unsigned long sp;
 		int skip;
 #ifdef CONFIG_FRAME_POINTER

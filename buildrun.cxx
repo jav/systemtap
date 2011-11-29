@@ -265,6 +265,8 @@ compile_pass (systemtap_session& s)
 		  "STAPCONF_HW_BREAKPOINT_CONTEXT", NULL);
   output_autoconf(s, o, "autoconf-save-stack-trace.c",
                   "STAPCONF_KERNEL_STACKTRACE", NULL);
+  output_autoconf(s, o, "autoconf-save-stack-trace-no-bp.c",
+                  "STAPCONF_KERNEL_STACKTRACE_NO_BP", NULL);
   output_autoconf(s, o, "autoconf-asm-syscall.c",
 		  "STAPCONF_ASM_SYSCALL_H", NULL);
   output_autoconf(s, o, "autoconf-ring_buffer-flags.c", "STAPCONF_RING_BUFFER_FLAGS", NULL);
