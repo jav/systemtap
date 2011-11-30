@@ -28,6 +28,8 @@ static DEFINE_SPINLOCK(_stp_ctl_special_msg_lock);
 static void _stp_cleanup_and_exit(int send_exit);
 static void _stp_handle_tzinfo (struct _stp_msg_tzinfo* tzi);
 static void _stp_handle_privilege_credentials (struct _stp_msg_privilege_credentials* pc);
+static void _stp_handle_remote_id (struct _stp_msg_remote_id* rem);
+
 
 static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
@@ -79,12 +81,23 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 	case STP_RELOCATION:
 		if (euid != 0)
 			return -EPERM;
+                /* This message is too large to copy here.
+                   Further error checking is within the
+                   function, but XXX no rc is passed back. */
           	_stp_do_relocation (buf, count);
           	break;
 
         case STP_TZINFO:
         {
-                struct _stp_msg_tzinfo tzi;
+                /* NB PR13445: We use a static struct here to contain
+                   the kernel-side copy of the user-space message.
+                   This should be suspicious (due to concurrency
+                   concerns), but actually it's OK.  The main reason
+                   is that _stp_ctl_open_cmd() enforces only a single
+                   open() at a time on the .ctl file, and staprun
+                   (euid=0) isn't multithreaded, and doesn't pass this
+                   filehandle anywhere. */
+                static struct _stp_msg_tzinfo tzi;
 		if (euid != 0)
 			return -EPERM;
                 if (count < sizeof(tzi))
@@ -97,7 +110,8 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 
         case STP_PRIVILEGE_CREDENTIALS:
         {
-                struct _stp_msg_privilege_credentials pc;
+                /* NB PR13445: as above. */
+                static struct _stp_msg_privilege_credentials pc;
 		if (euid != 0)
 			return -EPERM;
                 if (count < sizeof(pc))
@@ -105,6 +119,20 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
                 if (copy_from_user(&pc, buf, sizeof(pc)))
                         return -EFAULT;
                 _stp_handle_privilege_credentials(&pc);
+        }
+        break;
+
+        case STP_REMOTE_ID:
+        {
+                /* NB PR13445: as above. */
+                static struct _stp_msg_remote_id rem;
+		if (euid != 0)
+			return -EPERM;
+                if (count < sizeof(rem))
+                        return 0;
+                if (copy_from_user(&rem, buf, sizeof(rem)))
+                        return -EFAULT;
+                _stp_handle_remote_id(&rem);
         }
         break;
 

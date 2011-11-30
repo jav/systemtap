@@ -84,11 +84,13 @@ static void _stp_exit(void);
 /* Translate user privilege mask to text. */
 static const char *privilege_to_text (int p) {
   if (STP_PRIVILEGE_CONTAINS (p, STP_PR_STAPDEV)) return "stapdev";
+  if (STP_PRIVILEGE_CONTAINS (p, STP_PR_STAPSYS)) return "stapsys";
   if (STP_PRIVILEGE_CONTAINS (p, STP_PR_STAPUSR)) return "stapusr";
   return "unknown";
 }
 
-#if STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
+#if STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV) || \
+    STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPSYS)
 #define assert_is_myproc() do {} while (0)
 #else
 #define assert_is_myproc() do { \
@@ -112,11 +114,11 @@ static struct
 
 #define _stp_seq_inc() (atomic_inc_return(&_stp_seq.seq))
 
-/* dwarf unwinder only tested so far on i386, x86_64, ppc64 and s390x.
+/* dwarf unwinder only tested so far on arm, i386, x86_64, ppc64 and s390x.
    Only define STP_USE_DWARF_UNWINDER when STP_NEED_UNWIND_DATA,
    as set through a pragma:unwind in one of the [u]context-unwind.stp
    functions. */
-#if (defined(__i386__) || defined(__x86_64__) || defined(__powerpc64__)) || defined (__s390x__)
+#if (defined(__arm__) || defined(__i386__) || defined(__x86_64__) || defined(__powerpc64__)) || defined (__s390x__)
 #ifdef STP_NEED_UNWIND_DATA
 #ifndef STP_USE_DWARF_UNWINDER
 #define STP_USE_DWARF_UNWINDER

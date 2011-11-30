@@ -17,6 +17,7 @@
 #define STP_MODULE_NAME_LEN 128
 #define STP_SYMBOL_NAME_LEN 128
 #define STP_TZ_NAME_LEN 64
+#define STP_REMOTE_URI_LEN 128
 
 struct _stp_trace {
 	uint32_t sequence;	/* event number */
@@ -79,6 +80,9 @@ enum
 	/** Send by staprun to notify module of the user's privilege credentials.
             Only send once at startup.  */
         STP_PRIVILEGE_CREDENTIALS,
+	/** Send by staprun to notify module of remote identity, if any.
+            Only send once at startup.  */
+        STP_REMOTE_ID,
 	/** Max number of message types, sanity check only.  */
 	STP_MAX_CMD
 };
@@ -101,6 +105,7 @@ static const char *_stp_command_name[] = {
 	"STP_REQUEST_EXIT",
 	"STP_TZINFO",
 	"STP_PRIVILEGE_CREDENTIALS",
+	"STP_REMOTE_ID",
 };
 #endif /* DEBUG_TRANS */
 
@@ -163,4 +168,10 @@ struct _stp_msg_tzinfo
 struct _stp_msg_privilege_credentials
 {
         int32_t pc_group_mask;
+};
+
+struct _stp_msg_remote_id
+{
+        int32_t remote_id;
+        char remote_uri[STP_REMOTE_URI_LEN];
 };

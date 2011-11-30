@@ -1,7 +1,7 @@
 ########### Startup Server #############
 # Don't attempt these tests if the client/server are not available
 if {! [setup_server]} then {
-    untested "Server Tests"
+    untested "Server Locale Tests"
     return
 }
 ######################################################

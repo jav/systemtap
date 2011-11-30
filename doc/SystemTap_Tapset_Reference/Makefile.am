@@ -31,11 +31,13 @@ DOCPROC=$(abs_builddir)/docproc
 all: $(PDFDOCS) stamp-htmldocs stamp-mandocs
 tapsets.xml: docproc $(shell find $(SRCTREE)/tapset -name '*.stp')
 	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new
-	if test -s tapsets.xml && cmp tapsets.xml.new tapsets.xml >/dev/null ; then \
+	xsltproc $(srcdir)/sort-tapsets.xslt tapsets.xml.new > tapsets.xml.new2
+	rm tapsets.xml.new
+	if test -s tapsets.xml && cmp tapsets.xml.new2 tapsets.xml >/dev/null ; then \
 		echo tapsets.xml unchanged; \
-		rm tapsets.xml.new; \
+		rm tapsets.xml.new2; \
 	else \
-		mv tapsets.xml.new tapsets.xml; \
+		mv tapsets.xml.new2 tapsets.xml; \
 	fi
 
 stamp-htmldocs: tapsets.xml

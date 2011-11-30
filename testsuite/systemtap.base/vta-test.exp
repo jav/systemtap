@@ -7,37 +7,23 @@ a: {17, 23}
 i: 0xdeadbeef87654321}
 
 
-# Force 64-bit (when necessary) to be sure of what we're testing.
-switch -regexp $::tcl_platform(machine) {
-    {^(x86_64|ppc64|s390x)$} { set arches [list "-m64"] }
-    default { set arches [list "default"] }
-}
-
-# Test 32-on-64 when available
-switch -regexp $::tcl_platform(machine) {
-    {^(x86_64|ppc64)$} { lappend arches "-m32" }
-    {^s390x$} { lappend arches "-m31" }
-}
-
-foreach arch $arches {
-    verbose "testing vta $arch"
+for {set i 0} {$i < [all_compile_flags]} {incr i} {
+    set extra_flag [all_compile_flag $i]
+    set extra_name [all_compile_flag_name $i]
+    verbose "testing vta-$extra_name"
 
     set test_flags "additional_flags=-g"
-    set test_flags "$test_flags additional_flags=-O2"
     set test_flags "$test_flags [sdt_includes]"
+    set test_flags "$test_flags $extra_flag"
 
-    if {$arch != "default"} {
-	set test_flags "$test_flags additional_flags=$arch"
-    }
-
-    set res [target_compile $srcdir/$subdir/$test.c ${test}${arch}.exe executable "$test_flags"]
+    set res [target_compile $srcdir/$subdir/$test.c $test-$extra_name.exe executable "$test_flags"]
     if { $res != "" } {
-	verbose "target_compile ${test}${arch} failed: $res" 2
-	fail "${test}.c compile ${arch}"
-	untested "${test}${arch}"
-	return
+	verbose "target_compile $test-$extra_name failed: $res" 2
+	fail "$test.c compile $extra_name"
+	untested "$test-$extra_name"
+	continue
     } else {
-	pass "${test}.c compile ${arch}"
+	pass "$test.c compile $extra_name"
     }
 
     # Test only when we are running an install test (can execute) and
@@ -46,13 +32,13 @@ foreach arch $arches {
     if {[installtest_p] && [uprobes_p]} {
 	# See if GCC produce DW_OP_implicit_value and/or DW_OP_stack_value for us.
 	set regexp {[stack|implicit]_value}
-	if {![catch {exec readelf --debug-dump=loc ${test}${arch}.exe | egrep "$regexp"}]} {
-	    stap_run3 ${test}${arch} $srcdir/$subdir/$test.stp ./${test}${arch}.exe -c ./${test}${arch}.exe
+	if {![catch {exec readelf --debug-dump=loc $test-$extra_name.exe | egrep "$regexp"}]} {
+	    stap_run3 $test-$extra_name $srcdir/$subdir/$test.stp ./$test-$extra_name.exe -c ./$test-$extra_name.exe
 	} else {
-	    untested "${test}${arch} (no-gcc-vta)"
+	    untested "$test-$extra_name (no-gcc-vta)"
 	}
     } else {
-	untested "${test}${arch}"
+	untested "$test-$extra_name"
     }
-    catch {exec rm -f ${test}${arch}.exe}
+    catch {exec rm -f $test-$extra_name.exe}
 }

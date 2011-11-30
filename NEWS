@@ -1,5 +1,17 @@
 * What's new in version 1.7
 
+- The tapset functions remote_id() and remote_uri() identify the member of a
+  swarm of "stap --remote FOO --remote BAR baz.stp" concurrent executions.
+
+- Systemtap now supports a new privilege level and group, "stapsys", which
+  is equivalent to the privilege afforded by membership in the group "stapdev",
+  except that guru mode (-g) functionality may not be used. To support this, a
+  new option, --privilege=[stapusr|stapsys|stapdev] has been added.
+  --privilege=stapusr is equivalent to specifying the existing --unprivileged
+  option. --privilege=stapdev is the default. See man stap(1) for details.
+
+- Scripts that use kernel.trace("...") probes compile much faster.
+
 - SDT can now define up to 12 arguments in a probe point.
 
 - Parse errors no longer generate a cascade of false errors.  Instead, a

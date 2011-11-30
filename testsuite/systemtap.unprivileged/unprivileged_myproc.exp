@@ -3,8 +3,8 @@ set test "unprivileged myproc"
 set exepath "loop"
 set sopath "libloop.so"
 
-# These probe types should be acceptable for unprivileged users
-set valid_probe_types [list \
+# These probe types should fire unprivileged users, but only within their own processes.
+set myproc_probe_types [list \
   "process.begin" \
   "process.end" \
   "process.function(string)" \
@@ -47,6 +47,8 @@ set valid_probe_types [list \
   "process.thread.end" \
   "process(number).begin" \
   "process(number).end" \
+  "process(number).insn" \
+  "process(number).insn.block" \
   "process(number).statement(number).absolute" \
   "process(number).statement(number).absolute.return" \
   "process(number).syscall" \
@@ -63,6 +65,8 @@ set valid_probe_types [list \
   "process(string).function(string).call" \
   "process(string).function(string).inline" \
   "process(string).function(string).return" \
+  "process(string).insn" \
+  "process(string).insn.block" \
   "process(string).library(string).function(number)" \
   "process(string).library(string).function(number).call" \
   "process(string).library(string).function(number).inline" \
@@ -181,19 +185,12 @@ proc extra_options { probe_type } {
 }
 
 # Test valid probe types
-proc test_probes { } {
-    global valid_probe_types test srcdir subdir tested
-
+proc test_probes { privilege } {
+    global myproc_probe_types allowed test srcdir subdir tested
+    
     set effective_uid [exec /usr/bin/id -u]
     set stap [exec /usr/bin/which stap]
-
-    # These probe types are not valid for unprivileged users, but make sure they aren't reported
-    # as untested.
-    set tested(process(number).insn) 1
-    set tested(process(number).insn.block) 1
-    set tested(process(string).insn) 1
-    set tested(process(string).insn.block) 1
-
+    
     # Start the test executable in the background
     set our_pid [exec ./loop &]
     verbose -log "our ./loop pid is $our_pid"
@@ -208,41 +205,81 @@ proc test_probes { } {
 	# Give it a chance to start
 	sleep 1
 	set root_pid [exec ps -fe | awk {/^root.*[^o] \.\/loop/ { print $2 }}]
-	verbose -log "root's ./loop pid is $root_pid"
+	verbose -log "root's ./loop pid is '$root_pid'"
     }
 
-    foreach probe_type $valid_probe_types {
-	# There are currently some known and expected failures and some untestable probe types
+    # Test using --unprivileged and --privilege=stapusr. They should be equivalent
+    set stapusr_options [list --unprivileged --privilege=stapusr ]
+    # Test using no option and --privilege=stapdev. They should be equivalent
+    set stapdev_options [list "" --privilege=stapdev ]
+
+    set selector 0
+    foreach probe_type $myproc_probe_types {
+	# Select the proper --privilege option
+	switch $privilege {
+	    stapusr {
+		set option [lindex $stapusr_options $selector]
+	    }
+	    stapdev {
+		set option [lindex $stapdev_options $selector]
+	    }
+	    default {
+		set option "--privilege=$privilege"
+	    }
+	}
+
+	# There are currently some untestable probe types
+	switch $probe_type {
+	    process(number).thread.begin -
+	    process(number).thread.end
+	    {
+		# Impossible to predict the task_id of a thread
+		untested "$test: $option $probe_type"
+		set tested($probe_type) 1
+		continue
+	    }
+	    process(number).insn -
+	    process(number).insn.block -
+	    process(string).insn -
+	    process(string).insn.block
+	    {
+		# These probe types are not valid for unprivileged users.
+		if {$privilege == "stapusr"} {
+		    untested "$test: $option $probe_type"
+		    set tested($probe_type) 1
+		    continue
+		}
+	    }
+	}
+
+	# There are currently some known and expected failures
 	switch $probe_type {
 	    process.library(string).function(number).inline -
 	    process(string).library(string).function(number).inline -
 	    process.function(number).inline -
-	    process(string).function(number).inline -
-            process(string).library(string).plt.statement(number) -
-            process(string).library(string).plt(string).statement(number) -
-            process.library(string).plt.statement(number) -
-            process.library(string).plt(string).statement(number)
+	    process(string).function(number).inline
 	    {
-		setup_xfail *-*-*
+		setup_kfail GCC *-*-*
 	    }
-	    process(number).thread.begin -
-	    process(number).thread.end
+	    process(string).library(string).plt.statement(number) -
+	    process(string).library(string).plt(string).statement(number) -
+	    process.library(string).plt.statement(number) -
+	    process.library(string).plt(string).statement(number)
 	    {
-		untested "$test: $probe_type"
-		set tested($probe_type) 1
-		continue
+		if {$privilege == "stapusr"} {
+		    setup_xfail *-*-*
+		}
 	    }
-
 	}
 
 	# Test the probe type. If successful, the stap rc will be 0.
 	set probe [add_args $probe_type $our_pid]
-	set cmd [concat [list $stap --unprivileged -e "probe $probe { if (is_myproc ()) println (\"is myproc\") else println (\"not myproc\"); exit (); } probe timer.s(15) { println(\"timeout\") exit() }"] [extra_options $probe_type]]
-
+	set cmd [concat [list $stap $option -e "probe $probe { if (is_myproc ()) println (\"is myproc\") else println (\"not myproc\"); exit(); } probe timer.s(15) { println(\"timeout\") exit() }"] [extra_options $probe_type]]
+	    
 	# If the probe types was 'process(number).end' or 'process(string).end' then set up a
 	# delayed kill of our test program in order to make the probe fire.
 	if {[regexp "^process\\(number\\)\\.end" $probe_type] || \
-	    [regexp "^process\\(string\\)\\.end" $probe_type]} {
+		[regexp "^process\\(string\\)\\.end" $probe_type]} {
 	    exec $srcdir/$subdir/delayedkill $our_pid 10 &
 	}
 
@@ -250,13 +287,22 @@ proc test_probes { } {
 	verbose -log "eval exec $cmd"
 	set rc [catch {eval exec $cmd} res_stap]
 	verbose -log "rc == $rc"
-	verbose -log $res_stap
+	verbose -log "$res_stap"
 
-	# The test passes if it returns 0 and prints "is myproc".
-	if {$rc == 0 && [regexp ".*is myproc.*" "$res_stap"]} {
-	    pass "$test: $probe_type"
+	if {$privilege == "stapusr"} {
+	    # The test passes if it returns 0 and prints "is myproc".
+	    if {$rc == 0 && [regexp ".*is myproc.*" "$res_stap"]} {
+		pass "$test: $option $probe_type"
+	    } else {
+		fail "$test: $option $probe_type"
+	    }
 	} else {
-	    fail "$test: $probe_type"
+	    # The test passes if it returns 0
+	    if {$rc == 0} {
+		pass "$test: $option $probe_type"
+	    } else {
+		fail "$test: $option $probe_type"
+	    }
 	}
 	
 	# Indicate that this probe type has been tested
@@ -265,10 +311,17 @@ proc test_probes { } {
 	# If the probe types was 'process(number).end' or 'process(string).end', then our test
 	# program was killed in order to make the probe fire. Restart it.
 	if {[regexp "^process\\(number\\)\\.end" $probe_type] || \
-	    [regexp "^process\\(string\\)\\.end" $probe_type]} {
+		[regexp "^process\\(string\\)\\.end" $probe_type]} {
 	    set our_pid [exec ./loop &]
 	    verbose -log "our ./loop pid is $our_pid"
 	}
+
+	set selector [expr ($selector + 1) % 2]
+
+	# This test suite runs for a long time. There will be an as_root command at the end. Keep
+	# sudo status alive in case it requires a password in order to avoid being prompted again
+	# for it.
+	as_root { true }
     }
 
     # Kill the the test executable(s)
@@ -343,7 +396,9 @@ if {[llength all_probe_types] > 0} {
 }
 
 # Now run the tests
-test_probes
+test_probes stapusr
+test_probes stapsys
+#test_probes stapdev
 
 # Generate a failure for each untested probe type
 foreach probe_type $all_probe_types {

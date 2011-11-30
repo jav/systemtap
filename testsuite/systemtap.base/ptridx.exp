@@ -1,47 +1,49 @@
 set test "ptridx"
 
-set test_flags "additional_flags=-g"
-set test_flags "$test_flags additional_flags=-O2"
-
-set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
-if { $res != "" } {
-  verbose "target_compile failed: $res" 2
-  fail "$test.c compile"
-  untested "$test"
-  return
-} else {
-  pass "$test.c compile"
-}
-
-if {[catch {exec stap -L {process("./ptridx.exe").function("*").label("*")}}]} {
-  fail "$test (list labels)"
-  untested "$test"
-} else {
-  pass "$test (list labels)"
-  if {[installtest_p] && [uprobes_p]} {
-    set ok 0
-    spawn stap $srcdir/$subdir/$test.stp -c ./$test.exe -w
-    expect {
-      -re {failed to retrieve location attribute} {
-        # the variables may have no location
-        setup_xfail *-*-*
-        }
-      -re {^17, 23\r\n} { 
-          # output from ptridx.exe itself
-          exp_continue }
-      -re {^[ap] (0x\[0-9a-f]+ => )?17, 23\r\n} { incr ok; exp_continue }
-      timeout { fail "$test (timeout)" }
-      eof { }
-    }
-    wait
-
-    if {$ok == 2} {
-      pass "$test"
-    } else {
-      fail "$test ($ok)"
-    }
+for {set i 0} {$i < [all_compile_flags]} {incr i} {
+  set extra_flag [all_compile_flag $i]
+  set extra_name [all_compile_flag_name $i]
+  set test_flags "additional_flags=-g $extra_flag"
+  set res [target_compile $srcdir/$subdir/$test.c $test.exe executable "$test_flags"]
+  if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "$test-$test_name compile"
+    untested "$test-$extra_name"
+    continue
   } else {
-    untested "$test"
+    pass "$test-$extra_name compile"
   }
+
+  if {[catch {exec stap -L {process("./ptridx.exe").function("*").label("*")}}]} {
+    fail "$test-$extra_name (list labels)"
+    untested "$test-$extra_name"
+  } else {
+    pass "$test-$extra_name (list labels)"
+    if {[installtest_p] && [uprobes_p]} {
+      set ok 0
+      spawn stap $srcdir/$subdir/$test.stp -c ./$test.exe -w
+      expect {
+        -re {failed to retrieve location attribute} {
+          # the variables may have no location
+          setup_kfail GCC *-*-*
+        }
+        -re {^17, 23\r\n} { 
+            # output from ptridx.exe itself
+            exp_continue }
+        -re {^[ap] (0x[0-9a-f]+ => )?17, 23\r\n} { incr ok; exp_continue }
+        timeout { fail "$test-$extra_name (timeout)" }
+        eof { }
+      }
+      wait
+
+      if {$ok == 2} {
+        pass "$test-$extra_name"
+      } else {
+        fail "$test-$extra_name ($ok)"
+      }
+    } else {
+      untested "$test-$extra_name"
+    }
+  }
+  catch {exec rm -f $test.exe}
 }
-catch {exec rm -f $test.exe}

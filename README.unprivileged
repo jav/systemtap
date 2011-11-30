@@ -4,7 +4,7 @@ Unprivileged Mode for Systemtap Users
 Introduction
 ------------
 In order to use the full capabilities of systemtap, one must run it as root or
-as a member of the group stapdev. For other (unprivileged) users, systemtap
+as a member of the groups stapusr and stapdev. For other (unprivileged) users, systemtap
 does provide support for use of a subset of systemtap's capabilities to perform
 limited probing. For example, tracing your own applications or
 polling using timers. The intent is to give unprivileged users capabilities
@@ -30,7 +30,7 @@ enabled. Run 'stap -V | grep AVAHI' to find out if avahi is enabled.
 To find out if a suitable server is available on the local network, this
 command should produce output similar to the following:
 
-# stap --list-servers --unprivileged
+# stap --list-servers --privileged=stapusr
 Systemtap Compile Server Status for 'online,trusted,compatible,signer'
  host=somehost ip=10.15.16.156 port=10913 sysinfo="2.6.34.7-66.fc13.x86_64 x86_64" certinfo="00:93:49:be:2a"
 
@@ -49,7 +49,8 @@ Trust of Unprivileged Users
 ---------------------------
 Even with the appropriate compile server available, each
 unprivileged user must be explicitely trusted. This is done by adding each
-unprivileged user to the group stapusr on each host on which they will
+unprivileged user to the group stapusr and possibly the group stapsys
+on each host on which they will
 run systemtap scripts. To see if you are a member of the group stapusr on the
 local host, this command should produce output similar to the following:
 
@@ -73,22 +74,22 @@ Unprivileged users can compile any systemtap script either directly or using
 a compile server, but systemtap will not load the resulting kernel module
 for an unprivileged user unless it has been compiled and certified by a
 trusted compile server. To do this, as an unprivileged user,
-this command should produce the following output similar:
+this command should produce output similar to the following:
 
 # stap -e 'probe begin { printf ("Hello\n"); exit (); }'
 Hello
 
 For unprivileged users, stap will automatically add the options
---unprivileged and --use-server (you could also specify them yourself).
+--privilege and --use-server (you could also specify them yourself).
 
    --use-server tells systemtap to compile the script using a server.
 
-   --unprivileged tells the server to check the script to maker sure it
-     doesn't do anything 'dangerous', i.e. nothing that an ordinary user
-     shouldn't be able to do.
+   --privilege tells the server to check the script to maker sure it
+     doesn't do anything 'dangerous', i.e. nothing that a user
+     with the specified privilege credentials shouldn't be able to do.
 
-If the server approves of your script and is able to compile it, systemtap will then load the resulting module for you even though you are an unprivileged
-user.
+If the server approves of your script and is able to compile it, systemtap will then load the
+resulting module for you even though you are an unprivileged user.
 
 If you save the resulting module by using the -p4 option of stap, then trusted,
 unprivileged users can load the module at a later time using staprun:
@@ -114,11 +115,11 @@ o When specifying path names in your script and compiling using a server,
 
      probe process("/the/full/path/as/seen/by/the/server/to/foo").begin()
 
-o You can use '--unprivileged -pN' (for 1 <= N <= 4) without --use-server to
+o You can use '--privilege=[stapusr|stapsys] -pN' (for 1 <= N <= 4) without --use-server to
   compile and check scripts directly. stap will still check your script for
   'dangerous' behavior, but will not load it for an unprivileged user.
 
-o When using --unprivileged, all compile time and run time restrictions are
+o When using --privilege, all compile time and run time restrictions are
   enforced for all users, including root and members of the group stapdev.
 
 
@@ -146,8 +147,8 @@ o The compile server(s) must be trusted as an SSL peer and as a signer of
   systemtap modules on hosts on which unprivileged users will compile and
   run their scripts respectively.
 
-o Unprivileged users must be added to the group stapusr on the host(s) on which
-  they will run their scripts.
+o Unprivileged users must be added to the group stapusr, and possibly the group stapsys
+  on the host(s) on which they will run their scripts.
 
 Below are the necessary steps for the system administrator to setup the above
 infrastructure.
@@ -212,7 +213,7 @@ trusts that it compiles systemtap scripts correctly.
 Certifying a compile server as a module signer means that the system
 administrator trusts it to correctly check a systemtap script for
 behavior which should not be made available to unprivileged users. When a
-script is compiled using the --unprivileged option, the server checks the
+script is compiled using the --privilege option, the server checks the
 script for such behavior and cryptographically signs the resulting module if it
 is safe for use by unprivileged users. Verification of ths signature certifies
 that the module was certified as 'safe' by the server and that it has not been
@@ -261,7 +262,7 @@ This is performed in two steps:
 
 Now verify the result:
 
-# stap --list-servers --unprivileged
+# stap --list-servers --privilege=stapusr
 Systemtap Compile Server Status for 'online,trusted,compatible,signer'
  host=somehost ip=10.15.16.156 port=26543 sysinfo="2.6.34.7-66.fc13.x86_64 x86_64" certinfo="00:93:49:be:2a"
 
@@ -271,10 +272,10 @@ Trust of Unprivileged Users
 ---------------------------
 Finally, once compile servers have been set up and are trusted, each
 unprivileged user must be explicitely trusted. This is done by adding each
-unprivileged user to the group stapusr on each host on which they will
-run systemtap scripts:
+unprivileged user to the group stapusr, and possibly the group stapsys on each host on which they
+will run systemtap scripts:
 
-    sudo usermod -a -G stapusr USERID
+    sudo usermod -a -G stapusr[,stapsys] USERID
 
 If the user is already logged in, they can try using
 

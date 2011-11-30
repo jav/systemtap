@@ -1,5 +1,5 @@
 probe begin, end {
-    println(pp())
+    println(pp(), remote_id(), ":", remote_uri())
 }
 
 probe timer.s(30) {

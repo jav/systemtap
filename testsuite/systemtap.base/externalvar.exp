@@ -6,66 +6,86 @@ set testexe  "[pwd]/$test"
 set testlibname  "$test"
 set testlibdir "[pwd]"
 set testso  "$testlibdir/lib${testlibname}.so"
-set testflags "additional_flags=-g additional_flags=-O0"
+set testflags "additional_flags=-g"
 set testlibflags "$testflags additional_flags=-fPIC additional_flags=-shared"
 set maintestflags "$testflags additional_flags=-L$testlibdir additional_flags=-l$testlibname additional_flags=-Wl,-rpath,$testlibdir"
+
+set output {exevar_c = 42
+exevar_i = 2
+exevar_l = 21
+stat_exevar_c = 42
+stat_exevar_i = 2
+stat_exevar_l = 21
+exe_s->i = 1
+exe_s->l = 2
+exe_s->c = 3
+stat_exe_s->i = 1
+stat_exe_s->l = 2
+stat_exe_s->c = 3
+exe_s->s1 = 0x0
+exe_s == exe_s->s2
+stat_exe_s->s1 = 0x0
+stat_exe_s == exe_s->s2
+libvar = 42
+stat_libvar = 42
+lib_s->i = 1
+lib_s->l = 2
+lib_s->c = 3
+stat_lib_s->i = 1
+stat_lib_s->l = 2
+stat_lib_s->c = 3
+lib_s == lib_s->s1
+lib_s->s2 = 0x0
+stat_lib_s == lib_s->s1
+stat_lib_s->s2 = 0x0}
 
 # Only run on make installcheck and utrace present.
 if {! [installtest_p]} { untested "$test"; return }
 if {! [utrace_p]} { untested "$test"; return }
 if {! [uprobes_p]} { untested "$test"; return }
 
-# Compile our test program and library.
-set res [target_compile $testsrclib $testso executable $testlibflags]
-if { $res != "" } {
-    verbose "target_compile for $testso failed: $res" 2
-    fail "unable to compile $testsrclib"
-    return
-}
-set res [target_compile $testsrc $testexe executable $maintestflags]
-if { $res != "" } {
-    verbose "target_compile failed: $res" 2
-    fail "unable to compile $testsrc"
-    return
-}
+for {set i 0} {$i < [all_compile_flags]} {incr i} {
+  set extra_flag [all_compile_flag $i]
+  set extra_name [all_compile_flag_name $i]
 
-set output {exevar_c = 42
-exevar_i = 2
-exevar_l = 21
-exe_s->i = 1
-exe_s->l = 2
-exe_s->c = 3
-exe_s->s1 = 0x0
-exe_s == exe_s->s2
-libvar = 42
-lib_s->i = 1
-lib_s->l = 2
-lib_s->c = 3
-lib_s == lib_s->s1
-lib_s->s2 = 0x0}
+  # Compile our test program and library.
+  set res [target_compile $testsrclib $testso executable "$testlibflags $extra_flag"]
+  if { $res != "" } {
+      verbose "target_compile for $testso failed: $res" 2
+      fail "unable to compile $testsrclib $extra_name"
+      continue
+  }
+  set res [target_compile $testsrc $testexe executable "$maintestflags $extra_flag"]
+  if { $res != "" } {
+      verbose "target_compile failed: $res" 2
+      fail "unable to compile $testsrc $extra_name"
+      continue
+  }
 
-# Got to run stap with both the exe and the libraries used as -d args.
-set cmd [concat stap -d $testso -d $testexe -c $testexe $testpath/$test.stp]
-send_log "cmd: $cmd\n"
-catch {eval exec $cmd} res
-send_log "cmd output: $res\n"
+  # Got to run stap with both the exe and the libraries used as -d args.
+  set cmd [concat stap -d $testso -d $testexe -c $testexe $testpath/$test.stp]
+  send_log "cmd: $cmd\n"
+  catch {eval exec $cmd} res
+  send_log "cmd output: $res\n"
 
-set n 0
-set m [llength [split $output "\n"]]
-set expected [split $output "\n"]
-foreach line [split $res "\n"] {
-    if {![string equal $line [lindex $expected $n]]} {
-      fail $test
-      send_log "line [expr $n + 1]: expected \"[lindex $expected $n]\", "
-      send_log "Got \"$line\"\n"
-      return
-    }
-    incr n
+  set n 0
+  set m [llength [split $output "\n"]]
+  set expected [split $output "\n"]
+  foreach line [split $res "\n"] {
+      if {![string equal $line [lindex $expected $n]]} {
+        fail "$test-$extra_name"
+        send_log "line [expr $n + 1]: expected \"[lindex $expected $n]\", "
+        send_log "Got \"$line\"\n"
+        break
+      }
+      incr n
+  }
+
+  if { $n != $m } {
+    fail "$test-$extra_name"
+    send_log "Got \"$n\" lines, expected \"$m\" lines\n"
+  } else {
+    pass $test-$extra_name
+  }
+  catch {exec rm -f $testexe $testso}
 }
-if { $n != $m } {
-  fail $test
-  send_log "Got \"$n\" lines, expected \"$m\" lines\n"
-} else {
-  pass $test
-}
-catch {exec rm -f $testexe $testso}

@@ -39,7 +39,7 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#ALLOCATOR">ALLOCATOR</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#COUNTER">COUNTER</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#EVENT">EVENT</a> <a href="#FILES">FILES</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTION">FUNCTION</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#HACK">HACK</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITORING">MONITORING</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PID">PID</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SECURITY">SECURITY</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TID">TID</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#WALL-CLOCK">WALL-CLOCK</a> <a href="#WATCHDOG">WATCHDOG</a> <a href="#WATCHPOINT">WATCHPOINT</a> <a href="#WRITE">WRITE</a> </tt></p>
+<p><tt><a href="#ALLOCATOR">ALLOCATOR</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#BUFFER">BUFFER</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#COUNTER">COUNTER</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#EVENT">EVENT</a> <a href="#FILES">FILES</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FREE">FREE</a> <a href="#FUNCTION">FUNCTION</a> <a href="#FUNCTIONS">FUNCTIONS</a> <a href="#FUTEX">FUTEX</a> <a href="#GRAPH">GRAPH</a> <a href="#HACK">HACK</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#KVM">KVM</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITORING">MONITORING</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PID">PID</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#QEMU">QEMU</a> <a href="#READ">READ</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SECURITY">SECURITY</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SLEEP">SLEEP</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#TID">TID</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#USE">USE</a> <a href="#VIRTUALIZATION">VIRTUALIZATION</a> <a href="#WALL-CLOCK">WALL-CLOCK</a> <a href="#WATCHDOG">WATCHDOG</a> <a href="#WATCHPOINT">WATCHPOINT</a> <a href="#WRITE">WRITE</a> </tt></p>
 <h3><a name="ALLOCATOR"><a href="#ALLOCATOR">&para;</a> ALLOCATOR</a></h3>
 <ul>
 <li><a href="memory/vm.tracepoints.stp">memory/vm.tracepoints.stp</a> - Collect slab allocation statistics<br>
@@ -253,6 +253,21 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY
 </li><li><a href="process/sleepingBeauties.stp">process/sleepingBeauties.stp</a> - Generating Backtraces of Threads Waiting for IO Operations<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The script monitors the time that threads spend in waiting for IO operations (in &quot;D&quot; state) in the wait_for_completion function.  If a thread spends over 10ms, its name and backtrace is printed, and later so is the total delay.<p><font size="-2"><pre># stap sleepingBeauties.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a href="virtualization/qemu_io.stp">virtualization/qemu_io.stp</a> - Tally the number of user-space qemu io on each io port<br>
+keywords: <a href="keyword-index.html#VIRTUALIZATION">VIRTUALIZATION</a> <a href="keyword-index.html#QEMU">QEMU</a> <a href="keyword-index.html#KVM">KVM</a> <a href="keyword-index.html#IO">IO</a> <br>
+<p>The qemu_io.stp script tallies the number of times each of the IO port on the guest virtual machines is touched by a input or output operation. When the script exits, it prints a count of the number of times each IO port read and written.<p><font size="-2"><pre># stap qemu_io.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li></ul>
+<h3><a name="KVM"><a href="#KVM">&para;</a> KVM</a></h3>
+<ul>
+<li><a href="virtualization/kvm_service_time.stp">virtualization/kvm_service_time.stp</a> - Time statistics on KVM exit reasons<br>
+keywords: <a href="keyword-index.html#VIRTUALIZATION">VIRTUALIZATION</a> <a href="keyword-index.html#KVM">KVM</a> <br>
+<p>The kvm_service_time.stp script tracks the statistics about the amount of time that the processor left the guest virtual machine for each exit reason (for example fixing up a page table or handling an IO operation).  When the script exits it prints out the number of times each exit reason was encountered, the total duration of time it left the guest VM, the minimum time, the average time, and the maximum time in microseconds for that exit reason. On Linux 2.6.38 and newer kernel the script can automatically determine whether it is running on Intel or AMD processors. For older kernels with a kernel.trace(&quot;kvm_exit&quot;) tracepoint that does not have the $isa parameter you can explicitly state the kvm type with a &quot;-G kvm=intel&quot; or &quot;-G kvm=amd&quot; on the command line.<p><font size="-2"><pre># stap kvm_service_time.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a href="virtualization/qemu_count.stp">virtualization/qemu_count.stp</a> - Tally the number of user-space qemu events<br>
+keywords: <a href="keyword-index.html#VIRTUALIZATION">VIRTUALIZATION</a> <a href="keyword-index.html#QEMU">QEMU</a> <a href="keyword-index.html#KVM">KVM</a> <br>
+<p>The qemu_count.stp script tallies the number of times each of the user-space qemu probepoints is encountered. When the script exits, it prints a list of the number of times each user-space qemu probepoint is encountered.<p><font size="-2"><pre># stap qemu_count.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a href="virtualization/qemu_io.stp">virtualization/qemu_io.stp</a> - Tally the number of user-space qemu io on each io port<br>
+keywords: <a href="keyword-index.html#VIRTUALIZATION">VIRTUALIZATION</a> <a href="keyword-index.html#QEMU">QEMU</a> <a href="keyword-index.html#KVM">KVM</a> <a href="keyword-index.html#IO">IO</a> <br>
+<p>The qemu_io.stp script tallies the number of times each of the IO port on the guest virtual machines is touched by a input or output operation. When the script exits, it prints a count of the number of times each IO port read and written.<p><font size="-2"><pre># stap qemu_io.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
 <h3><a name="LOCKING"><a href="#LOCKING">&para;</a> LOCKING</a></h3>
 <ul>
@@ -457,6 +472,15 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 </li><li><a href="profiling/topsys.stp">profiling/topsys.stp</a> - Show Processes Doing Polling Operations<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p> The topsys.stp script lists out the top twenty systemcalls for the previous 5 seconds. The output is sorted from most frequent to least frequent.<p><font size="-2"><pre># stap topsys.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li></ul>
+<h3><a name="QEMU"><a href="#QEMU">&para;</a> QEMU</a></h3>
+<ul>
+<li><a href="virtualization/qemu_count.stp">virtualization/qemu_count.stp</a> - Tally the number of user-space qemu events<br>
+keywords: <a href="keyword-index.html#VIRTUALIZATION">VIRTUALIZATION</a> <a href="keyword-index.html#QEMU">QEMU</a> <a href="keyword-index.html#KVM">KVM</a> <br>
+<p>The qemu_count.stp script tallies the number of times each of the user-space qemu probepoints is encountered. When the script exits, it prints a list of the number of times each user-space qemu probepoint is encountered.<p><font size="-2"><pre># stap qemu_count.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a href="virtualization/qemu_io.stp">virtualization/qemu_io.stp</a> - Tally the number of user-space qemu io on each io port<br>
+keywords: <a href="keyword-index.html#VIRTUALIZATION">VIRTUALIZATION</a> <a href="keyword-index.html#QEMU">QEMU</a> <a href="keyword-index.html#KVM">KVM</a> <a href="keyword-index.html#IO">IO</a> <br>
+<p>The qemu_io.stp script tallies the number of times each of the IO port on the guest virtual machines is touched by a input or output operation. When the script exits, it prints a count of the number of times each IO port read and written.<p><font size="-2"><pre># stap qemu_io.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
 <h3><a name="READ"><a href="#READ">&para;</a> READ</a></h3>
 <ul>
@@ -666,6 +690,18 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html#CPU">CPU</a> <a href="keyword-index.html#USE">USE</a> <a href="keyword-index.html#GRAPH">GRAPH</a> <br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.<p><font size="-2"><pre># stap graphs.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li></ul>
+<h3><a name="VIRTUALIZATION"><a href="#VIRTUALIZATION">&para;</a> VIRTUALIZATION</a></h3>
+<ul>
+<li><a href="virtualization/kvm_service_time.stp">virtualization/kvm_service_time.stp</a> - Time statistics on KVM exit reasons<br>
+keywords: <a href="keyword-index.html#VIRTUALIZATION">VIRTUALIZATION</a> <a href="keyword-index.html#KVM">KVM</a> <br>
+<p>The kvm_service_time.stp script tracks the statistics about the amount of time that the processor left the guest virtual machine for each exit reason (for example fixing up a page table or handling an IO operation).  When the script exits it prints out the number of times each exit reason was encountered, the total duration of time it left the guest VM, the minimum time, the average time, and the maximum time in microseconds for that exit reason. On Linux 2.6.38 and newer kernel the script can automatically determine whether it is running on Intel or AMD processors. For older kernels with a kernel.trace(&quot;kvm_exit&quot;) tracepoint that does not have the $isa parameter you can explicitly state the kvm type with a &quot;-G kvm=intel&quot; or &quot;-G kvm=amd&quot; on the command line.<p><font size="-2"><pre># stap kvm_service_time.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a href="virtualization/qemu_count.stp">virtualization/qemu_count.stp</a> - Tally the number of user-space qemu events<br>
+keywords: <a href="keyword-index.html#VIRTUALIZATION">VIRTUALIZATION</a> <a href="keyword-index.html#QEMU">QEMU</a> <a href="keyword-index.html#KVM">KVM</a> <br>
+<p>The qemu_count.stp script tallies the number of times each of the user-space qemu probepoints is encountered. When the script exits, it prints a list of the number of times each user-space qemu probepoint is encountered.<p><font size="-2"><pre># stap qemu_count.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a href="virtualization/qemu_io.stp">virtualization/qemu_io.stp</a> - Tally the number of user-space qemu io on each io port<br>
+keywords: <a href="keyword-index.html#VIRTUALIZATION">VIRTUALIZATION</a> <a href="keyword-index.html#QEMU">QEMU</a> <a href="keyword-index.html#KVM">KVM</a> <a href="keyword-index.html#IO">IO</a> <br>
+<p>The qemu_io.stp script tallies the number of times each of the IO port on the guest virtual machines is touched by a input or output operation. When the script exits, it prints a count of the number of times each IO port read and written.<p><font size="-2"><pre># stap qemu_io.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
 <h3><a name="WALL-CLOCK"><a href="#WALL-CLOCK">&para;</a> WALL-CLOCK</a></h3>
 <ul>

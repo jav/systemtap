@@ -1885,7 +1885,7 @@ dwflpp::die_entrypc (Dwarf_Die * die, Dwarf_Addr * addr)
     }
 
   if (sess.verbose > 2)
-    clog << _F("entry-pc lookup (%s dieoffset: %s) = %#" PRIx64 " (rc %d", lookup_method.c_str(), 
+    clog << _F("entry-pc lookup (%s dieoffset: %s) = %#" PRIx64 " (rc %d)", lookup_method.c_str(), 
                lex_cast_hex(dwarf_dieoffset(die)).c_str(), *addr, rc) << endl;
 
   return (rc == 0);
@@ -1990,44 +1990,22 @@ dwflpp::loc2c_error (void *, const char *fmt, ...)
 void
 dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
 {
-  #if 0
-  // The easy but incorrect way is to just print a hard-wired
-  // constant.
-  obstack_printf (pool, "%#" PRIx64 "UL", address);
-  #endif
-
-  // Turn this address into a section-relative offset if it should be one.
-  // We emit a comment approximating the variable+offset expression that
-  // relocatable module probing code will need to have.
-  Dwfl *dwfl = dwfl_ptr.get()->dwfl;
-  if (! dwfl)
-    throw semantic_error (_("emit_address internal error, no dwfl"));
-
-  Dwfl_Module *mod = dwfl_addrmodule (dwfl, address);
-  if (! mod)
-    {
-      ostringstream msg;
-      msg << _F("emit_address internal error, dwfl_addrmodule failed, "
-                "address %#" PRIx64 , address);
-      const char *err = dwfl_errmsg(0);
-      if (err)
-	msg << " (" << err << ")";
-      throw semantic_error (msg.str());
-    }
-  const char *modname = dwfl_module_info (mod, NULL, NULL, NULL,
-                                              NULL, NULL, NULL, NULL);
-  int n = dwfl_module_relocations (mod);
+  int n = dwfl_module_relocations (module);
   dwfl_assert ("dwfl_module_relocations", n >= 0);
   Dwarf_Addr reloc_address = address;
-  int i = dwfl_module_relocate_address (mod, &reloc_address);
-  dwfl_assert ("dwfl_module_relocate_address", i >= 0);
-  dwfl_assert ("dwfl_module_info", modname);
-  const char *secname = dwfl_module_relocation_info (mod, i, NULL);
+  const char *secname = "";
+  if (n > 1)
+    {
+      int i = dwfl_module_relocate_address (module, &reloc_address);
+      dwfl_assert ("dwfl_module_relocate_address", i >= 0);
+      secname = dwfl_module_relocation_info (module, i, NULL);
+    }
 
   if (sess.verbose > 2)
     {
       clog << _F("emit dwarf addr %#" PRIx64 " => module %s section %s relocaddr %#" PRIx64,
-                 address, modname, (secname ?: "null"), reloc_address) << endl;
+                 address, module_name.c_str (), (secname ?: "null"),
+                 reloc_address) << endl;
     }
 
   if (n > 0 && !(n == 1 && secname == NULL))
@@ -2039,7 +2017,7 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
           // module, for a kernel module (or other ET_REL module object).
           obstack_printf (pool, "({ unsigned long addr = 0; ");
           obstack_printf (pool, "addr = _stp_kmodule_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
-                          modname, secname, reloc_address);
+                          module_name.c_str(), secname, reloc_address);
           obstack_printf (pool, "addr; })");
         }
       else if (n == 1 && module_name == TOK_KERNEL && secname[0] == '\0')
@@ -2053,7 +2031,7 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
           // user-space dynamic share libraries).
           obstack_printf (pool, "({ static unsigned long addr = 0; ");
           obstack_printf (pool, "if (addr==0) addr = _stp_kmodule_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
-                          modname, secname, address); // PR10000 NB: not reloc_address
+                          module_name.c_str(), secname, address); // PR10000 NB: not reloc_address
           obstack_printf (pool, "addr; })");
         }
       else
@@ -2061,7 +2039,7 @@ dwflpp::emit_address (struct obstack *pool, Dwarf_Addr address)
           enable_task_finder (sess);
           obstack_printf (pool, "({ unsigned long addr = 0; ");
           obstack_printf (pool, "addr = _stp_umodule_relocate (\"%s\",%#" PRIx64 ", current); ",
-                          canonicalize_file_name(modname), reloc_address);
+                          canonicalize_file_name(module_name.c_str()), address);
           obstack_printf (pool, "addr; })");
         }
     }
@@ -2750,6 +2728,11 @@ dwflpp::vardie_from_symtable (Dwarf_Die *vardie, Dwarf_Addr *addr)
 	      || GELF_ST_TYPE (sym.st_info) == STT_OBJECT))
 	*addr = sym.st_value;
     }
+
+  // Don't relocate for the kernel, or kernel modules we handle those
+  // specially in emit_address.
+  if (dwfl_module_relocations (module) == 1 && module_name != TOK_KERNEL)
+    dwfl_module_relocate_address (module, addr);
 
   if (sess.verbose > 2)
     clog << _F("found %s @%#" PRIx64 "\n", name, *addr);

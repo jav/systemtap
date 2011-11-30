@@ -317,8 +317,9 @@ rm -rf ${RPM_BUILD_ROOT}
 getent group stap-server >/dev/null || groupadd -g 155 -r stap-server || groupadd -r stap-server
 
 %pre runtime
-getent group stapdev >/dev/null || groupadd -r stapdev
-getent group stapusr >/dev/null || groupadd -r stapusr
+getent group stapusr >/dev/null || groupadd -g 156 -r stapusr || groupadd -r stapusr
+getent group stapsys >/dev/null || groupadd -g 157 -r stapsys || groupadd -r stapsys
+getent group stapdev >/dev/null || groupadd -g 158 -r stapdev || groupadd -r stapdev
 exit 0
 
 %pre server

@@ -5,11 +5,14 @@ set test "remote"
 
 if {[info exists env(SYSTEMTAP_TESTREMOTES)]} {
   set remotes [split $env(SYSTEMTAP_TESTREMOTES) ,]
-} else { set remotes [list] }
+}
+if {[llength $remotes] == 0} {
+  set remotes {direct: stapsh:}
+}
 set batch_remotes [list]
 
+verbose -log "$test: using $remotes"
 if {![llength $remotes] || ![installtest_p]} { untested $test; return }
-verbose -log "$test: $remotes"
 
 # Test each remote individually
 foreach remote $remotes {
@@ -37,8 +40,8 @@ foreach remote $remotes {
   spawn stap $srcdir/$subdir/$test.stp --remote=$remote
   expect {
     -timeout 180
-    -re {^begin\r\n} { incr begin; exec kill -INT [exp_pid]; exp_continue }
-    -re {^end\r\n} { incr end; exp_continue }
+    -re "^begin0:$remote\r\n" { incr begin; exec kill -INT [exp_pid]; exp_continue }
+    -re "^end0:$remote\r\n" { incr end; exp_continue }
     -re {^[^\r\n]*\r\n} { incr err; exp_continue }
     timeout { fail "$test run $remote (timeout)" }
     eof { }
@@ -63,12 +66,12 @@ if {[llength $batch_remotes] < 2} {
   eval spawn stap {$srcdir/$subdir/$test.stp} $batch_remotes
   expect {
     -timeout 180
-    -re {^begin\r\n} {
+    -re {^begin[0-9]+:[^\r\n]+\r\n} {
       incr begin
       if {$begin == [llength $batch_remotes]} {exec kill -INT [exp_pid]}
       exp_continue
     }
-    -re {^end\r\n} { incr end; exp_continue }
+      -re {^end[0-9]+:[^\r\n]+\r\n} { incr end; exp_continue }
     -re {^[^\r\n]*\r\n} {
       incr err;
       if {$err == 1} {exec kill -INT [exp_pid]}

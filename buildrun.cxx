@@ -265,6 +265,8 @@ compile_pass (systemtap_session& s)
 		  "STAPCONF_HW_BREAKPOINT_CONTEXT", NULL);
   output_autoconf(s, o, "autoconf-save-stack-trace.c",
                   "STAPCONF_KERNEL_STACKTRACE", NULL);
+  output_autoconf(s, o, "autoconf-save-stack-trace-no-bp.c",
+                  "STAPCONF_KERNEL_STACKTRACE_NO_BP", NULL);
   output_autoconf(s, o, "autoconf-asm-syscall.c",
 		  "STAPCONF_ASM_SYSCALL_H", NULL);
   output_autoconf(s, o, "autoconf-ring_buffer-flags.c", "STAPCONF_RING_BUFFER_FLAGS", NULL);
@@ -286,6 +288,10 @@ compile_pass (systemtap_session& s)
   output_exportconf(s, o, "kern_path_parent", "STAPCONF_KERN_PATH_PARENT");
   output_exportconf(s, o, "vfs_path_lookup", "STAPCONF_VFS_PATH_LOOKUP");
   output_autoconf(s, o, "autoconf-module-sect-attrs.c", "STAPCONF_MODULE_SECT_ATTRS", NULL);
+
+  output_autoconf(s, o, "autoconf-utrace-via-tracepoints.c", "STAPCONF_UTRACE_VIA_TRACEPOINTS", NULL);
+  output_autoconf(s, o, "autoconf-utrace-via-ftrace.c", "STAPCONF_UTRACE_VIA_FTRACE", NULL);
+  output_autoconf(s, o, "autoconf-vm-area-pte.c", "STAPCONF_VM_AREA_PTE", NULL);
 
   // used by tapset/timestamp_monotonic.stp
   output_exportconf(s, o, "cpu_clock", "STAPCONF_CPU_CLOCK");

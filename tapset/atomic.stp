@@ -20,7 +20,7 @@ function atomic_read:long(addr:long)
 	/* We call deref() here to ensure the memory is valid to read.
 	 * Note the result is thrown away, then we use the "real"
 	 * atomic read function now that we know the address is safe. */
-	(void)deref(sizeof(*a), a);
+	(void)kderef(sizeof(*a), a);
 	THIS->__retvalue = atomic_read(a);
 	CATCH_DEREF_FAULT();
 %}
@@ -41,7 +41,7 @@ function atomic_long_read:long(addr:long)
 	/* We call deref() here to ensure the memory is valid to read.
 	 * Note the result is thrown away, then we use the "real"
 	 * atomic read function now that we know the address is safe. */
-	(void)deref(sizeof(*a), a);
+	(void)kderef(sizeof(*a), a);
 	THIS->__retvalue = atomic_long_read(a);
 	CATCH_DEREF_FAULT();
 #endif

@@ -3,6 +3,5 @@ set ::result_string {PID OK
 PID2 OK
 PID3 OK
 execname OK
-sa_data OK
 usage OK}
-stap_run2 $srcdir/$subdir/$test.stp -g
+stap_run2 $srcdir/$subdir/$test.stp

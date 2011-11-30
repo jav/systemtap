@@ -1,0 +1,48 @@
+set test "Invalid Unprivileged Mode Arguments"
+
+# Test that stap on the server side will correctly accept/reject certain
+# arguments in unprivileged mode.
+
+# Test invalid combinations.
+# Other invalid options are invalid only when used with the compile-server
+# client and are tested in systemtap.server/client_args.exp.
+set invalid_options [list \
+  "--unprivileged -g" \
+  "-g --unprivileged" \
+]
+
+foreach options $invalid_options {
+    set error_regexp ".*You can't specify .* and --privilege=stapusr together.*"
+    verbose -log "eval exec stap $options"
+    catch {eval exec stap -e {probe begin { exit() }} -p1 $options} res_stap
+    verbose -log $res_stap
+    if {[regexp $error_regexp $res_stap]} {
+	pass "$test: $options"
+    } else {
+	fail "$test: $options"
+    }
+
+    # We should get the same result substituting --unprivileged with --privilege=stapusr
+    if {[regsub -all {\-\-unprivileged} $options "--privilege=stapusr" options]} {
+	verbose -log "eval exec stap $options"
+	catch {eval exec stap -e {probe begin { exit() }} -p1 $options} res_stap
+	verbose -log $res_stap
+	if {[regexp $error_regexp $res_stap]} {
+	    pass "$test: $options"
+	} else {
+	    fail "$test: $options"
+	}
+	# We should get the same result substituting --privilege=stapusr with --privilege=stapsys
+	if {[regsub -all {\-\-privilege=stapusr} $options "--privilege=stapsys" options]} {
+	    set error_regexp ".*You can't specify .* and --privilege=stapsys together.*"
+	    verbose -log "eval exec stap $options"
+	    catch {eval exec stap -e {probe begin { exit() }} -p1 $options} res_stap
+	    verbose -log $res_stap
+	    if {[regexp $error_regexp $res_stap]} {
+		pass "$test: $options"
+	    } else {
+		fail "$test: $options"
+	    }
+	}
+    }
+}

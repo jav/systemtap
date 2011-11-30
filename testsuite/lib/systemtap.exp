@@ -1,4 +1,5 @@
 load_lib site.exp
+load_lib "compile_flags.exp"
 
 proc installtest_p {} {
     global TOOL_OPTIONS
@@ -10,17 +11,40 @@ proc installtest_p {} {
 
 proc utrace_p {} {
     set path "/proc/kallsyms"
+    # We've got 2 ways to provide utrace support:
+    #
+    # (1) Kernel built-in utrace (CONFIG_UTRACE).  Look for
+    # 'utrace_attach'.
     if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+	return 1
+
+    # (2) Tracepoint-based utrace.  Check for either:
+    # (2a) the set of 5 tracepoints we need (see
+    # runtime/autoconf-utrace-via-ftrace.c)
+    # (2b) the 4 tracepoints and the ftrace function we need (see
+    # runtime/autoconf-utrace-via-ftrace.c)
+    #
+    # Since 4 tracepoints are shared between the 2 methods, that makes
+    # things a bit easier.
+    } elseif {! [catch {exec grep -q tracepoint_sched_process_fork $path} dummy]
+	      && ! [catch {exec grep -q tracepoint_sched_process_exit $path} dummy]
+	      && ! [catch {exec grep -q tracepoint_sys_enter $path} dummy]
+	      && ! [catch {exec grep -q tracepoint_sys_exit $path} dummy]
+
+	      && (! [catch {exec grep -q tracepoint_sched_process_exec $path} dummy]
+		  || ! [catch {exec grep -q ftrace_set_filter $path} dummy])} {
         return 1
-    } else {
-        return 0
     }
+    return 0
 }
 
 
 proc uprobes_p {} {
     # If this is a utrace kernel, then we can use our version of uprobes.
     # No need to build it now, stap will handle that itself.
+    #
+    # This function will need to get smarter with the inodes-based
+    # uprobes.
     if {[utrace_p]} { return 1 }
     return 0
 }
@@ -267,6 +291,45 @@ if {[catch {exec stap --skip-badvars -w -p2 -e {probe syscall.open {println (arg
     exit 1
 }
 
+# Make sure all development packages for the supported ABIs (-m64 -m32/-m31)
+# are installed by building a quick hello.c and hello.cxx program with both.
+set source "hello.c"
+set hello_file [open $source "w"]
+puts $hello_file "#include <stdio.h>"
+puts $hello_file "int main () { printf(\"Hello World!\"); return 0; }"
+close $hello_file
+for {set i 0} {$i < [arch_compile_flags]} {incr i} {
+  set flags "additional_flags=-g compiler=gcc [arch_compile_flag $i]"
+  set exe "hello-[arch_compile_flag_name $i]"
+  set result [target_compile $source $exe executable $flags]
+  if { $result != "" } {
+    puts "\n\n\n**** failed gcc [arch_compile_flag_name $i] smoke test:\n"
+    puts $result
+    puts "Please install libgcc and glibc development packages for [arch_compile_flag_name $i]\n"
+    puts "\n**** aborting testing.\n"
+    cleanup
+    exit 1
+  }
+}
+set source "hello.cxx"
+set hello_file [open $source "w"]
+puts $hello_file "#include <iostream>"
+puts $hello_file "using namespace std;"
+puts $hello_file "int main () { cout << \"Hello World!\" << endl; return 0; }"
+close $hello_file
+for {set i 0} {$i < [arch_compile_flags]} {incr i} {
+  set flags "additional_flags=-g compiler=g++ [arch_compile_flag $i]"
+  set exe "hello-[arch_compile_flag_name $i]"
+  set result [target_compile $source $exe executable $flags]
+  if { $result != "" } {
+    puts "\n\n\n**** failed g++ [arch_compile_flag_name $i] smoke test:\n"
+    puts $result
+    puts "Please install libstdc++-devel package for [arch_compile_flag_name $i]\n"
+    puts "\n**** aborting testing.\n"
+    cleanup
+    exit 1
+  }
+}
 
 proc systemtap_init {args} {}
 proc systemtap_version {} {}

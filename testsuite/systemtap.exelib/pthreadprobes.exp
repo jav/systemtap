@@ -17,8 +17,7 @@ if {$err != "" && [file exists $test]} then {
 set cmd [concat -L process(\"$res\").mark(\"pthread_create\")]
 if {[catch {exec stap $cmd } res2]} {
    # can happen on systems without pthread probes in glibc, so don't complain
-   buildok_known_failures $test $res2
-   exec rm -f $test
+   untested "$test"
    return
 } else {
    pass "$test"

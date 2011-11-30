@@ -1,0 +1,45 @@
+set test "stmt_rel_user"
+
+# Compile with inlining and check we can set a relative statement there
+for {set i 0} {$i < [all_compile_flags]} {incr i} {
+  set extra_flag [all_compile_flag $i]
+  set extra_name [all_compile_flag_name $i]
+
+  set ok 0
+  set rel_flags "additional_flags=-Wall additional_flags=-Werror"
+  set rel_flags "$rel_flags additional_flags=-Winline"
+  set rel_flags "$rel_flags additional_flags=-g"
+  set rel_flags "$rel_flags $extra_flag"
+  set res [target_compile $srcdir/$subdir/stmt_rel.c [pwd]/stmt_rel.x executable $rel_flags]
+  if { $res != "" } {
+      verbose "target_compile failed: $res" 2
+      fail "$test-$extra_name compiling stmt_rel"
+      cleanup_handler $verbose
+      continue
+  } else {
+      pass "$test-$extra_name compiling stmt_rel"
+  }
+
+  if {![installtest_p]} { untested "$test-$extra_name stmt_rel"; return }
+
+  spawn stap -c ./stmt_rel.x -e "probe process(\"./stmt_rel.x\").statement(\"Move@stmt_rel.c+1\") {printf(\"Move %d\\n\",\$s1)}"
+  expect {
+      -timeout 180
+      -re {Move [0-9]} { incr ok; exp_continue }
+      timeout { fail "$test-$extra_name stmt_rel (timeout)" }
+      eof { }
+  }
+  catch {close}; catch {wait}
+
+  # PR13430 when optimizing we fail to set probes on all inlined lines.
+  if { [string first "O" $extra_name] != -1 } {
+    setup_kfail 13430 "*-*-*" 
+  }
+
+  # A hanoi tower needs 2^n - 1 moves (n == 14 in the test program)
+  if { $ok == 16383 } {
+      pass "$test-$extra_name stmt_rel"
+  } else {
+      fail "$test-$extra_name stmt_rel ($ok)"
+  }
+}

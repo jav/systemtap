@@ -84,6 +84,11 @@ class direct : public remote {
     int start()
       {
         args = make_run_command(*s);
+        if (! staprun_r_arg.empty()) // PR13354
+          {
+            args.push_back ("-r");
+            args.push_back (staprun_r_arg);
+          }
         pid_t pid = stap_spawn (s->verbose, args);
         if (pid <= 0)
           return 1;
@@ -328,6 +333,15 @@ class stapsh : public remote {
         // NB: The remote is left to decide its own staprun path
         ostringstream run("run", ios::out | ios::ate);
         vector<string> cmd = make_run_command(*s, ".", remote_version);
+
+        // PR13354: identify our remote index/url
+        if (strverscmp("1.7", remote_version.c_str()) <= 0 && // -r supported?
+            ! staprun_r_arg.empty())
+          {
+            cmd.push_back ("-r");
+            cmd.push_back (staprun_r_arg);
+          }
+
         for (unsigned i = 1; i < cmd.size(); ++i)
           run << ' ' << qpencode(cmd[i]);
         run << '\n';
@@ -784,6 +798,8 @@ class ssh_legacy_remote : public remote {
           // We don't know the actual version, but all <=1.3 are approx equal.
           vector<string> staprun_cmd = make_run_command(*s, tmpdir, "1.3");
           staprun_cmd[0] = "staprun"; // NB: The remote decides its own path
+          // NB: PR13354: we assume legacy installations don't have
+          // staprun -r support, so we ignore staprun_r_arg.
           cmd.push_back(cmdstr_join(staprun_cmd));
           pid_t pid = stap_spawn(s->verbose, cmd);
           if (pid > 0)
@@ -879,8 +895,9 @@ ssh_remote::create(systemtap_session& s, const uri_decoder& ud)
 
 
 remote*
-remote::create(systemtap_session& s, const string& uri)
+remote::create(systemtap_session& s, const string& uri, int idx)
 {
+  remote *it = 0;
   try
     {
       if (uri.find(':') != string::npos)
@@ -892,29 +909,37 @@ remote::create(systemtap_session& s, const string& uri)
           if (!ud.has_authority && !ud.has_query &&
               !ud.has_fragment && !ud.path.empty() &&
               ud.path.find_first_not_of("1234567890") == string::npos)
-            return ssh_remote::create(s, uri);
-
-          if (ud.scheme == "direct")
-            return new direct(s);
+            it = ssh_remote::create(s, uri);
+          else if (ud.scheme == "direct")
+            it = new direct(s);
           else if (ud.scheme == "stapsh")
-            return new direct_stapsh(s);
+            it = new direct_stapsh(s);
           else if (ud.scheme == "unix")
-            return new unix_stapsh(s, ud);
-          if (ud.scheme == "ssh")
-            return ssh_remote::create(s, ud);
+            it = new unix_stapsh(s, ud);
+          else if (ud.scheme == "ssh")
+            it = ssh_remote::create(s, ud);
           else
             throw runtime_error(_F("unrecognized URI scheme '%s' in remote: %s",
                                    ud.scheme.c_str(), uri.c_str()));
         }
       else
         // XXX assuming everything else is ssh for now...
-        return ssh_remote::create(s, uri);
+        it = ssh_remote::create(s, uri);
     }
   catch (std::runtime_error& e)
     {
       cerr << e.what() << " on remote '" << uri << "'" << endl;
-      return NULL;
+      it = 0;
     }
+
+  if (it && idx >= 0) // PR13354: remote metadata for staprun -r IDX:URI
+    {
+      stringstream r_arg;
+      r_arg << idx << ":" << uri;
+      it->staprun_r_arg = r_arg.str();
+    }
+
+  return it;
 }
 
 #ifndef HAVE_PPOLL

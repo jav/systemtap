@@ -953,6 +953,8 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      push_server_opt = true;
 	      if (strcmp (optarg, "stapdev") == 0)
 		privilege = pr_stapdev;
+	      else if (strcmp (optarg, "stapsys") == 0)
+		privilege = pr_stapsys;
 	      else if (strcmp (optarg, "stapusr") == 0)
 		privilege = pr_stapusr;
 	      else
@@ -964,6 +966,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
                  set, no future flag be able to unset it. */
 	      break;
 	    case LONG_OPT_UNPRIVILEGED:
+	      // Equivalent to --privilege=stapusr
 	      push_server_opt = true;
 	      privilege = pr_stapusr;
               /* NB: for server security, it is essential that once this flag is
@@ -1148,12 +1151,22 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
       if (push_server_opt)
 	{
 	  if (grc == 0)
-	    server_args.push_back (string ("--") +
-				   long_options[long_opt - 1].name);
+	    {
+	      // Make sure the '=' is passed with any argument. The server expects it.
+	      if (optarg)
+		server_args.push_back (string ("--") +
+				       long_options[long_opt - 1].name +
+				       "=" + optarg);
+	      else
+		server_args.push_back (string ("--") +
+				       long_options[long_opt - 1].name);
+	    }
 	  else
-	    server_args.push_back (string ("-") + (char)grc);
-	  if (optarg)
-	    server_args.push_back (optarg);
+	    {
+	      server_args.push_back (string ("-") + (char)grc);
+	      if (optarg)
+		server_args.push_back (optarg);
+	    }
 	}
     }
 
@@ -1208,32 +1221,53 @@ systemtap_session::check_options (int argc, char * const argv [])
     {
       last_pass = 4; /* Quietly downgrade.  Server passed through -p5 naively. */
     }
-  // If phase 5 has been requested and the user is a member of stapusr but not
-  // stapdev, then add --unprivileged and --use-server to the invocation,
-  // if not already specified.
+
+  // If phase 5 has been requested, automatically adjust the --privilege setting to match the
+  // user's actual privilege level and add --use-server, if necessary.
   // XXX Eventually we could check remote hosts, but disable that case for now.
   if (last_pass > 4 && have_script && remote_uris.empty())
     {
-      struct group *stgr = getgrnam ("stapusr");
-      if (stgr && in_group_id (stgr->gr_gid))
+      // What is the user's privilege level?
+      privilege_t credentials = get_privilege_credentials ();
+      if (! pr_contains (credentials, privilege)) {
 	{
-	  stgr = getgrnam ("stapdev");
-	  if (! stgr || ! in_group_id (stgr->gr_gid))
+	  // We do not have the privilege credentials specified on the command line. Lower
+	  // the privilege level to match our credentials.
+	  if (pr_contains (credentials, pr_stapsys))
 	    {
-              automatic_server_mode = true;
-	      if (privilege != pr_stapusr)
-		{
-                  if (perpass_verbose[0] > 1)
-                    cerr << _("Using --unprivileged for member of the group stapusr") << endl;
-		  privilege = pr_stapusr;
-		  server_args.push_back ("--unprivileged");
-		}
-	      if (specified_servers.empty ())
-		{
-                  if (perpass_verbose[0] > 1)
-                    cerr << _("Using --use-server for member of the group stapusr") << endl;
-		  specified_servers.push_back ("");
-		}
+	      if (perpass_verbose[0] > 1)
+		cerr << _("Using --privilege=stapsys for member of the group stapsys") << endl;
+	      privilege = pr_stapsys;
+	      server_args.push_back ("--privilege=stapsys");
+	    }
+	  else if (pr_contains (credentials, pr_stapusr))
+	    {
+	      if (perpass_verbose[0] > 1)
+		cerr << _("Using --privilege=stapusr for member of the group stapusr") << endl;
+	      privilege = pr_stapusr;
+	      server_args.push_back ("--privilege=stapusr");
+	    }
+	  else
+	    {
+	      // Completely unprivileged user.
+	      cerr << _("You are trying to run systemtap as a normal user.\n"
+			"You should either be root, or be part of "
+			"the group \"stapusr\" and possibly one of the groups \"stapsys\" or \"stapdev\".\n");
+	      usage (1); // does not return.
+	    }
+	}
+      }
+      // Add --use-server if not already specified and the user's (lack of) credentials require
+      // it for pass 5.
+      if (! pr_contains (credentials, pr_stapdev))
+	{
+	  if (specified_servers.empty ())
+	    {
+	      if (perpass_verbose[0] > 1)
+		cerr << _F("Using --use-server for user with privilege level %s",
+			   pr_name (privilege))
+		     << endl;
+	      specified_servers.push_back ("");
 	    }
 	}
     }

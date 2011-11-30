@@ -70,7 +70,7 @@ eval exec $strip_cmd
 stap_run3 $test-run-statements-nolines -w -g $test-run-statements.stp -c $testexe
 
 # XXX Last test still fails. PR10454.
-return
+setup_kfail 10454 "*-*-*"
 
 # Now strip away all debuginfo. Since the script doesn't need any it
 # should still work.

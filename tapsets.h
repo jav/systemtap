@@ -13,6 +13,8 @@
 #include "staptree.h"
 #include "elaborate.h"
 
+void check_process_probe_kernel_support(systemtap_session& s);
+
 void register_standard_tapsets(systemtap_session& sess);
 std::vector<derived_probe_group*> all_session_groups(systemtap_session& s);
 std::string common_probe_init (derived_probe* p);

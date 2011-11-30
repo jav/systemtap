@@ -1,14 +1,30 @@
 #ifndef TASK_FINDER_C
 #define TASK_FINDER_C
 
-#if ! defined(CONFIG_UTRACE)
+#if (defined(STAPCONF_UTRACE_VIA_TRACEPOINTS) \
+     || defined(STAPCONF_UTRACE_VIA_FTRACE))
+#define STP_CAN_USE_INTERNAL_UTRACE
+#endif
+
+/*
+ * Which utrace shall we use?
+ * (1) Built-in kernel utrace (preferred), indicated by
+ * CONFIG_UTRACE.
+ * (2) Internal utrace.  Requires either
+ * STAPCONF_UTRACE_VIA_TRACEPOINTS or STAPCONF_UTRACE_VIA_FTRACE.
+ * (3) If we don't have either (old kernels), just define some dummy
+ * functions.
+ */
+
+#if !defined(CONFIG_UTRACE) && !defined(STP_CAN_USE_INTERNAL_UTRACE)
 /* Dummy definitions for use in sym.c */
 struct stap_task_finder_target { };
 static int stap_start_task_finder(void) { return 0; }
 static void stap_stop_task_finder(void) { }
-
-#else
-
+#else  /* CONFIG_UTRACE || STP_CAN_USE_INTERNAL_UTRACE */
+#if !defined(CONFIG_UTRACE)
+#include "task_finder2.c"
+#else  /* CONFIG_UTRACE */
 #include <linux/utrace.h>
 #include <linux/list.h>
 #include <linux/binfmts.h>
@@ -843,7 +859,8 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 		/* Notice that "pid == 0" (which means to probe all
 		 * threads) falls through. */
 
-#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV) && \
+    ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPSYS)
 		/* Make sure unprivileged users only probe their own threads. */
 		if (_stp_uid != tsk_euid) {
 			if (tgt->pid != 0) {
@@ -1643,7 +1660,8 @@ stap_start_task_finder(void)
 			/* Notice that "pid == 0" (which means to
 			 * probe all threads) falls through. */
 
-#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV) && \
+    ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPSYS)
 			/* Make sure unprivileged users only probe their own threads.  */
 			if (_stp_uid != tsk_euid) {
 				if (tgt->pid != 0 || _stp_target) {
@@ -1703,5 +1721,6 @@ stap_stop_task_finder(void)
 	debug_task_finder_report();
 }
 
-#endif /* defined(CONFIG_UTRACE) */
+#endif /* CONFIG_UTRACE || STP_CAN_USE_INTERNAL_UTRACE */
+#endif /* CONFIG_UTRACE */
 #endif /* TASK_FINDER_C */

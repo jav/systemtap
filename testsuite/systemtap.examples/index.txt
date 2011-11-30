@@ -979,3 +979,44 @@ keywords: profiling
   # stap topsys.stp -c "sleep 0.2"
 
 
+virtualization/kvm_service_time.stp - Time statistics on KVM exit reasons
+keywords: virtualization kvm
+
+  The kvm_service_time.stp script tracks the statistics about the
+  amount of time that the processor left the guest virtual machine for
+  each exit reason (for example fixing up a page table or handling an
+  IO operation).  When the script exits it prints out the number of
+  times each exit reason was encountered, the total duration of time it
+  left the guest VM, the minimum time, the average time, and the
+  maximum time in microseconds for that exit reason. On Linux 2.6.38
+  and newer kernel the script can automatically determine whether it is
+  running on Intel or AMD processors. For older kernels with a
+  kernel.trace("kvm_exit") tracepoint that does not have the $isa
+  parameter you can explicitly state the kvm type with a "-G kvm=intel"
+  or "-G kvm=amd" on the command line.
+
+  # stap kvm_service_time.stp -c "sleep 0.2"
+
+
+virtualization/qemu_count.stp - Tally the number of user-space qemu events
+keywords: virtualization qemu kvm
+
+  The qemu_count.stp script tallies the number of times each of the
+  user-space qemu probepoints is encountered. When the script exits, it
+  prints a list of the number of times each user-space qemu probepoint
+  is encountered.
+
+  # stap qemu_count.stp -c "sleep 0.2"
+
+
+virtualization/qemu_io.stp - Tally the number of user-space qemu io on each io port
+keywords: virtualization qemu kvm io
+
+  The qemu_io.stp script tallies the number of times each of the IO
+  port on the guest virtual machines is touched by a input or output
+  operation. When the script exits, it prints a count of the number of
+  times each IO port read and written.
+
+  # stap qemu_io.stp -c "sleep 0.2"
+
+

@@ -155,7 +155,7 @@ static const u32 *cie_for_fde(const u32 *fde, void *unwind_data,
  * data read. */
 static unsigned long read_ptr_sect(const u8 **pLoc, const void *end,
 				   signed ptrType, unsigned long textAddr,
-				   unsigned long dataAddr)
+				   unsigned long dataAddr, int user)
 {
 	unsigned long value = 0;
 	union {
@@ -225,16 +225,18 @@ static unsigned long read_ptr_sect(const u8 **pLoc, const void *end,
 		return 0;
 	}
 	if ((ptrType & DW_EH_PE_indirect)
-	    && _stp_read_address(value, (unsigned long *)value, KERNEL_DS))
+	    && _stp_read_address(value, (unsigned long *)value,
+				 (user ? USER_DS : KERNEL_DS)))
 		return 0;
 	*pLoc = ptr.p8;
 
 	return value;
 }
 
-static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrType)
+static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrType,
+				  int user)
 {
-	return read_ptr_sect(pLoc, end, ptrType, 0, 0);
+	return read_ptr_sect(pLoc, end, ptrType, 0, 0, user);
 }
 
 /* Parse FDE and CIE content. Basic sanity checks should already have
@@ -242,7 +244,7 @@ static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrTy
    Returns -1 if FDE or CIE cannot be parsed.*/
 static int parse_fde_cie(const u32 *fde, const u32 *cie,
 			       void *unwind_data, uint32_t table_len,
-			       unsigned *ptrType,
+			       unsigned *ptrType, int user,
 			       unsigned long *startLoc, unsigned long *locRange,
 			       const u8 **fdeStart, const u8 **fdeEnd,
 			       const u8 **cieStart, const u8 **cieEnd,
@@ -309,7 +311,7 @@ static int parse_fde_cie(const u32 *fde, const u32 *cie,
 				   the value, so don't try to deref.
 				   Mask off DW_EH_PE_indirect. */
 				signed pType = *ciePtr++ & 0x7F;
-				if (!read_pointer(&ciePtr, *cieStart, pType)) {
+				if (!read_pointer(&ciePtr, *cieStart, pType, user)) {
 					_stp_warn("couldn't read personality routine handler\n");
 					return -1;
 				}
@@ -336,9 +338,10 @@ static int parse_fde_cie(const u32 *fde, const u32 *cie,
 	/* Now we finally know the type encoding and whether or not the
 	   augmentation string starts with 'z' indicating the FDE might also
 	   have some augmentation data, so we can parse the FDE. */
-	*startLoc = read_pointer(&fdePtr, *fdeEnd, *ptrType);
+	*startLoc = read_pointer(&fdePtr, *fdeEnd, *ptrType, user);
 	*locRange = read_pointer(&fdePtr, *fdeEnd,
-				 *ptrType & (DW_EH_PE_FORM | DW_EH_PE_signed));
+				 *ptrType & (DW_EH_PE_FORM | DW_EH_PE_signed),
+				 user);
 	dbug_unwind(2, "startLoc: %lx, locrange: %lx\n",
 		    *startLoc, *locRange);
 
@@ -393,7 +396,8 @@ static void set_expr_rule(uleb128_t reg, enum item_location where,
    512 should be enough for anybody... */
 #define MAX_CFI 512
 
-static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, signed ptrType, struct unwind_state *state)
+static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc,
+		      signed ptrType, int user, struct unwind_state *state)
 {
 	union {
 		const u8 *p8;
@@ -417,7 +421,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 				dbug_unwind(1, "DW_CFA_nop\n");
 				break;
 			case DW_CFA_set_loc:
-				if ((state->loc = read_pointer(&ptr.p8, end, ptrType)) == 0)
+				if ((state->loc = read_pointer(&ptr.p8, end, ptrType, user)) == 0)
 					result = 0;
 				dbug_unwind(1, "DW_CFA_set_loc %lx (result=%d)\n", state->loc, result);
 				break;
@@ -647,10 +651,10 @@ static char *_stp_eh_enc_name(signed type)
 // and the elfutils base relocation done during loading of the .dwarf_frame
 // in translate.cxx.
 static unsigned long
-adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
+adjustStartLoc (unsigned long startLoc,
 		struct _stp_module *m,
 		struct _stp_section *s,
-		unsigned ptrType, int is_ehframe)
+		unsigned ptrType, int is_ehframe, int user)
 {
   unsigned long vm_addr = 0;
 
@@ -676,8 +680,8 @@ adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
   }
 
   /* User space or kernel dynamic module. */
-  if (tsk && strcmp (s->name, ".dynamic") == 0)
-    stap_find_vma_map_info_user(tsk->group_leader, m, &vm_addr, NULL, NULL);
+  if (user && strcmp (s->name, ".dynamic") == 0)
+    stap_find_vma_map_info_user(current->group_leader, m, &vm_addr, NULL, NULL);
   else
     vm_addr = s->static_addr;
 
@@ -689,10 +693,10 @@ adjustStartLoc (unsigned long startLoc, struct task_struct *tsk,
 
 /* If we previously created an unwind header, then use it now to binary search */
 /* for the FDE corresponding to pc. */
-static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
+static u32 *_stp_search_unwind_hdr(unsigned long pc,
 				   struct _stp_module *m,
 				   struct _stp_section *s,
-				   int is_ehframe)
+				   int is_ehframe, int user)
 {
 	const u8 *ptr, *end, *hdr = is_ehframe ? m->unwind_hdr: s->debug_hdr;
 	uint32_t hdr_len = is_ehframe ? m->unwind_hdr_len : s->debug_hdr_len;
@@ -731,7 +735,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 	{
 		// XXX Can the header validity be checked just once?
 		unsigned long eh = read_ptr_sect(&ptr, end, hdr[1], 0,
-						 eh_hdr_addr);
+						 eh_hdr_addr, user);
 		if ((hdr[1] & DW_EH_PE_ADJUST) == DW_EH_PE_pcrel)
 			eh = eh - (unsigned long)hdr + eh_hdr_addr;
 		if ((is_ehframe && eh != (unsigned long)m->eh_frame_addr)) {
@@ -739,7 +743,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 			return NULL;
 		}
 	}
-	num = read_ptr_sect(&ptr, end, hdr[2], 0, eh_hdr_addr);
+	num = read_ptr_sect(&ptr, end, hdr[2], 0, eh_hdr_addr, user);
 	if (num == 0 || num != (end - ptr) / (2 * tableSize)
 	    || (end - ptr) % (2 * tableSize)) {
 		_stp_warn("unwind Bad num=%d end-ptr=%ld 2*tableSize=%d",
@@ -750,9 +754,9 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 	do {
 		const u8 *cur = ptr + (num / 2) * (2 * tableSize);
 		startLoc = read_ptr_sect(&cur, cur + tableSize, hdr[3], 0,
-					 eh_hdr_addr);
-		startLoc = adjustStartLoc(startLoc, tsk, m, s, hdr[3],
-					  is_ehframe);
+					 eh_hdr_addr, user);
+		startLoc = adjustStartLoc(startLoc, m, s, hdr[3],
+					  is_ehframe, user);
 		if (pc < startLoc)
 			num /= 2;
 		else {
@@ -762,10 +766,12 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 	} while (startLoc && num > 1);
 
 	if (num == 1
-	    && (startLoc = adjustStartLoc(read_ptr_sect(&ptr, ptr + tableSize, hdr[3], 0, eh_hdr_addr), tsk, m, s, hdr[3], is_ehframe)) != 0 && pc >= startLoc) {
+	    && (startLoc = adjustStartLoc(read_ptr_sect(&ptr, ptr + tableSize, hdr[3], 0,
+							eh_hdr_addr, user),
+					  m, s, hdr[3], is_ehframe, user)) != 0 && pc >= startLoc) {
 		unsigned long off;
 		off = read_ptr_sect(&ptr, ptr + tableSize, hdr[3],
-				    0, eh_hdr_addr);
+				    0, eh_hdr_addr, user);
 		dbug_unwind(1, "fde off=%lx\n", off);
 		/* For real eh_frame_hdr the actual fde address is at the
 		   new eh_frame load address. For our own debug_hdr created
@@ -791,7 +797,7 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct task_struct *tsk,
 #define MAX_EXPR_STACK	8	/* arbitrary */
 
 static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
-			unsigned long *result)
+			unsigned long *result, int user)
 {
 	/*
 	 * We previously validated the length, so we won't read off the end.
@@ -1026,7 +1032,8 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 				unsigned long addr = POP;
 				switch (value) {
 #define CASE(n)     		case sizeof(u##n):			\
-					if (unlikely(_stp_read_address(value, (u##n *)addr, KERNEL_DS))) \
+					if (unlikely(_stp_read_address(value, (u##n *)addr, \
+						                       (user ? USER_DS : KERNEL_DS)))) \
 						goto copy_failed;	\
 					break
 					CASES;
@@ -1072,9 +1079,9 @@ divzero:
  * number in case of an error.  A positive return means unwinding is finished;
  * don't try to fallback to dumping addresses on the stack. */
 static int unwind_frame(struct unwind_context *context,
-			struct task_struct *tsk,
 			struct _stp_module *m, struct _stp_section *s,
-			void *table, uint32_t table_len, int is_ehframe)
+			void *table, uint32_t table_len, int is_ehframe,
+			int user)
 {
 	const u32 *fde = NULL, *cie = NULL;
 	/* The start and end of the CIE CFI instructions. */
@@ -1108,7 +1115,7 @@ static int unwind_frame(struct unwind_context *context,
 	for (i = UNW_NR_REAL_REGS; i < ARRAY_SIZE(REG_STATE.regs); ++i)
 		set_rule(i, Nowhere, 0, state);
 
-	fde = _stp_search_unwind_hdr(pc, tsk, m, s, is_ehframe);
+	fde = _stp_search_unwind_hdr(pc, m, s, is_ehframe, user);
 	dbug_unwind(1, "%s: fde=%lx\n", m->name, (unsigned long) fde);
 
 	/* found the fde, now set startLoc and endLoc */
@@ -1116,7 +1123,8 @@ static int unwind_frame(struct unwind_context *context,
 		cie = cie_for_fde(fde, table, table_len, is_ehframe);
 		dbug_unwind(1, "%s: cie=%lx\n", m->name, (unsigned long) cie);
 		if (likely(cie != NULL)) {
-			if (parse_fde_cie(fde, cie, table, table_len, &ptrType,
+			if (parse_fde_cie(fde, cie, table, table_len,
+					  &ptrType, user,
 					  &startLoc, &locRange,
 					  &fdeStart, &fdeEnd,
 					  &cieStart, &cieEnd,
@@ -1125,7 +1133,7 @@ static int unwind_frame(struct unwind_context *context,
 					  &retAddrReg,
 					  &call_frame) < 0)
 				goto err;
-			startLoc = adjustStartLoc(startLoc, tsk, m, s, ptrType, is_ehframe);
+			startLoc = adjustStartLoc(startLoc, m, s, ptrType, is_ehframe, user);
 			endLoc = startLoc + locRange;
 			dbug_unwind(1, "startLoc: %lx, endLoc: %lx\n", startLoc, endLoc);
 			if (pc > endLoc) {
@@ -1151,7 +1159,7 @@ static int unwind_frame(struct unwind_context *context,
 			cie = cie_for_fde(fde, table, table_len, is_ehframe);
 			if (cie == NULL
 			    || parse_fde_cie(fde, cie, table, table_len,
-					     &ptrType,
+					     &ptrType, user,
 					     &startLoc, &locRange,
 					     &fdeStart, &fdeEnd,
 					     &cieStart, &cieEnd,
@@ -1160,7 +1168,7 @@ static int unwind_frame(struct unwind_context *context,
 					     &retAddrReg,
 					     &call_frame) < 0)
 				break;
-			startLoc = adjustStartLoc(startLoc, tsk, m, s, ptrType, is_ehframe);
+			startLoc = adjustStartLoc(startLoc, m, s, ptrType, is_ehframe, user);
 			if (!startLoc)
 				continue;
 			endLoc = startLoc + locRange;
@@ -1196,7 +1204,7 @@ static int unwind_frame(struct unwind_context *context,
 
 	/* Common Information Entry (CIE) instructions. */
 	dbug_unwind (1, "processCFI for CIE\n");
-	if (!processCFI(cieStart, cieEnd, 0, ptrType, state))
+	if (!processCFI(cieStart, cieEnd, 0, ptrType, user, state))
 		goto err;
 
 	/* Store initial state for use with DW_CFA_restore... */
@@ -1204,7 +1212,7 @@ static int unwind_frame(struct unwind_context *context,
 
 	/* Process Frame Description Entry (FDE) instructions. */
 	dbug_unwind (1, "processCFI for FDE\n");
-	if (!processCFI(fdeStart, fdeEnd, pc, ptrType, state)
+	if (!processCFI(fdeStart, fdeEnd, pc, ptrType, user, state)
 	    || state->loc > endLoc || REG_STATE.regs[retAddrReg].where == Nowhere
 	    || REG_STATE.cfa.reg >= ARRAY_SIZE(reg_info)
 	    || reg_info[REG_STATE.cfa.reg].width != sizeof(unsigned long)
@@ -1217,7 +1225,7 @@ static int unwind_frame(struct unwind_context *context,
 		frame->call_frame = 0;
 #endif
 	if (REG_STATE.cfa_is_expr) {
-		if (compute_expr(REG_STATE.cfa_expr, frame, &cfa))
+		if (compute_expr(REG_STATE.cfa_expr, frame, &cfa, user))
 			goto err;
 	}
 	else {
@@ -1317,11 +1325,11 @@ static int unwind_frame(struct unwind_context *context,
 			}
 			break;
 		case Expr:
-			if (compute_expr(REG_STATE.regs[i].expr, frame, &addr))
+			if (compute_expr(REG_STATE.regs[i].expr, frame, &addr, user))
 				goto err;
 			goto memory;
 		case ValExpr:
-			if (compute_expr(REG_STATE.regs[i].expr, frame, &addr))
+			if (compute_expr(REG_STATE.regs[i].expr, frame, &addr, user))
 				goto err;
 			goto value;
 		case Value:
@@ -1339,7 +1347,8 @@ static int unwind_frame(struct unwind_context *context,
 			dbug_unwind(2, "addr=%lx width=%d\n", addr, reg_info[i].width);
 			switch (reg_info[i].width) {
 #define CASE(n)     case sizeof(u##n):					\
-				if (unlikely(_stp_read_address(FRAME_REG(i, u##n), (u##n *)addr, KERNEL_DS))) \
+				if (unlikely(_stp_read_address(FRAME_REG(i, u##n), (u##n *)addr, \
+							       (user ? USER_DS : KERNEL_DS)))) \
 					goto copy_failed;		\
 				dbug_unwind(1, "set register %d to %lx\n", i, (long)FRAME_REG(i,u##n));	\
 				break
@@ -1369,8 +1378,7 @@ done:
 #undef FRAME_REG
 }
 
-static int unwind(struct unwind_context *context,
-		  struct task_struct *tsk)
+static int unwind(struct unwind_context *context, int user)
 {
 	struct _stp_module *m;
 	struct _stp_section *s = NULL;
@@ -1384,9 +1392,9 @@ static int unwind(struct unwind_context *context,
 	if (UNW_PC(frame) == 0)
 		return -EINVAL;
 
-	if (tsk)
+	if (user)
 	  {
-	    m = _stp_umod_lookup (pc, tsk, & module_name, NULL, NULL);
+	    m = _stp_umod_lookup (pc, current, & module_name, NULL, NULL);
 	    if (m)
 	      s = &m->sections[0];
 	  }
@@ -1420,12 +1428,12 @@ static int unwind(struct unwind_context *context,
 	}
 
 	dbug_unwind(1, "trying debug_frame\n");
-	res = unwind_frame (context, tsk, m, s, m->debug_frame,
-			    m->debug_frame_len, 0);
+	res = unwind_frame (context, m, s, m->debug_frame,
+			    m->debug_frame_len, 0, user);
 	if (res != 0) {
 	  dbug_unwind(1, "debug_frame failed: %d, trying eh_frame\n", res);
-	  res = unwind_frame (context, tsk, m, s, m->eh_frame,
-			      m->eh_frame_len, 1);
+	  res = unwind_frame (context, m, s, m->eh_frame,
+			      m->eh_frame_len, 1, user);
 	}
 
         /* This situation occurs where some unwind data was found, but

@@ -2804,6 +2804,27 @@ dwarf_pretty_print::print_chars (Dwarf_Die* start_type, target_symbol* e,
   return false;
 }
 
+// PR10601: adapt to kernel-vs-userspace loc2c-runtime
+static const string EMBEDDED_FETCH_DEREF_KERNEL = string("\n")
+  + "#define fetch_register k_fetch_register\n"
+  + "#define store_register k_store_register\n"
+  + "#define deref kderef\n"
+  + "#define store_deref store_kderef\n";
+
+static const string EMBEDDED_FETCH_DEREF_USER = string("\n")
+  + "#define fetch_register u_fetch_register\n"
+  + "#define store_register u_store_register\n"
+  + "#define deref uderef\n"
+  + "#define store_deref store_uderef\n";
+
+#define EMBEDDED_FETCH_DEREF(U) \
+  (U ? EMBEDDED_FETCH_DEREF_USER : EMBEDDED_FETCH_DEREF_KERNEL)
+
+static const string EMBEDDED_FETCH_DEREF_DONE = string("\n")
+  + "#undef fetch_register\n"
+  + "#undef store_register\n"
+  + "#undef deref\n"
+  + "#undef store_deref\n";
 
 expression*
 dwarf_pretty_print::deref (target_symbol* e)
@@ -2832,9 +2853,7 @@ dwarf_pretty_print::deref (target_symbol* e)
   fcall->tok = e->tok;
   fcall->function = fdecl->name;
 
-  // PR10601: adapt to kernel-vs-userspace loc2c-runtime
-  ec->code += "\n#define fetch_register " + string(userspace_p?"u":"k") + "_fetch_register\n";
-  ec->code += "#define store_register " + string(userspace_p?"u":"k") + "_store_register\n";
+  ec->code += EMBEDDED_FETCH_DEREF(userspace_p);
 
   if (pointer)
     {
@@ -2870,9 +2889,7 @@ dwarf_pretty_print::deref (target_symbol* e)
   ec->code += "/* pure */";
   ec->code += "/* unprivileged */";
 
-  // PR10601
-  ec->code += "\n#undef fetch_register\n";
-  ec->code += "\n#undef store_register\n";
+  ec->code += EMBEDDED_FETCH_DEREF_DONE;
 
   fdecl->join (dw.sess);
   return fcall;
@@ -3472,9 +3489,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
                       + "_" + e->name.substr(1)
                       + "_" + lex_cast(tick++));
 
-      // PR10601: adapt to kernel-vs-userspace loc2c-runtime
-      ec->code += "\n#define fetch_register " + string(q.has_process?"u":"k") + "_fetch_register\n";
-      ec->code += "#define store_register " + string(q.has_process?"u":"k") + "_store_register\n";
+      ec->code += EMBEDDED_FETCH_DEREF(q.has_process);
 
       if (q.has_return && (e->name == "$return"))
         {
@@ -3498,10 +3513,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
         ec->code += "/* pure */";
 
       ec->code += "/* unprivileged */";
-
-      // PR10601
-      ec->code += "\n#undef fetch_register\n";
-      ec->code += "\n#undef store_register\n";
+      ec->code += EMBEDDED_FETCH_DEREF_DONE;
 
       fdecl->name = fname;
       fdecl->body = ec;
@@ -3740,10 +3752,7 @@ dwarf_cast_query::handle_query_module()
   ec->tok = e.tok;
   fdecl->body = ec;
 
-  // PR10601: adapt to kernel-vs-userspace loc2c-runtime
-  ec->code += "\n#define fetch_register " + string(userspace_p?"u":"k") + "_fetch_register\n";
-  ec->code += "#define store_register " + string(userspace_p?"u":"k") + "_store_register\n";
-
+  ec->code += EMBEDDED_FETCH_DEREF(userspace_p);
   ec->code += code;
 
   // Give the fdecl an argument for the pointer we're trying to cast
@@ -3784,10 +3793,7 @@ dwarf_cast_query::handle_query_module()
     ec->code += "/* pure */";
 
   ec->code += "/* unprivileged */";
-
-  // PR10601
-  ec->code += "\n#undef fetch_register\n";
-  ec->code += "\n#undef store_register\n";
+  ec->code += EMBEDDED_FETCH_DEREF_DONE;
 
   fdecl->join (dw.sess);
 
@@ -3950,6 +3956,35 @@ kernel_supports_inode_uprobes(systemtap_session& s)
   // reasonable indicator of the new API.  Else we'll need an autoconf...
   return (s.kernel_config["CONFIG_ARCH_SUPPORTS_UPROBES"] == "y"
           && s.kernel_config["CONFIG_UPROBES"] == "y");
+}
+
+
+void
+check_process_probe_kernel_support(systemtap_session& s)
+{
+  // If we've got utrace, we're good to go.
+  if (s.kernel_config["CONFIG_UTRACE"] == "y")
+    return;
+
+  // We don't have utrace.  For process probes that aren't
+  // uprobes-based, we just need the task_finder.  The task_finder
+  // needs CONFIG_TRACEPOINTS and specific tracepoints (and perhaps
+  // some CONFIG_FTRACE support).  There are specific autoconf tests
+  // for its needs.
+  //
+  // We'll just require CONFIG_TRACEPOINTS here as a quick-and-dirty
+  // approximation.
+  if (! s.need_uprobes && s.kernel_config["CONFIG_TRACEPOINTS"] == "y")
+    return;
+
+  // For uprobes-based process probes, we need the task_finder plus
+  // the builtin inode-uprobes.
+  if (s.need_uprobes
+      && s.kernel_config["CONFIG_TRACEPOINTS"] == "y"
+      && kernel_supports_inode_uprobes(s))
+    return;
+
+  throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE or CONFIG_TRACEPOINTS/CONFIG_ARCH_SUPPORTS_UPROBES/CONFIG_UPROBES"));
 }
 
 
@@ -4307,7 +4342,8 @@ dwarf_derived_probe::register_function_variants(match_node * root,
     ->bind_privilege(privilege)
     ->bind(dw);
 
-  if (! pr_contains (privilege, pr_stapusr)) /* for process probes / uprobes, .maxactive() is unused. */
+  // For process probes / uprobes, .maxactive() is unused.
+  if (! pr_contains (privilege, pr_stapusr))
     {
       root->bind(TOK_RETURN)
         ->bind_num(TOK_MAXACTIVE)->bind(dw);
@@ -5411,7 +5447,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
       // test for OFFSET(REGISTER) where OFFSET is +-N+-N+-N
       // NB: Despite PR11821, we can use regnames here, since the parentheses
       // make things unambiguous. (Note: gdb/stap-probe.c also parses this)
-      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-]?[0-9]*)([+-]?[0-9]*)[(](")+regnames+string(")[)]$"), matches);
+      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-][0-9]*)?([+-][0-9]*)?[(](")+regnames+string(")[)]$"), matches);
       if (! rc)
         {
           string regname;
@@ -5482,7 +5518,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
       // test for OFFSET(BASE_REGISTER,INDEX_REGISTER[,SCALE]) where OFFSET is +-N+-N+-N
       // NB: Despite PR11821, we can use regnames here, since the parentheses
       // make things unambiguous. (Note: gdb/stap-probe.c also parses this)
-      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-]?[0-9]*)([+-]?[0-9]*)[(](")+regnames+string("),(")+regnames+string(")(,[1248])?[)]$"), matches);
+      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-][0-9]*)?([+-][0-9]*)?[(](")+regnames+string("),(")+regnames+string(")(,[1248])?[)]$"), matches);
       if (! rc)
         {
           string baseregname;
@@ -6674,8 +6710,7 @@ dwarf_builder::build(systemtap_session & sess,
       // needed here too to make sure alternatives for optional
       // (? or !) process probes are disposed and/or alternatives
       // are selected.
-      else if (sess.kernel_config["CONFIG_UTRACE"] != string("y"))
-        throw semantic_error (_("process probes not available without kernel CONFIG_UTRACE"));
+      check_process_probe_kernel_support(sess);
 
       // user-space target; we use one dwflpp instance per module name
       // (= program or shared library)
@@ -7157,15 +7192,12 @@ uprobe_derived_probe::join_group (systemtap_session& s)
   if (! s.uprobe_derived_probes)
     s.uprobe_derived_probes = new uprobe_derived_probe_group ();
   s.uprobe_derived_probes->enroll (this);
+  enable_task_finder(s);
 
-  if (!kernel_supports_inode_uprobes(s))
-    {
-      enable_task_finder(s);
-
-      // Ask buildrun.cxx to build extra module if needed, and
-      // signal staprun to load that module
-      s.need_uprobes = true;
-    }
+  // Ask buildrun.cxx to build extra module if needed, and
+  // signal staprun to load that module.  If we're using the builtin
+  // inode-uprobes, we still need to know that it is required.
+  s.need_uprobes = true;
 }
 
 
@@ -8680,10 +8712,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       fdecl->name = fname;
       fdecl->body = ec;
 
-      // PR10601: adapt to kernel-vs-userspace loc2c-runtime
-      ec->code += "\n#define fetch_register k_fetch_register\n";
-      ec->code += "#define store_register k_store_register\n";
-
+      ec->code += EMBEDDED_FETCH_DEREF(false);
       ec->code += dw.literal_stmt_for_pointer (&arg->type_die, e,
                                                   lvalue, fdecl->type);
 
@@ -8725,10 +8754,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
         ec->code += "/* pure */";
 
       ec->code += "/* unprivileged */";
-
-      // PR10601
-      ec->code += "\n#undef fetch_register\n";
-      ec->code += "\n#undef store_register\n";
+      ec->code += EMBEDDED_FETCH_DEREF_DONE;
 
       fdecl->join (dw.sess);
 

@@ -285,7 +285,7 @@ match_node
   match_node* bind(std::string const & k);
   match_node* bind_str(std::string const & k);
   match_node* bind_num(std::string const & k);
-  match_node* bind_privilege(privilege_t p = pr_stapdev);
+  match_node* bind_privilege(privilege_t p = privilege_t (pr_stapdev | pr_stapsys));
   void bind(derived_probe_builder* e);
 
 private:

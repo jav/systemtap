@@ -309,6 +309,36 @@ function stp_pid:long ()
         THIS->__retvalue = _stp_pid;
 %}
 
+
+/**
+ * sfunction remote_id - The index of this instance in a remote execution.
+ *
+ * Description: This function returns a number 0..N, which is the unique 
+ * index of this particular script execution from a swarm of
+ * "stap --remote A --remote B ..." runs, and is the same number
+ * "stap --remote-prefix" would print.  The function returns -1 if the
+ * script was not launched with "stap --remote", or if the remote 
+ * staprun/stapsh are older than version 1.7.
+ */
+function remote_id:long () {
+         return %{ /* pure */ /* unprivileged */ _stp_remote_id %}
+}
+
+
+/**
+ * sfunction remote_uri - The name of this instance in a remote execution.
+ *
+ * Description: This function returns the remote host used to invoke
+ * this particular script execution from a swarm of "stap --remote" runs.
+ * It may not be unique among the swarm.
+ * The function returns an empty string if the script was not launched with
+ * "stap --remote".
+ */
+function remote_uri:string () {
+         return %{ /* string */ /* pure */ /* unprivileged */ _stp_remote_uri %}
+}
+
+
 /**
  * sfunction stack_size - Return the size of the kernel stack
  * 

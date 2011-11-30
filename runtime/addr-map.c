@@ -104,7 +104,8 @@ lookup_addr_aux(unsigned long addr, size_t size, struct addr_map* map)
   return 0;
 }
 
-#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV) && \
+    ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPSYS)
 #include <asm/processor.h> /* For TASK_SIZE */
 #endif
 
@@ -117,7 +118,8 @@ lookup_bad_addr(unsigned long addr, size_t size)
   if (size == 0 || ULONG_MAX - addr < size - 1)
     return 1;
 
-#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV) && \
+    ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPSYS)
   /* Unprivileged users must not access memory while the context
      does not refer to their own process.  */
   if (! is_myproc ())

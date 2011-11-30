@@ -1586,7 +1586,7 @@ c_unparser::emit_module_init ()
   o->newline() << "      privilege_to_text(_stp_privilege_credentials));";
   o->newline(-1) << "#endif";
   o->newline() << "if (! STP_PRIVILEGE_CONTAINS(_stp_privilege_credentials, STP_PRIVILEGE)) {";
-  o->newline(1) << "_stp_error (\"Your privilege credentials (%s) are unsufficient to run this module (%s required).\",";
+  o->newline(1) << "_stp_error (\"Your privilege credentials (%s) are insufficient to run this module (%s required).\",";
   o->newline () << "            privilege_to_text(_stp_privilege_credentials), privilege_to_text(STP_PRIVILEGE));";
   o->newline() << "rc = -EINVAL;";
   o->newline(-1) << "}";
@@ -6529,13 +6529,14 @@ translate_pass (systemtap_session& s)
       // Generated macros describing the privilege level required to load/run this module.
       s.op->newline() << "#define STP_PR_LOWEST 0x" << hex << pr_begin << dec;
       s.op->newline() << "#define STP_PR_STAPUSR 0x" << hex << pr_stapusr << dec;
+      s.op->newline() << "#define STP_PR_STAPSYS 0x" << hex << pr_stapsys << dec;
       s.op->newline() << "#define STP_PR_STAPDEV 0x" << hex << pr_stapdev << dec;
       s.op->newline() << "#define STP_PRIVILEGE 0x" << hex << s.privilege << dec;
 
       // Generate a section containing a mask of the privilege levels required to load/run this
       // module.
       s.op->newline() << "int stp_required_privilege "
-		      << "__attribute__ ((section (\".stap_privilege\")))"
+		      << "__attribute__ ((section (\"" << STAP_PRIVILEGE_SECTION <<"\")))"
 		      << " = STP_PRIVILEGE;";
 
       s.op->newline() << "#ifndef MAXNESTING";

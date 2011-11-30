@@ -11,7 +11,6 @@ dest call2: 42
 main_exit}
 
 set test_flags "additional_flags=-g"
-set test_flags "$test_flags additional_flags=-O2"
 set test_flags "$test_flags [sdt_includes]"
 set test_flags "$test_flags compiler=g++"
 # ppc64 needs a more restrictive constraint for the probe args
@@ -19,19 +18,24 @@ if {[regexp "^(x86_64|i.86)$" $::tcl_platform(machine)] == 0} {
 set test_flags "$test_flags additional_flags=-DSTAP_SDT_ARG_CONSTRAINT=nr"
 }
 
-set res [target_compile $srcdir/$subdir/$test.cxx $test.exe executable "$test_flags"]
-if { $res != "" } {
-    verbose "target_compile failed: $res" 2
-    fail "compiling $test.c"
-    untested "$test.c compile"
-    continue
-} else {
-    pass "$test.c compile"
-}
+for {set i 0} {$i < [all_compile_flags]} {incr i} {
+  set extra_flag [all_compile_flag $i]
+  set extra_name [all_compile_flag_name $i]
 
-if {[installtest_p] && [uprobes_p]} {
-  stap_run3 "$test" -w $srcdir/$subdir/$test.stp $test.exe -c ./$test.exe
-} else {
-  untested "$test"
+  set res [target_compile $srcdir/$subdir/$test.cxx $test.exe executable "$test_flags $extra_flag"]
+  if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "compiling $extra_name $test.c"
+    untested "$extra_name $test.c compile"
+    continue
+  } else {
+      pass "$extra_name $test.c compile"
+  }
+
+  if {[installtest_p] && [uprobes_p]} {
+    stap_run3 "$test-$extra_name" -w $srcdir/$subdir/$test.stp $test.exe -c ./$test.exe
+  } else {
+    untested "$test-$extra_name"
+  }
+  catch {exec rm -f $test.exe}
 }
-catch {exec rm -f $test.exe}

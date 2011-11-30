@@ -1,6 +1,18 @@
 set test_script "nd_sys.stp"
 source $srcdir/$subdir/test.tcl
 
+proc syscall_kfails {NAME} {
+	switch $NAME {
+		"dup" { return 13451 }
+		"eventfd" { return 13452 }
+		"inotify" { return 13453 }
+		"pipe" { return 13454 }
+		"signalfd" { return 13455 }
+		"poll" { return 13456 }
+		default { return 0 }
+	}
+}
+
 proc test_procedure {} {
     global srcdir subdir
     set wd [pwd]
@@ -35,6 +47,10 @@ proc test_procedure {} {
 	    set testname [file tail [string range $filename 0 end-2]]
 	    if {![installtest_p]} { untested "64-bit $testname"; continue }
 	    send_log "Testing 64-bit ${testname} nd_syscall\n"
+	    set kfail_nr [syscall_kfails $testname]
+	    if {$kfail_nr != 0} {
+		setup_kfail $kfail_nr "*-*-*"
+	    }
 	    run_one_test $filename $flags 64 "nd_syscall"
 	}
     }
@@ -51,6 +67,10 @@ proc test_procedure {} {
 	    set testname [file tail [string range $filename 0 end-2]]
 	    if {![installtest_p]} { untested "32-bit $testname"; continue }
 	    send_log "Testing 32-bit ${testname} nd_syscall\n"
+	    set kfail_nr [syscall_kfails $testname]
+	    if {$kfail_nr != 0} {
+		setup_kfail $kfail_nr "*-*-*"
+	    }
 	    run_one_test $filename $flags 32 "nd_syscall"
 	}
     }

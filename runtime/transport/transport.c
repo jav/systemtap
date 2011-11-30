@@ -26,6 +26,8 @@ static int _stp_exit_flag = 0;
 static uid_t _stp_uid = 0;
 static gid_t _stp_gid = 0;
 static int _stp_pid = 0;
+static int _stp_remote_id = -1;
+static char _stp_remote_uri[MAXSTRINGLEN];
 
 static atomic_t _stp_ctl_attached = ATOMIC_INIT(0);
 
@@ -97,7 +99,11 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 #ifdef STAPCONF_VM_AREA
 		{ /* PR9740: workaround for kernel valloc bug. */
 			void *dummy;
+#ifdef STAPCONF_VM_AREA_PTE
+			dummy = alloc_vm_area (PAGE_SIZE, NULL);
+#else
 			dummy = alloc_vm_area (PAGE_SIZE);
+#endif
 			free_vm_area (dummy);
 		}
 #endif
@@ -573,6 +579,13 @@ static void _stp_handle_privilege_credentials (struct _stp_msg_privilege_credent
 {
   _stp_privilege_credentials = pc->pc_group_mask;
 }
+
+static void _stp_handle_remote_id (struct _stp_msg_remote_id* rem)
+{
+  _stp_remote_id = (int64_t) rem->remote_id;
+  strlcpy(_stp_remote_uri, rem->remote_uri, min(STP_REMOTE_URI_LEN,MAXSTRINGLEN));
+}
+
 
 
 #endif /* _TRANSPORT_C_ */

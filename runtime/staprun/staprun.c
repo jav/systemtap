@@ -37,6 +37,7 @@ extern long delete_module(const char *, unsigned int);
 int send_relocations ();
 void send_tzinfo ();
 void send_privilege_credentials ();
+void send_remote_id ();
 
 static int remove_module(const char *name, int verb);
 
@@ -327,6 +328,8 @@ int init_staprun(void)
 		    rc = 0;
 		    send_privilege_credentials();
 		    send_tzinfo();
+                    if (remote_id >= 0)
+                            send_remote_id();
 		  }
 		  close_ctl_channel ();
 		}
@@ -630,4 +633,14 @@ void send_privilege_credentials ()
   struct _stp_msg_privilege_credentials pc;
   pc.pc_group_mask = get_privilege_credentials ();
   send_request(STP_PRIVILEGE_CREDENTIALS, & pc, sizeof(pc));
+}
+
+void send_remote_id ()
+{
+  struct _stp_msg_remote_id rem;
+
+  rem.remote_id = remote_id;
+  strncpy (rem.remote_uri, remote_uri, STP_REMOTE_URI_LEN);
+  rem.remote_uri [STP_REMOTE_URI_LEN-1]='\0'; /* XXX: quietly truncate */
+  send_request(STP_REMOTE_ID, & rem, sizeof(rem));
 }

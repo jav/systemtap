@@ -327,7 +327,8 @@ with the default user, are automatically trusted by clients on the local
 host, both as an SSL peer and as a systemtap module signer. Furthermore,
 when stap is invoked by an unprivileged user 
 (not root, not a member of the group stapdev, but a member of the group
-stapusr), the options \fI\-\-use\-server\fR and \fI\-\-unprivileged\fR
+stapusr and possibly the group stapsys), the options \fI\-\-use\-server\fR
+and \fI\-\-privilege\fR
 are automatically added to the specified options.
 This means that unprivileged users 
 on the local host can use a server on the local host

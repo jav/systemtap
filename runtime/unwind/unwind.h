@@ -27,6 +27,8 @@ struct unwind_frame_info
 #include "ppc64.h"
 #elif defined (__s390x__)
 #include "s390x.h"
+#elif defined (__arm__)
+#include "arm.h"
 #else
 #error "Unsupported dwarf unwind architecture"
 #endif

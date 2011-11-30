@@ -34,7 +34,11 @@
 # accept _____________________________________________________
 # long sys_accept(int fd, struct sockaddr __user *upeer_sockaddr,
 #                 int __user *upeer_addrlen)
+%( kernel_v >= "2.6.28" %?
+probe nd_syscall.accept = kprobe.function("sys_accept4") ?
+%:
 probe nd_syscall.accept = kprobe.function("sys_accept") ?
+%)
 {
 	name = "accept"
 	// sockfd = $fd
@@ -54,7 +58,11 @@ probe nd_syscall.accept = kprobe.function("sys_accept") ?
 	argstr = sprintf("%d, %p, %p, %s", sockfd, addr_uaddr, addrlen_uaddr,
 			 flags_str)
 }
+%( kernel_v >= "2.6.28" %?
+probe nd_syscall.accept.return = kprobe.function("sys_accept4").return ?
+%:
 probe nd_syscall.accept.return = kprobe.function("sys_accept").return ?
+%)
 {
 	name = "accept"
 	retstr = returnstr(1)
