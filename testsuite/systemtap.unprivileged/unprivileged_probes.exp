@@ -303,7 +303,7 @@ proc test_unrestricted_probes { privilege } {
 	    process.function(number).inline -
 	    process(string).function(number).inline
 	    {
-		setup_xfail *-*-*
+		setup_kfail GCC *-*-*
 	    }
 	}
 

@@ -259,7 +259,7 @@ proc test_probes { privilege } {
 	    process.function(number).inline -
 	    process(string).function(number).inline
 	    {
-		setup_xfail *-*-*
+		setup_kfail GCC *-*-*
 	    }
 	    process(string).library(string).plt.statement(number) -
 	    process(string).library(string).plt(string).statement(number) -
