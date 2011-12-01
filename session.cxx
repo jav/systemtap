@@ -144,6 +144,7 @@ systemtap_session::systemtap_session ():
   use_remote_prefix = false;
   systemtap_v_check = false;
   download_dbinfo = 0;
+  suppress_handler_errors = false;
   native_build = true; // presumed
 
   /*  adding in the XDG_DATA_DIRS variable path,
@@ -308,6 +309,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   use_remote_prefix = other.use_remote_prefix;
   systemtap_v_check = other.systemtap_v_check;
   download_dbinfo = other.download_dbinfo;
+  suppress_handler_errors = other.suppress_handler_errors;
 
   include_path = other.include_path;
   runtime_path = other.runtime_path;
@@ -503,6 +505,8 @@ systemtap_session::usage (int exitcode)
     "              version dependent\n"
     "   --skip-badvars\n"
     "              substitute zero for bad context $variables\n"
+    "   --suppress-handler-errors\n"
+    "              catch all runtime errors, quietly skip probe handlers\n"
     "   --use-server[=SERVER-SPEC]\n"
     "              specify systemtap compile-servers\n"
     "   --list-servers[=PROPERTIES]\n"
@@ -578,6 +582,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_DOWNLOAD_DEBUGINFO 26
 #define LONG_OPT_DUMP_PROBE_TYPES 27
 #define LONG_OPT_PRIVILEGE 28
+#define LONG_OPT_SUPPRESS_HANDLER_ERRORS 29
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -614,6 +619,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "download-debuginfo", 2, &long_opt, LONG_OPT_DOWNLOAD_DEBUGINFO },
         { "dump-probe-types", 0, &long_opt, LONG_OPT_DUMP_PROBE_TYPES },
         { "privilege", 1, &long_opt, LONG_OPT_PRIVILEGE },
+        { "suppress-handler-errors", 0, &long_opt, LONG_OPT_SUPPRESS_HANDLER_ERRORS },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -1124,6 +1130,10 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    case LONG_OPT_DUMP_PROBE_TYPES:
 	      push_server_opt = true;
 	      dump_probe_types = true;
+	      break;
+
+	    case LONG_OPT_SUPPRESS_HANDLER_ERRORS:
+	      suppress_handler_errors = true;
 	      break;
 
             default:

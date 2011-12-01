@@ -196,7 +196,7 @@ itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // call probe function
   s.op->newline() << "(*p->probe->ph) (c);";
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
 
   s.op->newline() << "return;";
   s.op->newline(-1) << "}";

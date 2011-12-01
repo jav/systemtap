@@ -186,7 +186,8 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
 
 void
 common_probe_entryfn_epilogue (translator_output* o,
-                               bool overload_processing)
+                               bool overload_processing,
+                               bool suppress_handler_errors)
 {
   if (overload_processing)
     o->newline() << "#if defined(STP_TIMING) || defined(STP_OVERLOAD)";
@@ -221,6 +222,9 @@ common_probe_entryfn_epilogue (translator_output* o,
       // If we've spent more than STP_OVERLOAD_THRESHOLD cycles in a
       // probe during the last STP_OVERLOAD_INTERVAL cycles, the probe
       // has overloaded the system and we need to quit.
+      // NB: this is not suppressible via --suppress-runtime-errors,
+      // because this is a system safety metric that we cannot trust
+      // unprivileged users to override.
       o->newline() << "if (interval > STP_OVERLOAD_INTERVAL) {";
       o->newline(1) << "if (c->cycles_sum > STP_OVERLOAD_THRESHOLD) {";
       o->newline(1) << "_stp_error (\"probe overhead exceeded threshold\");";
@@ -243,28 +247,44 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->newline() << "c->probe_name = 0;";
   o->newline() << "#endif";
   o->newline() << "c->probe_type = 0;";
+
+
   o->newline() << "if (unlikely (c->last_error && c->last_error[0])) {";
-  o->newline(1) << "if (c->last_stmt != NULL)";
-  o->newline(1) << "_stp_softerror (\"%s near %s\", c->last_error, c->last_stmt);";
-  o->newline(-1) << "else";
-  o->newline(1) << "_stp_softerror (\"%s\", c->last_error);";
-  o->indent(-1);
-  o->newline() << "atomic_inc (& error_count);";
-  o->newline() << "if (atomic_read (& error_count) > MAXERRORS) {";
-  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline() << "_stp_exit ();";
+  o->indent(1);
+  if (suppress_handler_errors) // PR 13306
+    { 
+      o->newline() << "atomic_inc (& error_count);";
+    }
+  else
+    {
+      o->newline() << "if (c->last_stmt != NULL)";
+      o->newline(1) << "_stp_softerror (\"%s near %s\", c->last_error, c->last_stmt);";
+      o->newline(-1) << "else";
+      o->newline(1) << "_stp_softerror (\"%s\", c->last_error);";
+      o->indent(-1);
+      o->newline() << "atomic_inc (& error_count);";
+      o->newline() << "if (atomic_read (& error_count) > MAXERRORS) {";
+      o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+      o->newline() << "_stp_exit ();";
+      o->newline(-1) << "}";
+    }
+
   o->newline(-1) << "}";
-  o->newline(-1) << "}";
+
+
   o->newline() << "atomic_dec (&c->busy);";
 
   o->newline(-1) << "probe_epilogue:"; // context is free
   o->indent(1);
 
-  // Check for excessive skip counts.
-  o->newline() << "if (unlikely (atomic_read (& skipped_count) > MAXSKIPPED)) {";
-  o->newline(1) << "if (unlikely (pseudo_atomic_cmpxchg(& session_state, STAP_SESSION_RUNNING, STAP_SESSION_ERROR) == STAP_SESSION_RUNNING))";
-  o->newline() << "_stp_error (\"Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\");";
-  o->newline(-1) << "}";
+  if (! suppress_handler_errors) // PR 13306
+    {
+      // Check for excessive skip counts.
+      o->newline() << "if (unlikely (atomic_read (& skipped_count) > MAXSKIPPED)) {";
+      o->newline(1) << "if (unlikely (pseudo_atomic_cmpxchg(& session_state, STAP_SESSION_RUNNING, STAP_SESSION_ERROR) == STAP_SESSION_RUNNING))";
+      o->newline() << "_stp_error (\"Skipped too many probes, check MAXSKIPPED or try again with stap -t for more details.\");";
+      o->newline(-1) << "}";
+    }
 
   o->newline() << "#if INTERRUPTIBLE";
   o->newline() << "preempt_enable_no_resched ();";
@@ -4647,7 +4667,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
 
@@ -4690,7 +4710,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
   s.op->newline(-1) << "}";
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
@@ -7365,7 +7385,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
   s.op->newline(-1) << "}";
 
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
   s.op->newline(-1) << "}";
 
   s.op->newline() << "static void enter_uretprobe_probe (struct uretprobe_instance *inst, struct pt_regs *regs) {";
@@ -7396,7 +7416,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "SET_REG_IP(regs, uprobes_ip);";
   s.op->newline(-1) << "}";
 
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
   s.op->newline(-1) << "}";
 
   s.op->newline();
@@ -7772,7 +7792,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
 
@@ -7807,7 +7827,7 @@ kprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "SET_REG_IP(regs, kprobes_ip);";
   s.op->newline(-1) << "}";
 
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
 
@@ -8278,7 +8298,7 @@ hwbkpt_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "c->kregs = regs;";
   s.op->newline(-1) << "}";
   s.op->newline() << "(*sdp->probe->ph) (c);";
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
   s.op->newline() << "return 0;";
@@ -9031,7 +9051,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
                           << " = __tracepoint_arg_" << used_args[j]->name << ";";
         }
       s.op->newline() << "(*probe->ph) (c);";
-      common_probe_entryfn_epilogue (s.op);
+      common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
       s.op->newline(-1) << "}";
 
       // define the real tracepoint callback function

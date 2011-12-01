@@ -131,7 +131,7 @@ timer_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->probe",
 				 "_STP_PROBE_HANDLER_TIMER");
   s.op->newline() << "(*stp->probe->ph) (c);";
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
 }
@@ -318,7 +318,7 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp->probe",
 				 "_STP_PROBE_HANDLER_HRTIMER");
   s.op->newline() << "(*stp->probe->ph) (c);";
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
   s.op->newline(-1) << "}";
   s.op->newline() << "return rc;";
   s.op->newline(-1) << "}";
@@ -457,7 +457,7 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
         }
       s.op->newline() << "if (c->last_error == NULL) probe->ph (c);";
     }
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
   s.op->newline(-1) << "}";
 
   s.op->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)"; // == using_rpn of yore
