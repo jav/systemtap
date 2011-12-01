@@ -1,0 +1,61 @@
+set test "pr13306"
+if {! [installtest_p]} {
+    untested "$test"
+    return
+}
+
+set test "pr13306 plain"
+spawn stap $srcdir/$subdir/pr13306.stp
+set ok 0
+set ko 0
+expect {
+    -timeout 60
+    timeout { fail "$test (timeout)" }
+    -re {^ERROR: [^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^WARNING: Number of errors: [0-9]*[^\r\n]*\r\n} { incr ok; exp_continue }
+    eof { }
+}
+if {$ok >= 2 && $ko == 0} then { pass $test } else { fail "$test ($ok $ko)" }
+catch { wait } ; catch { close }
+
+set test "pr13306 -t"
+spawn stap -t $srcdir/$subdir/pr13306.stp
+set ok 0
+set ko 0
+expect {
+    -timeout 60
+    timeout { fail "$test (timeout)" }
+    -re {^ERROR: [^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^WARNING: Number of errors: [0-9]*[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^[^\r\n]*probe hit report[^\r\n]*\r\n} { incr ok; exp_continue }
+}
+if {$ok >=3 && $ko == 0} then { pass $test } else { fail "$test ($ok $ko)" }
+catch { wait } ; catch { close }
+
+set test "pr13306 --suppress-handler-errors"
+spawn stap --suppress-handler-errors $srcdir/$subdir/pr13306.stp
+set ok 0
+set ko 0
+expect {
+    -timeout 60
+    timeout { fail "$test (timeout)" }
+    -re {^ERROR: [^\r\n]*\r\n} { incr ko; exp_continue }
+    -re {^WARNING: Number of errors: [0-9]*[^\r\n]*\r\n} { incr ok; exp_continue }
+    eof { }
+}
+if {$ok == 1 && $ko == 0} then { pass $test } else { fail "$test ($ok $ko)" }
+catch { wait } ; catch { close }
+
+set test "pr13306 --suppress-handler-errors -t"
+spawn stap --suppress-handler-errors -t $srcdir/$subdir/pr13306.stp
+set ok 0
+set ko 0
+expect {
+    -timeout 60
+    timeout { fail "$test (timeout)" }
+    -re {^ERROR: [^\r\n]*\r\n} { incr ko; exp_continue }
+    -re {^WARNING: Number of errors: [0-9]*[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^[^\r\n]*probe hit report[^\r\n]*\r\n} { incr ok; exp_continue }
+}
+if {$ok >= 2 && $ko == 0} then { pass $test } else { fail "$test ($ok $ko)" }
+catch { wait } ; catch { close }
