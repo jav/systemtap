@@ -73,10 +73,12 @@ foreach file $meta_files {
        if { $res != 0 } { set supported_p 0 }
     }
 
+    set build_p 1
     if { $supported_p == 1 } {
         set test_check [extract_tag "$meta_data" "test_check"]
         set command $test_check
-        run_command "$test" "build" $command
+        set res [run_command "$test" "build" $command]
+        if { $res != 0 } { set build_p 0 }
     } else { 
         untested "$test build" 
     }
@@ -86,7 +88,7 @@ foreach file $meta_files {
     # FIXME would like to be able to run more complicated test code
     if {[info procs installtest_p] != "" && [installtest_p]
 	&& $test_installcheck != "" } then {
-         if { $supported_p == 1 } {
+         if { $supported_p == 1 && $build_p == 1} {
              set command $test_installcheck
              run_command "$test" "run" $command
          } else { 
