@@ -7586,7 +7586,7 @@ uprobe_derived_probe_group::emit_module_inode_decls (systemtap_session& s)
   // XXX: Can't set SET_REG_IP; we don't actually know the relocated address.
   // ...  In some error cases, uprobes itself calls uprobes_get_bkpt_addr().
   s.op->newline() << "(*sup->probe->ph) (c);";
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
   s.op->newline() << "return 0;";
   s.op->newline(-1) << "}";
   s.op->assert_0_indent();
