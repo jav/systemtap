@@ -29,7 +29,7 @@ set output_string "main - pid: \[0-9\]+\r\nmain - child pid: \[0-9\]+\r\nchild1 
 
 # Build everything (without semaphores)
 set TEST_NAME "dtrace_clone1"
-if {[build_test_progs "Makefile.clone" $test_progs "-DNO_SEMAPHORES"] == 0} {
+if {[build_test_progs "Makefile.clone" $test_progs] == 0} {
     fail "$TEST_NAME - build failure"
     cleanup_test_progs
     return
@@ -44,7 +44,7 @@ stap_run $TEST_NAME run_test_prog $output_string \
 
 # Build everything (with semaphores)
 set TEST_NAME "dtrace_clone3"
-if {[build_test_progs "Makefile.clone" $test_progs] == 0} {
+if {[build_test_progs "Makefile.clone" $test_progs "-DUSE_SEMAPHORES"] == 0} {
     fail "$TEST_NAME - build failure"
     cleanup_test_progs
     return
