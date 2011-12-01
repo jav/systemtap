@@ -219,16 +219,18 @@ find_script_hash (systemtap_session& s, const string& script)
   h.add("UID: ", getuid());
 
   // Hash user-specified arguments (that change the generated module).
-  h.add("Bulk Mode (-b): ", s.bulk_mode);			// '-b'
-  h.add("Timing (-t): ", s.timing);			// '-t'
-  h.add("Prologue Searching (-P): ", s.prologue_searching);		// '-P'
-  h.add("Ignore Vmlinux (--ignore-vmlinux): ", s.ignore_vmlinux);		// --ignore-vmlinux
-  h.add("Ignore Dwarf (--ignore-dwarf): ", s.ignore_dwarf);		// --ignore-dwarf
-  h.add("Consult Symtab (--kelf, --kmap): ", s.consult_symtab);		// --kelf, --kmap
-  h.add("Skip Badvars (--skip-badvars): ", s.skip_badvars);		// --skip-badvars
-  h.add("Privilege (--privilege): ", s.privilege);			// --privilege=
-  h.add("Compatible (--compatible): ", s.compatible);			// --compatible
-  h.add("Omit Werror (undocumented): ", s.omit_werror);		        // undocumented, evil
+  h.add("Bulk Mode (-b): ", s.bulk_mode);
+  h.add("Timing (-t): ", s.timing);
+  h.add("Prologue Searching (-P): ", s.prologue_searching);
+  h.add("Ignore Vmlinux (--ignore-vmlinux): ", s.ignore_vmlinux);
+  h.add("Ignore Dwarf (--ignore-dwarf): ", s.ignore_dwarf);
+  h.add("Consult Symtab (--kelf, --kmap): ", s.consult_symtab);
+  h.add("Skip Badvars (--skip-badvars): ", s.skip_badvars);
+  h.add("Privilege (--privilege): ", s.privilege);
+  h.add("Compatible (--compatible): ", s.compatible);
+  h.add("Omit Werror (undocumented): ", s.omit_werror);
+  h.add("Prologue Searching (-P): ", s.prologue_searching);
+  h.add("Error suppression (--suppress-handler-errors): ", s.suppress_handler_errors);
   if (!s.kernel_symtab_path.empty())	// --kmap
     {
       h.add("Kernel Symtab Path: ", s.kernel_symtab_path);

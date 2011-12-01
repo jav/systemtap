@@ -836,7 +836,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
       // call probe function
       s.op->newline() << "(*p->probe->ph) (c);";
-      common_probe_entryfn_epilogue (s.op);
+      common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
 
       s.op->newline() << "return;";
       s.op->newline(-1) << "}";
@@ -865,7 +865,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
       // call probe function
       s.op->newline() << "(*p->probe->ph) (c);";
-      common_probe_entryfn_epilogue (s.op);
+      common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
 
       s.op->newline() << "if ((atomic_read (&session_state) != STAP_SESSION_STARTING) && (atomic_read (&session_state) != STAP_SESSION_RUNNING)) {";
       s.op->indent(1);

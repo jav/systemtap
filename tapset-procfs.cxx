@@ -274,7 +274,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "spp->needs_fill = 0;";
       s.op->newline() << "spp->count = strlen(spp->buffer);";
 
-      common_probe_entryfn_epilogue (s.op);
+      common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
 
       s.op->newline() << "if (spp->needs_fill) {";
       s.op->newline(1) << "spp->needs_fill = 0;";
@@ -332,7 +332,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline(1) << "retval = count;";
       s.op->newline(-1) << "}";
 
-      common_probe_entryfn_epilogue (s.op);
+      common_probe_entryfn_epilogue (s.op, true, s.suppress_handler_errors);
     }
 
   s.op->newline() << "return retval;";

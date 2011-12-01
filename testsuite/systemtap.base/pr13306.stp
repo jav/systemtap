@@ -1,0 +1,3 @@
+probe begin { error("look out") }
+probe timer.profile { error("the sky is falling!") }
+probe timer.s(4) { exit() }

@@ -263,7 +263,23 @@ output files exceed
 .\" \-\-ignore\-{vmlinux,dwarf} shouldn't be visible
 .TP
 .B \-\-skip\-badvars
-Ignore out of context variables and substitute with literal 0.
+Ignore unresolvable or run-time-inaccessible context variables and
+substitute with 0, without errors.
+
+.TP
+.B \-\-suppress\-handler\-errors
+Wrap all probe handlers into something like this
+.SAMPLE
+try { ... } catch { next }
+.ESAMPLE
+block, which causes any runtime errors to be quietly suppressed.
+Suppressed errors do not count against
+.BR MAXERRORS
+limits.  In this mode, the
+.BR MAXSKIPPED
+limits are also suppressed, so that many errors and skipped probes 
+may be accumulated during a script's runtime.  Any overall counts will
+still be reported at shutdown.
 
 .TP
 .BI \-\-compatible " VERSION"
@@ -1508,13 +1524,17 @@ global big[10000],little[5]
 .TP
 MAXERRORS
 Maximum number of soft errors before an exit is triggered, default 0, which
-means that the first error will exit the script.
+means that the first error will exit the script.  Note that with the
+.B \-\-suppress\-handler\-errors
+option, this limit is not enforced.
 .TP
 MAXSKIPPED
 Maximum number of skipped probes before an exit is triggered, default 100.
 Running systemtap with \-t (timing) mode gives more details about skipped
 probes.  With the default \-DINTERRUPTIBLE=1 setting, probes skipped due to
-reentrancy are not accumulated against this limit.
+reentrancy are not accumulated against this limit.  Note that with the
+.B \-\-suppress\-handler\-errors
+option, this limit is not enforced.
 .TP
 MINSTACKSPACE
 Minimum number of free kernel stack bytes required in order to

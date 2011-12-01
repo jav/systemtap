@@ -1,5 +1,9 @@
 * What's new in version 1.7
 
+- The translator supports a new --suppress-handler-errors option, which
+  causes most runtime errors to be turned into quiet skipped probes.  This
+  also disables the MAXERRORS and MAXSKIPPED limits.
+
 - The tapset functions remote_id() and remote_uri() identify the member of a
   swarm of "stap --remote FOO --remote BAR baz.stp" concurrent executions.
 
@@ -49,6 +53,42 @@
       process.library(string).function(number).inline
       process(string).function(number).inline
       process(string).library(string).function(number).inline
+
+- The task_backtrace() tapset function was deprecated in 1.6 and has been
+  removed in 1.7.
+
+- MAXBACKTRACE did work in earlier releases, but has now been documented
+  in the stap 1 manual page.
+
+- New tapset function probe_type(). Returns a short string describing
+  the low level probe handler type for the current probe point.
+
+- Both unwind and symbol data is now only collected and emitted for
+  scripts actually using backtracing or function/data symbols.
+  Tapset functions are marked with /* pragma:symbols */ or
+  /* pragma:unwind */ to indicate they need the specific data.
+
+- Kernel backtraces can now be generated for non-pt_regs probe context
+  if the kernel support dump_trace(). This enables backtraces from
+  certain timer probes and tracepoints.
+
+- ubacktrace() should now also work for some kernel probes on x86 which can
+  use the dwarf unwinder to recover the user registers to provide
+  more accurate user backtraces.
+
+- For s390x the systemtap runtime now properly splits kernel and user
+  addresses (which are in separate address spaces on that architecture)
+  which enable user space introspection.
+
+- ppc and s390x now supports user backtraces through the DWARF unwinder.
+
+- ppc now handles function descriptors as symbol names correctly.
+
+- arm support kernel backtraces through the DWARF unwinder.
+
+- arm now have a uprobes port which enables user probes. This still
+  requires some kernel patches (user_regsets and tracehook support for
+  arm).
 
 * What's new in version 1.6, 2011-07-25
 
