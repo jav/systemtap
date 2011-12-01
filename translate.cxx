@@ -5515,6 +5515,22 @@ dump_section_list (Dwfl_Module *m,
   return DWARF_CB_ABORT;
 }
 
+/* Some architectures create special local symbols that are not
+   interesting. */
+static int
+skippable_arch_symbol (GElf_Half e_machine, const char *name, GElf_Sym *sym)
+{
+  /* Filter out ARM mapping symbols */
+  if (e_machine == EM_ARM
+      && GELF_ST_TYPE (sym->st_info) == STT_NOTYPE
+      && (! strcmp(name, "$a") || ! strcmp(name, "$t")
+	  || ! strcmp(name, "$t.x") || ! strcmp(name, "$d")
+	  || ! strcmp(name, "$v") || ! strcmp(name, "$d.realdata")))
+    return 1;
+
+  return 0;
+}
+
 static int
 dump_symbol_tables (Dwfl_Module *m,
 		    unwindsym_dump_context *c,
@@ -5608,6 +5624,7 @@ dump_symbol_tables (Dwfl_Module *m,
 	  // We omit symbols that have suspicious addresses
 	  // (before base, or after end).
           if (!done && c->session.need_symbols
+	      && ! skippable_arch_symbol(ehdr->e_machine, name, &sym)
 	      && (GELF_ST_TYPE (sym.st_info) == STT_FUNC
 		  || (GELF_ST_TYPE (sym.st_info) == STT_NOTYPE
 		      && ehdr->e_type == ET_REL) // PR10206 ppc fn-desc in .opd
