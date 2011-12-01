@@ -1,5 +1,9 @@
 * What's new in version 1.7
 
+- The translator supports a new --suppress-handler-errors option, which
+  causes most runtime errors to be turned into quiet skipped probes.  This
+  also disables the MAXERRORS and MAXSKIPPED limits.
+
 - The tapset functions remote_id() and remote_uri() identify the member of a
   swarm of "stap --remote FOO --remote BAR baz.stp" concurrent executions.
 
