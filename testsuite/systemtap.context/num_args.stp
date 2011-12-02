@@ -2,6 +2,7 @@
 %( arch == "x86_64" %? global ir = "eax", lr = "rax" %)
 %( arch == "powerpc" %? global ir = "r3", lr = "r3" %)
 %( arch == "s390" %? global ir = "r2", lr = "r2" %)
+%( arch == "arm" %? global ir = "r0", lr = "r0" %)
 
 probe module("systemtap-test-module2").function("yyy_int") {
 	printf("yyy_int %d %d %d\n", int_arg(1), int_arg(2), int_arg(3))
