@@ -39,7 +39,7 @@ static void __stp_dwarf_stack_kernel_print(struct pt_regs *regs, int verbose,
 			      int levels, struct unwind_context *uwcontext)
 {
 	struct unwind_frame_info *info = &uwcontext->info;
-	arch_unw_init_frame_info(info, regs, false);
+	arch_unw_init_frame_info(info, regs, 0);
 
 	while (levels) {
 		int ret = unwind(uwcontext, 0);
