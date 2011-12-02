@@ -30,7 +30,7 @@ function _stp_register_regs() {
 function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
 	struct pt_regs *regs;
-	if (c->probe_flags & _STP_PROBE_STATE_USER_MODE) {
+	if (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE) {
 		regs = CONTEXT->uregs;
 	} else {
 		regs = CONTEXT->kregs;
@@ -90,13 +90,13 @@ function _stp_arg:long (argnum:long) {
 	}
 
 	if (argnum == 1)
-		val = u_register("r0")
+		val = register("r0")
 	else if (argnum == 2)
-		val = u_register("r1")
+		val = register("r1")
 	else if (argnum == 3)
-		val = u_register("r2")
+		val = register("r2")
 	else if (argnum == 4)
-		val = u_register("r3")
+		val = register("r3")
 
 	return val;
 }
