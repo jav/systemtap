@@ -554,6 +554,7 @@ int stp_main_loop(void)
   int select_supported;
   int flags;
   int res;
+  int rc;
   struct timeval tv;
   fd_set fds;
   sigset_t blockset, mainset;
@@ -563,7 +564,11 @@ int stp_main_loop(void)
   setup_main_signals();
   dbug(2, "in main loop\n");
 
-  send_request(STP_READY, NULL, 0);
+  rc = send_request(STP_READY, NULL, 0);
+  if (rc != 0) {
+    perror ("Unable to send STP_READY");
+    cleanup_and_exit (1, rc);
+  }
 
   flags = fcntl(control_channel, F_GETFL);
 
@@ -771,7 +776,11 @@ int stp_main_loop(void)
             cleanup_and_exit(0, 1);
         }
         ts.target = target_pid;
-        send_request(STP_START, &ts, sizeof(ts));
+        rc = send_request(STP_START, &ts, sizeof(ts));
+	if (rc != 0) {
+	  perror ("Unable to send STP_START");
+	  cleanup_and_exit (1, rc);
+	}
         if (load_only)
           cleanup_and_exit(1, 0);
         break;

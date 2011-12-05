@@ -494,7 +494,7 @@ err:
  *      @data: pointer to the data to be sent
  *      @len: length of the data to be sent
  *
- *      Returns 0 on success, negative otherwise.
+ *      Returns 0 on success, non-zero otherwise.
  */
 int send_request(int type, void *data, int len)
 {
@@ -503,17 +503,20 @@ int send_request(int type, void *data, int len)
 
 	PROBE3(stapio, send__ctlmsg, type, data, len);
 	/* Before doing memcpy, make sure 'buf' is big enough. */
-	if ((len + 4) > (int)sizeof(buf)) {
+	if ((len + sizeof(type)) > (int)sizeof(buf)) {
 		_err(_("exceeded maximum send_request size.\n"));
 		return -1;
 	}
-	memcpy(buf, &type, 4);
-	memcpy(&buf[4], data, len);
+	memcpy(buf, &type, sizeof (type));
+	memcpy(&buf[sizeof (type)], data, len);
 
+	errno = 0;
         assert (control_channel >= 0);
-	rc = write (control_channel, buf, len + 4);
+	rc = write (control_channel, buf, len + sizeof (type));
         if (rc < 0) return rc;
-        return (rc != len+4);
+	/* A bug in the transport layer of older modules causes them to return sizeof (type) fewer
+	   bytes written than actual. This is fixed in newer modules. So accept both. */
+	return (rc != len && rc != len + (int)sizeof (type));
 }
 
 #include <stdarg.h>

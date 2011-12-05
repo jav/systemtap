@@ -74,7 +74,7 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 		break;
 	case STP_BULK:
 #ifdef STP_BULKMODE
-		return count;
+		return count + sizeof(u32);
 #else
 		return -EINVAL;
 #endif
@@ -146,7 +146,7 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 		return -EINVAL;
 	}
 
-	return count; /* Pretend that we absorbed the entire message. */
+	return count + sizeof(u32); /* Pretend that we absorbed the entire message. */
 }
 
 static DECLARE_WAIT_QUEUE_HEAD(_stp_ctl_wq);
