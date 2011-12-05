@@ -396,7 +396,7 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 	int len;
 	uint64_t num;
 	int i, base;
-	char *str, *end, c;
+	char *str = NULL, *end = NULL, c;
 	const char *s;
 	enum print_flag flags;		/* flags to number() */
 	int field_width;	/* width of output field */
