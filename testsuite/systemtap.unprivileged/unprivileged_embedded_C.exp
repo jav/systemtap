@@ -62,7 +62,7 @@ proc test_embedded_C { privilege test_fraction } {
 
 	# Only test the specified fraction of the functions
 	if {[expr $test_num % $test_fraction] != 0} {
-	    untested "$test: $status: $option: $prototype"
+	    # untested "$test: $status: $option: $prototype"
 	    continue
 	}
 	    
