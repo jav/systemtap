@@ -322,7 +322,7 @@ int init_staprun(void)
 			return -1;
 		}
 		rc = init_ctl_channel (modname, 0);
-		if (rc == 0) {
+		if (rc >= 0) {
 		  /* If we are unable to send privilege credentials then we have an old
 		     (pre 1.7) stap module or a non-stap module. In either case, the privilege
 		     credentials required for loading the module have already been determined and
@@ -336,9 +336,9 @@ int init_staprun(void)
 		      send_remote_id();
 		  }
 		  close_ctl_channel ();
-		  if (rc != 0)
-		    remove_module(modname, 1);
 		}
+		if (rc != 0)
+		  remove_module(modname, 1);
 	}
 	return rc;
 }
