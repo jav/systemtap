@@ -132,8 +132,9 @@ public:
   int include_arg_start;
   std::vector<std::string> macros;
   std::vector<std::string> args;
-  std::vector<std::string> kbuildflags;
+  std::vector<std::string> kbuildflags; // -B var=val
   std::vector<std::string> globalopts; // -G var=val
+  std::vector<std::string> modinfos; // --modinfo tag=value
   std::string release;
   std::string kernel_release;
   std::string kernel_base_release;

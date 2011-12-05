@@ -1,0 +1,11 @@
+set test modinfo
+
+set module [exec stap --modinfo foo=bar -p4 -e "probe begin { exit() }"]
+if [file exists $module] { pass "$test compilation" } else { fail "$test compilation"; return }
+
+set ok 0
+set ko 0
+spawn modinfo $module {
+    -re {^foo:[ \t]*bar\r\n} { incr ok; exp_continue }
+}
+if {$ok == 1} { pass "$test modinfo" } else { fail "$test modinfo" }

@@ -4,6 +4,9 @@
   causes most runtime errors to be turned into quiet skipped probes.  This
   also disables the MAXERRORS and MAXSKIPPED limits.
 
+- The translator supports a new --modinfo NAME=VALUE option to emit additional
+  MODULE_INFO(n,v) macros into the generated code.
+
 - The tapset functions remote_id() and remote_uri() identify the member of a
   swarm of "stap --remote FOO --remote BAR baz.stp" concurrent executions.
 

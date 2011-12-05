@@ -156,6 +156,11 @@ be used to override limit parameters described below.
 Add the given make directive to the kernel module build's make invocation.
 These can be used to add or override kconfig options.
 .TP
+.BI \-\-modinfo " NAME=VALUE"
+Add the name/value pair as a MODULE_INFO macro call to the generated module.
+This may be useful to inform or override various module-related checks in
+the kernel.
+.TP
 .BI \-G " NAME=VALUE"
 Sets the value of global variable NAME to VALUE when staprun is invoked.
 This applies to scalar variables declared global in the script/tapset.

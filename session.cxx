@@ -329,6 +329,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   args = other.args;
   kbuildflags = other.kbuildflags;
   globalopts = other.globalopts;
+  modinfos = other.modinfos;
 
   client_options_disallowed = other.client_options_disallowed;
   server_status_strings = other.server_status_strings;
@@ -451,6 +452,8 @@ systemtap_session::usage (int exitcode)
   clog
     << _F("   -D NM=VAL  emit macro definition into generated C code\n"
     "   -B NM=VAL  pass option to kbuild make\n"
+    "   --modinfo NM=VAL\n"
+    "              include a MODULE_INFO(NM,VAL) in the generated C code\n"
     "   -G VAR=VAL set global variable to value\n"
     //TRANSLATORS: translating 'runtime' is not advised 
     "   -R DIR     look in DIR for runtime, instead of\n"
@@ -583,6 +586,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 #define LONG_OPT_DUMP_PROBE_TYPES 27
 #define LONG_OPT_PRIVILEGE 28
 #define LONG_OPT_SUPPRESS_HANDLER_ERRORS 29
+#define LONG_OPT_MODINFO 30
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
       static struct option long_options[] = {
         { "kelf", 0, &long_opt, LONG_OPT_KELF },
@@ -620,6 +624,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
         { "dump-probe-types", 0, &long_opt, LONG_OPT_DUMP_PROBE_TYPES },
         { "privilege", 1, &long_opt, LONG_OPT_PRIVILEGE },
         { "suppress-handler-errors", 0, &long_opt, LONG_OPT_SUPPRESS_HANDLER_ERRORS },
+        { "modinfo", 1, &long_opt, LONG_OPT_MODINFO },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
@@ -648,7 +653,6 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
           // Make sure the global option is only composed of the
           // following chars: [_=a-zA-Z0-9]
           assert_regexp_match("-G parameter", optarg, "^[a-z_][a-z0-9_]*=[a-z0-9_-]+$");
-
           globalopts.push_back (string(optarg));
           break;
 
@@ -1135,6 +1139,17 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	    case LONG_OPT_SUPPRESS_HANDLER_ERRORS:
 	      suppress_handler_errors = true;
 	      break;
+
+            case LONG_OPT_MODINFO:
+              // Make sure the global option is only composed of the
+              // following chars: [_=a-zA-Z0-9]
+              if (client_options) {
+                  cerr << _F("ERROR: %s is invalid with %s", "--modinfo", "--client-options") << endl;
+                  return 1;
+              }
+              assert_regexp_match("--modinfo parameter", optarg, "^[a-z_][a-z0-9_]*=.+$");
+              modinfos.push_back (string(optarg));
+              break;
 
             default:
               // NOTREACHED unless one added a getopt option but not a corresponding switch/case:

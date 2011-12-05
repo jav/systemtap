@@ -6756,6 +6756,16 @@ translate_pass (systemtap_session& s)
 
       s.op->newline() << "MODULE_DESCRIPTION(\"systemtap-generated probe\");";
       s.op->newline() << "MODULE_LICENSE(\"GPL\");";
+
+      for (unsigned i = 0; i < s.modinfos.size(); i++)
+        {
+          const string& mi = s.modinfos[i];
+          size_t loc = mi.find('=');
+          string tag = mi.substr (0, loc);
+          string value = mi.substr (loc+1);
+          s.op->newline() << "MODULE_INFO(" << tag << "," << lex_cast_qstring(value) << ");";
+        }
+
       s.op->assert_0_indent();
 
       // PR10298: attempt to avoid collisions with symbols
