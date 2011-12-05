@@ -105,7 +105,8 @@ function addr_to_node:long(addr:long) %{ /* pure */
 #ifdef for_each_online_node
 	for_each_online_node(nid)
 #else
-	for (nid=0; nid<MAX_NUMNODES; nid++)  /* if (node_online(nid)) */
+	for (nid=0; nid<MAX_NUMNODES; nid++)
+		if (NODE_DATA(nid)) /* approximately: if (node_online(nid)) */
 #endif
 		if ( NODE_DATA(nid)->node_start_pfn <= pfn &&
 			pfn < (NODE_DATA(nid)->node_start_pfn +
