@@ -18,7 +18,8 @@ typedef enum privilege_t {
   pr_end   = pr_unknown,
 
   // Predefined sets
-  pr_highest        = pr_stapdev,
+  pr_highest = pr_stapdev,
+  pr_highest_signed = pr_stapsys,
   pr_all = pr_stapusr | pr_stapsys | pr_stapdev
 } privilege_t;
 

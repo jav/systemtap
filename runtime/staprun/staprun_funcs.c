@@ -233,15 +233,7 @@ find_section_in_module(const void* module_file, const __off_t st_size, const cha
   	}
 	return scn;
 }
-#else /* no elf */
-static Elf_Scn *
-find_section_in_module(const void* v __attribute__((unused)),
-                       const __off_t o __attribute__((unused)),
-                       const char *c __attribute__((unused)))
-{
-	return NULL;
-}
-#endif
+#endif /* HAVE_ELF_GETSHDRSTRNDX */
 
 int
 rename_module(void* module_file, const __off_t st_size)
@@ -582,8 +574,18 @@ check_uprobes_module_path (
  * Returns the required credentials if they can be determined or the default safe required
  * credentials otherwise.
  */
-static privilege_t get_module_required_credentials (const void* module_file, const __off_t st_size)
+static privilege_t get_module_required_credentials (
+  const void* module_file __attribute__ ((unused)),
+  const __off_t st_size __attribute__ ((unused))
+)
 {
+#ifndef HAVE_ELF_GETSHDRSTRNDX
+  /* Without the proper ELF support, we can't determine the credentials required to run this
+     module. However, we do know that it is correctly signed because we only check privilege
+     credentials for correctly signed modules. Therefore, it will be safe to assume the highest
+     privilege level which requires signing. */
+  return pr_highest_signed;
+#else
   Elf_Scn *scn = 0;
   Elf_Data *data = 0;
   GElf_Shdr shdr;
@@ -642,8 +644,9 @@ static privilege_t get_module_required_credentials (const void* module_file, con
     return pr_highest;
   }
 
-  /* ALl is ok. Return the extrated privilege data. */
+  /* ALl is ok. Return the extracted privilege data. */
   return privilege;
+#endif
 }
 
 /*
@@ -679,9 +682,9 @@ check_groups (
 
   /* Users with stapsys and stapusr credentials may be able to load a signed module. */
   if (module_signature_status == MODULE_OK) {
-    /* For stapsys users, a signed module is sufficient, since stapsys is the highest privilege
-       level which requires a signed module. */
-    if (pr_contains (user_credentials, pr_stapsys))
+    /* If the user's credentials contain pr_highest_signed, then a signed module is sufficient,
+       since that is the highest privilege level which requires a signed module. */
+    if (pr_contains (user_credentials, pr_highest_signed))
       return 1;
 
     /* For stapusr users, we must verify that the module was compiled for that privilege level. */
