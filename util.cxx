@@ -557,7 +557,8 @@ stap_spawn(int verbose, const vector<string>& args,
 
   char** env;
   bool allocated;
-  if(envVec.empty())
+  // environ can be NULL. This has been observed when running under gdb.
+  if(envVec.empty() && environ != NULL)
   {
 	  env = environ;
   	  allocated = false;
