@@ -1353,9 +1353,7 @@ stap_start_task_finder(void)
 		return ENOMEM;
 	}
 
-#ifdef STP_TF_MAP
         __stp_tf_map_initialize();
-#endif
 
 	atomic_set(&__stp_task_finder_state, __STP_TF_RUNNING);
 
