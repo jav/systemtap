@@ -229,7 +229,11 @@ static int _stp_vma_init(void)
                 .munmap_callback = &_stp_vma_munmap_cb,
                 .mprotect_callback = NULL
         };
-	stap_initialize_vma_map ();
+	rc = stap_initialize_vma_map ();
+	if (rc != 0) {
+		_stp_error("Couldn't initialize vma map: %d\n", rc);
+		return rc;
+	}
 #ifdef DEBUG_TASK_FINDER_VMA
 	_stp_dbug(__FUNCTION__, __LINE__,
 		  "registering vmcb (_stap_target: %d)\n", _stp_target);
@@ -239,6 +243,14 @@ static int _stp_vma_init(void)
 		_stp_error("Couldn't register task finder target: %d\n", rc);
 #endif
 	return rc;
+}
+
+/* Get rid of the vma tracker (memory). */
+static void _stp_vma_done(void)
+{
+#if defined(CONFIG_UTRACE)
+	stap_destroy_vma_map();
+#endif
 }
 
 #endif /* _STP_VMA_C_ */

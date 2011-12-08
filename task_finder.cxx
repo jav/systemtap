@@ -77,6 +77,13 @@ task_finder_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "/* ---- task finder ---- */";
   s.op->newline() << "stap_stop_task_finder();";
+
+  if (need_vma_tracker)
+    {
+      s.op->newline();
+      s.op->newline() << "/* ---- vma tracker ---- */";
+      s.op->newline() << "_stp_vma_done();";
+    }
 }
 
 

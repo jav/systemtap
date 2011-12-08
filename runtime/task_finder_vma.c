@@ -47,8 +47,7 @@ struct __stp_tf_vma_entry {
 	void *user;
 };
 
-static struct __stp_tf_vma_entry
-__stp_tf_vma_free_list_items[TASK_FINDER_VMA_ENTRY_ITEMS];
+static struct __stp_tf_vma_entry *__stp_tf_vma_free_list_items;
 
 static struct hlist_head __stp_tf_vma_free_list[1];
 
@@ -57,15 +56,36 @@ static struct hlist_head __stp_tf_vma_map[__STP_TF_TABLE_SIZE];
 // stap_initialize_vma_map():  Initialize the free list.  Grabs the
 // spinlock.  Should be called before any of the other stap_*_vma_map
 // functions.  Since this is run before any other function is called,
-// this doesn't need any locking.
-static void
+// this doesn't need any locking.  Should be called from a user context
+// since it can allocate memory.
+static int
 stap_initialize_vma_map(void)
 {
 	int i;
 	struct hlist_head *head = &__stp_tf_vma_free_list[0];
+	struct __stp_tf_vma_entry *items;
+	size_t size = sizeof(struct __stp_tf_vma_entry) * TASK_FINDER_VMA_ENTRY_ITEMS;
+	items = (struct __stp_tf_vma_entry *) _stp_kmalloc_gfp(size,
+							STP_ALLOC_SLEEP_FLAGS);
+	if (items == NULL)
+		return -ENOMEM;
 
 	for (i = 0; i < TASK_FINDER_VMA_ENTRY_ITEMS; i++) {
-		hlist_add_head(&__stp_tf_vma_free_list_items[i].hlist, head);
+		hlist_add_head(&items[i].hlist, head);
+	}
+
+	__stp_tf_vma_free_list_items = items;
+	return 0;
+}
+
+// stap_destroy_vma_map(): Unconditionally destroys vma free list.
+// Nothing should be using it anymore. Doesn't lock anything and just
+// frees all items.
+static void
+stap_destroy_vma_map(void)
+{
+	if (__stp_tf_vma_free_list_items != NULL) {
+		_stp_kfree(__stp_tf_vma_free_list_items);
 	}
 }
 
