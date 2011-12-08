@@ -56,19 +56,17 @@ static struct hlist_head __stp_tf_vma_map[__STP_TF_TABLE_SIZE];
 
 // stap_initialize_vma_map():  Initialize the free list.  Grabs the
 // spinlock.  Should be called before any of the other stap_*_vma_map
-// functions.
+// functions.  Since this is run before any other function is called,
+// this doesn't need any locking.
 static void
 stap_initialize_vma_map(void)
 {
 	int i;
 	struct hlist_head *head = &__stp_tf_vma_free_list[0];
 
-	unsigned long flags;
-	write_lock_irqsave(&__stp_tf_vma_lock, flags);
 	for (i = 0; i < TASK_FINDER_VMA_ENTRY_ITEMS; i++) {
 		hlist_add_head(&__stp_tf_vma_free_list_items[i].hlist, head);
 	}
-	write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
 }
 
 
