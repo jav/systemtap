@@ -1185,8 +1185,10 @@ handleRequest (const string &requestDirName, const string &responseDirName)
 	    privilege = pr_stapsys;
 	  else if (arg == "stapusr")
 	    privilege = pr_stapusr;
-	  // Not fatal, but generate a message.
-	  server_error (_F("Unknown argument to --privilege: %s", arg.c_str ()));
+	  else {
+	    // Not fatal, but generate a message.
+	    server_error (_F("Unknown argument to --privilege: %s", arg.c_str ()));
+	  }
 	}
     }
   /* NB: but it's not that easy!  What if an attacker passes
