@@ -170,8 +170,11 @@ stap_add_vma_map_info(struct task_struct *tsk,
 	struct hlist_node *node;
 	struct __stp_tf_vma_entry *entry;
 	struct __stp_tf_vma_entry *new_entry;
-
 	unsigned long flags;
+
+	if (__stp_tf_vma_map == NULL)
+		return rc;
+
 	// Take a write lock, since we are most likely going to write
 	// after reading. But reserve a new entry first outside the lock.
 	new_entry = __stp_tf_vma_new_entry();
