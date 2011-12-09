@@ -1,0 +1,107 @@
+set TEST_BASENAME "probe_by_pid"
+set TEST_NAME ${TEST_BASENAME}
+set build_dir ""
+set test_progs {"probe_by_pid"}
+
+if {![installtest_p]} { untested $TEST_NAME; return }
+if {![utrace_p]} { untested $TEST_NAME; return }
+
+source $srcdir/$subdir/test_progs.tcl
+
+proc sleep_5_secs {} {
+    after 5000
+    return 0
+}
+
+proc run_test_prog {} {
+    global test_prog
+
+    # Start yet another copy of the test program.  This one should be
+    # ignored by stap.
+    spawn $test_prog
+    set id $spawn_id
+
+    # Wait 3 seconds
+    after 3000
+
+    # Kill the test program
+    catch {exec kill -INT -[exp_pid -i $id]; close -i $id; wait -i $id}
+    return 0
+}
+
+# Do strict utrace-only tests here...
+
+# Build base test program
+set TEST_NAME "probe_by_pid(utrace)"
+if {[build_test_progs "Makefile.probe_by_pid" $test_progs] == 0} {
+    fail "$TEST_NAME - build failure"
+    cleanup_test_progs
+    # In theory we could go on here and test the uprobe tests, but
+    # let's just quit.
+    return
+} else {
+    pass "$TEST_NAME - build success"
+}
+
+# Run the 1st instance of the test program.
+verbose -log "running test programs..."
+set test_prog $build_dir/[lindex $test_progs 0]
+spawn $test_prog
+set id1 $spawn_id
+
+# Run the 2nd instance of the test program.
+spawn $test_prog
+set id2 $spawn_id
+set pid2 [exp_pid -i $id2]
+
+# Run stap on the 2nd instance.
+set output_string "${pid2}: 1 begin probes\r\n${pid2}: \[0-9\]+ syscall probes\r\n"
+stap_run $TEST_NAME run_test_prog $output_string \
+    $srcdir/$subdir/probe_by_pid_utrace.stp $pid2
+
+# Kill both of the spawned processes
+catch {exec kill -INT -[exp_pid -i $id1]; close -i $id1; wait -i $id1}
+catch {exec kill -INT -$pid2]; close -i $id2; wait -i $id2}
+
+# Here we'd like to test 'process(PID).function(FUNC)', but process
+# function probes only support .process(PATH).function(FUNC)' probes.
+# See PR6897 "stap should assert valid PIDs for process(PID) probes"
+# and PR11644 "process(PID).function/statement probes".
+#
+# So, instead we'll use hard-links to try and confuse things.  If we
+# probe 'process(PATH").function("*")' and link PATH to PATH2, do the
+# probes get hit in PATH2?
+
+set TEST_NAME "probe_by_pid(function)"
+if {![uprobes_p]} { untested $TEST_NAME; return }
+# do uprobes tests here - both function and sdt marker
+
+# Run the 1st instance of the test program.
+verbose -log "running test programs..."
+set test_prog $build_dir/[lindex $test_progs 0]
+spawn $test_prog
+set id1 $spawn_id
+
+# Link...
+set test_prog2 "${test_prog}2"
+exec ln $test_prog $test_prog2
+
+# Run the 2nd instance of the test program.
+spawn $test_prog2
+set id2 $spawn_id
+set pid2 [exp_pid -i $id2]
+
+# Run stap on the 2nd instance.
+set output_string "${pid2}: \[0-9\]+ test_function probes\r\n"
+stap_run $TEST_NAME run_test_prog $output_string \
+    $srcdir/$subdir/probe_by_pid_function.stp -d $test_prog2 $test_prog2
+
+# Kill both of the spawned processes
+catch {exec kill -INT -[exp_pid -i $id1]; close -i $id1; wait -i $id1}
+catch {exec kill -INT -$pid2]; close -i $id2; wait -i $id2}
+
+# FIXME: we could also test hard-linked paths with
+# 'process(PATH).mark(MARK)' probes (with and without semaphores).
+
+# Cleanup
+cleanup_test_progs

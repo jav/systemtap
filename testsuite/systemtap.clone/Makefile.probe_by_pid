@@ -1,0 +1,12 @@
+override CFLAGS += -g -O2
+
+OBJS := probe_by_pid.o
+
+TARGETS := probe_by_pid
+
+all: $(TARGETS)
+
+$(TARGETS): $(OBJS)
+
+clean:
+	rm -f $(OBJS) $(TARGETS) $(BUILT_SOURCES)

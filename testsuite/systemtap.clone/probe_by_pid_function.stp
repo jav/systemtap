@@ -1,0 +1,39 @@
+global main_probes
+global test_function_probes
+#global end_probes
+
+probe timer.s(5)
+{
+	exit()
+}
+
+# Actual probes
+#probe process("probe_by_pid").function("main")
+probe process(@1).function("main").call
+{
+	main_probes[pid()]++
+}
+
+probe process(@1).function("test_function")
+{
+	test_function_probes[pid()]++
+}
+
+# Testsuite glue
+probe begin
+{
+	printf("systemtap starting probe\n");
+}
+
+probe end
+{
+	printf("systemtap ending probe\n");
+	# We really shouldn't see any main_probes, since the system
+	# has already called main before we start probing.
+	foreach (pid in main_probes) {
+		printf("%d: %d main probes\n", pid, main_probes[pid])
+	}
+	foreach (pid in test_function_probes) {
+		printf("%d: %d test_function probes\n", pid, test_function_probes[pid])
+	}
+}
