@@ -172,9 +172,6 @@ stap_add_vma_map_info(struct task_struct *tsk,
 	struct __stp_tf_vma_entry *new_entry;
 	unsigned long flags;
 
-	if (__stp_tf_vma_map == NULL)
-		return rc;
-
 	// Take a write lock, since we are most likely going to write
 	// after reading. But reserve a new entry first outside the lock.
 	new_entry = __stp_tf_vma_new_entry();
@@ -281,8 +278,11 @@ stap_find_vma_map_info(struct task_struct *tsk, unsigned long addr,
 	struct __stp_tf_vma_entry *entry;
 	struct __stp_tf_vma_entry *found_entry = NULL;
 	int rc = -ESRCH;
-
 	unsigned long flags;
+
+	if (__stp_tf_vma_map == NULL)
+		return rc;
+
 	read_lock_irqsave(&__stp_tf_vma_lock, flags);
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
 	hlist_for_each_entry(entry, node, head, hlist) {
@@ -322,8 +322,11 @@ stap_find_vma_map_info_user(struct task_struct *tsk, void *user,
 	struct __stp_tf_vma_entry *entry;
 	struct __stp_tf_vma_entry *found_entry = NULL;
 	int rc = -ESRCH;
-
 	unsigned long flags;
+
+	if (__stp_tf_vma_map == NULL)
+		return rc;
+
 	read_lock_irqsave(&__stp_tf_vma_lock, flags);
 	head = &__stp_tf_vma_map[__stp_tf_vma_map_hash(tsk)];
 	hlist_for_each_entry(entry, node, head, hlist) {
