@@ -289,7 +289,7 @@ clean_cache(systemtap_session& s)
 
       struct timeval current_time;
       gettimeofday(&current_time, NULL);
-      if((current_time.tv_sec-sb.st_mtime) < cache_clean_interval)
+      if(difftime(current_time.tv_sec, sb.st_mtime) < cache_clean_interval)
         {
           //interval not passed, don't continue
           if (s.verbose > 1)
