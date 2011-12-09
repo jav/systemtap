@@ -7265,8 +7265,10 @@ struct uprobe_derived_probe_group: public generic_dpg<uprobe_derived_probe>
 {
 private:
   string make_pbm_key (uprobe_derived_probe* p) {
-    return p->module + "|" + p->section + "|" + lex_cast(p->pid);
+    return p->path + "|" + p->module + "|" + p->section + "|" + lex_cast(p->pid);
   }
+
+  void emit_module_maxuprobes (systemtap_session& s);
 
   // Using our own utrace-based uprobes
   void emit_module_utrace_decls (systemtap_session& s);
@@ -7352,21 +7354,8 @@ struct uprobe_builder: public derived_probe_builder
 
 
 void
-uprobe_derived_probe_group::emit_module_utrace_decls (systemtap_session& s)
+uprobe_derived_probe_group::emit_module_maxuprobes (systemtap_session& s)
 {
-  if (probes.empty()) return;
-  s.op->newline() << "/* ---- utrace uprobes ---- */";
-  // If uprobes isn't in the kernel, pull it in from the runtime.
-
-  s.op->newline() << "#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)";
-  s.op->newline() << "#include <linux/uprobes.h>";
-  s.op->newline() << "#else";
-  s.op->newline() << "#include \"uprobes/uprobes.h\"";
-  s.op->newline() << "#endif";
-  s.op->newline() << "#ifndef UPROBES_API_VERSION";
-  s.op->newline() << "#define UPROBES_API_VERSION 1";
-  s.op->newline() << "#endif";
-
   // We'll probably need at least this many:
   unsigned minuprobes = probes.size();
   // .. but we don't want so many that .bss is inflated (PR10507):
@@ -7384,6 +7373,26 @@ uprobe_derived_probe_group::emit_module_utrace_decls (systemtap_session& s)
   s.op->newline() << "#ifndef MAXUPROBES";
   s.op->newline() << "#define MAXUPROBES " << default_maxuprobes;
   s.op->newline() << "#endif";
+}
+
+
+void
+uprobe_derived_probe_group::emit_module_utrace_decls (systemtap_session& s)
+{
+  if (probes.empty()) return;
+  s.op->newline() << "/* ---- utrace uprobes ---- */";
+  // If uprobes isn't in the kernel, pull it in from the runtime.
+
+  s.op->newline() << "#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)";
+  s.op->newline() << "#include <linux/uprobes.h>";
+  s.op->newline() << "#else";
+  s.op->newline() << "#include \"uprobes/uprobes.h\"";
+  s.op->newline() << "#endif";
+  s.op->newline() << "#ifndef UPROBES_API_VERSION";
+  s.op->newline() << "#define UPROBES_API_VERSION 1";
+  s.op->newline() << "#endif";
+
+  emit_module_maxuprobes (s);
 
   // Forward decls
   s.op->newline() << "#include \"uprobes-common.h\"";
@@ -7651,13 +7660,14 @@ uprobe_derived_probe_group::emit_module_inode_decls (systemtap_session& s)
 {
   if (probes.empty()) return;
   s.op->newline() << "/* ---- inode uprobes ---- */";
+  emit_module_maxuprobes (s);
   s.op->newline() << "#include \"uprobes-inode.c\"";
 
   // Write the probe handler.
   s.op->newline() << "static int enter_inode_uprobe "
                   << "(struct uprobe_consumer *inst, struct pt_regs *regs) {";
-  s.op->newline(1) << "struct stp_inode_uprobe_consumer *sup = "
-                   << "container_of(inst, struct stp_inode_uprobe_consumer, consumer);";
+  s.op->newline(1) << "struct stapiu_consumer *sup = "
+                   << "container_of(inst, struct stapiu_consumer, consumer);";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "sup->probe",
                                  "_STP_PROBE_HANDLER_UPROBE");
   s.op->newline() << "c->uregs = regs;";
@@ -7675,35 +7685,61 @@ uprobe_derived_probe_group::emit_module_inode_decls (systemtap_session& s)
   unsigned module_index_ctr = 0;
 
   // Discover and declare targets for each unique path.
-  s.op->newline() << "static struct stp_inode_uprobe_target "
+  s.op->newline() << "static struct stapiu_target "
                   << "stap_inode_uprobe_targets[] = {";
   s.op->indent(1);
   for (unsigned i=0; i<probes.size(); i++)
     {
       uprobe_derived_probe *p = probes[i];
-      if (module_index.find (p->module) == module_index.end())
+      const string key = make_pbm_key(p);
+      if (module_index.find (key) == module_index.end())
         {
-          module_index[p->module] = module_index_ctr++;
-          s.op->newline() << "{ .filename=" << lex_cast_qstring(p->module) << " },";
+          module_index[key] = module_index_ctr++;
+          s.op->newline() << "{";
+          s.op->line() << " .finder={";
+          if (p->pid != 0)
+            s.op->line() << " .pid=" << p->pid << ",";
+
+          if (p->section == "") // .statement(addr).absolute  XXX?
+            s.op->line() << " .callback=&stapiu_process_found,";
+          else if (p->section == ".absolute") // proxy for ET_EXEC -> exec()'d program
+            {
+              s.op->line() << " .procname=" << lex_cast_qstring(p->module) << ",";
+              s.op->line() << " .callback=&stapiu_process_found,";
+            }
+          else if (p->section != ".absolute") // ET_DYN
+            {
+              if (p->has_library)
+                s.op->line() << " .procname=\"" << p->path << "\", ";
+              s.op->line() << " .mmap_callback=&stapiu_mmap_found, ";
+              s.op->line() << " .munmap_callback=&stapiu_munmap_found, ";
+              s.op->line() << " .callback=&stapiu_process_munmap,";
+            }
+          s.op->line() << " },";
+          s.op->line() << " .filename=" << lex_cast_qstring(p->module) << ",";
+          s.op->line() << " },";
         }
     }
   s.op->newline(-1) << "};";
   s.op->assert_0_indent();
 
   // Declare the actual probes.
-  s.op->newline() << "static struct stp_inode_uprobe_consumer "
+  s.op->newline() << "static struct stapiu_consumer "
                   << "stap_inode_uprobe_consumers[] = {";
   s.op->indent(1);
   for (unsigned i=0; i<probes.size(); i++)
     {
       uprobe_derived_probe *p = probes[i];
-      unsigned index = module_index[p->module];
-      s.op->newline() << "{"
-                      << " .consumer={ .handler=enter_inode_uprobe },"
-                      << " .target=&stap_inode_uprobe_targets[" << index << "],"
-                      << " .offset=(loff_t)0x" << hex << p->addr << dec << "ULL,"
-                      << " .probe=" << common_probe_init (p) << ","
-                      << "},";
+      unsigned index = module_index[make_pbm_key(p)];
+      s.op->newline() << "{";
+      s.op->line() << " .consumer={ .handler=enter_inode_uprobe },";
+      s.op->line() << " .target=&stap_inode_uprobe_targets[" << index << "],";
+      s.op->line() << " .offset=(loff_t)0x" << hex << p->addr << dec << "ULL,";
+      if (p->sdt_semaphore_addr)
+        s.op->line() << " .sdt_sem_offset=(loff_t)0x"
+                     << hex << p->sdt_semaphore_addr << dec << "ULL,";
+      s.op->line() << " .probe=" << common_probe_init (p) << ",";
+      s.op->line() << " },";
     }
   s.op->newline(-1) << "};";
   s.op->assert_0_indent();
@@ -7715,7 +7751,7 @@ uprobe_derived_probe_group::emit_module_inode_init (systemtap_session& s)
 {
   if (probes.empty()) return;
   s.op->newline() << "/* ---- inode uprobes ---- */";
-  s.op->newline() << "rc = stp_inode_uprobes_init ("
+  s.op->newline() << "rc = stapiu_init ("
                   << "stap_inode_uprobe_targets, "
                   << "ARRAY_SIZE(stap_inode_uprobe_targets), "
                   << "stap_inode_uprobe_consumers, "
@@ -7728,7 +7764,7 @@ uprobe_derived_probe_group::emit_module_inode_exit (systemtap_session& s)
 {
   if (probes.empty()) return;
   s.op->newline() << "/* ---- inode uprobes ---- */";
-  s.op->newline() << "stp_inode_uprobes_exit ("
+  s.op->newline() << "stapiu_exit ("
                   << "stap_inode_uprobe_targets, "
                   << "ARRAY_SIZE(stap_inode_uprobe_targets), "
                   << "stap_inode_uprobe_consumers, "
