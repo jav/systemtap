@@ -115,3 +115,24 @@ expect {
 catch {close}; catch {wait}
 
 error_handler [expr {$ok == 4}] "printf --ldd ($ok) ($ok != 4)"
+
+# Test .exported
+
+spawn $stap_path -c $exepath -e "probe process(\"$exepath\").library(\"*\").function(\"*\").exported \{printf(\"%s \", pp())\}"
+
+set ok 0
+expect {
+    -timeout 180
+    -re {libsdt.so.*bar} {incr ok; exp_continue }
+    -re {libsdt.so.*baz} {incr ok; exp_continue }
+    -re {libsdt.so.*buz} {incr ok; exp_continue }
+    -re {libc-.*so.*exported} {incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+catch {close}; catch {wait}
+
+error_handler [expr {$ok >= 6}] ".exported ($ok) ($ok >= 6)"
+
+cleanup_handler $verbose
