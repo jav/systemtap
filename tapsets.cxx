@@ -9139,6 +9139,8 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
           // strip include/ substring, the same way as done in get_tracequery_module()
           size_t root_pos = header.rfind("include/");
           header = ((root_pos != string::npos) ? header.substr(root_pos + 8) : header);
+
+          tpop->newline() << "#include <linux/tracepoint.h>" << endl;
           tpop->newline() << "#include <" << header << ">";
 
           // Starting in 2.6.35, at the same time NOARGS was added, the callback
