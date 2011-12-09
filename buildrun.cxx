@@ -400,7 +400,9 @@ compile_pass (systemtap_session& s)
 static bool
 kernel_built_uprobes (systemtap_session& s)
 {
-  return (s.kernel_exports.find("unregister_uprobe") != s.kernel_exports.end());
+  // see also tapsets.cxx:kernel_supports_inode_uprobes()
+  return ((s.kernel_config["CONFIG_ARCH_SUPPORTS_UPROBES"] == "y" && s.kernel_config["CONFIG_UPROBES"] == "y") ||
+          (s.kernel_exports.find("unregister_uprobe") != s.kernel_exports.end()));
 }
 
 static int
