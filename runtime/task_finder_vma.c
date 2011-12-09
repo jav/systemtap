@@ -169,30 +169,28 @@ stap_add_vma_map_info(struct task_struct *tsk,
 	struct hlist_head *head;
 	struct hlist_node *node;
 	struct __stp_tf_vma_entry *entry;
+	struct __stp_tf_vma_entry *new_entry;
 
 	unsigned long flags;
 	// Take a write lock, since we are most likely going to write
-	// after reading.
+	// after reading. But reserve a new entry first outside the lock.
+	new_entry = __stp_tf_vma_new_entry();
 	write_lock_irqsave(&__stp_tf_vma_lock, flags);
 	entry = __stp_tf_get_vma_map_entry_internal(tsk, vm_start);
 	if (entry != NULL) {
-#if 0
-		printk(KERN_NOTICE
-		       "vma (pid: %d, vm_start: 0x%lx) present?\n",
-		       tsk->pid, entry->vm_start);
-#endif
 		write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
+		if (new_entry)
+			__stp_tf_vma_release_entry(new_entry);
 		return -EBUSY;	/* Already there */
 	}
 
-	// Get an element from the free list.
-	entry = __stp_tf_vma_new_entry();
-	if (!entry) {
+	if (!new_entry) {
 		write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
 		return -ENOMEM;
 	}
 
 	// Fill in the info
+	entry = new_entry;
 	entry->pid = tsk->pid;
 	entry->vm_start = vm_start;
 	entry->vm_end = vm_end;
