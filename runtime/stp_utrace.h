@@ -15,35 +15,12 @@ enum utrace_events {
 	_UTRACE_EVENT_REAP,  	/* Zombie reaped, no more tracing possible.  */
 	_UTRACE_EVENT_CLONE,	/* Successful clone/fork/vfork just done.  */
 	_UTRACE_EVENT_EXEC,	/* Successful execve just completed.  */
-#if 0
-	_UTRACE_EVENT_EXIT,	/* Thread exit in progress.  */
-#endif
 	_UTRACE_EVENT_DEATH,	/* Thread has died.  */
 	_UTRACE_EVENT_SYSCALL_ENTRY, /* User entered kernel for system call. */
 	_UTRACE_EVENT_SYSCALL_EXIT, /* Returning to user after system call.  */
-#if 0
-	_UTRACE_EVENT_SIGNAL,	/* Signal delivery will run a user handler.  */
-	_UTRACE_EVENT_SIGNAL_IGN, /* No-op signal to be delivered.  */
-	_UTRACE_EVENT_SIGNAL_STOP, /* Signal delivery will suspend.  */
-	_UTRACE_EVENT_SIGNAL_TERM, /* Signal delivery will terminate.  */
-	_UTRACE_EVENT_SIGNAL_CORE, /* Signal delivery will dump core.  */
-	_UTRACE_EVENT_JCTL,	/* Job control stop or continue completed.  */
-#endif
 	_UTRACE_NEVENTS
 };
 #define UTRACE_EVENT(type)	(1UL << _UTRACE_EVENT_##type)
-
-#if 0
-/*
- * All the kinds of signal events.
- * These all use the @report_signal() callback.
- */
-#define UTRACE_EVENT_SIGNAL_ALL	(UTRACE_EVENT(SIGNAL) \
-				 | UTRACE_EVENT(SIGNAL_IGN) \
-				 | UTRACE_EVENT(SIGNAL_STOP) \
-				 | UTRACE_EVENT(SIGNAL_TERM) \
-				 | UTRACE_EVENT(SIGNAL_CORE))
-#endif
 
 /*
  * Both kinds of syscall events; these call the @report_syscall_entry()
@@ -58,7 +35,7 @@ enum utrace_events {
 #define _UTRACE_DEATH_EVENTS (UTRACE_EVENT(DEATH) | UTRACE_EVENT(QUIESCE))
 
 /*
- * Flags for utrace_attach_task() and utrace_attach_pid().
+ * Flags for utrace_attach_task().
  */
 #define UTRACE_ATTACH_MATCH_OPS		0x0001 /* Match engines on ops.  */
 #define UTRACE_ATTACH_MATCH_DATA	0x0002 /* Match engines on data.  */
@@ -153,9 +130,9 @@ static inline void utrace_engine_put(struct utrace_engine *engine)
  *
  * When %UTRACE_STOP is used in @report_syscall_entry, then @current
  * stops before attempting the system call.  In this case, another
- * @report_syscall_entry callback will follow after @current resumes if
- * %UTRACE_REPORT or %UTRACE_INTERRUPT was returned by some callback
- * or passed to utrace_control().  In a second or later callback,
+ * @report_syscall_entry callback will follow after @current resumes
+ * if %UTRACE_REPORT was returned by some callback or passed to
+ * utrace_control().  In a second or later callback,
  * %UTRACE_SYSCALL_RESUMED is set in the @action argument to indicate
  * a repeat callback still waiting to attempt the same system call
  * invocation.  This repeat callback gives each engine an opportunity
@@ -165,8 +142,8 @@ static inline void utrace_engine_put(struct utrace_engine *engine)
  * In other cases, the resume action does not take effect until @current
  * is ready to check for signals and return to user mode.  If there
  * are more callbacks to be made, the last round of calls determines
- * the final action.  A @report_quiesce callback with @event zero, or
- * a @report_signal callback, will always be the last one made before
+ * the final action.  A @report_quiesce callback with @event zero
+ * will always be the last one made before
  * @current resumes.  Only %UTRACE_STOP is "sticky"--if @engine returned
  * %UTRACE_STOP then @current stays stopped unless @engine returns
  * different from a following callback.
@@ -194,42 +171,8 @@ static inline void utrace_engine_put(struct utrace_engine *engine)
  *	call here can request the immediate callback for this occurrence of
  *	@event.  @event is zero when there is no other event, @current is
  *	now ready to check for signals and return to user mode, and some
- *	engine has used %UTRACE_REPORT or %UTRACE_INTERRUPT to request this
- *	callback.  For this case, if @report_signal is not %NULL, the
- *	@report_quiesce callback may be replaced with a @report_signal
- *	callback passing %UTRACE_SIGNAL_REPORT in its @action argument,
- *	whenever @current is entering the signal-check path anyway.
- *
- * @report_signal:
- *	Requested by %UTRACE_EVENT(%SIGNAL_*) or %UTRACE_EVENT(%QUIESCE).
- *	Use utrace_signal_action() and utrace_resume_action() on @action.
- *	The signal action is %UTRACE_SIGNAL_REPORT when some engine has
- *	used %UTRACE_REPORT or %UTRACE_INTERRUPT; the callback can choose
- *	to stop or to deliver an artificial signal, before pending signals.
- *	It's %UTRACE_SIGNAL_HANDLER instead when signal handler setup just
- *	finished (after a previous %UTRACE_SIGNAL_DELIVER return); this
- *	serves in lieu of any %UTRACE_SIGNAL_REPORT callback requested by
- *	%UTRACE_REPORT or %UTRACE_INTERRUPT, and is also implicitly
- *	requested by %UTRACE_SINGLESTEP or %UTRACE_BLOCKSTEP into the
- *	signal delivery.  The other signal actions indicate a signal about
- *	to be delivered; the previous engine's return value sets the signal
- *	action seen by the the following engine's callback.  The @info data
- *	can be changed at will, including @info->si_signo.  The settings in
- *	@return_ka determines what %UTRACE_SIGNAL_DELIVER does.  @orig_ka
- *	is what was in force before other tracing engines intervened, and
- *	it's %NULL when this report began as %UTRACE_SIGNAL_REPORT or
- *	%UTRACE_SIGNAL_HANDLER.  For a report without a new signal, @info
- *	is left uninitialized and must be set completely by an engine that
- *	chooses to deliver a signal; if there was a previous @report_signal
- *	callback ending in %UTRACE_STOP and it was just resumed using
- *	%UTRACE_REPORT or %UTRACE_INTERRUPT, then @info is left unchanged
- *	from the previous callback.  In this way, the original signal can
- *	be left in @info while returning %UTRACE_STOP|%UTRACE_SIGNAL_IGN
- *	and then found again when resuming with %UTRACE_INTERRUPT.
- *	The %UTRACE_SIGNAL_HOLD flag bit can be OR'd into the return value,
- *	and might be in @action if the previous engine returned it.  This
- *	flag asks that the signal in @info be pushed back on @current's queue
- *	so that it will be seen again after whatever action is taken now.
+ *	engine has used %UTRACE_REPORT to request this
+ *	callback.
  *
  * @report_clone:
  *	Requested by %UTRACE_EVENT(%CLONE).
@@ -238,18 +181,9 @@ static inline void utrace_engine_put(struct utrace_engine *engine)
  *	equivalent flags for a fork() or vfork() system call.  This
  *	function can use utrace_attach_task() on @child.  Then passing
  *	%UTRACE_STOP to utrace_control() on @child here keeps the child
- *	stopped before it ever runs in user mode, %UTRACE_REPORT or
- *	%UTRACE_INTERRUPT ensures a callback from @child before it
+ *	stopped before it ever runs in user mode, %UTRACE_REPORT
+ *	ensures a callback from @child before it
  *	starts in user mode.
- *
- * @report_jctl:
- *	Requested by %UTRACE_EVENT(%JCTL).
- *	Job control event; @type is %CLD_STOPPED or %CLD_CONTINUED,
- *	indicating whether we are stopping or resuming now.  If @notify
- *	is nonzero, @current is the last thread to stop and so will send
- *	%SIGCHLD to its parent after this callback; @notify reflects
- *	what the parent's %SIGCHLD has in @si_code, which can sometimes
- *	be %CLD_STOPPED even when @type is %CLD_CONTINUED.
  *
  * @report_exec:
  *	Requested by %UTRACE_EVENT(%EXEC).
@@ -280,17 +214,6 @@ static inline void utrace_engine_put(struct utrace_engine *engine)
  *	The results of the system call attempt can be examined here using
  *	syscall_get_error() and syscall_get_return_value().  It is safe
  *	here to call syscall_set_return_value() or syscall_rollback().
- *
- * @report_exit:
- *	Requested by %UTRACE_EVENT(%EXIT).
- *	Thread is exiting and cannot be prevented from doing so,
- *	but all its state is still live.  The @code value will be
- *	the wait result seen by the parent, and can be changed by
- *	this engine or others.  The @orig_code value is the real
- *	status, not changed by any tracing engine.  Returning %UTRACE_STOP
- *	here keeps @current stopped before it cleans up its state and dies,
- *	so it can be examined by other processes.  When @current is allowed
- *	to run, it will die and get to the @report_death callback.
  *
  * @report_death:
  *	Requested by %UTRACE_EVENT(%DEATH).
@@ -326,20 +249,9 @@ static inline void utrace_engine_put(struct utrace_engine *engine)
 struct utrace_engine_ops {
 	u32 (*report_quiesce)(u32 action, struct utrace_engine *engine,
 			      unsigned long event);
-#if 0
-	u32 (*report_signal)(u32 action, struct utrace_engine *engine,
-			     struct pt_regs *regs,
-			     siginfo_t *info,
-			     const struct k_sigaction *orig_ka,
-			     struct k_sigaction *return_ka);
-#endif
 	u32 (*report_clone)(u32 action, struct utrace_engine *engine,
 			    unsigned long clone_flags,
 			    struct task_struct *child);
-#if 0
-	u32 (*report_jctl)(u32 action, struct utrace_engine *engine,
-			   int type, int notify);
-#endif
 	u32 (*report_exec)(u32 action, struct utrace_engine *engine,
 			   const struct linux_binfmt *fmt,
 			   const struct linux_binprm *bprm,
@@ -348,10 +260,6 @@ struct utrace_engine_ops {
 				    struct pt_regs *regs);
 	u32 (*report_syscall_exit)(u32 action, struct utrace_engine *engine,
 				   struct pt_regs *regs);
-#if 0
-	u32 (*report_exit)(u32 action, struct utrace_engine *engine,
-			   long code);
-#endif
 	u32 (*report_death)(struct utrace_engine *engine,
 			    bool group_dead, int signal);
 	void (*report_reap)(struct utrace_engine *engine,
@@ -381,15 +289,10 @@ int __must_check utrace_barrier(struct task_struct *,
  */
 #define UTRACE_API_VERSION	20110727
 
-/* FIXME: do we need all these?  We certainly can't support:
- * SINGLESTEP, BLOCKSTEP, REPORT, INTERRUPT, STOP */
 /**
  * enum utrace_resume_action - engine's choice of action for a traced task
  * @UTRACE_STOP:		Stay quiescent after callbacks.
- * @UTRACE_INTERRUPT:		Make @report_signal() callback soon.
  * @UTRACE_REPORT:		Make some callback soon.
- * @UTRACE_SINGLESTEP:		Resume in user mode for one instruction.
- * @UTRACE_BLOCKSTEP:		Resume in user mode until next branch.
  * @UTRACE_RESUME:		Resume normally in user mode.
  * @UTRACE_DETACH:		Detach my engine (implies %UTRACE_RESUME).
  *
@@ -402,10 +305,7 @@ int __must_check utrace_barrier(struct task_struct *,
  */
 enum utrace_resume_action {
 	UTRACE_STOP,
-//	UTRACE_INTERRUPT,
 	UTRACE_REPORT,
-//	UTRACE_SINGLESTEP,
-//	UTRACE_BLOCKSTEP,
 	UTRACE_RESUME,
 	UTRACE_DETACH,
 	UTRACE_RESUME_MAX
