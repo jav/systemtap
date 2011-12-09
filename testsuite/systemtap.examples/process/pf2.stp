@@ -3,7 +3,7 @@
 global profile, pcount
 probe timer.profile {
   pcount <<< 1
-  fn = probefunc ()
+  fn = user_mode() ? "<user>" : symname(addr())
   if (fn != "") profile[fn] <<< 1
 }
 probe timer.ms(5000) {
