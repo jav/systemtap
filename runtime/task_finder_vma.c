@@ -21,13 +21,6 @@ static DEFINE_RWLOCK(__stp_tf_vma_lock);
 #define __STP_TF_HASH_BITS 4
 #define __STP_TF_TABLE_SIZE (1 << __STP_TF_HASH_BITS)
 
-// Somewhat arbitrary default, this is often way too much for tracking
-// single process, but often too little when tracking whole system.
-// FIXME Would be nice to make this dynamic. PR11671
-#ifndef TASK_FINDER_VMA_ENTRY_ITEMS
-#define TASK_FINDER_VMA_ENTRY_ITEMS 1536
-#endif
-
 #ifndef TASK_FINDER_VMA_ENTRY_PATHLEN
 #define TASK_FINDER_VMA_ENTRY_PATHLEN 64
 #elif TASK_FINDER_VMA_ENTRY_PATHLEN < 8
@@ -47,11 +40,27 @@ struct __stp_tf_vma_entry {
 	void *user;
 };
 
-static struct __stp_tf_vma_entry *__stp_tf_vma_free_list_items;
+static struct hlist_head *__stp_tf_vma_map;
 
-static struct hlist_head __stp_tf_vma_free_list[1];
+// __stp_tf_vma_new_entry(): Returns an newly allocated or NULL.
+// Must only be called from user context.
+static struct __stp_tf_vma_entry *
+__stp_tf_vma_new_entry(void)
+{
+	struct __stp_tf_vma_entry *entry;
+	size_t size = sizeof (struct __stp_tf_vma_entry);
 
-static struct hlist_head __stp_tf_vma_map[__STP_TF_TABLE_SIZE];
+	entry = (struct __stp_tf_vma_entry *) _stp_kmalloc_gfp(size,
+							STP_ALLOC_SLEEP_FLAGS);
+	return entry;
+}
+
+// __stp_tf_vma_release_entry(): Frees an entry.
+static void
+__stp_tf_vma_release_entry(struct __stp_tf_vma_entry *entry)
+{
+	_stp_kfree (entry);
+}
 
 // stap_initialize_vma_map():  Initialize the free list.  Grabs the
 // spinlock.  Should be called before any of the other stap_*_vma_map
@@ -61,65 +70,42 @@ static struct hlist_head __stp_tf_vma_map[__STP_TF_TABLE_SIZE];
 static int
 stap_initialize_vma_map(void)
 {
-	int i;
-	struct hlist_head *head = &__stp_tf_vma_free_list[0];
-	struct __stp_tf_vma_entry *items;
-	size_t size = sizeof(struct __stp_tf_vma_entry) * TASK_FINDER_VMA_ENTRY_ITEMS;
-	items = (struct __stp_tf_vma_entry *) _stp_kmalloc_gfp(size,
+	size_t size = sizeof(struct hlist_head) * __STP_TF_TABLE_SIZE;
+	struct hlist_head *map = (struct hlist_head *) _stp_kzalloc_gfp(size,
 							STP_ALLOC_SLEEP_FLAGS);
-	if (items == NULL)
+	if (map == NULL)
 		return -ENOMEM;
 
-	for (i = 0; i < TASK_FINDER_VMA_ENTRY_ITEMS; i++) {
-		hlist_add_head(&items[i].hlist, head);
-	}
-
-	__stp_tf_vma_free_list_items = items;
+	__stp_tf_vma_map = map;
 	return 0;
 }
 
-// stap_destroy_vma_map(): Unconditionally destroys vma free list.
+// stap_destroy_vma_map(): Unconditionally destroys vma entries.
 // Nothing should be using it anymore. Doesn't lock anything and just
 // frees all items.
 static void
 stap_destroy_vma_map(void)
 {
-	if (__stp_tf_vma_free_list_items != NULL) {
-		_stp_kfree(__stp_tf_vma_free_list_items);
+	if (__stp_tf_vma_map != NULL) {
+		int i;
+		for (i = 0; i < __STP_TF_TABLE_SIZE; i++) {
+			struct hlist_head *head = &__stp_tf_vma_map[i];
+			struct hlist_node *node;
+			struct hlist_node *n;
+			struct __stp_tf_vma_entry *entry = NULL;
+
+			if (hlist_empty(head))
+				continue;
+
+		        hlist_for_each_entry_safe(entry, node, n, head, hlist) {
+				hlist_del(&entry->hlist);
+				__stp_tf_vma_release_entry(entry);
+			}
+		}
+		_stp_kfree(__stp_tf_vma_map);
 	}
 }
 
-
-// __stp_tf_vma_get_free_entry(): Returns an entry from the free list
-// or NULL.  The __stp_tf_vma_lock must be write locked before calling this
-// function.
-static struct __stp_tf_vma_entry *
-__stp_tf_vma_get_free_entry(void)
-{
-	struct hlist_head *head = &__stp_tf_vma_free_list[0];
-	struct hlist_node *node;
-	struct __stp_tf_vma_entry *entry = NULL;
-
-	if (hlist_empty(head))
-		return NULL;
-	hlist_for_each_entry(entry, node, head, hlist) {
-		break;
-	}
-	if (entry != NULL)
-		hlist_del(&entry->hlist);
-	return entry;
-}
-
-
-// __stp_tf_vma_put_free_entry(): Puts an entry back on the free
-// list.  The __stp_tf_vma_lock must be write locked before calling this
-// function.
-static void
-__stp_tf_vma_put_free_entry(struct __stp_tf_vma_entry *entry)
-{
-	struct hlist_head *head = &__stp_tf_vma_free_list[0];
-	hlist_add_head(&entry->hlist, head);
-}
 
 // __stp_tf_vma_map_hash(): Compute the vma map hash.
 static inline u32
@@ -173,6 +159,8 @@ __stp_tf_get_vma_map_entry_end_internal(struct task_struct *tsk,
 
 // Add the vma info to the vma map hash table.
 // Caller is responsible for name lifetime.
+// Can allocate memory, so needs to be called
+// only from user context.
 static int
 stap_add_vma_map_info(struct task_struct *tsk,
 		      unsigned long vm_start, unsigned long vm_end,
@@ -198,7 +186,7 @@ stap_add_vma_map_info(struct task_struct *tsk,
 	}
 
 	// Get an element from the free list.
-	entry = __stp_tf_vma_get_free_entry();
+	entry = __stp_tf_vma_new_entry();
 	if (!entry) {
 		write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
 		return -ENOMEM;
@@ -271,7 +259,7 @@ stap_remove_vma_map_info(struct task_struct *tsk, unsigned long vm_start)
 	entry = __stp_tf_get_vma_map_entry_internal(tsk, vm_start);
 	if (entry != NULL) {
 		hlist_del(&entry->hlist);
-		__stp_tf_vma_put_free_entry(entry);
+		__stp_tf_vma_release_entry(entry);
                 rc = 0;
 	}
 	write_unlock_irqrestore(&__stp_tf_vma_lock, flags);
@@ -371,7 +359,7 @@ stap_drop_vma_maps(struct task_struct *tsk)
         hlist_for_each_entry_safe(entry, node, n, head, hlist) {
             if (tsk->pid == entry->pid) {
 		    hlist_del(&entry->hlist);
-		    __stp_tf_vma_put_free_entry(entry);
+		    __stp_tf_vma_release_entry(entry);
             }
         }
 	write_unlock_irqrestore(&__stp_tf_vma_lock, flags);

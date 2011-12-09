@@ -7,6 +7,12 @@
 - The translator supports a new --modinfo NAME=VALUE option to emit additional
   MODULE_INFO(n,v) macros into the generated code.
 
+- There is no more fixed maximum number of VMA pages that will be tracked
+  at runtime. This reduces memory use for those scripts that don't need any,
+  or only limited target process VMA tracking and allows easier system
+  wide probes inspecting shared library variables and/or user backtraces.
+  stap will now silently ignore -DTASK_FINDER_VMA_ENTRY_ITEMS.
+
 - The tapset functions remote_id() and remote_uri() identify the member of a
   swarm of "stap --remote FOO --remote BAR baz.stp" concurrent executions.
 
