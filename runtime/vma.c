@@ -210,7 +210,8 @@ static int _stp_vma_munmap_cb(struct stap_task_finder_target *tgt,
 static int _stp_vma_init(void)
 {
         int rc = 0;
-#if defined(CONFIG_UTRACE)
+#if (defined(CONFIG_UTRACE) || defined(STAPCONF_UTRACE_VIA_TRACEPOINTS) \
+     || defined(STAPCONF_UTRACE_VIA_FTRACE))
         static struct stap_task_finder_target vmcb = {
                 // NB: no .pid, no .procname filters here.
                 // This means that we get a system-wide mmap monitoring
