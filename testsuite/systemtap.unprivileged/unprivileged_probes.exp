@@ -18,11 +18,13 @@ set unrestricted_probe_types [list \
   "process.function(number).call" \
   "process.function(number).inline" \
   "process.function(number).return" \
+  "process.function(number).exported" \
   "process.function(string)" \
   "process.function(string).call" \
   "process.function(string).inline" \
   "process.function(string).label(string)" \
   "process.function(string).return" \
+  "process.function(string).exported" \
   "process.plt" \
   "process.plt.statement(number)" \
   "process.plt(string)" \
@@ -31,10 +33,12 @@ set unrestricted_probe_types [list \
   "process.library(string).function(number).call" \
   "process.library(string).function(number).inline" \
   "process.library(string).function(number).return" \
+  "process.library(string).function(number).exported" \
   "process.library(string).function(string)" \
   "process.library(string).function(string).call" \
   "process.library(string).function(string).inline" \
   "process.library(string).function(string).return" \
+  "process.library(string).function(string).exported" \
   "process.library(string).function(string).label(string)" \
   "process.library(string).plt" \
   "process.library(string).plt.statement(number)" \
@@ -66,19 +70,23 @@ set unrestricted_probe_types [list \
   "process(string).function(number).call" \
   "process(string).function(number).inline" \
   "process(string).function(number).return" \
+  "process(string).function(number).exported" \
   "process(string).function(string)" \
   "process(string).function(string).call" \
   "process(string).function(string).inline" \
   "process(string).function(string).label(string)" \
   "process(string).function(string).return" \
+  "process(string).function(string).exported" \
   "process(string).library(string).function(number)" \
   "process(string).library(string).function(number).call" \
   "process(string).library(string).function(number).inline" \
   "process(string).library(string).function(number).return" \
+  "process(string).library(string).function(number).exported" \
   "process(string).library(string).function(string)" \
   "process(string).library(string).function(string).call" \
   "process(string).library(string).function(string).inline" \
   "process(string).library(string).function(string).return" \
+  "process(string).library(string).function(string).exported" \
   "process(string).library(string).function(string).label(string)" \
   "process(string).library(string).mark(string)" \
   "process(string).library(string).provider(string).mark(string)" \
@@ -134,12 +142,14 @@ set restricted_probe_types [list \
   "kernel.function(number).call" \
   "kernel.function(number).inline" \
   "kernel.function(number).return" \
+  "kernel.function(number).exported" \
   "kernel.function(number).return.maxactive(number)" \
   "kernel.function(string)" \
   "kernel.function(string).call" \
   "kernel.function(string).inline" \
   "kernel.function(string).label(string)" \
   "kernel.function(string).return" \
+  "kernel.function(string).exported" \
   "kernel.function(string).return.maxactive(number)" \
   "kernel.mark(string)" \
   "kernel.mark(string).format(string)" \
@@ -158,12 +168,14 @@ set restricted_probe_types [list \
   "module(string).function(number).call" \
   "module(string).function(number).inline" \
   "module(string).function(number).return" \
+  "module(string).function(number).exported" \
   "module(string).function(number).return.maxactive(number)" \
   "module(string).function(string)" \
   "module(string).function(string).call" \
   "module(string).function(string).inline" \
   "module(string).function(string).label(string)" \
   "module(string).function(string).return" \
+  "module(string).function(string).exported" \
   "module(string).function(string).return.maxactive(number)" \
   "module(string).statement(number)" \
   "module(string).statement(string)" \
