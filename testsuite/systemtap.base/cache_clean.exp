@@ -26,7 +26,7 @@ set cmd [concat {stap -vv -p4 -e} $script1]
 eval spawn $cmd
 set cleaned -1
 expect {
-  timeout 180
+  -timeout 180
   -re {^Cleaning cache, interval reached [^\r\n]*\r\n} {fail "$test premature cleaning"}
   -re {^Cache cleaning skipped, interval not reached [^\r\n]*\r\n} {pass "$test premature cleaning"}
   -re {^[^\r\n]*\r\n} {exp_continue}
@@ -45,7 +45,7 @@ set cmd [concat {stap -vv -p4 -e} $script2]
 eval spawn $cmd
 set cleaned -1
 expect {
-  timeout 180
+  -timeout 180
   -re {^Cleaning cache, interval reached [^\r\n]*\r\n} {pass "$test timed cleaning"}
   -re {^Cache cleaning skipped, interval not reached [^\r\n]*\r\n} {fail "$test timed cleaning"}
   -re {^[^\r\n]*\r\n} {exp_continue}
