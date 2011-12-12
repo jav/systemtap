@@ -463,7 +463,8 @@ dwflpp::func_is_exported()
 	{
 	  if (GELF_ST_TYPE(sym.st_info) == STT_FUNC
 	      && (GELF_ST_BIND(sym.st_info) == STB_GLOBAL
-		  || GELF_ST_BIND(sym.st_info) == STB_WEAK))
+		  || GELF_ST_BIND(sym.st_info) == STB_WEAK
+		  || GELF_ST_BIND(sym.st_info) == STB_GNU_UNIQUE))
 	    return true;
 	  else
 	    return false;
