@@ -1,0 +1,12 @@
+# Alternate "pointer array" test that works on all systems.
+# See also PR13467.
+set test "kallsyms_expand_symbol"
+
+# Test that the script can decode the kallsyms table to produce
+# the first ten elements.
+set plain_head [exec head /proc/kallsyms]
+set syms_head [exec head /proc/kallsyms | cut -f3 -d\ ]
+set ::result_string ${plain_head}\n${syms_head}
+verbose -log "Expecting:\n$::result_string"
+
+stap_run2 $srcdir/$subdir/$test.stp -c {head /proc/kallsyms}

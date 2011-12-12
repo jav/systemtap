@@ -10,4 +10,7 @@ r
 u
 e
 0}
+# Note this uses a user pointer to access the array, which
+# won't work on s390x. PR13467.
+if {[istarget s390x-*-*]} { setup_kfail 13467 [istarget] }
 stap_run2 $srcdir/$subdir/$test.stp -c/bin/true

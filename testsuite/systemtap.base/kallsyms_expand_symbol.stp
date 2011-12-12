@@ -1,0 +1,54 @@
+# Test various array operations on a kernel variable.
+# This is a pretty direct translation of the C source code of
+# kernel/kallsyms.c (kallsyms_expand_symbol).
+
+global symbols = 0;
+
+probe kernel.function("kallsyms_expand_symbol")
+{
+  /* We are only interested in the head -10 symbols for comparison. */
+  if (target() != pid()) next;
+
+  skipped_first = 0;
+
+  /* Get the compressed symbol length from the first symbol byte. */
+  data = &$kallsyms_names[$off];
+  len = kernel_char(data) & 0xff;
+  data++;
+
+  /*
+   * Update the offset to return the offset for the next symbol on
+   * the compressed stream.
+   */
+   off += len + 1;
+
+  /*
+   * For every byte on the compressed symbol data, copy the table
+   * entry for that byte.
+   */
+  while (len)
+    {
+      idx = kernel_char(data) & 0xff;
+      tptr = &$kallsyms_token_table[$kallsyms_token_index[idx]];
+      data++;
+      len--;
+
+      t = kernel_char(tptr) & 0xff;
+      while (t)
+        {
+          if (skipped_first)
+            {
+              printf("%c", t);
+            }
+          else
+            skipped_first = 1;
+          tptr++;
+          t = kernel_char(tptr) & 0xff;
+        }
+    }
+    printf("\n");
+
+    /* Are we done yet? */
+    symbols++;
+    if (symbols == 10) exit();
+}
