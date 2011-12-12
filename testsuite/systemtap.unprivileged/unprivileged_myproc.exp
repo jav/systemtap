@@ -12,10 +12,12 @@ set myproc_probe_types [list \
   "process.function(number).call" \
   "process.function(number).inline" \
   "process.function(number).return" \
+  "process.function(number).exported" \
   "process.function(string).call" \
   "process.function(string).inline" \
   "process.function(string).label(string)" \
   "process.function(string).return" \
+  "process.function(string).exported" \
   "process.plt" \
   "process.plt.statement(number)" \
   "process.plt(string)" \
@@ -24,10 +26,12 @@ set myproc_probe_types [list \
   "process.library(string).function(number).call" \
   "process.library(string).function(number).inline" \
   "process.library(string).function(number).return" \
+  "process.library(string).function(number).exported" \
   "process.library(string).function(string)" \
   "process.library(string).function(string).call" \
   "process.library(string).function(string).inline" \
   "process.library(string).function(string).return" \
+  "process.library(string).function(string).exported" \
   "process.library(string).function(string).label(string)" \
   "process.library(string).plt" \
   "process.library(string).plt.statement(number)" \
@@ -61,20 +65,24 @@ set myproc_probe_types [list \
   "process(string).function(number).call" \
   "process(string).function(number).inline" \
   "process(string).function(number).return" \
+  "process(string).function(number).exported" \
   "process(string).function(string)" \
   "process(string).function(string).call" \
   "process(string).function(string).inline" \
   "process(string).function(string).return" \
+  "process(string).function(string).exported" \
   "process(string).insn" \
   "process(string).insn.block" \
   "process(string).library(string).function(number)" \
   "process(string).library(string).function(number).call" \
   "process(string).library(string).function(number).inline" \
   "process(string).library(string).function(number).return" \
+  "process(string).library(string).function(number).exported" \
   "process(string).library(string).function(string)" \
   "process(string).library(string).function(string).call" \
   "process(string).library(string).function(string).inline" \
   "process(string).library(string).function(string).return" \
+  "process(string).library(string).function(string).exported" \
   "process(string).library(string).function(string).label(string)" \
   "process(string).library(string).mark(string)" \
   "process(string).library(string).provider(string).mark(string)" \

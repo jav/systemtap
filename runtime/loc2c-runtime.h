@@ -124,6 +124,12 @@
 #define user_regset_view utrace_regset_view
 #define user_regset utrace_regset
 #define task_user_regset_view utrace_native_view
+
+#else // PR13489, inodes-uprobes export kludge
+#if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED)
+typedef const struct user_regset_view* (*task_user_regset_view_fn)(struct task_struct *tsk);
+#define task_user_regset_view (* (task_user_regset_view_fn)(kallsyms_task_user_regset_view))
+#endif
 #endif
 
 struct usr_regset_lut {

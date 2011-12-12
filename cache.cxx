@@ -25,6 +25,8 @@ extern "C" {
 #include <fcntl.h>
 #include <glob.h>
 #include <regex.h>
+#include <utime.h>
+#include <sys/time.h>
 }
 
 using namespace std;
@@ -32,6 +34,8 @@ using namespace std;
 
 #define SYSTEMTAP_CACHE_MAX_FILENAME "cache_mb_limit"
 #define SYSTEMTAP_CACHE_DEFAULT_MB 256
+#define SYSTEMTAP_CACHE_CLEAN_INTERVAL_FILENAME "cache_clean_interval_s"
+#define SYSTEMTAP_CACHE_CLEAN_DEFAULT_INTERVAL_S 30
 
 struct cache_ent_info {
   vector<string> paths;
@@ -251,6 +255,56 @@ clean_cache(systemtap_session& s)
                        s.cache_path.c_str(), SYSTEMTAP_CACHE_MAX_FILENAME) << endl;
         }
 
+      /* Get cache clean interval from file in the stap cache dir */
+      string cache_clean_interval_filename = s.cache_path + "/";
+      cache_clean_interval_filename += SYSTEMTAP_CACHE_CLEAN_INTERVAL_FILENAME;
+      ifstream cache_clean_interval_file(cache_clean_interval_filename.c_str(), ios::in);
+      unsigned long cache_clean_interval;
+
+      if (cache_clean_interval_file.is_open())
+        {
+          cache_clean_interval_file >> cache_clean_interval;
+          cache_clean_interval_file.close();
+        }
+      else
+        {
+          //file doesnt exist, create a default interval
+          ofstream default_cache_clean_interval(cache_clean_interval_filename.c_str(), ios::out);
+          default_cache_clean_interval << SYSTEMTAP_CACHE_CLEAN_DEFAULT_INTERVAL_S << endl;
+          cache_clean_interval = SYSTEMTAP_CACHE_CLEAN_DEFAULT_INTERVAL_S;
+
+          if (s.verbose > 1)
+            clog << _F("Cache clean interval file %s missing, creating default.",
+                       cache_clean_interval_filename.c_str())<< endl;
+        }
+
+      /* Check the cache cleaning interval */
+      struct stat sb;
+      if(stat(cache_clean_interval_filename.c_str(), &sb) < 0)
+        {
+          const char* e = strerror (errno);
+          cerr << _F("clean_cache stat error: %s", e) << endl;
+          return;
+        }
+
+      struct timeval current_time;
+      gettimeofday(&current_time, NULL);
+      if(difftime(current_time.tv_sec, sb.st_mtime) < cache_clean_interval)
+        {
+          //interval not passed, don't continue
+          if (s.verbose > 1)
+            clog << _F("Cache cleaning skipped, interval not reached %lu s / %lu s.",
+                       (current_time.tv_sec-sb.st_mtime), cache_clean_interval)  << endl;
+          return;
+        }
+      else
+        {
+          //interval reached, continue
+          if (s.verbose > 1)
+            clog << _F("Cleaning cache, interval reached %lu s > %lu s.",
+                       (current_time.tv_sec-sb.st_mtime), cache_clean_interval)  << endl;
+        }
+
       // glob for all files that look like hashes
       glob_t cache_glob;
       ostringstream glob_pattern;
@@ -325,6 +379,13 @@ clean_cache(systemtap_session& s)
           for (size_t i = 0; i < removed.size(); ++i)
             for (size_t j = 0; j < removed[i]->paths.size(); ++j)
               clog << "  " << removed[i]->paths[j] << endl;
+        }
+
+      if(utime(cache_clean_interval_filename.c_str(), NULL)<0)
+        {
+          const char* e = strerror (errno);
+          cerr << _F("clean_cache utime error: %s", e) << endl;
+          return;
         }
     }
   else

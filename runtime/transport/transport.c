@@ -33,6 +33,10 @@ static atomic_t _stp_ctl_attached = ATOMIC_INIT(0);
 
 static pid_t _stp_target = 0;
 static int _stp_probes_started = 0;
+
+/* _stp_transport_mutext guards _stp_start_called and _stp_exit_called.
+   We only want to do the startup and exit sequences once.  */
+static int _stp_start_called = 0;
 static int _stp_exit_called = 0;
 static DEFINE_MUTEX(_stp_transport_mutex);
 
@@ -92,8 +96,14 @@ struct timer_list _stp_ctl_work_timer;
 
 static void _stp_handle_start(struct _stp_msg_start *st)
 {
+	int handle_startup;
+
 	mutex_lock(&_stp_transport_mutex);
-	if (!_stp_exit_called) {
+	handle_startup = (! _stp_start_called && ! _stp_exit_called);
+	_stp_start_called = 1;
+	mutex_unlock(&_stp_transport_mutex);
+	
+	if (handle_startup) {
 		dbug_trans(1, "stp_handle_start\n");
 
 #ifdef STAPCONF_VM_AREA
@@ -127,7 +137,6 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 		   the reader directly. */
 		_stp_ctl_send_notify(STP_START, st, sizeof(*st));
 	}
-	mutex_unlock(&_stp_transport_mutex);
 }
 
 /* common cleanup code. */
@@ -137,22 +146,38 @@ static void _stp_handle_start(struct _stp_msg_start *st)
 /* when someone does /sbin/rmmod on a loaded systemtap module. */
 static void _stp_cleanup_and_exit(int send_exit)
 {
+	int handle_exit;
+	int start_finished;
+
 	mutex_lock(&_stp_transport_mutex);
+	handle_exit = (_stp_start_called && ! _stp_exit_called);
+	_stp_exit_called = 1;
+	mutex_unlock(&_stp_transport_mutex);
 
-        /* Unregister the module notifier. */
-        if (_stp_module_notifier_active) {
-                _stp_module_notifier_active = 0;
-                (void) unregister_module_notifier(& _stp_module_notifier_nb);
-                /* -ENOENT is possible, if we were not already registered */
-        }
-
-	if (!_stp_exit_called) {
+	/* Note, we can be sure that the startup sequence has finished
+           if handle_exit is true because it depends on _stp_start_called
+	   being set to true. _stp_start_called can only be set to true
+	   in _stp_handle_start() in response to a _STP_START message on
+	   the control channel. Only one writer can have the control
+	   channel open at a time, so the whole startup sequence in
+	   _stp_handle_start() has to be completed before another message
+	   can be send.  _stp_cleanup_and_exit() can only be called through
+	   either a _STP_EXIT message, which cannot arrive while _STP_START
+	   is still being handled, or when the module is unloaded. The
+	   module can only be unloaded when there are no more users that
+	   keep the control channel open.  */
+	if (handle_exit) {
 		int failures;
+
+	        /* Unregister the module notifier. */
+	        if (_stp_module_notifier_active) {
+	                _stp_module_notifier_active = 0;
+	                (void) unregister_module_notifier(& _stp_module_notifier_nb);
+	                /* -ENOENT is possible, if we were not already registered */
+	        }
 
                 dbug_trans(1, "cleanup_and_exit (%d)\n", send_exit);
 		_stp_exit_flag = 1;
-		/* we only want to do this stuff once */
-		_stp_exit_called = 1;
 
 		if (_stp_probes_started) {
 			dbug_trans(1, "calling systemtap_module_exit\n");
@@ -178,7 +203,6 @@ static void _stp_cleanup_and_exit(int send_exit)
 		}
 		dbug_trans(1, "done with ctl_send STP_EXIT\n");
 	}
-	mutex_unlock(&_stp_transport_mutex);
 }
 
 static void _stp_request_exit(void)
@@ -291,6 +315,32 @@ static int _stp_transport_init(void)
 	_stp_uid = current_uid();
 	_stp_gid = current_gid();
 #endif
+
+/* PR13489, missing inode-uprobes symbol-export workaround */
+#if defined(CONFIG_UPROBES) // i.e., kernel-embedded uprobes
+#if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED)
+        kallsyms_task_user_regset_view = (void*) kallsyms_lookup_name ("task_user_regset_view");
+        if (kallsyms_task_user_regset_view == NULL) {
+                printk(KERN_ERR "%s can't resolve task_user_regset_view!", THIS_MODULE->name);
+                goto err0;
+        }
+#endif
+#if !defined(STAPCONF_REGISTER_UPROBE_EXPORTED)
+        kallsyms_register_uprobe = (void*) kallsyms_lookup_name ("register_uprobe");
+        if (kallsyms_register_uprobe == NULL) {
+                printk(KERN_ERR "%s can't resolve register_uprobe!", THIS_MODULE->name);
+                goto err0;
+        }
+#endif
+#if !defined(STAPCONF_UNREGISTER_UPROBE_EXPORTED)
+        kallsyms_unregister_uprobe = (void*) kallsyms_lookup_name ("unregister_uprobe");
+        if (kallsyms_unregister_uprobe == NULL) {
+                printk(KERN_ERR "%s can't resolve unregister_uprobe!", THIS_MODULE->name);
+                goto err0;
+        }
+#endif
+#endif
+
 
 #ifdef RELAY_GUEST
 	/* Guest scripts use relay only for reporting warnings and errors */

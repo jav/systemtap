@@ -205,6 +205,8 @@ struct dwflpp
 
   bool func_is_inline();
 
+  bool func_is_exported();
+
   void iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * arg),
                                       void * data);
 

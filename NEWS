@@ -9,12 +9,21 @@
   supported within individual server configuration files. See stap-server
   and initscript/README.stap-server for details.
 
+- process("PATH").[library("PATH")].function("NAME").exported probes are now
+  supported to filter function() to only exported instances.
+
 - The translator supports a new --suppress-handler-errors option, which
   causes most runtime errors to be turned into quiet skipped probes.  This
   also disables the MAXERRORS and MAXSKIPPED limits.
 
 - The translator supports a new --modinfo NAME=VALUE option to emit additional
   MODULE_INFO(n,v) macros into the generated code.
+
+- There is no more fixed maximum number of VMA pages that will be tracked
+  at runtime. This reduces memory use for those scripts that don't need any,
+  or only limited target process VMA tracking and allows easier system
+  wide probes inspecting shared library variables and/or user backtraces.
+  stap will now silently ignore -DTASK_FINDER_VMA_ENTRY_ITEMS.
 
 - The tapset functions remote_id() and remote_uri() identify the member of a
   swarm of "stap --remote FOO --remote BAR baz.stp" concurrent executions.
@@ -39,9 +48,10 @@
   'global foo%[100]' would allow the array 'foo' to be wrapped if more than 100
   elements are inserted.
 
-- process("...").library("...").plt("...") probes are now supported.  Wildcards
-  are supported in the plt-name part, to refer to any function in the program
-  linkage table which matches the glob pattern and the rest of the probe point.
+- process("PATH").library("PATH").plt("NAME") probes are now supported.
+  Wildcards are supported in the plt-name part, to refer to any function in the
+  program linkage table which matches the glob pattern and the rest of the
+  probe point.
 
 - A new option, --dump-probe-types, will dump a list of supported probe types.
   If --unprivileged is also specified, the list will be limited to probe types

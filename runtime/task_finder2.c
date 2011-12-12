@@ -614,7 +614,10 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	if (! mm)
 		return;
 
-	down_read(&mm->mmap_sem);
+	// The down_read() function can sleep, so we'll call
+	// down_read_trylock() instead, which can fail.
+	if (! down_read_trylock(&mm->mmap_sem))
+		return;
 	vma = __stp_find_file_based_vma(mm, addr);
 	if (vma) {
 		// Cache information we need from the vma
@@ -1033,7 +1036,12 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 		return;
 	}
 
-	down_read(&mm->mmap_sem);
+	// The down_read() function can sleep, so we'll call
+	// down_read_trylock() instead, which can fail.
+	if (! down_read_trylock(&mm->mmap_sem)) {
+		_stp_kfree(mmpath_buf);
+		return;
+	}
 
 	// First find the number of file-based vmas.
 	vma = mm->mmap;
@@ -1353,9 +1361,7 @@ stap_start_task_finder(void)
 		return ENOMEM;
 	}
 
-#ifdef STP_TF_MAP
         __stp_tf_map_initialize();
-#endif
 
 	atomic_set(&__stp_task_finder_state, __STP_TF_RUNNING);
 

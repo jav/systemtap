@@ -443,6 +443,35 @@ dwflpp::func_is_inline()
 }
 
 
+bool
+dwflpp::func_is_exported()
+{
+  const char *name = dwarf_linkage_name (function) ?: dwarf_diename (function);
+
+  assert (function);
+
+  int syms = dwfl_module_getsymtab (module);
+  dwfl_assert (_("Getting symbols"), syms >= 0);
+
+  for (int i = 0; i < syms; i++)
+    {
+      GElf_Sym sym;
+      GElf_Word shndxp;
+      const char *symname = dwfl_module_getsym(module, i, &sym, &shndxp);
+      if (symname
+	  && strcmp (name, symname) == 0)
+	{
+	  if (GELF_ST_TYPE(sym.st_info) == STT_FUNC
+	      && (GELF_ST_BIND(sym.st_info) == STB_GLOBAL
+		  || GELF_ST_BIND(sym.st_info) == STB_WEAK))
+	    return true;
+	  else
+	    return false;
+	}
+    }
+  return false;
+}
+
 void
 dwflpp::cache_inline_instances (Dwarf_Die* die)
 {

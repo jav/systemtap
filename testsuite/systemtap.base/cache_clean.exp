@@ -1,0 +1,65 @@
+# cache_clean.exp
+
+# Since we need a clean cache directory, we'll use a temporary
+# systemtap directory and cache (add user name so make check and
+# sudo make installcheck don't clobber each others)
+set local_systemtap_dir [exec pwd]/.cache_test-[exec whoami]
+exec /bin/rm -rf $local_systemtap_dir
+exec /bin/mkdir $local_systemtap_dir
+exec /bin/mkdir $local_systemtap_dir/cache
+
+if [info exists env(SYSTEMTAP_DIR)] {
+    set old_systemtap_dir $env(SYSTEMTAP_DIR)
+}
+set env(SYSTEMTAP_DIR) $local_systemtap_dir
+
+# Set up the scripts we'll use.
+set script1 "\"probe begin {println(1)}\""
+set script2 "\"probe begin {println(2)}\""
+
+#Set a high interval, so we can make sure that the cache isn't cleaned
+exec /bin/echo 100000 > $local_systemtap_dir/cache/cache_clean_interval_s
+
+# Make sure the cache isn't cleaned when it hasn't passed the interval
+set test "cache_clean"
+set cmd [concat {stap -vv -p4 -e} $script1]
+eval spawn $cmd
+set cleaned -1
+expect {
+  -timeout 180
+  -re {^Cleaning cache, interval reached [^\r\n]*\r\n} {fail "$test premature cleaning"}
+  -re {^Cache cleaning skipped, interval not reached [^\r\n]*\r\n} {pass "$test premature cleaning"}
+  -re {^[^\r\n]*\r\n} {exp_continue}
+
+  timeout { fail "$test (timeout)" }
+}
+catch close
+wait
+
+# Set a small interval to insure the next stap call cleans the cache
+exec /bin/echo 1 > $local_systemtap_dir/cache/cache_clean_interval_s
+sleep 1
+
+# Make sure the cache is cleaned when it has passed the interval
+set cmd [concat {stap -vv -p4 -e} $script2]
+eval spawn $cmd
+set cleaned -1
+expect {
+  -timeout 180
+  -re {^Cleaning cache, interval reached [^\r\n]*\r\n} {pass "$test timed cleaning"}
+  -re {^Cache cleaning skipped, interval not reached [^\r\n]*\r\n} {fail "$test timed cleaning"}
+  -re {^[^\r\n]*\r\n} {exp_continue}
+
+  timeout { fail "$test (timeout)" }
+}
+catch close
+wait
+
+# Cleanup.
+exec /bin/rm -rf $local_systemtap_dir
+if [info exists old_systemtap_dir] {
+    set env(SYSTEMTAP_DIR) $old_systemtap_dir
+} else {
+    unset env(SYSTEMTAP_DIR)
+}
+

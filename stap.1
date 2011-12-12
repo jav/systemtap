@@ -1392,10 +1392,16 @@ the
 directory. The cache can be limited by having the file
 .I cache_mb_limit
 placed in the cache directory (shown above) containing only an ASCII
-integer representing how many MiB the cache should not exceed. Note that
-this is a 'soft' limit in that the cache will be cleaned after a new entry
-is added, so the total cache size may temporarily exceed this limit. In the
-absence of this file, a default will be created with the limit set to 64MiB.
+integer representing how many MiB the cache should not exceed. In the
+absence of this file, a default will be created with the limit set to 256MiB.
+This is a 'soft' limit in that the cache will be cleaned after a new entry
+is added if the cache clean interval is exceeded, so the total cache size may
+temporarily exceed this limit. This interval can be specified by having the
+file
+.I cache_clean_interval_s
+placed in the cache directory (shown above) containing only an ASCII integer
+representing the interval in seconds. In the absence of this file, a default
+will be created with the interval set to 30 s.
 
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
@@ -1558,11 +1564,6 @@ should use, default unlimited.  The memory size includes the size of
 the module itself, plus any additional allocations.  This only tracks
 direct allocations by the systemtap runtime.  This does not track
 indirect allocations (as done by kprobes/uprobes/etc. internals). 
-.TP
-TASK_FINDER_VMA_ENTRY_ITEMS
-Maximum number of VMA pages that will be tracked at runtime. This might
-get exhausted for system wide probes inspecting shared library variables
-and/or user backtraces. Defaults to 1536.
 .TP
 STP_PROCFS_BUFSIZE
 Size of procfs probe read buffers (in bytes).  Defaults to

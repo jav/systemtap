@@ -292,8 +292,9 @@ modifier for
 filters the results to include only instances of inlined functions.
 The
 .B .call
-modifier selects the opposite subset.  Inline functions do not have an
-identifiable return point, so
+modifier selects the opposite subset.  The \textbf{.exported} modifier
+filters the results to include only exported functions.  Inline
+functions do not have an identifiable return point, so
 .B .return
 is not supported on 
 .B .inline

@@ -149,11 +149,11 @@ static int _stp_vma_mmap_cb(struct stap_task_finder_target *tgt,
 			  res = stap_add_vma_map_info(tsk->group_leader,
 						      addr, addr + length,
 						      path, module);
-			  /* Warn, but don't error out. */
+			  /* VMA entries are allocated dynamically, this is fine,
+			   * since we are in a task_finder callback, which is in
+			   * user context. */
 			  if (res != 0) {
-				_stp_warn ("Couldn't register module '%s' for pid %d (%d)\n", _stp_modules[i]->path, tsk->group_leader->pid, res);
-				if (res == -ENOMEM)
-					_stp_warn ("Try increasing -DTASK_FINDER_VMA_ENTRY_ITEMS\n");
+				_stp_error ("Couldn't register module '%s' for pid %d (%d)\n", _stp_modules[i]->path, tsk->group_leader->pid, res);
 			  }
 			  return 0;
 			}
@@ -210,7 +210,8 @@ static int _stp_vma_munmap_cb(struct stap_task_finder_target *tgt,
 static int _stp_vma_init(void)
 {
         int rc = 0;
-#if defined(CONFIG_UTRACE)
+#if (defined(CONFIG_UTRACE) || defined(STAPCONF_UTRACE_VIA_TRACEPOINTS) \
+     || defined(STAPCONF_UTRACE_VIA_FTRACE))
         static struct stap_task_finder_target vmcb = {
                 // NB: no .pid, no .procname filters here.
                 // This means that we get a system-wide mmap monitoring
@@ -229,7 +230,11 @@ static int _stp_vma_init(void)
                 .munmap_callback = &_stp_vma_munmap_cb,
                 .mprotect_callback = NULL
         };
-	stap_initialize_vma_map ();
+	rc = stap_initialize_vma_map ();
+	if (rc != 0) {
+		_stp_error("Couldn't initialize vma map: %d\n", rc);
+		return rc;
+	}
 #ifdef DEBUG_TASK_FINDER_VMA
 	_stp_dbug(__FUNCTION__, __LINE__,
 		  "registering vmcb (_stap_target: %d)\n", _stp_target);
@@ -239,6 +244,14 @@ static int _stp_vma_init(void)
 		_stp_error("Couldn't register task finder target: %d\n", rc);
 #endif
 	return rc;
+}
+
+/* Get rid of the vma tracker (memory). */
+static void _stp_vma_done(void)
+{
+#if defined(CONFIG_UTRACE)
+	stap_destroy_vma_map();
+#endif
 }
 
 #endif /* _STP_VMA_C_ */

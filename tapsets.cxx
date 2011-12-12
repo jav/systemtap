@@ -307,6 +307,7 @@ static const string TOK_MODULE("module");
 static const string TOK_FUNCTION("function");
 static const string TOK_INLINE("inline");
 static const string TOK_CALL("call");
+static const string TOK_EXPORTED("exported");
 static const string TOK_RETURN("return");
 static const string TOK_MAXACTIVE("maxactive");
 static const string TOK_STATEMENT("statement");
@@ -704,6 +705,7 @@ struct dwarf_query : public base_query
   Dwarf_Addr function_num_val;
 
   bool has_call;
+  bool has_exported;
   bool has_inline;
   bool has_return;
 
@@ -818,6 +820,7 @@ dwarf_query::dwarf_query(probe * base_probe,
   has_label = get_string_param(params, TOK_LABEL, label_val);
 
   has_call = has_null_param(params, TOK_CALL);
+  has_exported = has_null_param(params, TOK_EXPORTED);
   has_inline = has_null_param(params, TOK_INLINE);
   has_return = has_null_param(params, TOK_RETURN);
   has_maxactive = get_number_param(params, TOK_MAXACTIVE, maxactive_val);
@@ -1324,7 +1327,7 @@ query_addr(Dwarf_Addr addr, dwarf_query *q)
       int tag = dwarf_tag(&scopes[i]);
       if ((tag == DW_TAG_subprogram && !q->has_inline) ||
           (tag == DW_TAG_inlined_subroutine &&
-           !q->has_call && !q->has_return))
+           !q->has_call && !q->has_return && !q->has_exported))
         {
           fnscope = &scopes[i];
           break;
@@ -1588,7 +1591,7 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 {
   dwarf_query * q = static_cast<dwarf_query *>(arg);
   assert (q->has_statement_str || q->has_function_str);
-  assert (!q->has_call && !q->has_return);
+  assert (!q->has_call && !q->has_return && !q->has_exported);
 
   try
     {
@@ -1646,11 +1649,11 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
           !q->alias_dupes.insert(addr).second)
         return DWARF_CB_OK;
 
-      if (q->dw.func_is_inline () && (! q->has_call) && (! q->has_return))
+      if (q->dw.func_is_inline () && (! q->has_call) && (! q->has_return) && (! q->has_exported))
 	{
-	  if (q->sess.verbose>3)
+          if (q->sess.verbose>3)
             clog << _F("checking instances of inline %s\n", q->dw.function_name.c_str());
-	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, q);
+          q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, q);
 	}
       else if (q->dw.func_is_inline () && (q->has_return)) // PR 11553
 	{
@@ -1658,6 +1661,8 @@ query_dwarf_func (Dwarf_Die * func, base_query * bq)
 	}
       else if (!q->dw.func_is_inline () && (! q->has_inline))
 	{
+          if (q->has_exported && !q->dw.func_is_exported ())
+            return DWARF_CB_OK;
           if (q->sess.verbose>2)
             clog << _F("selected function %s\n", q->dw.function_name.c_str());
 
@@ -3974,6 +3979,7 @@ kernel_supports_inode_uprobes(systemtap_session& s)
 {
   // The arch-supports is new to the builtin inode-uprobes, so it makes a
   // reasonable indicator of the new API.  Else we'll need an autoconf...
+  // see also buildrun.cxx:kernel_built_uprobs()
   return (s.kernel_config["CONFIG_ARCH_SUPPORTS_UPROBES"] == "y"
           && s.kernel_config["CONFIG_UPROBES"] == "y");
 }
@@ -4179,6 +4185,8 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
   if (q.has_call)
       comps.push_back (new probe_point::component(TOK_CALL));
+  if (q.has_exported)
+      comps.push_back (new probe_point::component(TOK_EXPORTED));
   if (q.has_inline)
       comps.push_back (new probe_point::component(TOK_INLINE));
   if (has_return)
@@ -4356,6 +4364,9 @@ dwarf_derived_probe::register_function_variants(match_node * root,
     ->bind_privilege(privilege)
     ->bind(dw);
   root->bind(TOK_CALL)
+    ->bind_privilege(privilege)
+    ->bind(dw);
+  root->bind(TOK_EXPORTED)
     ->bind_privilege(privilege)
     ->bind(dw);
   root->bind(TOK_RETURN)
@@ -6722,6 +6733,7 @@ dwarf_builder::build(systemtap_session & sess,
 
       if (kernel_supports_inode_uprobes(sess))
         {
+          // XXX: autoconf this?
           if (has_null_param(parameters, TOK_RETURN))
             throw semantic_error
               (_("process return probes not available with inode-based uprobes"));
@@ -9139,6 +9151,8 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
           // strip include/ substring, the same way as done in get_tracequery_module()
           size_t root_pos = header.rfind("include/");
           header = ((root_pos != string::npos) ? header.substr(root_pos + 8) : header);
+
+          tpop->newline() << "#include <linux/tracepoint.h>" << endl;
           tpop->newline() << "#include <" << header << ">";
 
           // Starting in 2.6.35, at the same time NOARGS was added, the callback

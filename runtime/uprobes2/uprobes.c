@@ -379,10 +379,14 @@ static void utask_adjust_flags(struct uprobe_task *utask, int set,
 	 * be waiting on.
 	 */
 	if (newflags != oldflags) {
+		/* utrace_set_events_pid() converts a pid to a task, so
+		   we should hold rcu_read_lock.  */
+		rcu_read_lock();
 		if (utrace_set_events_pid(utask->pid, utask->engine,
 							newflags) != 0)
 			/* We don't care. */
 			;
+		rcu_read_unlock();
 	}
 }
 
@@ -390,10 +394,14 @@ static inline void clear_utrace_quiesce(struct uprobe_task *utask, bool resume)
 {
 	utask_adjust_flags(utask, UPROBE_CLEAR_FLAGS, UTRACE_EVENT(QUIESCE));
 	if (resume) {
+		/* utrace_control_pid calls task_pid() so we should hold the
+		   rcu_read_lock.  */
+		rcu_read_lock();
 		if (utrace_control_pid(utask->pid, utask->engine,
 						UTRACE_RESUME) != 0)
 			/* We don't care. */
 			;
+		rcu_read_unlock();
 	}
 }
 
@@ -442,7 +450,11 @@ static void uprobe_stop_thread(struct uprobe_task *utask)
 	 * could deadlock.
 	 */
 	BUG_ON(utask->tsk == current);
+	/* utrace_control_pid calls task_pid() so we should hold the
+	   rcu_read_lock.  */
+	rcu_read_lock();
 	result = utrace_control_pid(utask->pid, utask->engine, UTRACE_STOP);
+	rcu_read_unlock();
 	if (result == 0) {
 		/* Already stopped. */
 		utask->state = UPTASK_QUIESCENT;
@@ -463,12 +475,15 @@ static void uprobe_stop_thread(struct uprobe_task *utask)
 			/*
 			 * Task will eventually stop, but it may be a long time.
 			 * Don't wait.
-			 */
+			 * utrace_control_pid calls task_pid() so we should
+			 * hold the rcu_read_lock.  */
+			rcu_read_lock();
 			result = utrace_control_pid(utask->pid, utask->engine,
 							UTRACE_INTERRUPT);
 			if (result != 0)
 				/* We don't care. */
 				;
+			rcu_read_unlock();
 		}
 	}
 }
@@ -488,7 +503,9 @@ static bool quiesce_all_threads(struct uprobe_process *uproc,
 	*cur_utask_quiescing = NULL;
 	list_for_each_entry(utask, &uproc->thread_list, list) {
 		if (!survivors) {
+			rcu_read_lock();
 			survivor = pid_task(utask->pid, PIDTYPE_PID);
+			rcu_read_unlock();
 			if (survivor)
 				survivors = true;
 		}
@@ -539,10 +556,13 @@ static void uprobe_free_task(struct uprobe_task *utask, bool in_callback)
 		 * No other tasks in this process should be running
 		 * uprobe_report_* callbacks.  (If they are, utrace_barrier()
 		 * here could deadlock.)
-		 */
+		 * utrace_control_pid calls task_pid() so we should hold the
+		 * rcu_read_lock.  */
+		rcu_read_lock();
 		int result = utrace_control_pid(utask->pid, utask->engine,
 								UTRACE_DETACH);
 			BUG_ON(result == -EINPROGRESS);
+		rcu_read_unlock();
 	}
 	put_pid(utask->pid);	/* null pid OK */
 
@@ -650,7 +670,11 @@ static struct uprobe_task *uprobe_add_task(struct pid *p,
 {
 	struct uprobe_task *utask;
 	struct utrace_attached_engine *engine;
-	struct task_struct *t = pid_task(p, PIDTYPE_PID);
+	struct task_struct *t;
+
+	rcu_read_lock();
+	t = pid_task(p, PIDTYPE_PID);
+	rcu_read_unlock();
 
 	if (!t)
 		return NULL;
@@ -773,7 +797,9 @@ static struct uprobe_process *uprobe_mk_process(struct pid *tg_leader,
 	uproc->n_quiescent_threads = 0;
 	INIT_HLIST_NODE(&uproc->hlist);
 	uproc->tg_leader = get_pid(tg_leader);
+	rcu_read_lock();
 	uproc->tgid = pid_task(tg_leader, PIDTYPE_PID)->tgid;
+	rcu_read_unlock();
 	uproc->finished = 0;
 	uproc->uretprobe_trampoline_addr = NULL;
 
@@ -1894,9 +1920,11 @@ static u32 uprobe_report_signal(u32 action,
 	enum utrace_resume_action resume_action;
 	int hit_uretprobe_trampoline = 0;
 
+	rcu_read_lock();
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	BUG_ON(!utask);
 	uproc = utask->uproc;
+	rcu_read_unlock();
 
 	/*
 	 * We may need to re-assert UTRACE_SINGLESTEP if this signal
@@ -2145,11 +2173,13 @@ static u32 uprobe_report_quiesce(
 	struct uprobe_process *uproc;
 	bool done_quiescing = false;
 
+	rcu_read_lock();
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	BUG_ON(!utask);
 #if !(defined(UTRACE_API_VERSION) && (UTRACE_API_VERSION >= 20091216))
 	BUG_ON(tsk != current);	// guaranteed by utrace 2008
 #endif
+	rcu_read_unlock();
 
 	if (utask->state == UPTASK_SSTEP)
 		/*
@@ -2265,8 +2295,10 @@ static u32 uprobe_report_exit(enum utrace_resume_action action,
 	struct uprobe_probept *ppt;
 	int utask_quiescing;
 
+	rcu_read_lock();
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = utask->uproc;
+	rcu_read_unlock();
 	uprobe_get_process(uproc);
 
 	ppt = utask->active_probe;
@@ -2477,8 +2509,10 @@ static u32 uprobe_report_clone(enum utrace_resume_action action,
 	struct uprobe_process *uproc;
 	struct uprobe_task *ptask, *ctask;
 
+	rcu_read_lock();
 	ptask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = ptask->uproc;
+	rcu_read_unlock();
 
 	/*
 	 * Lock uproc so no new uprobes can be installed 'til all
@@ -2592,8 +2626,10 @@ static u32 uprobe_report_exec(
 	struct uprobe_task *utask;
 	u32 ret = UTRACE_RESUME;
 
+	rcu_read_lock();
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = utask->uproc;
+	rcu_read_unlock();
 	uprobe_get_process(uproc);
 
 	/*

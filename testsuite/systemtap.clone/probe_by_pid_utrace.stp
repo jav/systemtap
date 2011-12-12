@@ -1,0 +1,45 @@
+global begin_probes
+global syscall_probes
+global end_probes
+
+probe timer.s(5)
+{
+	exit()
+}
+
+# Actual probes
+probe process($1).begin
+{
+	begin_probes[pid()]++
+}
+
+probe process($1).syscall
+{
+	syscall_probes[pid()]++
+}
+
+probe process($1).end
+{
+	end_probes[pid()]++
+}
+
+# Testsuite glue
+probe begin
+{
+	printf("systemtap starting probe\n");
+}
+
+probe end
+{
+	printf("systemtap ending probe\n");
+	foreach (pid in begin_probes) {
+		printf("%d: %d begin probes\n", pid, begin_probes[pid])
+	}
+	foreach (pid in syscall_probes) {
+		printf("%d: %d syscall probes\n", pid, syscall_probes[pid])
+	}
+	# We really shouldn't see any end_probes fired...
+	foreach (pid in end_probes) {
+		printf("%d: %d end probes\n", pid, end_probes[pid])
+	}
+}

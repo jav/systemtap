@@ -757,7 +757,8 @@ However, if you notice an excessive number of skipped probes, try setting \textb
 to incrementally higher values to see if the number of skipped probes decreases.
 
 The \textbf{.inline} modifier for \textbf{.function} filters the results to include only
-instances of inlined functions. The \textbf{.call} modifier selects the opposite subset.
+instances of inlined functions. The \textbf{.call} modifier selects the opposite subset.  
+The \textbf{.exported} modifier filters the results to include only exported functions.
 Inline functions do not have an identifiable return point, so \textbf{.return}
 is not supported on \textbf{.inline} probes.
 
