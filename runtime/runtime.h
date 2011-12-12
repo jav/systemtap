@@ -227,6 +227,25 @@ void cleanup_module(void)
 void __ia64_save_stack_nonlocal (void) { }
 #endif
 
+
+
+// PR13489, inode-uprobes sometimes lacks the necessary SYMBOL_EXPORT's.
+#if defined(CONFIG_UPROBES) // i.e., kernel-embedded uprobes
+
+#if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED)
+void *kallsyms_task_user_regset_view;
+#endif
+#if !defined(STAPCONF_REGISTER_UPROBE_EXPORTED)
+void *kallsyms_register_uprobe;
+#endif
+#if !defined(STAPCONF_UNREGISTER_UPROBE_EXPORTED)
+void *kallsyms_unregister_uprobe;
+#endif
+
+#endif
+
+
+
 MODULE_LICENSE("GPL");
 
 #endif /* _RUNTIME_H_ */

@@ -15,6 +15,22 @@
 #include <linux/namei.h>
 #include <linux/uprobes.h>
 
+// PR13489, inodes-uprobes export kludge
+#if !defined(CONFIG_UPROBES)
+#error "not to be built without CONFIG_UPROBES"
+#endif
+#if !defined(STAPCONF_REGISTER_UPROBE_EXPORTED)
+typedef int (*register_uprobe_fn)(struct inode *inode, loff_t offset, 
+                                  struct uprobe_consumer *consumer);
+#define register_uprobe (* (register_uprobe_fn)kallsyms_register_uprobe)
+#endif
+#if !defined(STAPCONF_UNREGISTER_UPROBE_EXPORTED)
+typedef void (*unregister_uprobe_fn)(struct inode *inode, loff_t offset,
+                                     struct uprobe_consumer *consumer);
+#define unregister_uprobe (* (unregister_uprobe_fn)kallsyms_unregister_uprobe)
+#endif
+
+
 struct stp_inode_uprobe_target {
 	const char * const filename;
 	struct inode *inode;

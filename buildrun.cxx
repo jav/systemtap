@@ -297,6 +297,11 @@ compile_pass (systemtap_session& s)
   output_exportconf(s, o, "cpu_clock", "STAPCONF_CPU_CLOCK");
   output_exportconf(s, o, "local_clock", "STAPCONF_LOCAL_CLOCK");
 
+  // used by runtime/uprobe-inode.c
+  output_exportconf(s, o, "register_uprobe", "STAPCONF_REGISTER_UPROBE_EXPORTED");
+  output_exportconf(s, o, "unregister_uprobe", "STAPCONF_UNREGISTER_UPROBE_EXPORTED");
+  output_exportconf(s, o, "task_user_regset_view", "STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED");
+
   o << module_cflags << " += -include $(STAPCONF_HEADER)" << endl;
 
   for (unsigned i=0; i<s.macros.size(); i++)
