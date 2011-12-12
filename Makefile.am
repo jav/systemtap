@@ -58,6 +58,9 @@ stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ @LIBINTL@
 stap_DEPENDENCIES =
 endif
 
+install: all
+	$(MAKE) $(AM_MAKEFLAGS) install-recursive
+
 BUILT_SOURCES =
 CLEANFILES =
 

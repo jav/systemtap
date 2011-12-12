@@ -1918,8 +1918,6 @@ installdirs-am:
 	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man3dir)" "$(DESTDIR)$(man7dir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(oldincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) install-recursive
 install-exec: install-exec-recursive
 install-data: install-data-recursive
 uninstall: uninstall-recursive
@@ -2055,6 +2053,9 @@ uninstall-man: uninstall-man1 uninstall-man3 uninstall-man7 \
 	uninstall-oldincludeHEADERS uninstall-pkglibexecPROGRAMS \
 	uninstall-pkglibexecSCRIPTS
 
+
+install: all
+	$(MAKE) $(AM_MAKEFLAGS) install-recursive
 git_version.stamp:
 	@if test -f "$(srcdir)/git_version.h"; then \
 		if test -f "git_version.h"; then :; \
