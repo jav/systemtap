@@ -1,5 +1,5 @@
 stap-server initscript
-Version 0.1.1
+Version 1.7
 
 INDEX
 =====
@@ -130,6 +130,25 @@ to specify servers to be managed.
  the given process id is found, the -a, -r, -I, -R, -B and -u options for that
  server will be used as if they were specified on the command line.
 
+2.3.11 --log logfile
+ This option allows the specification of a separate log file for each server.
+ Each --log option is added to a list which will be applied, in turn, to each
+ server specified. If more servers are specified than --log options, the default
+ log file (/var/log/stap-server/log) will be used for subsequent servers.
+
+2.3.12 --port port-number
+ This option allows the specification of a specific network port for each
+ server. Each --port option is added to a list which will be applied, in turn,
+ to each server specified. If more servers are specified than
+ --port options, a randomly selected port used for subsequent servers.
+
+2.3.13 --ssl certificate-db-path
+ This option allows the specification of a separate NSS certificate database
+ for each server. Each --ssl option is added to a list which will be applied,
+ in turn, to each server specified. If more servers are specified than --ssl
+ options, the default certificate database
+ (/var/lib/stap-server/.systemtap/ssl/server) for subsequent servers.
+
 3. Files
 ========
 3.1 stap-server
@@ -227,6 +246,15 @@ bash script fragment. The following variables may be set.
 4.2.6 NICKNAME
  Specify the nickname to be used to refer to this server.
 
+4.2.7 LOG
+ Specify the location of the log file to be used by this server.
+
+4.2.8 PORT
+ Specify the network port to be used by this server.
+
+4.2.9 SSL
+ Specify the location of the NSS certificate database to be used by this server.
+
 4.3 Configuration Example
 -------------------------
 
@@ -240,6 +268,8 @@ bash script fragment. The following variables may be set.
  --- file1.conf
  ARCH=i386
  RELEASE=2.6.18-128.el5
+ PORT=5001
+ LOG=/path/to/log/file
  ---
 
  --- file2.conf
@@ -249,6 +279,7 @@ bash script fragment. The following variables may be set.
  BUILD='VARIABLE1=VALUE1 VARIABLE2=VALUE2'
  RUNTIME=/myruntime
  NICKNAME=my-server
+ SSL=/path/to/NSS/certificate/database
  ---
 
 5. Authentication and Authorization
@@ -260,17 +291,18 @@ bash script fragment. The following variables may be set.
 
 5.1.2 Unprivileged Users (Module Signing)
   If the stap-server service will be used to service requests for unprivileged
-  users (the --unprivileged option) it must also sign compiled modules using
+  users (the --privile option) it must also sign compiled modules using
   a trusted signing certificate.
 
 5.1.3 Certification
   The same certificate is used for both of these purposes. It resides in the
-  file /var/lib/stap-server/.systemtap/ssl/server/stap.cert on the host which
-  is running the stap-server service.
+  file stap.cert in /var/lib/stap-server/.systemtap/ssl/server, or in the
+  directory specified using the --ssl option, or the SSL configuration file
+  variable, on the host which is running the stap-server service.
 
 5.2 Authorization
 5.2.1 SSL
-  When the systemtap-server package is installed a certificate for the
+  When the systemtap-server package is installed, a certificate for the
   default server userid (stap-server) is generated and authorized as a
   trusted SSL peer. In this way the stap-server service is automatically
   trusted as an SSL peer by all clients on the local host.
@@ -302,15 +334,16 @@ bash script fragment. The following variables may be set.
 
 5.1.2 Unprivileged Users (Module Signing)
   If the user on the client host is an ordinary unprivileged user or a member
-  of the group stapusr, he will get an error when running the example above,
+  of only the group stapusr, or a member of the groups stapusr and stapsys, he
+  will get an error when running the example above,
   since he does not have authority to load the unsigned module returned by the
-  server. However if he is a member of the group stapusr and if he can get the
-  module signed by a trusted signer, he will be able to load it.
+  server. However if he can get the module signed by a trusted signer, he will
+  be able to load it.
 
-  The server will sign the module if the --unprivileged option is specified by
+  The server will sign the module if the --privilege option is specified by
   the client:
 
-	stap --use-server -e 'probe begin { printf ("Hello\n"); exit (); }' --unprivileged
+	stap --use-server -e 'probe begin { printf ("Hello\n"); exit (); }' --privilege=stapusr
 
   The server will now check that the script is safe for use by members of
   stapusr (i.e. it doesn't do anything "dangerous") and, if so, will compile it
@@ -345,7 +378,7 @@ bash script fragment. The following variables may be set.
   members of stapusr (i.e. it doesn't do anything "dangerous") and, if so, to
   compile it and sign it.
 
-	stap --use-server -e 'probe begin { printf ("Hello\n"); exit (); }' -p4 --unprivileged
+	stap --use-server -e 'probe begin { printf ("Hello\n"); exit (); }' -p4 --privilege=stapusr
 
   In both cases the name of the resulting module will be printed, but it will
   not be loaded.
@@ -416,6 +449,7 @@ that server alone (if it is running). For example
  Each file in /etc/stap-server/conf.d/*.conf represents a server to be started
  by default if no servers are specified on the 'start' action. Each such
  config file may set variables which correspond to the command line options.
+ For example:
 
  # vi /etc/stap-server/conf.d/2.6.18-128.el5.conf
  ARCH=     # default arch

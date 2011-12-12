@@ -46,6 +46,10 @@ LOG_FILE=$stap_localstatedir/log/stap-server/log
 OPT_CONFIG_FILE=
 OPT_OTHER=
 
+OPT_PORT_IX=0
+OPT_LOG_IX=0
+OPT_SSL_IX=0
+
 echo_usage () {
   echo $"Usage: $prog {start|stop|restart|condrestart|try-restart|force-reload|status} [options]"
   echo $"Options:"
@@ -59,9 +63,13 @@ echo_usage () {
   echo $"	-i		: specify a server for each installed kernel release."
   echo $"	-n nickname	: specify a server configuration by nickname."
   echo $"	-p pid		: specify a server or server configuration by process id."
+  echo $"	-P              : use a password for the server's NSS certificate database."
   echo $"	-k 		: keep server temporary files."
+  echo $"	--port port	: specify the network port to be used by the server."
+  echo $"	--log path	: specify the location of the server's log file."
+  echo $"	--ssl path	: specify the location of the server's certificate database."
   echo $""
-  echo $"All options, may be specified more than once."
+  echo $"All options may be specified more than once."
   echo $""
   echo $"If -a is not specified, the default architecture is that of the host"
   echo $"platform."
@@ -71,9 +79,21 @@ echo_usage () {
   echo $""
   echo $"If -u is not specified, the default user is 'stap-server'"
   echo $""
-  echo $"Each -I and -B option specifies an additional path or option"
-  echo $"respectively. For other options, each new instance overrides the"
-  echo $"previous setting."
+  echo $"If --port is not specified, the default is to use a randomly selected port."
+  echo $""
+  echo $"If --log is not specified, the default is '$stap_localstatedir/log/stap-server/log'."
+  echo $""
+  echo $"If --ssl is not specified, the default is '$stap_sysconfdir/ssl/server'."
+  echo $""
+  echo $"Each -I and -B option specifies an additional path or option respectively to be applied"
+  echo $"to subsequent servers specified."
+  echo $""
+  echo $"Each --port, --log and --ssl option is added to an option-specific list which will"
+  echo $"be applied, in turn, to each server specified. If more servers are specified than"
+  echo $"options in a given list, the default for that option will be used for subsequent"
+  echo $"servers."
+  echo $""
+  echo $"For other options, each new instance overrides the previous setting."
   echo $""
   echo $"The -i option is a shortcut which specifies one server for each kernel"
   echo $"release installed in /lib/modules/. Previous -I, -R, -B and -u"
@@ -90,7 +110,7 @@ echo_usage () {
   echo $"-I, -R, -B and -u options for that server will be used as if they were"
   echo $"specified on the command line. If no configuration with the given"
   echo $"nickname is found, and the action is 'start' (or an action behaving"
-  echo $"like 'start' (see below), the server will be started with the given"
+  echo $"like 'start' (see below)), the server will be started with the given"
   echo $"nickname. If no configuration with the given nickname is found, and"
   echo $"the action is not 'start' (or an action behaving" "like 'start',"
   echo $"it is an error. If a nickname is not specified for a server, its"
@@ -164,6 +184,7 @@ do_success () { # message
 #------------------------------------------------------------------
 parse_args () { # arguments
   local rc=0
+  i_specified=0
   while [ -n "$1" ]; do
     case "$1" in
       -k | -P)
@@ -171,10 +192,12 @@ parse_args () { # arguments
         shift 1
         ;;
       -a)
+	process_i
 	SERVER_CMDS+=("ARCH=\"`quote_for_cmd "$2"`\"")
         shift 1
 	;;
       -B)
+	process_i
 	SERVER_CMDS+=("BUILD+=(\"`quote_for_cmd "$2"`\")")
         shift 1
 	;;
@@ -183,32 +206,53 @@ parse_args () { # arguments
         shift 1
         ;;
       -i)
-	process_i
+	# Delay processing of -i in case a distributed option like --log is specified which could
+	# apply to each server referenced by -i. We will process it just before handling other
+	# options which describe a new server (e.g. -r).
+	i_specified=$(($i_specified + 1))
 	;;
       -I)
+	process_i
 	SERVER_CMDS+=("INCLUDE+=(\"`quote_for_cmd "$2"`\")")
         shift 1
 	;;
       -n)
+	process_i
 	process_n "$2"
         shift 1
 	;;
       -p)
+	process_i
 	process_p "$2"
 	test $? = 0 || rc=1
         shift 1
 	;;
       -r)
+	process_i
 	process_r "$2"
 	test $? = 0 || rc=1
         shift 1
 	;;
       -R)
+	process_i
 	SERVER_CMDS+=("RUNTIME=\"`quote_for_cmd "$2"`\"")
         shift 1
 	;;
       -u)
+	process_i
 	SERVER_CMDS+=("USER=\"`quote_for_cmd "$2"`\"")
+        shift 1
+	;;
+      --log)
+	OPT_LOG+=("$2")
+        shift 1
+	;;
+      --port)
+	OPT_PORT+=("$2")
+        shift 1
+	;;
+      --ssl)
+	OPT_SSL+=("$2")
         shift 1
 	;;
       --)
@@ -220,20 +264,59 @@ parse_args () { # arguments
     shift 1
   done
 
-  # Add an EXEC command to the end if any server options were specified
-  test -n "$SERVER_CMDS" && SERVER_CMDS+=("EXEC")
+  # Process any lingering -i
+  process_i
+
+  # Add options from any lists and an EXEC command to the end if any server options were specified
+  if test -n "$SERVER_CMDS"; then
+      add_distributed_options
+      SERVER_CMDS+=("EXEC")
+  fi
 
   test $rc != 0 && echo_usage
   return $rc
+}
+
+# Some options accumulate into lists when specified more than once. The items in the each list
+# are the applied to each specified server in turn. If a list runs out, then the default for that
+# option is applied.
+add_distributed_options () {
+    # The --log option
+    if test -n "${OPT_LOG[$OPT_LOG_IX]}"; then
+	SERVER_CMDS+=("LOG=\"`quote_for_cmd "${OPT_LOG[$OPT_LOG_IX]}"`\"")
+	OPT_LOG_IX=$(($OPT_LOG_IX + 1))
+    else
+	SERVER_CMDS+=("LOG=\"`quote_for_cmd "$LOG_FILE"`\"")
+    fi
+    # The --port option
+    if test -n "${OPT_PORT[$OPT_PORT_IX]}"; then
+	SERVER_CMDS+=("PORT=\"`quote_for_cmd "${OPT_PORT[$OPT_PORT_IX]}"`\"")
+	OPT_PORT_IX=$(($OPT_PORT_IX + 1))
+    else
+	SERVER_CMDS+=("PORT=\"\"")
+    fi
+    # The --ssl option
+    if test -n "${OPT_SSL[$OPT_SSL_IX]}"; then
+	SERVER_CMDS+=("SSL=\"`quote_for_cmd "${OPT_SSL[$OPT_SSL_IX]}"`\"")
+	OPT_SSL_IX=$(($OPT_SSL_IX + 1))
+    else
+	SERVER_CMDS+=("SSL=\"\"")
+    fi
 }
 
 # Process the -i flag.
 process_i () {
   cd /lib/modules
   local release
-  for release in `ls`; do
-      test -n "$SERVER_CMDS" && SERVER_CMDS+=("EXEC")
-      process_r $release
+  while test $i_specified -gt 0; do
+      for release in `ls`; do
+	  if test -n "$SERVER_CMDS"; then
+	      add_distributed_options
+	      SERVER_CMDS+=("EXEC")
+	  fi
+	  process_r $release
+      done
+      i_specified=$(($i_specified - 1))
   done
 
   return 0
@@ -339,6 +422,9 @@ add_server_commands () {
     done
     SERVER_CMDS+=("USER=\"`quote_for_cmd "$USER"`\"")
     SERVER_CMDS+=("NICKNAME=\"`quote_for_cmd "$NICKNAME"`\"")
+    SERVER_CMDS+=("LOG=\"`quote_for_cmd "$LOG"`\"")
+    test -n "$PORT" && SERVER_CMDS+=("PORT=\"`quote_for_cmd "$PORT"`\"")
+    test -n "$SSL" && SERVER_CMDS+=("SSL=\"`quote_for_cmd "$SSL"`\"")
 }
 
 echo_server_options () {
@@ -354,6 +440,9 @@ echo_server_options () {
     done
     echo -n " -u \"`quote_for_cmd "$USER"`\""
     test -n "$NICKNAME" && echo -n " -n \"`quote_for_cmd "$NICKNAME"`\""
+    echo -n " --log \"`quote_for_cmd "$LOG"`\""
+    test -n "$PORT" && echo -n " --port \"`quote_for_cmd "$PORT"`\""
+    test -n "$SSL" && echo -n " --ssl \"`quote_for_cmd "$SSL"`\""
     echo
 }
 
@@ -366,7 +455,7 @@ prepare_stat_dir () {
 }
 
 prepare_log_dir () {
-  local log_path=`dirname "$LOG_FILE"`
+  local log_path=`dirname "$1"`
   if [ ! -d "$log_path" ]; then
       mkdir -p "$log_path"
       [ $? -ne 0 ] && return 1
@@ -384,6 +473,9 @@ init_server_opts () {
   RUNTIME=
   USER=$STAP_USER
   test -z "$USER" && USER=`id -un`
+  LOG=$LOG_FILE
+  PORT=
+  SSL=
 }
 
 # Double quotes, backslashes within generated command
@@ -450,6 +542,9 @@ interpret_server_config () {
     local local_RUNTIME=
     local local_USER=
     local local_NICKNAME=
+    local local_LOG=
+    local local_PORT=
+    local local_SSL=
 
     local input
     while read -r -u3 input
@@ -492,6 +587,15 @@ interpret_server_config () {
 	    NICKNAME=*)
               local_NICKNAME="${input:9}"
 	      ;;
+	    LOG=*)
+              local_LOG="${input:4}"
+	      ;;
+	    PORT=*)
+              local_PORT="${input:5}"
+	      ;;
+	    SSL=*)
+              local_SSL="${input:4}"
+	      ;;
 	    \#*)
 	      ;; # Comment, do nothing
 	    "")
@@ -512,6 +616,9 @@ interpret_server_config () {
     RUNTIME="$local_RUNTIME"
     USER="$local_USER"
     NICKNAME="$local_NICKNAME"
+    LOG="$local_LOG"
+    PORT="$local_PORT"
+    SSL="$local_SSL"
 }
 
 # Interpret the contents of a server status file.
@@ -533,12 +640,16 @@ load_server_config () {
       local RUNTIME=
       local USER=
       local RELEASE=
+      local LOG=
+      local PORT=
+      local SSL=
       interpret_server_config "$f" || continue
       # Other options default to empty. These ones don't.
       [ -z "$ARCH" ]     && ARCH=`get_arch`
       [ -z "$RELEASE" ]  && RELEASE=`get_release`
       [ -z "$USER" ]     && USER=$STAP_USER
       [ -z "$USER" ]     && USER=`id -un`
+      [ -z "$LOG" ]      && LOG="$LOG_FILE"
       add_server_commands
       SERVER_CMDS+=("EXEC")
     fi
@@ -562,6 +673,9 @@ get_server_pid_by_config () {
     local target_BUILD=("${BUILD[@]}")
     local target_USER="$USER"
     local target_NICKNAME="$NICKNAME"
+    local target_LOG="$LOG"
+    local target_PORT="$PORT"
+    local target_SSL="$SSL"
 
     # Check the status file for each running server to see if it matches
     # the one currently configured. We're checking for a given configuration,
@@ -575,6 +689,9 @@ get_server_pid_by_config () {
 	test "X$RUNTIME"  = "X$target_RUNTIME"  || continue
 	test "X$BUILD"    = "X$target_BUILD"    || continue
 	test "X$USER"     = "X$target_USER"     || continue
+	test "X$LOG"      = "X$target_LOG"      || continue
+	test "X$PORT"     = "X$target_PORT"     || continue
+	test "X$SSL"      = "X$target_SSL"      || continue
 	echo `basename "$f" | sed 's/.stat//'` # Server has a pid
 	return
     done
@@ -586,6 +703,9 @@ get_server_pid_by_config () {
     BUILD=("${target_BUILD[@]}")
     USER="$target_USER"
     NICKNAME="$target_NICKNAME"
+    LOG="$target_LOG"
+    PORT="$target_PORT"
+    SSL="$target_SSL"
 }
 
 get_server_pid_by_nickname () {
@@ -637,6 +757,13 @@ start_server () {
 	fi
     fi
 
+    # Create the log directory for this server
+    prepare_log_dir "$LOG"
+    if [ $? -ne 0 ]; then
+	echo $"Failed to make log directory (`dirname "$LOG"`)" >&2
+	exit 1
+    fi
+
     # Construct the server start command.
     local server_cmd="$STAP_START_SERVER -r \"`quote_for_cmd "$RELEASE"`\" -a \"`quote_for_cmd "$ARCH"`\" $OPT_OTHER"
     for b in "${BUILD[@]}"; do
@@ -646,7 +773,9 @@ start_server () {
 	server_cmd="$server_cmd -I \"`quote_for_cmd "$i"`\""
     done
     test -n "$RUNTIME" && server_cmd="$server_cmd -R \"`quote_for_cmd "$RUNTIME"`\""
-    server_cmd="$server_cmd --log=\"`quote_for_cmd "$LOG_FILE"`\""
+    server_cmd="$server_cmd --log=\"`quote_for_cmd "$LOG"`\""
+    test -n "$PORT" && server_cmd="$server_cmd --port \"`quote_for_cmd "$PORT"`\""
+    test -n "$SSL" && server_cmd="$server_cmd --ssl \"`quote_for_cmd "$SSL"`\""
 
     # Start the server here.
     local pid
@@ -679,6 +808,9 @@ start_server () {
     echo "NICKNAME=$NICKNAME" >> "$server_status_file"
     echo "RUNTIME=$RUNTIME" >> "$server_status_file"
     echo "RELEASE=$RELEASE" >> "$server_status_file"
+    echo "LOG=$LOG" >> "$server_status_file"
+    echo "PORT=$PORT" >> "$server_status_file"
+    echo "SSL=$SSL" >> "$server_status_file"
 
     do_success $"$prog start `echo_server_options`"
 }
@@ -699,7 +831,11 @@ start () { # server-cmds
     load_server_config
     server_cmds=("${SERVER_CMDS[@]}")
     # If none configured, start the default servers
-    test -z "$server_cmds" && server_cmds=("EXEC")
+    if test -z "$server_cmds"; then
+	add_distributed_options
+	server_cmds=("${SERVER_CMDS[@]}")
+	server_cmds+=("EXEC")
+    fi
   fi
 
   # Start each requested server in turn
@@ -1003,13 +1139,17 @@ function condrestart () { # server-list
 CMD=$1
 shift 1
 
-prepare_log_dir
+prepare_log_dir "$LOG_FILE"
 if [ $? -ne 0 ]; then
     echo $"Failed to make log directory (`dirname $LOG_FILE`)" >&2
     exit 1
 fi
 
-OPTS=`getopt -s bash -u -o 'a:B:c:iI:n:p:kPr:R:u:' -- "$@"`
+OPTS=`getopt -s bash -u --options 'a:B:c:iI:n:p:kPr:R:u:' \
+                        --longoptions 'log:' \
+                        --longoptions 'port:' \
+                        --longoptions 'ssl:' \
+                        -- "$@"`
 if [ $? -ne 0 ]; then
   echo "Error: Argument parse error: $@" >&2
   echo_usage
