@@ -316,6 +316,32 @@ static int _stp_transport_init(void)
 	_stp_gid = current_gid();
 #endif
 
+/* PR13489, missing inode-uprobes symbol-export workaround */
+#if defined(CONFIG_UPROBES) // i.e., kernel-embedded uprobes
+#if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED)
+        kallsyms_task_user_regset_view = (void*) kallsyms_lookup_name ("task_user_regset_view");
+        if (kallsyms_task_user_regset_view == NULL) {
+                printk(KERN_ERR "%s can't resolve task_user_regset_view!", THIS_MODULE->name);
+                goto err0;
+        }
+#endif
+#if !defined(STAPCONF_REGISTER_UPROBE_EXPORTED)
+        kallsyms_register_uprobe = (void*) kallsyms_lookup_name ("register_uprobe");
+        if (kallsyms_register_uprobe == NULL) {
+                printk(KERN_ERR "%s can't resolve register_uprobe!", THIS_MODULE->name);
+                goto err0;
+        }
+#endif
+#if !defined(STAPCONF_UNREGISTER_UPROBE_EXPORTED)
+        kallsyms_unregister_uprobe = (void*) kallsyms_lookup_name ("unregister_uprobe");
+        if (kallsyms_unregister_uprobe == NULL) {
+                printk(KERN_ERR "%s can't resolve unregister_uprobe!", THIS_MODULE->name);
+                goto err0;
+        }
+#endif
+#endif
+
+
 #ifdef RELAY_GUEST
 	/* Guest scripts use relay only for reporting warnings and errors */
 	_stp_subbuf_size = 65536;

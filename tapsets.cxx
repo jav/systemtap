@@ -3979,6 +3979,7 @@ kernel_supports_inode_uprobes(systemtap_session& s)
 {
   // The arch-supports is new to the builtin inode-uprobes, so it makes a
   // reasonable indicator of the new API.  Else we'll need an autoconf...
+  // see also buildrun.cxx:kernel_built_uprobs()
   return (s.kernel_config["CONFIG_ARCH_SUPPORTS_UPROBES"] == "y"
           && s.kernel_config["CONFIG_UPROBES"] == "y");
 }
@@ -6732,6 +6733,7 @@ dwarf_builder::build(systemtap_session & sess,
 
       if (kernel_supports_inode_uprobes(sess))
         {
+          // XXX: autoconf this?
           if (has_null_param(parameters, TOK_RETURN))
             throw semantic_error
               (_("process return probes not available with inode-based uprobes"));
