@@ -56,6 +56,11 @@ extern "C" {
 #include <inttypes.h>
 }
 
+// Older glibc elf.h don't know about this new constant.
+#ifndef STB_GNU_UNIQUE
+#define STB_GNU_UNIQUE  10
+#endif
+
 
 // debug flag to compare to the uncached version from libdw
 // #define DEBUG_DWFLPP_GETSCOPES 1
