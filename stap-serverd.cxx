@@ -81,6 +81,7 @@ static string cert_serial_number;
 static string B_options;
 static string I_options;
 static string R_option;
+static string D_options;
 static bool   keep_temp;
 
 // Used to save our resource limits for these categories and impose smaller
@@ -188,7 +189,7 @@ parse_options (int argc, char **argv)
         { "log", 1, & long_opt, LONG_OPT_LOG },
         { NULL, 0, NULL, 0 }
       };
-      int grc = getopt_long (argc, argv, "a:B:I:kPr:R:", long_options, NULL);
+      int grc = getopt_long (argc, argv, "a:B:D:I:kPr:R:", long_options, NULL);
       if (grc < 0)
         break;
       switch (grc)
@@ -197,11 +198,15 @@ parse_options (int argc, char **argv)
 	  process_a (optarg);
 	  break;
 	case 'B':
-	  B_options += optarg;
+	  B_options += string (" -") + (char)grc + optarg;
+	  stap_options += string (" -") + (char)grc + optarg;
+	  break;
+	case 'D':
+	  D_options += string (" -") + (char)grc + optarg;
 	  stap_options += string (" -") + (char)grc + optarg;
 	  break;
 	case 'I':
-	  I_options += optarg;
+	  I_options += string (" -") + (char)grc + optarg;
 	  stap_options += string (" -") + (char)grc + optarg;
 	  break;
 	case 'k':
@@ -214,7 +219,7 @@ parse_options (int argc, char **argv)
 	  process_r (optarg);
 	  break;
 	case 'R':
-	  R_option = optarg;
+	  R_option = string (" -") + (char)grc + optarg;
 	  stap_options += string (" -") + (char)grc + optarg;
 	  break;
 	case '?':
@@ -403,18 +408,24 @@ create_services (AvahiClient *c) {
       string version = string ("version=") + CURRENT_CS_PROTOCOL_VERSION;;
       string optinfo = "optinfo=";
       string separator;
+      // These option strings already have a leading space.
       if (! R_option.empty ())
 	{
-	  optinfo += R_option;
+	  optinfo += R_option.substr(1);
 	  separator = " ";
 	}
       if (! B_options.empty ())
 	{
-	  optinfo += separator + B_options;
+	  optinfo += separator + B_options.substr(1);
+	  separator = " ";
+	}
+      if (! D_options.empty ())
+	{
+	  optinfo += separator + D_options.substr(1);
 	  separator = " ";
 	}
       if (! I_options.empty ())
-	optinfo += separator + I_options;
+	optinfo += separator + I_options.substr(1);
 
       // We will now our service to the entry group. Only services with the
       // same name should be put in the same entry group.

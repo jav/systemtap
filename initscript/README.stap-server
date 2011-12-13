@@ -94,7 +94,7 @@ to specify servers to be managed.
  details.
 
 2.3.6 -R path
- This option specifies the location of the systemtap runtime to be user by the
+ This option specifies the location of the systemtap runtime to be used by the
  server and is analogous to the -R option of 'stap'. See stap(1) for more
  details.
 
@@ -103,13 +103,17 @@ to specify servers to be managed.
  modules and is analogous to the -B option of 'stap'. See stap(1) for more
  details.
 
-2.3.8 -i
+2.3.8 -D macro[=value]
+ This options specifies a macro definition to be used by the server when and
+ is analagous to the -D option os 'stap'. See stap(1) for more details.
+
+2.3.9 -i
  This option is a shortcut which specifies one server for each kernel
  release installed in /lib/modules/. Previous -I, -R, -B and -u options will be
  applied to each server, however previous -a options are ignored and the default
  architecture is used.
 
-2.3.9 -n nickname
+2.3.10 -n nickname
  This option allows the specification of a server configuration by nickname.
  When -n is specified, a currently running server with the given nickname will
  be searched for. If no currently running server with the given nickname is
@@ -123,26 +127,26 @@ to specify servers to be managed.
  'start' (or an action behaving like 'start'), it is an error. If a nickname is
  not specified for a server, its nickname will be its process id.
 
-2.3.10 -p pid
+2.3.11 -p pid
  This option allows the specification of a server configuration by process id.
  When -p is specified, a currently running server with the given process id will
  be searched for. If no such server is found, it is an error. If a server with
  the given process id is found, the -a, -r, -I, -R, -B and -u options for that
  server will be used as if they were specified on the command line.
 
-2.3.11 --log logfile
+2.3.12 --log logfile
  This option allows the specification of a separate log file for each server.
  Each --log option is added to a list which will be applied, in turn, to each
  server specified. If more servers are specified than --log options, the default
  log file (/var/log/stap-server/log) will be used for subsequent servers.
 
-2.3.12 --port port-number
+2.3.13 --port port-number
  This option allows the specification of a specific network port for each
  server. Each --port option is added to a list which will be applied, in turn,
  to each server specified. If more servers are specified than
  --port options, a randomly selected port used for subsequent servers.
 
-2.3.13 --ssl certificate-db-path
+2.3.14 --ssl certificate-db-path
  This option allows the specification of a separate NSS certificate database
  for each server. Each --ssl option is added to a list which will be applied,
  in turn, to each server specified. If more servers are specified than --ssl
@@ -233,26 +237,30 @@ bash script fragment. The following variables may be set.
  modules.
  
 4.2.4 INCLUDE
- Specify a list of directories to be searched by the server for tapsets.
+ An array variable which specifies a list of directories to be searched by the server for tapsets.
 
 4.2.5 RUNTIME
  Specify the directory which contains the systemtap runtime code to be used
  by this server.
 
-4.2.6 USER
+4.2.6 DEFINE
+ An array variable which specifies a list of macros and their definitions to be used by the
+ server which building modules.
+
+4.2.7 USER
  Specify the user name to be used to run this server. The specified user must
  be a member of the group 'stap-server'.
 
-4.2.6 NICKNAME
+4.2.8 NICKNAME
  Specify the nickname to be used to refer to this server.
 
-4.2.7 LOG
+4.2.9 LOG
  Specify the location of the log file to be used by this server.
 
-4.2.8 PORT
+4.2.10 PORT
  Specify the network port to be used by this server.
 
-4.2.9 SSL
+4.2.11 SSL
  Specify the location of the NSS certificate database to be used by this server.
 
 4.3 Configuration Example
@@ -275,8 +283,11 @@ bash script fragment. The following variables may be set.
  --- file2.conf
  USER=serveruser
  RELEASE=/kernels/2.6.18-92.1.18.el5/build
- INCLUDE="/mytapsets /yourtapsets"
+ INCLUDE=/mytapsets
+ INCLUDE+=/yourtapsets
  BUILD='VARIABLE1=VALUE1 VARIABLE2=VALUE2'
+ DEFINE=STP_MAXMEMORY=1024
+ DEFINE+=DEBUG_TRANS
  RUNTIME=/myruntime
  NICKNAME=my-server
  SSL=/path/to/NSS/certificate/database

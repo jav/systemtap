@@ -59,6 +59,7 @@ echo_usage () {
   echo $"	-I path		: augment the search path for tapsets."
   echo $"	-R path		: specify the location of the systemtap runtime."
   echo $"	-B options	: specify 'make' options for building systemtap modules."
+  echo $"	-D name[=value]	: add a macro definition for building systemtap modules."
   echo $"	-u username	: specify the user who will run the server(s)."
   echo $"	-i		: specify a server for each installed kernel release."
   echo $"	-n nickname	: specify a server configuration by nickname."
@@ -85,8 +86,8 @@ echo_usage () {
   echo $""
   echo $"If --ssl is not specified, the default is '$stap_sysconfdir/ssl/server'."
   echo $""
-  echo $"Each -I and -B option specifies an additional path or option respectively to be applied"
-  echo $"to subsequent servers specified."
+  echo $"Each -D, -I and -B option specifies an additional macro, path or option respectively"
+  echo $"to be applied to subsequent servers specified."
   echo $""
   echo $"Each --port, --log and --ssl option is added to an option-specific list which will"
   echo $"be applied, in turn, to each server specified. If more servers are specified than"
@@ -96,7 +97,7 @@ echo_usage () {
   echo $"For other options, each new instance overrides the previous setting."
   echo $""
   echo $"The -i option is a shortcut which specifies one server for each kernel"
-  echo $"release installed in /lib/modules/. Previous -I, -R, -B and -u"
+  echo $"release installed in /lib/modules/. Previous -D, -I, -R, -B and -u"
   echo $"options will be applied to each server, however previous -a options"
   echo $"are ignored and the default architecture is used." 
   echo $""
@@ -107,7 +108,7 @@ echo_usage () {
   echo $"given nickname will be searched for in"
   echo $"$stap_sysconfdir/stap-server/conf.d/*.conf."
   echo $"If a server configuration for the given nickname is found, the -a, -r,"
-  echo $"-I, -R, -B and -u options for that server will be used as if they were"
+  echo $"-D, -I, -R, -B and -u options for that server will be used as if they were"
   echo $"specified on the command line. If no configuration with the given"
   echo $"nickname is found, and the action is 'start' (or an action behaving"
   echo $"like 'start' (see below)), the server will be started with the given"
@@ -120,7 +121,7 @@ echo_usage () {
   echo $"process id. When -p is specified, a currently running server with the"
   echo $"given process id will be searched for. If no such server is found,"
   echo $"it is an error. If a server with the given pid is found, the -a, -r,"
-  echo $"-I, -R, -B and -u options for that server will be used as if they were"
+  echo $"-D, -I, -R, -B and -u options for that server will be used as if they were"
   echo $"specified on the command line."
   echo $""
   echo $"The -k option tells the server to keep the temporary directories it creates"
@@ -210,6 +211,11 @@ parse_args () { # arguments
 	# apply to each server referenced by -i. We will process it just before handling other
 	# options which describe a new server (e.g. -r).
 	i_specified=$(($i_specified + 1))
+	;;
+      -D)
+	process_i
+	SERVER_CMDS+=("DEFINE+=(\"`quote_for_cmd "$2"`\")")
+        shift 1
 	;;
       -I)
 	process_i
@@ -412,6 +418,10 @@ add_server_commands () {
     SERVER_CMDS+=("ARCH=\"`quote_for_cmd "$ARCH"`\"")
     SERVER_CMDS+=("RELEASE=\"`quote_for_cmd "$RELEASE"`\"")
     SERVER_CMDS+=("RUNTIME=\"`quote_for_cmd "$RUNTIME"`\"")
+    SERVER_CMDS+=("DEFINE=()")
+    for d in "${DEFINE[@]}"; do
+	SERVER_CMDS+=("DEFINE+=(\"`quote_for_cmd "$d"`\")")
+    done
     SERVER_CMDS+=("INCLUDE=()")
     for i in "${INCLUDE[@]}"; do
 	SERVER_CMDS+=("INCLUDE+=(\"`quote_for_cmd "$i"`\")")
@@ -432,6 +442,9 @@ echo_server_options () {
     echo -n "-a \"`quote_for_cmd "$ARCH"`\""
     echo -n " -r \"`quote_for_cmd "$RELEASE"`\""
     test -n "$RUNTIME" && echo -n " -R \"`quote_for_cmd "$RUNTIME"`\""
+    for d in "${DEFINE[@]}"; do
+	echo -n " -D \"`quote_for_cmd "$d"`\""
+    done
     for i in "${INCLUDE[@]}"; do
 	echo -n " -I \"`quote_for_cmd "$i"`\""
     done
@@ -466,6 +479,7 @@ prepare_log_dir () {
 init_server_opts () {
   ARCH=`get_arch`
   RELEASE=`get_release`
+  unset DEFINE
   unset BUILD
   unset INCLUDE
   NICKNAME=
@@ -537,6 +551,7 @@ interpret_server_config () {
     # Save the results locally first, in case there is an error.
     local local_ARCH=
     local local_RELEASE=
+    local local_DEFINE=()
     local local_BUILD=()
     local local_INCLUDE=()
     local local_RUNTIME=
@@ -555,6 +570,17 @@ interpret_server_config () {
 	      ;;
 	    RELEASE=*)
               local_RELEASE="${input:8}"
+	      ;;
+	    DEFINE=*)
+	      if [ -z "${input:7}" -o "${input:7}" = "()" ]; then
+		  local_DEFINE=()
+	      else
+		  local_DEFINE=("${input:7}")
+	      fi
+	      ;;
+	    DEFINE+=*)
+	      test -z "${input:8}" -o "${input:8}" = "()" || \
+		  local_DEFINE+=("${input:8}")
 	      ;;
 	    BUILD=*)
 	      if [ -z "${input:6}" -o "${input:6}" = "()" ]; then
@@ -611,6 +637,7 @@ interpret_server_config () {
     # if to nothing.
     ARCH="$local_ARCH"
     RELEASE="$local_RELEASE"
+    DEFINE=("${local_DEFINE[@]}")
     BUILD=("${local_BUILD[@]}")
     INCLUDE=("${local_INCLUDE[@]}")
     RUNTIME="$local_RUNTIME"
@@ -635,6 +662,7 @@ load_server_config () {
       # Obtain a configuration from each config file.
       # Ensure that we get the correct defaults for items not specified.
       local ARCH=
+      local DEFINE=()
       local BUILD=()
       local INCLUDE=()
       local RUNTIME=
@@ -671,6 +699,7 @@ get_server_pid_by_config () {
     local target_RUNTIME="$RUNTIME"
     local target_INCLUDE=("${INCLUDE[@]}")
     local target_BUILD=("${BUILD[@]}")
+    local target_DEFINE=("${DEFINE[@]}")
     local target_USER="$USER"
     local target_NICKNAME="$NICKNAME"
     local target_LOG="$LOG"
@@ -688,6 +717,7 @@ get_server_pid_by_config () {
 	test "X$INCLUDE"  = "X$target_INCLUDE"  || continue
 	test "X$RUNTIME"  = "X$target_RUNTIME"  || continue
 	test "X$BUILD"    = "X$target_BUILD"    || continue
+	test "X$DEFINE"   = "X$target_DEFINE"   || continue
 	test "X$USER"     = "X$target_USER"     || continue
 	test "X$LOG"      = "X$target_LOG"      || continue
 	test "X$PORT"     = "X$target_PORT"     || continue
@@ -701,6 +731,7 @@ get_server_pid_by_config () {
     RUNTIME="$target_RUNTIME"
     INCLUDE=("${target_INCLUDE[@]}")
     BUILD=("${target_BUILD[@]}")
+    DEFINE=("${target_DEFINE[@]}")
     USER="$target_USER"
     NICKNAME="$target_NICKNAME"
     LOG="$target_LOG"
@@ -772,6 +803,9 @@ start_server () {
     for i in "${INCLUDE[@]}"; do
 	server_cmd="$server_cmd -I \"`quote_for_cmd "$i"`\""
     done
+    for d in "${DEFINE[@]}"; do
+	server_cmd="$server_cmd -D \"`quote_for_cmd "$d"`\""
+    done
     test -n "$RUNTIME" && server_cmd="$server_cmd -R \"`quote_for_cmd "$RUNTIME"`\""
     server_cmd="$server_cmd --log=\"`quote_for_cmd "$LOG"`\""
     test -n "$PORT" && server_cmd="$server_cmd --port \"`quote_for_cmd "$PORT"`\""
@@ -804,6 +838,9 @@ start_server () {
     done
     for i in "${INCLUDE[@]}"; do
 	echo "INCLUDE+=$i" >> "$server_status_file"
+    done
+    for d in "${DEFINE[@]}"; do
+	echo "DEFINE+=$d" >> "$server_status_file"
     done
     echo "NICKNAME=$NICKNAME" >> "$server_status_file"
     echo "RUNTIME=$RUNTIME" >> "$server_status_file"
@@ -1145,7 +1182,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-OPTS=`getopt -s bash -u --options 'a:B:c:iI:n:p:kPr:R:u:' \
+OPTS=`getopt -s bash -u --options 'a:B:c:D:iI:n:p:kPr:R:u:' \
                         --longoptions 'log:' \
                         --longoptions 'port:' \
                         --longoptions 'ssl:' \

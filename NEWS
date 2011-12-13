@@ -1,10 +1,12 @@
 * What's new in version 1.7
 
-- The stap-server service (initscript) now supports three new options:
+- The stap-server service (initscript) now supports four new options:
+    -D MACRO[=VALUE]
     --log LOGFILE
     --port PORT-NUMBER
     --SSL CERT-DATABASE
-  These allow the specification of a log file, network port number and
+  These allow the specification of macro definitions to be passed to stap
+  by the server, the location of the log file, network port number and
   NSS certificate database location respectively. These options are also
   supported within individual server configuration files. See stap-server
   and initscript/README.stap-server for details.
