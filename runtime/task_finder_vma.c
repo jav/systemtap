@@ -44,6 +44,8 @@ static struct hlist_head *__stp_tf_vma_map;
 
 // __stp_tf_vma_new_entry(): Returns an newly allocated or NULL.
 // Must only be called from user context.
+// ... except, with inode-uprobes / task-finder2, it can be called from
+// random tracepoints.  So we cannot sleep after all.
 static struct __stp_tf_vma_entry *
 __stp_tf_vma_new_entry(void)
 {
@@ -51,7 +53,7 @@ __stp_tf_vma_new_entry(void)
 	size_t size = sizeof (struct __stp_tf_vma_entry);
 
 	entry = (struct __stp_tf_vma_entry *) _stp_kmalloc_gfp(size,
-							STP_ALLOC_SLEEP_FLAGS);
+                                                               STP_ALLOC_FLAGS);
 	return entry;
 }
 
