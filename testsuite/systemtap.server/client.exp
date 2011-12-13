@@ -518,7 +518,7 @@ foreach privilege {"--unprivileged" "--privilege=stapusr" "--privilege=stapsys"}
 
     # Make sure that the module was returned
     set no_module 0
-    set test "Module was created"
+    set test "Module was created with $privilege"
     catch {exec /bin/ls $module_name $module_name.sgn} result
     send_log "$result\n"
     if {[file exists $module_name]} {
@@ -530,7 +530,7 @@ foreach privilege {"--unprivileged" "--privilege=stapusr" "--privilege=stapsys"}
 
     # Make sure that the module was signed
     set no_signature 0
-    set test "Module was signed"
+    set test "Module was signed with $privilege"
     if {[file exists $module_name.sgn]} {
 	pass "$test"
     } else {
@@ -574,7 +574,7 @@ foreach privilege {"--unprivileged" "--privilege=stapusr" "--privilege=stapsys"}
 	    setup_xfail *-*-*
 	}
     }
-    set test "Load and run signed module when trusted"
+    set test "Load and run signed module when trusted with $privilege"
     if {$no_module == 1 || ! [installtest_p]} {
 	untested "$test"
     } else {
