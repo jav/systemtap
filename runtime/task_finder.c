@@ -1,11 +1,6 @@
 #ifndef TASK_FINDER_C
 #define TASK_FINDER_C
 
-#if (defined(STAPCONF_UTRACE_VIA_TRACEPOINTS) \
-     || defined(STAPCONF_UTRACE_VIA_FTRACE))
-#define STP_CAN_USE_INTERNAL_UTRACE
-#endif
-
 /*
  * Which utrace shall we use?
  * (1) Built-in kernel utrace (preferred), indicated by
@@ -16,12 +11,12 @@
  * functions.
  */
 
-#if !defined(CONFIG_UTRACE) && !defined(STP_CAN_USE_INTERNAL_UTRACE)
+#ifndef HAVE_TASK_FINDER
 /* Dummy definitions for use in sym.c */
 struct stap_task_finder_target { };
 static int stap_start_task_finder(void) { return 0; }
 static void stap_stop_task_finder(void) { }
-#else  /* CONFIG_UTRACE || STP_CAN_USE_INTERNAL_UTRACE */
+#else  /* HAVE_TASK_FINDER */
 #if !defined(CONFIG_UTRACE)
 #include "task_finder2.c"
 #else  /* CONFIG_UTRACE */
@@ -1721,6 +1716,6 @@ stap_stop_task_finder(void)
 	debug_task_finder_report();
 }
 
-#endif /* CONFIG_UTRACE || STP_CAN_USE_INTERNAL_UTRACE */
 #endif /* CONFIG_UTRACE */
+#endif /* HAVE_TASK_FINDER */
 #endif /* TASK_FINDER_C */

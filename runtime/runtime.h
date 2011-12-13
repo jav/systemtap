@@ -134,6 +134,10 @@ static struct
 #include "regs.c"
 #include "regs-ia64.c"
 
+#if (defined(CONFIG_UTRACE) || defined(STAPCONF_UTRACE_VIA_TRACEPOINTS) \
+     || defined(STAPCONF_UTRACE_VIA_FTRACE))
+#define HAVE_TASK_FINDER
+#endif
 #include "task_finder.c"
 
 #include "sym.c"
