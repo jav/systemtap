@@ -5,7 +5,7 @@ if [file exists $module] { pass "$test compilation" } else { fail "$test compila
 
 set ok 0
 set ko 0
-spawn modinfo $module
+spawn /sbin/modinfo $module
 expect {
     -re {^foo:[ ]*bar\r\n} { incr ok; exp_continue }
     -re {^[a-zA-Z0-9_]*:[^\r\n]*\r\n} { exp_continue }
