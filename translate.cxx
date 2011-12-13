@@ -1866,6 +1866,11 @@ c_unparser::emit_module_exit ()
   o->newline(-1) << "}";
   o->newline(-1) << "}";
 
+  // teardown gettimeofday (if needed)
+  o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
+  o->newline() << " _stp_kill_time();";  // Go to a beach.  Drink a beer.
+  o->newline() << "#endif";
+
   // NB: PR13386 points out that _stp_printf may be called from contexts
   // without already active preempt disabling, which breaks various uses
   // of smp_processor_id().  So we temporary block preemption around this
@@ -1898,11 +1903,6 @@ c_unparser::emit_module_exit ()
   o->newline() << "#endif"; // STP_TIMING
   o->newline(-1) << "}";
   o->newline() << "_stp_print_flush();";
-  o->newline() << "#endif";
-
-  // teardown gettimeofday (if needed)
-  o->newline() << "#ifdef STAP_NEED_GETTIMEOFDAY";
-  o->newline() << " _stp_kill_time();";  // Go to a beach.  Drink a beer.
   o->newline() << "#endif";
 
   // print final error/skipped counts if non-zero
