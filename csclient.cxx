@@ -752,7 +752,7 @@ compile_server_client::passes_0_4 ()
   PROBE1(stap, client__start, &s);
 
   // arguments parsed; get down to business
-  if (s.verbose > 1)
+  if (s.verbose)
     clog << _("Using a compile server.") << endl;
 
   struct tms tms_before;
@@ -824,13 +824,13 @@ compile_server_client::passes_0_4 ()
 	{
 	  string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
 	  string module_dest_path = s.module_name + ".ko";
-	  copy_file (module_src_path, module_dest_path, s.verbose > 1);
+	  copy_file (module_src_path, module_dest_path, s.verbose >= 3);
 	  // Also copy the module signature, it it exists.
 	  module_src_path += ".sgn";
 	  if (file_exists (module_src_path))
 	    {
 	      module_dest_path += ".sgn";
-	      copy_file(module_src_path, module_dest_path, s.verbose > 1);
+	      copy_file(module_src_path, module_dest_path, s.verbose >= 3);
 	    }
 	}
     }
@@ -1183,8 +1183,8 @@ compile_server_client::find_and_connect_to_server ()
   // Give the server a chance to do this before retrying.
   if (rc == SERVER_CERT_EXPIRED_ERROR)
     {
-      if (s.verbose > 1)
-	clog << _("A server's certificate was expired. Trying again") << endl << flush;
+      if (s.verbose >= 2)
+	clog << _("The server's certificate was expired. Trying again") << endl << flush;
       sleep (2);
       rc = compile_using_server (server_list);
       if (rc == SUCCESS)
@@ -1252,7 +1252,7 @@ compile_server_client::compile_using_server (
 	   j != servers.end ();
 	   ++j)
 	{
-	  if (s.verbose > 1)
+	  if (s.verbose >= 2)
            clog << _F("Attempting SSL connection with %s\n"
                 "  using certificates from the database in %s\n",
                 lex_cast(*j).c_str(), cert_dir);
@@ -1290,7 +1290,7 @@ compile_server_client::compile_using_server (
 	      continue;
 	    }
 
-	  if (s.verbose > 1)
+	  if (s.verbose >= 2)
 	    {
 	      clog << _("  Unable to connect: ");
 	      nssError ();
@@ -1344,7 +1344,7 @@ compile_server_client::unpack_response ()
   // its contents to our temp directory.
   glob_t globbuf;
   string filespec = server_tmpdir + "/stap??????";
-  if (s.verbose > 2)
+  if (s.verbose >= 3)
     clog << _F("Searching \"%s\"\n", filespec.c_str());
   int r = glob(filespec.c_str (), 0, NULL, & globbuf);
   if (r != GLOB_NOSPACE && r != GLOB_ABORTED && r != GLOB_NOMATCH)
@@ -1358,11 +1358,11 @@ compile_server_client::unpack_response ()
 
       assert (globbuf.gl_pathc == 1);
       string dirname = globbuf.gl_pathv[0];
-      if (s.verbose > 2)
+      if (s.verbose >= 3)
 	clog << _("  found ") << dirname << endl;
 
       filespec = dirname + "/*";
-      if (s.verbose > 2)
+      if (s.verbose >= 3)
        clog << _F("Searching \"%s\"\n", filespec.c_str());
       int r = glob(filespec.c_str (), GLOB_PERIOD, NULL, & globbuf);
       if (r != GLOB_NOSPACE && r != GLOB_ABORTED && r != GLOB_NOMATCH)
@@ -1375,7 +1375,7 @@ compile_server_client::unpack_response ()
 		  oldname.substr (oldname.size () - 3) == "/..")
 		continue;
 	      string newname = s.tmpdir + "/" + oldname.substr (prefix_len);
-	      if (s.verbose > 2)
+	      if (s.verbose >= 3)
                clog << _F("  found %s -- linking from %s", oldname.c_str(), newname.c_str());
 	      rc = symlink (oldname.c_str (), newname.c_str ());
 	      if (rc != 0)
@@ -1430,7 +1430,7 @@ compile_server_client::process_response ()
     {
       // The server should have returned a module.
       string filespec = s.tmpdir + "/*.ko";
-      if (s.verbose > 2)
+      if (s.verbose >= 3)
        clog << _F("Searching \"%s\"\n", filespec.c_str());
 
       glob_t globbuf;
@@ -1443,7 +1443,7 @@ compile_server_client::process_response ()
 	    {
 	      assert (globbuf.gl_pathc == 1);
 	      string modname = globbuf.gl_pathv[0];
-	      if (s.verbose > 2)
+	      if (s.verbose >= 3)
 		clog << _("  found ") << modname << endl;
 
 	      // If a module name was not specified by the user, then set it to
@@ -1709,7 +1709,7 @@ add_server_trust (
       if (find (already_trusted.begin (), already_trusted.end (), *server) !=
 	  already_trusted.end ())
 	{
-	  if (s.verbose > 1)
+	  if (s.verbose >= 2)
 	    trust_already_in_place (*server, server_list, cert_db_path, false/*revoking*/);
 	  continue;
 	}
@@ -1737,7 +1737,7 @@ add_server_trust (
   // Make sure the database files are readable.
   glob_t globbuf;
   string filespec = cert_db_path + "/*.db";
-  if (s.verbose > 2)
+  if (s.verbose >= 3)
     clog << _F("Searching \"%s\"\n", filespec.c_str());
   int r = glob (filespec.c_str (), 0, NULL, & globbuf);
   if (r != GLOB_NOSPACE && r != GLOB_ABORTED && r != GLOB_NOMATCH)
@@ -1745,7 +1745,7 @@ add_server_trust (
       for (unsigned i = 0; i < globbuf.gl_pathc; ++i)
 	{
 	  string filename = globbuf.gl_pathv[i];
-	  if (s.verbose > 2)
+	  if (s.verbose >= 3)
 	    clog << _("  found ") << filename << endl;
 
 	  if (chmod (filename.c_str (), 0644) != 0)
@@ -1768,11 +1768,10 @@ revoke_server_trust (
   // Make sure the given path exists.
   if (! file_exists (cert_db_path))
     {
-      if (s.verbose > 1)
-       clog << _F("Certificate database '%s' does not exist",
-                  cert_db_path.c_str()) << endl;
-      if (s.verbose)
+      if (s.verbose >= 2)
 	{
+	  clog << _F("Certificate database '%s' does not exist",
+		     cert_db_path.c_str()) << endl;
 	  for (vector<compile_server_info>::const_iterator server = server_list.begin();
 	       server != server_list.end ();
 	       ++server)
@@ -1833,7 +1832,7 @@ revoke_server_trust (
       if (! db_cert)
 	{
 	  // No trusted servers. Not an error, but issue a status message.
-	  if (s.verbose)
+	  if (s.verbose >= 2)
 	    trust_already_in_place (*server, server_list, cert_db_path, true/*revoking*/);
 	  continue;
 	}
@@ -1879,7 +1878,7 @@ revoke_server_trust (
       if (CERT_LIST_END (node, certs))
 	{
 	  // Not found. Server is already untrusted.
-	  if (s.verbose)
+	  if (s.verbose >= 2)
 	    trust_already_in_place (*server, server_list, cert_db_path, true/*revoking*/);
 	}
       else
@@ -1916,7 +1915,7 @@ get_server_info_from_db (
   // Make sure the given path exists.
   if (! file_exists (cert_db_path))
     {
-      if (s.verbose > 1)
+      if (s.verbose >= 2)
        clog << _F("Certificate database '%s' does not exist.",
                   cert_db_path.c_str()) << endl;
       return;
@@ -1938,7 +1937,7 @@ get_server_info_from_db (
   CERTCertList *certs = get_cert_list_from_db (server_cert_nickname ());
   if (! certs)
     {
-      if (s.verbose > 1)
+      if (s.verbose >= 2)
 	clog << _F("No certificate found in database %s", cert_db_path.c_str ()) << endl;
       goto cleanup;
     }
@@ -2514,7 +2513,7 @@ get_specified_server_info (
 		  // Did we find one?
 		  if (known_servers.empty ())
 		    {
-		      if (s.verbose)
+		      if (s.verbose >= 2)
                        clog << _F("No server matching %s found", server.c_str()) << endl;
 		    }
 		  else
@@ -2595,8 +2594,8 @@ get_or_keep_trusted_server_info (
 #else // ! HAVE_NSS
       // Without NSS, we can't determine whether a server is trusted.
       // Issue a warning.
-      if (s.verbose)
-	clog << _("Unable to determine server trust as an SSL peer") << endl;
+      if (s.verbose >= 2)
+	clog << _("Unable to determine server trust as an SSL peer without NSS") << endl;
 #endif // ! HAVE_NSS
     } // Server information is not cached
 
@@ -2641,8 +2640,8 @@ get_or_keep_signing_server_info (
 #else // ! HAVE_NSS
       // Without NSS, we can't determine whether a server is a trusted
       // signer. Issue a warning.
-      if (s.verbose)
-	clog << _("Unable to determine server trust as a module signer") << endl;
+      if (s.verbose >= 2)
+	clog << _("Unable to determine server trust as a module signer without NSS") << endl;
 #endif // ! HAVE_NSS
     } // Server information is not cached
 
@@ -2708,8 +2707,8 @@ get_or_keep_compatible_server_info (
 #else // ! HAVE_AVAHI
   // Without Avahi, we can't obtain the target platform of the server.
   // Issue a warning.
-  if (s.verbose)
-    clog << _("Unable to detect server compatibility") << endl;
+  if (s.verbose >= 2)
+    clog << _("Unable to detect server compatibility without avahi") << endl;
   if (keep)
     servers.clear ();
 #endif
@@ -3097,8 +3096,8 @@ get_or_keep_online_server_info (
         avahi_simple_poll_free(simple_poll);
 #else // ! HAVE_AVAHI
       // Without Avahi, we can't detect online servers. Issue a warning.
-      if (s.verbose)
-	clog << _("Unable to detect online servers") << endl;
+      if (s.verbose >= 2)
+	clog << _("Unable to detect online servers without avahi") << endl;
 #endif // ! HAVE_AVAHI
     } // Server information is not cached.
 
