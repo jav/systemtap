@@ -162,7 +162,7 @@ Summary: Instrumentation System Grapher
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Requires: systemtap-runtime = %{version}-%{release}
+Requires: systemtap
 
 %description grapher
 SystemTap grapher is a utility for real-time visualization of

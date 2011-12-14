@@ -70,13 +70,17 @@
   probing of device driver initialization functions, which had been
   blacklisted.
 
-- The following probe types are deprecated in release 1.7 and will be removed in release 1.8:
+- The following probe types are deprecated in release 1.7 and will be
+  removed in release 1.8:
       kernel.function(number).inline
       module(string).function(number).inline
       process.function(number).inline
       process.library(string).function(number).inline
       process(string).function(number).inline
       process(string).library(string).function(number).inline
+
+- The systemtap-grapher is deprecated in release 1.7 and will be removed in
+  release 1.8.
 
 - The task_backtrace() tapset function was deprecated in 1.6 and has been
   removed in 1.7.
