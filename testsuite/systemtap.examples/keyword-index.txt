@@ -1262,6 +1262,21 @@ keywords: profiling
   # stap linetimes.stp kernel sys_nanosleep -c "sleep 0.2"
 
 
+profiling/periodic.stp - Show the period of the various timers on the system
+keywords: profiling
+
+  The periodic.stp script uses the  kernel.trace("timer_expire_entry")
+  tracepoint to collects data on period and frequency of the various
+  timers on the system.  The script displays a sorted list of the
+  timers observed on the system from most frequent to least frequent.
+  The script needs to be compiled with the '--all-modules' option to
+  produce list the function names.  Optionally, this script can be used
+  with a numerical argument to indicate the interval in seconds between
+  printing output.
+
+  # stap periodic.stp --all-modules -c "sleep 0.2"
+
+
 profiling/sched_switch.stp - Display the task switches happening in the scheduler
 keywords: profiling functions
 
