@@ -114,6 +114,10 @@
   requires some kernel patches (user_regsets and tracehook support for
   arm).
 
+- Starting in release 1.7, the 'pid' variable in the
+  'kprocess.release' probe has been deprecated in favor of the new
+  'released_pid' variable.
+
 * What's new in version 1.6, 2011-07-25
 
 - Security fixes for CVE-2011-2503: read instead of mmap to load modules,

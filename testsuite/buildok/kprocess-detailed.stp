@@ -27,5 +27,8 @@ probe kprocess.exit
 
 probe kprocess.release
 {
-	printf("%p %d\n", task, pid)
+	printf("%p %d %d\n", task, released_pid, released_tid)
+%(systemtap_v <= "1.7" %?
+	printf("%d\n", pid)
+%)
 }

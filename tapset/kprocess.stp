@@ -115,7 +115,9 @@ probe kprocess.exit = kernel.function("do_exit") {
  */
 probe kprocess.release = kernel.function("release_task") {
     task = $p
-    pid = $p->pid;
-    released_pid = $p->pid;
-    released_tid = $p->tid;
+%(systemtap_v <= "1.7" %?
+    pid = task_pid($p)
+%)
+    released_pid = task_pid($p)
+    released_tid = task_tid($p)
 }

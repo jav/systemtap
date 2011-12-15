@@ -1962,6 +1962,11 @@ and renamed 'syscall.sysctl32'.
 .IP
 In the x86_64 'syscall.sigaltstack' probe, the 'regs_uaddr'
 variable has been deprecated in favor of the new 'regs' variable.
+.TP
+\-\-compatible=1.7
+In the 'kprocess.release probe, the 'pid variable
+has been deprecated in favor of the new 'releasead_pid'
+variable.
 .\" e.g. tapset_function()
 .\" e.g. post-incrementing a frobozz in a while loop
 
