@@ -161,6 +161,7 @@ probe _sunrpc.clnt.create_client.rpc_new_client_inline =
 	module("sunrpc").function("rpc_new_client").inline
 {
 	if (@defined($args)) {		# kernel > 2.6.18 (with good debuginfo)
+		args = $args
 		servername = kernel_string($args->servername)
 		progname = kernel_string($args->program->name)
 		prog = $args->prognumber
