@@ -422,8 +422,7 @@ make_uprobes (systemtap_session& s)
   string dir(s.tmpdir + "/uprobes");
   if (create_dir(dir.c_str()) != 0)
     {
-      if (! s.suppress_warnings)
-        cerr << _("Warning: failed to create directory for build uprobes.") << endl;
+      s.print_warning("failed to create directory for build uprobes.");
       s.set_try_server ();
       return 1;
     }
@@ -634,8 +633,7 @@ make_tracequeries(systemtap_session& s, const map<string,string>& contents)
   string dir(s.tmpdir + "/" + basename);
   if (create_dir(dir.c_str()) != 0)
     {
-      if (! s.suppress_warnings)
-        cerr << _("Warning: failed to create directory for querying tracepoints.") << endl;
+      s.print_warning("failed to create directory for querying tracepoints.");
       s.set_try_server ();
       return objs;
     }
@@ -699,8 +697,7 @@ make_typequery_kmod(systemtap_session& s, const vector<string>& headers, string&
   string dir(s.tmpdir + "/" + basename);
   if (create_dir(dir.c_str()) != 0)
     {
-      if (! s.suppress_warnings)
-        cerr << _("Warning: failed to create directory for querying types.") << endl;
+      s.print_warning("failed to create directory for querying types.");
       s.set_try_server ();
       return 1;
     }
@@ -799,11 +796,7 @@ make_typequery(systemtap_session& s, string& module)
       string header = module.substr(i, end - i);
       vector<string> matches;
       if (regexp_match(header, "^[a-zA-Z0-9/_.+-]+$", matches))
-        {
-          if (! s.suppress_warnings)
-            cerr << _F("Warning: skipping malformed @cast header \"%s\"",
-                        header.c_str()) << endl;
-        }
+        s.print_warning("skipping malformed @cast header \""+ header + "\"");
       else
         headers.push_back(header);
     }

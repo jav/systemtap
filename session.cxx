@@ -188,9 +188,7 @@ systemtap_session::systemtap_session ():
   if (create_dir(data_path.c_str()) == 1)
     {
       const char* e = strerror (errno);
-      if (! suppress_warnings)
-        cerr << _F("Warning: failed to create systemtap data directory \"%s\":%s, disabling cache support.",
-                   data_path.c_str(),e) << endl;
+        print_warning("failed to create systemtap data directory \"" + data_path + "\" " + e + ", disabling cache support.");
       use_cache = use_script_cache = false;
     }
 
@@ -200,9 +198,7 @@ systemtap_session::systemtap_session ():
       if (create_dir(cache_path.c_str()) == 1)
         {
 	  const char* e = strerror (errno);
-          if (! suppress_warnings)
-            cerr << _F("Warning: failed to create cache directory (\" %s \"): %s, disabling cache support.",
-                       cache_path.c_str(),e) << endl;
+            print_warning("failed to create cache directory (\" " + cache_path + " \") " + e + ", disabling cache support.");
 	  use_cache = use_script_cache = false;
 	}
     }
@@ -1226,18 +1222,18 @@ systemtap_session::check_options (int argc, char * const argv [])
 
 #if ! HAVE_NSS
   if (client_options)
-    cerr << _("WARNING: --client-options is not supported by this version of systemtap") << endl;
+    print_warning("--client-options is not supported by this version of systemtap");
 
   if (! server_trust_spec.empty ())
     {
-      cerr << _("WARNING: --trust-servers is not supported by this version of systemtap") << endl;
+      print_warning("--trust-servers is not supported by this version of systemtap");
       server_trust_spec.clear ();
     }
 #endif
 
   if (runtime_specified && ! specified_servers.empty ())
     {
-      cerr << _("Warning: Ignoring --use-server due to the use of -R") << endl;
+      print_warning("Ignoring --use-server due to the use of -R");
       specified_servers.clear ();
     }
 
@@ -1339,14 +1335,12 @@ systemtap_session::check_options (int argc, char * const argv [])
 
   if (last_pass > 4 && !native_build)
     {
-      if(! suppress_warnings)
-        cerr << _("WARNING: kernel release/architecture mismatch with host forces last-pass 4.") << endl;
+      print_warning("kernel release/architecture mismatch with host forces last-pass 4.");
       last_pass = 4;
     }
   if(download_dbinfo != 0 && access ("/usr/bin/abrt-action-install-debuginfo-to-abrt-cache", X_OK) < 0)
     {
-      if(! suppress_warnings)
-        cerr << _("WARNING: abrt-action-install-debuginfo-to-abrt-cache is not installed. Continuing without downloading debuginfo.") << endl;
+      print_warning("abrt-action-install-debuginfo-to-abrt-cache is not installed. Continuing without downloading debuginfo");
       download_dbinfo = 0;
     }
 
@@ -1618,6 +1612,9 @@ systemtap_session::print_error_source (std::ostream& message,
 void
 systemtap_session::print_warning (const string& message_str, const token* tok)
 {
+  if(suppress_warnings)
+    return;
+
   // Duplicate elimination
   string align_warning (" ");
   if (seen_warnings.find (message_str) == seen_warnings.end())

@@ -146,8 +146,8 @@ dwflpp::get_module_dwarf(bool required, bool report)
 
       if (required)
         throw semantic_error (msg);
-      else if (! sess.suppress_warnings)
-        cerr << _("WARNING: ") << msg << "\n";
+      else
+        sess.print_warning(msg);
     }
 }
 
@@ -1171,8 +1171,7 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
        && interpreter != "/lib64/ld-linux-x86-64.so.2"   // x8664
        && interpreter !=  "/lib/ld-linux.so.2"))          // x86
     {
-      if (! sess.suppress_warnings)
-        sess.print_warning (_F("module %s --ldd skipped: unsupported interpreter: %s",
+      sess.print_warning (_F("module %s --ldd skipped: unsupported interpreter: %s",
                                module_name.c_str(), interpreter.c_str()));
       return;
     }
@@ -1231,10 +1230,8 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
           free (soname);
           free (shlib);
         }
-      if ((fclose(fp) || stap_waitpid(sess.verbose, child))
-          && !sess.suppress_warnings)
-        clog << _F("Warning: failed to read libraries from %s: %s",
-                   module_name.c_str(), strerror(errno)) << endl;
+      if ((fclose(fp) || stap_waitpid(sess.verbose, child)))
+         sess.print_warning("failed to read libraries from " + module_name + ": " + strerror(errno));
     }
 
   for (std::set<std::string>::iterator it = added.begin();
@@ -1650,8 +1647,7 @@ dwflpp::iterate_over_labels (Dwarf_Die *begin_die,
                   if (scopes.size() > 1)
                     {
                       Dwarf_Die scope;
-                      if (!inner_die_containing_pc(scopes[1], stmt_addr, scope)
-                          && !sess.suppress_warnings)
+                      if (!inner_die_containing_pc(scopes[1], stmt_addr, scope))
                         {
                           sess.print_warning(_F("label '%s' at address %s (dieoffset: %s) is not "
                                                 "contained by its scope '%s' (dieoffset: %s) -- bad"

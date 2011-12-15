@@ -103,7 +103,7 @@ class direct : public remote {
 
         int ret = stap_waitpid(s->verbose, child);
         if(ret)
-          clog << _F("Warning: %s exited with status: %d", args.front().c_str(), ret) << endl;
+          s->print_warning(_F("%s exited with status: %d", args.front().c_str(), ret));
         child = 0;
         return ret;
       }

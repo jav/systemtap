@@ -1750,7 +1750,7 @@ add_server_trust (
 
 	  if (chmod (filename.c_str (), 0644) != 0)
 	    {
-             clog << _F("Warning: Unable to change permissions on %s: ", filename.c_str());
+             s.print_warning("Unable to change permissions on " + filename + ": ");
 	      perror ("");
 	    }
 	}
@@ -2124,7 +2124,8 @@ server_spec_to_pmask (const string &server_spec)
 	}
       else
 	{
-	  clog << _F("Warning: unsupported compile server property: %s", property.c_str())
+          // XXX PR13274 needs-session to use print_warning()
+	  clog << _F("WARNING: unsupported compile server property: %s", property.c_str())
 	       << endl;
 	}
     }
@@ -2246,8 +2247,7 @@ manage_server_trust (systemtap_session &s)
       else if (*i == "no-prompt")
 	no_prompt = true;
       else
-	clog << _("Warning: Unrecognized server trust specification: ") << *i
-	     << endl;
+	s.print_warning("Unrecognized server trust specification: " + *i);
     }
   if (error)
     return;

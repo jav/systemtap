@@ -5792,8 +5792,7 @@ dump_unwindsym_cxt (Dwfl_Module *m,
       c->output << "  {";
       if (debug_len > MAX_UNWIND_TABLE_SIZE)
         {
-          if (! c->session.suppress_warnings)
-            c->session.print_warning ("skipping module " + modname + " debug_frame unwind table (too big: " +
+          c->session.print_warning ("skipping module " + modname + " debug_frame unwind table (too big: " +
                                       lex_cast(debug_len) + " > " + lex_cast(MAX_UNWIND_TABLE_SIZE) + ")");
         }
       else
@@ -5816,8 +5815,7 @@ dump_unwindsym_cxt (Dwfl_Module *m,
       c->output << "  {";
       if (eh_len > MAX_UNWIND_TABLE_SIZE)
         {
-          if (! c->session.suppress_warnings)
-            c->session.print_warning ("skipping module " + modname + " eh_frame table (too big: " +
+          c->session.print_warning ("skipping module " + modname + " eh_frame table (too big: " +
                                       lex_cast(eh_len) + " > " + lex_cast(MAX_UNWIND_TABLE_SIZE) + ")");
         }
       else
@@ -5840,8 +5838,7 @@ dump_unwindsym_cxt (Dwfl_Module *m,
       c->output << "  {";
       if (eh_frame_hdr_len > MAX_UNWIND_TABLE_SIZE)
         {
-          if (! c->session.suppress_warnings)
-            c->session.print_warning (_F("skipping module %s eh_frame_hdr table (too big: %s > %s)",
+          c->session.print_warning (_F("skipping module %s eh_frame_hdr table (too big: %s > %s)",
                                           modname.c_str(), lex_cast(eh_frame_hdr_len).c_str(),
                                           lex_cast(MAX_UNWIND_TABLE_SIZE).c_str()));
         }
@@ -5863,7 +5860,7 @@ dump_unwindsym_cxt (Dwfl_Module *m,
       // likely can't do anything about this; backtraces for the
       // affected module would just get all icky heuristicy.
       // So only report in verbose mode.
-      if (c->session.verbose > 2 && ! c->session.suppress_warnings)
+      if (c->session.verbose > 2)
 	c->session.print_warning ("No unwind data for " + modname
 				  + ", " + dwfl_errmsg (-1));
     }
@@ -5909,8 +5906,7 @@ dump_unwindsym_cxt (Dwfl_Module *m,
 	      c->output << "  {";
 	      if (debug_frame_hdr_len > MAX_UNWIND_TABLE_SIZE)
 		{
-		  if (! c->session.suppress_warnings)
-                    c->session.print_warning (_F("skipping module %s, section %s debug_frame_hdr"
+                  c->session.print_warning (_F("skipping module %s, section %s debug_frame_hdr"
                                                  " table (too big: %s > %s)", modname.c_str(),
                                                  secname.c_str(), lex_cast(debug_frame_hdr_len).c_str(),
                                                  lex_cast(MAX_UNWIND_TABLE_SIZE).c_str()));

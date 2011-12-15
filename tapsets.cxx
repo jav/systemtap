@@ -354,9 +354,9 @@ symbol_table
                   Dwarf_Addr addr, Dwarf_Addr *high_addr);
   enum info_status read_symbols(FILE *f, const string& path);
   enum info_status read_from_elf_file(const string& path,
-				      const systemtap_session &sess);
+				      systemtap_session &sess);
   enum info_status read_from_text_file(const string& path,
-				       const systemtap_session &sess);
+				       systemtap_session &sess);
   enum info_status get_from_elf();
   void prepare_section_rejection(Dwfl_Module *mod);
   bool reject_section(GElf_Word section);
@@ -962,10 +962,9 @@ dwarf_query::query_module_symtab()
 
       if (!fi)
         {
-          if (! sess.suppress_warnings)
-                cerr << _F("Warning: address %#" PRIx64 " out of range for module %s\n",
-                    addr, dw.module_name.c_str());
-              return;
+          sess.print_warning(_F("address %#" PRIx64 " out of range for module %s",
+                  addr, dw.module_name.c_str()));
+          return;
         }
       if (!null_die(&fi->die))
         {
@@ -973,9 +972,8 @@ dwarf_query::query_module_symtab()
           // the indicated function, but query_module_dwarf() didn't
           // match addr to any compilation unit, so addr must be
           // above that cu's address range.
-	  if (! sess.suppress_warnings)
-            cerr << _F("Warning: address %#" PRIx64 " maps to no known compilation unit in module %s\n",
-                       addr, dw.module_name.c_str());
+          sess.print_warning(_F("address %#" PRIx64 " maps to no known compilation unit in module %s",
+                       addr, dw.module_name.c_str()));
           return;
         }
       query_func_info(fi->addr, *fi, this);
@@ -1398,7 +1396,7 @@ query_addr(Dwarf_Addr addr, dwarf_query *q)
                       dw.cu_name().c_str(), dw.module_name.c_str());
           if (! q->sess.guru_mode)
             throw semantic_error(msg.str());
-          else if (! q->sess.suppress_warnings)
+          else
            q->sess.print_warning(msg.str());
         }
     }
@@ -1744,7 +1742,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
       if (q->spec_type == function_file_and_line)
         {
           // .statement(...:NN) often gets mixed up with .function(...:NN)
-          if (q->has_function_str && ! q->sess.suppress_warnings)
+          if (q->has_function_str)
             q->sess.print_warning (_("For probing a particular line, use a "
                                    ".statement() probe, not .function()"), 
                                    q->base_probe->tok);
@@ -6903,7 +6901,7 @@ symbol_table::read_symbols(FILE *f, const string& path)
 // nm provides the address relative to the beginning of the section.
 enum info_status
 symbol_table::read_from_elf_file(const string &path,
-				 const systemtap_session &sess)
+				 systemtap_session &sess)
 {
   vector<string> cmd;
   cmd.push_back("/usr/bin/nm");
@@ -6924,8 +6922,8 @@ symbol_table::read_from_elf_file(const string &path,
   enum info_status status = read_symbols(f, path);
   if (fclose(f) || stap_waitpid(sess.verbose, child))
     {
-      if (status == info_present && ! sess.suppress_warnings)
-        cerr << _F("Warning: nm cannot read symbol table from %s\n", path.c_str());
+      if (status == info_present)
+        sess.print_warning("nm cannot read symbol table from " + path);
       return info_absent;
     }
   return status;
@@ -6933,14 +6931,12 @@ symbol_table::read_from_elf_file(const string &path,
 
 enum info_status
 symbol_table::read_from_text_file(const string& path,
-				  const systemtap_session &sess)
+				  systemtap_session &sess)
 {
   FILE *f = fopen(path.c_str(), "r");
   if (!f)
     {
-      if (! sess.suppress_warnings)
-        cerr << _F("Warning: cannot read symbol table from %s -- %s\n",
-                   path.c_str(), strerror(errno));
+      sess.print_warning("cannot read symbol table from " + path + " -- " + strerror(errno));
       return info_absent;
     }
   enum info_status status = read_symbols(f, path);
@@ -7094,10 +7090,8 @@ module_info::get_symtab(dwarf_query *q)
   sym_table = new symbol_table(this);
   if (!elf_path.empty())
     {
-      if (name == TOK_KERNEL && !sess.kernel_symtab_path.empty()
-	  && ! sess.suppress_warnings)
-        cerr << _F("Warning: reading symbol table from %s -- ignoring %s\n",
-                   elf_path.c_str(), sess.kernel_symtab_path.c_str()) << endl;
+      if (name == TOK_KERNEL && !sess.kernel_symtab_path.empty())
+        sess.print_warning("reading symbol table from " + elf_path + " -- ignoring " + sess.kernel_symtab_path.c_str());
       symtab_status = sym_table->get_from_elf();
     }
   else
@@ -8372,8 +8366,7 @@ void hwbkpt_derived_probe_group::enroll (hwbkpt_derived_probe* p, systemtap_sess
     max_hwbkpt_probes_by_arch = 1;
 
   if (hwbkpt_probes.size() >= max_hwbkpt_probes_by_arch)
-    if (! s.suppress_warnings)
-      s.print_warning (_F("Too many hardware breakpoint probes requested for %s (%zu vs. %u)",
+    s.print_warning (_F("Too many hardware breakpoint probes requested for %s (%zu vs. %u)",
                           s.architecture.c_str(), hwbkpt_probes.size(), max_hwbkpt_probes_by_arch));
 }
 

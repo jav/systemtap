@@ -527,7 +527,7 @@ internal_find_debuginfo (Dwfl_Module *mod,
   /* Check that we haven't already run this */
   if (install_dbinfo_failed < 0)
     {
-      if(current_session_for_find_debuginfo->verbose > 1 && !current_session_for_find_debuginfo->suppress_warnings)
+      if(current_session_for_find_debuginfo->verbose > 1)
         current_session_for_find_debuginfo->print_warning( _F("We already tried running '%s'", ABRT_PATH));
       goto call_dwfl_standard_find_debuginfo;
     }
@@ -571,8 +571,7 @@ internal_find_debuginfo (Dwfl_Module *mod,
   if(execute_abrt_action_install_debuginfo_to_abrt_cache (hex) < 0)
     {
       install_dbinfo_failed = -1;
-      if (!current_session_for_find_debuginfo->suppress_warnings)
-        current_session_for_find_debuginfo->print_warning(_F("%s failed.", ABRT_PATH));
+      current_session_for_find_debuginfo->print_warning(_F("%s failed.", ABRT_PATH));
       goto call_dwfl_standard_find_debuginfo;
     }
 
@@ -615,15 +614,14 @@ execute_abrt_action_install_debuginfo_to_abrt_cache (string hex)
     {
       cmd.push_back ("echo " + hex + " | " + ABRT_PATH + " --ids=-");
       timeout = INT_MAX; 
-      if(!current_session_for_find_debuginfo->suppress_warnings)
-        current_session_for_find_debuginfo->print_warning(_("Due to bug in abrt, it may continue downloading anyway without asking for confirmation."));
+      current_session_for_find_debuginfo->print_warning(_("Due to bug in abrt, it may continue downloading anyway without asking for confirmation."));
     }
   else
     cmd.push_back ("echo " + hex + " | " + ABRT_PATH + " -y --ids=-");
  
   /* NOTE: abrt does not allow canceling the download process at the moment
    * in version abrt-2.0.3-1.fc15.x86_64, Bugzilla: BZ730107 */
-  if(timeout != INT_MAX && !current_session_for_find_debuginfo->suppress_warnings)
+  if(timeout != INT_MAX)
     current_session_for_find_debuginfo->print_warning(_("Due to a bug in abrt, it  may continue downloading after stopping stap if download times out."));
   
   int pid;
@@ -667,8 +665,7 @@ execute_abrt_action_install_debuginfo_to_abrt_cache (string hex)
     {
       /* Timed out! */
       kill(-pid, SIGINT);
-      if (!current_session_for_find_debuginfo->suppress_warnings)
-        current_session_for_find_debuginfo->print_warning(_("Aborted downloading debuginfo: timed out."));
+      current_session_for_find_debuginfo->print_warning(_("Aborted downloading debuginfo: timed out."));
       return -1;
     }
 

@@ -466,7 +466,7 @@ passes_0_4 (systemtap_session &s)
       }
       return rc;
 #else
-      cerr << _("WARNING: Without NSS, using a compile-server is not supported by this version of systemtap") << endl;
+      s.print_warning("Without NSS, using a compile-server is not supported by this version of systemtap");
       // This cannot be an attempt to use a server after a local compile failed
       // since --use-server-on-error is locked to 'no' if we don't have
       // NSS.
@@ -615,7 +615,7 @@ passes_0_4 (systemtap_session &s)
 
               // XXX: privilege only for /usr/share/systemtap?
               stapfile* f = parse (s, globbuf.gl_pathv[j], true);
-              if (f == 0 && !s.suppress_warnings)
+              if (f == 0)
                 s.print_warning("tapset '" + string(globbuf.gl_pathv[j])
                                 + "' has errors, and will be skipped.");
               else

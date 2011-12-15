@@ -542,7 +542,8 @@ stap_spawn(int verbose, const vector<string>& args,
   const char *cmd;
   string command;
   if(*it == '/' && (access(args[0].c_str(), X_OK)==-1)) //checking to see if staprun is executable
-    clog << _F("Warning: %s is not executable (%s)", args[0].c_str(), strerror(errno)) << endl;
+    // XXX PR13274 needs-session to use print_warning()
+    clog << _F("WARNING: %s is not executable (%s)", args[0].c_str(), strerror(errno)) << endl;
   for (size_t i = 0; i < args.size(); ++i)
     command += " " + args[i];
   cmd = command.c_str();
@@ -695,7 +696,8 @@ stap_system(int verbose, const vector<string>& args,
       if (pid > 0){
         ret = stap_waitpid(verbose, pid);
         if(ret)
-          clog << _F("Warning: %s exited with status: %d", args.front().c_str(), ret) << endl;
+          // XXX PR13274 needs-session to use print_warning()
+          clog << _F("WARNING: %s exited with status: %d", args.front().c_str(), ret) << endl;
       }
     }
 
