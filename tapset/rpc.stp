@@ -112,8 +112,8 @@ probe sunrpc.clnt.create_client =
 
 global __rpc_create_args
 
-probe kernel.function("rpc_create") !,
-	module("sunrpc").function("rpc_create") ?
+probe kernel.function("rpc_create").call !,
+	module("sunrpc").function("rpc_create").call ?
 {
 	__rpc_create_args[tid()] = $args
 }
