@@ -16,5 +16,7 @@ func (int arg)
 int
 main (int argc, char *argv[], char *envp[])
 {
-  return func(42);
+// Note: Passing to srand to force evaluation of func().
+ srand(func(42));
+  return 0;
 }

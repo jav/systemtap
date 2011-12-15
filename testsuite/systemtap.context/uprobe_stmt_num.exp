@@ -21,7 +21,7 @@ if { $res != "" } {
     return
 }
 
-set cmd [concat stap -c $testexe $teststp]
+set cmd [concat stap -wc $testexe $teststp]
 send_log "cmd: $cmd\n"
 catch {eval exec $cmd} output
 send_log "cmd output: $output\n"
@@ -47,7 +47,7 @@ if { $lines >= 6 } {
 set ::result_string $output
 
 # Sanity check, just run again...
-stap_run3 $test-run-two $testpath/$test.stp -c $testexe
+stap_run3 $test-run-two -w $testpath/$test.stp -c $testexe
 
 # create a script based on the given statements,
 # probe all of them individually.
@@ -59,7 +59,7 @@ foreach line $output_lines {
     puts $fp "}"
 }
 close $fp
-stap_run3 $test-run-statements $test-run-statements.stp -c $testexe
+stap_run3 $test-run-statements -w $test-run-statements.stp -c $testexe
 
 # Now strip away the line info and try again (with -g).
 set strip_cmd [list "objcopy" "-R" ".debug_line"]

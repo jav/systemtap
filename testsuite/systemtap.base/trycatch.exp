@@ -9,7 +9,7 @@ expect {
     -timeout 30
     -re {^ERROR: MAXACTION[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^WARNING: Number of errors[^\r\n]*\r\n} { incr ok; exp_continue }
-    -re {^Warning:[^\r\n]* exited with status:[^\r\n]*\r\n} {incr ok; exp_continue }
+    -re {^WARNING:[^\r\n]* exited with status:[^\r\n]*\r\n} {incr ok; exp_continue }
     -re {^Pass 5: run failed[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^OK[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^KO[^\r\n]*\r\n} { incr ko; exp_continue }
@@ -29,7 +29,7 @@ expect {
     -timeout 30
     -re {^ERROR: MAXACTION[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^WARNING: Number of errors[^\r\n]*\r\n} { incr ok; exp_continue }
-    -re {^Warning:[^\r\n]* exited with status:[^\r\n]*\r\n} {incr ok; exp_continue }
+    -re {^WARNING:[^\r\n]* exited with status:[^\r\n]*\r\n} {incr ok; exp_continue }
     -re {^Pass 5: run failed[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^OK[^\r\n]*\r\n} { incr ok; exp_continue }
     -re {^KO[^\r\n]*\r\n} { incr ko; exp_continue }
