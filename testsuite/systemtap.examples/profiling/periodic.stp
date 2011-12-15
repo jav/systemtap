@@ -34,8 +34,10 @@ function output()
         @cast(data[timer], "struct task_struct")->pid)
       type="process"
     } else if (fname == "delayed_work_timer_fn") {
-      fname = sprintf("%s", 
-        symname(@cast(data[timer], "struct delayed_work")->work->func))
+      faddr = @defined(@cast(data[timer], "struct delayed_work")->work->func)
+        ? @cast(data[timer], "struct delayed_work")->work->func
+	: @cast(data[timer], "struct work_struct")->func
+      fname = sprintf("%s", symname(faddr))
       type="work_q"
     } else {
       fname = sprintf("%s", symdata(funct[timer]))
