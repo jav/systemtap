@@ -1,0 +1,44 @@
+#! stap -p4
+
+# test to exercise the speculative.stp tapset
+# shows file operations for a file that later had a read or write problem.
+
+global file_desc
+
+probe syscall.open.return
+{
+  if (pid() != target()) next
+  file_desc[$return] = speculation()
+  speculate(file_desc[$return], sprintf("open(%s) = %d\n", 
+              user_string($filename), $return))
+}
+
+probe syscall.close.return
+{
+  if (pid() != target()) next
+  if (! ($fd in file_desc)) next
+
+  if ($return < 0)
+    commit(file_desc[$fd])
+  else
+    discard(file_desc[$fd])
+  delete file_desc[$fd]
+}
+
+probe syscall.read.return {
+  if (pid() != target()) next
+  if (! ($fd in file_desc)) next
+
+  speculate(file_desc[$fd], sprintf("read(%d, %p, %d) = %d\n", 
+            $fd, $buf, $count, $return))
+  if ($return < 0) commit(file_desc[$fd])
+}
+
+probe syscall.write.return {
+  if (pid() != target()) next
+  if (! ($fd in file_desc)) next
+
+  speculate(file_desc[$fd], sprintf("write(%d, %p, %d) = %d\n", 
+            $fd, $buf, $count, $return))
+  if ($return < 0) commit(file_desc[$fd])
+}
