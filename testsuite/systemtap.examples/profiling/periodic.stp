@@ -43,7 +43,7 @@ function output()
       fname = sprintf("%s", symdata(funct[timer]))
       type="kernel"
     }
-    printf("%-7s %-50s %11d %9d\n", type, fname,
+    printf("%-7s %-50.50s %11d %9d\n", type, fname,
            @avg(period[timer]), @count(period[timer]))
   }
 }
