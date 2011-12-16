@@ -538,6 +538,26 @@ static int _stp_snprint_addr(char *str, size_t len, unsigned long address,
         return _stp_snprintf(str, len, "%s%p [%s]%s%s", prestr,
 			     (int64_t) address, modname, exstr, poststr);
       }
+#ifdef STAPCONF_MODULE_TEXT_ADDRESS
+    } if ((flags & _STP_SYM_MODULE) && ! task) {
+      /* No symbol, nor module name, but user really wants one, do one
+	 last try. */
+      struct module *ko;
+      preempt_disable();
+      ko = __module_text_address (address);
+      if (ko && ko->name)
+	{
+	  /* hex address, module name */
+	  int ret = _stp_snprintf(str, len, "%s%p [%s]%s%s", prestr,
+				  (int64_t) address, ko->name, exstr, poststr);
+	  preempt_enable_no_resched();
+	  return ret;
+        }
+      preempt_enable_no_resched();
+      /* no names, hex only */
+      return _stp_snprintf(str, len, "%s%p%s%s", prestr,
+			   (int64_t) address, exstr, poststr);
+#endif
     } else {
       /* no names, hex only */
       return _stp_snprintf(str, len, "%s%p%s%s", prestr,

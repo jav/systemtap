@@ -154,11 +154,28 @@ function probemod:string () %{ /* pure */
  */
 function modname:string (addr: long) %{ /* pure */
 	struct _stp_module *m;
+#ifdef STAPCONF_MODULE_TEXT_ADDRESS
+	struct module *ko;
+#endif
 	m = _stp_kmod_sec_lookup (THIS->addr, NULL);
 	if (m && m->name)
-          strlcpy (THIS->__retvalue, m->name, MAXSTRINGLEN);
-	else
-	  strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+	  {
+	    strlcpy (THIS->__retvalue, m->name, MAXSTRINGLEN);
+	    return;
+	  }
+
+#ifdef STAPCONF_MODULE_TEXT_ADDRESS
+	preempt_disable();
+	ko = __module_text_address (THIS->addr);
+	if (ko && ko->name)
+	  {
+	    strlcpy (THIS->__retvalue, ko->name, MAXSTRINGLEN);
+	    preempt_enable_no_resched();
+	    return;
+	  }
+	preempt_enable_no_resched();
+#endif
+	strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
 %}
 
 /**
