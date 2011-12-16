@@ -51,9 +51,13 @@ __stp_tf_vma_new_entry(void)
 {
 	struct __stp_tf_vma_entry *entry;
 	size_t size = sizeof (struct __stp_tf_vma_entry);
-
+#ifdef CONFIG_UTRACE
+	entry = (struct __stp_tf_vma_entry *) _stp_kmalloc_gfp(size,
+                                                         STP_ALLOC_SLEEP_FLAGS);
+#else
 	entry = (struct __stp_tf_vma_entry *) _stp_kmalloc_gfp(size,
                                                                STP_ALLOC_FLAGS);
+#endif
 	return entry;
 }
 
