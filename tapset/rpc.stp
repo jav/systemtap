@@ -161,7 +161,10 @@ probe _sunrpc.clnt.create_client.rpc_new_client_inline =
 	module("sunrpc").function("rpc_new_client").inline
 {
 	if (@defined($args)) {		# kernel > 2.6.18 (with good debuginfo)
+%(systemtap_v <= "1.7" %?
 		args = $args
+%)
+		__args = $args
 		servername = kernel_string($args->servername)
 		progname = kernel_string($args->program->name)
 		prog = $args->prognumber
@@ -173,14 +176,17 @@ probe _sunrpc.clnt.create_client.rpc_new_client_inline =
 			? $xprt->port : port_from_xprt($xprt))
 	}
 	else {				# kernel > 2.6.18 (with bad debuginfo)
+%(systemtap_v <= "1.7" %?
 		args = __rpc_create_args[tid()]
-		servername = kernel_string(@cast(args, "rpc_create_args", "kernel:sunrpc")->servername)
-		progname = kernel_string(@cast(args, "rpc_create_args", "kernel:sunrpc")->program->name)
-		prog = @cast(args, "rpc_create_args", "kernel:sunrpc")->prognumber
-		vers = vers_from_prog(@cast(args, "rpc_create_args", "kernel:sunrpc")->program, @cast(args, "rpc_create_args", "kernel:sunrpc")->version)
-		authflavor = @cast(args, "rpc_create_args", "kernel:sunrpc")->authflavor
+%)
+		__args = __rpc_create_args[tid()]
+		servername = kernel_string(@cast(__args, "rpc_create_args", "kernel:sunrpc")->servername)
+		progname = kernel_string(@cast(__args, "rpc_create_args", "kernel:sunrpc")->program->name)
+		prog = @cast(__args, "rpc_create_args", "kernel:sunrpc")->prognumber
+		vers = vers_from_prog(@cast(__args, "rpc_create_args", "kernel:sunrpc")->program, @cast(__args, "rpc_create_args", "kernel:sunrpc")->version)
+		authflavor = @cast(__args, "rpc_create_args", "kernel:sunrpc")->authflavor
 
-		prot = __rpc_prot_from_protocol(@cast(args, "rpc_create_args", "kernel:sunrpc")->protocol)
+		prot = __rpc_prot_from_protocol(@cast(__args, "rpc_create_args", "kernel:sunrpc")->protocol)
 		# Since we can't find $xprt, we can't know the port
 		port = -1
 	}
