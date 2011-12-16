@@ -10,13 +10,3 @@ probe scheduler.ctxswitch
 		next_pid, next_priority, nexttsk_state,
 		next_task_name, next_tid)
 }
-
-probe __scheduler.ctxswitch.kp
-{
-        printf("prev: pid %d, priority %d, state %d, task_name %s, tid %d\n",
-		prev_pid, prev_priority, prevtsk_state,
-		prev_task_name, prev_tid)
-        printf("next: pid %d, priority %d, state %d, task_name %s, tid %d\n",
-		next_pid, next_priority, nexttsk_state,
-		next_task_name, next_tid)
-}
