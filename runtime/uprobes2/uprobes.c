@@ -552,6 +552,8 @@ static void uprobe_free_task(struct uprobe_task *utask, bool in_callback)
 	struct delayed_signal *ds, *ds2;
 
 	if (utask->engine && (utask->tsk != current || !in_callback)) {
+		int result;
+
 		/*
 		 * No other tasks in this process should be running
 		 * uprobe_report_* callbacks.  (If they are, utrace_barrier()
@@ -559,10 +561,10 @@ static void uprobe_free_task(struct uprobe_task *utask, bool in_callback)
 		 * utrace_control_pid calls task_pid() so we should hold the
 		 * rcu_read_lock.  */
 		rcu_read_lock();
-		int result = utrace_control_pid(utask->pid, utask->engine,
-								UTRACE_DETACH);
-			BUG_ON(result == -EINPROGRESS);
+		result = utrace_control_pid(utask->pid, utask->engine,
+					    UTRACE_DETACH);
 		rcu_read_unlock();
+		BUG_ON(result == -EINPROGRESS);
 	}
 	put_pid(utask->pid);	/* null pid OK */
 
