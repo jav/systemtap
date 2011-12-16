@@ -381,6 +381,7 @@ probe scheduler.process_free =
 probe __scheduler.process_exit.kp = kernel.function("do_exit")
 {
 	if (@defined($tsk)) {
+		__tsk = $tsk
 		pid = $tsk->tgid
 		priority = $tsk->prio
 	}
