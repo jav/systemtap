@@ -1,14 +1,15 @@
 #! stap -p2
 
 # check that number comparisons work in CONFIG checks
+# Note that unset CONFIG options compare equal the empty string and/or zero
 probe
   %( CONFIG_NR_CPUS == 13 %?
     noprobe
   %:
-    %( CONFIG_NR_CPUS < 1 %?
+    %( CONFIG_NR_CPUS != "" && CONFIG_NR_CPUS < 1 %?
       nonoprobe
     %:
-      %( CONFIG_NR_CPUS >= 0 %?
+      %( CONFIG_NR_CPUS >= 0 && CONFIG_NO_SUCH_FOOBAR_CONFIG_OPTION == 0 %?
         begin
       %:
         nononoprobe
