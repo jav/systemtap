@@ -137,18 +137,29 @@ static int _stp_vma_mmap_cb(struct stap_task_finder_target *tgt,
 		for (i = 0; i < _stp_num_modules; i++) {
 			if (strcmp(path, _stp_modules[i]->path) == 0)
 			{
+			  unsigned long vm_start = 0;
+			  unsigned long vm_end = 0;
 #ifdef DEBUG_TASK_FINDER_VMA
 			  _stp_dbug(__FUNCTION__, __LINE__,
 				    "vm_cb: matched path %s to module (sec: %s)\n",
 				    path, _stp_modules[i]->sections[0].name);
 #endif
 			  module = _stp_modules[i];
-			  /* XXX We really only need to register .dynamic
-			     sections, but .absolute exes are also necessary
-			     atm. */
-			  res = stap_add_vma_map_info(tsk->group_leader,
-						      addr, addr + length,
-						      path, module);
+			  /* Make sure we really don't know about this module
+			     yet.  If we do know, we might want to extend
+			     the coverage. */
+			  res = stap_find_vma_map_info_user(tsk->group_leader,
+							    module,
+							    &vm_start, &vm_end,
+							    NULL);
+			  if (res == -ESRCH)
+			    res = stap_add_vma_map_info(tsk->group_leader,
+						        addr, addr + length,
+						        path, module);
+			  else if (res == 0 && vm_end + 1 == addr)
+			    res = stap_extend_vma_map_info(tsk->group_leader,
+							   vm_start,
+							   addr + length);
 			  /* VMA entries are allocated dynamically, this is fine,
 			   * since we are in a task_finder callback, which is in
 			   * user context. */
