@@ -117,7 +117,7 @@ probe scheduler.balance = kernel.function("idle_balance") ?
  */
 
 probe scheduler.ctxswitch = kernel.trace("sched_switch") !,
-%( arch != "x86_64" && arch != "ia64" %?
+%( arch != "x86_64" && arch != "ia64" && arch != "arm" %?
 	kernel.function("__switch_to")
 %:
 	kernel.function("context_switch")
