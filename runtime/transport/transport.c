@@ -317,7 +317,6 @@ static int _stp_transport_init(void)
 #endif
 
 /* PR13489, missing inode-uprobes symbol-export workaround */
-#if defined(CONFIG_UPROBES) // i.e., kernel-embedded uprobes
 #if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED)
         kallsyms_task_user_regset_view = (void*) kallsyms_lookup_name ("task_user_regset_view");
         if (kallsyms_task_user_regset_view == NULL) {
@@ -325,6 +324,7 @@ static int _stp_transport_init(void)
                 goto err0;
         }
 #endif
+#if defined(CONFIG_UPROBES) // i.e., kernel-embedded uprobes
 #if !defined(STAPCONF_REGISTER_UPROBE_EXPORTED)
         kallsyms_register_uprobe = (void*) kallsyms_lookup_name ("register_uprobe");
         if (kallsyms_register_uprobe == NULL) {
