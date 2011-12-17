@@ -1464,11 +1464,7 @@ c_unparser::emit_global (vardecl *v)
     o->newline() << "PMAP s_" << vn << ";";
   else
     o->newline() << "MAP s_" << vn << ";";
-  o->newline() << "#ifdef CONFIG_PREEMPT_RT";
-  o->newline() << "raw_rwlock_t s_" << vn << "_lock;";
-  o->newline() << "#else";
   o->newline() << "rwlock_t s_" << vn << "_lock;";
-  o->newline() << "#endif";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "atomic_t s_" << vn << "_lock_skip_count;";
   o->newline() << "#endif\n";

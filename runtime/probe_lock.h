@@ -21,11 +21,7 @@ struct stp_probe_lock {
 	#ifdef STP_TIMING
 	atomic_t *skipped;
 	#endif
-#ifdef CONFIG_PREEMPT_RT
-        raw_rwlock_t *lock;
-#else
 	rwlock_t *lock;
-#endif
 	unsigned write_p;
 };
 

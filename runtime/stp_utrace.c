@@ -91,11 +91,7 @@ struct utrace {
 
 static struct hlist_head task_utrace_table[TASK_UTRACE_TABLE_SIZE];
 //DEFINE_MUTEX(task_utrace_mutex);      /* Protects task_utrace_table */
-#ifdef CONFIG_PREEMPT_RT
-static DEFINE_RAW_SPINLOCK(task_utrace_lock); /* Protects task_utrace_table */
-#else
 static DEFINE_SPINLOCK(task_utrace_lock); /* Protects task_utrace_table */
-#endif
 
 static struct kmem_cache *utrace_cachep;
 static struct kmem_cache *utrace_engine_cachep;

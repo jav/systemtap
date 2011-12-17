@@ -16,11 +16,7 @@ typedef struct {
 	struct list_head free_list;
 	unsigned num;
 	unsigned size;
-#ifdef CONFIG_PREEMPT_RT
-	raw_spinlock_t lock;
-#else
 	spinlock_t lock;
-#endif
 } _stp_mempool_t;
 
 /* for internal use only */

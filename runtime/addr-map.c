@@ -28,11 +28,7 @@ struct addr_map
   struct addr_map_entry entries[0];
 };
 
-#ifdef CONFIG_PREEMPT_RT
-static DEFINE_RAW_RWLOCK(addr_map_lock);
-#else
 static DEFINE_RWLOCK(addr_map_lock);
-#endif
 static struct addr_map* blackmap;
 
 /* Find address of entry where we can insert a new one. */
