@@ -300,6 +300,7 @@ compile_pass (systemtap_session& s)
   // used by runtime/uprobe-inode.c
   output_exportconf(s, o, "register_uprobe", "STAPCONF_REGISTER_UPROBE_EXPORTED");
   output_exportconf(s, o, "unregister_uprobe", "STAPCONF_UNREGISTER_UPROBE_EXPORTED");
+  // used by runtime/loc2c-runtime.h
   output_exportconf(s, o, "task_user_regset_view", "STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED");
 
   o << module_cflags << " += -include $(STAPCONF_HEADER)" << endl;
