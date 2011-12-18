@@ -128,7 +128,10 @@
 #else // PR13489, inodes-uprobes export kludge
 #if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED)
 typedef const struct user_regset_view* (*task_user_regset_view_fn)(struct task_struct *tsk);
-#define task_user_regset_view (* (task_user_regset_view_fn)(kallsyms_task_user_regset_view))
+/* Special macro to tolerate the kallsyms function pointer being zero. */
+#define task_user_regset_view(t) (kallsyms_task_user_regset_view ? \
+                                  (* (task_user_regset_view_fn)(kallsyms_task_user_regset_view))((t)) : \
+                                  NULL)
 #endif
 #endif
 

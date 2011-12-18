@@ -319,9 +319,12 @@ static int _stp_transport_init(void)
 /* PR13489, missing inode-uprobes symbol-export workaround */
 #if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED)
         kallsyms_task_user_regset_view = (void*) kallsyms_lookup_name ("task_user_regset_view");
+        /* There exist interesting kernel versions without task_user_regset_view(), like ARM before 3.0.
+           For these kernels, uprobes etc. are out of the question, but plain kernel stap works fine.
+           All we have to accomplish is have the loc2c runtime code compile.  For that, it's enough
+           to leave this pointer zero. */
         if (kallsyms_task_user_regset_view == NULL) {
-                printk(KERN_ERR "%s can't resolve task_user_regset_view!", THIS_MODULE->name);
-                goto err0;
+                ;
         }
 #endif
 #if defined(CONFIG_UPROBES) // i.e., kernel-embedded uprobes
