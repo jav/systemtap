@@ -437,9 +437,9 @@ static int _stp_ctl_send(int type, void *data, unsigned len)
 	/* get a buffer from the free pool */
 	bptr = _stp_ctl_get_buffer(type, data, len);
 	if (unlikely(bptr == NULL)) {
-		/* Nothing else we can do... */
-                printk(KERN_ERR "ctl_write_msg type=%d len=%d ENOMEM\n",
-		       type, len);
+		/* Nothing else we can do... but let's not spam the kernel
+                   with these reports. */
+                /* printk(KERN_ERR "ctl_write_msg type=%d len=%d ENOMEM\n", type, len); */
 		return -ENOMEM;
 	}
 
