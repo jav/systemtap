@@ -317,7 +317,7 @@ static int _stp_transport_init(void)
 #endif
 
 /* PR13489, missing inode-uprobes symbol-export workaround */
-#if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED)
+#if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED) && !defined(STAPCONF_UTRACE_REGSET) /* RHEL5 era utrace */
         kallsyms_task_user_regset_view = (void*) kallsyms_lookup_name ("task_user_regset_view");
         /* There exist interesting kernel versions without task_user_regset_view(), like ARM before 3.0.
            For these kernels, uprobes etc. are out of the question, but plain kernel stap works fine.
