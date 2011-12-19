@@ -76,7 +76,6 @@ struct stap_task_finder_target {
 	struct list_head callback_list;
 	struct utrace_engine_ops ops;
 	size_t pathlen;
-    /* FIXME:  Is 'engine_attached' needed? */
 	unsigned engine_attached:1;
 	unsigned mmap_events:1;
 	unsigned munmap_events:1;
@@ -145,24 +144,18 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 		new_tgt->pathlen = 0;
 
 	// Make sure everything is initialized properly.
-#if 1
 	new_tgt->engine_attached = 0;
-#endif
 	new_tgt->mmap_events = 0;
 	new_tgt->munmap_events = 0;
 	new_tgt->mprotect_events = 0;
 	memset(&new_tgt->ops, 0, sizeof(new_tgt->ops));
-#if 1
 	new_tgt->ops.report_exec = &__stp_utrace_task_finder_target_exec;
-#endif
 	new_tgt->ops.report_death = &__stp_utrace_task_finder_target_death;
-#if 1
 	new_tgt->ops.report_quiesce = &__stp_utrace_task_finder_target_quiesce;
 	new_tgt->ops.report_syscall_entry = \
 		&__stp_utrace_task_finder_target_syscall_entry;
 	new_tgt->ops.report_syscall_exit = \
 		&__stp_utrace_task_finder_target_syscall_exit;
-#endif
 
 	// Search the list for an existing entry for procname/pid.
 	list_for_each(node, &__stp_task_finder_list) {
@@ -226,8 +219,6 @@ stap_utrace_detach(struct task_struct *tsk,
 		return 0;
 #endif
 
-	/* FIXME: for now do nothing. */
-#if 0
 	// Notice we're not calling get_task_mm() here.  Normally we
 	// avoid tasks with no mm, because those are kernel threads.
 	// So, why is this function different?  When a thread is in
@@ -286,7 +277,6 @@ stap_utrace_detach(struct task_struct *tsk,
 		}
 		utrace_engine_put(engine);
 	}
-#endif
 	return rc;
 }
 
@@ -479,7 +469,6 @@ __stp_utrace_attach(struct task_struct *tsk,
 		if (rc == 0) {
 			debug_task_finder_attach();
 
-#if 1
 			if (action != UTRACE_RESUME) {
 				rc = utrace_control(tsk, engine, UTRACE_STOP);
 				if (rc == -EINPROGRESS)
@@ -492,7 +481,6 @@ __stp_utrace_attach(struct task_struct *tsk,
 					_stp_error("utrace_control returned error %d on pid %d",
 						   rc, (int)tsk->pid);
 			}
-#endif
 
 		}
 		else if (rc != -ESRCH && rc != -EALREADY)
@@ -601,7 +589,7 @@ __stp_call_mmap_callbacks_with_addr(struct stap_task_finder_target *tgt,
 	struct vm_area_struct *vma;
 	char *mmpath_buf = NULL;
 	char *mmpath = NULL;
-	struct dentry *dentry;
+	struct dentry *dentry = NULL;
 	unsigned long length = 0;
 	unsigned long offset = 0;
 	unsigned long vm_flags = 0;
@@ -735,9 +723,6 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 	struct stap_task_finder_target *tgt;
 	uid_t tsk_euid;
 
-#if 0
-	printk(KERN_ERR "%s:%d entry\n", __FUNCTION__, __LINE__);
-#endif
 #ifdef STAPCONF_TASK_UID
 	tsk_euid = tsk->euid;
 #else
@@ -765,7 +750,8 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 		/* Notice that "pid == 0" (which means to probe all
 		 * threads) falls through. */
 
-#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV) && \
+    ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPSYS)
 		/* Make sure unprivileged users only probe their own threads. */
 		if (_stp_uid != tsk_euid) {
 			if (tgt->pid != 0) {
@@ -1365,58 +1351,6 @@ stap_start_task_finder(void)
 
 	atomic_set(&__stp_task_finder_state, __STP_TF_RUNNING);
 
-#if 0
-	/* Here we need to set up our system-wide handlers. */
-	__stp_utrace_task_finder_engine
-		= utrace_attach_task(NULL, UTRACE_ATTACH_CREATE,
-				     &__stp_utrace_task_finder_ops, NULL);
-	if (IS_ERR(__stp_utrace_task_finder_engine)) {
-		int error = -PTR_ERR(__stp_utrace_task_finder_engine);
-		_stp_error("utrace_attach_task returned error %d", error);
-		rc = error;
-	}
-	else if (unlikely(__stp_utrace_task_finder_engine == NULL)) {
-		_stp_error("utrace_attach_task returned NULL");
-		rc = EFAULT;
-	}
-	else {
-		/* FIXME: more code here!!! */
-		/* set_events()... */
-		rc = utrace_set_events(NULL, __stp_utrace_task_finder_engine,
-				       __STP_TASK_FINDER_EVENTS);
-		/* FIXME: could a global one be EINPROGRESS.  Hmm, I
-		 * guess it could in the general case, but here this
-		 * is really the 1st global one added... */
-#if 0
-		if (rc == -EINPROGRESS) {
-			/*
-			 * It's running our callback, so we have to
-			 * synchronize.  We can't keep rcu_read_lock,
-			 * so the task pointer might die.  But it's
-			 * safe to call utrace_barrier() even with a
-			 * stale task pointer, if we have an engine
-			 * ref.
-			 */
-			do {
-				rc = utrace_barrier(tsk, engine);
-			} while (rc == -ERESTARTSYS);
-			if (rc != 0 && rc != -ESRCH && rc != -EALREADY)
-				_stp_error("utrace_barrier returned error %d on pid %d",
-					   rc, (int)tsk->pid);
-		}
-#endif
-		if (rc == 0) {
-			debug_task_finder_attach();
-		}
-		else if (rc != -ESRCH && rc != -EALREADY)
-			_stp_error("utrace_set_events returned error %d",
-				   rc);
-		utrace_engine_put(__stp_utrace_task_finder_engine);
-	}
-#endif
-
-	/* FIXME: Here we will still need to go through all the
-	 * threads, so we can report on their memory maps. But, for now... */
 	rcu_read_lock();
 	do_each_thread(grp, tsk) {
 		struct mm_struct *mm;
