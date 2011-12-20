@@ -100,6 +100,14 @@ proc setup_systemtap_environment {} {
     # Start with fresh server certificates
     exec rm -fr $env(SYSTEMTAP_DIR)/ssl
 
+    # Remove the rc file
+    exec rm -f $env(SYSTEMTAP_DIR)/rc
+
+    # All hail the prophet lockdep
+    set chan [open $env(SYSTEMTAP_DIR)/rc w]
+    puts $chan "--modinfo intree=Y"
+    close $chan
+
     # Erase the old server log file.
     set logfile "[exec pwd]/server.log"
     if {[file exists $logfile]} then {
