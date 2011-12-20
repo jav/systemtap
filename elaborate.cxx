@@ -2054,11 +2054,8 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
       functiondecl* fd = it->second;
       if (ftv.traversed.find(fd) == ftv.traversed.end())
         {
-          if (fd->tok->location.file->name == s.user_file->name && // !tapset
-              ! s.suppress_warnings && ! fd->synthetic)
+          if (fd->tok->location.file->name == s.user_file->name && ! fd->synthetic)// !tapset
             s.print_warning (_F("Eliding unused function '%s'", fd->name.c_str()), fd->tok);
-          else if (s.verbose>2)
-            clog << _F("Eliding unused function '%s'", fd->name.c_str()) << endl;
           // s.functions.erase (it); // NB: can't, since we're already iterating upon it
           new_unused_functions.push_back (fd);
           relaxed_p = false;
@@ -2112,12 +2109,8 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
         if (vut.read.find (l) == vut.read.end() &&
             vut.written.find (l) == vut.written.end())
           {
-            if (l->tok->location.file->name == s.user_file->name && // !tapset
-                ! s.suppress_warnings)
+            if (l->tok->location.file->name == s.user_file->name) // !tapset
               s.print_warning (_F("Eliding unused variable '%s'", l->name.c_str()), l->tok);
-            else if (s.verbose>2)
-              clog << _F("Eliding unused local variable %s in %s",
-                         l->name.c_str(), s.probes[i]->name.c_str()) << endl;
 	    if (s.tapset_compile_coverage) {
 	      s.probes[i]->unused_locals.push_back
 		      (s.probes[i]->locals[j]);
@@ -2157,12 +2150,8 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
           if (vut.read.find (l) == vut.read.end() &&
               vut.written.find (l) == vut.written.end())
             {
-              if (l->tok->location.file->name == s.user_file->name && // !tapset
-                  ! s.suppress_warnings)
+              if (l->tok->location.file->name == s.user_file->name) // !tapset
                 s.print_warning (_F("Eliding unused variable '%s'", l->name.c_str()), l->tok);
-              else if (s.verbose>2)
-                clog << _F("Eliding unused local variable %s in function %s",
-                           l->name.c_str(), fd->name.c_str()) << endl;
               if (s.tapset_compile_coverage) {
                 fd->unused_locals.push_back (fd->locals[j]);
               }
@@ -2203,11 +2192,8 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
       if (vut.read.find (l) == vut.read.end() &&
           vut.written.find (l) == vut.written.end())
         {
-          if (l->tok->location.file->name == s.user_file->name && // !tapset
-              ! s.suppress_warnings)
+          if (l->tok->location.file->name == s.user_file->name) // !tapset
             s.print_warning (_F("Eliding unused variable '%s'", l->name.c_str()), l->tok);
-          else if (s.verbose>2)
-            clog << _F("Eliding unused global variable %s", l->name.c_str()) << endl;
 	  if (s.tapset_compile_coverage) {
 	    s.unused_globals.push_back(s.globals[i]);
 	  }
@@ -2288,15 +2274,12 @@ dead_assignment_remover::visit_assignment (assignment* e)
             {
               /* PR 1119: NB: This is not necessary here.  A write-only
                  variable will also be elided soon at the next _opt2 iteration.
-              if (e->left->tok->location.file == session.user_file->name && // !tapset
-                  ! session.suppress_warnings)
-                clog << "WARNING: eliding write-only " << *e->left->tok << endl;
+              if (e->left->tok->location.file->name == session.user_file->name) // !tapset
+                session.print_warning("eliding write-only ", *e->left->tok);
               else
               */
-              if (session.verbose>2)
-                clog << _F("Eliding assignment to %s at %s",
-                           leftvar->name.c_str(), lex_cast(*e->tok).c_str()) << endl;
-
+              if (e->left->tok->location.file->name == session.user_file->name) // !tapset
+              session.print_warning(_F("Eliding assignment to %s at %s", leftvar->name.c_str(), lex_cast(*e->tok).c_str()));
               provide (e->right); // goodbye assignment*
               relaxed_p = false;
               return;
@@ -2507,7 +2490,7 @@ dead_stmtexpr_remover::visit_foreach_loop (foreach_loop *s)
     {
       // XXX what if s->limit has side effects?
       // XXX what about s->indexes or s->value used outside the loop?
-      if (session.verbose>2)
+      if(session.verbose > 2)
         clog << _("Eliding side-effect-free foreach statement ") << *s->tok << endl;
       s = 0; // yeah, baby
     }
@@ -2566,14 +2549,12 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
     {
       /* PR 1119: NB: this message is not a good idea here.  It can
          name some arbitrary RHS expression of an assignment.
-      if (s->value->tok->location.file == session.user_file->name && // not tapset
-          ! session.suppress_warnings)
-        clog << "WARNING: eliding never-assigned " << *s->value->tok << endl;
+      if (s->value->tok->location.file->name == session.user_file->name) // not tapset
+        session.print_warning("eliding never-assigned ", *s->value->tok);
       else
       */
-      if (session.verbose>2)
-        clog << _("Eliding side-effect-free expression ")
-             << *s->tok << endl;
+      if (s->value->tok->location.file->name == session.user_file->name) // not tapset
+        session.print_warning("Eliding side-effect-free expression ", s->tok);
 
       // NB: this 0 pointer is invalid to leave around for any length of
       // time, but the parent parse tree objects above handle it.
@@ -2608,8 +2589,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       duv.replace (p->body, true);
       if (p->body == 0)
         {
-          if (! s.suppress_warnings
-              && ! s.timing) // PR10070
+          if (! s.timing) // PR10070
             s.print_warning (_F("side-effect-free probe '%s'", p->name.c_str()), p->tok);
 
           p->body = new null_statement(p->tok);
@@ -2633,8 +2613,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       duv.replace (fn->body, true);
       if (fn->body == 0)
         {
-          if (! s.suppress_warnings)
-            s.print_warning (_F("side-effect-free function '%s'", fn->name.c_str()), fn->tok);
+          s.print_warning (_F("side-effect-free function '%s'", fn->name.c_str()), fn->tok);
 
           fn->body = new null_statement(fn->tok);
 
@@ -3586,12 +3565,8 @@ const_folder::visit_target_symbol (target_symbol* e)
       literal_number* ln_zero = new literal_number (0);
       ln_zero->tok = e->tok;
       provide (ln_zero);
-      if (!session.suppress_warnings)
-        session.print_warning (_("Bad $context variable being substituted with literal 0"),
+      session.print_warning (_("Bad $context variable being substituted with literal 0"),
                                e->tok);
-      else if (session.verbose > 2)
-        clog << _("Bad $context variable being substituted with literal 0, ")
-             << *e->tok << endl;
       relaxed_p = false;
     }
   else
@@ -3722,6 +3697,10 @@ semantic_pass_optimize1 (systemtap_session& s)
 
   int rc = 0;
 
+  // Save the old value of suppress_warnings, as we will be changing
+  // it below.
+  save_and_restore<bool> suppress_warnings(& s.suppress_warnings);
+
   bool relaxed_p = false;
   unsigned iterations = 0;
   while (! relaxed_p)
@@ -3729,6 +3708,13 @@ semantic_pass_optimize1 (systemtap_session& s)
       if (pending_interrupts) break;
 
       relaxed_p = true; // until proven otherwise
+
+      // If the verbosity is high enough, always print warnings (overrides -w),
+      // or if not, always suppress warnings for every itteration after the first.
+      if(s.verbose > 2)
+        s.suppress_warnings = false;
+      else if (iterations > 0)
+        s.suppress_warnings = true;
 
       if (!s.unoptimized)
         {
@@ -3761,14 +3747,28 @@ semantic_pass_optimize2 (systemtap_session& s)
 
   int rc = 0;
 
+  // Save the old value of suppress_warnings, as we will be changing
+  // it below.
+  save_and_restore<bool> suppress_warnings(& s.suppress_warnings);
+
   bool relaxed_p = false;
+  unsigned iterations = 0;
   while (! relaxed_p)
     {
       if (pending_interrupts) break;
       relaxed_p = true; // until proven otherwise
 
+      // If the verbosity is high enough, always print warnings (overrides -w),
+      // or if not, always suppress warnings for every itteration after the first.
+      if(s.verbose > 2)
+        s.suppress_warnings = false;
+      else if (iterations > 0)
+        s.suppress_warnings = true;
+
       if (!s.unoptimized)
         semantic_pass_opt6 (s, relaxed_p);
+
+      iterations++;
     }
 
   return rc;
