@@ -382,6 +382,10 @@ find_uprobes_hash (systemtap_session& s)
   for (unsigned i = 0; i < s.kbuildflags.size(); i++)
     h.add("Kbuildflags: ", s.kbuildflags[i]);
 
+  // Add any custom --modinfo strings
+  for (unsigned i = 0; i < s.modinfos.size(); i++)
+    h.add("MODULE_INFO: ", s.modinfos[i]);
+
   // Get the directory path to store our cached module
   string result, hashdir;
   h.result(result);
