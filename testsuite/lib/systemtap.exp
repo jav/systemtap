@@ -96,6 +96,7 @@ proc setup_systemtap_environment {} {
     # Use a local systemtap directory and cache.  Add user name so
     # make check and sudo make check don't clobber each other.
     set env(SYSTEMTAP_DIR) [exec pwd]/.systemtap-[exec whoami]
+    exec mkdir -p $env(SYSTEMTAP_DIR)
 
     # Start with fresh server certificates
     exec rm -fr $env(SYSTEMTAP_DIR)/ssl
