@@ -154,7 +154,8 @@ static int enable_uprobes(void)
 	i = 0;
 	argv[i++] = "/bin/grep";
 	argv[i++] = "-q";
-	argv[i++] = "unregister_uprobe";
+        // NB: space, tab; we want only this symbol, not some random substring
+	argv[i++] = " unregister_uprobe\t"; 
 	argv[i++] = "/proc/kallsyms";
 	argv[i] = NULL;
 	if (run_as(0, uid, gid, argv[0], argv) == 0)
