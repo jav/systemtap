@@ -413,20 +413,19 @@ systemtap_session::usage (int exitcode)
   version ();
   clog
     << endl
-    //Session.cxx:287-390 detail systemtap usage from stap -h
     << _F("Usage: stap [options] FILE         Run script in file.\n"
      "   or: stap [options] -            Run script on stdin.\n"
      "   or: stap [options] -e SCRIPT    Run given script.\n"
      "   or: stap [options] -l PROBE     List matching probes.\n"
      "   or: stap [options] -L PROBE     List matching probes and local variables.\n\n"
-     "Options:\n"
+     "Options (in %s/rc and on command line):\n"
      "   --         end of translator options, script options follow\n"
      "   -h --help  show help\n"
      "   -V --version  show version\n"
      "   -p NUM     stop after pass NUM 1-5, instead of %d\n"
      "              (parse, elaborate, translate, compile, run)\n"
      "   -v         add verbosity to all passes\n"
-     "   --vp {N}+  add per-pass verbosity [", last_pass);
+     "   --vp {N}+  add per-pass verbosity [", data_path.c_str(), last_pass);
   for (unsigned i=0; i<5; i++)
     clog << (perpass_verbose[i] <= 9 ? perpass_verbose[i] : 9);
   clog 

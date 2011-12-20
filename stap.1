@@ -90,7 +90,9 @@ debugger.
 
 .SH OPTIONS
 The systemtap translator supports the following options.  Any other option
-prints a list of supported options.
+prints a list of supported options.  Options may be given on the command line,
+as usual.  If the file $SYSTEMTAP_DIR/rc exist, options are also loaded from
+there and interpreted first.  ($SYSTEMTAP_DIR defaults to $HOME/.systemtap if unset.)
 .TP
 .B \-h \-\-help
 Show help message.

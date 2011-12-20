@@ -42,6 +42,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+#include <wordexp.h>
 }
 
 using namespace std;
@@ -951,13 +952,50 @@ main (int argc, char * const argv [])
   // and reasonably timely exit.
   setup_signals(&handle_interrupt);
 
+  // PR13520: Parse $SYSTEMTAP_DIR/rc for extra options
+  string rc_file = s.data_path + "/rc";
+  ifstream rcf (rc_file.c_str());
+  string rcline;
+  wordexp_t words;
+  memset (& words, 0, sizeof(words));
+  int rc = 0;
+  int linecount = 0;
+  while (getline (rcf, rcline))
+    {
+      rc = wordexp (rcline.c_str(), & words, WRDE_NOCMD|WRDE_UNDEF|
+                    (linecount > 0 ? WRDE_APPEND : 0)); 
+      // NB: WRDE_APPEND automagically reallocates words.* as more options are added.
+      linecount ++;
+      if (rc) break;
+    }
+  int extended_argc = words.we_wordc + argc;
+  char **extended_argv = (char**) calloc (extended_argc + 1, sizeof(char*));
+  if (rc || !extended_argv)
+    {
+      clog << _F("Error processing extra options in %s", rc_file.c_str());
+      exit (1);
+    }
+  // Copy over the arguments *by reference*, first the ones from the rc file.
+  char **p = & extended_argv[0];
+  *p++ = argv[0];
+  for (unsigned i=0; i<words.we_wordc; i++) *p++ = words.we_wordv[i];
+  for (int j=1; j<argc; j++) *p++ = argv[j];
+  *p++ = NULL;
+
   // Process the command line.
-  int rc = s.parse_cmdline (argc, argv);
+  rc = s.parse_cmdline (extended_argc, extended_argv);
   if (rc != 0)
     exit (rc);
 
+  if (words.we_wordc > 0 && s.verbose > 1)
+    clog << _F("Extra options in %s: %d\n", rc_file.c_str(), (int)words.we_wordc);
+
   // Check for options conflicts. Exits if errors are detected.
-  s.check_options (argc, argv);
+  s.check_options (extended_argc, extended_argv);
+
+  // We don't need these strings any more.
+  wordfree (& words);
+  free (extended_argv);
 
   // arguments parsed; get down to business
   if (s.verbose > 1)
