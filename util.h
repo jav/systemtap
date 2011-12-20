@@ -201,6 +201,25 @@ void delete_map(T& t)
 }
 
 
+// Automatically save a variable, and restore it at the
+// end of the function.
+template <class V>
+class save_and_restore
+{
+    V* ptr;
+    V previous_value;
+
+  public:
+    // Optionally pass a second argument to the constructor to initialize the
+    // variable to some value, after saving its old value.
+    save_and_restore(V* ptr_in, V value_in): ptr(ptr_in), previous_value(*ptr_in) { *ptr_in = value_in; }
+    save_and_restore(V*ptr_in): ptr(ptr_in), previous_value(*ptr_in){}
+
+    // Retrieve the old value and restore it in the destructor
+    ~save_and_restore() { *ptr = previous_value; }
+};
+
+
 // Returns whether a string starts with the given prefix
 inline bool
 startswith(const std::string & s, const char * prefix)
