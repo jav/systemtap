@@ -1973,6 +1973,22 @@ variable.
 In the '_sunrpc.clnt.create_client.rpc_new_client_inline' probe,
 the 'args' variable in the has been deprecated in favor of the new
 internal-only '__args' variable.
+.IP
+The following probe types have been deprecated:
+.RS
+.IP
+kernel.function(number).inline
+.br
+module(string).function(number).inline
+.br
+process.function(number).inline
+.br
+process.library(string).function(number).inline
+.br
+process(string).function(number).inline
+.br
+process(string).library(string).function(number).inline
+.RE
 .\" e.g. tapset_function()
 .\" e.g. post-incrementing a frobozz in a while loop
 
