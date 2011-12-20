@@ -13,7 +13,7 @@ if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
 
 ########## Create /tmp/stap-postgres.stp ########## 
 set pgdata "/tmp/stap-postgres"
-set postgresrelease "9.0.4"
+set postgresrelease "9.1.2"
 set postgresdir "[pwd]/postgresql-$postgresrelease/install/"
 
 set fp [open "$pgdata.stp" "w"]
@@ -110,7 +110,7 @@ kill \$STAPPID
 \}
 
 if \[ ! -r postgresql-$postgresrelease.tar.bz2 \] ; then
-wget http://wwwmaster.postgresql.org/redir/198/h/source/v${postgresrelease}/postgresql-$postgresrelease.tar.bz2
+wget http://ftp.postgresql.org/pub/source/v${postgresrelease}/postgresql-$postgresrelease.tar.bz2
 fi
 if \[ ! -r postgresql-$postgresrelease.tar.bz2 \] ; then
    echo FAIL: wget $postgresrelease.tar.gz
