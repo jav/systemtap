@@ -40,6 +40,7 @@ proc utrace_p {} {
 
 
 proc uprobes_p {} {
+    set path "/proc/kallsyms"
     # If this is a utrace kernel, then we can use our version of uprobes.
     # No need to build it now, stap will handle that itself.
     #
