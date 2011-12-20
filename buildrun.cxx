@@ -441,6 +441,17 @@ make_uprobes (systemtap_session& s)
   string sourcefile(dir + "/uprobes.c");
   ofstream osrc(sourcefile.c_str());
   osrc << "#include \"" << runtimesourcefile << "\"" << endl;
+
+  // pass --modinfo k=v to uprobes build too
+  for (unsigned i = 0; i < s.modinfos.size(); i++)
+    {
+      const string& mi = s.modinfos[i];
+      size_t loc = mi.find('=');
+      string tag = mi.substr (0, loc);
+      string value = mi.substr (loc+1);
+      osrc << "MODULE_INFO(" << tag << "," << lex_cast_qstring(value) << ");" << endl;
+    }
+
   osrc.close();
 
   // make the module
