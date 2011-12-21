@@ -1,5 +1,8 @@
 set test "unprivileged probes"
 
+if {![installtest_p]} { untested $test; return }
+if {![uprobes_p]} { untested $test; return }
+
 set exepath "foo"
 set sopath "libfoo.so"
 
