@@ -40,7 +40,7 @@ for {set i 0} {$i < [all_compile_flags]} {incr i} {
   # A hanoi tower needs 2^n - 1 moves (n == 14 in the test program)
   if { $ok == 16383 } {
       pass "$test-$extra_name"
-  } else 
+  } else {
       fail "$test-$extra_name ($ok)"
   }
 }
