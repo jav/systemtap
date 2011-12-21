@@ -66,11 +66,14 @@ if {$bid_check_passed == 0} {
 # way to discover the path to the cache-build uprobes.ko, we need to preload
 # it.  This dummy run lets us go through the motions to get uprobes loaded, and
 # then we don't need to worry about each staprun -u finding its module.
+# PR13536: it turns out PR5163 makes staprun -u (without /path) impossible, so
+# stop using it in this test case.  Instead we hope and pray and beseech the
+# almighty spaghetti monster that uprobes stay loaded after the following ditty:
 spawn stap -m bid $bid_stp $bid_exepath -c /bin/true
 wait
 
 set ok 0
-spawn staprun -u [pwd]/bid.ko -c $bid_exepath
+spawn staprun [pwd]/bid.ko -c $bid_exepath
 expect {
     -timeout 180
     -re {x=1} { incr ok; exp_continue }
@@ -89,7 +92,7 @@ set res [target_compile "" $bid_exepath executable "additional_flags=buildid2.ro
 if { [error_handler [expr {$res==""}] "$bid_exepath altered"] } { return }
 
 set ok 0
-spawn staprun -u [pwd]/bid.ko -c $bid_exepath
+spawn staprun [pwd]/bid.ko -c $bid_exepath
 expect {
     -timeout 180
     -re {ERROR: Build-id mismatch} { incr ok; exp_continue }
@@ -105,7 +108,7 @@ set ok 0
 # system "stap -m bid -p4 -DSTP_NO_BUILDID_CHECK $bid_stp $bid_exepath"
 spawn stap -m bid -p4 -DSTP_NO_BUILDID_CHECK $bid_stp $bid_exepath
 wait
-spawn staprun -u [pwd]/bid.ko -c $bid_exepath
+spawn staprun [pwd]/bid.ko -c $bid_exepath
 expect {
     -timeout 180
     -re {x=1} { incr ok; exp_continue }
@@ -134,7 +137,7 @@ spawn stap -m bid -p4 $bid_stp libbid.so
 wait
 
 set ok 0
-spawn staprun -u [pwd]/bid.ko -c $bid_exepath
+spawn staprun [pwd]/bid.ko -c $bid_exepath
 expect {
     -timeout 180
     -re {x=1} { incr ok; exp_continue }
@@ -150,7 +153,7 @@ system "objcopy --remove-section=.note.gnu.build-id libbid.so libbid1.so"
 system "objcopy --add-section .note.gnu.build-id=$bid_bid libbid1.so libbid.so"
 
 set ok 0
-spawn staprun -u [pwd]/bid.ko -c $bid_exepath
+spawn staprun [pwd]/bid.ko -c $bid_exepath
 expect {
     -timeout 180
     -re {ERROR: Build-id mismatch} { incr ok; exp_continue }

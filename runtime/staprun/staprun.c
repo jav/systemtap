@@ -145,21 +145,14 @@ static int run_as(int exec_p, uid_t uid, gid_t gid, const char *path, char *cons
  */
 static int enable_uprobes(void)
 {
-	int i;
 	char *argv[10];
 	char runtimeko[2048];
-	uid_t uid = getuid();
-	gid_t gid = getgid();
+        int rc;
 
-	i = 0;
-	argv[i++] = "/bin/grep";
-	argv[i++] = "-q";
-        // NB: space, tab; we want only this symbol, not some random substring
-	argv[i++] = " unregister_uprobe\t"; 
-	argv[i++] = "/proc/kallsyms";
-	argv[i] = NULL;
-	if (run_as(0, uid, gid, argv[0], argv) == 0)
-		return 0;
+        /* Formerly, we did a grep /proc/kallsyms search to see if
+           uprobes was already loaded into the kernel.  But this is
+           a race waiting to happen.  Just try to load the thing.
+           Quietly accept a -EEXIST error. */
 
         /* NB: don't use /sbin/modprobe, without more env. sanitation. */
 
@@ -167,14 +160,20 @@ static int enable_uprobes(void)
 	if (uprobes_path)
 	  snprintf (runtimeko, sizeof(runtimeko), "%s", uprobes_path);
 	else
+          /* NB: since PR5163, share/runtime/uprobes/uprobes.ko is not built 
+             by systemtap. */
 	  snprintf (runtimeko, sizeof(runtimeko), "%s/uprobes/uprobes.ko",
 		    (getenv("SYSTEMTAP_RUNTIME") ?: PKGDATADIR "/runtime"));
 	dbug(2, "Inserting uprobes module from %s.\n", runtimeko);
 	/* This module may be signed, so use insert_module to load it.  */
 	argv[0] = NULL;
-	if (insert_module(runtimeko, NULL, argv, assert_uprobes_module_permissions) == 0)
+
+	rc = insert_module(runtimeko, NULL, argv, assert_uprobes_module_permissions);
+        if ((rc == 0) || /* OK */
+            (rc == -EEXIST)) /* Someone else might have loaded it */
 		return 0;
 
+        err("Error inserting module '%s': %s\n", runtimeko, moderror(errno));
 	return 1; /* failure */
 }
 
@@ -190,6 +189,8 @@ static int insert_stap_module(void)
 	stap_module_inserted = insert_module(modpath, special_options,
 					     modoptions,
 					     assert_stap_module_permissions);
+        if (stap_module_inserted != 0)
+                err("Error inserting module '%s': %s\n", modpath, moderror(errno));
 	return stap_module_inserted;
 }
 

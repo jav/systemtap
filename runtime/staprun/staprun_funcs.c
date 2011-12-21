@@ -103,6 +103,7 @@ int insert_module(
 		free(opts);
 		return -1;
 	}
+	dbug(2, "module path canonicalized to '%s'\n", module_realpath);
 
         /* Use module_realpath from this point on. "Poison" 'path'
 	   by setting it to NULL so that it doesn't get used again by
@@ -187,9 +188,8 @@ int insert_module(
 	close(module_fd);
 
 	if (ret != 0) {
-		err("Error inserting module '%s': %s\n", module_realpath, moderror(saved_errno));
 		errno = saved_errno;
-		return -1;
+		return -errno;
 	}
 	return 0;
 }
