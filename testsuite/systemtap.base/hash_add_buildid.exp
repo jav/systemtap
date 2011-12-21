@@ -1,6 +1,7 @@
 # hash_add_buildid.exp
 
 set test "hash_add_buildid"
+if {![uprobes_p]} { untested $test; return }
 
 # Since we need a clean cache directory, we'll use a temporary
 # systemtap directory and cache (add user name so make check and

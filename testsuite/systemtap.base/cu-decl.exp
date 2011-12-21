@@ -22,8 +22,8 @@ for {set i 0} {$i < [all_compile_flags]} {incr i} {
   } else {
       pass "$test-$extra_name target compilation"
   }
-  if {![utrace_p]} {
-      untested "$test-$extra_name: no kernel utrace support found"
+  if {![uprobes_p]} {
+      untested "$test-$extra_name"
   } else {
       stap_compile $test-$extra_name 1 "{$script}"
   }
