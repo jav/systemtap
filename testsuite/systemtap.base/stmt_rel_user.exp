@@ -13,20 +13,21 @@ for {set i 0} {$i < [all_compile_flags]} {incr i} {
   set res [target_compile $srcdir/$subdir/stmt_rel.c [pwd]/stmt_rel.x executable $rel_flags]
   if { $res != "" } {
       verbose "target_compile failed: $res" 2
-      fail "$test-$extra_name compiling stmt_rel"
+      fail "$test-$extra_name compiling"
       cleanup_handler $verbose
       continue
   } else {
-      pass "$test-$extra_name compiling stmt_rel"
+      pass "$test-$extra_name compiling"
   }
 
-  if {![installtest_p]} { untested "$test-$extra_name stmt_rel"; return }
+  if {![installtest_p]} { untested "$test-$extra_name"; return }
+  if {![uprobes_p]} { untested "$test-$extra_name"; return }
 
   spawn stap -c ./stmt_rel.x -e "probe process(\"./stmt_rel.x\").statement(\"Move@stmt_rel.c+1\") {printf(\"Move %d\\n\",\$s1)}"
   expect {
       -timeout 180
       -re {Move [0-9]} { incr ok; exp_continue }
-      timeout { fail "$test-$extra_name stmt_rel (timeout)" }
+      timeout { fail "$test-$extra_name (timeout)" }
       eof { }
   }
   catch {close}; catch {wait}
@@ -38,8 +39,8 @@ for {set i 0} {$i < [all_compile_flags]} {incr i} {
 
   # A hanoi tower needs 2^n - 1 moves (n == 14 in the test program)
   if { $ok == 16383 } {
-      pass "$test-$extra_name stmt_rel"
-  } else {
-      fail "$test-$extra_name stmt_rel ($ok)"
+      pass "$test-$extra_name"
+  } else 
+      fail "$test-$extra_name ($ok)"
   }
 }
