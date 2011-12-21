@@ -27,6 +27,8 @@ nsscommon.cxx
 nsscommon.h
 parse.cxx
 parse.h
+privilege.cxx
+privilege.h
 remote.cxx
 remote.h
 rpm_finder.cxx
