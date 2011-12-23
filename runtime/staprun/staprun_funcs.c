@@ -177,6 +177,10 @@ int insert_module(
 		dbug(2,"Renamed module to '%s'\n", modname);
 	}
 
+        /* As a debugging aid for testing risky stap modules. */
+        if (getenv ("SYSTEMTAP_SYNC") != NULL)
+                sync();
+
 	PROBE1(staprun, insert__module, (char*)module_realpath);
 	/* Actually insert the module */
 	ret = init_module(module_file, sbuf.st_size, opts);
