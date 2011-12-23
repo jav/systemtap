@@ -1,8 +1,8 @@
-title: Collect slab allocation statistics
+title: Collect Slab Allocation Statistics
 name: vm.tracepoints.stp
 version: 1.0
 author: Rajasekhar
-keywords: memory slab allocator
+keywords: memory slab statistics
 subsystem: memory
 status: production
 exit: user-controlled

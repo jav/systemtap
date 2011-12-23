@@ -1,4 +1,4 @@
-title: Track Time Processes Spend in Various States using Tracepoints
+title: Track Time Processes Spend in Various States Using Tracepoints
 name: schedtimes.stp
 version: 1.0
 author: Jason Baron

@@ -1,9 +1,9 @@
-title: Show Time Spent on Each Line if a Function
+title: Show Time Spent on Each Line of a Function
 name: linetimes.stp
 version: 1.0
 author: William Cohen
 keywords: profiling
-subsystem: kernel
+subsystem: any
 status: production
 exit: user-controlled
 output: sorted-list

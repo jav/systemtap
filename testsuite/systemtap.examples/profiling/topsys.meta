@@ -3,7 +3,7 @@ name: topsys.stp
 version: 1.0
 author: anonymous
 keywords: profiling
-subsystem: kernel syscalls
+subsystem: syscall
 status: production
 exit: user-controlled
 output: sorted-list

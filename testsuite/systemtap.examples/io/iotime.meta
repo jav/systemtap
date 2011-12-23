@@ -2,8 +2,8 @@ title: Trace Time Spent in Read and Write for Files
 name: iotime.stp
 version: 1.0
 author: Daniel Berrange and Will Cohen
-keywords: syscall read write time io
-subsystem: syscall
+keywords: profiling syscall io file
+subsystem: syscall io
 status: production
 exit: user-controlled
 output: trace

@@ -3,7 +3,7 @@ name: deviceseeks.stp
 version: 1.0
 author: Dominic Duval
 keywords: disk
-subsystem: disk
+subsystem: disk io
 status: production
 exit: user-controlled
 output: histogram

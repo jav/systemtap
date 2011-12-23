@@ -1,6 +1,13 @@
-title: Monitor tty typing.
+title: Monitor TTY Typing
 name: ttyspy.stp
+version: 1.0
+author: anonymous
 keywords: io tty monitoring
+subsystem: io
+status: proposed
+exit: user-controlled
+output: trace
+scope: system-wide
 description: The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.
 test_support: stap -l 'kernel.function("tty_audit_add_data")'
 test_check: stap -gp4 ttyspy.stp

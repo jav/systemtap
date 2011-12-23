@@ -1,4 +1,4 @@
-title: Time statistics on KVM exit reasons
+title: Time Statistics on KVM Exit Reasons
 name: kvm_service_time.stp
 version: 1.0
 author: William Cohen

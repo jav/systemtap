@@ -2,8 +2,8 @@ title: Track Start and Stop of Processes Due to Network Buffer Space
 name: sk_stream_wait_memory.stp
 version: 1.0
 author: Fabio Olive Leite at Red Hat
-keywords: network tcp buffer memory
-subsystem: kernel
+keywords: network tcp process
+subsystem: network
 status: production
 exit: user-controlled
 output: trace

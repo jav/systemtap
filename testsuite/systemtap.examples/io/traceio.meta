@@ -1,4 +1,4 @@
-title: Track Cumulative I/O Activity by Process Name
+title: Track Cumulative IO Activity by Process Name
 name: traceio.stp
 version: 1.0
 author: Red Hat

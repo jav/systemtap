@@ -1,8 +1,14 @@
-title: disable ptrace(2) from hierarchies of processes
+title: Disable ptrace from Hierarchies of Processes
 name: noptrace.stp
+version: 1.0
+author: anonymous
 keywords: process security
-description: noptrace.stp blocks ptrace(2) attempts from processes identified by stap -c/-x, as also specifiable from /proc/systemtap/stap_XXX/ control files.  Processes may be added or removed from the blocked list.
+subsystem: process
+status: proposed
+exit: user-controlled
+output: on-exit
+scope: system-wide
+description: Blocks ptrace(2) attempts from processes identified by stap -c/-x, as also specifiable from /proc/systemtap/stap_XXX/ control files.  Processes may be added or removed from the blocked list.
 test_support: test -e /etc/redhat-release && grep -v "Nahant" /etc/redhat-release
 test_check: stap -gp4 noptrace.stp -x $$
 test_installcheck: stap -g noptrace.stp -c 'strace ls || true'
-

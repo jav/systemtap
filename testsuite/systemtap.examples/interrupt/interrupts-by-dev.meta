@@ -1,4 +1,4 @@
-title: Record interrupts on a per-device basis.
+title: Record Interrupts on a Per-Device Basis
 name: interrupts-by-dev.stp
 version: 1.0
 author: Prerna Saxena (prerna@linux.vnet.ibm.com)

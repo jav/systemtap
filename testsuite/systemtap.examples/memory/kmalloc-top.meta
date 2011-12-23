@@ -1,4 +1,4 @@
-title: Show Paths to Kernel Malloc (kmalloc) Invocations
+title: Show Paths to Kernel Malloc Invocations
 name: kmalloc-top
 version: 1.0
 author: anonymous

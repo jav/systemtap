@@ -1,9 +1,9 @@
-title: Show reasons and durations for processes sleeping
+title: Show Reasons and Durations for Processes Sleeping
 name: latencytap.stp
 version: 1.0
 author: William Cohen
 keywords: profiling
-subsystem: kernel
+subsystem: any
 status: experimental
 exit: user-controlled
 output: sorted-list

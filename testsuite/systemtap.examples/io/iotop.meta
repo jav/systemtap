@@ -1,4 +1,4 @@
-title: Periodically Print I/O Activity by Process Name
+title: Periodically Print IO Activity by Process Name
 name: iotop.stp
 version: 1.0
 author: anonymous

@@ -3,7 +3,7 @@ name: errno.stp
 version: 1.0
 author: Dominic Duval
 keywords: profiling
-subsystem: kernel
+subsystem: any
 status: production
 exit: user-controlled
 output: sorted-list

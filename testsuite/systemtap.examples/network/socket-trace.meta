@@ -1,4 +1,4 @@
-title: Trace Functions called in Network Socket Code
+title: Trace Functions Called in Network Socket Code
 name: socket-trace.stp
 version: 1.0
 author: anonymous

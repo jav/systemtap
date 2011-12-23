@@ -3,7 +3,7 @@ name: ioblktime.stp
 version: 1.0
 author: William Cohen
 keywords: io
-subsystem: kernel
+subsystem: io
 status: production
 exit: user-controlled
 output: sorted-list

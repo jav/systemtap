@@ -1,12 +1,12 @@
-title: Event Counter for eventcount.stp
+title: Count Specified Events
 name: eventcount.stp
 version: 1.0
 author: Lukas Berk
-keywords: event counter tid pid
+keywords: statistics thread process
 subsystem: none
 status: production
 exit: user-controlled
-output: text
+output: batch on-exit
 scope: system-wide
 description: The script prints a count of specified events and their related tid's over the course of execution.
 test_check: stap -p4 eventcount.stp

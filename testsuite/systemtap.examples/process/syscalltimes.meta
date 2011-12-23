@@ -1,4 +1,4 @@
-title: System wide syscall statistics with filtering on exec, uid or pid.
+title: System-Wide Syscall Statistics with Filtering
 name: syscalltimes
 version: 1.0
 author: IBM Corp.

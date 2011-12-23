@@ -1,7 +1,10 @@
-title: Find which client is removing nfs files on server
+title: Find Which Client Is Removing NFS Files on Server
 name: nfsd_unlink.stp
+version: 1.0
+author: anonymous
 keywords: nfs disk
 subsystem: network
+status: proposed
 exit: user-controlled
 output: trace
 scope: system-wide

@@ -6,7 +6,7 @@ keywords: io backtrace
 subsystem: io
 status: production
 exit: user-controlled
-output: sorted on-exit
+output: sorted-list on-exit
 scope: system-wide
 description: When a reschedule occurs during an AIO io_submit call, accumulate the traceback in a histogram. When the script exits prints out a sorted list from most common to least common backtrace.
 test_check: stap -p4 io_submit.stp

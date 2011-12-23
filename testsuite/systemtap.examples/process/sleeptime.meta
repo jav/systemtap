@@ -1,8 +1,8 @@
-title: Trace Time Spent in nanosleep Syscalls
+title: Trace Time Spent in Nanosleep Syscalls
 name: sleeptime.stp
 version: 1.0
 author: Daniel Berrange and Will Cohen
-keywords: syscall sleep
+keywords: syscall nanosleep
 subsystem: syscall
 status: production
 exit: user-controlled

@@ -1,4 +1,4 @@
-title: Watch access to a kernel address using breakpoint hardware
+title: Watch a Kernel Address Using Breakpoint Hardware
 name: hw_watch_addr.stp
 version: 1.0
 author: William Cohen

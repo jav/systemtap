@@ -1,4 +1,4 @@
-title: Tally the number of user-space qemu io on each io port
+title: Tally the Number of User-Space QEMU IO on Each IO Port
 name: qemu_io.stp
 version: 1.0
 author: William Cohen

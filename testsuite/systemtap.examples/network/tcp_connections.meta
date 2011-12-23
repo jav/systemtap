@@ -3,7 +3,7 @@ name: tcp_connections.stp
 version: 1.0
 author: anonymous
 keywords: network tcp socket
-subsystem: kernel
+subsystem: network
 status: production
 exit: user-controlled
 output: trace

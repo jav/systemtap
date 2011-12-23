@@ -1,4 +1,4 @@
-title: Tally the number of user-space qemu events
+title: Tally the Number of User-Space QEMU Events
 name: qemu_count.stp
 version: 1.0
 author: William Cohen

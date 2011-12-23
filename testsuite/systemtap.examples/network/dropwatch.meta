@@ -1,8 +1,8 @@
-title: Watch Where Socket Buffers are Freed in the Kernel
+title: Watch Where Socket Buffers Are Freed in the Kernel
 name: dropwatch.stp
 version: 1.0
 author: Neil Horman
-keywords: network tracepoint buffer free
+keywords: network tracepoint socket
 subsystem: network
 status: production
 exit: user-controlled

@@ -1,9 +1,9 @@
-title: Per Process Statistics on Big Kernel Lock (BKL) Use
+title: Per Process Statistics on Big Kernel Lock Use
 name: bkl_stats.stp
 version: 1.0
 author: William Cohen
 keywords: locking
-subsystem: kernel
+subsystem: locking
 status: production
 exit: user-controlled
 output: sorted-list

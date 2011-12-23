@@ -1,4 +1,4 @@
-title: Watch to a kernel symbol using breakpoint hardware
+title: Watch a Kernel Symbol Using Breakpoint Hardware
 name: hw_watch_sym.stp
 version: 1.0
 author: William Cohen

@@ -1,9 +1,9 @@
-title: Count Times Functions Called
+title: Count Times Functions Are Called
 name: functioncallcount.stp
 version: 1.0
 author: anonymous
-keywords: profiling functions
-subsystem: kernel
+keywords: profiling function
+subsystem: any
 status: production
 exit: user-controlled
 output: sorted-list on-exit

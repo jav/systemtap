@@ -3,7 +3,7 @@ name: disktop.stp
 version: 1.0
 author: Oracle
 keywords: disk
-subsystem: disk
+subsystem: disk io
 status: production
 exit: user-controlled
 output: timed

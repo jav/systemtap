@@ -3,7 +3,7 @@ name: timeout.stp
 version: 1.0
 author: Uli Drepper and William Cohen
 keywords: profiling
-subsystem: kernel
+subsystem: process
 status: production
 exit: user-controlled
 output: sorted-list

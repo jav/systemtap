@@ -1,9 +1,9 @@
-title: Tally Backtraces for Inter-Processor Interrupt (IPI)
+title: Tally Backtraces for Inter-Processor Interrupt
 name: scf.stp
 version: 1.0
 author: William Cohen
 keywords: interrupt backtrace
-subsystem: kernel
+subsystem: interrupt
 status: production
 exit: user-controlled
 output: sorted-list
