@@ -272,7 +272,7 @@ interrupt it with \verb+^C+ when you want the tracing to stop.
 \begin{boxedminipage}{4.5in}
 \begin{verbatim}
 # cat socket-trace.stp
-probe kernel.function("*@net/socket.c") {
+probe kernel.function("*@net/socket.c").call {
   printf ("%s -> %s\n", thread_indent(1), probefunc())
 }
 probe kernel.function("*@net/socket.c").return {
@@ -316,6 +316,16 @@ probe kernel.function("*@net/socket.c").return {
   \verb+.return+ probe points), with the same \verb+thread_indent+
   probe handler as in Figure~\ref{fig:socket-trace}.  Print parameters
   using \verb+$$parms+ and \verb+$$return+.  Interpret the results.
+
+\item Change figure~\ref{fig:socket-trace} by removing the \verb+.call+
+  modifier from the first probe.  Note how function entry and function
+  return now don't match anymore.  This is because now the first probe
+  will match both normal function entry and inlined functions.  Try
+  putting the \verb+.call+ modifier back and add another probe just for
+  \verb+probe kernel.function("*@net/socket.c").return+
+  What \verb+printf+ statement can you come up with in the probe handler
+  to show the inlined function entries nicely in between the \verb+.call+
+  and \verb+.return+ thread indented output?
 
 \end{enumerate}
 

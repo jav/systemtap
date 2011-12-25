@@ -955,7 +955,7 @@ hald(2360) open</screen>
 					 </para>
 
 <example id="thread_indent"><title>thread_indent.stp</title>
-<programlisting>probe kernel.function("*@net/socket.c")
+<programlisting>probe kernel.function("*@net/socket.c").call
 {
   printf ("%s -> %s\n", thread_indent(1), probefunc())
 }
