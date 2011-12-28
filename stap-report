@@ -21,3 +21,4 @@ else
 fi
 run "egrep 'PROBE|TRACE|MARKER|_DEBUG_|MODULE' /lib/modules/`uname -r`/build/.config | grep -v not.set | sort | fmt -w 80"
 run "find /debugfs /proc /sys /dev -name '*kprobes*' 2>/dev/null | xargs grep ."
+run "lsmod"
