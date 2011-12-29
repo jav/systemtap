@@ -6671,18 +6671,19 @@ translate_pass (systemtap_session& s)
       // the amount of average waste (max - avg) to the relocation data size
       // (3 native long words).
 #define CALCIT(var)                                                             \
+      if (s.verbose > 2)                                                        \
+        clog << "adapt " << #var << ":" << var##_max << "max - " << var##_tot << "/" << s.probes.size() << "tot =>"; \
       if ((var##_max-(var##_tot/s.probes.size())) < (3 * sizeof(void*)))        \
         {                                                                       \
           s.op->newline() << "const char " << #var << "[" << var##_max << "];"; \
           if (s.verbose > 2)                                                    \
-            clog << "stap_probe " << #var                                       \
-                 << "[" << var##_max << "]" << endl;                       \
+            clog << "[]" << endl;                                               \
         }                                                                       \
       else                                                                      \
         {                                                                       \
           s.op->newline() << "const char * const " << #var << ";";              \
           if (s.verbose > 2)                                                    \
-            clog << "stap_probe *" << #var << endl;                             \
+            clog << "*" << endl;                                                \
         }
 
       s.op->newline() << "static struct stap_probe {";
