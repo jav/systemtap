@@ -118,6 +118,9 @@ proc setup_systemtap_environment {} {
     exec touch $logfile
     exec chmod 666 $logfile
 
+    # Zap any previous uprobes, if any
+    catch { exec /sbin/rmmod uprobes }
+
     # No compile-server started yet.
     set server_pid 0
 
