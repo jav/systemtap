@@ -455,8 +455,7 @@ make_uprobes (systemtap_session& s)
 
   // make the module
   vector<string> make_cmd = make_make_cmd(s, dir);
-  bool quiet = (s.verbose < 4);
-  int rc = run_make_cmd(s, make_cmd, quiet, quiet);
+  int rc = run_make_cmd(s, make_cmd);
   if (!rc && !copy_file(dir + "/Module.symvers",
                         s.tmpdir + "/Module.symvers"))
     rc = -1;
