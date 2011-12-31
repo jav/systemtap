@@ -22,7 +22,7 @@ keywords: format
 
 
 general/badname.stp - Bad Filename Filter
-keywords: filesystem hack
+keywords: filesystem
 
   The badname.stp script shows how one could prevent the creation of
   files with undesirable names using guru mode.
@@ -31,8 +31,8 @@ keywords: filesystem hack
   denied"
 
 
-general/eventcount.stp - Event Counter for eventcount.stp
-keywords: event counter tid pid
+general/eventcount.stp - Count Specified Events
+keywords: statistics thread process
 
   The script prints a count of specified events and their related tid's
   over the course of execution.
@@ -40,8 +40,8 @@ keywords: event counter tid pid
   # stap eventcount.stp syscall.* -c 'sleep 0.2'
 
 
-general/func_time_stats.stp - Function time statistics
-keywords: function wall-clock time
+general/func_time_stats.stp - Function Time Statistics
+keywords: function statistics
 
   The func_time_stats.stp script tracks the wall clock time for each
   invocation of the function probe listed as the first command line
@@ -54,7 +54,7 @@ keywords: function wall-clock time
 
 
 general/graphs.stp - Graphing Disk and CPU Utilization
-keywords: disk cpu use graph
+keywords: disk cpu utilization
 
   The script tracks the disk and CPU utilization. The resulting output
   of the script can be piped into gnuplot to generate a graph of disk
@@ -72,7 +72,7 @@ keywords: simple
   # stap helloworld.stp
 
 
-general/para-callgraph-verbose.stp - Callgraph tracing with verbose arguments
+general/para-callgraph-verbose.stp - Callgraph Tracing with Verbose Arguments
 keywords: trace callgraph
 
   Print a timed per-thread callgraph, complete with pretty-printed
@@ -86,7 +86,7 @@ keywords: trace callgraph
   'kernel.function("vfs_read")' -c "cat /proc/sys/vm/* || true"
 
 
-general/para-callgraph.stp - Callgraph tracing with arguments
+general/para-callgraph.stp - Callgraph Tracing with Arguments
 keywords: trace callgraph
 
   Print a timed per-thread callgraph, complete with function parameters
@@ -100,8 +100,8 @@ keywords: trace callgraph
   'kernel.function("vfs_read")' -c "cat /proc/sys/vm/* || true"
 
 
-general/sizeof.stp - Print the size of a C type.
-keywords: statistics memory simple
+general/sizeof.stp - Print the Size of a C Type
+keywords: statistics memory
 
   This script prints the size of a type, based on dwarf debuginfo for
   any kernel or userspace module, or trial-compilation of a given
@@ -110,7 +110,7 @@ keywords: statistics memory simple
   # stap sizeof.stp FILE '</usr/include/stdio.h>'
 
 
-general/varwatch.stp - Watch a variable changing value in a thread.
+general/varwatch.stp - Watch a Variable Changing Value in a Thread
 keywords: monitoring
 
   This script places a set of probes (specified by $1), each of which
@@ -122,7 +122,7 @@ keywords: monitoring
   '$$vars' -c "sleep 0.2"
 
 
-general/watchdog.stp - Watchdog timer
+general/watchdog.stp - Watchdog Timer for Arbitrary Events
 keywords: watchdog backtrace
 
   The watchdog.stp script provides a watchdog timer mechanism for
@@ -138,7 +138,7 @@ keywords: watchdog backtrace
   -c "sleep 0.2"
 
 
-interrupt/interrupts-by-dev.stp - Record interrupts on a per-device basis.
+interrupt/interrupts-by-dev.stp - Record Interrupts on a Per-Device Basis
 keywords: interrupt
 
   The interrupts-by-dev.stp script profiles interrupts received by each
@@ -147,7 +147,7 @@ keywords: interrupt
   # stap interrupts-by-dev.stp -c "sleep 0.2"
 
 
-interrupt/scf.stp - Tally Backtraces for Inter-Processor Interrupt (IPI)
+interrupt/scf.stp - Tally Backtraces for Inter-Processor Interrupt
 keywords: interrupt backtrace
 
   The Linux kernel function smp_call_function causes expensive
@@ -236,7 +236,7 @@ keywords: io profiling
   # stap iodevstats.stp -c "sleep 0.2"
 
 
-io/iostat-scsi.stp - iostat for SCSI Devices
+io/iostat-scsi.stp - IO Statistics for SCSI Devices
 keywords: io profiling scsi
 
   The iostat-scsi.stp script provides a breakdown of the number of blks
@@ -260,7 +260,7 @@ keywords: io profiling
 
 
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
-keywords: syscall read write time io
+keywords: profiling syscall io file
 
   The script watches each open, close, read, and write syscalls on the
   system. For each file the scripts observes opened it accumulates the
@@ -277,7 +277,7 @@ keywords: syscall read write time io
   # stap iotime.stp -c "sleep 0.2"
 
 
-io/iotop.stp - Periodically Print I/O Activity by Process Name
+io/iotop.stp - Periodically Print IO Activity by Process Name
 keywords: io
 
   Every five seconds print out the top ten executables generating I/O
@@ -286,7 +286,7 @@ keywords: io
   # stap iotop.stp -c "sleep 0.2"
 
 
-io/mbrwatch.stp - Monitor read/write of MBR (boot sector) area of block devices
+io/mbrwatch.stp - Monitor Read/Write of the Boot Sector Area of Block Devices
 keywords: io monitoring disk
 
    The mbrwatch.stp script reports any attempted reads/writes of the
@@ -308,7 +308,7 @@ keywords: io profiling
   # stap nfs_func_users.stp -c "sleep 0.2"
 
 
-io/traceio.stp - Track Cumulative I/O Activity by Process Name
+io/traceio.stp - Track Cumulative IO Activity by Process Name
 keywords: io
 
   Every second print out the top ten executables sorted in descending
@@ -317,7 +317,7 @@ keywords: io
   # stap traceio.stp -c "sleep 0.2"
 
 
-io/traceio2.stp - Watch I/O Activity on a Particular Device
+io/traceio2.stp - Watch IO Activity on a Particular Device
 keywords: io
 
   Print out the executable name and process number as reads and writes
@@ -326,7 +326,7 @@ keywords: io
   # stap traceio2.stp 0x0801 -c "sleep 0.2"
 
 
-io/ttyspy.stp - Monitor tty typing.
+io/ttyspy.stp - Monitor TTY Typing
 keywords: io tty monitoring
 
   The ttyspy.stp script uses tty_audit hooks to monitor recent typing
@@ -336,7 +336,7 @@ keywords: io tty monitoring
   # stap --skip-badvars -g ttyspy.stp -c "sleep 1"
 
 
-locks/bkl.stp - Tracing Contention on Big Kernel Lock (BKL)
+locks/bkl.stp - Tracing Contention on Big Kernel Lock
 keywords: locking
 
   The bkl.stp script can help determine whether the Big Kernel Lock
@@ -351,7 +351,7 @@ keywords: locking
   # stap bkl.stp -c "sleep 0.2" 1
 
 
-locks/bkl_stats.stp - Per Process Statistics on Big Kernel Lock (BKL) Use
+locks/bkl_stats.stp - Per Process Statistics on Big Kernel Lock Use
 keywords: locking
 
   The bkl_stats.stp script can indicate which processes have excessive
@@ -367,7 +367,7 @@ keywords: locking
   # stap bkl_stats.stp -c "sleep 0.2"
 
 
-memory/hw_watch_addr.stp - Watch access to a kernel address using breakpoint hardware
+memory/hw_watch_addr.stp - Watch a Kernel Address Using Breakpoint Hardware
 keywords: memory watchpoint
 
   The script will watch accesses to a single kernel address and prints
@@ -378,7 +378,7 @@ keywords: memory watchpoint
   -c "sleep 1"
 
 
-memory/hw_watch_sym.stp - Watch to a kernel symbol using breakpoint hardware
+memory/hw_watch_sym.stp - Watch a Kernel Symbol Using Breakpoint Hardware
 keywords: memory watchpoint
 
   The script will watch accesses to the starting address of a single
@@ -389,7 +389,7 @@ keywords: memory watchpoint
   # stap --all-modules hw_watch_sym.stp pid_max -c "sleep 1"
 
 
-memory/kmalloc-top - Show Paths to Kernel Malloc (kmalloc) Invocations
+memory/kmalloc-top - Show Paths to Kernel Malloc Invocations
 keywords: memory
 
   The kmalloc-top perl program runs a small systemtap script to collect
@@ -467,8 +467,8 @@ keywords: memory numa
   # stap numa_faults.stp -c "sleep 0.2"
 
 
-memory/overcommit.stp - Log failed process memory allocation due to overcommit limits
-keywords: memory process
+memory/overcommit.stp - Log Failed Process Memory Allocation Due to Overcommit Limits
+keywords: memory limits
 
   The overcommit.stp script prints a line each time the kernel refuses
   a memory allocation request from a process because of
@@ -491,8 +491,8 @@ keywords: memory
   # stap pfaults.stp -c "sleep 0.2"
 
 
-memory/vm.tracepoints.stp - Collect slab allocation statistics
-keywords: memory slab allocator
+memory/vm.tracepoints.stp - Collect Slab Allocation Statistics
+keywords: memory slab statistics
 
   The script will probe all memory slab/slub allocations and collects
   information about the size of the object (bytes requested) and
@@ -503,7 +503,7 @@ keywords: memory slab allocator
   # stap vm.tracepoints.stp -c "sleep 10"
 
 
-network/autofs4.stp - Watch autofs4 operations
+network/autofs4.stp - Watch autofs4 Operations
 keywords: network autofs nfs
 
   Trace key autofs4 operations such as mounting or unmounting remote
@@ -512,8 +512,8 @@ keywords: network autofs nfs
   # stap autofs4.stp -c "sleep 1"
 
 
-network/dropwatch.stp - Watch Where Socket Buffers are Freed in the Kernel
-keywords: network tracepoint buffer free
+network/dropwatch.stp - Watch Where Socket Buffers Are Freed in the Kernel
+keywords: network tracepoint socket
 
   Every five seconds the dropwatch.stp script lists the number of
   socket buffers freed at locations in the kernel.
@@ -541,7 +541,7 @@ keywords: network traffic
   # stap nettop.stp -c "sleep 0.2"
 
 
-network/nfsd_unlink.stp - Find which client is removing nfs files on server
+network/nfsd_unlink.stp - Find Which Client Is Removing NFS Files on Server
 keywords: nfs disk
 
   The nfsd_unlink.stp script lists the ip address and file name each
@@ -552,7 +552,7 @@ keywords: nfs disk
 
 
 network/sk_stream_wait_memory.stp - Track Start and Stop of Processes Due to Network Buffer Space
-keywords: network tcp buffer memory
+keywords: network tcp process
 
   The sk_stream-wait_memory.stp prints a time stamp, executable, and
   pid each time a process blocks due to the send buffer being full. A
@@ -562,7 +562,7 @@ keywords: network tcp buffer memory
   # stap sk_stream_wait_memory.stp -c "sleep 0.2"
 
 
-network/socket-trace.stp - Trace Functions called in Network Socket Code
+network/socket-trace.stp - Trace Functions Called in Network Socket Code
 keywords: network socket
 
   The script instruments each of the functions in the Linux kernel's
@@ -598,7 +598,7 @@ keywords: network tcp socket
   # stap tcp_connections.stp -c "sleep 0.2"
 
 
-network/tcp_init_cwnd.stp - Increase initial tcp congestion window to 10.
+network/tcp_init_cwnd.stp - Increase Initial TCP Congestion Window to 10
 keywords: network tcp socket
 
   Run the tcp_init_cwnd.stp script in the background to override a
@@ -609,10 +609,10 @@ keywords: network tcp socket
   # stap -g tcp_init_cwnd.stp -c "sleep 0.2"
 
 
-network/tcp_trace.stp - Tcp connection tracing utility.
+network/tcp_trace.stp - TCP Connection Tracing Utility
 keywords: network trace
 
-  This scripts traces a given tcp connection based on the filter
+  This scripts traces a given TCP connection based on the filter
   parameters given by the user. The indexing is done by the 4 tuples
   local address, remote address, local port, remote port.
 
@@ -629,13 +629,13 @@ keywords: network traffic
   # stap tcpdumplike.stp -c "sleep 0.2"
 
 
-network/tcpipstat.stp - Display network statistics for individual TCP sockets.
+network/tcpipstat.stp - Display Network Statistics for Individual TCP Sockets
 keywords: network statistics
 
-  tcpipstat collects and displays network statistics related to
-  individual TCP sockets or groups of sockets.	The statistics that are
-  collected are simular to that of the command netstat -s, only sorted
-  and grouped by individual sockets.
+  The tcpipstat script collects and displays network statistics related
+  to individual TCP sockets or groups of sockets.  The statistics that
+  are collected are simular to that of the command netstat -s, only
+  sorted and grouped by individual sockets.
 
   # stap tcpipstat.stp timeout=1
 
@@ -654,7 +654,7 @@ keywords: scheduler
   # stap chng_cpu.stp -c "sleep 0.2" bash
 
 
-process/cycle_thief.stp - Track IRQs and Other Processes Stealing Cycles from a Task
+process/cycle_thief.stp - Track IRQ's and Other Processes Stealing Cycles from a Task
 keywords: process scheduler time tracepoint interrupt
 
   The cycle_thief.stp script instruments the scheduler and IRQ handler
@@ -669,14 +669,14 @@ keywords: process scheduler time tracepoint interrupt
   # stap cycle_thief.stp -c "sleep 0.2"
 
 
-process/errsnoop.stp - tabulate system call errors
+process/errsnoop.stp - Tabulate System Call Errors
 keywords: process syscall
 
-  The script prints a periodic tabular report about failing system
-  calls, by process and by syscall failure.  The first optional
-  argument specifies the reporting interval (in seconds, default 5);
-  the second optional argument gives a screen height (number of lines
-  in the report, default 20).
+  Prints a periodic tabular report about failing system calls, by
+  process and by syscall failure.  The first optional argument
+  specifies the reporting interval (in seconds, default 5); the second
+  optional argument gives a screen height (number of lines in the
+  report, default 20).
 
   # stap errsnoop.stp 1 10 -c "sleep 1"
 
@@ -715,18 +715,17 @@ keywords: scheduler
   # stap migrate.stp -c "sleep 0.2" bash
 
 
-process/noptrace.stp - disable ptrace(2) from hierarchies of processes
+process/noptrace.stp - Disable ptrace from Hierarchies of Processes
 keywords: process security
 
-  noptrace.stp blocks ptrace(2) attempts from processes identified by
-  stap -c/-x, as also specifiable from /proc/systemtap/stap_XXX/
-  control files.  Processes may be added or removed from the blocked
-  list.
+  Blocks ptrace(2) attempts from processes identified by stap -c/-x, as
+  also specifiable from /proc/systemtap/stap_XXX/ control files. 
+  Processes may be added or removed from the blocked list.
 
   # stap -g noptrace.stp -c 'strace ls || true'
 
 
-process/pf2.stp - Profile kernel functions
+process/pf2.stp - Profile Kernel Functions
 keywords: profiling
 
   The pf2.stp script sets up time-based sampling. Every five seconds it
@@ -736,8 +735,8 @@ keywords: profiling
   # stap pf2.stp -c "sleep 0.2"
 
 
-process/pfiles.stp - print process file descriptors
-keywords: process files
+process/pfiles.stp - Print Process File Descriptors
+keywords: process file
 
   Run pfiles.stp to produce a human-readable summary of all open file
   descriptors of a given process.  Specify the process-id as -x PID for
@@ -746,7 +745,7 @@ keywords: process files
   # stap -g pfiles.stp -x $$
 
 
-process/plimit.stp - print resource limits
+process/plimit.stp - Print Resource Limits of Process
 keywords: process
 
   The script prints a variety of resource limits for a given pid, like
@@ -755,7 +754,7 @@ keywords: process
   # stap -g plimit.stp $$
 
 
-process/schedtimes.stp - Track Time Processes Spend in Various States using Tracepoints
+process/schedtimes.stp - Track Time Processes Spend in Various States Using Tracepoints
 keywords: process scheduler time tracepoint
 
   The schedtimes.stp script instruments the scheduler to track the
@@ -795,7 +794,7 @@ keywords: signals
   # stap sigkill.stp -c "sleep 0.2"
 
 
-process/sigmon.stp - Track a particular signal to a specific process
+process/sigmon.stp - Track a Particular Signal to a Specific Process
 keywords: signals
 
   The script watches for a particular signal sent to a specific
@@ -807,7 +806,7 @@ keywords: signals
   # stap sigmon.stp -c "sleep 0.2" SIGKILL
 
 
-process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
+process/sleepingBeauties.stp - Generate Backtraces of Threads Waiting for IO Operations
 keywords: io scheduler backtrace
 
   The script monitors the time that threads spend in waiting for IO
@@ -818,8 +817,8 @@ keywords: io scheduler backtrace
   # stap sleepingBeauties.stp -c "sleep 0.2"
 
 
-process/sleeptime.stp - Trace Time Spent in nanosleep Syscalls
-keywords: syscall sleep
+process/sleeptime.stp - Trace Time Spent in Nanosleep Syscalls
+keywords: syscall nanosleep
 
   The script watches each nanosleep syscall on the system. At the end
   of each nanosleep syscall the script prints out a line with a
@@ -850,7 +849,7 @@ keywords: syscall
   # stap syscalls_by_proc.stp -c "sleep 0.2"
 
 
-process/syscalltimes - System wide syscall statistics with filtering on exec, uid or pid.
+process/syscalltimes - System-Wide Syscall Statistics with Filtering
 keywords: syscall
 
   Combination shell/systemtap script to measure system call counts and
@@ -880,7 +879,7 @@ keywords: profiling
   # stap errno.stp -c "sleep 0.2"
 
 
-profiling/fntimes.stp - Show functions taking longer than usual
+profiling/fntimes.stp - Show Functions Taking Longer Than Usual
 keywords: profiling
 
   The fntimes.stp script monitors the execution time history of a given
@@ -891,8 +890,8 @@ keywords: profiling
   # stap fntimes.stp 'kernel.function("sys_*")' -c "sleep 7"
 
 
-profiling/functioncallcount.stp - Count Times Functions Called
-keywords: profiling functions
+profiling/functioncallcount.stp - Count Times Functions Are Called
+keywords: profiling function
 
   The functioncallcount.stp script takes one argument, a list of
   functions to probe. The script will run and count the number of times
@@ -903,7 +902,7 @@ keywords: profiling functions
   # stap  functioncallcount.stp "*@mm/*.c" -c "sleep 0.2"
 
 
-profiling/latencytap.stp - Show reasons and durations for processes sleeping
+profiling/latencytap.stp - Show Reasons and Durations for Processes Sleeping
 keywords: profiling
 
   The latencytap.stp script collects data on the intervals processes
@@ -918,7 +917,7 @@ keywords: profiling
   # stap latencytap.stp --all-modules -c "sleep 0.2"
 
 
-profiling/linetimes.stp - Show Time Spent on Each Line if a Function
+profiling/linetimes.stp - Show Time Spent on Each Line of a Function
 keywords: profiling
 
   The linetimes.stp script takes two arguments: where to find the
@@ -930,11 +929,11 @@ keywords: profiling
   # stap linetimes.stp kernel sys_nanosleep -c "sleep 0.2"
 
 
-profiling/periodic.stp - Show the period of the various timers on the system
+profiling/periodic.stp - Show the Period of the Various Timers on the System
 keywords: profiling
 
   The periodic.stp script uses the  kernel.trace("timer_expire_entry")
-  tracepoint to collects data on period and frequency of the various
+  tracepoint to collect data on period and frequency of the various
   timers on the system.  The script displays a sorted list of the
   timers observed on the system from most frequent to least frequent.
   The script needs to be compiled with the '--all-modules' option to
@@ -945,8 +944,8 @@ keywords: profiling
   # stap periodic.stp --all-modules -c "sleep 0.2"
 
 
-profiling/sched_switch.stp - Display the task switches happening in the scheduler
-keywords: profiling functions
+profiling/sched_switch.stp - Display the Task Switches Happening in the Scheduler
+keywords: profiling function
 
   The sched_switch.stp script takes two arguments, first argument can
   be "pid" or "name" to indicate what is being passed as second
@@ -959,7 +958,7 @@ keywords: profiling functions
   # stap  sched_switch.stp -c "sleep 1"
 
 
-profiling/thread-times.stp - Profile kernel functions
+profiling/thread-times.stp - Profile Kernel Functions
 keywords: profiling
 
   The thread-times.stp script sets up time-based sampling.  Every five
@@ -994,7 +993,7 @@ keywords: profiling
   # stap topsys.stp -c "sleep 0.2"
 
 
-virtualization/kvm_service_time.stp - Time statistics on KVM exit reasons
+virtualization/kvm_service_time.stp - Time Statistics on KVM Exit Reasons
 keywords: virtualization kvm
 
   The kvm_service_time.stp script tracks the statistics about the
@@ -1013,7 +1012,7 @@ keywords: virtualization kvm
   # stap kvm_service_time.stp -c "sleep 0.2"
 
 
-virtualization/qemu_count.stp - Tally the number of user-space qemu events
+virtualization/qemu_count.stp - Tally the Number of User-Space QEMU Events
 keywords: virtualization qemu kvm
 
   The qemu_count.stp script tallies the number of times each of the
@@ -1024,7 +1023,7 @@ keywords: virtualization qemu kvm
   # stap qemu_count.stp -c "sleep 0.2"
 
 
-virtualization/qemu_io.stp - Tally the number of user-space qemu io on each io port
+virtualization/qemu_io.stp - Tally the Number of User-Space QEMU IO on Each IO Port
 keywords: virtualization qemu kvm io
 
   The qemu_io.stp script tallies the number of times each of the IO
