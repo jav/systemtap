@@ -205,7 +205,11 @@ static int __stp_relay_remove_buf_file_callback(struct dentry *dentry)
 static struct dentry *
 __stp_relay_create_buf_file_callback(const char *filename,
 				     struct dentry *parent,
+#ifdef STAPCONF_RELAY_UMODE_T
+				     umode_t mode,
+#else
 				     int mode,
+#endif
 				     struct rchan_buf *buf,
 				     int *is_global)
 {
