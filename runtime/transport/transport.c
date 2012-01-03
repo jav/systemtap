@@ -485,8 +485,13 @@ static struct dentry *_stp_get_root_dir(void)
 	if (!__stp_root_dir) {
 		/* Couldn't create it because it is already there, so
 		 * find it. */
+#ifdef STAPCONF_FS_SUPERS_HLIST
+		sb = hlist_entry(fs->fs_supers.first, struct super_block,
+	 			 s_instances);
+#else
 		sb = list_entry(fs->fs_supers.next, struct super_block,
 				s_instances);
+#endif
 		_stp_lock_inode(sb->s_root->d_inode);
 		__stp_root_dir = lookup_one_len(name, sb->s_root,
 						strlen(name));
