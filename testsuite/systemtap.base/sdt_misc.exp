@@ -107,7 +107,6 @@ if {$ok == 6} {
     pass "$test $pbtype_mssg"
 } else {
     fail "$test ($ok) $pbtype_mssg"
-    return
 }
 
 # 2. Test attaching to a running process
