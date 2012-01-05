@@ -30,6 +30,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include <elfutils/libdwfl.h>
+#include <unistd.h>
 }
 
 #if HAVE_NSS

@@ -6289,7 +6289,7 @@ emit_symbol_data (systemtap_session& s)
   unwindsym_dump_context ctx = { s, kallsyms_out,
 				 0, /* module index */
 				 0, NULL, 0, /* build_id len, bits, vaddr */
-				 ~0, /* stp_kretprobe_trampoline_addr */
+				 ~0UL, /* stp_kretprobe_trampoline_addr */
 				 0, /* stext_offset */
 				 seclist, addrmap,
 				 NULL, /* debug_frame */

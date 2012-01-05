@@ -27,6 +27,7 @@ extern "C" {
 #include <regex.h>
 #include <utime.h>
 #include <sys/time.h>
+#include <unistd.h>
 }
 
 using namespace std;

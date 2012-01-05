@@ -33,6 +33,7 @@ extern "C" {
 #include <fcntl.h>
 #include <limits.h>
 #include <sys/utsname.h>
+#include <unistd.h>
 }
 
 // XXX: also consider adding $HOME/.debug/ for perf build-id-cache
