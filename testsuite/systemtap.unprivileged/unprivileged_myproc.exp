@@ -336,7 +336,7 @@ proc test_probes { privilege } {
     }
 
     # Kill the the test executable(s)
-    exec kill $our_pid
+    catch { exec kill $our_pid }
     if {$effective_uid != 0} {
 	as_root "kill $root_pid"
     }
