@@ -29,6 +29,7 @@
 #include <map>
 
 extern "C" {
+#include <unistd.h>
 #include <getopt.h>
 #include <wordexp.h>
 #include <glob.h>

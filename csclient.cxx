@@ -24,6 +24,7 @@
 #include <algorithm>
 
 extern "C" {
+#include <unistd.h>
 #include <linux/limits.h>
 #include <sys/time.h>
 #include <glob.h>
