@@ -13,7 +13,7 @@ if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
 
 ########## Create /tmp/stap-mysql.stp ########## 
 set msdata "[pwd]/stap-mysql"
-set mysqlrelease "mysql-5.4.3-beta"
+set mysqlrelease "mysql-5.5.19"
 set mysqldir "[pwd]/mysql/install/"
 set testsuite "[pwd]"
 
@@ -241,12 +241,12 @@ puts $fp "
 ##### begin run_tests #####
 function run_tests \{
 /bin/rm -rf $testsuite/stap-mysql
-$mysqldir/bin/mysql_install_db --basedir=$mysqldir --datadir=$msdata
+$mysqldir/scripts/mysql_install_db --basedir=$mysqldir --datadir=$msdata --user=\$(whoami)
 
 (cd $mysqldir/mysql-test
 # wait until mysql is running
 MOD=stapsdt_\$(date +%j%k%M%N | sed 's/ //')
-$env(SYSTEMTAP_PATH)/stap -m \$MOD -c \"$mysqldir/libexec/mysqld --basedir=$mysqldir --datadir=$msdata --log-error=$msdata/mysql.log --pid-file=$msdata/mysql.pid  --socket=$msdata/mysql.sock\" $testsuite/stap-mysql.stp $mysqldir/libexec/mysqld >$testsuite/stap-mysql-markers.log 2>&1 &
+$env(SYSTEMTAP_PATH)/stap -m \$MOD -c \"$mysqldir/bin/mysqld --basedir=$mysqldir --datadir=$msdata --log-error=$msdata/mysql.log --pid-file=$msdata/mysql.pid  --socket=$msdata/mysql.sock\" $testsuite/stap-mysql.stp $mysqldir/bin/mysqld >$testsuite/stap-mysql-markers.log 2>&1 &
 STAPPID=\$!
 
 for i in \$(seq 0 10) ; do
@@ -273,7 +273,7 @@ SELECT=\$(grep 'select__start' $testsuite/stap-mysql-markers.log | wc -l)
 OKAY=\$(grep 'All.*tests were successful' $testsuite/stap-mysql.log | wc -l)
 
 echo  ACQUIRE=\$ACQUIRE  RELEASE=\$RELEASE COMMAND=\$COMMAND  QUERY=\$QUERY RDLOCK=\$RDLOCK  SELECT=\$SELECT OKAY=\$OKAY
-if \[ \$ACQUIRE -gt 10000 -a \$RELEASE -gt 1000 -a \$COMMAND -gt 12000 -a \$QUERY -gt 13000 -a \$RDLOCK -gt 3000 -a \$SELECT -gt 2000 \] ; then
+if \[ \$ACQUIRE -gt 10000 -a \$RELEASE -gt 10000 -a \$COMMAND -gt 11300 -a \$QUERY -gt 11200 -a \$RDLOCK -gt 5100 -a \$SELECT -gt 2900 \] ; then
    echo PASS: mysql markers \$1
 else
    echo FAIL: mysql markers \$1
@@ -282,7 +282,7 @@ fi
 if \[ \$OKAY -eq 4 \] ; then
    echo PASS: mysql tests \$1
 else
-   echo FAIL: mysql tests \$1
+   echo XFAIL: mysql tests \$1
 fi
 
 mv $testsuite/stap-mysql.log $testsuite/stap-mysql-\$1.log
@@ -296,7 +296,8 @@ kill -9 $testsuite/stap-mysql/mysql.pid
 ##### end run_tests #####
 
 if \[ ! -r $mysqlrelease.tar.gz \] ; then
-wget  http://dev.mysql.com/get/Downloads/MySQL-5.4/$mysqlrelease.tar.gz/from/ftp://mirror.services.wisc.edu/mirrors/mysql/
+wget  http://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlrelease.tar.gz/from/ftp://mirror.anl.gov/pub/mysql/
+
 fi
 if \[ ! -r $mysqlrelease.tar.gz \] ; then
    echo FAIL: wget $mysqlrelease.tar.gz
@@ -313,16 +314,12 @@ fi
 if \[ ! -d mysql/bld \] ; then
 mkdir -p mysql/bld
 cd mysql/bld
-# Force the use of dtrace
-sed -i -e 's/HAVE_DTRACE_DASH_G=\"no\"/HAVE_DTRACE_DASH_G=\"yes\"/' ../src/configure
-../src/configure --enable-dtrace --prefix=$mysqldir
+cmake ../src/ -DENABLE_DTRACE=1 -DCMAKE_INSTALL_PREFIX=$mysqldir
 for i in \$(find . -name Makefile) ; do 
     sed -i -e 's|^CXXFLAGS =|& -g -I $env(SYSTEMTAP_INCLUDES)|' \$i
     sed -i -e 's|^CFLAGS =|& -g -I $env(SYSTEMTAP_INCLUDES)|' \$i
 done
 fi
-
-cd mysql/bld
 
 J=\$(getconf _NPROCESSORS_CONF)
 # skip the 'make abi_check' step
@@ -341,14 +338,6 @@ make -j\$J
 make install
 run_tests uprobe
 
-# for i in \$(find . -name Makefile) ; do
-#     sed -i -e 's/^CFLAGS = .*$/& -DEXPERIMENTAL_UTRACE_SDT /' \$i
-#     sed -i -e 's/^CXXFLAGS = .*$/& -DEXPERIMENTAL_UTRACE_SDT /' \$i
-# done
-# for i in sql storage mysys ; do (cd \$i ; make clean) ; done
-# make -i -j2
-# make install
-# run_tests utrace
 "
 ########## End /tmp/stap-mysql.sh ########## 
 close $fp
@@ -358,10 +347,12 @@ verbose -log Running mysql testsuite
 spawn sh stap-mysql.sh 2>&1
 expect {
     -timeout 1000
-    -re {FAIL: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
-	fail "$s"; exp_continue }
     -re {PASS: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
 	pass "$s"; exp_continue }
+    -re {XFAIL: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
+	xfail "$s"; exp_continue }
+    -re {FAIL: [a-z_ ]+} { regexp " .*$" $expect_out(0,string) s; 
+	fail "$s"; exp_continue }
     -re {UNSUPPORTED: [a-zA-Z_/: ]+} { regexp " .*$" $expect_out(0,string) s; 
 	verbose -log "$s"
 	unsupported "$s"; exp_continue }
