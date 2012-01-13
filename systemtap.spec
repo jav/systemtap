@@ -120,7 +120,10 @@ Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap = %{version}-%{release}
-Requires: nss mktemp
+# On RHEL[45], /bin/mktemp comes from the 'mktemp' package.  On newer
+# distributions, /bin/mktemp comes from the 'coreutils' package.  To
+# avoid a specific RHEL[45] Requires, we'll do a file-based require.
+Requires: nss /bin/mktemp
 Requires: zip unzip
 Requires(post): chkconfig
 Requires(preun): chkconfig
@@ -504,6 +507,9 @@ exit 0
 
 
 %changelog
+* Fri Jan 13 2012 David Smith <dsmith@redhat.com> - 1.6-2
+- Fixed /bin/mktemp require.
+
 * Mon Jul 25 2011 Stan Cox <scox@redhat.com> - 1.6-1
 - Upstream release.
 
