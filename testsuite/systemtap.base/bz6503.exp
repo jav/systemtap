@@ -22,7 +22,7 @@ expect {
 catch { close} ; catch { wait }
 
 # Mark kernels < 2.6.29 as xfail
-set kv [exec uname -r | cut -f1 -d-]
+set kv [exec uname -r | grep -o -G  {^[0-9]\+.[0-9]\+.[0-9]\+}]
 set kvbits [split $kv .]
 set k1 [lindex $kvbits 0]
 set k2 [lindex $kvbits 1]
