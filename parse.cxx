@@ -1,5 +1,5 @@
 // recursive descent parser for systemtap scripts
-// Copyright (C) 2005-2011 Red Hat Inc.
+// Copyright (C) 2005-2012 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 // Copyright (C) 2007 Bull S.A.S
 //
@@ -1340,7 +1340,7 @@ parser::parse_embeddedcode ()
     throw parse_error (_("expected '%{'"));
 
   if (! privileged)
-    throw parse_error (_("embedded code in unprivileged script"),
+    throw parse_error (_("embedded code in unprivileged script; need stap -g"),
                        false /* don't skip tokens for parse resumption */);
 
   e->tok = t;
@@ -2543,7 +2543,7 @@ parser::parse_value ()
     {
       next ();
       if (! privileged)
-        throw parse_error (_("embedded expression code in unprivileged script"), false);
+        throw parse_error (_("embedded expression code in unprivileged script; need stap -g"), false);
 
       embedded_expr *e = new embedded_expr;
       e->tok = t;
