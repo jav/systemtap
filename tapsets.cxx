@@ -1,5 +1,5 @@
 // tapset resolution
-// Copyright (C) 2005-2011 Red Hat Inc.
+// Copyright (C) 2005-2012 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -6768,7 +6768,7 @@ dwarf_builder::build(systemtap_session & sess,
       // assert guru mode for absolute probes
       if (! q.base_probe->privileged)
         {
-          throw semantic_error (_("absolute statement probe in unprivileged script"),
+          throw semantic_error (_("absolute statement probe in unprivileged script; need stap -g"),
                                 q.base_probe->tok);
         }
 
@@ -8236,7 +8236,7 @@ kprobe_builder::build(systemtap_session &,
     {
       // assert guru mode for absolute probes
       if ( has_statement_num && has_absolute && !base->privileged )
-	throw semantic_error (_("absolute statement probe in unprivileged script"), base->tok);
+	throw semantic_error (_("absolute statement probe in unprivileged script; need stap -g"), base->tok);
 
       finished_results.push_back (new kprobe_derived_probe (base,
 							    location, "",
