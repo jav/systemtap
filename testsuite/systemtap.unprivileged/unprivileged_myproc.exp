@@ -240,6 +240,13 @@ proc test_probes { privilege } {
 	}
 
 	# There are currently some untestable probe types
+	if {[regexp "\.plt" $probe_type] && ![regexp "^(x86_64|i.86)$" $::tcl_platform(machine)]} {
+	    #  .plt is only supported on x86
+	    untested "$test: $option $probe_type"
+	    set tested($probe_type) 1
+	    continue
+	}
+
 	switch $probe_type {
 	    process(number).thread.begin -
 	    process(number).thread.end

@@ -2,6 +2,7 @@ set self semok
 foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
     #  .plt is only supported on x86
     if {[regexp "plt\[12\]\.stp" $file] && ![regexp "^(x86_64|i.86)$" $::tcl_platform(machine)]} {
+	untested $test
 	continue
     }
     set test $self/[file tail $file]

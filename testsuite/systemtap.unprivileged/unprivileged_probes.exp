@@ -311,6 +311,13 @@ proc test_unrestricted_probes { privilege } {
 	}
 	set use_alias [lindex $no_yes $selector]
 
+	#  .plt is only supported on x86
+	if {[regexp "\.plt" $probe_type] && ![regexp "^(x86_64|i.86)$" $::tcl_platform(machine)]} {
+	    untested "$test: $option $probe_type"
+	    set tested($probe_type) 1
+	    continue
+	}
+
 	# There are currently some known and expected failures
 	switch $probe_type {
 	    process.library(string).function(number).inline -
