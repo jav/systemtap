@@ -189,11 +189,33 @@ that server will be used as if they were specified on the command line.
 .TP
 \fB\-u\fR \fIuser\-name\fR
 Each systemtap compile server is normally run by the user name
-\fistap\-server\fR (for the initscript) or as the user invoking
+\fIstap\-server\fR (for the initscript) or as the user invoking
 \fIstap\-server\fR,
 unless otherwise configured (see \fBFILES\fR). This option
 specifies the user name used to run the server(s). The user name specified
 must be a member of the group \fIstap\-server\fR.
+
+.TP
+\fB\-\-log\fR \fIlogfile\fR
+This option allows the specification of a separate log file for each server. 
+Each \-\-log option is added to a list which will be applied, in turn, to each
+server specified. If more servers are specified than \-\-log options, the default
+log file (see \fBFILES\fR) will be used for subsequent servers.
+
+.TP
+\fB\-\-port\fR \fIport\-number\fR
+This option allows the specification of a specific network port for each
+server. Each \-\-port option is added to a list which will be applied, in turn,
+to each server specified. If more servers are specified than
+\-\-port options, a randomly selected port is used for subsequent servers.
+
+.TP
+\fB\-\-ssl\fR \fIcertificate\-db\-path\fR
+This option allows the specification of a separate NSS certificate database
+for each server. Each --ssl option is added to a list which will be applied,
+in turn, to each server specified. If more servers are specified than --ssl
+options, the default certificate database
+(see \fBFILES\fR) for subsequent servers.
 
 .SH CONFIGURATION
 
@@ -300,6 +322,22 @@ and corresponds to the
 Specifies the nickname to be used to refer to this server
 and corresponds to the
 \fB\-n\fR option (see \fIOPTIONS\fR).
+
+.TP
+.B LOG
+Specifies the location of the log file to be used by this server and corresponds to the
+\fB\-\-log\fR option (see \fIOPTIONS\fR).
+
+.TP
+.B PORT
+Specifies the network port to be used by this server and corresponds to the
+\fB\-\-port\fR option (see \fIOPTIONS\fR).
+
+.TP
+.B SSL
+Specifies the location of the NSS certificate database to be used by this server and corresponds
+to the
+\fB\-\-ssl\fR option (see \fIOPTIONS\fR).
 
 .SH SERVER AUTHENTICAION
 The security of the SSL network connection between the client and server

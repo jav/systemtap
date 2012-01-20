@@ -144,7 +144,7 @@ to specify servers to be managed.
  This option allows the specification of a specific network port for each
  server. Each --port option is added to a list which will be applied, in turn,
  to each server specified. If more servers are specified than
- --port options, a randomly selected port used for subsequent servers.
+ --port options, a randomly selected port is used for subsequent servers.
 
 2.3.14 --ssl certificate-db-path
  This option allows the specification of a separate NSS certificate database
