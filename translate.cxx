@@ -5623,7 +5623,8 @@ dump_symbol_tables (Dwfl_Module *m,
 	      && ! skippable_arch_symbol(ehdr->e_machine, name, &sym)
 	      && (GELF_ST_TYPE (sym.st_info) == STT_FUNC
 		  || (GELF_ST_TYPE (sym.st_info) == STT_NOTYPE
-		      && ehdr->e_type == ET_REL) // PR10206 ppc fn-desc in .opd
+		      && (ehdr->e_type == ET_REL // PR10206 ppc fn-desc in .opd
+			  || is_kernel)) // kernel entry functions are NOTYPE
 		  || GELF_ST_TYPE (sym.st_info) == STT_OBJECT) // PR10000: .data
                && !(sym.st_shndx == SHN_UNDEF	// Value undefined,
 		    || shndxp == (GElf_Word) -1	// in a non-allocated section,
