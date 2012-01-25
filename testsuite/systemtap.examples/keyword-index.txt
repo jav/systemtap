@@ -52,6 +52,16 @@ keywords: io backtrace
   # stap io_submit.stp -c "sleep 0.2"
 
 
+process/pstrace_exec.stp - Print trace of process ancestors for matching exec commands
+keywords: process backtrace
+
+  The pstrace_exec.stp script watches each exec operation. If the exec
+  contains a substring that matches the script's command-line argument,
+  it prints out that process and all of its ancestors.
+
+  # stap pstrace_exec.stp -c "sleep 0.2" bash
+
+
 process/sleepingBeauties.stp - Generate Backtraces of Threads Waiting for IO Operations
 keywords: io scheduler backtrace
 
@@ -1051,6 +1061,16 @@ keywords: process
   /proc/$$/limits on recent kernels.
 
   # stap -g plimit.stp $$
+
+
+process/pstrace_exec.stp - Print trace of process ancestors for matching exec commands
+keywords: process backtrace
+
+  The pstrace_exec.stp script watches each exec operation. If the exec
+  contains a substring that matches the script's command-line argument,
+  it prints out that process and all of its ancestors.
+
+  # stap pstrace_exec.stp -c "sleep 0.2" bash
 
 
 process/schedtimes.stp - Track Time Processes Spend in Various States Using Tracepoints
