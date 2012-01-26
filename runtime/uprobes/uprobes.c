@@ -114,23 +114,29 @@ struct delayed_signal {
 	siginfo_t info;
 };
 
-static struct uprobe_task *uprobe_find_utask(struct task_struct *tsk)
+static struct uprobe_task *uprobe_find_utask_locked(struct task_struct *tsk)
 {
 	struct hlist_head *head;
 	struct hlist_node *node;
 	struct uprobe_task *utask;
-	unsigned long flags;
 
 	head = &utask_table[hash_ptr(tsk, UPROBE_HASH_BITS)];
-	lock_utask_table(flags);
 	hlist_for_each_entry(utask, node, head, hlist) {
-		if (utask->tsk == tsk) {
-			unlock_utask_table(flags);
+		if (utask->tsk == tsk)
 			return utask;
-		}
 	}
-	unlock_utask_table(flags);
 	return NULL;
+}
+
+static struct uprobe_task *uprobe_find_utask(struct task_struct *tsk)
+{
+        struct uprobe_task *utask;
+        unsigned long flags;
+
+        lock_utask_table(flags);
+        utask = uprobe_find_utask_locked(tsk);
+        unlock_utask_table(flags);
+        return utask;
 }
 
 static void uprobe_hash_utask(struct uprobe_task *utask)
@@ -139,8 +145,8 @@ static void uprobe_hash_utask(struct uprobe_task *utask)
 	unsigned long flags;
 
 	INIT_HLIST_NODE(&utask->hlist);
-	head = &utask_table[hash_ptr(utask->tsk, UPROBE_HASH_BITS)];
 	lock_utask_table(flags);
+	head = &utask_table[hash_ptr(utask->tsk, UPROBE_HASH_BITS)];
 	hlist_add_head(&utask->hlist, head);
 	unlock_utask_table(flags);
 }
@@ -154,9 +160,11 @@ static void uprobe_unhash_utask(struct uprobe_task *utask)
 	unlock_utask_table(flags);
 }
 
-static inline void uprobe_get_process(struct uprobe_process *uproc)
+static struct uprobe_process * uprobe_get_process(struct uprobe_process *uproc)
 {
-	atomic_inc(&uproc->refcount);
+	if (atomic_inc_not_zero(&uproc->refcount))
+		return uproc;
+	return NULL;
 }
 
 /*
@@ -186,8 +194,9 @@ static struct uprobe_process *uprobe_find_process(pid_t tgid)
 	head = &uproc_table[hash_long(tgid, UPROBE_HASH_BITS)];
 	hlist_for_each_entry(uproc, node, head, hlist) {
 		if (uproc->tgid == tgid && !uproc->finished) {
-			uprobe_get_process(uproc);
-			down_write(&uproc->rwsem);
+			uproc = uprobe_get_process(uproc);
+			if (uproc)
+				down_write(&uproc->rwsem);
 			return uproc;
 		}
 	}
@@ -476,6 +485,12 @@ static void uprobe_free_task(struct uprobe_task *utask)
 	struct deferred_registration *dr, *d;
 	struct delayed_signal *ds, *ds2;
 
+        /*    printk(KERN_INFO "uprobe_free_task %p (tid %ld), caller %pS, ctid %ld\n", utask, utask->tsk->pid, _RET_IP_, current->pid); */
+
+        /*
+         * Do this first, since a utask that's still in the utask_table
+         * is assumed (e.g., by uprobe_report_exit) to be valid.
+         */
 	uprobe_unhash_utask(utask);
 	list_del(&utask->list);
 	list_for_each_entry_safe(dr, d, &utask->deferred_registrations, list) {
@@ -487,7 +502,6 @@ static void uprobe_free_task(struct uprobe_task *utask)
 		list_del(&ds->list);
 		kfree(ds);
 	}
-
 	utask_free_uretprobe_instances(utask);
 
 	kfree(utask);
@@ -499,12 +513,13 @@ static void uprobe_free_process(struct uprobe_process *uproc)
 	struct uprobe_task *utask, *tmp;
 	struct uprobe_ssol_area *area = &uproc->ssol_area;
 
+        /* printk(KERN_INFO "uprobe_free_process %p (pid %ld), caller %pS, ctid %ld\n", uproc, uproc->tgid, _RET_IP_, current->pid); */
+
 	if (!uproc->finished)
 		uprobe_release_ssol_vma(uproc);
 	if (area->slots)
 		kfree(area->slots);
-	if (!hlist_unhashed(&uproc->hlist))
-		hlist_del(&uproc->hlist);
+	hlist_del(&uproc->hlist);
 	list_for_each_entry_safe(utask, tmp, &uproc->thread_list, list) {
 		/*
 		 * utrace_detach() is OK here (required, it seems) even if
@@ -515,6 +530,7 @@ static void uprobe_free_process(struct uprobe_process *uproc)
 		uprobe_free_task(utask);
 	}
 	up_write(&uproc->rwsem);	// So kfree doesn't complain
+        /* printk(KERN_INFO "uprobe_free_process zap %p\n", uproc);*/
 	kfree(uproc);
 }
 
@@ -539,7 +555,9 @@ static int uprobe_put_process(struct uprobe_process *uproc)
 			/*
 			 * The works because uproc_mutex is held any
 			 * time the ref count can go from 0 to 1 -- e.g.,
-			 * register_uprobe() sneaks in with a new probe.
+			 * register_uprobe() snuck in with a new probe,
+                         * or a callback such as uprobe_report_exit()
+                         * just started.
 			 */
 			up_write(&uproc->rwsem);
 		} else {
@@ -852,7 +870,7 @@ static int uprobe_validate_vma(struct task_struct *t, unsigned long vaddr)
 	mmput(mm);
 	return ret;
 }
-	
+
 /* Probed address must be in an executable VM area, outside the SSOL area. */
 static int uprobe_validate_vaddr(struct task_struct *p, unsigned long vaddr,
 	struct uprobe_process *uproc)
@@ -1961,9 +1979,15 @@ static u32 uprobe_report_quiesce(struct utrace_attached_engine *engine,
 	struct uprobe_task *utask;
 	struct uprobe_process *uproc;
 
+	rcu_read_lock();
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	BUG_ON(!utask);
-	uproc = utask->uproc;
+	uproc = uprobe_get_process(utask->uproc);
+	rcu_read_unlock();
+
+	if (!uproc)
+		return UTRACE_ACTION_DETACH|UTRACE_ACTION_RESUME;
+
 	if (current == utask->quiesce_master) {
 		/*
 		 * tsk was already quiescent when quiesce_all_threads()
@@ -1977,7 +2001,10 @@ static u32 uprobe_report_quiesce(struct utrace_attached_engine *engine,
 	}
 
 	BUG_ON(utask->active_probe);
+
 	down_write(&uproc->rwsem);
+
+        /* printk(KERN_INFO "uprobe_report_quiesce2 %p %ld=%ld\n", uproc, uproc->tgid, current->pid); */
 
 	/*
 	 * When a thread hits a breakpoint or single-steps, utrace calls
@@ -1998,6 +2025,8 @@ static u32 uprobe_report_quiesce(struct utrace_attached_engine *engine,
 	check_uproc_quiesced(uproc, tsk);
 done:
 	up_write(&uproc->rwsem);
+	uprobe_put_process(uproc);
+        /* printk(KERN_INFO "uprobe_report_quiesce3 %p %ld=%ld\n", uproc, uproc->tgid, current->pid); */
 	return UTRACE_ACTION_RESUME;
 }
 
@@ -2074,8 +2103,14 @@ static u32 uprobe_report_exit(struct utrace_attached_engine *engine,
 	int utask_quiescing;
 
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
-	uproc = utask->uproc;
-	uprobe_get_process(uproc);
+	if (utask)
+		uproc = uprobe_get_process(utask->uproc);
+
+	if (!utask || !uproc)
+		/* uprobe_free_process() has probably clobbered utask->proc. */
+		return UTRACE_ACTION_DETACH;
+
+        /* printk(KERN_INFO "uprobe_report_exit %p %ld=%ld\n", uproc, uproc->tgid, current->pid); */
 
 	ppt = utask->active_probe;
 	if (ppt) {
@@ -2108,6 +2143,9 @@ static u32 uprobe_report_exit(struct utrace_attached_engine *engine,
 	}
 
 	down_write(&uproc->rwsem);
+
+        /* printk(KERN_INFO "uprobe_report_exit2 %p %ld=%ld\n", uproc, uproc->tgid, current->pid); */
+
 	utask_quiescing = utask->quiescing;
 	uprobe_free_task(utask);
 
@@ -2129,6 +2167,8 @@ static u32 uprobe_report_exit(struct utrace_attached_engine *engine,
 		uprobe_cleanup_process(uproc);
 	}
 	up_write(&uproc->rwsem);
+        /* printk(KERN_INFO "uprobe_report_exit3 %p %ld=%ld\n", uproc, uproc->tgid, current->pid); */
+
 	uprobe_put_process(uproc);
 
 	return UTRACE_ACTION_DETACH;
@@ -2241,7 +2281,7 @@ static int uprobe_fork_uproc(struct uprobe_process *parent_uproc,
 	child_utask = uprobe_find_utask(child_tsk);
 	BUG_ON(!child_utask);
 	ret = uprobe_fork_uretprobe_instances(parent_utask, child_utask);
-	
+
 	hlist_add_head(&child_uproc->hlist,
 			&uproc_table[hash_long(child_uproc->tgid,
 			UPROBE_HASH_BITS)]);
@@ -2271,6 +2311,7 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 	ptask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = ptask->uproc;
 
+        /* printk(KERN_INFO "uprobe_report_clone %p %ld=%ld\n", uproc, uproc->tgid, current->pid); */
 	/*
 	 * Lock uproc so no new uprobes can be installed 'til all
 	 * report_clone activities are completed.  Lock uproc_table
@@ -2279,6 +2320,8 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 	lock_uproc_table();
 	down_write(&uproc->rwsem);
 	get_task_struct(child);
+
+        /* printk(KERN_INFO "uprobe_report_clone2 %p %ld=%ld\n", uproc, uproc->tgid, current->pid); */
 
 	if (clone_flags & (CLONE_THREAD|CLONE_VM)) {
 		/* New thread in the same process (CLONE_THREAD) or
@@ -2323,7 +2366,7 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 				}
 			}
 		}
-		
+
 		if (!hlist_empty(&ptask->uretprobe_instances))
 			(void) uprobe_fork_uproc(uproc, ptask, child);
 	}
@@ -2360,8 +2403,14 @@ static u32 uprobe_report_exec(struct utrace_attached_engine *engine,
 	u32 ret = UTRACE_ACTION_RESUME;
 
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
-	uproc = utask->uproc;
-	uprobe_get_process(uproc);
+	if (utask)
+		uproc = uprobe_get_process(utask->uproc);
+
+	if (!utask || !uproc)
+		/* uprobe_free_process() has probably clobbered utask->proc. */
+		return UTRACE_ACTION_DETACH;
+
+        /* printk(KERN_INFO "uprobe_report_exec %p %ld=%ld\n", uproc, uproc->tgid, current->pid); */
 
 	/*
 	 * Only cleanup if we're the last thread.  If we aren't,
@@ -2390,10 +2439,13 @@ static u32 uprobe_report_exec(struct utrace_attached_engine *engine,
                 ret = UTRACE_ACTION_DETACH;
 	}
 	up_write(&uproc->rwsem);
+        /* printk(KERN_INFO "uprobe_report_exec2 %p %ld=%ld\n", uproc, uproc->tgid, current->pid); */
 
 	/* If any [un]register_uprobe is pending, it'll clean up. */
 	if (uprobe_put_process(uproc))
 		ret = UTRACE_ACTION_DETACH;
+
+        /* printk(KERN_INFO "uprobe_report_exec4 %p %ld=%ld ret=%lu\n", uproc, uproc->tgid, current->pid, (unsigned long)ret); */
 
 	return ret;
 }
@@ -2631,7 +2683,7 @@ static inline unsigned long lookup_uretprobe(struct hlist_node *r,
 {
 	struct uretprobe_instance *ret_inst;
 	unsigned long trampoline_addr;
-	
+
 	if (IS_ERR(uproc->uretprobe_trampoline_addr))
 	  return pc;
 	trampoline_addr = (unsigned long)uproc->uretprobe_trampoline_addr;
@@ -2672,7 +2724,7 @@ unsigned long uprobe_get_pc(struct uretprobe_instance *ri, unsigned long pc,
 		if (!uk)
 			return 0;
 		uproc = uk->ppt->uproc;
-		r = &ri->hlist;		
+		r = &ri->hlist;
 	}
 	return lookup_uretprobe(r, uproc, pc, sp);
 }
@@ -2685,7 +2737,7 @@ unsigned long uprobe_get_pc_task(struct task_struct *task, unsigned long pc,
 	struct uprobe_task *utask;
 	struct uprobe_process *uproc;
 	unsigned long result;
-		
+
 	utask = uprobe_find_utask(task);
 	if (!utask) {
 		return pc;
