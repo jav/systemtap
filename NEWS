@@ -1,5 +1,10 @@
 * What's new in version 1.7
 
+- Map inserting and deleting is now significantly faster due to
+  improved hashing and larger hash tables. The hashes are also
+  now randomized to provide better protection against deliberate
+  collision attacks.
+
 - Systemtap loads extra command line options from $SYSTEMTAP_DIR/rc
   ($HOME/.systemtap/rc by default) before the normal argc/argv.
 
