@@ -28,7 +28,7 @@ static int map_sizes[] = {
 
 static unsigned int int64_hash (const int64_t v)
 {
-	return (unsigned int)hash_long ((unsigned long)v, HASH_TABLE_BITS);
+	return (unsigned int)hash_long (((unsigned long)v) ^ stap_hash_seed, HASH_TABLE_BITS);
 }
 
 static int int64_eq_p (int64_t key1, int64_t key2)
@@ -55,14 +55,19 @@ static int str_eq_p (char *key1, char *key2)
 	return strncmp(key1, key2, MAP_STRING_LENGTH - 1) == 0;
 }
 
+static unsigned long partial_str_hash(unsigned long c, unsigned long prevhash)
+{
+	return (prevhash + (c << 4) + (c >> 4)) * 11;
+}
+
 static unsigned int str_hash(const char *key1)
 {
-	int hash = 0, count = 0;
+	unsigned long hash = 0;
+	int count = 0;
 	char *v1 = (char *)key1;
-	while (*v1 && count++ < 5) {
-		hash += *v1++;
-	}
-	return (unsigned int)hash_long((unsigned long)hash, HASH_TABLE_BITS);
+	while (*v1 && count++ < MAP_STRING_LENGTH)
+		hash = partial_str_hash(*v1++, hash);
+	return (unsigned int)hash_long(hash^stap_hash_seed, HASH_TABLE_BITS);
 }
 
 /** @addtogroup maps 
@@ -168,7 +173,16 @@ static char *_stp_key_get_str (struct map_node *mn, int n)
 static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, int data_size, int cpu)
 {
 	int size;
-
+	size_t hash_size = sizeof(struct hlist_head) * HASH_TABLE_SIZE;
+	if(cpu < 0)
+		m->hashes = (struct hlist_head *) _stp_kmalloc_gfp(hash_size, STP_ALLOC_SLEEP_FLAGS);
+	else
+		m->hashes = (struct hlist_head *) _stp_kmalloc_node_gfp(hash_size, cpu_to_node(cpu), STP_ALLOC_SLEEP_FLAGS);
+	if(m->hashes == NULL) {
+		_stp_error("error allocating hash\n");
+		return -1;
+	}
+	memset(m->hashes, 0, hash_size);
 	m->maxnum = max_entries;
 	m->type = type;
 	if (type >= END) {
@@ -378,6 +392,8 @@ static void __stp_map_del(MAP map)
 		list_del(p);
 		_stp_kfree(p);
 	}
+	/* free used hash */
+	_stp_kfree(map->hashes);
 }
 
 /** Deletes a map.

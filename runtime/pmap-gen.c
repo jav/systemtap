@@ -627,21 +627,21 @@ static unsigned int KEYSYM(phash) (ALLKEYSD(key))
 {
 	unsigned int hash = KEY1_HASH(key1);
 #if KEY_ARITY > 1
-	hash ^= KEY2_HASH(key2);
+	hash = (hash << 1) ^ KEY2_HASH(key2);
 #if KEY_ARITY > 2
-	hash ^= KEY3_HASH(key3);
+	hash = (hash << 1) ^ KEY3_HASH(key3);
 #if KEY_ARITY > 3
-	hash ^= KEY4_HASH(key4);
+	hash = (hash << 1) ^ KEY4_HASH(key4);
 #if KEY_ARITY > 4
-	hash ^= KEY5_HASH(key5);
+	hash = (hash << 1) ^ KEY5_HASH(key5);
 #if KEY_ARITY > 5
-	hash ^= KEY6_HASH(key6);
+	hash = (hash << 1) ^ KEY6_HASH(key6);
 #if KEY_ARITY > 6
-	hash ^= KEY7_HASH(key7);
+	hash = (hash << 1) ^ KEY7_HASH(key7);
 #if KEY_ARITY > 7
-	hash ^= KEY8_HASH(key8);
+	hash = (hash << 1) ^ KEY8_HASH(key8);
 #if KEY_ARITY > 8
-	hash ^= KEY9_HASH(key9);
+	hash = (hash << 1) ^ KEY9_HASH(key9);
 #endif
 #endif
 #endif
@@ -650,7 +650,7 @@ static unsigned int KEYSYM(phash) (ALLKEYSD(key))
 #endif
 #endif
 #endif
-	return (unsigned int) hash;
+	return (unsigned int) (hash % HASH_TABLE_SIZE);
 }
 
 

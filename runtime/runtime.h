@@ -22,6 +22,7 @@
 #include <linux/proc_fs.h>
 #include <linux/vmalloc.h>
 #include <linux/time.h>
+#include <linux/random.h>
 #include <linux/spinlock.h>
 #include <linux/hardirq.h>
 #include <asm/uaccess.h>
@@ -202,8 +203,13 @@ static struct kernel_param_ops param_ops_int64_t = {
 
 /************* Module Stuff ********************/
 
+static unsigned long stap_hash_seed; /* Init during module startup */
 int init_module (void)
 {
+  /* With deliberate hash-collision-inducing data conceivably fed to
+     stap, it is beneficial to add some runtime-random value to the
+     map hash. */
+  get_random_bytes(&stap_hash_seed, sizeof (stap_hash_seed));
   return _stp_transport_init();
 }
 

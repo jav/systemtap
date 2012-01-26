@@ -8,6 +8,7 @@
  * later version.
  */
 
+#include <linux/log2.h>
 #ifndef _MAP_H_
 #define _MAP_H_
 
@@ -38,7 +39,8 @@
 
 /* This sets the size of the hash table. */
 #ifndef HASH_TABLE_BITS
-#define HASH_TABLE_BITS 8
+#define HASH_TABLE_BITS (ilog2(MAXMAPENTRIES)+1)
+
 /* This sets the size of the hash table. */
 #define HASH_TABLE_SIZE (1<<HASH_TABLE_BITS)
 #endif
@@ -125,8 +127,8 @@ struct map_root {
 	spinlock_t lock;
 #endif
 
-	/* the hash table for this array */
-	struct hlist_head hashes[HASH_TABLE_SIZE];
+	/* the hash table for this array, allocated in _stp_map_init() */
+	struct hlist_head *hashes;
 
 	/* used if this map's nodes contain stats */
 	struct _Hist hist;
