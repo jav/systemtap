@@ -1334,7 +1334,8 @@ systemtap_session::check_options (int argc, char * const argv [])
   native_build = (release == kernel_release &&
                   machine == architecture); // NB: squashed ARCH by PR4186 logic
 
-  if (last_pass > 4 && !native_build)
+  // Non-native builds can't be loaded locally, but may still work on remotes
+  if (last_pass > 4 && !native_build && remote_uris.empty())
     {
       print_warning("kernel release/architecture mismatch with host forces last-pass 4.");
       last_pass = 4;
