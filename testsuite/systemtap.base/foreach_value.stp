@@ -25,7 +25,7 @@ probe begin
 
   foreach (s = i in strings)
     stats[stringat(s,0)] <<< strlen(s)
-  foreach (c in stats)
+  foreach (c+ in stats)
     foreach (n = i in @hist_log(stats[c]))
       if (n) printf("%d strings in [%c] bucket %d\n", n, c, i)
 

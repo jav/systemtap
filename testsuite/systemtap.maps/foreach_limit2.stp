@@ -27,25 +27,55 @@ probe begin
     agg_array[3] <<< 36 / 2
     agg_array[6] <<< 12 / 2
     agg_array[5] <<< 10 / 2
+    agg_array[4] <<< 8
 
     agg_array[9] <<< 18 * 3
     agg_array[1] <<< 40 * 3
     agg_array[8] <<< 16 * 3
     agg_array[2] <<< 4 * 3
     agg_array[7] <<< 14 * 3
-    agg_array[3] <<< 36 * 3
+    agg_array[3] <<< 36
+    agg_array[6] <<< 12
+    agg_array[5] <<< 10
 
     agg_array[9] <<< 1
     agg_array[1] <<< 2
     agg_array[8] <<< 3
     agg_array[2] <<< 4
+    agg_array[7] <<< 14 * 3
+    agg_array[3] <<< 36 * 3
+    agg_array[6] <<< 12
 
     agg_array[9] <<< 2
     agg_array[1] <<< 3
+    agg_array[8] <<< 16
+    agg_array[2] <<< 4
+    agg_array[7] <<< 14
+    agg_array[3] <<< 36
 
-    # Print the unsorted array
-    printf("unsorted:\n");
-    foreach (key in agg_array)
+    agg_array[9] <<< 18
+    agg_array[1] <<< 40
+    agg_array[8] <<< 16
+    agg_array[2] <<< 4
+    agg_array[7] <<< 14
+
+    agg_array[9] <<< 18
+    agg_array[1] <<< 40
+    agg_array[8] <<< 16
+    agg_array[2] <<< 4
+
+    agg_array[9] <<< 18
+    agg_array[1] <<< 40
+    agg_array[8] <<< 16
+
+    agg_array[9] <<< 18
+    agg_array[1] <<< 40
+
+    agg_array[9] <<< 18
+
+    # Print the sorted array (by value, decreasing)
+    printf("sorted (by values, decreasing):\n");
+    foreach (key in agg_array-)
     {
 	printf("agg_array[%d]: count:%d  sum:%d  avg:%d  min:%d  max:%d\n", 
 	       key, @count(agg_array[key]), @sum(agg_array[key]),
@@ -53,8 +83,8 @@ probe begin
 	       @max(agg_array[key]))
     }
 
-    # Print the sorted array (by value)
-    printf("\nsorted (by values):\n");
+    # Print the sorted array (by value, increasing)
+    printf("\nsorted (by values), increasing:\n");
     foreach (key in agg_array+)
     {
 	printf("agg_array[%d]: count:%d  sum:%d  avg:%d  min:%d  max:%d\n", 
@@ -63,10 +93,10 @@ probe begin
 	       @max(agg_array[key]))
     }
 
-    # Print the first 5 unsorted array items
-    printf("\nunsorted limit 5:\n");
+    # Print the first 5 sorted array items (by value, decreasing)
+    printf("\nsorted (by values, decreasing) limit 5:\n");
     i = 0
-    foreach (key in agg_array limit 5)
+    foreach (key in agg_array- limit 5)
     {
 	printf("agg_array[%d]: count:%d  sum:%d  avg:%d  min:%d  max:%d\n", 
 	       key, @count(agg_array[key]), @sum(agg_array[key]),
@@ -76,8 +106,8 @@ probe begin
     }
     printf("loop had %d iterations\n", i);
 
-    # Print the first 5 sorted array items (by value)
-    printf("\nsorted (by values) limit 5:\n");
+    # Print the first 5 sorted array items (by value, increasing)
+    printf("\nsorted (by values, increasing) limit 5:\n");
     i = 0
     foreach (key in agg_array+ limit 5)
     {

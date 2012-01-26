@@ -39,6 +39,10 @@ probe end {
 foreach ([i,j] in beta)
   printf("[%#s,%#x]=%#x ", i, j, beta[i,j])
 print("\n")
+foreach([i,j+] in epsilon)
+  printf("epsilon[\"%s\", %d] count:%d min:%d max:%d sum:%d avg:%d\n",
+          i, j, @count(epsilon[i,j]), @min(epsilon[i,j]), @max(epsilon[i,j]), @sum(epsilon[i,j]),
+          @avg(epsilon[i,j]))
 exit()
 }
 

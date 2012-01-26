@@ -9,6 +9,8 @@ set ok 0
 expect {
     -timeout 180
     -re {one,0x1.*one,0x2.*two,0x1.*two,0x2} { incr ok; exp_continue }
+    -re {epsilon."one", 1. count:4 min:1 max:4 sum:10 avg:2} { incr ok; exp_continue }
+    -re {epsilon."two", 2. count:4 min:10 max:40 sum:100 avg:25} { incr ok; exp_continue }
     -re {alpha."two".2.=0x4} { incr ok; exp_continue }
     -re {alpha."two".1.=0x3} { incr ok; exp_continue }
     -re {alpha."one".2.=0x2} { incr ok; exp_continue }
@@ -16,8 +18,6 @@ expect {
     -re {gamma="abcdefghijklmnopqrstuvwxyz"} { incr ok; exp_continue }
     -re {iota."two".="twelve"} { incr ok; exp_continue }
     -re {iota."one".="eleven"} { incr ok; exp_continue }
-    -re {epsilon."one",1. @count=4 @min=1 @max=4 @sum=10 @avg=2} { incr ok; exp_continue }
-    -re {epsilon."two",2. @count=4 @min=10 @max=40 @sum=100 @avg=25} { incr ok; exp_continue }
     -re {phi @count=4 @min=1 @max=4 @sum=10 @avg=2} { incr ok; exp_continue }
 
     timeout { fail "$test (timeout)" }

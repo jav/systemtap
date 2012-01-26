@@ -4,6 +4,14 @@ probe begin
 {
   for (i=0; i<10; i++)
     foo[i] <<< i;
+
+    foreach (key+ in foo)
+    {
+      printf("foo[%d]: count:%d  sum:%d  avg:%d  min:%d  max:%d\n",
+              key, @count(foo[key]), @sum(foo[key]),
+              @avg(foo[key]), @min(foo[key]),
+              @max(foo[key]))
+    }
   exit();
 }
 
