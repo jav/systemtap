@@ -38,11 +38,13 @@
     __asm__ __volatile__ (_SDT_ASM_BASE);				    \
   } while (0)
 # define _SDT_S(x)			#x
-# define _SDT_ASM_1(x)			_SDT_S(x)"\n"
-# define _SDT_ASM_2(a, b)		_SDT_S(a)","_SDT_S(b)"\n"
-# define _SDT_ASM_3(a, b, c)		_SDT_S(a)","_SDT_S(b)","_SDT_S(c)"\n"
-# define _SDT_ASM_5(a, b, c, d, e)	_SDT_S(a)","_SDT_S(b)","_SDT_S(c)","\
-					_SDT_S(d)","_SDT_S(e)"\n"
+# define _SDT_ASM_1(x)			_SDT_S(x) "\n"
+# define _SDT_ASM_2(a, b)		_SDT_S(a) "," _SDT_S(b) "\n"
+# define _SDT_ASM_3(a, b, c)		_SDT_S(a) "," _SDT_S(b) "," \
+					_SDT_S(c) "\n"
+# define _SDT_ASM_5(a, b, c, d, e)	_SDT_S(a) "," _SDT_S(b) "," \
+					_SDT_S(c) "," _SDT_S(d) "," \
+					_SDT_S(e) "\n"
 # define _SDT_ASM_ARGS(n)		_SDT_ASM_STRING(_SDT_ASM_TEMPLATE_##n)
 # define _SDT_ASM_STRING_1(x)		_SDT_ASM_1(.asciz #x)
 
