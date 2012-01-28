@@ -1430,7 +1430,8 @@ stap_start_task_finder(void)
 			/* Notice that "pid == 0" (which means to
 			 * probe all threads) falls through. */
 
-#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV)
+#if ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPDEV) && \
+    ! STP_PRIVILEGE_CONTAINS (STP_PRIVILEGE, STP_PR_STAPSYS)
 			/* Make sure unprivileged users only probe their own threads.  */
 			if (_stp_uid != tsk_euid) {
 				if (tgt->pid != 0 || _stp_target) {
