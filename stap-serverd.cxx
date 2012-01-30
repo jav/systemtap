@@ -1249,27 +1249,13 @@ handleRequest (const string &requestDirName, const string &responseDirName)
 
   string stapstdout = responseDirName + "/stdout";
 
-  // Check for the privilege flag; we need this so that we can decide to sign the module.
-  privilege_t privilege = getRequestedPrivilege (stapargv);
-
-#if 0 // no longer necessary now that we properly parse the options?
-  /* NB: but it's not that easy!  What if an attacker passes
-     --unprivileged or --privilege=XXX as some sort of argument-parameter, so that the
-     translator does not interpret it as an --unprivileged mode flag,
-     but something else?  Then it could generate unrestrained modules,
-     but silly we might still sign it, and let the attacker get away
-     with murder.  And yet we don't want to fully getopt-parse the
-     args here for duplication of effort.
-
-     So let's do a hack: forcefully add --privilege=XXX to stapargv[]
-     near the front in this case, something which a later option
-     cannot undo. */
-  if (! pr_contains (privilege, pr_stapdev))
-    {
-      string opt = string("--privilege=") + pr_name (privilege);
-      stapargv.insert (stapargv.begin () + 1, opt); /* better not be resettable by later option */
-    }
-#endif
+  // NB: Before, when we did not fully parse the client's command line using getopt_long,
+  // we used to insert a --privilege=XXX option here in case some other argument was mistaken
+  // for a --privilege or --unprivileged option by our spawned stap. Since we now parse
+  // the client's command line using getopt_long and share the getopt_long options
+  // string and table with stap, this is no longer necessary. stap will parse the
+  // command line identically to the way we have parsed it and will discover the same
+  // privilege-setting option.
 
   // Environment variables (possibly empty) to be passed to spawn_and_wait().
   string staplang = requestDirName + "/locale";
@@ -1290,8 +1276,9 @@ handleRequest (const string &requestDirName, const string &responseDirName)
       fclose(f);
     }
 
-  /* In unprivileged mode, if we have a module built, we need to sign the sucker. */
-  if (! pr_contains (privilege, pr_stapdev))
+  // In unprivileged modes, if we have a module built, we need to sign the sucker.
+  privilege_t privilege = getRequestedPrivilege (stapargv);
+  if (pr_contains (privilege, pr_stapusr) || pr_contains (privilege, pr_stapsys))
     {
       glob_t globber;
       char pattern[PATH_MAX];
