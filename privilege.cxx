@@ -25,24 +25,6 @@ extern "C" {
 
 using namespace std;
 
-privilege_t pr_next (privilege_t p)
-{
-  switch (p)
-    {
-    case pr_stapusr:
-      p = pr_stapsys;
-      break;
-    case pr_stapsys:
-      p = pr_stapdev;
-      break;
-    case pr_stapdev:
-    default:
-      p = pr_end;
-      break;
-    }
-  return p;
-}
-
 const char *pr_name (privilege_t p)
 {
   switch (p)

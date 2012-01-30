@@ -3,7 +3,7 @@
   the data into a temporary file, calls the systemtap translator and
   then transmits the resulting file back to the client.
 
-  Copyright (C) 2011 Red Hat Inc.
+  Copyright (C) 2011-2012 Red Hat Inc.
 
   This file is part of systemtap, and is free software.  You can
   redistribute it and/or modify it under the terms of the GNU General Public
@@ -58,6 +58,7 @@ extern "C" {
 #include "util.h"
 #include "nsscommon.h"
 #include "cscommon.h"
+#include "cmdline.h"
 
 using namespace std;
 
@@ -175,8 +176,9 @@ process_log (const char *arg)
 static void
 parse_options (int argc, char **argv)
 {
-  // Examine the command line. We need not do much checking, but we do need to
-  // parse all options in order to discover the ones we're interested in.
+  // Examine the command line. This is the command line for us (stap-serverd) not the command
+  // line for spawned stap instances.
+  optind = 1;
   while (true)
     {
       int long_opt = 0;
@@ -1080,6 +1082,72 @@ filter_response_file (const string &file_name, const string &responseDirName)
   stap_system (0, cmd);
 }
 
+static privilege_t
+getRequestedPrivilege (const vector<string> &stapargv)
+{
+  // The purpose of this function is to find the --privilege or --unprivileged option specified
+  // by the user on the client side. We need to parse the command line completely, but we can
+  // exit when we find the first --privilege or --unprivileged option, since stap does not allow
+  // multiple privilege levels to specified on the same command line.
+  //
+  // Note that we need not do any options consistency checking since our spawned stap instance
+  // will do that.
+  //
+  // Create an argv/argc for use by getopt_long.
+  int argc = stapargv.size();
+  char ** argv = new char *[argc + 1];
+  for (unsigned i = 0; i < stapargv.size(); ++i)
+    argv[i] = (char *)stapargv[i].c_str();
+  argv[argc] = NULL;
+
+  privilege_t privilege = pr_highest; // Until specified otherwise.
+  optind = 1;
+  while (true)
+    {
+      // We need only allow getopt to parse the options until we find a
+      // --privilege or --unprivileged option.
+      int grc = getopt_long (argc, argv, STAP_SHORT_OPTIONS, stap_long_options, NULL);
+      if (grc < 0)
+        break;
+      switch (grc)
+        {
+	default:
+	  // We can ignore all short options
+	  break;
+        case 0:
+          switch (stap_long_opt)
+            {
+	    default:
+	      // We can ignore all options other than --privilege and --unprivileged.
+	      break;
+	    case LONG_OPT_PRIVILEGE:
+	      if (strcmp (optarg, "stapdev") == 0)
+		privilege = pr_stapdev;
+	      else if (strcmp (optarg, "stapsys") == 0)
+		privilege = pr_stapsys;
+	      else if (strcmp (optarg, "stapusr") == 0)
+		privilege = pr_stapusr;
+	      else
+		{
+		  server_error (_F("Invalid argument '%s' for --privilege", optarg));
+		  privilege = pr_highest;
+		}
+	      // We have discovered the client side --privilege option. We can exit now since
+	      // stap only tolerates one privilege setting option.
+	      goto done; // break 2 switches and a loop
+	    case LONG_OPT_UNPRIVILEGED:
+	      privilege = pr_unprivileged;
+	      // We have discovered the client side --unprivileged option. We can exit now since
+	      // stap only tolerates one privilege setting option.
+	      goto done; // break 2 switches and a loop
+	    }
+	}
+    }
+ done:
+  delete[] argv;
+  return privilege;
+}
+
 /* Run the translator on the data in the request directory, and produce output
    in the given output directory. */
 static void
@@ -1181,28 +1249,10 @@ handleRequest (const string &requestDirName, const string &responseDirName)
 
   string stapstdout = responseDirName + "/stdout";
 
-  /* Check for the privilege flag; we need this so that we can decide to sign the module.
-     There may be more than one such flag. Obey the last one. */
-  privilege_t privilege = pr_stapdev; // Until specified otherwise.
-  for (i=0; i < stapargv.size (); i++)
-    {
-      if (stapargv[i] == "--unprivileged")
-	privilege = pr_stapusr;
-      else if (stapargv[i].substr (0, 12) == "--privilege=")
-	{
-	  string arg = stapargv[i].substr (12);
-	  if (arg == "stapdev")
-	    privilege = pr_stapdev;
-	  else if (arg == "stapsys")
-	    privilege = pr_stapsys;
-	  else if (arg == "stapusr")
-	    privilege = pr_stapusr;
-	  else {
-	    // Not fatal, but generate a message.
-	    server_error (_F("Unknown argument to --privilege: %s", arg.c_str ()));
-	  }
-	}
-    }
+  // Check for the privilege flag; we need this so that we can decide to sign the module.
+  privilege_t privilege = getRequestedPrivilege (stapargv);
+
+#if 0 // no longer necessary now that we properly parse the options?
   /* NB: but it's not that easy!  What if an attacker passes
      --unprivileged or --privilege=XXX as some sort of argument-parameter, so that the
      translator does not interpret it as an --unprivileged mode flag,
@@ -1219,6 +1269,7 @@ handleRequest (const string &requestDirName, const string &responseDirName)
       string opt = string("--privilege=") + pr_name (privilege);
       stapargv.insert (stapargv.begin () + 1, opt); /* better not be resettable by later option */
     }
+#endif
 
   // Environment variables (possibly empty) to be passed to spawn_and_wait().
   string staplang = requestDirName + "/locale";
@@ -1288,6 +1339,7 @@ handleRequest (const string &requestDirName, const string &responseDirName)
           sign_file (cert_db_path, server_cert_nickname(),
                      uprobes_response, uprobes_response + ".sgn");
         }
+
     }
 
   /* Free up all the arg string copies.  Note that the first few were alloc'd

@@ -13,24 +13,20 @@ typedef enum privilege_t {
   pr_stapsys = 0x00000004,  // Member of stapsys
   pr_stapdev = 0x00000008,  // Member of stapdev
 
-  // These are used for iterating
-  pr_begin = pr_stapusr,
-  pr_end   = pr_unknown,
-
   // Predefined sets
   pr_highest = pr_stapdev,
-  pr_highest_signed = pr_stapsys,
+  pr_unprivileged = pr_stapusr,
+  pr_privileged = pr_stapsys | pr_stapdev,
   pr_all = pr_stapusr | pr_stapsys | pr_stapdev
 } privilege_t;
 
-// Name of the section  in the module used to store privilege information.
+// Name of the section in the module used to store privilege information.
 #define STAP_PRIVILEGE_SECTION ".stap_privilege"
 
 // Privilege management.
 #if defined(c_plusplus) || defined(__cplusplus)
 extern "C" {
 #endif
-privilege_t pr_next (privilege_t p);
 const char *pr_name (privilege_t p);
 int pr_contains (privilege_t actual, privilege_t required);
 privilege_t get_privilege_credentials (void);

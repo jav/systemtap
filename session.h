@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2011 Red Hat Inc.
+// Copyright (C) 2005-2012 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -180,6 +180,7 @@ public:
   bool load_only; // flight recorder mode
   bool omit_werror;
   privilege_t privilege;
+  bool privilege_set;
   bool systemtap_v_check;
   bool tmpdir_opt_set;
   bool dump_probe_types;

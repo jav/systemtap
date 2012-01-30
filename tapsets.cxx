@@ -4459,8 +4459,8 @@ dwarf_derived_probe::register_patterns(systemtap_session& s)
   update_visitor *filter = new dwarf_cast_expanding_visitor(s, *dw);
   s.code_filters.push_back(filter);
 
-  register_function_and_statement_variants(s, root->bind(TOK_KERNEL), dw, pr_stapdev);
-  register_function_and_statement_variants(s, root->bind_str(TOK_MODULE), dw, pr_stapdev);
+  register_function_and_statement_variants(s, root->bind(TOK_KERNEL), dw, pr_privileged);
+  register_function_and_statement_variants(s, root->bind_str(TOK_MODULE), dw, pr_privileged);
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
     ->bind(dw);
 

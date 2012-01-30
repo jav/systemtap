@@ -1,5 +1,5 @@
 // session functions
-// Copyright (C) 2010-2011 Red Hat Inc.
+// Copyright (C) 2010-2012 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -18,6 +18,7 @@
 #include "csclient.h"
 #include "rpm_finder.h"
 #include "util.h"
+#include "cmdline.h"
 #include "git_version.h"
 
 #include <cerrno>
@@ -134,6 +135,7 @@ systemtap_session::systemtap_session ():
   load_only = false;
   skip_badvars = false;
   privilege = pr_stapdev;
+  privilege_set = false;
   omit_werror = false;
   compatible = VERSION; // XXX: perhaps also process GIT_SHAID if available?
   unwindsym_ldd = false;
@@ -296,6 +298,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   load_only = other.load_only;
   skip_badvars = other.skip_badvars;
   privilege = other.privilege;
+  privilege_set = other.privilege_set;
   omit_werror = other.omit_werror;
   compatible = other.compatible;
   unwindsym_ldd = other.unwindsym_ldd;
@@ -548,83 +551,9 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
   client_options_disallowed = "";
   while (true)
     {
-      int long_opt = 0;
       char * num_endptr;
+      int grc = getopt_long (argc, argv, STAP_SHORT_OPTIONS, stap_long_options, NULL);
 
-      // NB: when adding new options, consider very carefully whether they
-      // should be restricted from stap clients (after --client-options)!
-#define LONG_OPT_KELF 1
-#define LONG_OPT_KMAP 2
-#define LONG_OPT_IGNORE_VMLINUX 3
-#define LONG_OPT_IGNORE_DWARF 4
-#define LONG_OPT_VERBOSE_PASS 5
-#define LONG_OPT_SKIP_BADVARS 6
-#define LONG_OPT_UNPRIVILEGED 7
-#define LONG_OPT_OMIT_WERROR 8
-#define LONG_OPT_CLIENT_OPTIONS 9
-#define LONG_OPT_HELP 10
-#define LONG_OPT_DISABLE_CACHE 11
-#define LONG_OPT_POISON_CACHE 12
-#define LONG_OPT_CLEAN_CACHE 13
-#define LONG_OPT_COMPATIBLE 14
-#define LONG_OPT_LDD 15
-#define LONG_OPT_USE_SERVER 16
-#define LONG_OPT_LIST_SERVERS 17
-#define LONG_OPT_TRUST_SERVERS 18
-#define LONG_OPT_ALL_MODULES 19
-#define LONG_OPT_REMOTE 20
-#define LONG_OPT_CHECK_VERSION 21
-#define LONG_OPT_USE_SERVER_ON_ERROR 22
-#define LONG_OPT_VERSION 23
-#define LONG_OPT_REMOTE_PREFIX 24
-#define LONG_OPT_TMPDIR 25
-#define LONG_OPT_DOWNLOAD_DEBUGINFO 26
-#define LONG_OPT_DUMP_PROBE_TYPES 27
-#define LONG_OPT_PRIVILEGE 28
-#define LONG_OPT_SUPPRESS_HANDLER_ERRORS 29
-#define LONG_OPT_MODINFO 30
-      // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
-      static struct option long_options[] = {
-        { "kelf", 0, &long_opt, LONG_OPT_KELF },
-        { "kmap", 2, &long_opt, LONG_OPT_KMAP },
-        { "ignore-vmlinux", 0, &long_opt, LONG_OPT_IGNORE_VMLINUX },
-        { "ignore-dwarf", 0, &long_opt, LONG_OPT_IGNORE_DWARF },
-	{ "skip-badvars", 0, &long_opt, LONG_OPT_SKIP_BADVARS },
-        { "vp", 1, &long_opt, LONG_OPT_VERBOSE_PASS },
-        { "unprivileged", 0, &long_opt, LONG_OPT_UNPRIVILEGED },
-#define OWE5 "tter"
-#define OWE1 "uild-"
-#define OWE6 "fu-kb"
-#define OWE2 "i-kno"
-#define OWE4 "st"
-#define OWE3 "w-be"
-        { OWE4 OWE6 OWE1 OWE2 OWE3 OWE5, 0, &long_opt, LONG_OPT_OMIT_WERROR },
-        { "client-options", 0, &long_opt, LONG_OPT_CLIENT_OPTIONS },
-        { "help", 0, &long_opt, LONG_OPT_HELP },
-        { "disable-cache", 0, &long_opt, LONG_OPT_DISABLE_CACHE },
-        { "poison-cache", 0, &long_opt, LONG_OPT_POISON_CACHE },
-        { "clean-cache", 0, &long_opt, LONG_OPT_CLEAN_CACHE },
-        { "compatible", 1, &long_opt, LONG_OPT_COMPATIBLE },
-        { "ldd", 0, &long_opt, LONG_OPT_LDD },
-        { "use-server", 2, &long_opt, LONG_OPT_USE_SERVER },
-        { "list-servers", 2, &long_opt, LONG_OPT_LIST_SERVERS },
-        { "trust-servers", 2, &long_opt, LONG_OPT_TRUST_SERVERS },
-        { "use-server-on-error", 2, &long_opt, LONG_OPT_USE_SERVER_ON_ERROR },
-        { "all-modules", 0, &long_opt, LONG_OPT_ALL_MODULES },
-        { "remote", 1, &long_opt, LONG_OPT_REMOTE },
-        { "remote-prefix", 0, &long_opt, LONG_OPT_REMOTE_PREFIX },
-        { "check-version", 0, &long_opt, LONG_OPT_CHECK_VERSION },
-        { "version", 0, &long_opt, LONG_OPT_VERSION },
-        { "tmpdir", 1, &long_opt, LONG_OPT_TMPDIR },
-        { "download-debuginfo", 2, &long_opt, LONG_OPT_DOWNLOAD_DEBUGINFO },
-        { "dump-probe-types", 0, &long_opt, LONG_OPT_DUMP_PROBE_TYPES },
-        { "privilege", 1, &long_opt, LONG_OPT_PRIVILEGE },
-        { "suppress-handler-errors", 0, &long_opt, LONG_OPT_SUPPRESS_HANDLER_ERRORS },
-        { "modinfo", 1, &long_opt, LONG_OPT_MODINFO },
-        { NULL, 0, NULL, 0 }
-      };
-      int grc = getopt_long (argc, argv, "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:",
-			     long_options, NULL);
       // NB: when adding new options, consider very carefully whether they
       // should be restricted from stap clients (after --client-options)!
 
@@ -898,7 +827,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	  break;
 
         case 0:
-          switch (long_opt)
+          switch (stap_long_opt)
             {
             case LONG_OPT_VERSION:
               push_server_opt = true;
@@ -956,25 +885,46 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      skip_badvars = true;
 	      break;
 	    case LONG_OPT_PRIVILEGE:
-	      push_server_opt = true;
-	      if (strcmp (optarg, "stapdev") == 0)
-		privilege = pr_stapdev;
-	      else if (strcmp (optarg, "stapsys") == 0)
-		privilege = pr_stapsys;
-	      else if (strcmp (optarg, "stapusr") == 0)
-		privilege = pr_stapusr;
-	      else
-		{
-		  cerr << _F("Invalid argument '%s' for --privilege.", optarg) << endl;
-		  return 1;
-		}
+	      {
+		// We allow only multiple privilege-setting options if they all specify the same
+		// privilege level. The server also expects and depends on this behaviour when
+		// examining the client-side options passed to it.
+		privilege_t newPrivilege;
+		if (strcmp (optarg, "stapdev") == 0)
+		  newPrivilege = pr_stapdev;
+		else if (strcmp (optarg, "stapsys") == 0)
+		  newPrivilege = pr_stapsys;
+		else if (strcmp (optarg, "stapusr") == 0)
+		  newPrivilege = pr_stapusr;
+		else
+		  {
+		    cerr << _F("Invalid argument '%s' for --privilege.", optarg) << endl;
+		    return 1;
+		  }
+		if (privilege_set && newPrivilege != privilege)
+		  {
+		    cerr << _("Privilege level may be set only once.") << endl;
+		    return 1;
+		  }
+		privilege = newPrivilege;
+		push_server_opt = true;
+		privilege_set = true;
+	      }
               /* NB: for server security, it is essential that once this flag is
                  set, no future flag be able to unset it. */
 	      break;
 	    case LONG_OPT_UNPRIVILEGED:
-	      // Equivalent to --privilege=stapusr
+	      // We allow only multiple privilege-setting options if they all specify the same
+	      // privilege level. The server also expects and depends on this behaviour when
+	      // examining the client-side options passed to it.
+	      if (privilege_set && pr_unprivileged != privilege)
+		{
+		  cerr << _("Privilege level may be set only once.") << endl;
+		  return 1;
+		}
+	      privilege = pr_unprivileged;
 	      push_server_opt = true;
-	      privilege = pr_stapusr;
+	      privilege_set = true;
               /* NB: for server security, it is essential that once this flag is
                  set, no future flag be able to unset it. */
 	      break;
@@ -1149,7 +1099,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 
             default:
               // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
-              cerr << _F("Unhandled long argument id %d", long_opt) << endl;
+              cerr << _F("Unhandled long argument id %d", stap_long_opt) << endl;
               return 1;
             }
           break;
@@ -1176,11 +1126,11 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      // Make sure the '=' is passed with any argument. The server expects it.
 	      if (optarg)
 		server_args.push_back (string ("--") +
-				       long_options[long_opt - 1].name +
+				       stap_long_options[stap_long_opt - 1].name +
 				       "=" + optarg);
 	      else
 		server_args.push_back (string ("--") +
-				       long_options[long_opt - 1].name);
+				       stap_long_options[stap_long_opt - 1].name);
 	    }
 	  else
 	    {
@@ -1245,14 +1195,16 @@ systemtap_session::check_options (int argc, char * const argv [])
 
   // If phase 5 has been requested, automatically adjust the --privilege setting to match the
   // user's actual privilege level and add --use-server, if necessary.
+  // Do this only if we have a script and we are not the server.
   // XXX Eventually we could check remote hosts, but disable that case for now.
-  if (last_pass > 4 && have_script && remote_uris.empty())
+  if (last_pass > 4 && have_script && ! client_options && remote_uris.empty())
     {
       // What is the user's privilege level?
       privilege_t credentials = get_privilege_credentials ();
-      if (! pr_contains (credentials, privilege)) {
+      // Don't alter specifically-requested privilege levels
+      if (! privilege_set && ! pr_contains (credentials, privilege))
 	{
-	  // We do not have the privilege credentials specified on the command line. Lower
+	  // We do not have the default privilege credentials (stapdev). Lower
 	  // the privilege level to match our credentials.
 	  if (pr_contains (credentials, pr_stapsys))
 	    {
@@ -1277,7 +1229,6 @@ systemtap_session::check_options (int argc, char * const argv [])
 	      usage (1); // does not return.
 	    }
 	}
-      }
       // Add --use-server if not already specified and the user's (lack of) credentials require
       // it for pass 5.
       if (! pr_contains (credentials, pr_stapdev))

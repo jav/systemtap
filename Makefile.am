@@ -52,7 +52,7 @@ stap_SOURCES = main.cxx session.cxx \
 	tapset-been.cxx tapset-procfs.cxx tapset-timers.cxx \
 	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
 	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx \
-	setupdwfl.cxx csclient.cxx cscommon.cxx remote.cxx privilege.cxx
+	setupdwfl.cxx csclient.cxx cscommon.cxx remote.cxx privilege.cxx cmdline.cxx
 noinst_HEADERS = sdt_types.h
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ @LIBINTL@
 stap_DEPENDENCIES =
@@ -180,7 +180,7 @@ stap_authorize_cert_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stap_authorize_cert_LDADD = $(nss_LIBS)
 
 if BUILD_SERVER
-stap_serverd_SOURCES = stap-serverd.cxx cscommon.cxx util.cxx privilege.cxx nsscommon.cxx
+stap_serverd_SOURCES = stap-serverd.cxx cscommon.cxx util.cxx privilege.cxx nsscommon.cxx cmdline.cxx
 stap_serverd_CXXFLAGS = $(AM_CXXFLAGS) @PIECXXFLAGS@ $(nss_CFLAGS)
 stap_serverd_CFLAGS = $(AM_CFLAGS) @PIECFLAGS@ $(nss_CFLAGS)
 stap_serverd_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@

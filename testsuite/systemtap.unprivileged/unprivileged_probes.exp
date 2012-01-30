@@ -360,7 +360,7 @@ proc test_unrestricted_probes { privilege } {
 proc test_restricted_probes { privilege } {
     global restricted_probe_types tested allowed test
 
-    set error_regexp1 ".*semantic error: probe point is not allowed for --privilege=stapusr.*"
+    set error_regexp1 ".*semantic error: probe point is not allowed for --privilege=.*"
 
     # Test using --unprivileged and --privilege=stapusr. They should be equivalent
     set stapusr_options [list --unprivileged --privilege=stapusr ]

@@ -6537,7 +6537,6 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include \"runtime_defines.h\"";
 
       // Generated macros describing the privilege level required to load/run this module.
-      s.op->newline() << "#define STP_PR_LOWEST 0x" << hex << pr_begin << dec;
       s.op->newline() << "#define STP_PR_STAPUSR 0x" << hex << pr_stapusr << dec;
       s.op->newline() << "#define STP_PR_STAPSYS 0x" << hex << pr_stapsys << dec;
       s.op->newline() << "#define STP_PR_STAPDEV 0x" << hex << pr_stapdev << dec;

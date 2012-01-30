@@ -7,7 +7,7 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2007-2011 Red Hat Inc.
+ * Copyright (C) 2007-2012 Red Hat Inc.
  */
 
 #include "config.h"
@@ -585,10 +585,11 @@ static privilege_t get_module_required_credentials (
 {
 #ifndef HAVE_ELF_GETSHDRSTRNDX
   /* Without the proper ELF support, we can't determine the credentials required to run this
-     module. However, we do know that it is correctly signed because we only check privilege
-     credentials for correctly signed modules. Therefore, it will be safe to assume the highest
-     privilege level which requires signing. */
-  return pr_highest_signed;
+     module. It may have some future privilege level higher than stapsys, which we don't know about.
+     We are forced to assume that requires the highest privilege level. */
+  err ("Unable to determine the privilege level required for this module. Assuming %s.",
+       pr_name (pr_highest));
+  return pr_highest;
 #else
   Elf_Scn *scn = 0;
   Elf_Data *data = 0;
@@ -604,7 +605,8 @@ static privilege_t get_module_required_credentials (
   scn = find_section_in_module (module_file, st_size, STAP_PRIVILEGE_SECTION);
   if (! scn) {
     err ("Section name \"%s\" not found in module.\n", STAP_PRIVILEGE_SECTION);
-    return pr_stapusr;
+    err ("Assuming required privilege level of %s.\n", pr_name (pr_unprivileged));
+    return pr_unprivileged;
   }
 
   /* From here on if there is an error in the data, then it is most likely caused by a newer
@@ -613,24 +615,28 @@ static privilege_t get_module_required_credentials (
      Get the section header. */
   if (gelf_getshdr (scn, & shdr) == NULL) {
     err ("Error getting section header from section %s.\n", STAP_PRIVILEGE_SECTION);
+    err ("Assuming required privilege level of %s.", pr_name (pr_highest));
     return pr_highest;
   }
 
   /* The section should have at least one data item. */
   if (shdr.sh_size < 1) {
     err ("Section header from section %s has no items\n", STAP_PRIVILEGE_SECTION);
+    err ("Assuming required privilege level of %s.", pr_name (pr_highest));
     return pr_highest;
   }
 
   /* The first data item contains the privilege requirement of the module. */
   if ((data = elf_getdata (scn, data)) == NULL) {
     err ("Error getting data from section %s\n", STAP_PRIVILEGE_SECTION);
+    err ("Assuming required privilege level of %s.", pr_name (pr_highest));
     return pr_highest;
   }
 
   /* Make sure the data is the correct size. */
   if (data->d_size != sizeof (privilege)) {
     err ("Data in section %s is not the correct size\n", STAP_PRIVILEGE_SECTION);
+    err ("Assuming required privilege level of %s.", pr_name (pr_highest));
     return pr_highest;
   }
 
@@ -645,6 +651,7 @@ static privilege_t get_module_required_credentials (
     break; /* ok */
   default:
     err ("Unknown privilege data, 0x%x in section %s\n", (int)privilege, STAP_PRIVILEGE_SECTION);
+    err ("Assuming required privilege level of %s.", pr_name (pr_highest));
     return pr_highest;
   }
 
@@ -686,19 +693,11 @@ check_groups (
 
   /* Users with stapsys and stapusr credentials may be able to load a signed module. */
   if (module_signature_status == MODULE_OK) {
-    /* If the user's credentials contain pr_highest_signed, then a signed module is sufficient,
-       since that is the highest privilege level which requires a signed module. */
-    if (pr_contains (user_credentials, pr_highest_signed))
-      return 1;
-
-    /* For stapusr users, we must verify that the module was compiled for that privilege level. */
+    /* We must verify that the module was compiled for that privilege level. */
     module_required_credentials = get_module_required_credentials (module_data, module_size);
-    if (pr_contains (user_credentials, pr_stapusr)) {
-      if (! pr_contains (module_required_credentials, pr_stapdev) &&
-	  ! pr_contains (module_required_credentials, pr_stapsys)) {
-	/* Our credentials are sufficient */
-	return 1;
-      }
+    if (pr_contains (user_credentials, module_required_credentials)) {
+      /* Our credentials are sufficient */
+      return 1;
     }
 
     /* Our credentials are insufficient to load this module. */
