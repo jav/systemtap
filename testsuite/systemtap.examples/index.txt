@@ -110,6 +110,20 @@ keywords: statistics memory
   # stap sizeof.stp FILE '</usr/include/stdio.h>'
 
 
+general/stopwatches.stp - See the amount of wall clock time a process spends in various states
+keywords: time
+
+  The stopwatch.stp script illustrates how to use multiple stopwatches
+  record how much wallclock time a process spends in kernel- and
+  user-space.  On exit the script prints out the time in seconds,
+  milliseconds, microseconds, and nanoseconds. Note that this output of
+  this script is not directly comparable to the time command because
+  time records the time that the process is actually active in kernel-
+  and user-space.
+
+  # stap stopwatches.stp -c "sleep 0.2"
+
+
 general/varwatch.stp - Watch a Variable Changing Value in a Thread
 keywords: monitoring
 
