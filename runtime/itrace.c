@@ -267,8 +267,12 @@ static struct itrace_info *create_itrace_info(
 	list_add(&ui->link, &usr_itrace_info);
 	spin_unlock(&itrace_lock);
 
-	/* attach a single stepping engine */
-	ui->engine = utrace_attach_task(ui->tsk, UTRACE_ATTACH_CREATE, &utrace_ops, ui);
+	/* attach a single stepping engine.  create_itrace_info is called
+	   under rcu read lock, so needs atomic.  */
+	ui->engine = utrace_attach_task(ui->tsk,
+					(UTRACE_ATTACH_CREATE
+					 | UTRACE_ATTACH_ATOMIC),
+					&utrace_ops, ui);
 	if (IS_ERR(ui->engine)) {
 		printk(KERN_ERR "utrace_attach returns %ld\n",
 			PTR_ERR(ui->engine));
