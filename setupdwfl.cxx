@@ -53,10 +53,6 @@ static const char *debuginfo_usr_path = (debuginfo_env_arr
 // This is a kludge.
 static systemtap_session* current_session_for_find_debuginfo;
 
-// The path to the abrt-action-install-debuginfo-to-abrt-cache
-// program.
-#define ABRT_PATH "/usr/bin/abrt-action-install-debuginfo-to-abrt-cache"
-
 static const Dwfl_Callbacks kernel_callbacks =
   {
     dwfl_linux_kernel_find_elf,
@@ -109,6 +105,14 @@ static const bool setup_all_deps = true;
 static string elfutils_kernel_path;
 
 static bool is_comma_dash(const char c) { return (c == ',' || c == '-'); }
+
+// The path to the abrt-action-install-debuginfo-to-abrt-cache program.
+static const string abrt_path =
+                    (access ("/usr/bin/abrt-action-install-debuginfo-to-abrt-cache", X_OK) == 0
+                      ? "/usr/bin/abrt-action-install-debuginfo-to-abrt-cache"
+                    : (access ("/usr/libexec/abrt-action-install-debuginfo-to-abrt-cache", X_OK) == 0
+                      ? "/usr/libexec/abrt-action-install-debuginfo-to-abrt-cache"
+                    : ""));
 
 // The module name is the basename (without the extension) of the
 // module path, with ',' and '-' replaced by '_'.
@@ -511,6 +515,7 @@ internal_find_debuginfo (Dwfl_Module *mod,
       GElf_Word debuglink_crc,
       char **debuginfo_file_name)
 {
+
   int bits_length;
   string hex;
 
@@ -522,14 +527,14 @@ internal_find_debuginfo (Dwfl_Module *mod,
     goto call_dwfl_standard_find_debuginfo;
 
   /* Check to see if download-debuginfo=0 was set */
-  if(!current_session_for_find_debuginfo->download_dbinfo)
+  if(!current_session_for_find_debuginfo->download_dbinfo || abrt_path.empty())
     goto call_dwfl_standard_find_debuginfo;
 
   /* Check that we haven't already run this */
   if (install_dbinfo_failed < 0)
     {
       if(current_session_for_find_debuginfo->verbose > 1)
-        current_session_for_find_debuginfo->print_warning( _F("We already tried running '%s'", ABRT_PATH));
+        current_session_for_find_debuginfo->print_warning(_F("We already tried running '%s'", abrt_path.c_str()));
       goto call_dwfl_standard_find_debuginfo;
     }
 
@@ -559,7 +564,8 @@ internal_find_debuginfo (Dwfl_Module *mod,
   /* The above failed, so call abrt-action-install-debuginfo-to-abrt-cache
   to download and install the debuginfo */
   if(current_session_for_find_debuginfo->verbose > 1)
-    clog << _F("Downloading and installing debuginfo with build ID: '%s' using %s.", hex.c_str(), ABRT_PATH) << endl;
+    clog << _F("Downloading and installing debuginfo with build ID: '%s' using %s.",
+            hex.c_str(), abrt_path.c_str()) << endl;
 
   struct tms tms_before;
   times (& tms_before);
@@ -572,7 +578,7 @@ internal_find_debuginfo (Dwfl_Module *mod,
   if(execute_abrt_action_install_debuginfo_to_abrt_cache (hex) < 0)
     {
       install_dbinfo_failed = -1;
-      current_session_for_find_debuginfo->print_warning(_F("%s failed.", ABRT_PATH));
+      current_session_for_find_debuginfo->print_warning(_F("%s failed.", abrt_path.c_str()));
       goto call_dwfl_standard_find_debuginfo;
     }
 
@@ -600,10 +606,10 @@ internal_find_debuginfo (Dwfl_Module *mod,
 int
 execute_abrt_action_install_debuginfo_to_abrt_cache (string hex)
 {
-  /* Check that abrt exists */
-  if(access (ABRT_PATH, X_OK) < 0)
-      return -1;
-  
+  /* Be sure that abrt exists */
+  if (abrt_path.empty())
+    return -1;
+
   int timeout = current_session_for_find_debuginfo->download_dbinfo;;
   vector<string> cmd;
   cmd.push_back ("/bin/sh");
@@ -613,12 +619,12 @@ execute_abrt_action_install_debuginfo_to_abrt_cache (string hex)
    * in version abrt-2.0.3-1.fc15.x86_64, Bugzilla: BZ726192 */
   if(current_session_for_find_debuginfo->download_dbinfo == -1)
     {
-      cmd.push_back ("echo " + hex + " | " + ABRT_PATH + " --ids=-");
+      cmd.push_back ("echo " + hex + " | " + abrt_path + " --ids=-");
       timeout = INT_MAX; 
       current_session_for_find_debuginfo->print_warning(_("Due to bug in abrt, it may continue downloading anyway without asking for confirmation."));
     }
   else
-    cmd.push_back ("echo " + hex + " | " + ABRT_PATH + " -y --ids=-");
+    cmd.push_back ("echo " + hex + " | " + abrt_path + " -y --ids=-");
  
   /* NOTE: abrt does not allow canceling the download process at the moment
    * in version abrt-2.0.3-1.fc15.x86_64, Bugzilla: BZ730107 */

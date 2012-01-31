@@ -1291,9 +1291,10 @@ systemtap_session::check_options (int argc, char * const argv [])
       print_warning("kernel release/architecture mismatch with host forces last-pass 4.");
       last_pass = 4;
     }
-  if(download_dbinfo != 0 && access ("/usr/bin/abrt-action-install-debuginfo-to-abrt-cache", X_OK) < 0)
+  if(download_dbinfo != 0 && access ("/usr/bin/abrt-action-install-debuginfo-to-abrt-cache", X_OK) < 0
+                          && access ("/usr/libexec/abrt-action-install-debuginfo-to-abrt-cache", X_OK) < 0)
     {
-      print_warning("abrt-action-install-debuginfo-to-abrt-cache is not installed. Continuing without downloading debuginfo");
+      print_warning("abrt-action-install-debuginfo-to-abrt-cache is not installed. Continuing without downloading debuginfo.");
       download_dbinfo = 0;
     }
 
