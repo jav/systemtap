@@ -1,0 +1,67 @@
+#! stap -p4
+# Copyright (C) 2012 Red Hat, Inc.
+# by William Cohen <wcohen@redhat.com>
+#
+# exercise the stopwatch tapset
+
+probe begin
+{
+  start_stopwatch("wall");
+  /* The following assumes that target starts in user space */
+  /* If the target is already running and in the kernel, it is wrong. */
+  start_stopwatch("user");
+  stop_stopwatch("system")
+}
+
+probe syscall.*
+{
+  if (pid() != target()) next
+  stop_stopwatch("user")
+  start_stopwatch("system")
+}
+
+probe syscall.*.return
+{
+  if (pid() != target()) next
+  start_stopwatch("user")
+  stop_stopwatch("system")
+}
+
+probe end
+{
+  stop_stopwatch("wall")
+  stop_stopwatch("user")
+  stop_stopwatch("system")
+
+  w = read_stopwatch_s("wall")
+  u = read_stopwatch_s("user")
+  s = read_stopwatch_s("system")
+  printf ("real\t%6ds\n", w);
+  printf ("user\t%6ds\n", u);
+  printf ("sys\t%6ds\n", s);
+
+  w = read_stopwatch_ms("wall")
+  u = read_stopwatch_ms("user")
+  s = read_stopwatch_ms("system")
+  printf ("real\t%9dms\n", w);
+  printf ("user\t%9dms\n", u);
+  printf ("sys\t%9dms\n", s);
+
+  w = read_stopwatch_us("wall")
+  u = read_stopwatch_us("user")
+  s = read_stopwatch_us("system")
+  printf ("real\t%12dus\n", w);
+  printf ("user\t%12dus\n", u);
+  printf ("sys\t%12dus\n", s);
+
+  w = read_stopwatch_ns("wall")
+  u = read_stopwatch_ns("user")
+  s = read_stopwatch_ns("system")
+  printf ("real\t%15dns\n", w);
+  printf ("user\t%15dns\n", u);
+  printf ("sys\t%15dns\n", s);
+
+  delete_stopwatch("wall")
+  delete_stopwatch("user")
+  delete_stopwatch("system")
+}
