@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: systemtap 1.5\n"
 "Report-Msgid-Bugs-To: systemtap@sourceware.org\n"
-"POT-Creation-Date: 2011-12-21 14:56-0500\n"
+"POT-Creation-Date: 2012-02-01 13:22-0500\n"
 "PO-Revision-Date: 2011-02-15 10:51-0500\n"
 "Last-Translator: Frank Ch. Eigler <fche@redhat.com>\n"
 "Language-Team: English\n"
@@ -17,78 +17,78 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: buildrun.cxx:387
+#: buildrun.cxx:389
 #, fuzzy, c-format
 msgid ""
 "Checking \" %s \" failed with error: %s\n"
 "Ensure kernel development headers & makefiles are installed."
 msgstr "Ensure kernel development headers & makefiles are installed."
 
-#: buildrun.cxx:418
+#: buildrun.cxx:420
 msgid "Pass 4, preamble: (re)building SystemTap's version of uprobes."
 msgstr ""
 
-#: buildrun.cxx:465
+#: buildrun.cxx:466
 msgid "uprobes rebuild exit code: "
 msgstr ""
 
-#: buildrun.cxx:524
+#: buildrun.cxx:525
 msgid "user-space facilities not available without kernel CONFIG_UTRACE"
 msgstr ""
 
-#: cache.cxx:133 cache.cxx:222
+#: cache.cxx:134 cache.cxx:223
 msgid "Pass 4: using cached "
 msgstr ""
 
-#: cache.cxx:220
+#: cache.cxx:221
 msgid "Pass 3: using cached "
 msgstr ""
 
-#: cache.cxx:254
+#: cache.cxx:255
 #, c-format
 msgid "Cache limit file %s/%s missing, creating default."
 msgstr ""
 
-#: cache.cxx:277
+#: cache.cxx:278
 #, c-format
 msgid "Cache clean interval file %s missing, creating default."
 msgstr ""
 
-#: cache.cxx:286
+#: cache.cxx:287
 #, fuzzy, c-format
 msgid "clean_cache stat error: %s"
 msgstr "semantic error: %s"
 
-#: cache.cxx:296
+#: cache.cxx:297
 #, c-format
 msgid "Cache cleaning skipped, interval not reached %lu s / %lu s."
 msgstr ""
 
-#: cache.cxx:304
+#: cache.cxx:305
 #, c-format
 msgid "Cleaning cache, interval reached %lu s > %lu s."
 msgstr ""
 
-#: cache.cxx:317
+#: cache.cxx:318
 #, c-format
 msgid "clean_cache glob error rc=%d"
 msgstr ""
 
-#: cache.cxx:324
+#: cache.cxx:325
 #, c-format
 msgid "clean_cache regcomp error rc=%d"
 msgstr ""
 
-#: cache.cxx:378
+#: cache.cxx:379
 msgid "Cache cleaning successful, removed entries: "
 msgstr ""
 
-#: cache.cxx:387
+#: cache.cxx:388
 #, fuzzy, c-format
 msgid "clean_cache utime error: %s"
 msgstr "semantic error: %s"
 
-#: cache.cxx:394
+#: cache.cxx:395
 msgid "Cache cleaning skipped, no cache path."
 msgstr ""
 
@@ -142,382 +142,403 @@ msgstr ""
 msgid "Error in statement: "
 msgstr ""
 
-#: csclient.cxx:67
+#: csclient.cxx:68
 #, c-format
 msgid ""
 "WARNING: The domain name, %s, does not match the DNS name(s) on the server "
 "certificate:\n"
 msgstr ""
 
-#: csclient.cxx:68
+#: csclient.cxx:69
 #, fuzzy, c-format
 msgid "could not find input file %s\n"
 msgstr "cannot find type: %s"
 
-#: csclient.cxx:69
+#: csclient.cxx:70
 #, c-format
 msgid "could not open input file %s\n"
 msgstr ""
 
-#: csclient.cxx:70
+#: csclient.cxx:71
 #, c-format
 msgid "Unable to open output file %s\n"
 msgstr ""
 
-#: csclient.cxx:71
+#: csclient.cxx:72
 #, c-format
 msgid "could not write to %s\n"
 msgstr ""
 
-#: csclient.cxx:353
+#: csclient.cxx:355
 #, c-format
 msgid "Unable to find alt name extension on the server certificate\n"
 msgstr ""
 
-#: csclient.cxx:362 csclient.cxx:578
+#: csclient.cxx:364 csclient.cxx:580
 #, c-format
 msgid "Out of memory\n"
 msgstr ""
 
-#: csclient.cxx:370
+#: csclient.cxx:372
 #, c-format
 msgid "Unable to decode alt name extension on server certificate\n"
 msgstr ""
 
-#: csclient.cxx:704
+#: csclient.cxx:706
 #, c-format
 msgid "Unable to resolve server host name"
 msgstr ""
 
-#: csclient.cxx:710
+#: csclient.cxx:712
 #, c-format
 msgid "Unable to resolve server host address"
 msgstr ""
 
-#: csclient.cxx:756
+#: csclient.cxx:758
 #, fuzzy
 msgid "Using a compile server."
 msgstr ""
 "              retry compilation using a compile server upon compilation error"
 
-#: csclient.cxx:806
+#: csclient.cxx:808
 msgid "Passes: via server "
 msgstr ""
 
-#: csclient.cxx:813
+#: csclient.cxx:815
 #, fuzzy
 msgid "Passes: via server failed.  Try again with another '-v' option."
 msgstr "Pass 1: parse failed.  Try again with another '--vp 1' option."
 
-#: csclient.cxx:864
+#: csclient.cxx:866
 #, fuzzy
 msgid "ERROR: cannot create temporary directory (\""
 msgstr "ERROR: cannot create temporary directory (\" %s \"): %s"
 
-#: csclient.cxx:892
+#: csclient.cxx:894
 #, fuzzy
 msgid "ERROR: cannot create temporary directory "
 msgstr "ERROR: cannot create temporary directory (\" %s \"): %s"
 
-#: csclient.cxx:1030
+#: csclient.cxx:1032
 #, c-format
 msgid "%s resolves to %s\n"
 msgstr ""
 
-#: csclient.cxx:1031
+#: csclient.cxx:1033
 #, fuzzy, c-format
 msgid "Unable to send %s to the server\n"
 msgstr ""
 "              retry compilation using a compile server upon compilation error"
 
-#: csclient.cxx:1169
+#: csclient.cxx:1171
 #, fuzzy
-msgid "Unable to find a compile server."
+msgid "Unable to find a suitable compile server."
 msgstr ""
 "              retry compilation using a compile server upon compilation error"
 
-#: csclient.cxx:1187
+#: csclient.cxx:1177
+msgid "No servers online to select from."
+msgstr ""
+
+#: csclient.cxx:1180
+msgid "The following servers are online:"
+msgstr ""
+
+#: csclient.cxx:1184
+msgid "The following servers were requested:"
+msgstr ""
+
+#: csclient.cxx:1192
+#, c-format
+msgid "No servers matched the selection criteria of %s."
+msgstr ""
+
+#: csclient.cxx:1213
 msgid "The server's certificate was expired. Trying again"
 msgstr ""
 
-#: csclient.cxx:1195
+#: csclient.cxx:1221
 msgid "Unable to connect to a server."
 msgstr ""
 
-#: csclient.cxx:1242 csclient.cxx:1689 stap-serverd.cxx:1693
+#: csclient.cxx:1222
+msgid "The following servers were tried:"
+msgstr ""
+
+#: csclient.cxx:1270 csclient.cxx:1717 stap-serverd.cxx:1733
 msgid "Unable to set NSS export policy"
 msgstr ""
 
-#: csclient.cxx:1256
+#: csclient.cxx:1284
 #, c-format
 msgid ""
 "Attempting SSL connection with %s\n"
 "  using certificates from the database in %s\n"
 msgstr ""
 
-#: csclient.cxx:1295
+#: csclient.cxx:1323
 msgid "  Unable to connect: "
 msgstr ""
 
-#: csclient.cxx:1331
+#: csclient.cxx:1359
 #, c-format
 msgid "Unable to unzip the server response '%s'\n"
 msgstr ""
 
-#: csclient.cxx:1348 csclient.cxx:1366 csclient.cxx:1434 csclient.cxx:1741
+#: csclient.cxx:1376 csclient.cxx:1394 csclient.cxx:1462 csclient.cxx:1769
 #, c-format
 msgid "Searching \"%s\"\n"
 msgstr ""
 
-#: csclient.cxx:1354
+#: csclient.cxx:1382
 msgid "Incorrect number of files in server response"
 msgstr ""
 
-#: csclient.cxx:1362 csclient.cxx:1447 csclient.cxx:1749
+#: csclient.cxx:1390 csclient.cxx:1475 csclient.cxx:1777
 #, fuzzy
 msgid "  found "
 msgstr "cannot find type: %s"
 
-#: csclient.cxx:1379
+#: csclient.cxx:1407
 #, c-format
 msgid "  found %s -- linking from %s"
 msgstr ""
 
-#: csclient.cxx:1383
+#: csclient.cxx:1411
 #, c-format
 msgid "Unable to link '%s' to '%s':%s\n"
 msgstr ""
 
-#: csclient.cxx:1441
+#: csclient.cxx:1469
 msgid "Incorrect number of modules in server response"
 msgstr ""
 
-#: csclient.cxx:1477
+#: csclient.cxx:1505
 msgid "No module was returned by the server."
 msgstr ""
 
-#: csclient.cxx:1504 csclient.cxx:1573 cscommon.cxx:92
+#: csclient.cxx:1532 csclient.cxx:1601 cscommon.cxx:92
 #, c-format
 msgid "Unable to open file '%s' for reading: "
 msgstr ""
 
-#: csclient.cxx:1513 cscommon.cxx:101
+#: csclient.cxx:1541 cscommon.cxx:101
 #, c-format
 msgid "Unable to read from file '%s': "
 msgstr ""
 
-#: csclient.cxx:1524 csclient.cxx:1559 csclient.cxx:1597 cscommon.cxx:114
+#: csclient.cxx:1552 csclient.cxx:1587 csclient.cxx:1625 cscommon.cxx:114
 msgid "unknown error"
 msgstr ""
 
-#: csclient.cxx:1539
+#: csclient.cxx:1567
 #, c-format
 msgid "Unable to open file '%s' for writing: "
 msgstr ""
 
-#: csclient.cxx:1548
+#: csclient.cxx:1576
 #, c-format
 msgid "Unable to write to file '%s': "
 msgstr ""
 
-#: csclient.cxx:1607
+#: csclient.cxx:1635
 #, c-format
 msgid "Server protocol version is %s\n"
 msgstr ""
 
-#: csclient.cxx:1608
+#: csclient.cxx:1636
 msgid "The server does not use localization information passed by the client\n"
 msgstr ""
 
-#: csclient.cxx:1624 csclient.cxx:2287
+#: csclient.cxx:1652 csclient.cxx:2322
 msgid "as a module signer for all users"
 msgstr ""
 
-#: csclient.cxx:1627 csclient.cxx:2277
+#: csclient.cxx:1655 csclient.cxx:2312
 msgid "as an SSL peer"
 msgstr ""
 
-#: csclient.cxx:1629 csclient.cxx:2279
+#: csclient.cxx:1657 csclient.cxx:2314
 msgid " for all users"
 msgstr ""
 
-#: csclient.cxx:1631 csclient.cxx:2281
+#: csclient.cxx:1659 csclient.cxx:2316
 msgid " for the current user"
 msgstr ""
 
-#: csclient.cxx:1640
+#: csclient.cxx:1668
 msgid " is already "
 msgstr ""
 
-#: csclient.cxx:1642
+#: csclient.cxx:1670
 msgid "untrusted "
 msgstr ""
 
-#: csclient.cxx:1644
+#: csclient.cxx:1672
 msgid "trusted "
 msgstr ""
 
-#: csclient.cxx:1664
+#: csclient.cxx:1692
 #, c-format
 msgid "Unable to find or create the client certificate database directory %s: "
 msgstr ""
 
-#: csclient.cxx:1726
+#: csclient.cxx:1754
 #, c-format
 msgid "Unable to connect to %s"
 msgstr ""
 
-#: csclient.cxx:1773
+#: csclient.cxx:1801
 #, c-format
 msgid "Certificate database '%s' does not exist"
 msgstr ""
 
-#: csclient.cxx:1807 csclient.cxx:1949
+#: csclient.cxx:1835 csclient.cxx:1977
 msgid "Out of memory:"
 msgstr ""
 
-#: csclient.cxx:1850
+#: csclient.cxx:1878
 #, c-format
 msgid "Unable to query certificate database %s: "
 msgstr ""
 
-#: csclient.cxx:1889
+#: csclient.cxx:1917
 #, c-format
 msgid "Unable to remove certificate from %s: "
 msgstr ""
 
-#: csclient.cxx:1919
+#: csclient.cxx:1947
 #, c-format
 msgid "Certificate database '%s' does not exist."
 msgstr ""
 
-#: csclient.cxx:1941 nsscommon.cxx:1155
+#: csclient.cxx:1969 nsscommon.cxx:1155
 #, c-format
 msgid "No certificate found in database %s"
 msgstr ""
 
-#: csclient.cxx:1971
+#: csclient.cxx:1999
 msgid "Unable to find alt name extension on server certificate: "
 msgstr ""
 
-#: csclient.cxx:1981
+#: csclient.cxx:2009
 msgid "Unable to decode alt name extension on server certificate: "
 msgstr ""
 
-#: csclient.cxx:2128
+#: csclient.cxx:2163
 #, fuzzy, c-format
 msgid "WARNING: unsupported compile server property: %s"
 msgstr "# functions"
 
-#: csclient.cxx:2177
+#: csclient.cxx:2212
 #, c-format
 msgid "Systemtap Compile Server Status for '%s'"
 msgstr ""
 
-#: csclient.cxx:2192
+#: csclient.cxx:2227
 #, fuzzy
 msgid "No servers found"
 msgstr "# probes"
 
-#: csclient.cxx:2229
+#: csclient.cxx:2264
 msgid "Only root can specify 'signer' on --trust-servers"
 msgstr ""
 
-#: csclient.cxx:2241
+#: csclient.cxx:2276
 msgid "Only root can specify 'all-users' on --trust-servers"
 msgstr ""
 
-#: csclient.cxx:2266
+#: csclient.cxx:2301
 msgid "No servers identified for trust"
 msgstr ""
 
-#: csclient.cxx:2286
+#: csclient.cxx:2321
 msgid " and "
 msgstr ""
 
-#: csclient.cxx:2294
+#: csclient.cxx:2329
 msgid "Revoking trust "
 msgstr ""
 
-#: csclient.cxx:2296
+#: csclient.cxx:2331
 msgid "Adding trust "
 msgstr ""
 
-#: csclient.cxx:2301
+#: csclient.cxx:2336
 msgid "Revoke trust "
 msgstr ""
 
-#: csclient.cxx:2303
+#: csclient.cxx:2338
 msgid "Add trust "
 msgstr ""
 
-#: csclient.cxx:2305
+#: csclient.cxx:2340
 #, c-format
 msgid "in the following servers %s"
 msgstr ""
 
-#: csclient.cxx:2320
+#: csclient.cxx:2355
 msgid "Server trust unchanged"
 msgstr ""
 
-#: csclient.cxx:2498 csclient.cxx:2536
+#: csclient.cxx:2533 csclient.cxx:2571
 #, c-format
 msgid "Invalid port number specified: %s"
 msgstr ""
 
-#: csclient.cxx:2517
+#: csclient.cxx:2552
 #, c-format
 msgid "No server matching %s found"
 msgstr ""
 
-#: csclient.cxx:2598
+#: csclient.cxx:2633
 msgid "Unable to determine server trust as an SSL peer without NSS"
 msgstr ""
 
-#: csclient.cxx:2644
+#: csclient.cxx:2679
 #, fuzzy
 msgid "Unable to determine server trust as a module signer without NSS"
 msgstr "not accessible at this address"
 
-#: csclient.cxx:2711
+#: csclient.cxx:2746
 msgid "Unable to detect server compatibility without avahi"
 msgstr ""
 
-#: csclient.cxx:2888
+#: csclient.cxx:2923
 #, c-format
 msgid "Failed to resolve service '%s' of type '%s' in domain '%s': %s"
 msgstr ""
 
-#: csclient.cxx:2945
+#: csclient.cxx:2980
 #, c-format
 msgid "Avahi browse failed: %s"
 msgstr ""
 
-#: csclient.cxx:2958
+#: csclient.cxx:2993
 #, c-format
 msgid "Failed to resolve service '%s': %s"
 msgstr ""
 
-#: csclient.cxx:2979
+#: csclient.cxx:3014
 #, c-format
 msgid "Avahi Server connection failure: %s"
 msgstr ""
 
-#: csclient.cxx:3025
+#: csclient.cxx:3060
 msgid "Failed to create Avahi simple poll object"
 msgstr ""
 
-#: csclient.cxx:3041
+#: csclient.cxx:3076
 #, c-format
 msgid "Failed to create Avahi client: %s"
 msgstr ""
 
-#: csclient.cxx:3053
+#: csclient.cxx:3088
 #, c-format
 msgid "Failed to create Avahi service browser: %s"
 msgstr ""
 
-#: csclient.cxx:3100
+#: csclient.cxx:3135
 msgid "Unable to detect online servers without avahi"
 msgstr ""
 
@@ -2339,7 +2360,7 @@ msgid "expected '%{'"
 msgstr "# functions"
 
 #: parse.cxx:1343
-msgid "embedded code in unprivileged script"
+msgid "embedded code in unprivileged script; need stap -g"
 msgstr ""
 
 #: parse.cxx:1359
@@ -2500,8 +2521,9 @@ msgid "expected value"
 msgstr ""
 
 #: parse.cxx:2546
-msgid "embedded expression code in unprivileged script"
-msgstr ""
+#, fuzzy
+msgid "embedded expression code in unprivileged script; need stap -g"
+msgstr "You can't specify %s when --unprivileged is specified."
 
 #: parse.cxx:2663
 msgid "unknown statistic operator "
@@ -2521,7 +2543,7 @@ msgstr "# functions"
 msgid "-> and [ are not accepted for a pretty-printing variable"
 msgstr "cannot get type of variable: %s"
 
-#: privilege.cxx:102 util.cxx:261
+#: privilege.cxx:84 util.cxx:261
 msgid "Unable to retrieve group list"
 msgstr ""
 
@@ -2700,88 +2722,88 @@ msgstr ""
 msgid "Incorrect parameter passed, please report this error."
 msgstr ""
 
-#: runtime/staprun/common.c:83
+#: runtime/staprun/common.c:86
 msgid "Invalid FILE name format\n"
 msgstr ""
 
-#: runtime/staprun/common.c:145
+#: runtime/staprun/common.c:148
 #, fuzzy, c-format
 msgid "Invalid buffer size '%d' (should be 1-4095).\n"
 msgstr "Invalid buffer size (should be 1-4095)."
 
-#: runtime/staprun/common.c:181
+#: runtime/staprun/common.c:184
 #, c-format
 msgid "Invalid file size option '%s'.\n"
 msgstr ""
 
-#: runtime/staprun/common.c:192
+#: runtime/staprun/common.c:195
 #, c-format
 msgid "Cannot process remote id option '%s'.\n"
 msgstr ""
 
-#: runtime/staprun/common.c:205
+#: runtime/staprun/common.c:208
 msgid "File name is too long.\n"
 msgstr ""
 
-#: runtime/staprun/common.c:211
+#: runtime/staprun/common.c:214
 msgid "Filename format is invalid or too long.\n"
 msgstr ""
 
-#: runtime/staprun/common.c:216
+#: runtime/staprun/common.c:219
 #, fuzzy
 msgid "You can't specify the '-A' and '-L' options together.\n"
 msgstr "You can't specify -c and -x options together."
 
-#: runtime/staprun/common.c:221
+#: runtime/staprun/common.c:224
 msgid ""
 "You can't specify the '-A' and '-b' options together.  The '-b'\n"
 "buffer size option only has an effect when the module is inserted.\n"
 msgstr ""
 
-#: runtime/staprun/common.c:227
+#: runtime/staprun/common.c:230
 msgid ""
 "You can't specify the '-A' and '-c' options together.  The '-c cmd'\n"
 "option used to start a command only has an effect when the module\n"
 "is inserted.\n"
 msgstr ""
 
-#: runtime/staprun/common.c:234
+#: runtime/staprun/common.c:237
 msgid ""
 "You can't specify the '-A' and '-x' options together.  The '-x pid'\n"
 "option only has an effect when the module is inserted.\n"
 msgstr ""
 
-#: runtime/staprun/common.c:240
+#: runtime/staprun/common.c:243
 #, fuzzy
 msgid "You can't specify the '-c' and '-x' options together.\n"
 msgstr "You can't specify -c and -x options together."
 
-#: runtime/staprun/common.c:245
+#: runtime/staprun/common.c:248
 #, fuzzy
 msgid "You can't specify the '-D' and '-L' options together.\n"
 msgstr "You can't specify -c and -x options together."
 
-#: runtime/staprun/common.c:249
+#: runtime/staprun/common.c:252
 #, fuzzy
 msgid "You can't specify the '-D' and '-d' options together.\n"
 msgstr "You can't specify -c and -x options together."
 
-#: runtime/staprun/common.c:253
+#: runtime/staprun/common.c:256
 #, fuzzy
 msgid "You can't specify the '-D' and '-c' options together.\n"
 msgstr "You can't specify -c and -x options together."
 
-#: runtime/staprun/common.c:257
+#: runtime/staprun/common.c:260
 #, fuzzy
 msgid "You have to specify output FILE with '-D' option.\n"
 msgstr "You can't specify multiple --kmap options."
 
-#: runtime/staprun/common.c:261
+#: runtime/staprun/common.c:264
 #, fuzzy
 msgid "You have to specify output FILE with '-S' option.\n"
 msgstr "You can't specify multiple --kmap options."
 
-#: runtime/staprun/common.c:268
+#: runtime/staprun/common.c:271
 #, c-format
 msgid ""
 "\n"
@@ -2790,7 +2812,7 @@ msgid ""
 "options]\n"
 msgstr ""
 
-#: runtime/staprun/common.c:270
+#: runtime/staprun/common.c:273
 msgid ""
 "-v              Increase verbosity.\n"
 "-w              Suppress warnings.\n"
@@ -2831,21 +2853,21 @@ msgid ""
 "module name is used, it is searched in the following directory:\n"
 msgstr ""
 
-#: runtime/staprun/common.c:352 runtime/staprun/common.c:377
-#: runtime/staprun/common.c:396 runtime/staprun/common.c:403
+#: runtime/staprun/common.c:355 runtime/staprun/common.c:380
+#: runtime/staprun/common.c:399 runtime/staprun/common.c:406
 msgid "Memory allocation failed. Exiting.\n"
 msgstr ""
 
-#: runtime/staprun/common.c:368
+#: runtime/staprun/common.c:371
 msgid "Unable to determine kernel version, uname failed"
 msgstr ""
 
-#: runtime/staprun/common.c:416
+#: runtime/staprun/common.c:419
 #, c-format
 msgid "ERROR: Module name ('%s') is too long.\n"
 msgstr ""
 
-#: runtime/staprun/common.c:507
+#: runtime/staprun/common.c:510
 msgid "exceeded maximum send_request size.\n"
 msgstr ""
 
@@ -2946,19 +2968,19 @@ msgstr ""
 msgid "ERROR: Couldn't enter main loop. Exiting.\n"
 msgstr ""
 
-#: session.cxx:374
+#: session.cxx:378
 #, c-format
 msgid ""
 "Systemtap translator/driver (version %s/%s %s)\n"
-"Copyright (C) 2005-2011 Red Hat, Inc. and others\n"
+"Copyright (C) 2005-2012 Red Hat, Inc. and others\n"
 "This is free software; see the source for copying conditions."
 msgstr ""
 
-#: session.cxx:378
+#: session.cxx:382
 msgid "enabled features:"
 msgstr "enabled features:"
 
-#: session.cxx:412
+#: session.cxx:416
 #, c-format
 msgid ""
 "Usage: stap [options] FILE         Run script in file.\n"
@@ -2978,11 +3000,11 @@ msgid ""
 "   --vp {N}+  add per-pass verbosity ["
 msgstr ""
 
-#: session.cxx:437 session.cxx:438 session.cxx:439 session.cxx:440
+#: session.cxx:441 session.cxx:442 session.cxx:443 session.cxx:444
 msgid " [set]"
 msgstr " [set]"
 
-#: session.cxx:429
+#: session.cxx:433
 #, c-format
 msgid ""
 "   -k         keep temporary directory\n"
@@ -2996,11 +3018,11 @@ msgid ""
 "   -I DIR     look in DIR for additional .stp script files"
 msgstr ""
 
-#: session.cxx:444 session.cxx:473
+#: session.cxx:448 session.cxx:477
 msgid ", in addition to"
 msgstr ", in addition to"
 
-#: session.cxx:448
+#: session.cxx:452
 #, c-format
 msgid ""
 "   -D NM=VAL  emit macro definition into generated C code\n"
@@ -3027,7 +3049,7 @@ msgid ""
 "   -d OBJECT  add unwind/symbol data for OBJECT file"
 msgstr ""
 
-#: session.cxx:480
+#: session.cxx:484
 #, c-format
 msgid ""
 "   --ldd      add unwind/symbol data for all referenced object files.\n"
@@ -3078,215 +3100,219 @@ msgid ""
 "              show a list of available probe types.\n"
 msgstr ""
 
-#: session.cxx:673
+#: session.cxx:603
 msgid "Invalid pass number (should be 1-5)."
 msgstr "Invalid pass number (should be 1-5)."
 
-#: session.cxx:678
+#: session.cxx:608
 msgid "Listing (-l) mode implies pass 2."
 msgstr "Listing (-l) mode implies pass 2."
 
-#: session.cxx:715 session.cxx:879
+#: session.cxx:645 session.cxx:809
 msgid "Only one script can be given on the command line."
 msgstr "Only one script can be given on the command line."
 
-#: session.cxx:731 session.cxx:788 session.cxx:860 session.cxx:894
+#: session.cxx:661 session.cxx:718 session.cxx:790 session.cxx:824
 #, fuzzy, c-format
 msgid "ERROR: %s invalid with %s"
 msgstr "ERROR: -R invalid with --client-options"
 
-#: session.cxx:748 session.cxx:766
+#: session.cxx:678 session.cxx:696
 #, c-format
 msgid "Truncating module name to '%s'"
 msgstr "Truncating module name to '%s'"
 
-#: session.cxx:754
+#: session.cxx:684
 msgid "Module name cannot be empty."
 msgstr "Module name cannot be empty."
 
-#: session.cxx:817
+#: session.cxx:747
 msgid "Invalid buffer size (should be 1-4095)."
 msgstr "Invalid buffer size (should be 1-4095)."
 
-#: session.cxx:830
+#: session.cxx:760
 msgid "Empty CMD string invalid."
 msgstr "Empty CMD string invalid."
 
-#: session.cxx:839
+#: session.cxx:769
 msgid "Invalid target process ID number."
 msgstr "Invalid target process ID number."
 
-#: session.cxx:915
+#: session.cxx:845
 msgid "You can't specify multiple --kmap options."
 msgstr "You can't specify multiple --kmap options."
 
-#: session.cxx:946
+#: session.cxx:876
 msgid "Invalid --vp argument: it takes 1 to 5 digits."
 msgstr "Invalid --vp argument: it takes 1 to 5 digits."
 
-#: session.cxx:967
+#: session.cxx:901
 #, c-format
 msgid "Invalid argument '%s' for --privilege."
 msgstr ""
 
-#: session.cxx:1008
+#: session.cxx:906 session.cxx:922
+msgid "Privilege level may be set only once."
+msgstr ""
+
+#: session.cxx:959
 #, c-format
 msgid ""
 "ERROR: %s is not a valid value. Use 'yes', 'no', 'ask' or a timeout value."
 msgstr ""
 
-#: session.cxx:1036
+#: session.cxx:987
 #, c-format
 msgid "Invalid argument '%s' for --use-server-on-error."
 msgstr ""
 
-#: session.cxx:1064 session.cxx:1071 session.cxx:1078 session.cxx:1091
-#: session.cxx:1100 session.cxx:1108 session.cxx:1117 session.cxx:1142
+#: session.cxx:1015 session.cxx:1022 session.cxx:1029 session.cxx:1042
+#: session.cxx:1051 session.cxx:1059 session.cxx:1068 session.cxx:1093
 #, fuzzy, c-format
 msgid "ERROR: %s is invalid with %s"
 msgstr "ERROR: -R invalid with --client-options"
 
-#: session.cxx:1151
+#: session.cxx:1102
 #, c-format
 msgid "Unhandled long argument id %d"
 msgstr "Unhandled long argument id %d"
 
-#: session.cxx:1165
+#: session.cxx:1116
 #, c-format
 msgid "Unhandled argument code %d"
 msgstr "Unhandled argument code %d"
 
-#: session.cxx:1218
+#: session.cxx:1169
 msgid "A script must be specified."
 msgstr "A script must be specified."
 
-#: session.cxx:1259
+#: session.cxx:1212
 #, fuzzy
 msgid "Using --privilege=stapsys for member of the group stapsys"
 msgstr "Using --unprivileged for member of the group stapusr"
 
-#: session.cxx:1266
+#: session.cxx:1219
 #, fuzzy
 msgid "Using --privilege=stapusr for member of the group stapusr"
 msgstr "Using --unprivileged for member of the group stapusr"
 
-#: session.cxx:1273
+#: session.cxx:1226
 msgid ""
 "You are trying to run systemtap as a normal user.\n"
 "You should either be root, or be part of the group \"stapusr\" and possibly "
 "one of the groups \"stapsys\" or \"stapdev\".\n"
 msgstr ""
 
-#: session.cxx:1287
+#: session.cxx:1239
 #, fuzzy, c-format
 msgid "Using --use-server for user with privilege level %s"
 msgstr "Using --use-server for member of the group stapusr"
 
-#: session.cxx:1297
+#: session.cxx:1249
 #, fuzzy, c-format
 msgid "You can't specify %s when --privilege=%s is specified."
 msgstr "You can't specify %s when --unprivileged is specified."
 
-#: session.cxx:1305 session.cxx:1318 session.cxx:1329
+#: session.cxx:1257 session.cxx:1270 session.cxx:1281
 #, fuzzy, c-format
 msgid "You can't specify %s and %s together."
 msgstr "You can't specify -c and -x options together."
 
-#: session.cxx:1310
+#: session.cxx:1262
 #, fuzzy, c-format
 msgid "You can't specify %s and --privilege=%s together."
 msgstr "You can't specify -g and --unprivileged together."
 
-#: session.cxx:1430
+#: session.cxx:1384
 #, c-format
 msgid "Located kernel source tree (COPYING) at '%s'"
 msgstr "Located kernel source tree (COPYING) at '%s'"
 
-#: session.cxx:1472
+#: session.cxx:1426
 #, c-format
 msgid "alias component %s contains illegal parameter"
 msgstr "alias component %s contains illegal parameter"
 
-#: session.cxx:1487
+#: session.cxx:1441
 msgid " while registering probe alias "
 msgstr " while registering probe alias "
 
-#: session.cxx:1540
+#: session.cxx:1494
 #, c-format
 msgid "semantic error: %s"
 msgstr "semantic error: %s"
 
 #. TRANSLATORS:  Here were are printing the source string of the error
-#: session.cxx:1599
+#: session.cxx:1553
 msgid "source: "
 msgstr ""
 
-#: session.cxx:1623
+#: session.cxx:1577
 msgid "WARNING: "
 msgstr "WARNING: "
 
-#: setupdwfl.cxx:478 setupdwfl.cxx:539
+#: setupdwfl.cxx:483 setupdwfl.cxx:545
 msgid "Extracting build ID."
 msgstr ""
 
-#: setupdwfl.cxx:531
+#: setupdwfl.cxx:537
 #, c-format
 msgid "We already tried running '%s'"
 msgstr ""
 
-#: setupdwfl.cxx:547
+#: setupdwfl.cxx:553
 #, c-format
 msgid "Searching for debuginfo with build ID: '%s'."
 msgstr ""
 
-#: setupdwfl.cxx:561
+#: setupdwfl.cxx:567
 #, c-format
 msgid "Downloading and installing debuginfo with build ID: '%s' using %s."
 msgstr ""
 
-#: setupdwfl.cxx:574
+#: setupdwfl.cxx:581
 #, c-format
 msgid "%s failed."
 msgstr ""
 
-#: setupdwfl.cxx:582
+#: setupdwfl.cxx:589
 msgid "Download completed in "
 msgstr ""
 
-#: setupdwfl.cxx:617
+#: setupdwfl.cxx:624
 msgid ""
 "Due to bug in abrt, it may continue downloading anyway without asking for "
 "confirmation."
 msgstr ""
 
-#: setupdwfl.cxx:625
+#: setupdwfl.cxx:632
 msgid ""
 "Due to a bug in abrt, it  may continue downloading after stopping stap if "
 "download times out."
 msgstr ""
 
-#: setupdwfl.cxx:668
+#: setupdwfl.cxx:675
 msgid "Aborted downloading debuginfo: timed out."
 msgstr ""
 
-#: setupdwfl.cxx:676
+#: setupdwfl.cxx:683
 msgid "Download Completed Successfully!"
 msgstr ""
 
-#: setupdwfl.cxx:679
+#: setupdwfl.cxx:686
 msgid "ABRT finished attempting to download debuginfo."
 msgstr ""
 
-#: setupdwfl.cxx:694
+#: setupdwfl.cxx:701
 #, c-format
 msgid "Attempting to extract kernel debuginfo build ID from %s"
 msgstr ""
 
-#: setupdwfl.cxx:712
+#: setupdwfl.cxx:719
 msgid "Attempting to extract kernel debuginfo build ID from /sys/kernel/notes"
 msgstr ""
 
-#: setupdwfl.cxx:778
+#: setupdwfl.cxx:785
 #, c-format
 msgid "Success! Extracted kernel debuginfo build ID: %s"
 msgstr ""
@@ -3318,418 +3344,418 @@ msgstr ""
 msgid "Unable to generate certificate"
 msgstr ""
 
-#: stap-serverd.cxx:124
+#: stap-serverd.cxx:126
 #, fuzzy, c-format
 msgid "Could not open client stderr file %s: %s"
 msgstr "cannot find type: %s"
 
-#: stap-serverd.cxx:231
+#: stap-serverd.cxx:234
 #, c-format
 msgid "%s: unhandled option '%c %s'"
 msgstr ""
 
-#: stap-serverd.cxx:233
+#: stap-serverd.cxx:236
 #, c-format
 msgid "%s: unhandled option '%c'"
 msgstr ""
 
-#: stap-serverd.cxx:249
+#: stap-serverd.cxx:252
 #, c-format
 msgid "%s: unhandled option '--%s=%s'"
 msgstr ""
 
-#: stap-serverd.cxx:252
+#: stap-serverd.cxx:255
 #, c-format
 msgid "%s: unhandled option '--%s'"
 msgstr ""
 
-#: stap-serverd.cxx:260
+#: stap-serverd.cxx:263
 #, c-format
 msgid "%s: unrecognized argument '%s'"
 msgstr ""
 
-#: stap-serverd.cxx:296
+#: stap-serverd.cxx:299
 #, c-format
 msgid "Received signal %d, exiting"
 msgstr ""
 
-#: stap-serverd.cxx:355
+#: stap-serverd.cxx:358
 #, c-format
 msgid "Service '%s' successfully established."
 msgstr ""
 
-#: stap-serverd.cxx:365 stap-serverd.cxx:462
+#: stap-serverd.cxx:368 stap-serverd.cxx:465
 #, c-format
 msgid "Avahi service name collision, renaming service to '%s'"
 msgstr ""
 
-#: stap-serverd.cxx:373
+#: stap-serverd.cxx:376
 #, c-format
 msgid "Avahi entry group failure: %s"
 msgstr ""
 
-#: stap-serverd.cxx:394
+#: stap-serverd.cxx:397
 #, c-format
 msgid "avahi_entry_group_new () failed: %s"
 msgstr ""
 
-#: stap-serverd.cxx:403
+#: stap-serverd.cxx:406
 #, c-format
 msgid "Adding Avahi service '%s'"
 msgstr ""
 
-#: stap-serverd.cxx:442
+#: stap-serverd.cxx:445
 #, c-format
 msgid "Failed to add _stap._tcp service: %s"
 msgstr ""
 
-#: stap-serverd.cxx:449
+#: stap-serverd.cxx:452
 #, c-format
 msgid "Failed to commit avahi entry group: %s"
 msgstr ""
 
-#: stap-serverd.cxx:487
+#: stap-serverd.cxx:490
 #, c-format
 msgid "Avahi client failure: %s"
 msgstr ""
 
-#: stap-serverd.cxx:513
+#: stap-serverd.cxx:516
 #, c-format
 msgid "Removing Avahi service '%s'"
 msgstr ""
 
-#: stap-serverd.cxx:551
+#: stap-serverd.cxx:554
 msgid "Failed to create avahi threaded poll object."
 msgstr ""
 
-#: stap-serverd.cxx:563
+#: stap-serverd.cxx:566
 #, c-format
 msgid "Failed to create avahi client: %s"
 msgstr ""
 
-#: stap-serverd.cxx:580
+#: stap-serverd.cxx:583
 msgid "Unable to advertise presence on the network. Avahi is not available"
 msgstr ""
 
-#: stap-serverd.cxx:622
+#: stap-serverd.cxx:625
 #, fuzzy, c-format
 msgid "Unable to determine effective user name: %s"
 msgstr "not accessible at this address"
 
-#: stap-serverd.cxx:632
+#: stap-serverd.cxx:635
 #, fuzzy, c-format
 msgid "Unable to obtain current resource limits: %s"
 msgstr "not accessible at this address"
 
-#: stap-serverd.cxx:654
+#: stap-serverd.cxx:657
 #, c-format
 msgid "===== compile server pid %d starting as %s ====="
 msgstr ""
 
-#: stap-serverd.cxx:694
+#: stap-serverd.cxx:697
 msgid "Error reading size of request file"
 msgstr ""
 
-#: stap-serverd.cxx:699 stap-serverd.cxx:730
+#: stap-serverd.cxx:702 stap-serverd.cxx:733
 msgid "Error in PR_Read"
 msgstr ""
 
-#: stap-serverd.cxx:717
+#: stap-serverd.cxx:720
 #, fuzzy, c-format
 msgid "Could not open output file %s"
 msgstr "cannot find type: %s"
 
-#: stap-serverd.cxx:739
+#: stap-serverd.cxx:742
 #, fuzzy, c-format
 msgid "Could not write to output file %s"
 msgstr "cannot find type: %s"
 
-#: stap-serverd.cxx:747
+#: stap-serverd.cxx:750
 #, c-format
 msgid "Expected %d bytes, got %d while reading client request from socket"
 msgstr ""
 
-#: stap-serverd.cxx:775
+#: stap-serverd.cxx:778
 msgid "Could not import socket into SSL"
 msgstr ""
 
-#: stap-serverd.cxx:784
+#: stap-serverd.cxx:787
 msgid "Error setting SSL security for socket"
 msgstr ""
 
-#: stap-serverd.cxx:792
+#: stap-serverd.cxx:795
 msgid "Error setting handshake as server for socket"
 msgstr ""
 
-#: stap-serverd.cxx:800 stap-serverd.cxx:808
+#: stap-serverd.cxx:803 stap-serverd.cxx:811
 msgid "Error setting SSL client authentication mode for socket"
 msgstr ""
 
-#: stap-serverd.cxx:819
+#: stap-serverd.cxx:822
 msgid "Error in SSL_AuthCertificateHook"
 msgstr ""
 
-#: stap-serverd.cxx:828
+#: stap-serverd.cxx:831
 msgid "Error in SSL_BadCertHook"
 msgstr ""
 
-#: stap-serverd.cxx:836
+#: stap-serverd.cxx:839
 msgid "Error in SSL_HandshakeCallback"
 msgstr ""
 
-#: stap-serverd.cxx:847
+#: stap-serverd.cxx:850
 msgid "Error configuring SSL server"
 msgstr ""
 
-#: stap-serverd.cxx:881
+#: stap-serverd.cxx:884
 msgid "Error in SSL_OptionSet:SSL_REQUEST_CERTIFICATE"
 msgstr ""
 
-#: stap-serverd.cxx:891
+#: stap-serverd.cxx:894
 msgid "Error in SSL_OptionSet:SSL_REQUIRE_CERTIFICATE"
 msgstr ""
 
-#: stap-serverd.cxx:900
+#: stap-serverd.cxx:903
 msgid "Error in SSL_ReHandshake"
 msgstr ""
 
-#: stap-serverd.cxx:909
+#: stap-serverd.cxx:912
 msgid "Error in SSL_ForceHandshake"
 msgstr ""
 
-#: stap-serverd.cxx:929
+#: stap-serverd.cxx:932
 #, fuzzy, c-format
 msgid "Could not open input file %s"
 msgstr "cannot find type: %s"
 
-#: stap-serverd.cxx:945
+#: stap-serverd.cxx:948
 msgid "Error writing response to socket"
 msgstr ""
 
-#: stap-serverd.cxx:968
+#: stap-serverd.cxx:971
 #, fuzzy, c-format
 msgid "Unable to open file %s for reading: %s"
 msgstr "not accessible at this address"
 
-#: stap-serverd.cxx:1001
+#: stap-serverd.cxx:1004
 #, c-format
 msgid "Error in regcomp: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1018
+#: stap-serverd.cxx:1021
 #, fuzzy, c-format
 msgid "Localization key=value line '%s' cannot be parsed"
 msgstr "alias component %s contains illegal parameter"
 
-#: stap-serverd.cxx:1029
+#: stap-serverd.cxx:1032
 #, c-format
 msgid "Localization key '%s' not found in global list"
 msgstr ""
 
-#: stap-serverd.cxx:1037
+#: stap-serverd.cxx:1040
 #, fuzzy, c-format
 msgid "Localization value '%s' contains illegal characters"
 msgstr "alias component %s contains illegal parameter"
 
-#: stap-serverd.cxx:1048
+#: stap-serverd.cxx:1051
 #, fuzzy, c-format
 msgid "Error reading file %s: %s"
 msgstr "no location for field %s: %s"
 
-#: stap-serverd.cxx:1104
+#: stap-serverd.cxx:1132
+#, c-format
+msgid "Invalid argument '%s' for --privilege"
+msgstr ""
+
+#: stap-serverd.cxx:1173
 #, fuzzy, c-format
 msgid "Unable to open client version file %s"
 msgstr "not accessible at this address"
 
-#: stap-serverd.cxx:1110
+#: stap-serverd.cxx:1179
 #, c-format
 msgid "Client version is %s"
 msgstr ""
 
-#: stap-serverd.cxx:1122
+#: stap-serverd.cxx:1191
 msgid "Cannot parse stap options"
 msgstr ""
 
-#: stap-serverd.cxx:1134
+#: stap-serverd.cxx:1203
 #, fuzzy, c-format
 msgid "Could not create temporary directory %s"
 msgstr "ERROR: cannot create temporary directory (\" %s \"): %s"
 
-#: stap-serverd.cxx:1154
+#: stap-serverd.cxx:1223
 msgid "Out of memory"
 msgstr ""
 
-#: stap-serverd.cxx:1162
+#: stap-serverd.cxx:1231
 #, c-format
 msgid "Error opening %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1171
+#: stap-serverd.cxx:1240
 #, c-format
 msgid "Error reading %s: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1201
-#, c-format
-msgid "Unknown argument to --privilege: %s"
-msgstr ""
-
-#: stap-serverd.cxx:1249
+#: stap-serverd.cxx:1288
 #, c-format
 msgid "Unable to find a module in %s"
 msgstr ""
 
-#: stap-serverd.cxx:1251
+#: stap-serverd.cxx:1290
 #, c-format
 msgid "Too many modules (%zu) in %s"
 msgstr ""
 
-#: stap-serverd.cxx:1278
+#: stap-serverd.cxx:1317
 #, fuzzy, c-format
 msgid "Could not link to %s from %s"
 msgstr "cannot find type: %s"
 
-#: stap-serverd.cxx:1341
+#: stap-serverd.cxx:1381
 msgid "Error in spawn getcwd"
 msgstr ""
 
-#: stap-serverd.cxx:1349
+#: stap-serverd.cxx:1389
 msgid "Error in spawn chdir"
 msgstr ""
 
-#: stap-serverd.cxx:1372
+#: stap-serverd.cxx:1412
 #, fuzzy, c-format
 msgid "Unable to set resource limits for %s: %s"
 msgstr "not accessible at this address"
 
-#: stap-serverd.cxx:1383
+#: stap-serverd.cxx:1423
 #, fuzzy, c-format
 msgid "Unable to restore resource limits after %s: %s"
 msgstr "not accessible at this address"
 
-#: stap-serverd.cxx:1393
+#: stap-serverd.cxx:1433
 msgid "Error in spawn unchdir"
 msgstr ""
 
-#: stap-serverd.cxx:1398
+#: stap-serverd.cxx:1438
 #, c-format
 msgid "Error in spawn: %s"
 msgstr ""
 
-#: stap-serverd.cxx:1405
+#: stap-serverd.cxx:1445
 msgid "Error in waitpid"
 msgstr ""
 
-#: stap-serverd.cxx:1457
+#: stap-serverd.cxx:1497
 msgid "Error resetting SSL handshake"
 msgstr ""
 
-#: stap-serverd.cxx:1467
+#: stap-serverd.cxx:1507
 msgid "Error forcing SSL handshake"
 msgstr ""
 
-#: stap-serverd.cxx:1478 stap-serverd.cxx:1490 stap-serverd.cxx:1498
+#: stap-serverd.cxx:1518 stap-serverd.cxx:1530 stap-serverd.cxx:1538
 #, fuzzy, c-format
 msgid "Could not create temporary directory %s: %s"
 msgstr "ERROR: cannot create temporary directory (\" %s \"): %s"
 
-#: stap-serverd.cxx:1537
+#: stap-serverd.cxx:1577
 msgid "Unable to extract client request"
 msgstr ""
 
-#: stap-serverd.cxx:1556
+#: stap-serverd.cxx:1596
 msgid "Unable to compress server response"
 msgstr ""
 
-#: stap-serverd.cxx:1566
+#: stap-serverd.cxx:1606
 msgid "Error closing ssl socket"
 msgstr ""
 
-#: stap-serverd.cxx:1574
+#: stap-serverd.cxx:1614
 #, fuzzy, c-format
 msgid "Keeping temporary directory %s"
 msgstr "Keeping temporary directory \"%s\""
 
-#: stap-serverd.cxx:1583
+#: stap-serverd.cxx:1623
 msgid "Error in tmpdir cleanup"
 msgstr ""
 
-#: stap-serverd.cxx:1609
+#: stap-serverd.cxx:1649
 msgid "Unable to obtain certificate private key"
 msgstr ""
 
-#: stap-serverd.cxx:1620
+#: stap-serverd.cxx:1660
 msgid "Error accepting client connection"
 msgstr ""
 
-#: stap-serverd.cxx:1625
+#: stap-serverd.cxx:1665
 #, c-format
 msgid "Accepted connection from %d.%d.%d.%d:%d"
 msgstr ""
 
-#: stap-serverd.cxx:1638
+#: stap-serverd.cxx:1678
 msgid "Error processing client request"
 msgstr ""
 
-#: stap-serverd.cxx:1641
+#: stap-serverd.cxx:1681
 #, c-format
 msgid "Request from %d.%d.%d.%d:%d complete"
 msgstr ""
 
-#: stap-serverd.cxx:1702
+#: stap-serverd.cxx:1742
 msgid "Unable to configure SSL server session ID cache"
 msgstr ""
 
-#: stap-serverd.cxx:1712
+#: stap-serverd.cxx:1752
 #, c-format
 msgid "Unable to find our certificate in the database at %s"
 msgstr ""
 
-#: stap-serverd.cxx:1735
+#: stap-serverd.cxx:1775
 msgid "Unable to shut down server session ID cache"
 msgstr ""
 
-#: stap-serverd.cxx:1750
+#: stap-serverd.cxx:1790
 msgid "Error creating socket"
 msgstr ""
 
-#: stap-serverd.cxx:1762 stap-serverd.cxx:1774
+#: stap-serverd.cxx:1802 stap-serverd.cxx:1814
 msgid "Error setting socket properties"
 msgstr ""
 
-#: stap-serverd.cxx:1799
+#: stap-serverd.cxx:1839
 #, c-format
 msgid "Network port %d is unavailable. Trying another port"
 msgstr ""
 
-#: stap-serverd.cxx:1803
+#: stap-serverd.cxx:1843
 #, c-format
 msgid "Network port %d is busy. Trying another port"
 msgstr ""
 
-#: stap-serverd.cxx:1807
+#: stap-serverd.cxx:1847
 msgid "Error setting socket address"
 msgstr ""
 
-#: stap-serverd.cxx:1817
+#: stap-serverd.cxx:1857
 #, fuzzy
 msgid "Unable to obtain socket address"
 msgstr "not accessible at this address"
 
-#: stap-serverd.cxx:1822
+#: stap-serverd.cxx:1862
 #, c-format
 msgid "Using network port %d"
 msgstr ""
 
-#: stap-serverd.cxx:1829
+#: stap-serverd.cxx:1869
 msgid "Error listening on socket"
 msgstr ""
 
-#: stap-serverd.cxx:1852
+#: stap-serverd.cxx:1892
 msgid "Unable to authorize certificate for the local client"
 msgstr ""
 
-#: stap-serverd.cxx:1863
+#: stap-serverd.cxx:1903
 msgid "Error closing listen socket"
 msgstr ""
 
@@ -4098,8 +4124,9 @@ msgid "variable location problem: "
 msgstr ""
 
 #: tapsets.cxx:3450
-msgid "write to target variable not permitted"
-msgstr ""
+#, fuzzy
+msgid "write to target variable not permitted; need stap -g"
+msgstr "cannot index into constant value"
 
 #: tapsets.cxx:3462
 msgid "write to target variable not permitted in .return probes"
@@ -4127,7 +4154,7 @@ msgstr ""
 
 #: tapsets.cxx:3880
 #, fuzzy
-msgid "write to @cast context variable not permitted"
+msgid "write to @cast context variable not permitted; need stap -g"
 msgstr "cannot index into constant value"
 
 #: tapsets.cxx:4011
@@ -4307,7 +4334,7 @@ msgid "dwarf_builder::build for %s"
 msgstr ""
 
 #: tapsets.cxx:6771 tapsets.cxx:8239
-msgid "absolute statement probe in unprivileged script"
+msgid "absolute statement probe in unprivileged script; need stap -g"
 msgstr ""
 
 #: tapsets.cxx:6811
@@ -4370,9 +4397,9 @@ msgid "unable to find tracepoint variable '%s' (alternatives: %s)"
 msgstr ""
 
 #: tapsets.cxx:8691
-#, c-format
-msgid "write to tracepoint variable '%s' not permitted"
-msgstr ""
+#, fuzzy, c-format
+msgid "write to tracepoint variable '%s' not permitted; need stap -g"
+msgstr "cannot index into constant value"
 
 #: tapsets.cxx:8700
 #, fuzzy
@@ -4881,89 +4908,89 @@ msgstr ""
 msgid "Found kernel _stext extra offset %#<PRIx64>"
 msgstr ""
 
-#: translate.cxx:5718
+#: translate.cxx:5719
 #, c-format
 msgid "%s has unknown section %s for sym %s"
 msgstr ""
 
-#: translate.cxx:5841
+#: translate.cxx:5842
 #, c-format
 msgid "skipping module %s eh_frame_hdr table (too big: %s > %s)"
 msgstr ""
 
-#: translate.cxx:5909
+#: translate.cxx:5910
 #, c-format
 msgid "skipping module %s, section %s debug_frame_hdr table (too big: %s > %s)"
 msgstr ""
 
-#: translate.cxx:6252
+#: translate.cxx:6253
 msgid "Searching for vdso candidates: "
 msgstr ""
 
-#: translate.cxx:6262
+#: translate.cxx:6263
 msgid "vdso candidate: "
 msgstr ""
 
-#: translate.cxx:6401
+#: translate.cxx:6402
 msgid "missing unwind/symbol data for module '"
 msgstr ""
 
-#: translate.cxx:6424
+#: translate.cxx:6425
 #, c-format
 msgid "identified max-nested function: %s (%d)"
 msgstr ""
 
-#: translate.cxx:6435
+#: translate.cxx:6436
 #, c-format
 msgid "identified recursive function: %s"
 msgstr ""
 
-#: translate.cxx:6450
+#: translate.cxx:6451
 #, c-format
 msgid ""
 "myproc-unprivileged tapset function called without is_myproc checking for "
 "pid %d (euid %d)"
 msgstr ""
 
-#: translate.cxx:6454
+#: translate.cxx:6455
 #, c-format
 msgid "kernel read fault at 0x%p (%s)"
 msgstr ""
 
-#: translate.cxx:6456
+#: translate.cxx:6457
 #, c-format
 msgid "kernel write fault at 0x%p (%s)"
 msgstr ""
 
-#: translate.cxx:6458
+#: translate.cxx:6459
 #, c-format
 msgid "divide by zero in DWARF operand (%s)"
 msgstr ""
 
-#: translate.cxx:6503
+#: translate.cxx:6504
 #, c-format
 msgid "ignoring extra parts of compat version: %s"
 msgstr ""
 
-#: translate.cxx:6507
+#: translate.cxx:6508
 #, c-format
 msgid "parse error in compatibility version: %s"
 msgstr ""
 
-#: translate.cxx:6510
+#: translate.cxx:6511
 #, c-format
 msgid "compatibility version out of range: %s"
 msgstr ""
 
-#: translate.cxx:6530
+#: translate.cxx:6531
 msgid " recursive"
 msgstr ""
 
-#: translate.cxx:6530
+#: translate.cxx:6531
 msgid " non-recursive"
 msgstr ""
 
-#: translate.cxx:6529
+#: translate.cxx:6530
 #, c-format
 msgid "function recursion-analysis: max-nesting %d %s"
 msgstr ""
