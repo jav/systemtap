@@ -1,6 +1,6 @@
 #! /usr/bin/env stap
 
-global c
+global c%
 
 probe %($# == 0 || $# > 32 %? begin %: never %)
 {
