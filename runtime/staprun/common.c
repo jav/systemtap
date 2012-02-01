@@ -67,6 +67,9 @@ int stap_strfloctime(char *buf, size_t max, const char *fmt, time_t t)
 	if (buf == NULL || fmt == NULL || max <= 1)
 		return -EINVAL;
 	localtime_r(&t, &tm);
+        /* NB: this following invocation is the reason for staprun's being built
+           with -Wno-format-nonliteral.  strftime parsing does not have security
+           implications AFAIK, but gcc still wants to check them.  */
 	ret = strftime(buf, max, fmt, &tm);
 	if (ret == 0)
 		return -EINVAL;
