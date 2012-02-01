@@ -18,6 +18,14 @@
 #define utrace_engine utrace_attached_engine
 #endif
 
+/* We really need this when calling UTRACE_CREATE under a lock
+ * or from interrupt context.  But it is only available in
+ * newer utrace versions.
+ */
+#ifndef UTRACE_ATTACH_ATOMIC
+#define UTRACE_ATTACH_ATOMIC 0
+#endif
+
 #ifdef UTRACE_ACTION_RESUME
 
 /* 

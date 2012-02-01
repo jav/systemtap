@@ -98,7 +98,9 @@ static u32 usr_itrace_report_quiesce(enum utrace_resume_action action,
 	int status;
 	struct itrace_info *ui;
 
+	rcu_read_lock();
 	ui = rcu_dereference(engine->data);
+	rcu_read_unlock();
 	WARN_ON(!ui);
 
 #ifdef UTRACE_ORIG_VERSION
@@ -146,7 +148,9 @@ static u32 usr_itrace_report_signal(u32 action,
 	data = mfspr(SPRN_SDAR);
 #endif
 
+	rcu_read_lock();
 	ui = rcu_dereference(engine->data);
+	rcu_read_unlock();
 	WARN_ON(!ui);
 
 #if defined(UTRACE_ORIG_VERSION) 
@@ -223,7 +227,10 @@ static u32 usr_itrace_report_death(struct utrace_attached_engine *e,
 #endif
 #endif
 {
-	struct itrace_info *ui = rcu_dereference(e->data);
+	struct itrace_info *ui;
+	rcu_read_lock();
+	ui = rcu_dereference(e->data);
+	rcu_read_unlock();
 	WARN_ON(!ui);
 
 	return (UTRACE_DETACH);
@@ -267,8 +274,12 @@ static struct itrace_info *create_itrace_info(
 	list_add(&ui->link, &usr_itrace_info);
 	spin_unlock(&itrace_lock);
 
-	/* attach a single stepping engine */
-	ui->engine = utrace_attach_task(ui->tsk, UTRACE_ATTACH_CREATE, &utrace_ops, ui);
+	/* attach a single stepping engine.  create_itrace_info is called
+	   under rcu read lock, so needs atomic.  */
+	ui->engine = utrace_attach_task(ui->tsk,
+					(UTRACE_ATTACH_CREATE
+					 | UTRACE_ATTACH_ATOMIC),
+					&utrace_ops, ui);
 	if (IS_ERR(ui->engine)) {
 		printk(KERN_ERR "utrace_attach returns %ld\n",
 			PTR_ERR(ui->engine));

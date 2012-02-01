@@ -513,11 +513,13 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 	  || (tgt)->mprotect_events)				\
 	 ? __STP_TASK_VM_BASE_EVENTS : __STP_TASK_BASE_EVENTS)
 
+/* Helper function for __stp_utrace_attach or __stp_utrace_attach_atomic.  */
 static int
-__stp_utrace_attach(struct task_struct *tsk,
-		    const struct utrace_engine_ops *ops, void *data,
-		    unsigned long event_flags,
-		    enum utrace_resume_action action)
+__stp_utrace_attach_flags(struct task_struct *tsk,
+			  const struct utrace_engine_ops *ops, void *data,
+			  unsigned long event_flags,
+			  int attach_flags,
+			  enum utrace_resume_action action)
 {
 	struct utrace_engine *engine;
 	int rc = 0;
@@ -541,7 +543,8 @@ __stp_utrace_attach(struct task_struct *tsk,
 	if (! tsk->mm)
 		return EPERM;
 
-	engine = utrace_attach_task(tsk, UTRACE_ATTACH_CREATE, ops, data);
+	engine = utrace_attach_task(tsk, UTRACE_ATTACH_CREATE | attach_flags,
+				    ops, data);
 	if (IS_ERR(engine)) {
 		int error = -PTR_ERR(engine);
 		if (error != ESRCH && error != ENOENT) {
@@ -596,6 +599,26 @@ __stp_utrace_attach(struct task_struct *tsk,
 		utrace_engine_put(engine);
 	}
 	return rc;
+}
+
+static int
+__stp_utrace_attach(struct task_struct *tsk,
+		    const struct utrace_engine_ops *ops, void *data,
+		    unsigned long event_flags,
+		    enum utrace_resume_action action)
+{
+	return __stp_utrace_attach_flags(tsk, ops, data, event_flags,
+					 0, action);
+}
+
+static int
+__stp_utrace_attach_atomic(struct task_struct *tsk,
+			   const struct utrace_engine_ops *ops, void *data,
+			   unsigned long event_flags,
+			   enum utrace_resume_action action)
+{
+	return __stp_utrace_attach_flags(tsk, ops, data, event_flags,
+					 UTRACE_ATTACH_ATOMIC, action);
 }
 
 static int
@@ -1596,7 +1619,9 @@ stap_start_task_finder(void)
 		if (_stp_target && tsk->tgid != _stp_target)
 			continue;
 
-		rc = __stp_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
+		// Called under lock, so needs atomic.
+		rc = __stp_utrace_attach_atomic(tsk,
+					 &__stp_utrace_task_finder_ops, 0,
 					 __STP_TASK_FINDER_EVENTS,
 					 UTRACE_RESUME);
 		if (rc == EPERM) {
@@ -1676,7 +1701,8 @@ stap_start_task_finder(void)
 #endif
 
 			// Set up events we need for attached tasks.
-			rc = __stp_utrace_attach(tsk, &tgt->ops, tgt,
+			// Called under lock, so needs atomic.
+			rc = __stp_utrace_attach_atomic(tsk, &tgt->ops, tgt,
 						 __STP_ATTACHED_TASK_EVENTS,
 						 UTRACE_STOP);
 			if (rc != 0 && rc != EPERM)
