@@ -134,6 +134,7 @@ struct compile_server_info
 };
 
 ostream &operator<< (ostream &s, const compile_server_info &i);
+ostream &operator<< (ostream &s, const vector<compile_server_info> &v);
 
 static void
 preferred_order (vector<compile_server_info> &servers)
@@ -1167,7 +1168,31 @@ compile_server_client::find_and_connect_to_server ()
   unsigned limit = server_list.size ();
   if (limit == 0)
     {
-      clog << _("Unable to find a compile server.") << endl;
+      clog << _("Unable to find a suitable compile server.") << endl;
+
+      // Try to explain why.
+      vector<compile_server_info> online_servers;
+      get_or_keep_online_server_info (s, online_servers, false/*keep*/);
+      if (online_servers.empty ())
+	clog << _("No servers online to select from.") << endl;
+      else
+	{
+	  clog << _("The following servers are online:") << endl;
+	  clog << online_servers;
+	  if (! specified_servers.empty ())
+	    {
+	      clog << _("The following servers were requested:") << endl;
+	      clog << specified_servers;
+	    }
+	  else
+	    {
+	      string criteria = "online,trusted,compatible";
+	      if (! pr_contains (s.privilege, pr_stapdev))
+		criteria += ",signer";
+	      clog << _F("No servers matched the selection criteria of %s.", criteria.c_str())
+		   << endl;
+	    }
+	}
       return 1;
     }
 
@@ -1194,6 +1219,8 @@ compile_server_client::find_and_connect_to_server ()
 
   // We were unable to use any available server
   clog << _("Unable to connect to a server.") << endl;
+  clog << _("The following servers were tried:") << endl;
+  clog << server_list;
   return 1; // Failure
 }
 
@@ -2048,6 +2075,13 @@ ostream &operator<< (ostream &s, const compile_server_info &i)
     s << i.certinfo << '"';
   else
     s << "unknown\"";
+  return s;
+}
+
+ostream &operator<< (ostream &s, const vector<compile_server_info> &v)
+{
+  for (unsigned i = 0; i < v.size(); ++i)
+    s << v[i] << endl;
   return s;
 }
 
