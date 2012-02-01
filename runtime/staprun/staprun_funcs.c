@@ -579,6 +579,7 @@ check_uprobes_module_path (
  * credentials otherwise.
  */
 static privilege_t get_module_required_credentials (
+  const char *module_path,
   const void* module_file __attribute__ ((unused)),
   const __off_t st_size __attribute__ ((unused))
 )
@@ -587,8 +588,10 @@ static privilege_t get_module_required_credentials (
   /* Without the proper ELF support, we can't determine the credentials required to run this
      module. It may have some future privilege level higher than stapsys, which we don't know about.
      We are forced to assume that requires the highest privilege level. */
-  err ("Unable to determine the privilege level required for this module. Assuming %s.",
-       pr_name (pr_highest));
+  if (verbose >= 1) {
+    err ("Unable to determine the privilege level required for the module %s. Assuming %s.",
+	 module_path, pr_name (pr_highest));
+  }
   return pr_highest;
 #else
   Elf_Scn *scn = 0;
@@ -604,8 +607,11 @@ static privilege_t get_module_required_credentials (
   */
   scn = find_section_in_module (module_file, st_size, STAP_PRIVILEGE_SECTION);
   if (! scn) {
-    err ("Section name \"%s\" not found in module.\n", STAP_PRIVILEGE_SECTION);
-    err ("Assuming required privilege level of %s.\n", pr_name (pr_unprivileged));
+    if (verbose >= 1) {
+      err ("Section name \"%s\" not found in module %s.\n", STAP_PRIVILEGE_SECTION,
+	   module_path);
+      err ("Assuming required privilege level of %s.\n", pr_name (pr_unprivileged));
+    }
     return pr_unprivileged;
   }
 
@@ -614,29 +620,41 @@ static privilege_t get_module_required_credentials (
      requirement.
      Get the section header. */
   if (gelf_getshdr (scn, & shdr) == NULL) {
-    err ("Error getting section header from section %s.\n", STAP_PRIVILEGE_SECTION);
-    err ("Assuming required privilege level of %s.", pr_name (pr_highest));
+    if (verbose >= 1) {
+      err ("Error getting section header from section %s in module %s.\n", STAP_PRIVILEGE_SECTION,
+	   module_path);
+      err ("Assuming required privilege level of %s.", pr_name (pr_highest));
+    }
     return pr_highest;
   }
 
   /* The section should have at least one data item. */
   if (shdr.sh_size < 1) {
-    err ("Section header from section %s has no items\n", STAP_PRIVILEGE_SECTION);
-    err ("Assuming required privilege level of %s.", pr_name (pr_highest));
+    if (verbose >= 1) {
+      err ("Section header from section %s in module %s has no items\n", STAP_PRIVILEGE_SECTION,
+	   module_path);
+      err ("Assuming required privilege level of %s.", pr_name (pr_highest));
+    }
     return pr_highest;
   }
 
   /* The first data item contains the privilege requirement of the module. */
   if ((data = elf_getdata (scn, data)) == NULL) {
-    err ("Error getting data from section %s\n", STAP_PRIVILEGE_SECTION);
-    err ("Assuming required privilege level of %s.", pr_name (pr_highest));
+    if (verbose >= 1) {
+      err ("Error getting data from section %s in module %s\n", STAP_PRIVILEGE_SECTION,
+	   module_path);
+      err ("Assuming required privilege level of %s.", pr_name (pr_highest));
+    }
     return pr_highest;
   }
 
   /* Make sure the data is the correct size. */
   if (data->d_size != sizeof (privilege)) {
-    err ("Data in section %s is not the correct size\n", STAP_PRIVILEGE_SECTION);
-    err ("Assuming required privilege level of %s.", pr_name (pr_highest));
+    if (verbose >= 1) {
+      err ("Data in section %s is in module %s not the correct size\n", STAP_PRIVILEGE_SECTION,
+	   module_path);
+      err ("Assuming required privilege level of %s.", pr_name (pr_highest));
+    }
     return pr_highest;
   }
 
@@ -650,14 +668,17 @@ static privilege_t get_module_required_credentials (
   case pr_stapdev:
     break; /* ok */
   default:
-    err ("Unknown privilege data, 0x%x in section %s\n", (int)privilege, STAP_PRIVILEGE_SECTION);
-    err ("Assuming required privilege level of %s.", pr_name (pr_highest));
+    if (verbose >= 1) {
+      err ("Unknown privilege data, 0x%x in section %s in module %s\n",
+	   (int)privilege, STAP_PRIVILEGE_SECTION, module_path);
+      err ("Assuming required privilege level of %s.", pr_name (pr_highest));
+    }
     return pr_highest;
   }
 
   /* ALl is ok. Return the extracted privilege data. */
   return privilege;
-#endif
+#endif /* HAVE_ELF_GETSHDRSTRNDX */
 }
 
 /*
@@ -694,14 +715,14 @@ check_groups (
   /* Users with stapsys and stapusr credentials may be able to load a signed module. */
   if (module_signature_status == MODULE_OK) {
     /* We must verify that the module was compiled for that privilege level. */
-    module_required_credentials = get_module_required_credentials (module_data, module_size);
+    module_required_credentials = get_module_required_credentials (module_path, module_data, module_size);
     if (pr_contains (user_credentials, module_required_credentials)) {
       /* Our credentials are sufficient */
       return 1;
     }
 
     /* Our credentials are insufficient to load this module. */
-    err("ERROR: Your privilege credentials (%s) are insufficient to load the the module %s (%s required)\n",
+    err("ERROR: Your privilege credentials (%s) are insufficient to load the module %s (%s required)\n",
 	pr_name (user_credentials), module_path, pr_name (module_required_credentials));
 
     if (user_credentials == pr_none)
