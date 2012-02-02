@@ -98,18 +98,22 @@ function task_valid_file_handle:long (task:long, fd:long) %{ /* pure */
 	rcu_read_unlock();
 %}
 
-function i_mode2str:string (i_mode:long) %{ /* pure */
-	snprintf(THIS->__retvalue, MAXSTRINGLEN, "%d", (int)THIS->i_mode);
-	THIS->i_mode = simple_strtol(THIS->__retvalue, NULL, 10);
-
-	if (S_ISLNK(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFLNK", MAXSTRINGLEN);
-	else if (S_ISREG(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFREG", MAXSTRINGLEN);
-	else if (S_ISDIR(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFDIR", MAXSTRINGLEN);
-	else if (S_ISCHR(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFCHR", MAXSTRINGLEN);
-	else if (S_ISBLK(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFBLK", MAXSTRINGLEN);
-	else if (S_ISFIFO(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFIFO", MAXSTRINGLEN);
-	else if (S_ISSOCK(THIS->i_mode)) strlcpy (THIS->__retvalue, "S_IFSOCK", MAXSTRINGLEN);
-%}
+function i_mode2str:string (i_mode:long) {
+	if (%{ S_ISLNK(THIS->i_mode) %})
+		return "S_IFLNK"
+	if (%{ S_ISREG(THIS->i_mode) %})
+		return "S_IFREG"
+	if (%{ S_ISDIR(THIS->i_mode) %})
+		return "S_IFDIR"
+	if (%{ S_ISCHR(THIS->i_mode) %})
+		return "S_IFCHR"
+	if (%{ S_ISBLK(THIS->i_mode) %})
+		return "S_IFBLK"
+	if (%{ S_ISFIFO(THIS->i_mode) %})
+		return "S_IFIFO"
+	if (%{ S_ISSOCK(THIS->i_mode) %})
+		return "S_IFSOCK"
+}
 
 function task_file_handle_i_mode:long (task:long, fd:long) %{ /* pure */
 	struct task_struct *p = (struct task_struct *)((long)THIS->task);
@@ -320,7 +324,7 @@ function task_file_handle_d_path:string (task:long, fd:long) %{ /* pure */
 
 	rcu_read_lock();
 	if ((files = kread(&p->files)) &&
-	    (page = (char *)__get_free_page(GFP_KERNEL)) &&
+	    (page = (char *)__get_free_page(GFP_ATOMIC)) &&
 	    (filp = fcheck_files(files, THIS->fd))) {
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
@@ -668,7 +672,7 @@ probe begin {
 			print_file_handle_d_path(task, fd)
 			sock = task_file_handle_socket(task, fd)
 			if (sock) {
-                print_socket_optname(sock)
+				print_socket_optname(sock)
 				fam = socket_family(sock)
 				if (fam == 1) { /* AF_UNIX */
 					print_unix_socket(sock)
