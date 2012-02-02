@@ -1,12 +1,20 @@
-* What's new in version 1.7
+* What's new in version 1.7, 2012-02-01
 
 - Map inserting and deleting is now significantly faster due to
   improved hashing and larger hash tables. The hashes are also
   now randomized to provide better protection against deliberate
   collision attacks.
 
+- Formatted printing is faster by compiling the formatting directives
+  to C code rather than interpreting at run time.
+
 - Systemtap loads extra command line options from $SYSTEMTAP_DIR/rc
-  ($HOME/.systemtap/rc by default) before the normal argc/argv.
+  ($HOME/.systemtap/rc by default) before the normal argc/argv.  This
+  may be useful to activate site options such as --use-server or
+  --download-debuginfo or --modinfo.
+
+- The stap-server has seen many improvements, and is no longer considered
+  experimental.
 
 - The stap-server service (initscript) now supports four new options:
     -D MACRO[=VALUE]
@@ -17,7 +25,8 @@
   by the server, the location of the log file, network port number and
   NSS certificate database location respectively. These options are also
   supported within individual server configuration files. See stap-server
-  and initscript/README.stap-server for details.
+  and initscript/README.stap-server for details.  The stap-server is no
+  longer activated by default.
 
 - process("PATH").[library("PATH")].function("NAME").exported probes are now
   supported to filter function() to only exported instances.
@@ -25,6 +34,9 @@
 - The translator supports a new --suppress-handler-errors option, which
   causes most runtime errors to be turned into quiet skipped probes.  This
   also disables the MAXERRORS and MAXSKIPPED limits.
+
+- Translator warnings have been standardized and controlled by the -w / -W
+  flags.
 
 - The translator supports a new --modinfo NAME=VALUE option to emit additional
   MODULE_INFO(n,v) macros into the generated code.
@@ -46,6 +58,9 @@
   option. --privilege=stapdev is the default. See man stap(1) for details.
 
 - Scripts that use kernel.trace("...") probes compile much faster.
+
+- The systemtap module cache is cleaned less frequently, governed by the
+  number of seconds in the $SYSTEMTAP_DIR/cache/cache_clean_interval_s file.
 
 - SDT can now define up to 12 arguments in a probe point.
 
@@ -73,10 +88,20 @@
   and a positive number representing the timeout desired. The 
   default behavior is to not automatically download the debuginfo.
 
+- The translator has better support for probing C++ applications by
+  better undertanding of compilation units, nested types, templates,
+  as used in probe point and @cast constructs.
+
 - On 2.6.29+ kernels, systemtap can now probe kernel modules that
   arrive and/or depart during the run-time of a session.  This allows
-  probing of device driver initialization functions, which had been
+  probing of device driver initialization functions, which had formerly been
   blacklisted.
+
+- New tapset functions for cpu_clock and local_clock access were added.
+
+- There is some limited preliminary support for user-space probing
+  against kernels such as linux-next, which have no utrace but do have
+  the newer inode-uprobes work by Srikar Dronamraju and colleagues.
 
 - The following probe types are deprecated in release 1.7 and will be
   removed in release 1.8:
@@ -154,6 +179,9 @@
     process(PID).syscall.return
     process("PATH").syscall.return 
     process.syscall.return
+
+- staprun disables kprobe-optimizations in recent kernels, as problems
+  were found.  (PR13193)
 
 * What's new in version 1.6, 2011-07-25
 

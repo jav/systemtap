@@ -592,6 +592,9 @@ exit 0
 # ------------------------------------------------------------------------
 
 %changelog
+* Wed Feb 01 2012 Frank Ch. Eigler <fche@redhat.com> - 1.7-1
+- Upstream release.
+
 * Fri Jan 13 2012 David Smith <dsmith@redhat.com> - 1.6-2
 - Fixed /bin/mktemp require.
 
