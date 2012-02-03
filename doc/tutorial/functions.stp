@@ -1,4 +1,4 @@
-# Red Hat convention
+# Red Hat convention; see /etc/login.defs UID_MIN
 function system_uid_p (u) { return u < 500 }
 
 # kernel device number assembly macro
