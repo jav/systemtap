@@ -17,7 +17,7 @@ global _spec_discard
  * The speculation() function is called when a new speculation buffer is needed.
  * It returns an id for the speculative output.
  * There can be multiple threads being speculated on concurrently.
- * This id is used by other speculation fuctions to keep the threads
+ * This id is used by other speculation functions to keep the threads
  * separate.
  */
 function speculation:long ()

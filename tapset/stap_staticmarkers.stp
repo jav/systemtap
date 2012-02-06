@@ -296,7 +296,7 @@ probe staprun.send_control_message = process("staprun").mark("send__ctlmsg") {
 }
 
 /**
- * probe stapio.receive_control_message - Recieved a control message
+ * probe stapio.receive_control_message - Received a control message
  * @type: type of message being send; defined in runtime/transport/transport_msgs.h
  * @data: a ptr to a binary blob of data sent as the control message
  * @len: the length (in bytes) of the data blob

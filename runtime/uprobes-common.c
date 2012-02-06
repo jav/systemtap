@@ -143,13 +143,13 @@ static int stap_uprobe_change_semaphore_plus (struct task_struct *tsk, unsigned 
      semaphore.  If the probe is in a .so, we calculate the 
      address when the initial mmap maps the entire solib, e.g.
      7f089885a000-7f089885b000  rw-p-  libtcl.so
-     A subsequent mmap maps in the writeable segment where the 
+     A subsequent mmap maps in the writable segment where the 
      semaphore control variable lives, e.g.
      7f089850d000-7f0898647000  r-xp-  libtcl.so
      7f0898647000-7f0898846000  ---p   libtcl.so
      7f0898846000-7f089885b000  rw-p-  libtcl.so
      The second pass, stap_uprobe_change_semaphore_plus, sets the semaphore.
-     If the probe is in a .so this will be when the writeable segment of the .so
+     If the probe is in a .so this will be when the writable segment of the .so
      is mapped in.  If the task changes, then recalculate the address.
   */
 
@@ -280,7 +280,7 @@ stap_uprobe_mmap_found (struct stap_task_finder_target *tgt,
    *     so stap_uprobe_change_plus can set a semaphore,
    *     i.e. a static extern, in a shared object
    * 2 - the shared library we're interested in
-   * 3 - mapping should be executable or writeable (for semaphore in .so)
+   * 3 - mapping should be executable or writable (for semaphore in .so)
    *     NB: or both, on kernels that lack noexec mapping
    */
   if (path == NULL || strcmp (path, stf->pathname))
@@ -297,7 +297,7 @@ stap_uprobe_mmap_found (struct stap_task_finder_target *tgt,
     rc = stap_uprobe_change_plus (tsk, addr, length, stf, offset, vm_flags);
   }
 
-  /* Check writeable sections for semaphores.
+  /* Check writable sections for semaphores.
    * NB: They may have also been executable for the check above, if we're
    *     running a kernel that lacks noexec mappings.  So long as there's
    *     no error (rc == 0), we need to look for semaphores too.

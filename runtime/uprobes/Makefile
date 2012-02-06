@@ -15,7 +15,7 @@ CERTDB = ../../../../etc/systemtap/staprun
 # Build the module and, if we are root or stap-server, sign it.
 # Make sure that all the required tools and resources are available
 # before attempting to sign the module. 
-# Ensure that the generated files are writeable by the group which
+# Ensure that the generated files are writable by the group which
 # owns this build directory. This is so that the stap-server service
 # can rebuild the module, if necessary.
 default:

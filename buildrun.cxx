@@ -314,7 +314,7 @@ compile_pass (systemtap_session& s)
     o << "EXTRA_CFLAGS += -ftime-report -Q" << endl;
 
   // XXX: unfortunately, -save-temps can't work since linux kbuild cwd
-  // is not writeable.
+  // is not writable.
   //
   // if (s.keep_tmpdir)
   // o << "CFLAGS += -fverbose-asm -save-temps" << endl;

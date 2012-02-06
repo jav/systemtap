@@ -80,7 +80,7 @@ check_db_file_permissions (const char *cert_db_file) {
   if ((info.st_mode & S_IRUSR) == 0)
     fprintf (stderr, "Certificate database file %s should be readable by the owner.\n", cert_db_file);
   if ((info.st_mode & S_IWUSR) == 0)
-    fprintf (stderr, "Certificate database file %s should be writeable by the owner.\n", cert_db_file);
+    fprintf (stderr, "Certificate database file %s should be writable by the owner.\n", cert_db_file);
   if ((info.st_mode & S_IXUSR) != 0)
     {
       fprintf (stderr, "Certificate database file %s must not be executable by the owner.\n", cert_db_file);
@@ -165,7 +165,7 @@ check_cert_db_permissions (const char *cert_db_path) {
   if ((info.st_mode & S_IRUSR) == 0)
     fprintf (stderr, "Certificate database %s should be readable by the owner.\n", cert_db_path);
   if ((info.st_mode & S_IWUSR) == 0)
-    fprintf (stderr, "Certificate database %s should be writeable by the owner.\n", cert_db_path);
+    fprintf (stderr, "Certificate database %s should be writable by the owner.\n", cert_db_path);
   if ((info.st_mode & S_IXUSR) == 0)
     fprintf (stderr, "Certificate database %s should be searchable by the owner.\n", cert_db_path);
   if ((info.st_mode & S_IRGRP) == 0)

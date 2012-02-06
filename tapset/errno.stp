@@ -346,7 +346,7 @@ static const int Maxerrno = sizeof(errlist)/sizeof(char *);
 /**
  * sfunction errno_str - Symbolic string associated with error code
  *
- * @err: The error number recieved
+ * @err: The error number received
  *
  * Description: This function returns the symbolic string associated
  * with the giver error code, such as ENOENT for the number 2, or

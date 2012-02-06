@@ -679,7 +679,7 @@ static int _stp_data_write_commit(void *entry)
 	{
 		struct _stp_data_entry *sde = ring_buffer_event_data(event);
 		char *last = sde->buf + (sde->len - 5);
-		dbug_trans2("commiting %.5s...%.5s\n", sde->buf, last);
+		dbug_trans2("committing %.5s...%.5s\n", sde->buf, last);
 	}
 #endif
 	atomic_inc(&(_stp_get_iterator()->nr_events));

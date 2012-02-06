@@ -550,7 +550,7 @@ probe end {
  * The impact of running this script on your system can
  * be reduced by enabling only the probes corresponding to the
  * statictics you are interested in.  For example, if all you care about
- * is counting the number of incomming connections that are established use:
+ * is counting the number of incoming connections that are established use:
  * "probe tcpmib.PassiveOpens {}"
  */
 

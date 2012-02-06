@@ -1570,7 +1570,7 @@ parser::parse_functiondecl (std::vector<functiondecl*>& functions)
     {
       t = next ();
 
-      // permit zero-argument fuctions
+      // permit zero-argument functions
       if (t->type == tok_operator && t->content == ")")
         break;
       else if (! (t->type == tok_identifier))

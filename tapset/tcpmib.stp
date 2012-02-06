@@ -191,7 +191,7 @@ tcpmib.EstabResets = kernel.function("tcp_set_state").call ?
 }
 
 /**
- * probe tcpmib.InSegs - Count an incomming tcp segment
+ * probe tcpmib.InSegs - Count an incoming tcp segment
  * @sk: pointer to the struct sock being acted on
  * @op: value to be added to the counter (default value of 1)
  *

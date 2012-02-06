@@ -3449,7 +3449,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       if (lvalue && !q.sess.guru_mode)
         throw semantic_error(_("write to target variable not permitted; need stap -g"), e->tok);
 
-      // XXX: process $context vars should be writeable
+      // XXX: process $context vars should be writable
 
       // See if we need to generate a new probe to save/access function
       // parameters from a return probe.  PR 1382.

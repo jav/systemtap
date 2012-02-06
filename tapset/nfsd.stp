@@ -1122,7 +1122,7 @@ probe nfsd.write.return = kernel.function("nfsd_write").return !,
 }
 
 /**
- * probe nfsd.commit - NFS server commiting all pending writes to stable storage
+ * probe nfsd.commit - NFS server committing all pending writes to stable storage
  *
  * @client_ip: the ip address of client
  * @fh: file handle (the first part is the length of the file handle)
