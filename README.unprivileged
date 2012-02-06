@@ -48,7 +48,7 @@ below for more details.
 Trust of Unprivileged Users
 ---------------------------
 Even with the appropriate compile server available, each
-unprivileged user must be explicitely trusted. This is done by adding each
+unprivileged user must be explicitly trusted. This is done by adding each
 unprivileged user to the group stapusr and possibly the group stapsys
 on each host on which they will
 run systemtap scripts. To see if you are a member of the group stapusr on the
@@ -99,7 +99,7 @@ stap_5330.ko
 # staprun stap_5330.ko
 Hello
 
-Note that the module has already been ceritified (signed), so no special options
+Note that the module has already been certified (signed), so no special options
 are needed.
 
 Additional Information
@@ -177,7 +177,7 @@ Starting stap-server -a "x86_64" -r "2.6.34.7-61.fc13.x86_64" -u "stap-server"
 This starts a compile server for the specified kernel release and hardware
 architecture. The kernel and kernel-devel package for the specified release and
 architecture must be installed on the server host. The kernel-debuginfo package
-for each kernel release and archtecture should also be installed, but is not
+for each kernel release and architecture should also be installed, but is not
 relevant for unprivileged users.
 
 If either one (or both) the kernel release and/or architecture is not
@@ -215,7 +215,7 @@ administrator trusts it to correctly check a systemtap script for
 behavior which should not be made available to unprivileged users. When a
 script is compiled using the --privilege option, the server checks the
 script for such behavior and cryptographically signs the resulting module if it
-is safe for use by unprivileged users. Verification of ths signature certifies
+is safe for use by unprivileged users. Verification of the signature certifies
 that the module was certified as 'safe' by the server and that it has not been
 altered since it was certified.
 
@@ -271,7 +271,7 @@ Each of the servers you specified in stap 2 above should be listed.
 Trust of Unprivileged Users
 ---------------------------
 Finally, once compile servers have been set up and are trusted, each
-unprivileged user must be explicitely trusted. This is done by adding each
+unprivileged user must be explicitly trusted. This is done by adding each
 unprivileged user to the group stapusr, and possibly the group stapsys on each host on which they
 will run systemtap scripts:
 
