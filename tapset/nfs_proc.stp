@@ -1,12 +1,21 @@
+// NFS procedure tapset
+// Copyright (C) 2006 IBM Corp.
+// Copyright (C) 2007-2012 Red Hat
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
 %{
 /* For AF_INET */
 #include <linux/socket.h>
 %}
 
 function AF_INET:long()
-%{ /* pure */ /* unprivileged */
-	THIS->__retvalue = AF_INET;
-%}
+{
+	return %{ AF_INET %}
+}
 
 function NFS_I:long(inode:long)
 {
@@ -60,7 +69,7 @@ function get_ip_from_client:long(clnt:long)
 	/* In reality, 'cl_xprt->addr' is of 'sockaddr_storage' type
 	 * (since 2.6.19). But when used, you cast it to what is
 	 * inside that buffer. */
-	if (@cast(addr, "sockaddr_in")->sin_family != AF_INET()) {
+	if (@cast(addr, "sockaddr_in")->sin_family != %{ AF_INET %}) {
 		/* Now consider ipv4 only */
 		return 0
 	}

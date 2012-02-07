@@ -1,7 +1,7 @@
 // rpc tapset
 // Copyright (C) 2006 IBM Corp.
 // Copyright (C) 2007 Bull S.A.S
-// Copyright (C) 2008, 2010, 2011 Red Hat
+// Copyright (C) 2008, 2010-2012 Red Hat
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -1078,7 +1078,7 @@ function port_from_xprt:long(cl_xprt:long)
 	/* In reality, 'cl_xprt->addr' is of 'sockaddr_storage' type
 	 * (since 2.6.19). But when used, you cast it to what is
 	 * inside that buffer. */
-	if (@cast(addr, "sockaddr_in")->sin_family == AF_INET()) {
+	if (@cast(addr, "sockaddr_in")->sin_family == %{ AF_INET %}) {
 		/* Now consider ipv4 only */ 
 		return ntohs(@cast(addr, "sockaddr_in")->sin_port)
 	}
@@ -1133,7 +1133,7 @@ function addr_from_rqst:long(rqstp:long)
 	/* In reality, 'rq_addr' is of 'sockaddr_storage' type
 	 * (since 2.6.19). But when used, you cast it to what is
 	 * inside that buffer. */
-	if (@cast(addr, "sockaddr_in")->sin_family == AF_INET()) {
+	if (@cast(addr, "sockaddr_in")->sin_family == %{ AF_INET %}) {
 		/* Now consider ipv4 only */ 
 		return @cast(addr, "sockaddr_in")->sin_addr->s_addr
 	}

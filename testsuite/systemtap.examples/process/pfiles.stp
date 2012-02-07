@@ -3,7 +3,7 @@
 //bin/true && exec stap -g $0 ${1+"$@"}
 
 # pfiles
-# Copyright (C) 2007-2010 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
+# Copyright (C) 2007-2010, 2012 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -676,11 +676,11 @@ probe begin {
 			if (sock) {
 				print_socket_optname(sock)
 				fam = socket_family(sock)
-				if (fam == 1) { /* AF_UNIX */
+				if (fam == %{ AF_UNIX %}) {
 					print_unix_socket(sock)
-				} else if (fam == 2) { /* AF_INET */
+				} else if (fam == %{ AF_INET %}) {
 					print_ipv4_socket(sock)
-				} else if (fam == 10) { /* AF_INET6 */
+				} else if (fam == %{ AF_INET6 %}) {
 					print_ipv6_socket(sock)
 				}
 				print_socket_userlocks(sock)
