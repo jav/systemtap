@@ -612,18 +612,12 @@ STAP_PREFIX
 LOCALEDIR
 ENABLE_NLS
 support_section_question
+CXXCPP
 DATE
 stap_LIBS
 elfutils_abs_srcdir
 BUILD_ELFUTILS_FALSE
 BUILD_ELFUTILS_TRUE
-BUILD_GRAPHER_FALSE
-BUILD_GRAPHER_TRUE
-CXXCPP
-libglade_LIBS
-libglade_CFLAGS
-gtkmm_LIBS
-gtkmm_CFLAGS
 HAVE_AVAHI_FALSE
 HAVE_AVAHI_TRUE
 avahi_LIBS
@@ -807,7 +801,6 @@ enable_refdocs
 with_nss
 enable_server
 with_avahi
-enable_grapher
 with_rpm
 with_elfutils
 '
@@ -830,10 +823,6 @@ nss_CFLAGS
 nss_LIBS
 avahi_CFLAGS
 avahi_LIBS
-gtkmm_CFLAGS
-gtkmm_LIBS
-libglade_CFLAGS
-libglade_LIBS
 CXXCPP'
 ac_subdirs_all='testsuite runtime/staprun'
 
@@ -1483,8 +1472,6 @@ Optional Features:
                           if xmlto etc. found and other documentation built).
   --enable-server         enable building of stap-server (default on if nss
                           etc. found).
-  --enable-grapher        enable building of grapher (default on if needed
-                          requirements are found).
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1524,13 +1511,6 @@ Some influential environment variables:
   avahi_CFLAGS
               C compiler flags for avahi, overriding pkg-config
   avahi_LIBS  linker flags for avahi, overriding pkg-config
-  gtkmm_CFLAGS
-              C compiler flags for gtkmm, overriding pkg-config
-  gtkmm_LIBS  linker flags for gtkmm, overriding pkg-config
-  libglade_CFLAGS
-              C compiler flags for libglade, overriding pkg-config
-  libglade_LIBS
-              linker flags for libglade, overriding pkg-config
   CXXCPP      C++ preprocessor
 
 Use these variables to override the choices made by `configure' or to help
@@ -9648,348 +9628,6 @@ if test "${have_avahi}" != "yes"; then
 $as_echo "$as_me: WARNING: some compile-server functionality will be restricted, cannot find avahi development files" >&2;}
 fi
 
-# Check whether --enable-grapher was given.
-if test "${enable_grapher+set}" = set; then :
-  enableval=$enable_grapher;
-else
-    enable_grapher="check"
-fi
-
-ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking how to run the C++ preprocessor" >&5
-$as_echo_n "checking how to run the C++ preprocessor... " >&6; }
-if test -z "$CXXCPP"; then
-  if ${ac_cv_prog_CXXCPP+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-      # Double quotes because CXXCPP needs to be expanded
-    for CXXCPP in "$CXX -E" "/lib/cpp"
-    do
-      ac_preproc_ok=false
-for ac_cxx_preproc_warn_flag in '' yes
-do
-  # Use a header file that comes with gcc, so configuring glibc
-  # with a fresh cross-compiler works.
-  # Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
-  # <limits.h> exists even on freestanding compilers.
-  # On the NeXT, cc -E runs the code through the compiler's parser,
-  # not just through cpp. "Syntax error" is here to catch this case.
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#ifdef __STDC__
-# include <limits.h>
-#else
-# include <assert.h>
-#endif
-		     Syntax error
-_ACEOF
-if ac_fn_cxx_try_cpp "$LINENO"; then :
-
-else
-  # Broken: fails on valid input.
-continue
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-
-  # OK, works on sane cases.  Now check whether nonexistent headers
-  # can be detected and how.
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <ac_nonexistent.h>
-_ACEOF
-if ac_fn_cxx_try_cpp "$LINENO"; then :
-  # Broken: success on invalid input.
-continue
-else
-  # Passes both tests.
-ac_preproc_ok=:
-break
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-
-done
-# Because of `break', _AC_PREPROC_IFELSE's cleaning code was skipped.
-rm -f conftest.i conftest.err conftest.$ac_ext
-if $ac_preproc_ok; then :
-  break
-fi
-
-    done
-    ac_cv_prog_CXXCPP=$CXXCPP
-
-fi
-  CXXCPP=$ac_cv_prog_CXXCPP
-else
-  ac_cv_prog_CXXCPP=$CXXCPP
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $CXXCPP" >&5
-$as_echo "$CXXCPP" >&6; }
-ac_preproc_ok=false
-for ac_cxx_preproc_warn_flag in '' yes
-do
-  # Use a header file that comes with gcc, so configuring glibc
-  # with a fresh cross-compiler works.
-  # Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
-  # <limits.h> exists even on freestanding compilers.
-  # On the NeXT, cc -E runs the code through the compiler's parser,
-  # not just through cpp. "Syntax error" is here to catch this case.
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#ifdef __STDC__
-# include <limits.h>
-#else
-# include <assert.h>
-#endif
-		     Syntax error
-_ACEOF
-if ac_fn_cxx_try_cpp "$LINENO"; then :
-
-else
-  # Broken: fails on valid input.
-continue
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-
-  # OK, works on sane cases.  Now check whether nonexistent headers
-  # can be detected and how.
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <ac_nonexistent.h>
-_ACEOF
-if ac_fn_cxx_try_cpp "$LINENO"; then :
-  # Broken: success on invalid input.
-continue
-else
-  # Passes both tests.
-ac_preproc_ok=:
-break
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-
-done
-# Because of `break', _AC_PREPROC_IFELSE's cleaning code was skipped.
-rm -f conftest.i conftest.err conftest.$ac_ext
-if $ac_preproc_ok; then :
-
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "C++ preprocessor \"$CXXCPP\" fails sanity check
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-
-if test "x$enable_grapher" != xno; then :
-
-
-pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for gtkmm" >&5
-$as_echo_n "checking for gtkmm... " >&6; }
-
-if test -n "$gtkmm_CFLAGS"; then
-    pkg_cv_gtkmm_CFLAGS="$gtkmm_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"gtkmm-2.4 >= 2.8.0\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "gtkmm-2.4 >= 2.8.0") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_gtkmm_CFLAGS=`$PKG_CONFIG --cflags "gtkmm-2.4 >= 2.8.0" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$gtkmm_LIBS"; then
-    pkg_cv_gtkmm_LIBS="$gtkmm_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"gtkmm-2.4 >= 2.8.0\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "gtkmm-2.4 >= 2.8.0") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_gtkmm_LIBS=`$PKG_CONFIG --libs "gtkmm-2.4 >= 2.8.0" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-	        gtkmm_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "gtkmm-2.4 >= 2.8.0" 2>&1`
-        else
-	        gtkmm_PKG_ERRORS=`$PKG_CONFIG --print-errors "gtkmm-2.4 >= 2.8.0" 2>&1`
-        fi
-	# Put the nasty error message in config.log where it belongs
-	echo "$gtkmm_PKG_ERRORS" >&5
-
-	have_gtkmm="no"
-elif test $pkg_failed = untried; then
-     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-	have_gtkmm="no"
-else
-	gtkmm_CFLAGS=$pkg_cv_gtkmm_CFLAGS
-	gtkmm_LIBS=$pkg_cv_gtkmm_LIBS
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-	have_gtkmm="yes"
-fi
-   if test "x${have_gtkmm}" == "xno" -a x"$enable_grapher" == "xyes"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: systemtap cannot find required gtkmm libs (gtkmm24-devel version 2.8.0 or higher may need to be installed)" >&5
-$as_echo "$as_me: WARNING: systemtap cannot find required gtkmm libs (gtkmm24-devel version 2.8.0 or higher may need to be installed)" >&2;}
-fi
-
-
-pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for libglade" >&5
-$as_echo_n "checking for libglade... " >&6; }
-
-if test -n "$libglade_CFLAGS"; then
-    pkg_cv_libglade_CFLAGS="$libglade_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libglademm-2.4 >= 2.6.7\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "libglademm-2.4 >= 2.6.7") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_libglade_CFLAGS=`$PKG_CONFIG --cflags "libglademm-2.4 >= 2.6.7" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$libglade_LIBS"; then
-    pkg_cv_libglade_LIBS="$libglade_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libglademm-2.4 >= 2.6.7\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "libglademm-2.4 >= 2.6.7") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_libglade_LIBS=`$PKG_CONFIG --libs "libglademm-2.4 >= 2.6.7" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-	        libglade_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "libglademm-2.4 >= 2.6.7" 2>&1`
-        else
-	        libglade_PKG_ERRORS=`$PKG_CONFIG --print-errors "libglademm-2.4 >= 2.6.7" 2>&1`
-        fi
-	# Put the nasty error message in config.log where it belongs
-	echo "$libglade_PKG_ERRORS" >&5
-
-	have_libglade="no"
-elif test $pkg_failed = untried; then
-     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-	have_libglade="no"
-else
-	libglade_CFLAGS=$pkg_cv_libglade_CFLAGS
-	libglade_LIBS=$pkg_cv_libglade_LIBS
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-	have_libglade="yes"
-fi
-   if test "x${have_libglade}" == "xno" -a x"$enable_grapher" == "xyes"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: systemtap cannot find required libglade libs (libglademm24-devel version 2.6.7 or higher may need to be installed)" >&5
-$as_echo "$as_me: WARNING: systemtap cannot find required libglade libs (libglademm24-devel version 2.6.7 or higher may need to be installed)" >&2;}
-fi
-
-      have_boost_headers="yes"
-   ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-   for ac_header in boost/algorithm/string.hpp boost/range.hpp
-do :
-  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
-ac_fn_cxx_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
-_ACEOF
-
-else
-  have_boost_headers="no"
-fi
-
-done
-
-   ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-   if test "x${have_boost_headers}" == "xno" -a x"$enable_grapher" == "xyes"; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot find required boost headers (boost-devel may need to be installed)" >&5
-$as_echo "$as_me: WARNING: cannot find required boost headers (boost-devel may need to be installed)" >&2;}
-fi
-
-      if test "x${have_gtkmm}${have_libglade}${have_boost_headers}" == "xyesyesyes"; then :
-  have_grapher_reqs="yes"
-else
-  have_grapher_reqs="no"
-fi
-
-fi
-if test "x${have_grapher_reqs}" == "xno" -a x"$enable_grapher" == "xyes"; then :
-  as_fn_error $? "systemtap cannot find grapher build requirements (gtkmm, libglade, and boost headers)" "$LINENO" 5
-fi
- if test "x${have_grapher_reqs}" == "xyes" -a x"$enable_grapher" != "xno"; then
-  BUILD_GRAPHER_TRUE=
-  BUILD_GRAPHER_FALSE='#'
-else
-  BUILD_GRAPHER_TRUE='#'
-  BUILD_GRAPHER_FALSE=
-fi
-
 
 
 # Check whether --with-rpm was given.
@@ -10310,6 +9948,141 @@ ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
+
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking how to run the C++ preprocessor" >&5
+$as_echo_n "checking how to run the C++ preprocessor... " >&6; }
+if test -z "$CXXCPP"; then
+  if ${ac_cv_prog_CXXCPP+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+      # Double quotes because CXXCPP needs to be expanded
+    for CXXCPP in "$CXX -E" "/lib/cpp"
+    do
+      ac_preproc_ok=false
+for ac_cxx_preproc_warn_flag in '' yes
+do
+  # Use a header file that comes with gcc, so configuring glibc
+  # with a fresh cross-compiler works.
+  # Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
+  # <limits.h> exists even on freestanding compilers.
+  # On the NeXT, cc -E runs the code through the compiler's parser,
+  # not just through cpp. "Syntax error" is here to catch this case.
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifdef __STDC__
+# include <limits.h>
+#else
+# include <assert.h>
+#endif
+		     Syntax error
+_ACEOF
+if ac_fn_cxx_try_cpp "$LINENO"; then :
+
+else
+  # Broken: fails on valid input.
+continue
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+
+  # OK, works on sane cases.  Now check whether nonexistent headers
+  # can be detected and how.
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <ac_nonexistent.h>
+_ACEOF
+if ac_fn_cxx_try_cpp "$LINENO"; then :
+  # Broken: success on invalid input.
+continue
+else
+  # Passes both tests.
+ac_preproc_ok=:
+break
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+
+done
+# Because of `break', _AC_PREPROC_IFELSE's cleaning code was skipped.
+rm -f conftest.i conftest.err conftest.$ac_ext
+if $ac_preproc_ok; then :
+  break
+fi
+
+    done
+    ac_cv_prog_CXXCPP=$CXXCPP
+
+fi
+  CXXCPP=$ac_cv_prog_CXXCPP
+else
+  ac_cv_prog_CXXCPP=$CXXCPP
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $CXXCPP" >&5
+$as_echo "$CXXCPP" >&6; }
+ac_preproc_ok=false
+for ac_cxx_preproc_warn_flag in '' yes
+do
+  # Use a header file that comes with gcc, so configuring glibc
+  # with a fresh cross-compiler works.
+  # Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
+  # <limits.h> exists even on freestanding compilers.
+  # On the NeXT, cc -E runs the code through the compiler's parser,
+  # not just through cpp. "Syntax error" is here to catch this case.
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#ifdef __STDC__
+# include <limits.h>
+#else
+# include <assert.h>
+#endif
+		     Syntax error
+_ACEOF
+if ac_fn_cxx_try_cpp "$LINENO"; then :
+
+else
+  # Broken: fails on valid input.
+continue
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+
+  # OK, works on sane cases.  Now check whether nonexistent headers
+  # can be detected and how.
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <ac_nonexistent.h>
+_ACEOF
+if ac_fn_cxx_try_cpp "$LINENO"; then :
+  # Broken: success on invalid input.
+continue
+else
+  # Passes both tests.
+ac_preproc_ok=:
+break
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+
+done
+# Because of `break', _AC_PREPROC_IFELSE's cleaning code was skipped.
+rm -f conftest.i conftest.err conftest.$ac_ext
+if $ac_preproc_ok; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "C++ preprocessor \"$CXXCPP\" fails sanity check
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+
 for ac_header in tr1/unordered_map
 do :
   ac_fn_cxx_check_header_mongrel "$LINENO" "tr1/unordered_map" "ac_cv_header_tr1_unordered_map" "$ac_includes_default"
@@ -10476,7 +10249,7 @@ STAP_PREFIX="$stap_prefix"
 
 ac_config_headers="$ac_config_headers config.h:config.in"
 
-ac_config_files="$ac_config_files Makefile doc/Makefile doc/beginners/Makefile doc/SystemTap_Tapset_Reference/Makefile grapher/Makefile grapher/stapgraph.1 stappaths.7 initscript/systemtap initscript/stap-server"
+ac_config_files="$ac_config_files Makefile doc/Makefile doc/beginners/Makefile doc/SystemTap_Tapset_Reference/Makefile stappaths.7 initscript/systemtap initscript/stap-server"
 
 
 
@@ -10676,10 +10449,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_AVAHI_TRUE}" && test -z "${HAVE_AVAHI_FALSE}"; then
   as_fn_error $? "conditional \"HAVE_AVAHI\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${BUILD_GRAPHER_TRUE}" && test -z "${BUILD_GRAPHER_FALSE}"; then
-  as_fn_error $? "conditional \"BUILD_GRAPHER\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_ELFUTILS_TRUE}" && test -z "${BUILD_ELFUTILS_FALSE}"; then
@@ -11306,8 +11075,6 @@ do
     "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
     "doc/beginners/Makefile") CONFIG_FILES="$CONFIG_FILES doc/beginners/Makefile" ;;
     "doc/SystemTap_Tapset_Reference/Makefile") CONFIG_FILES="$CONFIG_FILES doc/SystemTap_Tapset_Reference/Makefile" ;;
-    "grapher/Makefile") CONFIG_FILES="$CONFIG_FILES grapher/Makefile" ;;
-    "grapher/stapgraph.1") CONFIG_FILES="$CONFIG_FILES grapher/stapgraph.1" ;;
     "stappaths.7") CONFIG_FILES="$CONFIG_FILES stappaths.7" ;;
     "initscript/systemtap") CONFIG_FILES="$CONFIG_FILES initscript/systemtap" ;;
     "initscript/stap-server") CONFIG_FILES="$CONFIG_FILES initscript/stap-server" ;;

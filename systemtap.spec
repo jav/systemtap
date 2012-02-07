@@ -5,7 +5,6 @@
 %{!?with_bundled_elfutils: %global with_bundled_elfutils 0}
 %{!?elfutils_version: %global elfutils_version 0.142}
 %{!?pie_supported: %global pie_supported 1}
-%{!?with_grapher: %global with_grapher 1}
 %{!?with_boost: %global with_boost 0}
 %{!?with_publican: %global with_publican 1}
 %{!?publican_brand: %global publican_brand fedora}
@@ -26,7 +25,6 @@ Release: 1%{?dist}
 # systemtap-initscript   /etc/init.d/systemtap, req:systemtap
 # systemtap-sdt-devel    /usr/include/sys/sdt.h /usr/bin/dtrace
 # systemtap-testsuite    /usr/share/systemtap/testsuite*, req:systemtap, req:sdt-devel
-# systemtap-grapher      /usr/bin/stapgraph, req:systemtap
 #
 # Typical scenarios:
 #
@@ -79,15 +77,6 @@ BuildRequires: xmlto /usr/share/xmlto/format/fo/pdf
 %if %{with_publican}
 BuildRequires: publican
 BuildRequires: /usr/share/publican/Common_Content/%{publican_brand}/defaults.cfg
-%endif
-%endif
-%if %{with_grapher}
-BuildRequires: gtkmm24-devel >= 2.8
-BuildRequires: libglademm24-devel >= 2.6.7
-# If 'with_boost' isn't set, the boost-devel build requirement hasn't
-# been specified yet.
-%if ! %{with_boost}
-BuildRequires: boost-devel
 %endif
 %endif
 BuildRequires: gettext-devel
@@ -225,21 +214,6 @@ suite.  This may be used by system administrators to thoroughly check
 systemtap on the current system.
 
 
-%if %{with_grapher}
-%package grapher
-Summary: Instrumentation System Grapher
-Group: Development/System
-License: GPLv2+
-URL: http://sourceware.org/systemtap/
-# NB: don't bind it to a particular version (PR13499)
-Requires: systemtap
-
-%description grapher
-This package includes a utility for real-time visualization of
-data from SystemTap instrumentation scripts.
-%endif
-
-
 # ------------------------------------------------------------------------
 
 %prep
@@ -306,12 +280,6 @@ cd ..
 %global pie_config --disable-pie
 %endif
 
-%if %{with_grapher}
-%global grapher_config --enable-grapher
-%else
-%global grapher_config --disable-grapher
-%endif
-
 %if %{with_publican}
 %global publican_config --enable-publican --with-publican-brand=%{publican_brand}
 %else
@@ -319,7 +287,7 @@ cd ..
 %endif
 
 
-%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config} %{grapher_config} %{publican_config} %{rpm_config} --disable-silent-rules
+%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config} %{pie_config} %{publican_config} %{rpm_config} --disable-silent-rules
 make %{?_smp_mflags}
 
 %install
@@ -579,15 +547,6 @@ exit 0
 %dir %{_datadir}/%{name}
 %{_datadir}/%{name}/testsuite
 
-
-%if %{with_grapher}
-%files grapher
-%defattr(-,root,root)
-%{_bindir}/stapgraph
-%dir %{_datadir}/%{name}
-%{_datadir}/%{name}/*.glade
-%{_mandir}/man1/stapgraph.1*
-%endif
 
 # ------------------------------------------------------------------------
 
