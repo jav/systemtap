@@ -217,6 +217,15 @@ in turn, to each server specified. If more servers are specified than \-\-ssl
 options, the default certificate database
 (see \fBFILES\fR) for subsequent servers.
 
+.TP
+\fB\-\-max\-threads\fR \fIthreads\fR
+This option allows the specification of the maximum number of worker threads
+to handle concurrent requests. If \fIthreads\fR == 0, each request will be
+handled on the main thread in serial. Each \-\-port option is added to a list
+which will be applied, in turn, to each server specified. If more servers are
+specified than \-\-max\-threads options, the maximum threads will be limited
+to the number of processors for subsequent servers.
+
 .SH CONFIGURATION
 
 Configuration files allow us to:
@@ -338,6 +347,11 @@ Specifies the network port to be used by this server and corresponds to the
 Specifies the location of the NSS certificate database to be used by this server and corresponds
 to the
 \fB\-\-ssl\fR option (see \fIOPTIONS\fR).
+
+.TP
+.B MAXTHREADS
+Specifies the maximum number of worker threads to handle concurrent requests to be used by this server
+and corresponds to the \fB\-\-max\-threads\fR option (see \fIOPTIONS\fR).
 
 .SH SERVER AUTHENTICAION
 The security of the SSL network connection between the client and server

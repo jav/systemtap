@@ -1,5 +1,11 @@
 * What's new in version 1.8
 
+- The systemtap server now supports multiple concurrent connections.
+  Specify the desired maximum number of concurrent connections with
+  the new --max-threads option. Specify a value of '0' to tell the
+  server not to spawn any new threads (handle all connections in
+  serial in the main thread). The default value is the number of
+  processors on the host.
 
 * What's new in version 1.7, 2012-02-01
 
