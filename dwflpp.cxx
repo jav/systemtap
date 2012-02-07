@@ -1383,55 +1383,55 @@ dwflpp::has_single_line_record (dwarf_query * q, char const * srcfile, int linen
   if (lineno < 0)
     return false;
 
-    Dwarf_Line **srcsp = NULL;
-    size_t nsrcs = 0;
+  Dwarf_Line **srcsp = NULL;
+  size_t nsrcs = 0;
 
-    dwarf_assert ("dwarf_getsrc_file",
-                  dwarf_getsrc_file (module_dwarf,
-                                    srcfile, lineno, 0,
-                                     &srcsp, &nsrcs));
+  dwarf_assert ("dwarf_getsrc_file",
+		dwarf_getsrc_file (module_dwarf,
+				   srcfile, lineno, 0,
+				   &srcsp, &nsrcs));
 
-    if (nsrcs != 1)
-      {
-        if (sess.verbose>4)
-          clog << _F("alternative line %d rejected: nsrcs=%zu", lineno, nsrcs) << endl;
-        return false;
-      }
+  if (nsrcs != 1)
+    {
+      if (sess.verbose>4)
+	clog << _F("alternative line %d rejected: nsrcs=%zu", lineno, nsrcs) << endl;
+      return false;
+    }
 
-    // We also try to filter out lines that leave the selected
-    // functions (if any).
+  // We also try to filter out lines that leave the selected
+  // functions (if any).
 
-    dwarf_line_t line(srcsp[0]);
-    Dwarf_Addr addr = line.addr();
+  dwarf_line_t line(srcsp[0]);
+  Dwarf_Addr addr = line.addr();
 
-    func_info_map_t *filtered_functions = get_filtered_functions(q);
-    for (func_info_map_t::iterator i = filtered_functions->begin();
-         i != filtered_functions->end(); ++i)
-      {
-        if (die_has_pc (i->die, addr))
-          {
-            if (sess.verbose>4)
-              clog << _F("alternative line %d accepted: fn=%s", lineno, i->name.c_str()) << endl;
-            return true;
-          }
-      }
+  func_info_map_t *filtered_functions = get_filtered_functions(q);
+  for (func_info_map_t::iterator i = filtered_functions->begin();
+       i != filtered_functions->end(); ++i)
+    {
+      if (die_has_pc (i->die, addr))
+	{
+	  if (sess.verbose>4)
+	    clog << _F("alternative line %d accepted: fn=%s", lineno, i->name.c_str()) << endl;
+	  return true;
+	}
+    }
 
-    inline_instance_map_t *filtered_inlines = get_filtered_inlines(q);
-    for (inline_instance_map_t::iterator i = filtered_inlines->begin();
-         i != filtered_inlines->end(); ++i)
-      {
-        if (die_has_pc (i->die, addr))
-          {
-            if (sess.verbose>4)
-              clog << _F("alternative line %d accepted: ifn=%s", lineno, i->name.c_str()) << endl;
-            return true;
-          }
-      }
+  inline_instance_map_t *filtered_inlines = get_filtered_inlines(q);
+  for (inline_instance_map_t::iterator i = filtered_inlines->begin();
+       i != filtered_inlines->end(); ++i)
+    {
+      if (die_has_pc (i->die, addr))
+	{
+	  if (sess.verbose>4)
+	    clog << _F("alternative line %d accepted: ifn=%s", lineno, i->name.c_str()) << endl;
+	  return true;
+	}
+    }
 
-    if (sess.verbose>4)
-      //TRANSLATORS:  given line number leaves (is beyond) given function.
-      clog << _F("alternative line %d rejected: leaves selected fns", lineno) << endl;
-    return false;
+  if (sess.verbose>4)
+    //TRANSLATORS:  given line number leaves (is beyond) given function.
+    clog << _F("alternative line %d rejected: leaves selected fns", lineno) << endl;
+  return false;
 }
 
 
@@ -1512,6 +1512,7 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
 
       if (pending_interrupts) break;
 
+      nsrcs = 0;
       ret = dwarf_getsrc_file (module_dwarf, srcfile, l, 0,
 					 &srcsp, &nsrcs);
       if (ret != 0) /* tolerate invalid line number */
