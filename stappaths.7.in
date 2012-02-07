@@ -40,14 +40,14 @@ The runtime sources, unless overridden by the
 .I SYSTEMTAP_RUNTIME
 environment variable.
 .TP
-Staprun Path: @prefix@/bin/staprun/
+Staprun Path: @prefix@/bin/staprun
 The auxiliary program supervising module loading, interaction, and
 unloading.
 .TP
-Stapio Path: @prefix@/libexec/systemtap/stapio/
+Stapio Path: @libexecdir@/systemtap/stapio
 The Systemtap module input and output handler.
 .TP
-sdt.h Path: @oldincludedir@/include/sys/std.h
+sdt.h Path: @oldincludedir@/sys/sdt.h
 .TP
 Kernel debuginfo Path: /usr/lib/debug/lib/modules/$(uname \-r)/
 The location of kernel debugging information when packaged into the
@@ -105,22 +105,22 @@ $SYSTEMTAP_DIR/ssl/client
 User's private client\-side SSL certificate database. If SYSTEMTAP_DIR is not
 set, the default is $HOME/.systemtap.
 .TP
-@prefix@/etc/systemtap/ssl/client
+@sysconfdir@/systemtap/ssl/client
 Global client\-side SSL certificate database.
 .TP
-@prefix@/etc/systemtap/staprun/
+@sysconfdir@/systemtap/staprun/
 \fIstaprun\fR\[aq]s trusted signer certificate database.
 .TP
-@prefix@/etc/sysconfig/stap\-server/
+@sysconfdir@/sysconfig/stap\-server/
 stap\-server service global configuration file.
 .TP
-@prefix@/etc/stap\-server/conf.d/*.conf
+@sysconfdir@/stap\-server/conf.d/*.conf
 stap\-server service configuration files for default servers.
 .TP
-@prefix@/var/run/stap\-server/
+/var/run/stap\-server/
 stap\-server service default location of status files for running servers.
 .TP
-@prefix@/var/log/stap\-server.log
+/var/log/stap\-server/log
 stap\-server service default log file.
 
 
