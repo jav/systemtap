@@ -2,7 +2,6 @@
 <xsl:stylesheet version="1.0"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:output method="xml" omit-xml-declaration="no" encoding="UTF-8" doctype-system="http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" indent="yes" />
-    <xsl:strip-space elements="*"/>
 
  <xsl:template match="node()|@*">
      <xsl:copy>
