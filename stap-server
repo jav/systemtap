@@ -49,26 +49,28 @@ OPT_OTHER=
 OPT_PORT_IX=0
 OPT_LOG_IX=0
 OPT_SSL_IX=0
+OPT_MAXTHREADS_IX=0
 
 echo_usage () {
   echo $"Usage: $prog {start|stop|restart|condrestart|try-restart|force-reload|status} [options]"
   echo $"Options:"
-  echo $"	-c configfile	: specify additional global configuration file."
-  echo $"	-a arch		: specify the target architecture."
-  echo $"	-r release	: specify the kernel release."
-  echo $"	-I path		: augment the search path for tapsets."
-  echo $"	-R path		: specify the location of the systemtap runtime."
-  echo $"	-B options	: specify 'make' options for building systemtap modules."
-  echo $"	-D name[=value]	: add a macro definition for building systemtap modules."
-  echo $"	-u username	: specify the user who will run the server(s)."
-  echo $"	-i		: specify a server for each installed kernel release."
-  echo $"	-n nickname	: specify a server configuration by nickname."
-  echo $"	-p pid		: specify a server or server configuration by process id."
-  echo $"	-P              : use a password for the server's NSS certificate database."
-  echo $"	-k 		: keep server temporary files."
-  echo $"	--port port	: specify the network port to be used by the server."
-  echo $"	--log path	: specify the location of the server's log file."
-  echo $"	--ssl path	: specify the location of the server's certificate database."
+  echo $"	-c configfile		: specify additional global configuration file."
+  echo $"	-a arch			: specify the target architecture."
+  echo $"	-r release		: specify the kernel release."
+  echo $"	-I path			: augment the search path for tapsets."
+  echo $"	-R path			: specify the location of the systemtap runtime."
+  echo $"	-B options		: specify 'make' options for building systemtap modules."
+  echo $"	-D name[=value]		: add a macro definition for building systemtap modules."
+  echo $"	-u username		: specify the user who will run the server(s)."
+  echo $"	-i			: specify a server for each installed kernel release."
+  echo $"	-n nickname		: specify a server configuration by nickname."
+  echo $"	-p pid			: specify a server or server configuration by process id."
+  echo $"	-P			: use a password for the server's NSS certificate database."
+  echo $"	-k 			: keep server temporary files."
+  echo $"	--port port		: specify the network port to be used by the server."
+  echo $"	--log path		: specify the location of the server's log file."
+  echo $"	--ssl path		: specify the location of the server's certificate database."
+  echo $"	--max-threads threads	: specify the maximum number of worker threads to handle concurrent requests."
   echo $""
   echo $"All options may be specified more than once."
   echo $""
@@ -86,12 +88,16 @@ echo_usage () {
   echo $""
   echo $"If --ssl is not specified, the default is '$stap_sysconfdir/ssl/server'."
   echo $""
+  echo $"If --max-threads is not specified, the default is the number of processors."
+  echo $""
+  echo $"If --max-threads is specified with a value of 0, all requests are handled in the main thread."
+  echo $""
   echo $"Each -D, -I and -B option specifies an additional macro, path or option respectively"
   echo $"to be applied to subsequent servers specified."
   echo $""
-  echo $"Each --port, --log and --ssl option is added to an option-specific list which will"
-  echo $"be applied, in turn, to each server specified. If more servers are specified than"
-  echo $"options in a given list, the default for that option will be used for subsequent"
+  echo $"Each --port, --log, --ssl and --max-threads option is added to an option-specific list"
+  echo $"which will be applied, in turn, to each server specified. If more servers are specified"
+  echo $"than options in a given list, the default for that option will be used for subsequent"
   echo $"servers."
   echo $""
   echo $"For other options, each new instance overrides the previous setting."
@@ -261,6 +267,10 @@ parse_args () { # arguments
 	OPT_SSL+=("$2")
         shift 1
 	;;
+      --max-threads)
+	OPT_MAXTHREADS+=("$2")
+        shift 1
+	;;
       --)
         ;;
       *)
@@ -307,6 +317,13 @@ add_distributed_options () {
 	OPT_SSL_IX=$(($OPT_SSL_IX + 1))
     else
 	SERVER_CMDS+=("SSL=\"\"")
+    fi
+    # The --max-threads option
+    if test -n "${OPT_MAXTHREADS[$OPT_MAXTHREADS_IX]}"; then
+	SERVER_CMDS+=("MAXTHREADS=\"`quote_for_cmd "${OPT_MAXTHREADS[$OPT_MAXTHREADS_IX]}"`\"")
+	OPT_MAXTHREADS_IX=$(($OPT_MAXTHREADS_IX + 1))
+    else
+	SERVER_CMDS+=("MAXTHREADS=\"\"")
     fi
 }
 
@@ -435,6 +452,7 @@ add_server_commands () {
     SERVER_CMDS+=("LOG=\"`quote_for_cmd "$LOG"`\"")
     test -n "$PORT" && SERVER_CMDS+=("PORT=\"`quote_for_cmd "$PORT"`\"")
     test -n "$SSL" && SERVER_CMDS+=("SSL=\"`quote_for_cmd "$SSL"`\"")
+    test -n "$MAXTHREADS" && SERVER_CMDS+=("MAXTHREADS=\"`quote_for_cmd "$MAXTHREADS"`\"")
 }
 
 echo_server_options () {
@@ -456,6 +474,7 @@ echo_server_options () {
     echo -n " --log \"`quote_for_cmd "$LOG"`\""
     test -n "$PORT" && echo -n " --port \"`quote_for_cmd "$PORT"`\""
     test -n "$SSL" && echo -n " --ssl \"`quote_for_cmd "$SSL"`\""
+    test -n "$MAXTHREADS" && echo -n " --max-threads \"`quote_for_cmd "$MAXTHREADS"`\""
     echo
 }
 
@@ -490,6 +509,7 @@ init_server_opts () {
   LOG=$LOG_FILE
   PORT=
   SSL=
+  MAXTHREADS=
 }
 
 # Double quotes, backslashes within generated command
@@ -560,6 +580,7 @@ interpret_server_config () {
     local local_LOG=
     local local_PORT=
     local local_SSL=
+    local local_MAXTHREADS=
 
     local input
     while read -r -u3 input
@@ -622,6 +643,9 @@ interpret_server_config () {
 	    SSL=*)
               local_SSL="${input:4}"
 	      ;;
+	    MAXTHREADS=*)
+              local_MAXTHREADS="${input:11}"
+	      ;;
 	    \#*)
 	      ;; # Comment, do nothing
 	    "")
@@ -646,6 +670,7 @@ interpret_server_config () {
     LOG="$local_LOG"
     PORT="$local_PORT"
     SSL="$local_SSL"
+    MAXTHREADS="$local_MAXTHREADS"
 }
 
 # Interpret the contents of a server status file.
@@ -671,6 +696,7 @@ load_server_config () {
       local LOG=
       local PORT=
       local SSL=
+      local MAXTHREADS=
       interpret_server_config "$f" || continue
       # Other options default to empty. These ones don't.
       [ -z "$ARCH" ]     && ARCH=`get_arch`
@@ -705,6 +731,7 @@ get_server_pid_by_config () {
     local target_LOG="$LOG"
     local target_PORT="$PORT"
     local target_SSL="$SSL"
+    local target_MAXTHREADS="$MAXTHREADS"
 
     # Check the status file for each running server to see if it matches
     # the one currently configured. We're checking for a given configuration,
@@ -712,16 +739,17 @@ get_server_pid_by_config () {
     for f in "$STAT_PATH"/*.stat; do
 	test ! -e "$f" && continue
 	interpret_server_status "$f" || continue
-	test "X$ARCH"     = "X$target_ARCH"     || continue
-	test "X$RELEASE"  = "X$target_RELEASE"  || continue
-	test "X$INCLUDE"  = "X$target_INCLUDE"  || continue
-	test "X$RUNTIME"  = "X$target_RUNTIME"  || continue
-	test "X$BUILD"    = "X$target_BUILD"    || continue
-	test "X$DEFINE"   = "X$target_DEFINE"   || continue
-	test "X$USER"     = "X$target_USER"     || continue
-	test "X$LOG"      = "X$target_LOG"      || continue
-	test "X$PORT"     = "X$target_PORT"     || continue
-	test "X$SSL"      = "X$target_SSL"      || continue
+	test "X$ARCH"         = "X$target_ARCH"         || continue
+	test "X$RELEASE"      = "X$target_RELEASE"      || continue
+	test "X$INCLUDE"      = "X$target_INCLUDE"      || continue
+	test "X$RUNTIME"      = "X$target_RUNTIME"      || continue
+	test "X$BUILD"        = "X$target_BUILD"        || continue
+	test "X$DEFINE"       = "X$target_DEFINE"       || continue
+	test "X$USER"         = "X$target_USER"         || continue
+	test "X$LOG"          = "X$target_LOG"          || continue
+	test "X$PORT"         = "X$target_PORT"         || continue
+	test "X$SSL"          = "X$target_SSL"          || continue
+	test "X$MAXTHREADS"   = "X$target_MAXTHREADS"   || continue
 	echo `basename "$f" | sed 's/.stat//'` # Server has a pid
 	return
     done
@@ -737,6 +765,7 @@ get_server_pid_by_config () {
     LOG="$target_LOG"
     PORT="$target_PORT"
     SSL="$target_SSL"
+    MAXTHREADS="$target_MAXTHREADS"
 }
 
 get_server_pid_by_nickname () {
@@ -810,6 +839,7 @@ start_server () {
     server_cmd="$server_cmd --log=\"`quote_for_cmd "$LOG"`\""
     test -n "$PORT" && server_cmd="$server_cmd --port \"`quote_for_cmd "$PORT"`\""
     test -n "$SSL" && server_cmd="$server_cmd --ssl \"`quote_for_cmd "$SSL"`\""
+    test -n "$MAXTHREADS" && server_cmd="$server_cmd --max-threads \"`quote_for_cmd "$MAXTHREADS"`\""
 
     # Start the server here.
     local pid
@@ -848,6 +878,7 @@ start_server () {
     echo "LOG=$LOG" >> "$server_status_file"
     echo "PORT=$PORT" >> "$server_status_file"
     echo "SSL=$SSL" >> "$server_status_file"
+    echo "MAXTHREADS=$MAXTHREADS" >> "$server_status_file"
 
     do_success $"$prog start `echo_server_options`"
 }
@@ -1186,6 +1217,7 @@ OPTS=`getopt -s bash -u --options 'a:B:c:D:iI:n:p:kPr:R:u:' \
                         --longoptions 'log:' \
                         --longoptions 'port:' \
                         --longoptions 'ssl:' \
+                        --longoptions 'max-threads:' \
                         -- "$@"`
 if [ $? -ne 0 ]; then
   echo "Error: Argument parse error: $@" >&2

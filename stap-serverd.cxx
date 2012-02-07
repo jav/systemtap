@@ -39,6 +39,7 @@ extern "C" {
 #include <sys/utsname.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <semaphore.h>
 
 #include <nspr.h>
 #include <ssl.h>
@@ -74,7 +75,8 @@ extern int optind;
 static cs_protocol_version client_version;
 static bool set_rlimits;
 static bool use_db_password;
-static int port;
+static unsigned short port;
+static long max_threads;
 static string cert_db_path;
 static string stap_options;
 static string uname_r;
@@ -100,7 +102,7 @@ static struct rlimit translator_RLIMIT_CPU;
 static struct rlimit translator_RLIMIT_NPROC;
 static struct rlimit translator_RLIMIT_AS;
 
-static string stapstderr;
+sem_t sem_client;
 
 // Message handling.
 // Server_error messages are printed to stderr and logged, if requested.
@@ -115,7 +117,7 @@ server_error (const string &msg, int logit = true)
 
 // client_error messages are treated as server errors and also printed to the client's stderr.
 static void
-client_error (const string &msg)
+client_error (const string &msg, string stapstderr)
 {
   server_error (msg);
   if (! stapstderr.empty ())
@@ -183,13 +185,16 @@ parse_options (int argc, char **argv)
     {
       int long_opt = 0;
       char *num_endptr;
+      long port_tmp;
 #define LONG_OPT_PORT 1
 #define LONG_OPT_SSL 2
 #define LONG_OPT_LOG 3
+#define LONG_OPT_MAXTHREADS 4
       static struct option long_options[] = {
         { "port", 1, & long_opt, LONG_OPT_PORT },
         { "ssl", 1, & long_opt, LONG_OPT_SSL },
         { "log", 1, & long_opt, LONG_OPT_LOG },
+        { "max-threads", 1, & long_opt, LONG_OPT_MAXTHREADS },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "a:B:D:I:kPr:R:", long_options, NULL);
@@ -239,13 +244,30 @@ parse_options (int argc, char **argv)
           switch (long_opt)
             {
             case LONG_OPT_PORT:
-	      port = (int) strtoul (optarg, &num_endptr, 10);
+	      port_tmp =  strtol (optarg, &num_endptr, 10);
+	      if (*num_endptr != '\0')
+		fatal (_F("%s: cannot parse number '--%s=%s'", argv[0],
+				    long_options[long_opt - 1].name, optarg));
+	      else if (port_tmp < 0 || port_tmp > 65535)
+		fatal (_F("%s: invalid entry: port must be between 0 and 65535 '--%s=%s'", argv[0],
+				    long_options[long_opt - 1].name, optarg));
+	      else
+		port = (unsigned short) port_tmp;
 	      break;
             case LONG_OPT_SSL:
 	      cert_db_path = optarg;
 	      break;
             case LONG_OPT_LOG:
 	      process_log (optarg);
+	      break;
+            case LONG_OPT_MAXTHREADS:
+	      max_threads = strtol (optarg, &num_endptr, 0);
+	      if (*num_endptr != '\0')
+		fatal (_F("%s: cannot parse number '--%s=%s'", argv[0],
+				    long_options[long_opt - 1].name, optarg));
+	      else if (max_threads < 0)
+		fatal (_F("%s: invalid entry: max threads must not be negative '--%s=%s'", argv[0],
+				    long_options[long_opt - 1].name, optarg));
 	      break;
             default:
 	      if (optarg)
@@ -603,6 +625,7 @@ initialize (int argc, char **argv) {
   client_version = "1.0"; // Assumed until discovered otherwise
   use_db_password = false;
   port = 0;
+  max_threads = sysconf( _SC_NPROCESSORS_ONLN ); // Default to number of processors
   keep_temp = false;
   struct utsname utsname;
   uname (& utsname);
@@ -955,7 +978,7 @@ writeDataToSocket(PRFileDesc *sslSocket, const char *responseFileName)
 }
 
 static void
-get_stap_locale (const string &staplang, vector<string> &envVec)
+get_stap_locale (const string &staplang, vector<string> &envVec, string stapstderr)
 {
   // If the client version is < 1.6, then no file containing environment
   // variables defining the locale has been passed.
@@ -1018,7 +1041,7 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
       pos = line.find("=");
       if (pos == string::npos)
         {
-          client_error(_F("Localization key=value line '%s' cannot be parsed", line.c_str()));
+          client_error(_F("Localization key=value line '%s' cannot be parsed", line.c_str()), stapstderr);
 	  continue;
         }
       key = line.substr(0, pos);
@@ -1029,7 +1052,7 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
       if (locVars.find(key) == locVars.end())
 	{
 	  // Not fatal. Just ignore it.
-	  client_error(_F("Localization key '%s' not found in global list", key.c_str()));
+	  client_error(_F("Localization key '%s' not found in global list", key.c_str()), stapstderr);
 	  continue;
 	}
 
@@ -1037,7 +1060,7 @@ get_stap_locale (const string &staplang, vector<string> &envVec)
       if ((regexec(&checkre, value.c_str(), (size_t) 0, NULL, 0) != 0))
 	{
 	  // Not fatal. Just ignore it.
-	  client_error(_F("Localization value '%s' contains illegal characters", value.c_str()));
+	  client_error(_F("Localization value '%s' contains illegal characters", value.c_str()), stapstderr);
 	  continue;
 	}
 
@@ -1151,7 +1174,7 @@ getRequestedPrivilege (const vector<string> &stapargv)
 /* Run the translator on the data in the request directory, and produce output
    in the given output directory. */
 static void
-handleRequest (const string &requestDirName, const string &responseDirName)
+handleRequest (const string &requestDirName, const string &responseDirName, string stapstderr)
 {
   vector<string> stapargv;
   int rc;
@@ -1260,7 +1283,7 @@ handleRequest (const string &requestDirName, const string &responseDirName)
   // Environment variables (possibly empty) to be passed to spawn_and_wait().
   string staplang = requestDirName + "/locale";
   vector<string> envVec;
-  get_stap_locale (staplang, envVec);
+  get_stap_locale (staplang, envVec, stapstderr);
 
   /* All ready, let's run the translator! */
   rc = spawn_and_wait(stapargv, "/dev/null", stapstdout.c_str (), stapstderr.c_str (),
@@ -1453,14 +1476,15 @@ spawn_and_wait (const vector<string> &argv,
 #undef CHECKRC
 }
 
-/* Function:  int handle_connection()
+/* Function:  void *handle_connection()
  *
  * Purpose: Handle a connection to a socket.  Copy in request zip
  * file, process it, copy out response.  Temporary directories are
  * created & destroyed here.
  */
-static SECStatus
-handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKey *privKey)
+
+void *
+handle_connection (void *arg)
 {
   PRFileDesc *       sslSocket = NULL;
   SECStatus          secStatus = SECFailure;
@@ -1471,8 +1495,21 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   char               requestDirName[PATH_MAX];
   char               responseDirName[PATH_MAX];
   char               responseFileName[PATH_MAX];
+  string stapstderr; /* Cannot be global since we need a unique
+                        copy for each connection.*/
   vector<string>     argv;
   PRInt32            bytesRead;
+
+  /* Detatch to avoid a memory leak */
+  if(max_threads > 0)
+    pthread_detach(pthread_self());
+
+  /* Unpack the arg */
+  thread_arg *t_arg = (thread_arg *) arg;
+  PRFileDesc *tcpSocket = t_arg->tcpSocket;
+  CERTCertificate *cert = t_arg->cert;
+  SECKEYPrivateKey *privKey = t_arg->privKey;
+  PRNetAddr addr = t_arg->addr;
 
   tmpdir[0]='\0'; /* prevent cleanup-time /bin/rm of uninitialized directory */
 
@@ -1581,7 +1618,7 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
   /* Handle the request zip file.  An error therein should still result
      in a response zip file (containing stderr etc.) so we don't have to
      have a result code here.  */
-  handleRequest(requestDirName, responseDirName);
+  handleRequest(requestDirName, responseDirName, stapstderr);
 
   /* Zip the response. */
   argv.clear ();
@@ -1596,7 +1633,7 @@ handle_connection (PRFileDesc *tcpSocket, CERTCertificate *cert, SECKEYPrivateKe
       server_error (_("Unable to compress server response"));
       goto cleanup;
     }
-  
+
   secStatus = writeDataToSocket (sslSocket, responseFileName);
 
 cleanup:
@@ -1624,7 +1661,25 @@ cleanup:
 	}
     }
 
-  return secStatus;
+      if (secStatus != SECSuccess)
+	server_error (_("Error processing client request"));
+
+      // Log the end of the request.
+      log (_F("Request from %d.%d.%d.%d:%d complete",
+	      (addr.inet.ip      ) & 0xff,
+	      (addr.inet.ip >>  8) & 0xff,
+	      (addr.inet.ip >> 16) & 0xff,
+	      (addr.inet.ip >> 24) & 0xff,
+	      addr.inet.port));
+
+      /* Increment semephore to indicate this thread is finished. */
+      if (max_threads > 0)
+        {
+          sem_post(&sem_client);
+          pthread_exit(0);
+        }
+      else
+        return 0;
 }
 
 /* Function:  int accept_connection()
@@ -1639,6 +1694,13 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
   PRFileDesc *tcpSocket;
   SECStatus   secStatus;
   CERTCertDBHandle *dbHandle;
+  pthread_t tid;
+
+  /* Initialize semephore with the maximum number of threads
+   * defined by --max-threads. If it is not defined, the
+   * default is the number of processors */
+  if (max_threads > 0)
+    sem_init(&sem_client, 0, max_threads);
 
   dbHandle = CERT_GetDefaultCertDB ();
 
@@ -1670,20 +1732,39 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
 	      addr.inet.port));
 
       /* XXX: alarm() or somesuch to set a timeout. */
-      /* XXX: fork() or somesuch to handle concurrent requests. */
 
       /* Accepted the connection, now handle it. */
-      secStatus = handle_connection (tcpSocket, cert, privKey);
-      if (secStatus != SECSuccess)
-	server_error (_("Error processing client request"));
 
-      // Log the end of the request.
-      log (_F("Request from %d.%d.%d.%d:%d complete",
-	      (addr.inet.ip      ) & 0xff,
-	      (addr.inet.ip >>  8) & 0xff,
-	      (addr.inet.ip >> 16) & 0xff,
-	      (addr.inet.ip >> 24) & 0xff,
-	      addr.inet.port));
+      /* Wait for a thread to finish if there are none available */
+      if(max_threads >0)
+        {
+          int value;
+          sem_getvalue(&sem_client, &value);
+          if(value <= 0)
+            log(_("Server is overloaded. Processing times may be longer than normal."));
+          else if (value == max_threads)
+            log(_("Processing 1 request..."));
+          else
+            log(_F("Processing %d concurrent requests...", ((int)max_threads - value) + 1));
+
+          sem_wait(&sem_client);
+        }
+
+      /* Create the argument structure to pass to pthread_create
+       * (or directly to handle_connection if max_threads == 0 */
+      thread_arg t_arg;
+      t_arg.tcpSocket = tcpSocket;
+      t_arg.cert = cert;
+      t_arg.privKey = privKey;
+      t_arg.addr = addr;
+
+      /* Handle the conncection */
+      if (max_threads > 0)
+        /* Create the worker thread and handle the connection. */
+        pthread_create(&tid, NULL, handle_connection, &t_arg);
+      else
+        /* Since max_threads == 0, don't spawn a new thread, just handle in the current thread. */
+        handle_connection(&t_arg);
 
       // If our certificate is no longer valid (e.g. has expired), then exit.
       secStatus = CERT_VerifyCertNow (dbHandle, cert, PR_TRUE/*checkSig*/,
@@ -1694,6 +1775,9 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
 	  break;
 	}
     }
+
+  if (max_threads > 0)
+    sem_destroy(&sem_client);
 
   SECKEY_DestroyPrivateKey (privKey);
   return SECSuccess;
@@ -1836,11 +1920,11 @@ listen ()
       switch (errorNumber)
 	{
 	case PR_ADDRESS_NOT_AVAILABLE_ERROR:
-	  server_error (_F("Network port %d is unavailable. Trying another port", port));
+	  server_error (_F("Network port %hu is unavailable. Trying another port", port));
 	  port = 0; // Will automatically select an available port
 	  continue;
 	case PR_ADDRESS_IN_USE_ERROR:
-	  server_error (_F("Network port %d is busy. Trying another port", port));
+	  server_error (_F("Network port %hu is busy. Trying another port", port));
 	  port = 0; // Will automatically select an available port
 	  continue;
 	default:
@@ -1859,7 +1943,12 @@ listen ()
       goto done;
     }
   port = PR_ntohs (addr.inet.port);
-  log (_F("Using network port %d", port));
+  log (_F("Using network port %hu", port));
+
+  if (max_threads > 0)
+    log (_F("Using a maximum of %ld threads", max_threads));
+  else
+    log (_("Concurrency disabled"));
 
   // Listen for connection on the socket.  The second argument is the maximum size of the queue
   // for pending connections.

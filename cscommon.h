@@ -48,6 +48,14 @@ struct cs_protocol_version
   const char *v;
 };
 
+struct thread_arg
+{
+ PRFileDesc *tcpSocket;
+ CERTCertificate *cert;
+ SECKEYPrivateKey *privKey;
+ PRNetAddr addr;
+};
+
 #if HAVE_NSS
 extern int read_from_file (const std::string &fname, cs_protocol_version &data);
 extern std::string get_cert_serial_number (const CERTCertificate *cert);
