@@ -6,6 +6,7 @@
 extern "C"
 {
 #include <ssl.h>
+#include <nspr.h>
 }
 #endif
 
