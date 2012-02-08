@@ -6,6 +6,7 @@ probe begin
     print(__dentry_prepend(0, "abc"))
     println(d_name(0))
     println(reverse_path_walk(0))
+    println(real_mount(0))
     println(d_path(0))
     println(inode_name(0))
     println(task_dentry_path(0, 0, 0))

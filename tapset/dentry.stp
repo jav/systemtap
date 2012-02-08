@@ -1,5 +1,5 @@
 // dentry tapset
-// Copyright (c) 2009-2010 Red Hat Inc.
+// Copyright (c) 2009-2010, 2012 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -79,6 +79,39 @@ function reverse_path_walk:string(dentry:long)
 }
 
 
+/**
+ *   sfunction real_mount - get the 'struct mount' pointer
+ *
+ *   Returns the 'struct mount' pointer value for a 'struct vfsmount'
+ *   pointer.
+ *   @vfsmount: Pointer to 'struct vfsmount'
+ */
+function real_mount:long(vfsmnt:long)
+{
+	if (@defined(@cast(0, "mount")->mnt_parent)) {
+		/*
+		 * The following is the script language equivalent of:
+		 *
+		 *    return container_of(vfsmnt, struct mount, mnt);
+		 *
+		 * We can't do the above because 'struct mount' is
+		 * defined in a private header (in fs/mount.h).  But,
+		 * we can do the script language equivalent (because
+		 * we've got dwarf info).
+		 *
+		 * More spelled out in C, the above would look like:
+		 *
+		 *    return (vfsmnt - offsetof(struct mount, mnt));
+		 * 
+		 * Notice we're casting 0 here on purpose to find the
+		 * offset of the 'mnt' member of 'struct mount.
+		 */
+		offset = &@cast(0, "mount")->mnt
+		if (vfsmnt > offset)
+			return (vfsmnt - offset)
+	}
+	return 0
+}
 
 /**
  *   sfunction task_dentry_path - get the full dentry path
@@ -100,12 +133,26 @@ function task_dentry_path:string(task:long,dentry:long,vfsmnt:long)
 
                 if (dentry == @cast(vfsmnt, "vfsmount")->mnt_root ||
                     __dentry_IS_ROOT(dentry)) {
-                        /* Global root? */
-                        if (@cast(vfsmnt, "vfsmount")->mnt_parent == vfsmnt)
-                                return sprintf("/%s", name);
+			if (! @defined(@cast(0, "vfsmount")->mnt_parent)) {
+				mnt = real_mount(vfsmnt)
+				if (mnt == 0)
+					return "<unknown>"
 
-                        dentry = @cast(vfsmnt, "vfsmount")->mnt_mountpoint;
-                        vfsmnt = @cast(vfsmnt, "vfsmount")->mnt_parent;
+				/* Global root? */
+				if (@cast(mnt, "mount")->mnt_parent == vfsmnt)
+					return sprintf("/%s", name);
+				dentry = @cast(mnt, "mount")->mnt_mountpoint
+				vfsmnt = @cast(mnt, "mount")->mnt_parent
+			}
+			else {
+				/* Global root? */
+				if (@cast(vfsmnt, "vfsmount")->mnt_parent
+				    == vfsmnt)
+					return sprintf("/%s", name);
+
+				dentry = @cast(vfsmnt, "vfsmount")->mnt_mountpoint
+				vfsmnt = @cast(vfsmnt, "vfsmount")->mnt_parent
+			}
                         continue;
                 }
                 name = __dentry_prepend(dentry, name);
