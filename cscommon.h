@@ -49,6 +49,7 @@ struct cs_protocol_version
   const char *v;
 };
 
+#if HAVE_NSS
 struct thread_arg
 {
  PRFileDesc *tcpSocket;
@@ -57,7 +58,6 @@ struct thread_arg
  PRNetAddr addr;
 };
 
-#if HAVE_NSS
 extern int read_from_file (const std::string &fname, cs_protocol_version &data);
 extern std::string get_cert_serial_number (const CERTCertificate *cert);
 #endif
