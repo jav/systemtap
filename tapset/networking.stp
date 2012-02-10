@@ -156,8 +156,8 @@ probe netdev.rx
 probe netdev.change_rx_flag
 	= kernel.function("dev_change_rx_flags") ?
 {
-	dev_name = get_netdev_name($dev)
-	flags = $flags
+	dev_name = (@defined($dev) ? get_netdev_name($dev) : "unknown")
+	flags = (@defined($flags) ? $flags : 0)
 }
 
 /**
