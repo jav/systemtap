@@ -46,11 +46,11 @@ static struct buf_status
 static void close_relayfs_files(int cpu)
 {
 	size_t total_bufsize = subbuf_size * n_subbufs;
-	if (relay_fd[cpu]) {
+	if (relay_fd[cpu] >= 0) {
 		munmap(relay_buffer[cpu], total_bufsize);
 		close(relay_fd[cpu]);
 		close(proc_fd[cpu]);
-		relay_fd[cpu] = 0;
+		relay_fd[cpu] = -1;
 		fclose(percpu_tmpfile[cpu]);
 	}
 }
@@ -135,7 +135,7 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 	dbug(2, "Opening %s.\n", tmp); 
 	relay_fd[cpu] = open(tmp, O_RDONLY | O_NONBLOCK);
 	if (relay_fd[cpu] < 0 || set_clexec(relay_fd[cpu]) < 0) {
-		relay_fd[cpu] = 0;
+		relay_fd[cpu] = -1;
 		return 0;
 	}
 
@@ -148,7 +148,7 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 		goto err1;
 	}
 	if (set_clexec(relay_fd[cpu]) < 0) {
-		relay_fd[cpu] = 0;
+		relay_fd[cpu] = -1;
 		return -1;
 	}
 
@@ -212,7 +212,7 @@ err2:
 	close (proc_fd[cpu]);
 err1:
 	close (relay_fd[cpu]);
-	relay_fd[cpu] = 0;
+	relay_fd[cpu] = -1;
 	return -1;
 
 }
@@ -462,7 +462,7 @@ int init_oldrelayfs(void)
 
 
 	reader[0] = (pthread_t)0;
-	relay_fd[0] = 0;
+	relay_fd[0] = -1;
 	out_fd[0] = 0;
 
 	for (i = 0; i < NR_CPUS; i++) {
