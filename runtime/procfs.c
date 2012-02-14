@@ -18,6 +18,7 @@
 #endif
 
 #ifdef STAPCONF_VFS_PATH_LOOKUP
+#include <linux/mount.h>
 #include <linux/pid_namespace.h>
 #endif
 
