@@ -282,8 +282,8 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 	name = "tcp.recvmsg"
 	sock    = $sk
 	size    = $len
-	saddr   = ip_ntop(__ip_sock_saddr($sk))
-	daddr   = ip_ntop(__ip_sock_daddr($sk))
+	saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
+	daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
 	sport   = __tcp_sock_sport($sk)
 	dport   = __tcp_sock_dport($sk)
 }
@@ -303,8 +303,8 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
 	name = "tcp.recvmsg"
 	size = $return
-	saddr = ip_ntop(__ip_sock_saddr($sk))
-	daddr = ip_ntop(__ip_sock_daddr($sk))
+	saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
+	daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
 	sport = __tcp_sock_sport($sk)
 	dport = __tcp_sock_dport($sk)
 }
@@ -326,8 +326,8 @@ probe tcp.disconnect = kernel.function("tcp_disconnect") {
 	name = "tcp.disconnect"
 	sock  = $sk
 	flags = $flags
-	saddr = ip_ntop(__ip_sock_saddr($sk))
-	daddr = ip_ntop(__ip_sock_daddr($sk))
+	saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
+	daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
 	sport = __tcp_sock_sport($sk)
 	dport = __tcp_sock_dport($sk)
 }
@@ -398,8 +398,9 @@ probe tcp.setsockopt.return = kernel.function("tcp_setsockopt").return {
 probe tcp.receive = kernel.function("tcp_v4_rcv") {
 	name = "tcp.receive"
 	iphdr = __get_skb_iphdr($skb)
-	saddr = ip_ntop(__ip_skb_saddr(iphdr))
-	daddr = ip_ntop(__ip_skb_daddr(iphdr))
+	# If we're here, by definition we're doing AF_INET, not AF_INET6.
+	saddr   = format_ipaddr(__ip_skb_saddr(iphdr), %{ AF_INET %})
+	daddr   = format_ipaddr(__ip_skb_daddr(iphdr), %{ AF_INET %})
 	protocol = __ip_skb_proto(iphdr)
 
 	tcphdr = __get_skb_tcphdr($skb)

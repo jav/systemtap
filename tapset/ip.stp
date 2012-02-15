@@ -1,7 +1,7 @@
 // IP tapset
 //
 // Copyright (C) 2009, IBM Inc.
-// Copyright (C) 2010, Red Hat Inc.
+// Copyright (C) 2010, 2012 Red Hat Inc.
 //
 // Author : Breno Leitao <leitao@linux.vnet.ibm.com>
 //
@@ -12,30 +12,63 @@
 
 %{
 #include <linux/skbuff.h>
-#ifndef NIPQUAD
-#define NIPQUAD(addr) \
-	((unsigned char *)&addr)[0], \
-	((unsigned char *)&addr)[1], \
-	((unsigned char *)&addr)[2], \
-	((unsigned char *)&addr)[3]
-#endif
-#ifndef NIPQUAD_FMT
-#define NIPQUAD_FMT "%u.%u.%u.%u"
-#endif
+#include <linux/socket.h>		// For AF_INET & AF_INET6
+#ifdef CONFIG_IPV6
+#include <linux/types.h>
+#include <linux/in6.h>
+#endif /* CONFIG_IPV6 */
 %}
 
 /**
- * sfunction ip_ntop - Returns a string representation from an integer IP number
+ * sfunction format_ipaddr - Returns a string representation for an IP address
  *
- * @addr: the IP represented as an integer
+ * @addr: the IP address
+ * @family: the IP address family (either AF_INET or AF_INET6)
+ */
+function format_ipaddr:string (addr:long, family:long)
+%{
+	if (THIS->family == AF_INET) {
+		__be32 ip = (__be32)THIS->addr;
+#ifndef NIPQUAD_FMT			// kver >= 2.6.36
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "%pI4", &ip);
+#else
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, NIPQUAD_FMT,
+			 NIPQUAD(ip));
+#endif
+	}
+#ifdef CONFIG_IPV6
+	else if (THIS->family == AF_INET6) {
+		struct in6_addr *ipv6 = (struct in6_addr *)(uintptr_t)THIS->addr;
+		// We need to derefence the memory safely from the
+		// address passed to us that contains the IPv6 address.
+		// However, kderef()/kread() only handle data with a
+		// size of 1, 2, 4, or 8.  So, we'll use
+		// kderef_buffer() which goes byte by byte.
+		kderef_buffer(NULL, ipv6, sizeof(struct in6_addr));
+#ifndef NIP6_FMT			// kver >= 2.6.36
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "%pI6", ipv6);
+#else
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, NIP6_FMT, NIP6(ipv6));
+#endif
+	}
+#endif /* CONFIG_IPV6 */
+	else
+		strncpy(THIS->__retvalue, "*unknown address family*",
+			MAXSTRINGLEN);
+#ifdef CONFIG_IPV6
+	CATCH_DEREF_FAULT();
+#endif /* CONFIG_IPV6 */
+%}
+
+/**
+ * sfunction ip_ntop - Returns a string representation for an IPv4 address
+ *
+ * @addr: the IPv4 address represented as an integer
  */
 function ip_ntop:string (addr:long)
-%{
-        __be32 ip;
-
-        ip = THIS->addr;
-        snprintf(THIS->__retvalue, MAXSTRINGLEN, NIPQUAD_FMT, NIPQUAD(ip));
-%}
+{
+	return format_ipaddr(addr, %{ AF_INET %})
+}
 
 /* return the source IP address for a given sock */
 function __ip_sock_saddr:long (sock:long)
@@ -58,6 +91,12 @@ function __ip_sock_daddr:long (sock:long)
 	       : (@defined(@cast(sock, "inet_sock")->daddr)
 		  ? @cast(sock, "inet_sock", "kernel")->daddr # kernel >= 2.6.11
 		  : @cast(sock, "inet_sock", "kernel<net/ip.h>")->inet->daddr)))
+}
+
+/* return the IP address family for a given sock */
+function __ip_sock_family:long (sock:long)
+{
+    return (@cast(sock, "inet_sock", "kernel<net/ip.h>")->sk->__sk_common->skc_family)
 }
 
 /* Get the IP header from a sk_buff struct */

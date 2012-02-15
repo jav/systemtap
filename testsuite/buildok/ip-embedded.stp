@@ -2,9 +2,11 @@
 
 probe begin
 {
+	printf("%s\n", format_ipaddr(0, 0))
 	printf("%s\n", ip_ntop(0))
 	printf("%d\n", __ip_sock_saddr(0))
 	printf("%d\n", __ip_sock_daddr(0))
+	printf("%d\n", __ip_sock_family(0))
 	printf("%d\n", __get_skb_iphdr(0))
 	printf("%d\n", __ip_skb_proto(0))
 	printf("%d\n", __ip_skb_saddr(0))

@@ -1077,10 +1077,14 @@ function port_from_xprt:long(cl_xprt:long)
 
 	/* In reality, 'cl_xprt->addr' is of 'sockaddr_storage' type
 	 * (since 2.6.19). But when used, you cast it to what is
-	 * inside that buffer. */
-	if (@cast(addr, "sockaddr_in")->sin_family == %{ AF_INET %}) {
-		/* Now consider ipv4 only */ 
+	 * inside that buffer. The 'struct sockaddr', 'struct
+	 * sockaddr_in', and 'sockaddr_in6' structures all have a
+	 * family type as their 1st member. */
+	if (@cast(addr, "sockaddr")->sa_family == %{ AF_INET %}) {
 		return ntohs(@cast(addr, "sockaddr_in")->sin_port)
+	}
+	else if (@cast(addr, "sockaddr")->sa_family == %{ AF_INET6 %}) {
+		return ntohs(@cast(addr, "sockaddr_in6")->sin6_port)
 	}
 	return 0
 }
@@ -1132,10 +1136,14 @@ function addr_from_rqst:long(rqstp:long)
 
 	/* In reality, 'rq_addr' is of 'sockaddr_storage' type
 	 * (since 2.6.19). But when used, you cast it to what is
-	 * inside that buffer. */
-	if (@cast(addr, "sockaddr_in")->sin_family == %{ AF_INET %}) {
-		/* Now consider ipv4 only */ 
+	 * inside that buffer. The 'struct sockaddr', 'struct
+	 * sockaddr_in', and 'sockaddr_in6' structures all have a
+	 * family type as their 1st member. */
+	if (@cast(addr, "sockaddr")->sa_family == %{ AF_INET %}) {
 		return @cast(addr, "sockaddr_in")->sin_addr->s_addr
+	}
+	else if (@cast(addr, "sockaddr")->sa_family == %{ AF_INET6 %}) {
+		return &@cast(addr, "sockaddr_in6")->sin6_addr
 	}
     }
     return 0
@@ -1153,7 +1161,11 @@ function addr_from_rqst_str:string(rqstp:long)
 	s_addr = addr_from_rqst(rqstp)
 	if (s_addr == 0)
 		return "Unsupported Address Family"
-	return sprintf("%s:%d", daddr_to_string(s_addr),
-		       @cast(addr, "sockaddr_in")->sin_port)
+	if (@cast(addr, "sockaddr_in")->sin_family == %{ AF_INET %}) {
+		return sprintf("%s:%d", format_ipaddr(s_addr, %{ AF_INET %}), 
+			       @cast(addr, "sockaddr_in")->sin_port)
+	}
+	return sprintf("[%s]:%d", format_ipaddr(s_addr, %{ AF_INET6 %}),
+		       @cast(addr, "sockaddr_in6")->sin6_port)
 }
 

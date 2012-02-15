@@ -7,6 +7,10 @@
   all connections serially in the main thread). The default value is
   the number of processor cores on the host.
 
+- The following tapset functions are deprecated in release 1.8 and will be
+  removed in release 1.9:
+      daddr_to_string()
+
 * What's new in version 1.7, 2012-02-01
 
 - Map inserting and deleting is now significantly faster due to

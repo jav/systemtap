@@ -1,7 +1,7 @@
 // inet_sock information tapset 
 // Copyright (C) 2006 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
-// Copyright (C) 2009, 2010, 2011 Red Hat, Inc.
+// Copyright (C) 2009-2012 Red Hat, Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -29,14 +29,13 @@ function inet_get_local_port:long(sock:long)
  */
 function inet_get_ip_source:string(sock:long)
 {
-    return daddr_to_string(__ip_sock_daddr(sock));
+    return format_ipaddr(__ip_sock_daddr(sock), __ip_sock_family(sock))
 }
 
+%(systemtap_v <= "1.8" %?
 // Turns a daddr as found in an inet_sock into a dotted ip string.
 function daddr_to_string:string(daddr:long)
-%{ /* pure */
-	union { __u32 d; unsigned char addr[4]; } u;
-	u.d = THIS->daddr;
-	snprintf(THIS->__retvalue, MAXSTRINGLEN, "%d.%d.%d.%d",
-			u.addr[0], u.addr[1], u.addr[2], u.addr[3]);
-%}
+{
+    return format_ipaddr(daddr, %{ AF_INET %})
+}
+%)

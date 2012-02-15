@@ -1,5 +1,5 @@
 /* target operations
- * Copyright (C) 2005-2011 Red Hat Inc.
+ * Copyright (C) 2005-2012 Red Hat Inc.
  * Copyright (C) 2005, 2006, 2007 Intel Corporation.
  * Copyright (C) 2007 Quentin Barnes.
  *
@@ -945,6 +945,30 @@ extern void __store_deref_bad(void);
 #endif
 
 #endif /* STAPCONF_PROBE_KERNEL */
+
+/* Derefence a kernel buffer ADDR of size MAXBYTES. Put the bytes in
+ * address DST (which can be NULL).
+ *
+ * This function is useful for reading memory when the size isn't a
+ * size that kderef() handles.  This function is very similar to
+ * kderef_string(), but kderef_buffer() doesn't quit when finding a
+ * '\0' byte or append a '\0' byte.
+ */
+
+#define kderef_buffer(dst, addr, maxbytes)				      \
+  ({									      \
+    uintptr_t _addr;							      \
+    size_t _len;							      \
+    unsigned char _c;							      \
+    char *_d = (dst);							      \
+    for (_len = (maxbytes), _addr = (uintptr_t)(addr);			      \
+	 _len > 1;							      \
+	 --_len, ++_addr)						      \
+      _c = kderef (1, _addr);						      \
+      if (_d)								      \
+	 *_d++ = _c;							      \
+    (dst);								      \
+  })
 
 /* The following is for kernel strings, see the uconversions.stp
    tapset for user_string functions. */
