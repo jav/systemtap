@@ -1,7 +1,7 @@
 // TCP tapset
 // Copyright (C) 2006 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
-// Copyright (C) 2007,2010 Red Hat, Inc.
+// Copyright (C) 2007, 2010, 2012 Red Hat, Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -249,8 +249,8 @@ function tcp_sockopt_str:string (optname:long) {
   */
 probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
 	name = "tcp.sendmsg"
-	sock = (@defined($sock) ? $sock : $sk)
-	size    = $size
+	sock = (@defined($sock) ? $sock->sk : $sk)
+	size = $size
 }
 
 /**
