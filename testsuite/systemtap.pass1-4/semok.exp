@@ -1,11 +1,21 @@
 set self semok
+set uprobes_p [uprobes_p]
 foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
-    #  .plt is only supported on x86
-    if {[regexp "plt\[12\]\.stp" $file] && ![regexp "^(x86_64|i.86)$" $::tcl_platform(machine)]} {
-	untested $test
-	continue
-    }
     set test $self/[file tail $file]
+    switch $test {
+	semok/bz11911.stp -
+	semok/mangled.stp {
+	    # These tests need uprobes
+	    if {!$uprobes_p} { untested $test; continue } }
+
+	semok/plt1.stp -
+	semok/plt2.stp {
+	    # The .plt tests need uprobes and x86
+	    if {![regexp "^(x86_64|i.86)$" $::tcl_platform(machine)]} {
+		untested $test; continue }
+	    if {!$uprobes_p} { untested $test; continue } }
+    }
+
     verbose -log "Running $file"
     set rc [stap_run_batch $file]
     if {$rc == 0} { pass $test } else { fail $test }
