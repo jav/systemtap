@@ -9,12 +9,16 @@
 #
 # We try it in both orders here to make sure they don't interfere either way.
 
-probe kernel.function("do_filp_open").return {
+probe kernel.function("do_filp_open").return !,
+      kernel.function("filp_open").return
+{
     println(kernel_string(@defined($pathname) ? $pathname : $filename))
     println(get_cycles() - @entry(get_cycles()))
 }
 
-probe kernel.function("do_filp_open").return {
+probe kernel.function("do_filp_open").return !,
+      kernel.function("filp_open").return
+{
     println(get_cycles() - @entry(get_cycles()))
     println(kernel_string(@defined($pathname) ? $pathname : $filename))
 }

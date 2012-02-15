@@ -2,7 +2,9 @@
 
 # On kernels with kretprobe data-pouch, we have a tricky situation
 # with data types.  Make sure a few different cases will work...
-probe kernel.function("do_path_lookup").return {
+probe kernel.function("do_path_lookup").return !,
+      kernel.function("path_lookup").return
+{
     println($nd)
     println($nd$)
     println($$parms)

@@ -3,7 +3,8 @@
 global stat
 
 # dwarf .return probes can use @entry
-probe kernel.function("do_filp_open").return,
+probe kernel.function("do_filp_open").return?,
+      kernel.function("filp_open").return?,
       process("stap").function("main").return?
 {
     stat[pp()] <<< get_cycles() - @entry(get_cycles())
