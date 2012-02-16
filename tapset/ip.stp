@@ -13,10 +13,10 @@
 %{
 #include <linux/skbuff.h>
 #include <linux/socket.h>		// For AF_INET & AF_INET6
-#ifdef CONFIG_IPV6
+#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
 #include <linux/types.h>
 #include <linux/in6.h>
-#endif /* CONFIG_IPV6 */
+#endif /* CONFIG_IPV6 || CONFIG_IPV6_MODULE */
 %}
 
 /**
@@ -36,7 +36,7 @@ function format_ipaddr:string (addr:long, family:long)
 			 NIPQUAD(ip));
 #endif
 	}
-#ifdef CONFIG_IPV6
+#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
 	else if (THIS->family == AF_INET6) {
 		struct in6_addr *ipv6 = (struct in6_addr *)(uintptr_t)THIS->addr;
 		// We need to derefence the memory safely from the
@@ -51,13 +51,13 @@ function format_ipaddr:string (addr:long, family:long)
 		snprintf(THIS->__retvalue, MAXSTRINGLEN, NIP6_FMT, NIP6(ipv6));
 #endif
 	}
-#endif /* CONFIG_IPV6 */
+#endif /* CONFIG_IPV6 || CONFIG_IPV6_MODULE */
 	else
 		strncpy(THIS->__retvalue, "*unknown address family*",
 			MAXSTRINGLEN);
-#ifdef CONFIG_IPV6
+#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
 	CATCH_DEREF_FAULT();
-#endif /* CONFIG_IPV6 */
+#endif /* CONFIG_IPV6 || CONFIG_IPV6_MODULE */
 %}
 
 /**
