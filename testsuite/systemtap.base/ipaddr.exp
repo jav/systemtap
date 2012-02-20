@@ -1,0 +1,148 @@
+set TEST_NAME_BASE "ipaddr"
+if {![installtest_p]} { untested $TEST_NAME_BASE; return }
+
+# nc server management variables
+set IPV4_ONLY -1
+set nc_pipe 0
+
+# Start an 'nc' server.  To start an IPv4 server, pass 1 as the
+# argument.  To start an IPv6 server, pass 0 as the argument.
+proc start_server { IPV4 } {
+    global TEST_NAME IPV4_ONLY nc_pipe
+    if {$IPV4_ONLY < 0} {
+	# First, does 'nc' exist on this system?
+	if {[catch { exec which nc } res]} {
+	    fail "$TEST_NAME find 'nc'"
+	    return -1
+	}
+	pass "$TEST_NAME find 'nc'"
+
+	# Older versions of 'nc' (on RHEL4 for instance) don't support
+	# IPv6. Does this 'nc' support IPv6?
+	set IPV4_ONLY 0
+	if {[catch { exec sh -c "nc -h 2>&1 | grep -qi IPv6" } res]} {
+	    # If we're here, 'nc' doesn't support IPv6.  So, it
+	    # supports IPv4 only.
+	    set IPV4_ONLY 1
+	}
+    }
+
+    # Figure out the 'nc' command line.
+    if {$IPV4} {
+	if {$IPV4_ONLY} {
+	    set nc_cmd "| nc -l localhost -p 8080"
+	} else {
+	    set nc_cmd "| nc -l -4 localhost 8080"
+	}
+    } else {
+	if {$IPV4_ONLY} {
+	    untested "$TEST_NAME starting IPv6 nc server"
+	    return -1
+	}
+	set nc_cmd "| nc -l -6 localhost6 8080"
+    }
+
+    # Actually start the 'nc' server.
+    verbose -log "starting $nc_cmd"
+    if {[catch {open $nc_cmd} nc_pipe]} {
+	verbose -log "nc command failed: $fl"
+	fail "$TEST_NAME nc server start"
+	return -1
+    }
+
+    pass "$TEST_NAME nc server start"
+    return 0
+}
+
+# Stop the nc server.
+proc stop_server {} {
+    global TEST_NAME nc_pipe
+
+    exec kill -s SIGINT [pid $nc_pipe]
+    catch { close $nc_pipe } res
+    pass "$TEST_NAME nc server stop"
+    return
+}
+
+# "load" generation function for stap_run.  It runs a client version
+# of 'nc' and sends some IPv4 data through it.
+proc run_ipv4_client {} {
+    global srcdir subdir
+    global IPV4_ONLY
+
+    if {$IPV4_ONLY} {
+	set cmd "nc localhost 8080 < $srcdir/$subdir/ipaddr.txt"
+    } else {
+	set cmd "nc -4 localhost 8080 < $srcdir/$subdir/ipaddr.txt"
+    }
+    verbose -log "starting $cmd"
+    if {[catch {eval exec $cmd} res]} {
+	verbose -log "$res"
+	return 1
+    }
+    return 0;
+}
+
+# "load" generation function for stap_run.  It runs a client version
+# of 'nc' and sends some IPv6 data through it.
+proc run_ipv6_client {} {
+    global srcdir subdir
+    global IPV4_ONLY
+
+    if {$IPV4_ONLY} {
+	verbose -log "error: nc only supports IPv4"
+	return 1
+    }
+
+    set cmd "cat $srcdir/$subdir/ipaddr.txt | nc -6 localhost6 8080"
+    if {[catch {eval exec $cmd} res]} {
+	verbose -log "$res"
+	return 1
+    }
+    return 0;
+}
+
+# Start the 1st IPv4 test
+set TEST_NAME "${TEST_NAME_BASE}_IPv4_recvmsg"
+if {[start_server 1]} {
+    # If we couldn't start the server, we're done.
+    return
+}
+set script_output "packets = \[1-9\]\r\naddress errors = 0\r\nbad family errors = 0\r\n"
+stap_run $TEST_NAME run_ipv4_client $script_output $srcdir/$subdir/ipaddr1.stp
+
+# Stop/cleanup the IPv4 server.
+stop_server
+
+# Start the 2nd IPv4 test
+set TEST_NAME "${TEST_NAME_BASE}_IPv4_receive"
+if {[start_server 1]} {
+    # If we couldn't start the server, we're done.
+    return
+}
+stap_run $TEST_NAME run_ipv4_client $script_output $srcdir/$subdir/ipaddr2.stp
+
+# Stop/cleanup the IPv4 server
+stop_server
+
+# Start the 1st IPv6 test
+set TEST_NAME "${TEST_NAME_BASE}_IPv6_recvmsg"
+if {[start_server 0]} {
+    # If we couldn't start the server, we're done.
+    return
+}
+stap_run $TEST_NAME run_ipv6_client $script_output $srcdir/$subdir/ipaddr1.stp
+
+# Stop/cleanup the IPv6 server.
+stop_server
+
+# Start the 2nd IPv6 test
+set TEST_NAME "${TEST_NAME_BASE}_IPv6_receive"
+if {[start_server 0]} {
+    # If we couldn't start the server, we're done.
+    return
+}
+stap_run $TEST_NAME run_ipv6_client $script_output $srcdir/$subdir/ipaddr2.stp
+
+# Stop/cleanup the IPv6 server.
+stop_server

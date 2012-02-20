@@ -14,7 +14,12 @@
 
 function AF_INET:long()
 {
-	return %{ AF_INET %}
+	return %{ /* pure */ AF_INET %}
+}
+
+function AF_INET6:long()
+{
+	return %{ /* pure */ AF_INET6 %}
 }
 
 function NFS_I:long(inode:long)

@@ -2,6 +2,7 @@
 
 probe begin {
 	print (AF_INET() +
+	       AF_INET6() +
 	       NFS_I(0) +
 	       NFS_FH(0) +
 	       NFS_SERVER(0) +

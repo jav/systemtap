@@ -26,7 +26,7 @@
  * @family: the IP address family (either AF_INET or AF_INET6)
  */
 function format_ipaddr:string (addr:long, family:long)
-%{
+%{ /* pure */
 	if (THIS->family == AF_INET) {
 		__be32 ip = (__be32)THIS->addr;
 #ifndef NIPQUAD_FMT			// kver >= 2.6.36
@@ -48,7 +48,7 @@ function format_ipaddr:string (addr:long, family:long)
 #ifndef NIP6_FMT			// kver >= 2.6.36
 		snprintf(THIS->__retvalue, MAXSTRINGLEN, "%pI6", ipv6);
 #else
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, NIP6_FMT, NIP6(ipv6));
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, NIP6_FMT, NIP6(*ipv6));
 #endif
 	}
 #endif /* CONFIG_IPV6 || CONFIG_IPV6_MODULE */
@@ -70,27 +70,56 @@ function ip_ntop:string (addr:long)
 	return format_ipaddr(addr, %{ AF_INET %})
 }
 
-/* return the source IP address for a given sock */
+/*
+ * Return the source IP address for a given sock.
+ *
+ * Note that the probes that use this function typically get a 'struct
+ * sock' pointer, not a 'struct inet_sock' pointer.  This is expected.
+ * To use a 'struct sock' pointer, you typically call inet_sk() on the
+ * pointer, which just returns the pointer (since the 1st member of
+ * 'struct inet_sock' is a 'struct sock').
+ */
+
 function __ip_sock_saddr:long (sock:long)
 {
-    return (@defined(@cast(sock, "inet_sock")->inet_saddr)
-	    ? @cast(sock, "inet_sock")->inet_saddr # kernel >= 2.6.33
-	    : (@defined(@cast(sock, "inet_sock")->saddr)
-	       ? @cast(sock, "inet_sock", "kernel")->saddr # kernel >= 2.6.11
-	       : @cast(sock, "inet_sock", "kernel<net/ip.h>")->inet->saddr))
+    family = @cast(sock, "inet_sock", "kernel<net/ip.h>")->sk->__sk_common->skc_family
+    if (family == %{ AF_INET %}) {
+	return (@defined(@cast(sock, "inet_sock")->inet_saddr)
+		? @cast(sock, "inet_sock")->inet_saddr # kernel >= 2.6.33
+		: (@defined(@cast(sock, "inet_sock")->saddr)
+		  ? # kernel >= 2.6.11
+		    @cast(sock, "inet_sock", "kernel")->saddr
+		  : @cast(sock, "inet_sock", "kernel<net/ip.h>")->inet->saddr))
+    }
+%( CONFIG_IPV6 == "[ym]" %?
+    else if (family == %{ AF_INET6 %}) {
+	return (&@cast(sock, "inet_sock", "kernel<net/ip.h>")->pinet6->saddr)
+    }
+%)
+    return 0
 }
 
 /* return the destination IP address for a given sock */
 function __ip_sock_daddr:long (sock:long)
 {
-    return (@defined(@cast(sock, "inet_sock")->sk->__sk_common->skc_daddr)
-	    ? # kernel >= 2.6.38
-	      @cast(sock, "inet_sock")->sk->__sk_common->skc_daddr
-	    : (@defined(@cast(sock, "inet_sock")->inet_daddr)
-	       ? @cast(sock, "inet_sock")->inet_daddr # kernel >= 2.6.33
-	       : (@defined(@cast(sock, "inet_sock")->daddr)
-		  ? @cast(sock, "inet_sock", "kernel")->daddr # kernel >= 2.6.11
-		  : @cast(sock, "inet_sock", "kernel<net/ip.h>")->inet->daddr)))
+    family = @cast(sock, "inet_sock", "kernel<net/ip.h>")->sk->__sk_common->skc_family
+    if (family == %{ AF_INET %}) {
+	return (@defined(@cast(sock, "inet_sock")->sk->__sk_common->skc_daddr)
+		? # kernel >= 2.6.38
+		  @cast(sock, "inet_sock")->sk->__sk_common->skc_daddr
+		: (@defined(@cast(sock, "inet_sock")->inet_daddr)
+		  ? @cast(sock, "inet_sock")->inet_daddr # kernel >= 2.6.33
+		  : (@defined(@cast(sock, "inet_sock")->daddr)
+		    ? # kernel >= 2.6.11
+		      @cast(sock, "inet_sock", "kernel")->daddr
+		    : @cast(sock, "inet_sock", "kernel<net/ip.h>")->inet->daddr)))
+    }
+%( CONFIG_IPV6 == "[ym]" %?
+    else if (family == %{ AF_INET6 %}) {
+	return (&@cast(sock, "inet_sock", "kernel<net/ip.h>")->pinet6->daddr)
+    }
+%)
+    return 0
 }
 
 /* return the IP address family for a given sock */

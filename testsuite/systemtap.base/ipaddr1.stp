@@ -1,0 +1,46 @@
+global packets, addr_errors, family_errors
+global localhost
+
+probe tcp.recvmsg
+{
+	if (ntohs(sport) != 8080 && ntohs(dport) != 8080) {
+		next
+	}
+	#printf("receive [%s]:%d -> [%s]:%d\n", saddr, ntohs(sport), daddr, ntohs(dport))
+	# We got a packet with either a source or destination port of 8080.
+	packets <<< 1
+
+	# Did the IP address get converted correctly?
+	if (family == AF_INET() || family == AF_INET6()) {
+		if (ntohs(sport) == 8080 && saddr != localhost[family]) {
+			addr_errors <<< 1
+			printf("error: saddr %s isn't %s\n", saddr,
+			       localhost[family])
+		}
+		else if (ntohs(dport) == 8080 && daddr != localhost[family]) {
+			addr_errors <<< 1
+			printf("error: daddr %s isn't %s\n", daddr,
+			       localhost[family])
+		}
+	}
+	else {
+		family_errors <<< 1
+	}	
+}
+
+probe begin {
+	printf("systemtap starting probe\n")
+	localhost[AF_INET()] = "127.0.0.1"
+	localhost[AF_INET6()] = "0000:0000:0000:0000:0000:0000:0000:0001"
+}
+probe end {
+	printf("systemtap ending probe\n")
+	if (@count(packets) > 0) {
+		printf("packets = %d\n", @count(packets))
+	}
+	else {
+		printf("no packets seen\n")
+	}
+	printf("address errors = %d\n", @count(addr_errors))
+	printf("bad family errors = %d\n", @count(family_errors))
+}

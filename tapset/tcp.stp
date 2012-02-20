@@ -271,6 +271,7 @@ probe tcp.sendmsg.return = kernel.function("tcp_sendmsg").return {
  * @name: Name of this probe
  * @sock: Network socket
  * @size: Number of bytes to be received  
+ * @family: IP address family
  * @saddr: A string representing the source IP address
  * @daddr: A string representing the destination IP address
  * @sport: TCP source port 
@@ -282,6 +283,7 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 	name = "tcp.recvmsg"
 	sock    = $sk
 	size    = $len
+	family  = __ip_sock_family($sk)
 	saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
 	daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
 	sport   = __tcp_sock_sport($sk)
@@ -292,6 +294,7 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
  * probe tcp.recvmsg.return - Receiving TCP message complete
  * @name: Name of this probe
  * @size: Number of bytes received or error code if an error occurred.
+ * @family: IP address family
  * @saddr: A string representing the source IP address
  * @daddr: A string representing the destination IP address
  * @sport: TCP source port 
@@ -303,6 +306,7 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
 	name = "tcp.recvmsg"
 	size = $return
+	family  = __ip_sock_family($sk)
 	saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
 	daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
 	sport = __tcp_sock_sport($sk)

@@ -11,12 +11,12 @@ probe tcp.sendmsg.return
 
 probe tcp.recvmsg
 {
-	printf("%s %p %d\n", name, sock, size)
+	printf("%s %p %d %d\n", name, sock, size, family)
 	printf("%s %s %d %d\n", saddr, daddr, sport, dport)
 }
 probe tcp.recvmsg.return
 {
-	printf("%s %d\n", name, size)
+	printf("%s %d %d\n", name, size, family)
 	printf("%s %s %d %d\n", saddr, daddr, sport, dport)
 }
 
