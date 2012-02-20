@@ -206,7 +206,7 @@ License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap = %{version}-%{release}
 Requires: systemtap-sdt-devel = %{version}-%{release}
-Requires: dejagnu which prelink elfutils grep
+Requires: dejagnu which prelink elfutils grep nc
 
 %description testsuite
 This package includes the dejagnu-based systemtap stress self-testing
