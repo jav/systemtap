@@ -385,6 +385,7 @@ static void set_expr_rule(uleb128_t reg, enum item_location where,
 	uleb128_t len = get_uleb128(expr, end);
 	dbug_unwind(1, "reg=%lx, where=%d, expr=%lu@%p\n",
 		    reg, where, len, *expr);
+	/* Sanity check that expr falls completely inside known data. */
 	if (end - *expr >= len && reg < ARRAY_SIZE(REG_STATE.regs)) {
 		REG_STATE.regs[reg].where = where;
 		REG_STATE.regs[reg].expr = start;
@@ -524,30 +525,46 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc,
 			case DW_CFA_def_cfa:
 				value = get_uleb128(&ptr.p8, end);
 				dbug_unwind(1, "map DW_CFA_def_cfa value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				REG_STATE.cfa_is_expr = 0;
 				REG_STATE.cfa.reg = value;
 				dbug_unwind(1, "DW_CFA_def_cfa reg=%ld\n", REG_STATE.cfa.reg);
 				/*nobreak */
 			case DW_CFA_def_cfa_offset:
-				REG_STATE.cfa.offs = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "DW_CFA_def_cfa_offset offs=%lx\n", REG_STATE.cfa.offs);
+				if (REG_STATE.cfa_is_expr != 0) {
+					_stp_warn("Unexpected DW_CFA_def_cfa_offset\n");
+				} else {
+					REG_STATE.cfa.offs = get_uleb128(&ptr.p8, end);
+					dbug_unwind(1, "DW_CFA_def_cfa_offset offs=%lx\n", REG_STATE.cfa.offs);
+				}
 				break;
 			case DW_CFA_def_cfa_sf:
 				value = get_uleb128(&ptr.p8, end);
 				dbug_unwind(1, "map DW_CFA_def_cfa_sf value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+				REG_STATE.cfa_is_expr = 0;
 				REG_STATE.cfa.reg = value;
 				/*nobreak */
 			case DW_CFA_def_cfa_offset_sf:
-				REG_STATE.cfa.offs = get_sleb128(&ptr.p8, end) * state->dataAlign;
-				dbug_unwind(1, "DW_CFA_def_cfa_offset_sf offs=%lx\n", REG_STATE.cfa.offs);
+				if (REG_STATE.cfa_is_expr != 0) {
+					_stp_warn("Unexpected DW_CFA_def_cfa_offset_sf\n");
+				} else {
+					REG_STATE.cfa.offs = get_sleb128(&ptr.p8, end) * state->dataAlign;
+					dbug_unwind(1, "DW_CFA_def_cfa_offset_sf offs=%lx\n", REG_STATE.cfa.offs);
+				}
 				break;
 			case DW_CFA_def_cfa_register:
-				value = get_uleb128(&ptr.p8, end);
-				dbug_unwind(1, "map DW_CFA_def_cfa_register value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
-				REG_STATE.cfa.reg = value;
+				if (REG_STATE.cfa_is_expr != 0) {
+					_stp_warn("Unexpected DW_CFA_def_cfa_register\n");
+				} else {
+					value = get_uleb128(&ptr.p8, end);
+					dbug_unwind(1, "map DW_CFA_def_cfa_register value %ld to reg_info idx %ld\n", value, DWARF_REG_MAP(value));
+					REG_STATE.cfa.reg = value;
+				}
 				break;
 			case DW_CFA_def_cfa_expression: {
 				const u8 *cfa_expr = ptr.p8;
 				value = get_uleb128(&ptr.p8, end);
+				/* Sanity check that cfa_expr falls completely
+				   inside known data. */
 				if (ptr.p8 < end && end - ptr.p8 >= value) {
 					REG_STATE.cfa_is_expr = 1;
 					REG_STATE.cfa_expr = cfa_expr;
@@ -801,6 +818,7 @@ static int compute_expr(const u8 *expr, struct unwind_frame_info *frame,
 {
 	/*
 	 * We previously validated the length, so we won't read off the end.
+	 * See sanity checks in set_expr() and for DW_CFA_def_cfa_expression.
 	 */
 	uleb128_t len = get_uleb128(&expr, (const u8 *) -1UL);
 	const u8 *const start = expr;
