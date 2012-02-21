@@ -403,8 +403,8 @@ probe tcp.receive = kernel.function("tcp_v4_rcv") {
 	name = "tcp.receive"
 	iphdr = __get_skb_iphdr($skb)
 	# If we're here, by definition we're doing AF_INET, not AF_INET6.
-	saddr   = format_ipaddr(__ip_skb_saddr(iphdr), %{ AF_INET %})
-	daddr   = format_ipaddr(__ip_skb_daddr(iphdr), %{ AF_INET %})
+	saddr   = format_ipaddr(__ip_skb_saddr(iphdr), %{ /* pure */ AF_INET %})
+	daddr   = format_ipaddr(__ip_skb_daddr(iphdr), %{ /* pure */ AF_INET %})
 	protocol = __ip_skb_proto(iphdr)
 
 	tcphdr = __get_skb_tcphdr($skb)

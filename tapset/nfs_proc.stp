@@ -74,7 +74,7 @@ function get_ip_from_client:long(clnt:long)
 	/* In reality, 'cl_xprt->addr' is of 'sockaddr_storage' type
 	 * (since 2.6.19). But when used, you cast it to what is
 	 * inside that buffer. */
-	if (@cast(addr, "sockaddr_in")->sin_family != %{ AF_INET %}) {
+	if (@cast(addr, "sockaddr_in")->sin_family != %{ /* pure */ AF_INET %}) {
 		/* Now consider ipv4 only */
 		return 0
 	}
