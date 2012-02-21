@@ -276,14 +276,22 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 #include <linux/if_packet.h>
 
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char buf[128];
+	size_t len = THIS->len < 128 ? THIS->len : 128;
+	struct sockaddr *sa = (struct sockaddr *)buf;
+
 	if (ptr == NULL)
+	{
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		char buf[128];
-		size_t len = THIS->len < 128 ? THIS->len : 128;
-		if(_stp_copy_from_user(buf, ptr, len))
-			strlcpy (THIS->__retvalue, "[...]", MAXSTRINGLEN);
-		else {
+		return;
+	}
+
+	if (_stp_copy_from_user(buf, ptr, len))
+	{
+		strlcpy (THIS->__retvalue, "[...]", MAXSTRINGLEN);
+		return;
+	}
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,11)
 #define LPORT   (inet->inet.num)
 #define DADDR   (&inet->inet.daddr)
@@ -295,55 +303,72 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 // Use kernel builtin instead of picking up user space ntohs (function).
 #define _stp_ntohs be16_to_cpu
 
-	//FIXME. Not done yet.
-	char *str = THIS->__retvalue;
-	const int strlen = MAXSTRINGLEN;
-	struct sockaddr *sa = (struct sockaddr *)buf;
-	if ((sa->sa_family == AF_INET)&&(len == sizeof(struct sockaddr_in)))
+	if ((sa->sa_family == AF_INET) && (len == sizeof(struct sockaddr_in)))
 	{
 		struct sockaddr_in *sin = (struct sockaddr_in *)buf;
-		const unsigned char *addr = (unsigned char *)&sin->sin_addr;
-		snprintf(str, strlen, "{AF_INET, %d.%d.%d.%d, %d}", 
-			addr[0], addr[1], addr[2], addr[3], _stp_ntohs(sin->sin_port));
+#ifndef NIPQUAD_FMT			// kver >= 2.6.36
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "{AF_INET, %pI4, %d}",
+			 &sin->sin_addr, _stp_ntohs(sin->sin_port));
+#else
+		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			 "{AF_INET, " NIPQUAD_FMT ", %d}",
+			 NIPQUAD(sin->sin_addr), _stp_ntohs(sin->sin_port));
+#endif
 	}
-	else if ((sa->sa_family == AF_UNIX)&&(len == sizeof(struct sockaddr_un)))
+	else if ((sa->sa_family == AF_UNIX)
+		 && (len == sizeof(struct sockaddr_un)))
 	{	
 		struct sockaddr_un *sun = (struct sockaddr_un *)buf;	
-		snprintf(str, strlen, "{AF_UNIX, %s}", sun->sun_path); 
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "{AF_UNIX, %s}",
+			 sun->sun_path); 
 	}
-	else if ((sa->sa_family == AF_NETLINK)&&(len == sizeof(struct sockaddr_nl)))
+	else if ((sa->sa_family == AF_NETLINK)
+		 && (len == sizeof(struct sockaddr_nl)))
 	{
 		struct sockaddr_nl *nl = (struct sockaddr_nl *)buf;
-		snprintf(str, strlen, "{AF_NETLINK, pid=%d, groups=%08x}", nl->nl_pid, nl->nl_groups); 
+		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			 "{AF_NETLINK, pid=%d, groups=%08x}",
+			 nl->nl_pid, nl->nl_groups);
 	}
-	else if ((sa->sa_family == AF_INET6)&&(len == sizeof(struct sockaddr_in6)))
+	else if ((sa->sa_family == AF_INET6)
+		 && (len == sizeof(struct sockaddr_in6)))
 	{
-		// FIXME. Address is probably not correctly displayed
 		struct sockaddr_in6 *sin = (struct sockaddr_in6 *)buf;
-		snprintf(str, strlen, "{AF_INET6, %016llx, %d}", 
-			*(long long *)&sin->sin6_addr, _stp_ntohs(sin->sin6_port));
+#ifndef NIP6_FMT			// kver >= 2.6.36
+		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			 "{AF_INET6, %pI6, %d}", &sin->sin6_addr,
+			 _stp_ntohs(sin->sin6_port));
+#else
+		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			 "{AF_INET6, " NIP6_FMT ", %d}", NIP6(sin->sin6_addr),
+			 _stp_ntohs(sin->sin6_port));
+#endif
 	}
-	else if ((sa->sa_family == AF_PACKET)&&(len == sizeof(struct sockaddr_ll))) 
+	else if ((sa->sa_family == AF_PACKET)
+		 && (len == sizeof(struct sockaddr_ll))) 
 	{
 		struct sockaddr_ll *sll = (struct sockaddr_ll *)buf;
-		snprintf(str, strlen, "{AF_PACKET, proto=%d, ind=%d, hatype=%d, pkttype=%d, halen=%d, addr=0x%llx}", 
-			(int)sll->sll_protocol, sll->sll_ifindex, (int)sll->sll_hatype, (int)sll->sll_pkttype,
-			(int)sll->sll_halen,
-			(long long)(*(uint64_t *)sll->sll_addr));
+		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			 "{AF_PACKET, proto=%d, ind=%d, hatype=%d, pkttype=%d, halen=%d, addr=0x%llx}",
+			 (int)sll->sll_protocol, sll->sll_ifindex,
+			 (int)sll->sll_hatype, (int)sll->sll_pkttype,
+			 (int)sll->sll_halen,
+			 (long long)(*(uint64_t *)sll->sll_addr));
 	}
 	else
 	{
 		if (len >= sizeof(sa_family_t))
 		{
-			snprintf(str, strlen, "{unknown sockaddr with sa=%d, salen=%d}", sa->sa_family, (int) len);
+			snprintf(THIS->__retvalue, MAXSTRINGLEN,
+				 "{unknown sockaddr with sa=%d, salen=%d}",
+				 sa->sa_family, (int) len);
 		}
 		else
 		{
-			snprintf(str, strlen, "{unknown sockaddr with salen=%d}", (int)len);
+			snprintf(THIS->__retvalue, MAXSTRINGLEN,
+				 "{unknown sockaddr with salen=%d}", (int)len);
 		}
 	}
-	}
-}	
 %}
 
 function _struct_rlimit_u:string(uaddr:long)
