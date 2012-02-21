@@ -11,7 +11,6 @@ probe tcp.receive
 	packets <<< 1
 
 	# Did the IP address get converted correctly?
-	family = AF_INET()
 	if (family == AF_INET() || family == AF_INET6()) {
 		if (sport == 8080 && saddr != localhost[family]) {
 			addr_errors <<< 1

@@ -108,7 +108,7 @@ if {[start_server 1]} {
     # If we couldn't start the server, we're done.
     return
 }
-set script_output "packets = \[1-9\]\r\naddress errors = 0\r\nbad family errors = 0\r\n"
+set script_output "packets = \[0-9\]+\r\naddress errors = 0\r\nbad family errors = 0\r\n"
 stap_run $TEST_NAME run_ipv4_client $script_output $srcdir/$subdir/ipaddr1.stp
 
 # Stop/cleanup the IPv4 server.
