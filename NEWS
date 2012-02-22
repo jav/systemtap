@@ -1,5 +1,8 @@
 * What's new in version 1.8
 
+- Bug CVE-2012-0875 (kernel panic when processing malformed DWARF unwind data)
+  is fixed.
+
 - The systemtap server now supports multiple concurrent connections.
   Specify the desired maximum number of concurrent connections with
   the new stap-server/stap-serverd --max-threads option. Specify a
