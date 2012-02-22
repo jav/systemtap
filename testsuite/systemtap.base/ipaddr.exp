@@ -7,7 +7,7 @@ set nc_pipe 0
 
 # Start an 'nc' server.  To start an IPv4 server, pass 1 as the
 # argument.  To start an IPv6 server, pass 0 as the argument.
-proc start_server { IPV4 } {
+proc start_nc_server { IPV4 } {
     global TEST_NAME IPV4_ONLY nc_pipe
     if {$IPV4_ONLY < 0} {
 	# First, does 'nc' exist on this system?
@@ -55,7 +55,7 @@ proc start_server { IPV4 } {
 }
 
 # Stop the nc server.
-proc stop_server {} {
+proc stop_nc_server {} {
     global TEST_NAME nc_pipe
 
     exec kill -s SIGINT [pid $nc_pipe]
@@ -104,7 +104,7 @@ proc run_ipv6_client {} {
 
 # Start the 1st IPv4 test
 set TEST_NAME "${TEST_NAME_BASE}_IPv4_recvmsg"
-if {[start_server 1]} {
+if {[start_nc_server 1]} {
     # If we couldn't start the server, we're done.
     return
 }
@@ -112,37 +112,37 @@ set script_output "packets = \[0-9\]+\r\naddress errors = 0\r\nbad family errors
 stap_run $TEST_NAME run_ipv4_client $script_output $srcdir/$subdir/ipaddr1.stp
 
 # Stop/cleanup the IPv4 server.
-stop_server
+stop_nc_server
 
 # Start the 2nd IPv4 test
 set TEST_NAME "${TEST_NAME_BASE}_IPv4_receive"
-if {[start_server 1]} {
+if {[start_nc_server 1]} {
     # If we couldn't start the server, we're done.
     return
 }
 stap_run $TEST_NAME run_ipv4_client $script_output $srcdir/$subdir/ipaddr2.stp
 
 # Stop/cleanup the IPv4 server
-stop_server
+stop_nc_server
 
 # Start the 1st IPv6 test
 set TEST_NAME "${TEST_NAME_BASE}_IPv6_recvmsg"
-if {[start_server 0]} {
+if {[start_nc_server 0]} {
     # If we couldn't start the server, we're done.
     return
 }
 stap_run $TEST_NAME run_ipv6_client $script_output $srcdir/$subdir/ipaddr1.stp
 
 # Stop/cleanup the IPv6 server.
-stop_server
+stop_nc_server
 
 # Start the 2nd IPv6 test
 set TEST_NAME "${TEST_NAME_BASE}_IPv6_receive"
-if {[start_server 0]} {
+if {[start_nc_server 0]} {
     # If we couldn't start the server, we're done.
     return
 }
 stap_run $TEST_NAME run_ipv6_client $script_output $srcdir/$subdir/ipaddr2.stp
 
 # Stop/cleanup the IPv6 server.
-stop_server
+stop_nc_server
