@@ -151,15 +151,15 @@ probe syscall.*.return {
 	# Check filters
 	if ('$FILTER') {
 		target = 0
-		if (pid() in f_pid) {
+		if (('$F_PID') && (pid() in f_pid)) {
 			timebypid[name, pid()] <<< delta
 			target = 1
 		}
-		if (uid() in f_uid) {
+		if (('$F_UID') && (uid() in f_uid)) {
 			timebyuid[name, uid()] <<< delta
 			target = 1
 		}
-		if (execname() in f_exec) {
+		if (('$F_EXEC') && (execname() in f_exec)) {
 			timebyexec[name, execname()] <<< delta
 			target = 1
 		}
