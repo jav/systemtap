@@ -5,49 +5,48 @@ foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
     set rc [stap_run_batch $file]
 
     switch $test {
-        # Use setup_kfail <pr number> <target triplet> for known bugs
-        # Use setup_kfail GCC <target triplet> for debuginfo-quality problems
-        #
-	# Any test that uses nd_syscalls probes do not work on ia64
+	# Use setup_kfail <pr number> <target triplet> for known bugs.
+
+	# Any test that uses nd_syscalls probes do not work on ia64.
 	buildok/fortyfive.stp -
 	buildok/nd_syscalls-all-probes.stp -
+	buildok/nd_syscalls-arch-detailed.stp -
 	buildok/nd_syscalls-detailed.stp -
-	buildok/nd_syscalls2-detailed.stp -
-	buildok/nd_syscalls-arch-detailed.stp {
+	buildok/nd_syscalls2-detailed.stp {
 	    if {$rc != 0 && [istarget ia64-*-*]} { setup_kfail 6971 ia64-*-* } }
 
 	buildok/memory-write_shared_copy.stp {
-		if {$rc != 0} { setup_kfail 1155 *-*-* } }
-	buildok/networking-change_rx_flag.stp {
-		if {$rc != 0} { setup_kfail GCC *-*-* } }
+	    if {$rc != 0} { setup_kfail 1155 *-*-* } }
+
+	# Use setup_kfail GCC <target triplet> for debuginfo-quality
+	# problems.
+	buildok/memory-mmap.stp -
+	buildok/memory-write_shared_copy.stp -
+	buildok/networking-change_rx_flag.stp -
+	buildok/nfs-fop.check_flags.stp -
 	buildok/nfs_proc-detailed.stp -
 	buildok/nfsd-detailed.stp -
 	buildok/rpc-detailed.stp -
-	buildok/vfs-detailed.stp -
-	buildok/nfs-fop.check_flags.stp {
-		if {$rc != 0} { setup_kfail GCC *-*-* } }
-	buildok/memory-mmap.stp { 
-                if {$rc != 0} { setup_kfail GCC *-*-* } }
-	buildok/memory-write_shared_copy.stp {
-		if {$rc != 0} { setup_kfail GCC *-*-* } }
+	buildok/scheduler-cpu_off.stp -
+	buildok/scheduler-ctxswitch.stp -
+	buildok/scheduler-migrate.stp -
+	buildok/signal-check_ignored.stp -
+	buildok/signal-handle.stp -
+	buildok/tty-resize.stp -
+	buildok/vfs-detailed.stp {
+	    if {$rc != 0} { setup_kfail GCC *-*-* } }
+
+	# Use setup_kfail UTRACE <target triplet> for systems without
+	# utrace.
         buildok/per-process-syscall.stp {
-		if {![utrace_p]} { setup_kfail UTRACE *-*-*} }
-	buildok/signal-check_ignored.stp {
-		if {$rc != 0} { setup_kfail GCC *-*-* } }
-	buildok/signal-handle.stp {
-                if {$rc != 0} { setup_kfail GCC *-*-* } }
-	buildok/scheduler-cpu_off.stp {
-		if {$rc != 0} { setup_kfail GCC *-*-* } }
-	buildok/scheduler-ctxswitch.stp {
-		if {$rc != 0} { setup_kfail GCC *-*-* } }
-	buildok/scheduler-migrate.stp {
-		if {$rc != 0} { setup_kfail GCC *-*-* } }
-	buildok/tty-resize.stp {
-		if {$rc != 0} { setup_kfail GCC *-*-* } }
-	buildok/ucontext-symbols-embedded.stp {
-		if {$rc != 0 && ![uprobes_p]} { setup_kfail UPROBES *-*-* } }
+	    if {![utrace_p]} { setup_kfail UTRACE *-*-*} }
+
+	# Use setup_kfail UPROBES <target triplet> for systems without
+	# uprobes. (ia64 has utrace, but not uprobes.)
+	buildok/twentyeightprime.stp -
+	buildok/ucontext-symbols-embedded.stp -
 	buildok/ucontext-unwind-embedded.stp {
-		if {$rc != 0 && ![uprobes_p]} { setup_kfail UPROBES *-*-* } }
+	    if {$rc != 0 && ![uprobes_p]} { setup_kfail UPROBES *-*-* } }
     }
     if {$rc == 0} { pass $test } else { fail $test }
 }
