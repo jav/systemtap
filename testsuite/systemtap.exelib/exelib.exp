@@ -57,7 +57,14 @@ foreach arch $arches {
 	# Adding -O0, -O, -O2, -Os and mixing lib/exe is a bit overdone
 	foreach opt {-O3} {
 
-	    foreach libprelink {no yes} {
+	    # Only use prelink if it exists on this platform
+	    set prelink_bin "/usr/sbin/prelink"
+	    if {[file exists $prelink_bin]} {
+		set libprelink_opts {no yes}
+	    } else {
+		set libprelink_opts {no}
+	    }
+	    foreach libprelink $libprelink_opts {
 
 		# not done yet, "no" lib debug.
 		# seperate debuginfo can be done before or after prelinking
@@ -116,7 +123,6 @@ foreach arch $arches {
 		    }
 
 		    if {$libprelink == "yes"} {
-			set prelink_bin "/usr/sbin/prelink"
 			set addr "-r 0x6400000"
 			set prelink_cmd [concat $prelink_bin -vfNR $addr $testso]
 			send_log "Executing: $prelink_cmd\n"
