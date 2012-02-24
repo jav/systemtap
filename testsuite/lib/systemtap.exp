@@ -141,11 +141,11 @@ proc setup_systemtap_environment {} {
 
 # Set up the environment so that tests will be performed using the systemtap
 # client and server.
-proc setup_server {} {
+proc setup_server { args } {
     global srcdir env installed_stap logfile use_server
 
     # Start the server
-    if {! [start_server]} then {
+    if {! [start_server $args]} then {
 	return 0
     }
 
@@ -183,7 +183,7 @@ proc setup_server {} {
     return 1
 }
 
-proc start_server {} {
+proc start_server { options } {
     global srcdir env server_pid installed_stap logfile
 
     # Server management scripts and data are installed if this is an
@@ -201,9 +201,9 @@ proc start_server {} {
 
     # Try to start the server.
     set status 0
-    if {[catch {exec env STAP_PR11197_OVERRIDE=1 \
+    if {[catch {eval {exec env STAP_PR11197_OVERRIDE=1 \
 		    env SYSTEMTAP_STAP=[exec which stap] stap-start-server \
-		    --log=$logfile} server_pid]} {
+		    --log=$logfile} $options} server_pid]} {
 	if {[lindex $::errorCode 0] eq "CHILDSTATUS"} {
 	    set status [lindex $::errorCode 2]
 	}

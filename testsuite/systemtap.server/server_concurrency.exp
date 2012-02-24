@@ -1,0 +1,164 @@
+# Server Concurrency Tests
+
+# Save the old log file, create a new one
+# and make sure it's world writable. We need to
+# use a clean server log since we are crawling the
+# output to find the port and to verify concurrency.
+# We restore the old log at the end, appending the log
+# output from this test.
+set logfile "[exec pwd]/server.log"
+set oldlogfile "[exec pwd]/old_server.log"
+if {[file exists $logfile]} then {
+    exec mv $logfile $oldlogfile
+}
+exec touch $logfile
+exec chmod 666 $logfile
+
+# Start our own server and make sure we can work with it.
+if {! [setup_server --max-threads 6]} {
+    untested "Compile-server client tests against a server"
+    return;
+}
+
+# Find the port chosen by the server. This way the port
+# should always be unique (as opposed to specifying a
+# a static port).
+set server_port 0
+set f [open $logfile]
+set matched 0
+verbose -log "Server ouput: "
+while {1} {
+    set line [gets $f]
+    if {[eof $f]} {
+        close $f
+        break
+    }
+    verbose -log "$line"
+    if { [regexp {^.*Using network port (\d*)$} $line matched server_port ] } {
+      close $f
+      break
+    }
+}
+if { $server_port == 0 } {
+    verbose -log "Could not find port number in server log: $logfile"
+}
+
+# Set up the hostname and port we will use to connect to the server
+set test "server_concurrency"
+set failed 1
+set server_spec [info hostname]:$server_port
+set use_server --use-server=$server_spec
+verbose -log "Client/Server tests will be run by contacting the server directly as $server_spec"
+
+# Start the first connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency1.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set firstid $spawn_id
+
+# Start the second connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency2.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set secondid $spawn_id
+
+# Start the third connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency3.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set thirdid $spawn_id
+
+# Start the fourth connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency1.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set fourthid $spawn_id
+
+# Start the fifth connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency2.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set fifthid $spawn_id
+
+# Start the sixth connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency3.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set sixthid $spawn_id
+
+# Wait for them to finish
+expect {
+    -timeout 150
+    -i $firstid timeout {
+        exec kill -INT -[$firstid]
+        wait
+        fail "$test (timeout 1)"
+        exp_continue
+    }
+    -i $secondid timeout {
+        exec kill -INT -[$secondid]
+        wait
+        fail "$test (timeout 2)"
+        exp_continue
+    }
+    -i $thirdid timeout {
+        exec kill -INT -[$thirdid]
+        wait
+        fail "$test (timeout 3)"
+        exp_continue
+    }
+    -i $fourthid timeout {
+        exec kill -INT -[$fourthid]
+        wait
+        fail "$test (timeout 4)"
+        exp_continue
+    }
+    -i $fifthid timeout {
+        exec kill -INT -[$fifthid]
+        wait
+        fail "$test (timeout 5)"
+        exp_continue
+    }
+    -i $sixthid timeout {
+        exec kill -INT -[$sixthid]
+        wait
+        fail "$test (timeout 6)"
+        exp_continue
+    }
+}
+catch close
+
+# Check the log output file for cuncurrency
+set f [open $logfile]
+verbose -log "Server ouput: "
+while {1} {
+    set line [gets $f]
+    if {[eof $f]} {
+        close $f
+        break
+    }
+    verbose -log "$line"
+    if { [regexp {^.*Processing 6 concurrent requests...$} $line ] } {
+        set failed 0
+        close $f
+        break
+    }
+}
+
+if { $failed == 0 } {
+    pass $test
+} else {
+    fail $test
+}
+
+# Cleanup and shutdown the server we started.
+# Restore the old log file, appending the new
+# one to the end.
+if {[file exists $logfile]} then {
+    exec cat $logfile >> $oldlogfile
+    exec rm -f $logfile
+    exec mv $oldlogfile $logfile
+}
+shutdown_server
+
+

@@ -1,0 +1,37 @@
+
+probe module("j*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("k*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("l*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("m*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("n*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("o*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("p*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("q*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("r*").function("*") {
+  printf("hello");
+  exit();
+}

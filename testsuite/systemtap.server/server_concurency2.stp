@@ -1,0 +1,33 @@
+
+probe module("s*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("t*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("u*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("v*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("w*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("x*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("y*").function("*") {
+  printf("hello");
+  exit();
+}
+probe module("z*").function("*") {
+  printf("hello");
+  exit();
+}
