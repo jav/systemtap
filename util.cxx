@@ -38,6 +38,7 @@ extern "C" {
 #include <unistd.h>
 #include <regex.h>
 #include <stdarg.h>
+#include <pthread.h>
 }
 
 using namespace std;
@@ -454,32 +455,59 @@ cmdstr_join(const vector<string>& cmds)
 class spawned_pids_t {
   private:
     set<pid_t> pids;
+    pthread_mutex_t mux_pids;
 
   public:
     bool contains (pid_t p)
       {
         stap_sigmasker masked;
-        return pids.count(p) == 0;
+
+        pthread_mutex_lock(&mux_pids);
+        bool ret = (pids.count(p)==0) ? true : false;
+        pthread_mutex_unlock(&mux_pids);
+
+        return ret;
       }
     bool insert (pid_t p)
       {
         stap_sigmasker masked;
-        return (p > 0) ? pids.insert(p).second : false;
+
+        pthread_mutex_lock(&mux_pids);
+        bool ret = (p > 0) ? pids.insert(p).second : false;
+        pthread_mutex_unlock(&mux_pids);
+
+        return ret;
       }
     void erase (pid_t p)
       {
         stap_sigmasker masked;
+
+        pthread_mutex_lock(&mux_pids);
         pids.erase(p);
+        pthread_mutex_unlock(&mux_pids);
       }
     int killall (int sig)
       {
         int ret = 0;
         stap_sigmasker masked;
+
+        pthread_mutex_lock(&mux_pids);
         for (set<pid_t>::const_iterator it = pids.begin();
              it != pids.end(); ++it)
           ret = kill(*it, sig) ?: ret;
+        pthread_mutex_unlock(&mux_pids);
+
         return ret;
       }
+    spawned_pids_t()
+      {
+        pthread_mutex_init(&mux_pids, NULL);
+      }
+    ~spawned_pids_t()
+      {
+        pthread_mutex_destroy (&mux_pids);
+      }
+
 };
 static spawned_pids_t spawned_pids;
 

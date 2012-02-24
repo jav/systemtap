@@ -72,7 +72,6 @@ static PRStatus spawn_and_wait (const vector<string> &argv,
 extern int optind;
 
 /* File scope statics. Set during argument parsing and initialization. */
-static cs_protocol_version client_version;
 static bool set_rlimits;
 static bool use_db_password;
 static unsigned short port;
@@ -103,6 +102,9 @@ static struct rlimit translator_RLIMIT_NPROC;
 static struct rlimit translator_RLIMIT_AS;
 
 sem_t sem_client;
+static int pending_interrupts;
+static int interrupt_sig;
+#define CONCURRENCY_TIMEOUT_S 3
 
 // Message handling.
 // Server_error messages are printed to stderr and logged, if requested.
@@ -316,12 +318,14 @@ handle_interrupt (int sig)
     default:
       break;
     }
-
-  // Otherwise, it's game over.
+  pending_interrupts++;
+  interrupt_sig = sig;
+  if(pending_interrupts >= 2)
+    {
+      log (_F("Received another signal %d, exiting (forced)", sig));
+      _exit(0);
+    }
   log (_F("Received signal %d, exiting", sig));
-  kill_stap_spawn (sig);
-  cleanup ();
-  exit (0);
 }
 
 static void
@@ -616,13 +620,14 @@ unadvertise_presence ()
 
 static void
 initialize (int argc, char **argv) {
+  pending_interrupts = 0;
+  interrupt_sig = 0;
   setup_signals (& handle_interrupt);
 
   // Seed the random number generator. Used to generate noise used during key generation.
   srand (time (NULL));
 
   // Initial values.
-  client_version = "1.0"; // Assumed until discovered otherwise
   use_db_password = false;
   port = 0;
   max_threads = sysconf( _SC_NPROCESSORS_ONLN ); // Default to number of processors
@@ -978,11 +983,11 @@ writeDataToSocket(PRFileDesc *sslSocket, const char *responseFileName)
 }
 
 static void
-get_stap_locale (const string &staplang, vector<string> &envVec, string stapstderr)
+get_stap_locale (const string &staplang, vector<string> &envVec, string stapstderr, cs_protocol_version *client_version)
 {
   // If the client version is < 1.6, then no file containing environment
   // variables defining the locale has been passed.
-  if (client_version < "1.6")
+  if (*client_version < "1.6")
     return;
 
   /* Go through each line of the file, verify it, then add it to the vector */
@@ -1177,6 +1182,7 @@ static void
 handleRequest (const string &requestDirName, const string &responseDirName, string stapstderr)
 {
   vector<string> stapargv;
+  cs_protocol_version client_version = "1.0"; // Assumed until discovered otherwise
   int rc;
   wordexp_t words;
   unsigned u;
@@ -1283,7 +1289,7 @@ handleRequest (const string &requestDirName, const string &responseDirName, stri
   // Environment variables (possibly empty) to be passed to spawn_and_wait().
   string staplang = requestDirName + "/locale";
   vector<string> envVec;
-  get_stap_locale (staplang, envVec, stapstderr);
+  get_stap_locale (staplang, envVec, stapstderr, &client_version);
 
   /* All ready, let's run the translator! */
   rc = spawn_and_wait(stapargv, "/dev/null", stapstdout.c_str (), stapstderr.c_str (),
@@ -1673,6 +1679,7 @@ cleanup:
 	      addr.inet.port));
 
       /* Increment semephore to indicate this thread is finished. */
+      free(t_arg);
       if (max_threads > 0)
         {
           sem_post(&sem_client);
@@ -1695,12 +1702,8 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
   SECStatus   secStatus;
   CERTCertDBHandle *dbHandle;
   pthread_t tid;
+  thread_arg *t_arg;
 
-  /* Initialize semephore with the maximum number of threads
-   * defined by --max-threads. If it is not defined, the
-   * default is the number of processors */
-  if (max_threads > 0)
-    sem_init(&sem_client, 0, max_threads);
 
   dbHandle = CERT_GetDefaultCertDB ();
 
@@ -1713,15 +1716,20 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
       return SECFailure;
     }
 
-  while (PR_TRUE)
+  while (pending_interrupts == 0)
     {
       /* Accept a connection to the socket. */
-      tcpSocket = PR_Accept (listenSocket, &addr, PR_INTERVAL_NO_TIMEOUT);
+      tcpSocket = PR_Accept (listenSocket, &addr, PR_INTERVAL_MIN);
       if (tcpSocket == NULL)
-	{
-	  server_error (_("Error accepting client connection"));
-	  break;
-	}
+        {
+          if(PR_GetError() == PR_IO_TIMEOUT_ERROR)
+            continue;
+          else
+            {
+              server_error (_("Error accepting client connection"));
+              break;
+            }
+        }
 
       /* Log the accepted connection.  */
       log (_F("Accepted connection from %d.%d.%d.%d:%d",
@@ -1738,33 +1746,36 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
       /* Wait for a thread to finish if there are none available */
       if(max_threads >0)
         {
-          int value;
-          sem_getvalue(&sem_client, &value);
-          if(value <= 0)
+          int idle_threads;
+          sem_getvalue(&sem_client, &idle_threads);
+          if(idle_threads <= 0)
             log(_("Server is overloaded. Processing times may be longer than normal."));
-          else if (value == max_threads)
+          else if (idle_threads == max_threads)
             log(_("Processing 1 request..."));
           else
-            log(_F("Processing %d concurrent requests...", ((int)max_threads - value) + 1));
+            log(_F("Processing %d concurrent requests...", ((int)max_threads - idle_threads) + 1));
 
           sem_wait(&sem_client);
         }
 
       /* Create the argument structure to pass to pthread_create
        * (or directly to handle_connection if max_threads == 0 */
-      thread_arg t_arg;
-      t_arg.tcpSocket = tcpSocket;
-      t_arg.cert = cert;
-      t_arg.privKey = privKey;
-      t_arg.addr = addr;
+      t_arg = (thread_arg *)malloc(sizeof(*t_arg));
+      if (t_arg == 0)
+        fatal(_("No memory available for new thread arg!"));
+      t_arg->tcpSocket = tcpSocket;
+      t_arg->cert = cert;
+      t_arg->privKey = privKey;
+      t_arg->addr = addr;
 
       /* Handle the conncection */
       if (max_threads > 0)
         /* Create the worker thread and handle the connection. */
-        pthread_create(&tid, NULL, handle_connection, &t_arg);
+        pthread_create(&tid, NULL, handle_connection, t_arg);
       else
-        /* Since max_threads == 0, don't spawn a new thread, just handle in the current thread. */
-        handle_connection(&t_arg);
+        /* Since max_threads == 0, don't spawn a new thread,
+         * just handle in the current thread. */
+        handle_connection(t_arg);
 
       // If our certificate is no longer valid (e.g. has expired), then exit.
       secStatus = CERT_VerifyCertNow (dbHandle, cert, PR_TRUE/*checkSig*/,
@@ -1775,9 +1786,6 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
 	  break;
 	}
     }
-
-  if (max_threads > 0)
-    sem_destroy(&sem_client);
 
   SECKEY_DestroyPrivateKey (privKey);
   return SECSuccess;
@@ -1792,6 +1800,9 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
 static SECStatus
 server_main (PRFileDesc *listenSocket)
 {
+  int idle_threads;
+  int timeout = 0;
+
   // Initialize NSS.
   SECStatus secStatus = nssInit (cert_db_path.c_str ());
   if (secStatus != SECSuccess)
@@ -1847,6 +1858,27 @@ server_main (PRFileDesc *listenSocket)
 
   // Tell the world we're no longer listening.
   unadvertise_presence ();
+
+  sem_getvalue(&sem_client, &idle_threads);
+
+  /* Wait for requests to finish or the timeout to be reached.
+   * If we got here from an interrupt, exit immediately if
+   * the timeout is reached. Otherwise, wait indefinitiely
+   * until the threads exit (or an interrupt is recieved).*/
+  if(idle_threads < max_threads)
+    log(_F("Waiting for %d outstanding requests to complete...", (int)max_threads - idle_threads));
+  while(idle_threads < max_threads)
+    {
+      if(pending_interrupts && timeout++ > CONCURRENCY_TIMEOUT_S)
+        {
+          log(_("Timeout reached, exiting (forced)"));
+          kill_stap_spawn (interrupt_sig);
+          cleanup ();
+          _exit(0);
+        }
+      sleep(1);
+      sem_getvalue(&sem_client, &idle_threads);
+    }
 
  done:
   // Clean up
@@ -1960,10 +1992,15 @@ listen ()
       goto done;
     }
 
+  /* Initialize semephore with the maximum number of threads
+   * defined by --max-threads. If it is not defined, the
+   * default is the number of processors */
+  sem_init(&sem_client, 0, max_threads);
+
   // Loop forever. We check our certificate (and regenerate, if necessary) and then start the
   // server. The server will go down when our certificate is no longer valid (e.g. expired). We
   // then generate a new one and start the server again.
-  for (;;)
+  while(!pending_interrupts)
     {
       // Ensure that our certificate is valid. Generate a new one if not.
       if (check_cert (cert_db_path, server_cert_nickname (), use_db_password) != 0)
@@ -1987,6 +2024,7 @@ listen ()
     } // loop forever
 
  done:
+  sem_destroy(&sem_client); /*Not really necessary, as we are shutting down...but for correctness */
   if (PR_Close (listenSocket) != PR_SUCCESS)
     {
       server_error (_("Error closing listen socket"));
