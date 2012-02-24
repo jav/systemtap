@@ -46,6 +46,11 @@ proc uprobes_p {} {
     #
     # classical utrace?
     if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+	# Although ia64 has classical utrace, uprobes hasn't been
+	# ported there (PR7081).
+	if {[istarget ia64-*-*]} {
+ 	    return 0
+	}
 	return 1
     }
     # inode-uprobes or (unlikely compiled-in classical uprobes?)
