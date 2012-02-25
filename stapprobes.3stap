@@ -911,8 +911,8 @@ refers to a periodic interrupt, every 1000 +/\- 200 jiffies.
 kernel.function("*init*"), kernel.function("*exit*")
 refers to all kernel functions with "init" or "exit" in the name.
 .TP
-kernel.function("*@kernel/sched.c:240")
-refers to any functions within the "kernel/sched.c" file that span
+kernel.function("*@kernel/time.c:240")
+refers to any functions within the "kernel/time.c" file that span
 line 240.  
 .BR
 Note
@@ -934,8 +934,8 @@ kernel.statement(0xc0044852)
 refers to the first byte of the statement whose compiled instructions
 include the given address in the kernel.
 .TP
-kernel.statement("*@kernel/sched.c:2917")
-refers to the statement of line 2917 within "kernel/sched.c".
+kernel.statement("*@kernel/time.c:296")
+refers to the statement of line 296 within "kernel/time.c".
 .TP
 kernel.statement("bio_init@fs/bio.c+3")
 refers to the statement at line bio_init+3 within "fs/bio.c".

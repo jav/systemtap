@@ -846,9 +846,9 @@ Examples:
 # in the name:
 kernel.function("*init*"), kernel.function("*exit*")
 
-# Refers to any functions within the "kernel/sched.c"
+# Refers to any functions within the "kernel/time.c"
 # file that span line 240:
-kernel.function("*@kernel/sched.c:240")
+kernel.function("*@kernel/time.c:240")
 
 # Refers to all functions in the ext3 module:
 module("ext3").function("*")
@@ -873,9 +873,9 @@ Example:
 
 \begin{vindent}
 \begin{verbatim}
-# Refers to the statement at line 2917 within the
-# kernel/sched.c file:
-kernel.statement("*@kernel/sched.c:2917")
+# Refers to the statement at line 296 within the
+# kernel/time.c file:
+kernel.statement("*@kernel/time.c:296")
 # Refers to the statement at line bio_init+3 within the fs/bio.c file:
 kernel.statement("bio_init@fs/bio.c+3")
 \end{verbatim}

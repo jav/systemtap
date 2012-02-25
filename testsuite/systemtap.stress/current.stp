@@ -54,8 +54,8 @@ probe
        %)
     %)
 
-    kernel.function("*@kernel/sched.c").call,
-    kernel.function("*@kernel/sched.c").return,
+    kernel.function("*@kernel/time.c").call,
+    kernel.function("*@kernel/time.c").return,
     module("*").function("*interrupt*").call ?,
     module("*").function("*interrupt*").return ?
 {
