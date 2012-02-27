@@ -45,6 +45,7 @@ Source: ftp://sourceware.org/pub/%{name}/releases/%{name}-%{version}.tar.gz
 
 # Build*
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildRequires: gcc >= 4.4.4-9 gcc-c++ make
 BuildRequires: gettext
 %if %{with_sqlite}
 BuildRequires: sqlite-devel
@@ -127,7 +128,6 @@ Requires: kernel >= 2.6.9-11
 # provide for kernel-devel, so this requirement does the right thing,
 # at least past RHEL4.
 Requires: kernel-devel
-Requires: gcc gcc-c++ make
 # Suggest: kernel-debuginfo
 
 %description devel
