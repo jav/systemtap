@@ -1169,7 +1169,8 @@ dwflpp::iterate_over_libraries (void (*callback)(void *object, const char *arg),
        && interpreter != "/lib/ld-linux-ia64.so.2" // ia64
        && interpreter != "/emul/ia32-linux/lib/ld-linux.so.2"
        && interpreter != "/lib64/ld-linux-x86-64.so.2"   // x8664
-       && interpreter !=  "/lib/ld-linux.so.2"))          // x86
+       && interpreter !=  "/lib/ld-linux.so.2"           // x86
+       && interpreter !=  "/lib/ld-linux.so.3"))         // arm
     {
       sess.print_warning (_F("module %s --ldd skipped: unsupported interpreter: %s",
                                module_name.c_str(), interpreter.c_str()));
