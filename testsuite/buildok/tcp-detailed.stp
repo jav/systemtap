@@ -2,7 +2,7 @@
 
 probe tcp.sendmsg
 {
-	printf("%s %p %d\n", name, sock, size)
+	printf("%s %p %d %d\n", name, sock, family, size)
 }
 probe tcp.sendmsg.return
 {
@@ -22,7 +22,7 @@ probe tcp.recvmsg.return
 
 probe tcp.disconnect
 {
-	printf("%s %p %d\n", name, sock, flags)
+	printf("%s %p %d %d\n", name, sock, family, flags)
 	printf("%s %s %d %d\n", saddr, daddr, sport, dport)
 }
 probe tcp.disconnect.return

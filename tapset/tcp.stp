@@ -467,6 +467,7 @@ function tcp_ipv6_sockopt_str:string (optname:long)
   * probe tcp.sendmsg - Sending a tcp message
   * @name: Name of this probe
   * @sock: Network socket 
+  * @family: IP address family
   * @size: Number of bytes to send  
   *
   * Context:
@@ -475,6 +476,7 @@ function tcp_ipv6_sockopt_str:string (optname:long)
 probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
 	name = "tcp.sendmsg"
 	sock = (@defined($sock) ? $sock->sk : $sk)
+	family  = __ip_sock_family(@defined($sock) ? $sock->sk : $sk)
 	size = $size
 }
 
@@ -542,6 +544,7 @@ probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
  * probe tcp.disconnect - TCP socket disconnection
  * @name: Name of this probe
  * @sock: Network socket 
+ * @family: IP address family
  * @flags: TCP flags (e.g. FIN, etc)  
  * @saddr: A string representing the source IP address
  * @daddr: A string representing the destination IP address
@@ -554,6 +557,7 @@ probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
 probe tcp.disconnect = kernel.function("tcp_disconnect") {
 	name = "tcp.disconnect"
 	sock  = $sk
+	family = __ip_sock_family($sk)
 	flags = $flags
 	saddr   = format_ipaddr(__ip_sock_saddr($sk), __ip_sock_family($sk))
 	daddr   = format_ipaddr(__ip_sock_daddr($sk), __ip_sock_family($sk))
