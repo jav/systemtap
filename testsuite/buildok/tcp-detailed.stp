@@ -30,9 +30,14 @@ probe tcp.disconnect.return
 	printf("%s %d\n", name, ret)
 }
 
+probe tcp.ipv4.setsockopt, tcp.ipv6.setsockopt
+{
+	printf("%s %p %d %d %d(%s) %d\n", name, sock, family, level, optname,
+	       optstr, optlen)
+}
 probe tcp.setsockopt
 {
-	printf("%s %p %d %d(%s) %d\n", name, sock, level, optname,
+	printf("%s %p %d %d %d(%s) %d\n", name, sock, family, level, optname,
 	       optstr, optlen)
 }
 probe tcp.setsockopt.return

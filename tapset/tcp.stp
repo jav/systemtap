@@ -216,26 +216,251 @@ function tcp_ts_get_info_rcv_mss:long(sock:long)
 	CATCH_DEREF_FAULT();
 %}
 
-global sockopt[15], sockopt_init_p
-function tcp_sockopt_str:string (optname:long) {
-	if (!sockopt_init_p) {
-		sockopt_init_p=1
-       		sockopt[1] = "TCP_NODELAY"
-        	sockopt[2] = "TCP_MAXSEG"
-        	sockopt[3] = "TCP_CORK"
-        	sockopt[4] = "TCP_KEEPIDLE"
-       	 	sockopt[5] = "TCP_KEEPINTVL"
-        	sockopt[6] = "TCP_KEEPCNT"
-       	 	sockopt[7] = "TCP_SYNCNT"
-        	sockopt[8] = "TCP_LINGER2"
-       		sockopt[9] = "TCP_DEFER_ACCEPT"
-        	sockopt[10] = "TCP_WINDOW_CLAMP"
-        	sockopt[11] = "TCP_INFO"
-        	sockopt[12] = "TCP_QUICKACK"
-        	sockopt[13] = "TCP_CONGESTION"
-        	sockopt[14] = "TCP_MD5SIG"
+%{
+// Define newer IPv4 sockopt constants for older kernels.
+#ifndef TCP_CONGESTION
+#define TCP_CONGESTION 0
+#endif
+#ifndef TCP_MD5SIG
+#define TCP_MD5SIG 0
+#endif
+#ifndef TCP_COOKIE_TRANSACTIONS
+#define TCP_COOKIE_TRANSACTIONS 0
+#endif
+#ifndef TCP_THIN_LINEAR_TIMEOUTS
+#define TCP_THIN_LINEAR_TIMEOUTS 0
+#endif
+#ifndef TCP_THIN_DUPACK
+#define TCP_THIN_DUPACK 0
+#endif
+#ifndef TCP_USER_TIMEOUT
+#define TCP_USER_TIMEOUT 0
+#endif
+%}
+
+global __sockopt, __sockopt_init_p
+function tcp_sockopt_str:string (optname:long)
+{
+	if (!__sockopt_init_p) {
+		__sockopt_init_p = 1
+		__sockopt[%{/* pure */TCP_NODELAY%}] = "TCP_NODELAY"
+		__sockopt[%{/* pure */TCP_MAXSEG%}] = "TCP_MAXSEG"
+		__sockopt[%{/* pure */TCP_CORK%}] = "TCP_CORK"
+		__sockopt[%{/* pure */TCP_KEEPIDLE%}] = "TCP_KEEPIDLE"
+		__sockopt[%{/* pure */TCP_KEEPINTVL%}] = "TCP_KEEPINTVL"
+		__sockopt[%{/* pure */TCP_KEEPCNT%}] = "TCP_KEEPCNT"
+		__sockopt[%{/* pure */TCP_SYNCNT%}] = "TCP_SYNCNT"
+		__sockopt[%{/* pure */TCP_LINGER2%}] = "TCP_LINGER2"
+		__sockopt[%{/* pure */TCP_DEFER_ACCEPT%}] = "TCP_DEFER_ACCEPT"
+		__sockopt[%{/* pure */TCP_WINDOW_CLAMP%}] = "TCP_WINDOW_CLAMP"
+		__sockopt[%{/* pure */TCP_INFO%}] = "TCP_INFO"
+		__sockopt[%{/* pure */TCP_QUICKACK%}] = "TCP_QUICKACK"
+		if (%{/* pure */TCP_CONGESTION%} > 0)
+			__sockopt[%{/* pure */TCP_CONGESTION%}]
+				= "TCP_CONGESTION"
+		if (%{/* pure */TCP_MD5SIG%} > 0)
+			__sockopt[%{/* pure */TCP_MD5SIG%}] = "TCP_MD5SIG"
+		if (%{/* pure */TCP_COOKIE_TRANSACTIONS%} > 0)
+			__sockopt[%{/* pure */TCP_COOKIE_TRANSACTIONS%}]
+				= "TCP_COOKIE_TRANSACTIONS"
+		if (%{/* pure */TCP_THIN_LINEAR_TIMEOUTS%} > 0)
+			__sockopt[%{/* pure */TCP_THIN_LINEAR_TIMEOUTS%}]
+				= "TCP_THIN_LINEAR_TIMEOUTS"
+		if (%{/* pure */TCP_THIN_DUPACK%} > 0)
+			__sockopt[%{/* pure */TCP_THIN_DUPACK%}]
+				= "TCP_THIN_DUPACK"
+		if (%{/* pure */TCP_USER_TIMEOUT%} > 0)
+			__sockopt[%{/* pure */TCP_USER_TIMEOUT%}]
+				= "TCP_USER_TIMEOUT"
 	}
-	return (optname in sockopt ? sockopt[optname] : "UNDEF")
+	return (optname in __sockopt ? __sockopt[optname]
+		: sprintf("UNDEF_SOCKOPT(%d)", optname))
+}
+
+%{
+// Define newer IPv6 sockopt constants for older kernels.
+#include <linux/in6.h>
+#ifndef IPV6_2292PKTINFO
+#define IPV6_2292PKTINFO 0
+#endif
+#ifndef IPV6_2292HOPOPTS
+#define IPV6_2292HOPOPTS 0
+#endif
+#ifndef IPV6_2292DSTOPTS
+#define IPV6_2292DSTOPTS 0
+#endif
+#ifndef IPV6_2292RTHDR
+#define IPV6_2292RTHDR 0
+#endif
+#ifndef IPV6_2292PKTOPTIONS
+#define IPV6_2292PKTOPTIONS 0
+#endif
+#ifndef IPV6_2292HOPLIMIT
+#define IPV6_2292HOPLIMIT 0
+#endif
+#ifndef IPV6_RECVPKTINFO
+#define IPV6_RECVPKTINFO 0
+#endif
+#ifndef IPV6_RECVHOPLIMIT
+#define IPV6_RECVHOPLIMIT 0
+#endif
+#ifndef IPV6_RECVHOPOPTS
+#define IPV6_RECVHOPOPTS 0
+#endif
+#ifndef IPV6_RTHDRDSTOPTS
+#define IPV6_RTHDRDSTOPTS 0
+#endif
+#ifndef IPV6_RECVRTHDR
+#define IPV6_RECVRTHDR 0
+#endif
+#ifndef IPV6_RECVDSTOPTS
+#define IPV6_RECVDSTOPTS 0
+#endif
+#ifndef IPV6_RECVPATHMTU
+#define IPV6_RECVPATHMTU 0
+#endif
+#ifndef IPV6_PATHMTU
+#define IPV6_PATHMTU 0
+#endif
+#ifndef IPV6_DONTFRAG
+#define IPV6_DONTFRAG 0
+#endif
+#ifndef IPV6_ADDR_PREFERENCES
+#define IPV6_ADDR_PREFERENCES 0
+#endif
+#ifndef IPV6_MINHOPCOUNT
+#define IPV6_MINHOPCOUNT 0
+#endif
+#ifndef IPV6_RECVORIGDSTADDR
+#define IPV6_RECVORIGDSTADDR 0
+#endif
+#ifndef IPV6_TRANSPARENT
+#define IPV6_TRANSPARENT 0
+#endif
+%}
+
+global __ipv6_sockopt, __ipv6_sockopt_init_p
+function tcp_ipv6_sockopt_str:string (optname:long)
+{
+	if (!__ipv6_sockopt_init_p) {
+		__ipv6_sockopt_init_p = 1
+		__ipv6_sockopt[%{/* pure */IPV6_ADDRFORM%}] = "IPV6_ADDRFORM"
+		if (%{/* pure */IPV6_2292PKTINFO%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_2292PKTINFO%}]
+				= "IPV6_2292PKTINFO"
+		if (%{/* pure */IPV6_2292HOPOPTS%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_2292HOPOPTS%}]
+				= "IPV6_2292HOPOPTS"
+		if (%{/* pure */IPV6_2292DSTOPTS%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_2292DSTOPTS%}]
+				= "IPV6_2292DSTOPTS"
+		if (%{/* pure */IPV6_2292RTHDR%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_2292RTHDR%}]
+				= "IPV6_2292RTHDR"
+		if (%{/* pure */IPV6_2292PKTOPTIONS%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_2292PKTOPTIONS%}]
+				= "IPV6_2292PKTOPTIONS"
+		__ipv6_sockopt[%{/* pure */IPV6_CHECKSUM%}] = "IPV6_CHECKSUM"
+		if (%{/* pure */IPV6_2292HOPLIMIT%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_2292HOPLIMIT%}]
+				= "IPV6_2292HOPLIMIT"
+		__ipv6_sockopt[%{/* pure */IPV6_NEXTHOP%}] = "IPV6_NEXTHOP"
+		__ipv6_sockopt[%{/* pure */IPV6_AUTHHDR%}] = "IPV6_AUTHHDR"
+		__ipv6_sockopt[%{/* pure */IPV6_FLOWINFO%}] = "IPV6_FLOWINFO"
+		__ipv6_sockopt[%{/* pure */IPV6_UNICAST_HOPS%}]
+			= "IPV6_UNICAST_HOPS"
+		__ipv6_sockopt[%{/* pure */IPV6_MULTICAST_IF%}]
+			= "IPV6_MULTICAST_IF"
+		__ipv6_sockopt[%{/* pure */IPV6_MULTICAST_HOPS%}]
+			= "IPV6_MULTICAST_HOPS"
+		__ipv6_sockopt[%{/* pure */IPV6_MULTICAST_LOOP%}]
+			= "IPV6_MULTICAST_LOOP"
+		__ipv6_sockopt[%{/* pure */IPV6_ADD_MEMBERSHIP%}]
+			= "IPV6_ADD_MEMBERSHIP"
+		__ipv6_sockopt[%{/* pure */IPV6_DROP_MEMBERSHIP%}]
+			= "IPV6_DROP_MEMBERSHIP"
+		__ipv6_sockopt[%{/* pure */IPV6_ROUTER_ALERT%}]
+			= "IPV6_ROUTER_ALERT"
+		__ipv6_sockopt[%{/* pure */IPV6_MTU_DISCOVER%}]
+			= "IPV6_MTU_DISCOVER"
+		__ipv6_sockopt[%{/* pure */IPV6_MTU%}] = "IPV6_MTU"
+		__ipv6_sockopt[%{/* pure */IPV6_RECVERR%}] = "IPV6_RECVERR"
+		__ipv6_sockopt[%{/* pure */IPV6_V6ONLY%}] = "IPV6_V6ONLY"
+		__ipv6_sockopt[%{/* pure */IPV6_JOIN_ANYCAST%}]
+			= "IPV6_JOIN_ANYCAST"
+		__ipv6_sockopt[%{/* pure */IPV6_LEAVE_ANYCAST%}]
+			= "IPV6_LEAVE_ANYCAST"
+		__ipv6_sockopt[%{/* pure */IPV6_FLOWLABEL_MGR%}]
+			= "IPV6_FLOWLABEL_MGR"
+		__ipv6_sockopt[%{/* pure */IPV6_FLOWINFO_SEND%}]
+			= "IPV6_FLOWINFO_SEND"
+		__ipv6_sockopt[%{/* pure */IPV6_IPSEC_POLICY%}]
+			= "IPV6_IPSEC_POLICY"
+		__ipv6_sockopt[%{/* pure */IPV6_XFRM_POLICY%}]
+			= "IPV6_XFRM_POLICY"
+		__ipv6_sockopt[%{/* pure */MCAST_JOIN_GROUP%}]
+			= "MCAST_JOIN_GROUP"
+		__ipv6_sockopt[%{/* pure */MCAST_BLOCK_SOURCE%}]
+			= "MCAST_BLOCK_SOURCE"
+		__ipv6_sockopt[%{/* pure */MCAST_UNBLOCK_SOURCE%}]
+			= "MCAST_UNBLOCK_SOURCE"
+		__ipv6_sockopt[%{/* pure */MCAST_LEAVE_GROUP%}]
+			= "MCAST_LEAVE_GROUP"
+		__ipv6_sockopt[%{/* pure */MCAST_JOIN_SOURCE_GROUP%}]
+			= "MCAST_JOIN_SOURCE_GROUP"
+		__ipv6_sockopt[%{/* pure */MCAST_LEAVE_SOURCE_GROUP%}]
+			= "MCAST_LEAVE_SOURCE_GROUP"
+		__ipv6_sockopt[%{/* pure */MCAST_MSFILTER%}] = "MCAST_MSFILTER"
+		if (%{/* pure */IPV6_RECVPKTINFO%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_RECVPKTINFO%}]
+				= "IPV6_RECVPKTINFO"
+		__ipv6_sockopt[%{/* pure */IPV6_PKTINFO%}] = "IPV6_PKTINFO"
+		if (%{/* pure */IPV6_RECVHOPLIMIT%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_RECVHOPLIMIT%}]
+				= "IPV6_RECVHOPLIMIT"
+		__ipv6_sockopt[%{/* pure */IPV6_HOPLIMIT%}] = "IPV6_HOPLIMIT"
+		if (%{/* pure */IPV6_RECVHOPOPTS%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_RECVHOPOPTS%}]
+				= "IPV6_RECVHOPOPTS"
+		__ipv6_sockopt[%{/* pure */IPV6_HOPOPTS%}] = "IPV6_HOPOPTS"
+		if (%{/* pure */IPV6_RTHDRDSTOPTS%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_RTHDRDSTOPTS%}]
+				= "IPV6_RTHDRDSTOPTS"
+		if (%{/* pure */IPV6_RECVRTHDR%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_RECVRTHDR%}]
+				= "IPV6_RECVRTHDR"
+		__ipv6_sockopt[%{/* pure */IPV6_RTHDR%}] = "IPV6_RTHDR"
+		if (%{/* pure */IPV6_RECVDSTOPTS%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_RECVDSTOPTS%}]
+				= "IPV6_RECVDSTOPTS"
+		__ipv6_sockopt[%{/* pure */IPV6_DSTOPTS%}] = "IPV6_DSTOPTS"
+		if (%{/* pure */IPV6_RECVPATHMTU%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_RECVPATHMTU%}]
+				= "IPV6_RECVPATHMTU"
+		if (%{/* pure */IPV6_PATHMTU%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_PATHMTU%}]
+				= "IPV6_PATHMTU"
+		if (%{/* pure */IPV6_DONTFRAG%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_DONTFRAG%}]
+				= "IPV6_DONTFRAG"
+		__ipv6_sockopt[%{/* pure */IPV6_RECVTCLASS%}]
+			= "IPV6_RECVTCLASS"
+		__ipv6_sockopt[%{/* pure */IPV6_TCLASS%}] = "IPV6_TCLASS"
+		if (%{/* pure */IPV6_ADDR_PREFERENCES%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_ADDR_PREFERENCES%}]
+				= "IPV6_ADDR_PREFERENCES"
+		if (%{/* pure */IPV6_MINHOPCOUNT%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_MINHOPCOUNT%}]
+				= "IPV6_MINHOPCOUNT"
+		if (%{/* pure */IPV6_RECVORIGDSTADDR%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_RECVORIGDSTADDR%}]
+				= "IPV6_RECVORIGDSTADDR"
+		if (%{/* pure */IPV6_TRANSPARENT%} > 0)
+			__ipv6_sockopt[%{/* pure */IPV6_TRANSPARENT%}]
+				= "IPV6_TRANSPARENT"
+	}
+	return (optname in __ipv6_sockopt ? __ipv6_sockopt[optname]
+		: sprintf("UNDEF_SOCKOPT(%d)", optname))
 }
 
 /**
@@ -353,6 +578,7 @@ probe tcp.disconnect.return = kernel.function("tcp_disconnect").return {
  * probe tcp.setsockopt - Call to setsockopt()
  * @name: Name of this probe
  * @sock: Network socket
+ * @family: IP address family
  * @level: The level at which the socket options will be manipulated
  * @optname: TCP socket options (e.g. TCP_NODELAY, TCP_MAXSEG, etc)
  * @optstr: Resolves optname to a human-readable format
@@ -361,12 +587,28 @@ probe tcp.disconnect.return = kernel.function("tcp_disconnect").return {
  * Context:
  *  The process which calls setsockopt
  */
-probe tcp.setsockopt = kernel.function("tcp_setsockopt") {
-	name = "tcp.setsockopt"
+probe tcp.setsockopt = tcp.ipv4.setsockopt, tcp.ipv6.setsockopt
+{
+}
+probe tcp.ipv4.setsockopt = kernel.function("tcp_setsockopt")
+{
+	name = "tcp.ipv4.setsockopt"
 	sock = $sk
+	family  = __ip_sock_family($sk)
 	level = $level
 	optname = $optname
 	optstr = tcp_sockopt_str($optname)
+	optlen = $optlen
+}
+probe tcp.ipv6.setsockopt = kernel.function("ipv6_setsockopt")!,
+	module("ipv6").function("ipv6_setsockopt")
+{
+	name = "tcp.ipv6.setsockopt"
+	sock = $sk
+	family  = __ip_sock_family($sk)
+	level = $level
+	optname = $optname
+	optstr = tcp_ipv6_sockopt_str($optname)
 	optlen = $optlen
 }
 
@@ -378,8 +620,19 @@ probe tcp.setsockopt = kernel.function("tcp_setsockopt") {
  * Context:
  *  The process which calls setsockopt
  */
-probe tcp.setsockopt.return = kernel.function("tcp_setsockopt").return {
-	name = "tcp.setsockopt"
+probe tcp.setsockopt.return = tcp.ipv4.setsockopt.return,
+	tcp.ipv6.setsockopt.return
+{
+}
+probe tcp.ipv4.setsockopt.return = kernel.function("tcp_setsockopt").return
+{
+	name = "tcp.ipv4.setsockopt"
+	ret = $return
+}
+probe tcp.ipv6.setsockopt.return = kernel.function("ipv6_setsockopt").return!,
+	module("ipv6").function("ipv6_setsockopt").return
+{
+	name = "tcp.ipv6.setsockopt"
 	ret = $return
 }
 

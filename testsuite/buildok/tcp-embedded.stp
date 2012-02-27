@@ -6,5 +6,5 @@ probe begin {
 		tcp_ts_get_info_state (0) +
 		tcp_ts_get_info_snd_ssthresh (0) +
 		tcp_ts_get_info_rcv_mss (0))
-	printf("%s\n", tcp_sockopt_str(0))
+	printf("%s %s\n", tcp_sockopt_str(0), tcp_ipv6_sockopt_str(0))
 }
