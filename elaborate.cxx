@@ -1955,7 +1955,6 @@ symresolution_info::find_var (const string& name, int arity, const token* tok)
   for (unsigned i=0; i<session.globals.size(); i++)
     if (session.globals[i]->name == name)
       {
-	session.globals[i]->set_arity (arity, tok);
         if (! session.suppress_warnings)
           {
             vardecl* v = session.globals[i];
@@ -1966,7 +1965,8 @@ symresolution_info::find_var (const string& name, int arity, const token* tok)
                                           lex_cast(*v->tok).c_str()), tok);
               }
           }
-	return session.globals[i];
+        session.globals[i]->set_arity (arity, tok);
+        return session.globals[i];
       }
 
   // search library globals
