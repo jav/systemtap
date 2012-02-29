@@ -191,6 +191,16 @@ keywords: disk
   # stap disktop.stp -c "sleep 0.2"
 
 
+io/enospc.stp - Report an disk out-of-space condition.
+keywords: disk filesystem
+
+  This script monitors a filesystem implementations for early internal
+  indications of ENOSPC, and reports these to the system logger and the
+  systemtap console.
+
+  # stap enospc.stp -c "sleep 0.2"
+
+
 io/inodewatch.stp - Monitoring Reads and Writes to a File
 keywords: io
 

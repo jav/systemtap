@@ -156,6 +156,16 @@ keywords: disk
   # stap disktop.stp -c "sleep 0.2"
 
 
+io/enospc.stp - Report an disk out-of-space condition.
+keywords: disk filesystem
+
+  This script monitors a filesystem implementations for early internal
+  indications of ENOSPC, and reports these to the system logger and the
+  systemtap console.
+
+  # stap enospc.stp -c "sleep 0.2"
+
+
 io/mbrwatch.stp - Monitor Read/Write of the Boot Sector Area of Block Devices
 keywords: io monitoring disk
 
@@ -216,6 +226,16 @@ keywords: filesystem
 
   # stap -g badname.stp -c "touch /tmp/myXXXbadnameXXXfile.$$ 2>&1 | grep \
   denied"
+
+
+io/enospc.stp - Report an disk out-of-space condition.
+keywords: disk filesystem
+
+  This script monitors a filesystem implementations for early internal
+  indications of ENOSPC, and reports these to the system logger and the
+  systemtap console.
+
+  # stap enospc.stp -c "sleep 0.2"
 
 
 = FORMAT =

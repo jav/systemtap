@@ -96,6 +96,9 @@ keywords: <a href="keyword-index.html#DISK">DISK</a> <br>
 </li><li><a name="io/disktop.stp"></a><a href="#io/disktop.stp">&para;</a> <a href="io/disktop.stp">io/disktop.stp</a> - Summarize Disk Read/Write Traffic<br>
 keywords: <a href="keyword-index.html#DISK">DISK</a> <br>
 <p>Get the status of reading/writing disk every 5 seconds, output top ten entries during that period.<p><font size="-2"><pre># stap disktop.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a name="io/enospc.stp"></a><a href="#io/enospc.stp">&para;</a> <a href="io/enospc.stp">io/enospc.stp</a> - Report an disk out-of-space condition.<br>
+keywords: <a href="keyword-index.html#DISK">DISK</a> <a href="keyword-index.html#FILESYSTEM">FILESYSTEM</a> <br>
+<p>This script monitors a filesystem implementations for early internal indications of ENOSPC, and reports these to the system logger and the systemtap console.<p><font size="-2"><pre># stap enospc.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li><li><a name="io/inodewatch.stp"></a><a href="#io/inodewatch.stp">&para;</a> <a href="io/inodewatch.stp">io/inodewatch.stp</a> - Monitoring Reads and Writes to a File<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <br>
 <p> The inodewatch.stp outputs the executable name and process id each time a read or write occurs to the specified inode on the specified major/minor device.<p><font size="-2"><pre># stap inodewatch.stp 0x08 0x01 100 -c &quot;sleep 0.2&quot;</pre></font></p>
