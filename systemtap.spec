@@ -45,7 +45,7 @@ Source: ftp://sourceware.org/pub/%{name}/releases/%{name}-%{version}.tar.gz
 
 # Build*
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildRequires: gcc >= 4.4.4-9 gcc-c++ make
+BuildRequires: gcc-c++
 BuildRequires: gettext
 %if %{with_sqlite}
 BuildRequires: sqlite-devel
@@ -128,6 +128,7 @@ Requires: kernel >= 2.6.9-11
 # provide for kernel-devel, so this requirement does the right thing,
 # at least past RHEL4.
 Requires: kernel-devel
+Requires: gcc make
 # Suggest: kernel-debuginfo
 
 %description devel
@@ -207,6 +208,10 @@ URL: http://sourceware.org/systemtap/
 Requires: systemtap = %{version}-%{release}
 Requires: systemtap-sdt-devel = %{version}-%{release}
 Requires: dejagnu which prelink elfutils grep nc
+Requires: gcc gcc-c++ make glibc-devel
+%if %{_arch} == x86_64
+Requires: glibc-devel(%{__isa_name}-32)
+%endif
 
 %description testsuite
 This package includes the dejagnu-based systemtap stress self-testing
