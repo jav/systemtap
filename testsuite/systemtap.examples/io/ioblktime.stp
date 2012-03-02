@@ -17,6 +17,13 @@ probe ioblock.end
   }
 }
 
+/* for time being delete things that get merged with others */
+probe kernel.trace("block_bio_frontmerge"),
+      kernel.trace("block_bio_backmerge")
+{
+  delete req_time[$bio]
+}
+
 probe timer.s(10), end {
   ansi_clear_screen()
   printf("%10s %3s %10s %10s %10s\n",

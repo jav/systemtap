@@ -4,6 +4,8 @@ probe syscall.clock_gettime, syscall.getuid
 {
   if (target() == pid())
     {
+      printf("%s umodname(uaddr()) = umodname(%x) = %s\n",
+         name, uaddr(), umodname(uaddr()));
       if (umodname(uaddr()) != "<unknown>")
 	{
 	  log(name);
