@@ -1,6 +1,6 @@
 /*
  Compile server client functions
- Copyright (C) 2010-2011 Red Hat Inc.
+ Copyright (C) 2010-2012 Red Hat Inc.
 
  This file is part of systemtap, and is free software.  You can
  redistribute it and/or modify it under the terms of the GNU General
@@ -197,34 +197,6 @@ static void resolve_host (systemtap_session& s, compile_server_info &server, vec
 #define GENERAL_ERROR             1
 #define CA_CERT_INVALID_ERROR     2
 #define SERVER_CERT_EXPIRED_ERROR 3
-
-// Convert the given string to an ip address in host byte order.
-static unsigned
-stringToIpAddress (const string &s)
-{
-  if (s.empty ())
-    return 0; // unknown
-
-  vector<string>components;
-  tokenize (s, components, ".");
-  assert (components.size () >= 1);
-
-  unsigned ip = 0;
-  unsigned i;
-  for (i = 0; i < components.size (); ++i)
-    {
-      const char *ipstr = components[i].c_str ();
-      char *estr;
-      errno = 0;
-      unsigned a = strtoul (ipstr, & estr, 10);
-      if (errno == 0 && *estr == '\0' && a <= UCHAR_MAX)
-	ip = (ip << 8) + a;
-      else
-	return 0;
-    }
-
-  return ip;
-}
 
 #if HAVE_NSS
 // -----------------------------------------------------
@@ -670,10 +642,10 @@ do_connect (connectionState_t *connectionState)
 }
 
 int
-client_connect (const char *hostName, PRUint32 ip,
-	     PRUint16 port,
-	     const char* infileName, const char* outfileName,
-	     const char* trustNewServer)
+client_connect (const string &hostName, const string &ipAddress,
+		PRUint16 port,
+		const char* infileName, const char* outfileName,
+		const char* trustNewServer)
 {
   SECStatus   secStatus;
   PRStatus    prStatus;
@@ -685,7 +657,16 @@ client_connect (const char *hostName, PRUint32 ip,
   int         errCode = GENERAL_ERROR;
   struct connectionState_t connectionState;
 
-  connectionState.hostName = hostName;
+  // PR_StringToNetAddr and PR_GetHostByName don't accept IPv6 addresses enclosed in [brackets], so
+  // strip them off here.
+  string host = hostName;
+  if (host[0] == '[' && host.size() >= 1 && host[host.size() - 1] == ']')
+    host = host.substr (1, host.size() - 2);
+  string ip = ipAddress;
+  if (ip[0] == '[' && ip.size() >= 1 && ip[ip.size() - 1] == ']')
+    ip = ip.substr (1, ip.size() - 2);
+
+  connectionState.hostName = host.c_str();
   connectionState.port = port;
   connectionState.infileName = infileName;
   connectionState.outfileName = outfileName;
@@ -693,21 +674,35 @@ client_connect (const char *hostName, PRUint32 ip,
 
   /* Setup network connection. If we have an ip address, then
      simply use it, otherwise we need to resolve the host name.  */
-  if (ip)
+  bool resolveHost = true;
+  if (! ip.empty())
     {
-      connectionState.addr.inet.family = PR_AF_INET;
-      connectionState.addr.inet.port = htons (port);
-      connectionState.addr.inet.ip = htonl (ip);
+      prStatus = PR_StringToNetAddr (ip.c_str(), & connectionState.addr);
+      if (prStatus == PR_SUCCESS)
+	{
+	  if (connectionState.addr.raw.family == PR_AF_INET)
+	    {
+	      connectionState.addr.inet.port = htons (port);
+	      resolveHost = false;
+	    }
+	  else if (connectionState.addr.raw.family == PR_AF_INET6)
+	    {
+	      connectionState.addr.ipv6.port = htons (port);
+	      resolveHost = false;
+	    }
+	  else
+	    fprintf (stderr, _("Unknown ip family %d"), connectionState.addr.raw.family);
+	}
     }
-  else
+  if (resolveHost)
     {
-      prStatus = PR_GetHostByName(hostName, buffer, sizeof (buffer), &hostEntry);
+      prStatus = PR_GetHostByName (host.c_str(), buffer, sizeof (buffer), & hostEntry);
       if (prStatus != PR_SUCCESS) {
 	fprintf (stderr, _("Unable to resolve server host name"));
 	return errCode;
       }
 
-      rv = PR_EnumerateHostEnt(0, &hostEntry, port, &connectionState.addr);
+      rv = PR_EnumerateHostEnt (0, & hostEntry, port, & connectionState.addr);
       if (rv < 0) {
 	fprintf (stderr, _("Unable to resolve server host address"));
 	return errCode;
@@ -1295,9 +1290,7 @@ compile_server_client::compile_using_server (
 	  else
 	    hostName = j->host_name;
 
-	  rc = client_connect (hostName.c_str (),
-			       stringToIpAddress (j->ip_address),
-			       j->port,
+	  rc = client_connect (hostName, j->ip_address, j->port,
 			       client_zipfile.c_str(), server_zipfile.c_str (),
 			       NULL/*trustNewServer_p*/);
 	  if (rc == SUCCESS)
@@ -1418,7 +1411,7 @@ compile_server_client::unpack_response ()
 
   // If the server version is less that 1.6, remove the output line due to the synthetic
   // server-side -k. Look for a message containing the name of the temporary directory.
-  // We can look for the English message since server versions before 1.1 do not support
+  // We can look for the English message since server versions before 1.6 do not support
   // localization.
   if (server_version < "1.6")
     {
@@ -1745,9 +1738,7 @@ add_server_trust (
       // number in order to contact the server.
       if (server->empty () || server->port == 0)
 	continue;
-      int rc = client_connect (server->host_name.c_str (),
-			       stringToIpAddress (server->ip_address),
-			       server->port,
+      int rc = client_connect (server->host_name, server->ip_address, server->port,
 			       NULL, NULL, "permanent");
       if (rc != SUCCESS)
 	{
@@ -2470,6 +2461,195 @@ get_default_server_info (
   add_server_info (default_servers, servers);
 }
 
+static bool
+isPort (const char *pstr, unsigned short &port)
+{
+  errno = 0;
+  char *estr;
+  unsigned long p = strtoul (pstr, & estr, 10);
+  if (errno != 0 || *estr != '\0' || p > USHRT_MAX)
+    {
+      clog << _F("Invalid port number specified: %s", pstr) << endl;
+      return false;
+    }
+  port = p;
+  return true;
+}
+
+static bool
+isIPv6 (const string &server, compile_server_info &server_info)
+{
+  // An IPv6 address is 8 hex components separated by colons, enclosed in [] with an
+  // additional optional decimal port separated from the address by a colon.
+  // One contiguous block of zero segments in the address may be elided using ::.
+  assert (! server.empty());
+  if (server[0] != '[')
+    return false; // Not a valid IPv6 address
+
+  string::size_type endBracket = server.find (']');
+  if (endBracket == string::npos)
+    return false; // Not a valid IPv6 address
+
+  // Extract the address.
+  string host = server.substr (1, endBracket - 1);
+
+  // Find out how many components there are. The maximum is 8
+  unsigned empty = 0;
+  vector<string> components;
+  tokenize_full (host, components, ":");
+  if (components.size() > 8)
+    return false; // Not a valid IPv6 address
+
+  // The components must be either hex values between 0 and 0xffff, or must be empty.
+  // There can be only one empty component.
+  for (unsigned i = 0; i < components.size(); ++i)
+    {
+      if (components[i].empty())
+	{
+	  if (++empty > 1)
+	    return false; // Not a valid IPv6 address
+	}
+      // Skip leading zeroes.
+      unsigned j;
+      for (j = 0; j < components[i].size(); ++j)
+	{
+	  if (components[i][j] != '0')
+	    break;
+	}
+      // Max of 4 hex digits
+      if (components[i].size() - j > 4)
+	return false; // Not a valid IPv6 address
+      for (/**/; j < components[i].size(); ++j)
+	{
+	  if (! isxdigit (components[i][j]))
+	    return false; // Not a valid IPv6 address
+	}
+    }
+  // If there is no empty component, then there must be exactly 8 components.
+  if (! empty && components.size() != 8)
+    return false; // Not a valid IPv6 address
+
+  // Examine the optional port
+  string port = server.substr (endBracket + 1);
+  if (port.size() != 0)
+    {
+      if (port.size() < 2 || port[0] != ':')
+	return false; // Not a valid Port
+
+      port = port.substr (1);
+      if (! isPort (port.c_str(), server_info.port))
+	return false; // not a valid port
+    }
+
+  server_info.ip_address = "[" + host + "]";
+  return true; // valid IPv6 address.
+}
+
+static bool
+isIPv4 (const string &server, compile_server_info &server_info)
+{
+  // An IPv4 address is 4 decimal components separated by periods with an
+  // additional optional decimal port separated from the address by a colon.
+  assert (! server.empty());
+
+  // Find out how many components there are. The maximum is 8
+  vector<string> components;
+  tokenize (server, components, ":");
+  if (components.size() > 2)
+    return false; // Not a valid IPv4 address
+
+  // Separate the host from the port (if any).
+  string host;
+  string port;
+  if (components.size() <= 1)
+    host = server;
+  else {
+    host = components[0];
+    port = components[1];
+  }
+
+  // Separate the host components.
+  // There must be exactly 4 components.
+  components.clear ();
+  tokenize (server, components, ".");
+  if (components.size() != 4)
+    return false; // Not a valid IPv4 address
+  
+  // The components must be decimal values between 0 and 255.
+  for (unsigned i = 0; i < components.size(); ++i)
+    {
+      if (components[i].empty())
+	return false; // Not a valid IPv4 address
+      errno = 0;
+      char *estr;
+      unsigned long p = strtoul (components[i].c_str(), & estr, 10);
+      if (errno != 0 || *estr != '\0' || p < 0 || p > 255)
+	return false; // Not a valid IPv4 address
+    }
+
+  // Examine the optional port
+  if (! port.empty ()) {
+    if (! isPort (port.c_str(), server_info.port))
+      return false; // not a valid port
+  }
+
+  server_info.ip_address = host;
+  return true; // valid IPv4 address.
+}
+
+static bool
+isCertSerialNumber (const string &server, compile_server_info &server_info)
+{
+  // This function assumes that we have already ruled out the server spec being an IPv6 address.
+  // Certificate serial numbers are 5 fields separated by colons plus an optional 6th decimal
+  // field specifying a port.
+  assert (! server.empty());
+  string host = server;
+  vector<string> components;
+  tokenize (host, components, ":");
+  switch (components.size ())
+    {
+    case 6:
+      if (! isPort (components.back().c_str(), server_info.port))
+	return false; // not a valid port
+      host = host.substr (0, host.find_last_of (':'));
+      // fall through
+    case 5:
+      server_info.certinfo = host;
+      break;
+    default:
+      return false; // not a cert serial number
+    }
+
+  return true; // valid cert serial number and optional port
+}
+
+static bool
+isDomain (const string &server, compile_server_info &server_info)
+{
+  // Accept one or two components separated by a colon. The first will be the domain name and
+  // the second must a port number.
+  assert (! server.empty());
+  string host = server;
+  vector<string> components;
+  tokenize (host, components, ":");
+  switch (components.size ())
+    {
+    case 2:
+      if (! isPort (components.back().c_str(), server_info.port))
+	return false; // not a valid port
+      host = host.substr (0, host.find_last_of (':'));
+      // fall through
+    case 1:
+      server_info.host_name = host;
+      break;
+    default:
+      return false; // not a valid domain name
+    }
+
+  return true;
+}
+
 static void
 get_specified_server_info (
   systemtap_session &s,
@@ -2508,87 +2688,45 @@ get_specified_server_info (
 		    get_default_server_info (s, specified_servers);
 		  continue;
 		}
-
-	      // Work with the specified server
+	      // Determine what has been specified. Servers may be specified by:
+	      // - domain{:port}
+	      // - certificate-serial-number{:port}
+              // - IPv4-address{:port}
+              // - IPv6-address{:port}
+	      // where items within {} are optional.
+	      // Check for IPv6 addresses first. It reduces the amount of checking necessary for
+	      // certificate serial numbers.
 	      compile_server_info server_info;
-
-	      // See if a port was specified (:n suffix)
-	      vector<string> components;
-	      tokenize (server, components, ":");
-	      if (components.size () > 2)
+	      vector<compile_server_info> known_servers;
+	      if (isIPv6 (server, server_info) || isIPv4 (server, server_info) ||
+		  isDomain (server, server_info))
 		{
-		  // Treat it as a certificate serial number. The final
-		  // component may still be a port number.
-		  if (components.size () > 5)
-		    {
-		      // Obtain the port number.
-		      const char *pstr = components.back ().c_str ();
-		      char *estr;
-		      errno = 0;
-		      unsigned long port = strtoul (pstr, & estr, 10);
-		      if (errno == 0 && *estr == '\0' && port <= USHRT_MAX)
-			server_info.port = port;
-		      else
-			{
-                         clog << _F("Invalid port number specified: %s",
-                                    components.back().c_str()) << endl;
-			  continue;
-			}
-		      // Remove the port number from the spec
-		      server_info.certinfo = server.substr (0, server.find_last_of (':'));
-		    }
-		  else
-		    server_info.certinfo = server;
-
-		  // Look for all known servers with this serial number and
-		  // (optional) port number.
-		  vector<compile_server_info> known_servers;
+		  // Find known servers matching the specified information.
+		  get_all_server_info (s, known_servers);
+		  keep_common_server_info (server_info, known_servers);
+		  add_server_info (known_servers, specified_servers);
+		  // Resolve this host and add any information that is discovered.
+		  resolve_host (s, server_info, specified_servers);
+		}
+	      else if (isCertSerialNumber (server, server_info))
+		{
+		  // Look for all known servers with this serial number and (optional) port number.
 		  get_all_server_info (s, known_servers);
 		  keep_server_info_with_cert_and_port (s, server_info, known_servers);
 		  // Did we find one?
 		  if (known_servers.empty ())
 		    {
 		      if (s.verbose >= 2)
-                       clog << _F("No server matching %s found", server.c_str()) << endl;
+			clog << _F("No server matching %s found", server.c_str()) << endl;
 		    }
 		  else
 		    add_server_info (known_servers, specified_servers);
-		} // specified by cert serial number
-	      else {
-		// Not specified by serial number. Treat it as host name or
-		// ip address and optional port number.
-		if (components.size () == 2)
-		  {
-		    // Obtain the port number.
-		    const char *pstr = components.back ().c_str ();
-		    char *estr;
-		    errno = 0;
-		    unsigned long port = strtoul (pstr, & estr, 10);
-		    if (errno == 0 && *estr == '\0' && port <= USHRT_MAX)
-		      server_info.port = port;
-		    else
-		      {
-                       clog << _F("Invalid port number specified: %s",
-                          components.back().c_str()) << endl;
-			continue;
-		      }
-		  }
-
-		// Obtain the host name or ip address.
-		if (stringToIpAddress (components.front ()))
-		  server_info.ip_address = components.front ();
-		else
-		  server_info.host_name = components.front ();
-
-		// Find known servers matching the specified information.
-		vector<compile_server_info> known_servers;
-		get_all_server_info (s, known_servers);
-		keep_common_server_info (server_info, known_servers);
-		add_server_info (known_servers, specified_servers);
-
-		// Resolve this host and add any information that is discovered.
-		resolve_host (s, server_info, specified_servers);
-	      }  // Not specified by cert serial number
+		}
+	      else
+		{
+		  clog << _F("Invalid server specification for --use-server: %s", server.c_str())
+		       << endl;
+		}
 	    } // Loop over --use-server options
 	} // -- use-server specified
     } // Server information is not cached
@@ -2799,6 +2937,11 @@ resolve_host (
     {
       // Use the host name to do the lookup.
       lookup_name = server.host_name.c_str ();
+
+      // If we have both a host name and an ip address, then, at the very least, retain
+      // the original server spec.
+      if (! server.ip_address.empty ())
+	add_server_info (server, resolved_servers);
     }
   else
     {
@@ -2811,7 +2954,7 @@ resolve_host (
   // Resolve the server. 
   struct addrinfo hints;
   memset(& hints, 0, sizeof (hints));
-  hints.ai_family = AF_INET; // AF_UNSPEC or AF_INET6 to force version
+  hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6 to force version
   struct addrinfo *addr_info = NULL;
   int status = getaddrinfo (lookup_name, NULL, & hints, & addr_info);
 
@@ -2824,21 +2967,30 @@ resolve_host (
   // Loop over the results collecting information.
   for (const struct addrinfo *ai = addr_info; ai != NULL; ai = ai->ai_next)
     {
-      if (ai->ai_family != AF_INET)
-	continue; // Not an IPv4 address
-
       // Start with the info we were given.
       compile_server_info new_server = server;
 
       // Obtain the ip address.
-      // Start with the pointer to the address itself,
-      struct sockaddr_in *ipv4 = (struct sockaddr_in *)ai->ai_addr;
-      void *addr = & ipv4->sin_addr;
 
       // convert the IP to a string.
-      char ipstr[INET_ADDRSTRLEN];
-      inet_ntop (ai->ai_family, addr, ipstr, sizeof (ipstr));
-      new_server.ip_address = ipstr;
+      if (ai->ai_family == AF_INET)
+	{
+	  // IPv4 Address
+	  struct sockaddr_in *ip = (struct sockaddr_in *)ai->ai_addr;
+	  void *addr = & ip->sin_addr;
+	  char ipv4str[INET_ADDRSTRLEN];
+	  inet_ntop (ai->ai_family, addr, ipv4str, sizeof (ipv4str));
+	  new_server.ip_address = ipv4str;
+	}
+      else
+	{
+	  // IPv6 Address
+	  struct sockaddr_in6 *ip = (struct sockaddr_in6 *)ai->ai_addr;
+	  void *addr = & ip->sin6_addr;
+	  char ipv6str[INET6_ADDRSTRLEN];
+	  inet_ntop (ai->ai_family, addr, ipv6str, sizeof (ipv6str));
+	  new_server.ip_address = string("[") + ipv6str + "]";
+	}
 
       // Try to obtain a host name.
       char hbuf[NI_MAXHOST];
@@ -2929,27 +3081,26 @@ void resolve_callback(
             char a[AVAHI_ADDRESS_STR_MAX], *t;
             avahi_address_snprint(a, sizeof(a), address);
 
-	    // Ignore entries using IPv6 addresses for now
-	    vector<string> parts;
-	    tokenize (a, parts, ".");
-	    if (parts.size () == 4)
-	      {
-		// Save the information of interest.
-		compile_server_info info;
-		info.host_name = host_name;
-		info.ip_address = strdup (a);
-		info.port = port;
-		t = avahi_string_list_to_string(txt);
-		info.sysinfo = extract_field_from_avahi_txt ("sysinfo=", t);
-		info.certinfo = extract_field_from_avahi_txt ("certinfo=", t);
-		info.version = extract_field_from_avahi_txt ("version=", t);
-		if (info.version.empty ())
-		  info.version = "1.0"; // default version is 1.0
-		avahi_free(t);
+	    // Save the information of interest.
+	    compile_server_info info;
+	    info.host_name = host_name;
+	    if (address->proto == AVAHI_PROTO_INET6) {
+	      string addrString = string("[") + a + "]";
+	      info.ip_address = strdup (addrString.c_str());
+	    }
+	    else
+	      info.ip_address = strdup (a);
+	    info.port = port;
+	    t = avahi_string_list_to_string(txt);
+	    info.sysinfo = extract_field_from_avahi_txt ("sysinfo=", t);
+	    info.certinfo = extract_field_from_avahi_txt ("certinfo=", t);
+	    info.version = extract_field_from_avahi_txt ("version=", t);
+	    if (info.version.empty ())
+	      info.version = "1.0"; // default version is 1.0
+	    avahi_free(t);
 
-		// Add this server to the list of discovered servers.
-		add_server_info (info, *servers);
-	      }
+	    // Add this server to the list of discovered servers.
+	    add_server_info (info, *servers);
         }
     }
 

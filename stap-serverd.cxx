@@ -456,7 +456,7 @@ create_services (AvahiClient *c) {
       if (! I_options.empty ())
 	optinfo += separator + I_options.substr(1);
 
-      // We will now our service to the entry group. Only services with the
+      // We will now add our service to the entry group. Only services with the
       // same name should be put in the same entry group.
       int ret;
       if ((ret = avahi_entry_group_add_service (avahi_group, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC,
@@ -586,7 +586,7 @@ avahi_publish_service (CERTCertificate *cert)
   avahi_client = avahi_client_new (avahi_threaded_poll_get (avahi_threaded_poll),
 				   (AvahiClientFlags)0,
 				   client_callback, NULL, & error);
-  // Check wether creating the client object succeeded.
+  // Check whether creating the client object succeeded.
   if (! avahi_client)
     {
       server_error (_F("Failed to create avahi client: %s", avahi_strerror(error)));

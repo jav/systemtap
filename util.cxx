@@ -310,6 +310,47 @@ tokenize(const string& str, vector<string>& tokens,
     }
 }
 
+// Akin to tokenize(...,...), but allow tokens before the first delimeter, after the
+// last delimiter and allow internal empty tokens
+void
+tokenize_full(const string& str, vector<string>& tokens,
+	      const string& delimiters = " ")
+{
+  // Check for an empty string or a string of length 1. Neither can have the requested
+  // components.
+  if (str.size() <= 1)
+    return;
+
+  // Find the first delimeter.
+  string::size_type lastPos = 0;
+  string::size_type pos = str.find_first_of(delimiters, lastPos);
+  if (pos == string::npos)
+    return; // no delimeters
+
+  /* No leading empty component allowed. */
+  if (pos == lastPos)
+    ++lastPos;
+
+  assert (lastPos < str.size());
+  do
+    {
+      pos = str.find_first_of(delimiters, lastPos);
+      if (pos == string::npos)
+	break; // Final trailing component
+      // Found a token, add it to the vector.
+      tokens.push_back(str.substr (lastPos, pos - lastPos));
+      // Skip the delimiter.
+      lastPos = pos + 1;
+    }
+  while (lastPos < str.size());
+
+  // A final non-delimited token, if it is not empty.
+  if (lastPos < str.size())
+    {
+      assert (pos == string::npos);
+      tokens.push_back(str.substr (lastPos));
+    }
+}
 
 // Akin to tokenize(...,"::"), but it also has to deal with C++ template
 // madness.  We do this naively by balancing '<' and '>' characters.  This
