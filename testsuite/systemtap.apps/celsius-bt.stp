@@ -1,0 +1,22 @@
+probe python.function_entry
+{
+    if (execname() == "python3") 
+	frame = python3_frame
+    else
+	frame = python2_frame
+    %( $# >= 1 %?
+       match_filename = @1
+       %:
+       match_filename = ""
+       %)
+    for (i = 0; frame != 0; i++) {
+	if (execname() == "python3") {
+	    python3_backtrace (frame, match_filename)
+	    frame = python3_iterate_over_frames (frame, i)
+	}
+	else {
+	    python2_backtrace (frame, match_filename)
+	    frame = python2_iterate_over_frames (frame, i)
+	}
+    }
+}

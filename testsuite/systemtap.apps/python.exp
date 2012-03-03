@@ -1,0 +1,149 @@
+set test "python"
+
+# Test sdt support in python.
+
+global env
+
+if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
+    ! [string match "tcl" $env(SYSTEMTAP_TESTAPPS)] &&
+    ! [string match "all" $env(SYSTEMTAP_TESTAPPS)])} {
+    untested "$test sdt app"
+    return
+}
+
+set msdata "[pwd]/stap-python"
+set python2release "2.7.2"
+set python2dir "python2"
+set python3release "3.2.2"
+set python3dir "python3"
+set testsuite "[pwd]"
+
+########## Begin /tmp/stap-python.sh ########## 
+set fp [open "$testsuite/stap-python.sh" "w"]
+puts $fp "
+srcdir=\$1
+if \[ ! -r Python-$python3release.tar.bz2 \] ; then
+   wget -q http://python.org/ftp/python/$python2release/Python-$python2release.tar.bz2
+   wget -q http://python.org/ftp/python/$python3release/Python-$python3release.tar.bz2
+fi
+if \[ ! -r Python-$python2release.tar.bz2 -o ! -r Python-$python3release.tar.bz2 \] ; then
+   echo FAIL: wget Python-$python2release.tar.bz2 Python-$python3release.tar.bz2
+   exit
+fi
+
+if \[ ! -d $python2dir/src -a ! -d $python3dir/src \] ; then
+   tar -x -j -f Python-$python2release.tar.bz2
+   tar -x -j -f Python-$python3release.tar.bz2
+   mkdir $python2dir
+   mkdir $python3dir
+   mv Python-$python2release $python2dir/src
+   mv Python-$python3release $python3dir/src
+   cd $testsuite/$python2dir/src
+   patch -p1 -i  \$srcdir/$python2dir.patch
+   cd $testsuite/$python3dir/src
+   patch -p1 -i  \$srcdir/$python3dir.patch
+fi
+
+# Build python2
+
+cd $testsuite/$python2dir
+if \[ ! -d bld \] ; then
+   mkdir bld
+   cd bld
+   ../src/configure --with-dtrace --prefix=$testsuite/pyinstall
+   for i in \$(find . -name Makefile) ; do 
+       sed -i -e 's|^CXXFLAGS =|& -g -I $env(SYSTEMTAP_INCLUDES)|' \$i
+       sed -i -e 's|^CFLAGS =|& -g -I $env(SYSTEMTAP_INCLUDES)|' \$i
+   done
+
+   J=\$(getconf _NPROCESSORS_CONF)
+   make -j\$J
+   make install
+fi
+
+# Build python3
+
+cd $testsuite/$python3dir
+if \[ ! -d bld \] ; then
+   mkdir bld
+   cd bld
+   ../src/configure --with-dtrace --prefix=$testsuite/pyinstall
+   for i in \$(find . -name Makefile) ; do 
+       sed -i -e 's|^CXXFLAGS =|& -g -I $env(SYSTEMTAP_INCLUDES)|' \$i
+       sed -i -e 's|^CFLAGS =|& -g -I $env(SYSTEMTAP_INCLUDES)|' \$i
+   done
+
+   J=\$(getconf _NPROCESSORS_CONF)
+   make -j\$J
+   make install
+fi
+
+cd $testsuite/$python3dir
+
+mkdir tapset
+cat \$srcdir/python2.stp | sed -e \"s|PYTHON2|$testsuite/pyinstall/bin/python|g\" >| tapset/python2.stp
+cat \$srcdir/python3.stp | sed -e \"s|PYTHON3|$testsuite/pyinstall/bin/python3|g\" >| tapset/python3.stp
+
+# Run the tests, once for python2, once for python3
+for PYTHON in python python3 ; do
+    $env(SYSTEMTAP_PATH)/stap -I `pwd`/tapset \$srcdir/celsius-bt.stp -c \"$testsuite/pyinstall/bin/\$PYTHON -sS \$srcdir/celsius.py 30\" >| $testsuite/python.log 2>&1 
+    MAIN=\$(grep 'main.*at.*systemtap.apps.*celsius.py:\[0-9\]' $testsuite/python.log | wc -l)
+    C2F=\$(grep 'celsius_to_farenheit.*celsius:int.*at.*systemtap.apps.*celsius.py:\[0-9\]' $testsuite/python.log | wc -l)
+    echo \$MAIN \$C2F
+    if \[ \$MAIN -gt 0 -a \$C2F -gt 0 \] ; then
+       echo PASS: \$PYTHON backtrace
+    else
+       echo FAIL: \$PYTHON backtrace
+    fi
+
+    echo script \" $env(SYSTEMTAP_PATH)/stap -I `pwd`/tapset \$srcdir/celsius-var.stp -c \\\"$testsuite/pyinstall/bin/\$PYTHON -sS \$srcdir/celsius.py 30\\\" '*'\"  $testsuite/python.log
+
+    script -c \" $env(SYSTEMTAP_PATH)/stap -I `pwd`/tapset \$srcdir/celsius-var.stp -c \\\"$testsuite/pyinstall/bin/\$PYTHON -sS \$srcdir/celsius.py 30\\\" '*'\"  $testsuite/python.log
+
+    AGLOBAL9=\$(grep 'global.*str.*aglobal9.*in.*main.*at.*.*systemtap.apps.*celsius.py.*=.*9.*' $testsuite/python.log | wc -l)
+    CELSIUS=\$(grep 'arg1.*int.*celsius.*in.*celsius_to_farenheit.*at.*.*systemtap.apps.*celsius.py.*=.*30.*' $testsuite/python.log | wc -l)
+    ATUPLE=\$(grep 'tuple.*atuple.*in.*celsius_to_farenheit.*at.*.*systemtap.apps.*celsius.py.*=.*.*\"a\",.*\"b\",.*\"c\",' $testsuite/python.log | wc -l)
+    ALIST=\$(grep 'list.*alist.*in.*celsius_to_farenheit.*at.*.*systemtap.apps.*celsius.py.*=.*\[.*1,.*2,.*3,\]' $testsuite/python.log | wc -l)
+    ASET=\$(grep 'set.*aset.*in.*celsius_to_farenheit.*at.*.*systemtap.apps.*celsius.py.*=.*{.*1,.*2,.*3,}' $testsuite/python.log | wc -l)
+    ADICT=\$(grep 'dict.*adict.*in.*celsius_to_farenheit.*at.*.*systemtap.apps.*celsius.py.*=.*{.*1:\"a\".*2:\"b\".*3:\"c\".*}' $testsuite/python.log | wc -l)
+    NINE=\$(grep 'int.*nine.*in.*celsius_to_farenheit.*at.*.*systemtap.apps.*celsius.py.*=.*9.*' $testsuite/python.log | wc -l)
+    FIVE=\$(grep 'int.*five.*in.*celsius_to_farenheit.*at.*.*systemtap.apps.*celsius.py.*=.*5.*' $testsuite/python.log | wc -l)
+    TWO=\$(grep 'int.*thirty_two.*in.*celsius_to_farenheit.*at.*.*systemtap.apps.*celsius.py.*=.*32.*' $testsuite/python.log | wc -l)
+    I=\$(grep 'int.*i.*in.*celsius_to_farenheit.*at.*.*systemtap.apps.*celsius.py.*=.*1.*' $testsuite/python.log | wc -l)
+
+    echo \$AGLOBAL9 \$CELSIUS \$ATUPLE \$ALIST \$ASET \$ADICT \$NINE \$FIVE \$TWO \$I 
+    if \[ \$CELSIUS -gt 0 -a \$ATUPLE -gt 0 -a  \$ALIST -gt 0 -a  \$ASET -gt 0 -a  \$ADICT -gt 0 -a  \$NINE -gt 0 -a  \$FIVE -gt 0 -a  \$TWO -gt 0 -a  \$I -gt 0  \] ; then
+       echo PASS: \$PYTHON variable
+    else
+       echo FAIL: \$PYTHON variable
+    fi
+done
+"
+########## End /tmp/stap-python.sh ########## 
+close $fp
+
+########## /tmp/stap-python.sh does most of the work ########## 
+verbose -log Running python testsuite
+spawn sh stap-python.sh $srcdir/$subdir/ 2>&1
+expect {
+    -timeout 1000
+    -re {PASS: [a-z0-9 ]+} { regexp " .*$" $expect_out(0,string) s; 
+	pass "$s"; exp_continue }
+    -re {XFAIL: [a-z0-9 ]+} { regexp " .*$" $expect_out(0,string) s; 
+	xfail "$s"; exp_continue }
+    -re {FAIL: [a-z0-9 ]+} { regexp " .*$" $expect_out(0,string) s; 
+	fail "$s"; exp_continue }
+    -re {UNSUPPORTED: [a-z0-9 ]+} { regexp " .*$" $expect_out(0,string) s; 
+	verbose -log "$s"
+	unsupported "$s"; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+catch {close}; catch {wait}
+
+if { $verbose == 0 } {
+catch {exec rm -rf $testsuite/python2 $testsuite/python3}
+catch {exec rm -rf $testsuite/stap-python.sh $testsuite/python.log}
+catch {exec rm -rf Python-$python2release.tar.bz2}
+catch {exec rm -rf Python-$python3release.tar.bz2}
+}

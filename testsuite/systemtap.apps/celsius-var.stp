@@ -1,0 +1,55 @@
+probe python.function_entry
+{
+    if (execname() == "python3") 
+	frame = python3_frame
+    else
+	frame = python2_frame
+    %( $# >= 1 %?
+       variable = @1
+       %:
+       variable = "*"
+       %)
+    %( $# >= 2 %?
+       match_filename = @2
+       %:
+       match_filename = ""
+       %)
+    for (i = 0; frame != 0; i++) {
+	if (execname() == "python3") 
+	    python3_get_variable (frame, 1, variable, match_filename)
+	else
+	    python2_get_variable (frame, 1, variable, match_filename)
+	if (execname() == "python3") 
+	    frame = python3_iterate_over_frames (frame, i)
+	else
+	    frame = python2_iterate_over_frames (frame, i)
+    }
+}
+
+probe python.function_return
+{
+    if (execname() == "python3") 
+	frame = python3_frame
+    else
+	frame = python2_frame
+    %( $# >= 1 %?
+       variable = @1
+       %:
+       variable = "*"
+       %)
+    %( $# >= 2 %?
+       match_filename = @2
+       %:
+       match_filename = ""
+       %)
+    for (i = 0; frame != 0; i++) {
+	if (execname() == "python3") 
+	    python3_get_variable (frame, 0, variable, match_filename)
+	else
+	    python2_get_variable (frame, 0, variable, match_filename)
+	if (execname() == "python3") 
+	    frame = python3_iterate_over_frames (frame, i)
+	else
+	    frame = python2_iterate_over_frames (frame, i)
+    }
+}

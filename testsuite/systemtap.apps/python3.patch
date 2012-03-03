@@ -1,0 +1,314 @@
+diff -bB -u -p -Nr src-3.2.2/configure src-3.2.2-new/configure
+--- src-3.2.2/configure	2011-09-03 12:16:50.000000000 -0400
++++ src-3.2.2-new/configure	2012-02-01 10:39:42.332746238 -0500
+@@ -619,6 +619,10 @@ TRUE
+ MACHDEP_OBJS
+ DYNLOADFILE
+ DLINCLDIR
++DTRACEHDRS
++DTRACEOBJS
++DFLAGS
++DTRACE
+ THREADOBJ
+ LDLAST
+ USE_THREAD_MODULE
+@@ -766,6 +770,7 @@ with_doc_strings
+ with_tsc
+ with_pymalloc
+ with_valgrind
++with_dtrace
+ with_fpectl
+ with_libm
+ with_libc
+@@ -1439,6 +1444,7 @@ Optional Packages:
+   --with(out)-tsc         enable/disable timestamp counter profile
+   --with(out)-pymalloc    disable/enable specialized mallocs
+   --with-valgrind         Enable Valgrind support
++  --with(out)-dtrace      disable/enable dtrace support
+   --with-fpectl           enable SIGFPE catching
+   --with-libm=STRING      math library
+   --with-libc=STRING      C library
+@@ -9333,6 +9339,93 @@ fi
+     OPT="-DDYNAMIC_ANNOTATIONS_ENABLED=1 $OPT"
+ fi
+ 
++# Check for dtrace support
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for --with-dtrace" >&5
++$as_echo_n "checking for --with-dtrace... " >&6; }
++
++# Check whether --with-dtrace was given.
++if test "${with_dtrace+set}" = set; then :
++  withval=$with_dtrace;
++fi
++
++
++
++
++DTRACE=
++DFLAGS=
++if test ! -z "$with_dtrace"
++then
++    # The cast to long int works around a bug in the HP C Compiler
++# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
++# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
++# This bug is HP SR number 8606223364.
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of long" >&5
++$as_echo_n "checking size of long... " >&6; }
++if ${ac_cv_sizeof_long+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (long))" "ac_cv_sizeof_long"        "$ac_includes_default"; then :
++
++else
++  if test "$ac_cv_type_long" = yes; then
++     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
++as_fn_error 77 "cannot compute sizeof (long)
++See \`config.log' for more details" "$LINENO" 5; }
++   else
++     ac_cv_sizeof_long=0
++   fi
++fi
++
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_long" >&5
++$as_echo "$ac_cv_sizeof_long" >&6; }
++
++
++
++cat >>confdefs.h <<_ACEOF
++#define SIZEOF_LONG $ac_cv_sizeof_long
++_ACEOF
++
++
++    if test "$ac_cv_sizeof_long" -eq 8
++    then
++        DFLAGS="-64"
++    else
++        DFLAGS="-32"
++    fi
++
++    #if dtrace -G -o /dev/null Include/pydtrace.d 2>/dev/null
++    if true
++    then
++
++$as_echo "#define WITH_DTRACE 1" >>confdefs.h
++
++        with_dtrace="Sun"
++        DTRACEOBJS="Python/dtrace.o"
++        DTRADEHDRS=""
++        DTRACE=dtrace
++    elif dtrace -h -o /dev/null -s Include/pydtrace.d
++    then
++
++$as_echo "#define WITH_DTRACE 1" >>confdefs.h
++
++        with_dtrace="Apple"
++        DTRACEOBJS=""
++        DTRADEHDRS="pydtrace.h"
++        DTRACE=dtrace
++    else
++        with_dtrace="no"
++    fi
++else
++    with_dtrace="no"
++fi
++
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $with_dtrace" >&5
++$as_echo "$with_dtrace" >&6; }
++
++
++
+ # -I${DLINCLDIR} is added to the compile rule for importdl.o
+ 
+ DLINCLDIR=.
+diff -bB -u -p -Nr src-3.2.2/configure.in src-3.2.2-new/configure.in
+--- src-3.2.2/configure.in	2011-09-03 12:16:50.000000000 -0400
++++ src-3.2.2-new/configure.in	2012-01-23 16:47:44.518908944 -0500
+@@ -2525,6 +2525,53 @@ if test "$with_valgrind" != no; then
+     OPT="-DDYNAMIC_ANNOTATIONS_ENABLED=1 $OPT"
+ fi
+ 
++# Check for dtrace support
++AC_MSG_CHECKING(for --with-dtrace)
++AC_ARG_WITH(dtrace,
++            AC_HELP_STRING(--with(out)-dtrace, disable/enable dtrace support))
++
++AC_SUBST(DTRACE)
++AC_SUBST(DFLAGS)
++DTRACE=
++DFLAGS=
++if test ! -z "$with_dtrace"
++then
++    AC_CHECK_SIZEOF([long])
++    if [test "$ac_cv_sizeof_long" -eq 8]
++    then
++        DFLAGS="-64"
++    else
++        DFLAGS="-32"
++    fi
++
++    #if dtrace -G -o /dev/null Include/pydtrace.d 2>/dev/null
++    if true
++    then
++        AC_DEFINE(WITH_DTRACE, 1, 
++         [Define if you want to compile in Dtrace support])
++        with_dtrace="Sun"
++        DTRACEOBJS="Python/dtrace.o"
++        DTRADEHDRS=""
++        DTRACE=dtrace
++    elif dtrace -h -o /dev/null -s Include/pydtrace.d
++    then
++        AC_DEFINE(WITH_DTRACE, 1, 
++         [Define if you want to compile in Dtrace support])
++        with_dtrace="Apple"
++        DTRACEOBJS=""
++        DTRADEHDRS="pydtrace.h"
++        DTRACE=dtrace
++    else
++        with_dtrace="no"
++    fi
++else
++    with_dtrace="no"
++fi
++
++AC_MSG_RESULT($with_dtrace)
++AC_SUBST(DTRACEOBJS)
++AC_SUBST(DTRACEHDRS)
++
+ # -I${DLINCLDIR} is added to the compile rule for importdl.o
+ AC_SUBST(DLINCLDIR)
+ DLINCLDIR=.
+diff -bB -u -p -Nr src-3.2.2/Include/pydtrace.d src-3.2.2-new/Include/pydtrace.d
+--- src-3.2.2/Include/pydtrace.d	1969-12-31 19:00:00.000000000 -0500
++++ src-3.2.2-new/Include/pydtrace.d	2012-01-24 10:30:26.643772689 -0500
+@@ -0,0 +1,17 @@
++provider python {
++    probe function__entry(void *, const char *, const char *, int);
++    probe function__return(void *, const char *, const char *, int);
++    probe instance__new__start(void *, const char *, const char *);
++    probe instance__new__done(void *, const char *, const char *);
++    probe instance__delete__start(void *, const char *, const char *);
++    probe instance__delete__done(void *, const char *, const char *);
++    probe line(void *, const char *, const char *, int);
++    probe gc__start(void *, int);
++    probe gc__done(void *, long);
++};
++
++#pragma D attributes Evolving/Evolving/Common provider python provider
++#pragma D attributes Private/Private/Common provider python module
++#pragma D attributes Private/Private/Common provider python function
++#pragma D attributes Evolving/Evolving/Common provider python name
++#pragma D attributes Evolving/Evolving/Common provider python args
+diff -bB -u -p -Nr src-3.2.2/Makefile.pre.in src-3.2.2-new/Makefile.pre.in
+--- src-3.2.2/Makefile.pre.in	2011-09-03 12:16:45.000000000 -0400
++++ src-3.2.2-new/Makefile.pre.in	2012-01-23 16:47:19.425222658 -0500
+@@ -49,6 +49,10 @@ SHELL=		/bin/sh
+ # Use this to make a link between python$(VERSION) and python in $(BINDIR)
+ LN=		@LN@
+ 
++DTRACE=		@DTRACE@
++DFLAGS=		@DFLAGS@
++
++
+ # Portable install script (configure doesn't always guess right)
+ INSTALL=	@INSTALL@
+ INSTALL_PROGRAM=@INSTALL_PROGRAM@
+@@ -333,6 +337,7 @@ PYTHON_OBJS=	\
+ 		Python/formatter_unicode.o \
+ 		Python/fileutils.o \
+ 		Python/$(DYNLOADFILE) \
++		@DTRACEOBJS@ \
+ 		$(LIBOBJS) \
+ 		$(MACHDEP_OBJS) \
+ 		$(THREADOBJ)
+@@ -654,6 +659,29 @@ Objects/typeobject.o: $(srcdir)/Objects/
+ $(srcdir)/Objects/typeslots.inc: $(srcdir)/Include/typeslots.h $(srcdir)/Objects/typeslots.py
+ 	$(PYTHON) $(srcdir)/Objects/typeslots.py < $(srcdir)/Include/typeslots.h > $(srcdir)/Objects/typeslots.inc
+ 
++# Only generated --with-dtrace
++Include/pydtrace.h: $(srcdir)/Include/pydtrace.d
++	if test ! -d Include ; then mkdir Include ; fi ; \
++	if test "$(DTRACE)" != "" ; then \
++		$(DTRACE) -o $@ $(DFLAGS) \
++			-C -h -s $(srcdir)/Include/pydtrace.d ; \
++	else	touch $@ ; \
++	fi;
++
++Python/ceval.o: Include/pydtrace.h
++Modules/gcmodule.o: Include/pydtrace.h
++Objects/typeobject.o: Include/pydtrace.h
++
++Python/dtrace.o: $(srcdir)/Include/pydtrace.d Python/ceval.o Modules/gcmodule.o \
++						Objects/typeobject.o
++	if test "$(DTRACE)" != "" ; then \
++		$(DTRACE) -o $@ $(DFLAGS) \
++			-C -G -s $(srcdir)/Include/pydtrace.d \
++				Python/ceval.o Modules/gcmodule.o \
++				Objects/typeobject.o; \
++	else    touch $@ ; \
++	fi;
++
+ ############################################################################
+ # Header files
+ 
+@@ -1246,6 +1274,7 @@ clean: pycremoval
+ 	find . -name '*.so.[0-9]*.[0-9]*' -exec rm -f {} ';'
+ 	find build -name 'fficonfig.h' -exec rm -f {} ';' || true
+ 	find build -name 'fficonfig.py' -exec rm -f {} ';' || true
++	rm -f Include/pydtrace.h Include/phelper.h
+ 	-rm -f Lib/lib2to3/*Grammar*.pickle
+ 
+ profile-removal:
+@@ -1275,6 +1304,7 @@ distclean: clobber
+ 			   -o -name '*.orig' -o -name '*.rej' \
+ 			   -o -name '*.bak' ')' \
+ 			   -exec rm -f {} ';'
++	rm -f Include/pydtrace.h Include/phelper.h
+ 
+ # Check for smelly exported symbols (not starting with Py/_Py)
+ smelly: all
+diff -bB -u -p -Nr src-3.2.2/pyconfig.h.in src-3.2.2-new/pyconfig.h.in
+--- src-3.2.2/pyconfig.h.in	2011-09-03 12:16:50.000000000 -0400
++++ src-3.2.2-new/pyconfig.h.in	2011-12-07 11:18:03.785658733 -0500
+@@ -1095,6 +1095,9 @@
+ /* Define if you want documentation strings in extension modules */
+ #undef WITH_DOC_STRINGS
+ 
++/* Define to compile in Dtrace support */
++#undef WITH_DTRACE
++
+ /* Define if you want to use the new-style (Openstep, Rhapsody, MacOS) dynamic
+    linker (dyld) instead of the old-style (NextStep) dynamic linker (rld).
+    Dyld is necessary to support frameworks. */
+diff -bB -u -p -Nr src-3.2.2/Python/ceval.c src-3.2.2-new/Python/ceval.c
+--- src-3.2.2/Python/ceval.c	2011-09-03 12:16:49.000000000 -0400
++++ src-3.2.2-new/Python/ceval.c	2012-01-24 15:27:55.333633359 -0500
+@@ -18,6 +18,10 @@
+ 
+ #include <ctype.h>
+ 
++#ifdef WITH_DTRACE
++#include "pydtrace.h"
++#endif
++
+ #ifndef WITH_TSC
+ 
+ #define READ_TIMESTAMP(var)
+@@ -1207,6 +1211,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int
+         }
+     }
+ 
++    PYTHON_FUNCTION_ENTRY(f, 0, 0, 0);
++
+     co = f->f_code;
+     names = co->co_names;
+     consts = co->co_consts;
+@@ -3088,6 +3094,7 @@ fast_yield:
+ 
+     /* pop frame */
+ exit_eval_frame:
++    PYTHON_FUNCTION_RETURN(f, 0, 0, 0);
+     Py_LeaveRecursiveCall();
+     tstate->frame = f->f_back;
+ 
