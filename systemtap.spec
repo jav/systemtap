@@ -371,6 +371,13 @@ getent passwd stap-server >/dev/null || \
   useradd -c "Systemtap Compile Server" -u 155 -g stap-server -d %{_localstatedir}/lib/stap-server -m -r -s /sbin/nologin stap-server || \
   useradd -c "Systemtap Compile Server" -g stap-server -d %{_localstatedir}/lib/stap-server -m -r -s /sbin/nologin stap-server
 test -e ~stap-server && chmod 755 ~stap-server
+
+if [ ! -f ~stap-server/.systemtap/rc ]; then
+  mkdir -p ~stap-server/.systemtap
+  chown stap-server:stap-server ~stap-server/.systemtap
+  echo "--rlimit-as=614400000 --rlimit-cpu=60 --rlimit-nproc=20 --rlimit-stack=1024000 --rlimit-fsize=51200000" > ~stap-server/.systemtap/rc
+  chown stap-server:stap-server ~stap-server/.systemtap/rc
+fi
 exit 0
 
 %post server
@@ -379,6 +386,7 @@ test -e %{_localstatedir}/log/stap-server/log || {
      chmod 664 %{_localstatedir}/log/stap-server/log
      chown stap-server:stap-server %{_localstatedir}/log/stap-server/log
 }
+
 # If it does not already exist, as stap-server, generate the certificate
 # used for signing and for ssl.
 if test ! -e ~stap-server/.systemtap/ssl/server/stap.cert; then

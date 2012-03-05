@@ -30,6 +30,7 @@ extern "C" {
 #include <grp.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
+#include <sys/resource.h>
 #include <elfutils/libdwfl.h>
 #include <unistd.h>
 }
@@ -549,6 +550,7 @@ int
 systemtap_session::parse_cmdline (int argc, char * const argv [])
 {
   client_options_disallowed = "";
+  struct rlimit our_rlimit;
   while (true)
     {
       char * num_endptr;
@@ -1095,6 +1097,46 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               }
               assert_regexp_match("--modinfo parameter", optarg, "^[a-z_][a-z0-9_]*=.+$");
               modinfos.push_back (string(optarg));
+              break;
+
+            case LONG_OPT_RLIMIT_AS:
+              if(getrlimit(RLIMIT_AS, & our_rlimit))
+                cerr << _F("Unable to obtain resource limits for rlimit_as : %s", strerror (errno)) << endl;
+              our_rlimit.rlim_cur = strtoul (optarg, &num_endptr, 0);
+              if(*num_endptr || setrlimit (RLIMIT_AS, & our_rlimit))
+                cerr << _F("Unable to set resource limits for rlimit_as : %s", strerror (errno)) << endl;
+              break;
+
+            case LONG_OPT_RLIMIT_CPU:
+              if(getrlimit(RLIMIT_CPU, & our_rlimit))
+                cerr << _F("Unable to obtain resource limits for rlimit_cpu : %s", strerror (errno)) << endl;
+              our_rlimit.rlim_cur = strtoul (optarg, &num_endptr, 0);
+              if(*num_endptr || setrlimit (RLIMIT_CPU, & our_rlimit))
+                cerr << _F("Unable to set resource limits for rlimit_cpu : %s", strerror (errno)) << endl;
+              break;
+
+            case LONG_OPT_RLIMIT_NPROC:
+              if(getrlimit(RLIMIT_NPROC, & our_rlimit))
+                cerr << _F("Unable to obtain resource limits for rlimit_nproc : %s", strerror (errno)) << endl;
+              our_rlimit.rlim_cur = strtoul (optarg, &num_endptr, 0);
+              if(*num_endptr || setrlimit (RLIMIT_NPROC, & our_rlimit))
+                cerr << _F("Unable to set resource limits for rlimit_nproc : %s", strerror (errno)) << endl;
+              break;
+
+            case LONG_OPT_RLIMIT_STACK:
+              if(getrlimit(RLIMIT_STACK, & our_rlimit))
+                cerr << _F("Unable to obtain resource limits for rlimit_stack : %s", strerror (errno)) << endl;
+              our_rlimit.rlim_cur = strtoul (optarg, &num_endptr, 0);
+              if(*num_endptr || setrlimit (RLIMIT_STACK, & our_rlimit))
+                cerr << _F("Unable to set resource limits for rlimit_stack : %s", strerror (errno)) << endl;
+              break;
+
+            case LONG_OPT_RLIMIT_FSIZE:
+              if(getrlimit(RLIMIT_FSIZE, & our_rlimit))
+                cerr << _F("Unable to obtain resource limits for rlimit_fsize : %s", strerror (errno)) << endl;
+              our_rlimit.rlim_cur = strtoul (optarg, &num_endptr, 0);
+              if(*num_endptr || setrlimit (RLIMIT_FSIZE, & our_rlimit))
+                cerr << _F("Unable to set resource limits for rlimit_fsize : %s", strerror (errno)) << endl;
               break;
 
             default:

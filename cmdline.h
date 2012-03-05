@@ -44,6 +44,11 @@ extern "C" {
 #define LONG_OPT_PRIVILEGE 28
 #define LONG_OPT_SUPPRESS_HANDLER_ERRORS 29
 #define LONG_OPT_MODINFO 30
+#define LONG_OPT_RLIMIT_AS 31
+#define LONG_OPT_RLIMIT_CPU 32
+#define LONG_OPT_RLIMIT_NPROC 33
+#define LONG_OPT_RLIMIT_STACK 34
+#define LONG_OPT_RLIMIT_FSIZE 35
 
 // NB: when adding new options, consider very carefully whether they
 // should be restricted from stap clients (after --client-options)!

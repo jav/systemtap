@@ -50,5 +50,10 @@ struct option stap_long_options[] = {
   { "privilege", 1, &stap_long_opt, LONG_OPT_PRIVILEGE },
   { "suppress-handler-errors", 0, &stap_long_opt, LONG_OPT_SUPPRESS_HANDLER_ERRORS },
   { "modinfo", 1, &stap_long_opt, LONG_OPT_MODINFO },
+  { "rlimit-as", 1, &stap_long_opt, LONG_OPT_RLIMIT_AS },
+  { "rlimit-cpu", 1, &stap_long_opt, LONG_OPT_RLIMIT_CPU },
+  { "rlimit-nproc", 1, &stap_long_opt, LONG_OPT_RLIMIT_NPROC },
+  { "rlimit-stack", 1, &stap_long_opt, LONG_OPT_RLIMIT_STACK },
+  { "rlimit-fsize", 1, &stap_long_opt, LONG_OPT_RLIMIT_FSIZE },
   { NULL, 0, NULL, 0 }
 };
