@@ -480,10 +480,7 @@ cpu time, file size, memory consumption, in order to bound
 the effects of processing excessively large or bogus inputs.
 
 When the user running the servers is \fIstap\-server\fR,
-each server is run with limits equivalent to 
-
-  ulimit \-f 50000 \-s 1000 \-t 60 \-u 20 \-v 500000
-
+each server is run with limits specified in \fI~stap-server/.systemtap/rc\fR
 otherwise, no limits are imposed.
 
 .TP
