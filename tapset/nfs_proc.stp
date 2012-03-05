@@ -14,12 +14,12 @@
 
 function AF_INET:long()
 {
-	return %{ /* pure */ AF_INET %}
+	return %{ /* pure */ /* unprivileged */ AF_INET %}
 }
 
 function AF_INET6:long()
 {
-	return %{ /* pure */ AF_INET6 %}
+	return %{ /* pure */ /* unprivileged */ AF_INET6 %}
 }
 
 function NFS_I:long(inode:long)
@@ -74,7 +74,8 @@ function get_ip_from_client:long(clnt:long)
 	/* In reality, 'cl_xprt->addr' is of 'sockaddr_storage' type
 	 * (since 2.6.19). But when used, you cast it to what is
 	 * inside that buffer. */
-	if (@cast(addr, "sockaddr_in")->sin_family != %{ /* pure */ AF_INET %}) {
+	if (@cast(addr, "sockaddr_in")->sin_family
+		!= %{ /* pure */ /* unprivileged */ AF_INET %}) {
 		/* Now consider ipv4 only */
 		return 0
 	}
