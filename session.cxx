@@ -331,7 +331,7 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   globalopts = other.globalopts;
   modinfos = other.modinfos;
 
-  client_options_disallowed = other.client_options_disallowed;
+  client_options_disallowed_for_unprivileged = other.client_options_disallowed_for_unprivileged;
   server_status_strings = other.server_status_strings;
   specified_servers = other.specified_servers;
   server_trust_spec = other.server_trust_spec;
@@ -548,7 +548,7 @@ systemtap_session::usage (int exitcode)
 int
 systemtap_session::parse_cmdline (int argc, char * const argv [])
 {
-  client_options_disallowed = "";
+  client_options_disallowed_for_unprivileged = "";
   while (true)
     {
       char * num_endptr;
@@ -559,16 +559,14 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 
       if (grc < 0)
         break;
-      bool push_server_opt = false;
       switch (grc)
         {
         case 'V':
-	  push_server_opt = true;
           version ();
           exit (0);
 
         case 'v':
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc);
           for (unsigned i=0; i<5; i++)
             perpass_verbose[i] ++;
 	  verbose ++;
@@ -582,17 +580,17 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
           break;
 
         case 't':
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc);
 	  timing = true;
 	  break;
 
         case 'w':
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc);
 	  suppress_warnings = true;
 	  break;
 
         case 'W':
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc);
 	  panic_warnings = true;
 	  break;
 
@@ -608,19 +606,19 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               cerr << _("Listing (-l) mode implies pass 2.") << endl;
               return 1;
             }
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
           break;
 
         case 'I':
 	  if (client_options)
-	    client_options_disallowed += client_options_disallowed.empty () ? "-I" : ", -I";
+	    client_options_disallowed_for_unprivileged += client_options_disallowed_for_unprivileged.empty () ? "-I" : ", -I";
 	  if (include_arg_start == -1)
 	    include_arg_start = include_path.size ();
           include_path.push_back (string (optarg));
           break;
 
         case 'd':
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
           {
             // At runtime user module names are resolved through their
             // canonical (absolute) path.
@@ -646,14 +644,14 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 		   << endl;
               return 1;
 	    }
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
           cmdline_script = string (optarg);
           have_script = true;
           break;
 
         case 'o':
           // NB: client_options not a problem, since pass 1-4 does not use output_file.
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
           output_file = string (optarg);
           break;
 
@@ -665,7 +663,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 
         case 'm':
 	  if (client_options)
-	    client_options_disallowed += client_options_disallowed.empty () ? "-m" : ", -m";
+	    client_options_disallowed_for_unprivileged += client_options_disallowed_for_unprivileged.empty () ? "-m" : ", -m";
           module_name = string (optarg);
 	  save_module = true;
 	  modname_given = true;
@@ -697,20 +695,20 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      }
 	  }
 
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
 	  use_script_cache = false;
           break;
 
         case 'r':
           if (client_options) // NB: no paths!
             assert_regexp_match("-r parameter from client", optarg, "^[a-z0-9_.-]+$");
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
           setup_kernel_release(optarg);
           break;
 
         case 'a':
           assert_regexp_match("-a parameter", optarg, "^[a-z0-9_-]+$");
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
           architecture = string(optarg);
           break;
 
@@ -721,22 +719,22 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
           break;
 
         case 'g':
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc);
           guru_mode = true;
           break;
 
         case 'P':
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc);
           prologue_searching = true;
           break;
 
         case 'b':
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc);
           bulk_mode = true;
           break;
 
 	case 'u':
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc);
 	  unoptimized = true;
 	  break;
 
@@ -747,11 +745,10 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               cerr << _("Invalid buffer size (should be 1-4095).") << endl;
 	      return 1;
             }
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
           break;
 
 	case 'c':
-	  push_server_opt = true;
 	  cmd = string (optarg);
           if (cmd == "")
             {
@@ -760,6 +757,7 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
               cerr << _("Empty CMD string invalid.") << endl;
               return 1;
             }
+	  server_args.push_back (string ("-") + (char)grc + optarg);
 	  break;
 
 	case 'x':
@@ -769,26 +767,26 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	      cerr << _("Invalid target process ID number.") << endl;
 	      return 1;
 	    }
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
 	  break;
 
 	case 'D':
           assert_regexp_match ("-D parameter", optarg, "^[a-z_][a-z_0-9]*(=-?[a-z_0-9]+)?$");
 	  if (client_options)
-	    client_options_disallowed += client_options_disallowed.empty () ? "-D" : ", -D";
-	  push_server_opt = true;
+	    client_options_disallowed_for_unprivileged += client_options_disallowed_for_unprivileged.empty () ? "-D" : ", -D";
+	  server_args.push_back (string ("-") + (char)grc + optarg);
 	  macros.push_back (string (optarg));
 	  break;
 
 	case 'S':
           assert_regexp_match ("-S parameter", optarg, "^[0-9]+(,[0-9]+)?$");
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
 	  size_option = string (optarg);
 	  break;
 
 	case 'q':
           if (client_options) { cerr << _F("ERROR: %s invalid with %s", "-q", "--client-options") << endl; return 1; } 
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc);
 	  tapset_compile_coverage = true;
 	  break;
 
@@ -810,299 +808,319 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 		   << endl;
 	      return 1;
             }
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
           cmdline_script = string("probe ") + string(optarg) + " {}";
           have_script = true;
           break;
 
         case 'F':
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc);
           load_only = true;
 	  break;
 
 	case 'B':
           if (client_options) { cerr << _F("ERROR: %s invalid with %s", "-B", "--client-options") << endl; return 1; } 
-	  push_server_opt = true;
+	  server_args.push_back (string ("-") + (char)grc + optarg);
           kbuildflags.push_back (string (optarg));
 	  break;
 
-        case 0:
-          switch (stap_long_opt)
-            {
-            case LONG_OPT_VERSION:
-              push_server_opt = true;
-              version ();
-              exit (0);
-	      break;
-            case LONG_OPT_KELF:
-	      push_server_opt = true;
-	      consult_symtab = true;
-	      break;
-            case LONG_OPT_KMAP:
-	      // Leave consult_symtab unset for now, to ease error checking.
-              if (!kernel_symtab_path.empty())
-		{
-		  cerr << _("You can't specify multiple --kmap options.") << endl;
-		  return 1;
-		}
-	      push_server_opt = true;
-              if (optarg)
-		kernel_symtab_path = optarg;
-              else
-                kernel_symtab_path = PATH_TBD;
-	      break;
-	    case LONG_OPT_IGNORE_VMLINUX:
-	      push_server_opt = true;
-	      ignore_vmlinux = true;
-	      break;
-	    case LONG_OPT_IGNORE_DWARF:
-	      push_server_opt = true;
-	      ignore_dwarf = true;
-	      break;
-	    case LONG_OPT_VERBOSE_PASS:
-              {
-                bool ok = true;
-                if (strlen(optarg) < 1 || strlen(optarg) > 5)
-                  ok = false;
-                if (ok)
-                  for (unsigned i=0; i<strlen(optarg); i++)
-                    if (isdigit (optarg[i]))
-                      perpass_verbose[i] += optarg[i]-'0';
-                    else
-                      ok = false;
-                
-                if (! ok)
-                  {
-                    cerr << _("Invalid --vp argument: it takes 1 to 5 digits.") << endl;
-                    return 1;
-                  }
-                // NB: we don't do this: last_pass = strlen(optarg);
-		push_server_opt = true;
-                break;
-              }
-	    case LONG_OPT_SKIP_BADVARS:
-	      push_server_opt = true;
-	      skip_badvars = true;
-	      break;
-	    case LONG_OPT_PRIVILEGE:
-	      {
-		// We allow only multiple privilege-setting options if they all specify the same
-		// privilege level. The server also expects and depends on this behaviour when
-		// examining the client-side options passed to it.
-		privilege_t newPrivilege;
-		if (strcmp (optarg, "stapdev") == 0)
-		  newPrivilege = pr_stapdev;
-		else if (strcmp (optarg, "stapsys") == 0)
-		  newPrivilege = pr_stapsys;
-		else if (strcmp (optarg, "stapusr") == 0)
-		  newPrivilege = pr_stapusr;
+	case LONG_OPT_VERSION:
+	  version ();
+	  exit (0);
+	  break;
+
+	case LONG_OPT_KELF:
+	  server_args.push_back ("--kelf");
+	  consult_symtab = true;
+	  break;
+
+	case LONG_OPT_KMAP:
+	  // Leave consult_symtab unset for now, to ease error checking.
+	  if (!kernel_symtab_path.empty())
+	    {
+	      cerr << _("You can't specify multiple --kmap options.") << endl;
+	      return 1;
+	    }
+	  if (optarg) {
+	    kernel_symtab_path = optarg;
+	    server_args.push_back ("--kmap=" + string(optarg));
+	  }
+	  else {
+	    kernel_symtab_path = PATH_TBD;
+	    server_args.push_back ("--kmap");
+	  }
+	  break;
+
+	case LONG_OPT_IGNORE_VMLINUX:
+	  server_args.push_back ("--ignore-vmlinux");
+	  ignore_vmlinux = true;
+	  break;
+
+	case LONG_OPT_IGNORE_DWARF:
+	  server_args.push_back ("--ignore-dwarf");
+	  ignore_dwarf = true;
+	  break;
+
+	case LONG_OPT_VERBOSE_PASS:
+	  {
+	    bool ok = true;
+	    if (strlen(optarg) < 1 || strlen(optarg) > 5)
+	      ok = false;
+	    if (ok)
+	      for (unsigned i=0; i<strlen(optarg); i++)
+		if (isdigit (optarg[i]))
+		  perpass_verbose[i] += optarg[i]-'0';
 		else
-		  {
-		    cerr << _F("Invalid argument '%s' for --privilege.", optarg) << endl;
-		    return 1;
-		  }
-		if (privilege_set && newPrivilege != privilege)
-		  {
-		    cerr << _("Privilege level may be set only once.") << endl;
-		    return 1;
-		  }
-		privilege = newPrivilege;
-		push_server_opt = true;
-		privilege_set = true;
+		  ok = false;
+                
+	    if (! ok)
+	      {
+		cerr << _("Invalid --vp argument: it takes 1 to 5 digits.") << endl;
+		return 1;
 	      }
-              /* NB: for server security, it is essential that once this flag is
-                 set, no future flag be able to unset it. */
-	      break;
-	    case LONG_OPT_UNPRIVILEGED:
-	      // We allow only multiple privilege-setting options if they all specify the same
-	      // privilege level. The server also expects and depends on this behaviour when
-	      // examining the client-side options passed to it.
-	      if (privilege_set && pr_unprivileged != privilege)
+	    // NB: we don't do this: last_pass = strlen(optarg);
+	    server_args.push_back ("--vp=" + string(optarg));
+	    break;
+	  }
+
+	case LONG_OPT_SKIP_BADVARS:
+	  server_args.push_back ("--skip-badvars");
+	  skip_badvars = true;
+	  break;
+
+	case LONG_OPT_PRIVILEGE:
+	  {
+	    // We allow only multiple privilege-setting options if they all specify the same
+	    // privilege level. The server also expects and depends on this behaviour when
+	    // examining the client-side options passed to it.
+	    privilege_t newPrivilege;
+	    if (strcmp (optarg, "stapdev") == 0)
+	      newPrivilege = pr_stapdev;
+	    else if (strcmp (optarg, "stapsys") == 0)
+	      newPrivilege = pr_stapsys;
+	    else if (strcmp (optarg, "stapusr") == 0)
+	      newPrivilege = pr_stapusr;
+	    else
+	      {
+		cerr << _F("Invalid argument '%s' for --privilege.", optarg) << endl;
+		return 1;
+	      }
+	    if (privilege_set && newPrivilege != privilege)
+	      {
+		cerr << _("Privilege level may be set only once.") << endl;
+		return 1;
+	      }
+	    privilege = newPrivilege;
+	    privilege_set = true;
+	    server_args.push_back ("--privilege=" + string(optarg));
+	  }
+	  /* NB: for server security, it is essential that once this flag is
+	     set, no future flag be able to unset it. */
+	  break;
+
+	case LONG_OPT_UNPRIVILEGED:
+	  // We allow only multiple privilege-setting options if they all specify the same
+	  // privilege level. The server also expects and depends on this behaviour when
+	  // examining the client-side options passed to it.
+	  if (privilege_set && pr_unprivileged != privilege)
+	    {
+	      cerr << _("Privilege level may be set only once.") << endl;
+	      return 1;
+	    }
+	  privilege = pr_unprivileged;
+	  privilege_set = true;
+	  server_args.push_back ("--unprivileged");
+	  /* NB: for server security, it is essential that once this flag is
+	     set, no future flag be able to unset it. */
+	  break;
+
+	case LONG_OPT_OMIT_WERROR:
+	  server_args.push_back (OMIT_WERROR_NAME);
+	  omit_werror = true;
+	  break;
+
+	case LONG_OPT_CLIENT_OPTIONS:
+	  client_options = true;
+	  break;
+
+	case LONG_OPT_TMPDIR:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--tmpdir", "--client-options") << endl;
+	    return 1;
+	  }
+	  tmpdir_opt_set = true;
+	  tmpdir = optarg;
+	  break;
+
+	case LONG_OPT_DOWNLOAD_DEBUGINFO:
+	  if(optarg)
+	    {
+	      if(strcmp(optarg, "no") == 0)
+		download_dbinfo = 0; //Disable feature
+	      else if (strcmp(optarg, "yes") == 0)
+		download_dbinfo = INT_MAX; //Enable, No Timeout
+	      /* NOTE: Timeout and Asking for Confirmation features below are not supported yet by abrt
+	       * in version abrt-2.0.3-1.fc15.x86_64, Bugzilla: BZ730107 (timeout), BZ726192 ('-y') */
+	      else if(atoi(optarg) > 0)
+		download_dbinfo = atoi(optarg); //Enable, Set timeout to optarg
+	      else if (strcmp(optarg, "ask") == 0)
+		download_dbinfo = -1; //Enable, Ask for confirmation
+	      else
 		{
-		  cerr << _("Privilege level may be set only once.") << endl;
+		  cerr << _F("ERROR: %s is not a valid value. Use 'yes', 'no', 'ask' or a timeout value.", optarg) << endl;
 		  return 1;
 		}
-	      privilege = pr_unprivileged;
-	      push_server_opt = true;
-	      privilege_set = true;
-              /* NB: for server security, it is essential that once this flag is
-                 set, no future flag be able to unset it. */
-	      break;
-	    case LONG_OPT_OMIT_WERROR:
-	      push_server_opt = true;
-	      omit_werror = true;
-	      break;
-	    case LONG_OPT_CLIENT_OPTIONS:
-	      client_options = true;
-	      break;
-	    case LONG_OPT_TMPDIR:
-              if (client_options)
-                client_options_disallowed += client_options_disallowed.empty() ? "--tmpdir" : ", --tmpdir";
-              tmpdir_opt_set = true;
-              tmpdir = optarg;
-              break;
-            case LONG_OPT_DOWNLOAD_DEBUGINFO:
-              if(optarg)
-                {
-                  if(strcmp(optarg, "no") == 0)
-                    download_dbinfo = 0; //Disable feature
-                  else if (strcmp(optarg, "yes") == 0)
-                    download_dbinfo = INT_MAX; //Enable, No Timeout
-                  /* NOTE: Timeout and Asking for Confirmation features below are not supported yet by abrt
-                   * in version abrt-2.0.3-1.fc15.x86_64, Bugzilla: BZ730107 (timeout), BZ726192 ('-y') */
-                  else if(atoi(optarg) > 0)
-                      download_dbinfo = atoi(optarg); //Enable, Set timeout to optarg
-                  else if (strcmp(optarg, "ask") == 0)
-                    download_dbinfo = -1; //Enable, Ask for confirmation
-                  else
-                    {
-                      cerr << _F("ERROR: %s is not a valid value. Use 'yes', 'no', 'ask' or a timeout value.", optarg) << endl;
-                      return 1;
-                    }
-                }
-              else
-                download_dbinfo = INT_MAX; //Enable, No Timeout
-              break;
-	    case LONG_OPT_USE_SERVER:
-	      if (client_options)
-		client_options_disallowed += client_options_disallowed.empty () ? "--use-server" : ", --use-server";
-	      if (optarg)
-		specified_servers.push_back (optarg);
-	      else
-		specified_servers.push_back ("");
-	      break;
-	    case LONG_OPT_USE_SERVER_ON_ERROR:
-	      if (client_options)
-		client_options_disallowed += client_options_disallowed.empty () ? "--use-server-on-error" : ", --use-server-on-error";
-	      if (optarg)
-		{
-		  string arg = optarg;
-		  for (unsigned i = 0; i < arg.size (); ++i)
-		    arg[i] = tolower (arg[i]);
-		  if (arg == "yes" || arg == "ye" || arg == "y")
-		    use_server_on_error = true;
-		  else if (arg == "no" || arg == "n")
-		    use_server_on_error = false;
-		  else
-                    cerr << _F("Invalid argument '%s' for --use-server-on-error.", optarg) << endl;
-		}
-	      else
+	    }
+	  else
+	    download_dbinfo = INT_MAX; //Enable, No Timeout
+	  break;
+
+	case LONG_OPT_USE_SERVER:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--use-server", "--client-options") << endl;
+	    return 1;
+	  }
+	  if (optarg)
+	    specified_servers.push_back (optarg);
+	  else
+	    specified_servers.push_back ("");
+	  break;
+
+	case LONG_OPT_USE_SERVER_ON_ERROR:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--use-server-on-error", "--client-options") << endl;
+	    return 1;
+	  }
+	  if (optarg)
+	    {
+	      string arg = optarg;
+	      for (unsigned i = 0; i < arg.size (); ++i)
+		arg[i] = tolower (arg[i]);
+	      if (arg == "yes" || arg == "ye" || arg == "y")
 		use_server_on_error = true;
-	      break;
-	    case LONG_OPT_LIST_SERVERS:
-	      if (client_options)
-		client_options_disallowed += client_options_disallowed.empty () ? "--list-servers" : ", --list-servers";
-	      if (optarg)
-		server_status_strings.push_back (optarg);
+	      else if (arg == "no" || arg == "n")
+		use_server_on_error = false;
 	      else
-		server_status_strings.push_back ("");
-	      break;
-	    case LONG_OPT_TRUST_SERVERS:
-	      if (client_options)
-		client_options_disallowed += client_options_disallowed.empty () ? "--trust-servers" : ", --trust-servers";
-	      if (optarg)
-		server_trust_spec = optarg;
-	      else
-		server_trust_spec = "ssl";
-	      break;
-	    case LONG_OPT_HELP:
-	      usage (0);
-	      break;
+		cerr << _F("Invalid argument '%s' for --use-server-on-error.", optarg) << endl;
+	    }
+	  else
+	    use_server_on_error = true;
+	  break;
 
-            // The caching options should not be available to server clients
-            case LONG_OPT_DISABLE_CACHE:
-              if (client_options) {
-                  cerr << _F("ERROR: %s is invalid with %s", "--disable-cache", "--client-options") << endl;
-                  return 1;
-              }
-              use_cache = use_script_cache = false;
-              break;
-            case LONG_OPT_POISON_CACHE:
-              if (client_options) {
-                  cerr << _F("ERROR: %s is invalid with %s", "--poison-cache", "--client-options") << endl;
-                  return 1;
-              }
-              poison_cache = true;
-              break;
-            case LONG_OPT_CLEAN_CACHE:
-              if (client_options) {
-                  cerr << _F("ERROR: %s is invalid with %s", "--clean-cache", "--client-options") << endl;
-                  return 1;
-              }
-              clean_cache(*this);
-              exit(0);
+	case LONG_OPT_LIST_SERVERS:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--list-servers", "--client-options") << endl;
+	    return 1;
+	  }
+	  if (optarg)
+	    server_status_strings.push_back (optarg);
+	  else
+	    server_status_strings.push_back ("");
+	  break;
 
-            case LONG_OPT_COMPATIBLE:
-	      push_server_opt = true;
-              compatible = optarg;
-              break;
+	case LONG_OPT_TRUST_SERVERS:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--trust-servers", "--client-options") << endl;
+	    return 1;
+	  }
+	  if (optarg)
+	    server_trust_spec = optarg;
+	  else
+	    server_trust_spec = "ssl";
+	  break;
 
-            case LONG_OPT_LDD:
-              if (client_options) {
-                  cerr << _F("ERROR: %s is invalid with %s", "--ldd", "--client-options") << endl;
-                  return 1;
-              }
-	      push_server_opt = true;
-              unwindsym_ldd = true;
-              break;
+	case LONG_OPT_HELP:
+	  usage (0);
+	  break;
 
-            case LONG_OPT_ALL_MODULES:
-              if (client_options) {
-                  cerr << _F("ERROR: %s is invalid with %s", "--all-modules", "--client-options") << endl;
-                  return 1;
-              }
-              insert_loaded_modules();
-              break;
+	  // The caching options should not be available to server clients
+	case LONG_OPT_DISABLE_CACHE:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--disable-cache", "--client-options") << endl;
+	    return 1;
+	  }
+	  use_cache = use_script_cache = false;
+	  break;
 
-            case LONG_OPT_REMOTE:
-              if (client_options) {
-                  cerr << _F("ERROR: %s is invalid with %s", "--remote", "--client-options") << endl;
-                  return 1;
-              }
+	case LONG_OPT_POISON_CACHE:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--poison-cache", "--client-options") << endl;
+	    return 1;
+	  }
+	  poison_cache = true;
+	  break;
 
-              remote_uris.push_back(optarg);
-              break;
+	case LONG_OPT_CLEAN_CACHE:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--clean-cache", "--client-options") << endl;
+	    return 1;
+	  }
+	  clean_cache(*this);
+	  exit(0);
 
-            case LONG_OPT_REMOTE_PREFIX:
-              if (client_options) {
-                  cerr << _F("ERROR: %s is invalid with %s", "--remote-prefix", "--client-options") << endl;
-                  return 1;
-              }
+	case LONG_OPT_COMPATIBLE:
+	  server_args.push_back ("--compatible=" + string(optarg));
+	  compatible = optarg;
+	  break;
 
-              use_remote_prefix = true;
-              break;
+	case LONG_OPT_LDD:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--ldd", "--client-options") << endl;
+	    return 1;
+	  }
+	  unwindsym_ldd = true;
+	  break;
 
-            case LONG_OPT_CHECK_VERSION:
-              push_server_opt = true;
-              systemtap_v_check = true;
-              break;
+	case LONG_OPT_ALL_MODULES:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--all-modules", "--client-options") << endl;
+	    return 1;
+	  }
+	  insert_loaded_modules();
+	  break;
 
-	    case LONG_OPT_DUMP_PROBE_TYPES:
-	      push_server_opt = true;
-	      dump_probe_types = true;
-	      break;
+	case LONG_OPT_REMOTE:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--remote", "--client-options") << endl;
+	    return 1;
+	  }
 
-	    case LONG_OPT_SUPPRESS_HANDLER_ERRORS:
-	      suppress_handler_errors = true;
-	      break;
+	  remote_uris.push_back(optarg);
+	  break;
 
-            case LONG_OPT_MODINFO:
-              // Make sure the global option is only composed of the
-              // following chars: [_=a-zA-Z0-9]
-              if (client_options) {
-                  cerr << _F("ERROR: %s is invalid with %s", "--modinfo", "--client-options") << endl;
-                  return 1;
-              }
-              assert_regexp_match("--modinfo parameter", optarg, "^[a-z_][a-z0-9_]*=.+$");
-              modinfos.push_back (string(optarg));
-              break;
+	case LONG_OPT_REMOTE_PREFIX:
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--remote-prefix", "--client-options") << endl;
+	    return 1;
+	  }
 
-            default:
-              // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
-              cerr << _F("Unhandled long argument id %d", stap_long_opt) << endl;
-              return 1;
-            }
-          break;
+	  use_remote_prefix = true;
+	  break;
+
+	case LONG_OPT_CHECK_VERSION:
+	  server_args.push_back ("--check-version");
+	  systemtap_v_check = true;
+	  break;
+
+	case LONG_OPT_DUMP_PROBE_TYPES:
+	  server_args.push_back ("--dump-probe-types");
+	  dump_probe_types = true;
+	  break;
+
+	case LONG_OPT_SUPPRESS_HANDLER_ERRORS:
+	  suppress_handler_errors = true;
+	  break;
+
+	case LONG_OPT_MODINFO:
+	  // Make sure the global option is only composed of the
+	  // following chars: [_=a-zA-Z0-9]
+	  if (client_options) {
+	    cerr << _F("ERROR: %s is invalid with %s", "--modinfo", "--client-options") << endl;
+	    return 1;
+	  }
+	  assert_regexp_match("--modinfo parameter", optarg, "^[a-z_][a-z0-9_]*=.+$");
+	  modinfos.push_back (string(optarg));
+	  break;
 
 	case '?':
 	  // Invalid/unrecognized option given or argument required, but
@@ -1112,33 +1130,11 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	  break;
 
         default:
-          // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
+          // NOTREACHED unless one added a getopt option but not a corresponding case:
           cerr << _F("Unhandled argument code %d", (char)grc) << endl;
           return 1;
           break;
         }
-
-      // Pass selected options on to the server, if any.
-      if (push_server_opt)
-	{
-	  if (grc == 0)
-	    {
-	      // Make sure the '=' is passed with any argument. The server expects it.
-	      if (optarg)
-		server_args.push_back (string ("--") +
-				       stap_long_options[stap_long_opt - 1].name +
-				       "=" + optarg);
-	      else
-		server_args.push_back (string ("--") +
-				       stap_long_options[stap_long_opt - 1].name);
-	    }
-	  else
-	    {
-	      server_args.push_back (string ("-") + (char)grc);
-	      if (optarg)
-		server_args.push_back (optarg);
-	    }
-	}
     }
 
   return 0;
@@ -1244,10 +1240,10 @@ systemtap_session::check_options (int argc, char * const argv [])
 	}
     }
 
-  if (client_options && ! pr_contains (privilege, pr_stapdev) && ! client_options_disallowed.empty ())
+  if (client_options && ! pr_contains (privilege, pr_stapdev) && ! client_options_disallowed_for_unprivileged.empty ())
     {
       cerr << _F("You can't specify %s when --privilege=%s is specified.",
-                 client_options_disallowed.c_str(),
+                 client_options_disallowed_for_unprivileged.c_str(),
 		 pr_name (privilege))
 	   << endl;
       usage (1);

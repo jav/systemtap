@@ -28,6 +28,12 @@ set invalid_options [list \
   "--client-options -k --unprivileged" \
   "--client-options -B X=Y -D X=Y -I foo -m test -R foo -k -r [exec uname -r] --unprivileged" \
   "--client-options -R /path" \
+  "--client-options --ldd" \
+  "--client-options --tmpdir=/tmp" \
+  "--client-options --use-server" \
+  "--client-options --use-server-on-error" \
+  "--client-options --list-servers" \
+  "--client-options --trust-servers" \
   "-D \"foo;bar\"" \
   "-D 2=4" \
   "--client-options -r /path" \

@@ -196,7 +196,7 @@ public:
   void NSPR_init ();
 #endif
   bool client_options;
-  std::string client_options_disallowed;
+  std::string client_options_disallowed_for_unprivileged;
   std::vector<std::string> server_status_strings;
   std::vector<std::string> specified_servers;
   bool automatic_server_mode;

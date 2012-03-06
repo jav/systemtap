@@ -185,18 +185,21 @@ parse_options (int argc, char **argv)
   optind = 1;
   while (true)
     {
-      int long_opt = 0;
       char *num_endptr;
       long port_tmp;
-#define LONG_OPT_PORT 1
-#define LONG_OPT_SSL 2
-#define LONG_OPT_LOG 3
-#define LONG_OPT_MAXTHREADS 4
+      // NB: The values of these enumerators must not conflict with the values of ordinary
+      // characters, since those are returned by getopt_long for short options.
+      enum {
+	LONG_OPT_PORT = 256,
+	LONG_OPT_SSL,
+	LONG_OPT_LOG,
+	LONG_OPT_MAXTHREADS
+      };
       static struct option long_options[] = {
-        { "port", 1, & long_opt, LONG_OPT_PORT },
-        { "ssl", 1, & long_opt, LONG_OPT_SSL },
-        { "log", 1, & long_opt, LONG_OPT_LOG },
-        { "max-threads", 1, & long_opt, LONG_OPT_MAXTHREADS },
+        { "port", 1, NULL, LONG_OPT_PORT },
+        { "ssl", 1, NULL, LONG_OPT_SSL },
+        { "log", 1, NULL, LONG_OPT_LOG },
+        { "max-threads", 1, NULL, LONG_OPT_MAXTHREADS },
         { NULL, 0, NULL, 0 }
       };
       int grc = getopt_long (argc, argv, "a:B:D:I:kPr:R:", long_options, NULL);
@@ -232,6 +235,30 @@ parse_options (int argc, char **argv)
 	  R_option = string (" -") + (char)grc + optarg;
 	  stap_options += string (" -") + (char)grc + optarg;
 	  break;
+	case LONG_OPT_PORT:
+	  port_tmp =  strtol (optarg, &num_endptr, 10);
+	  if (*num_endptr != '\0')
+	    fatal (_F("%s: cannot parse number '--port=%s'", argv[0], optarg));
+	  else if (port_tmp < 0 || port_tmp > 65535)
+	    fatal (_F("%s: invalid entry: port must be between 0 and 65535 '--port=%s'", argv[0],
+		      optarg));
+	  else
+	    port = (unsigned short) port_tmp;
+	  break;
+	case LONG_OPT_SSL:
+	  cert_db_path = optarg;
+	  break;
+	case LONG_OPT_LOG:
+	  process_log (optarg);
+	  break;
+	case LONG_OPT_MAXTHREADS:
+	  max_threads = strtol (optarg, &num_endptr, 0);
+	  if (*num_endptr != '\0')
+	    fatal (_F("%s: cannot parse number '--max-threads=%s'", argv[0], optarg));
+	  else if (max_threads < 0)
+	    fatal (_F("%s: invalid entry: max threads must not be negative '--max-threads=%s'",
+		      argv[0], optarg));
+	  break;
 	case '?':
 	  // Invalid/unrecognized option given. Message has already been issued.
 	  break;
@@ -242,44 +269,6 @@ parse_options (int argc, char **argv)
           else
 	    server_error (_F("%s: unhandled option '%c'", argv[0], (char)grc));
 	  break;
-        case 0:
-          switch (long_opt)
-            {
-            case LONG_OPT_PORT:
-	      port_tmp =  strtol (optarg, &num_endptr, 10);
-	      if (*num_endptr != '\0')
-		fatal (_F("%s: cannot parse number '--%s=%s'", argv[0],
-				    long_options[long_opt - 1].name, optarg));
-	      else if (port_tmp < 0 || port_tmp > 65535)
-		fatal (_F("%s: invalid entry: port must be between 0 and 65535 '--%s=%s'", argv[0],
-				    long_options[long_opt - 1].name, optarg));
-	      else
-		port = (unsigned short) port_tmp;
-	      break;
-            case LONG_OPT_SSL:
-	      cert_db_path = optarg;
-	      break;
-            case LONG_OPT_LOG:
-	      process_log (optarg);
-	      break;
-            case LONG_OPT_MAXTHREADS:
-	      max_threads = strtol (optarg, &num_endptr, 0);
-	      if (*num_endptr != '\0')
-		fatal (_F("%s: cannot parse number '--%s=%s'", argv[0],
-				    long_options[long_opt - 1].name, optarg));
-	      else if (max_threads < 0)
-		fatal (_F("%s: invalid entry: max threads must not be negative '--%s=%s'", argv[0],
-				    long_options[long_opt - 1].name, optarg));
-	      break;
-            default:
-	      if (optarg)
-		server_error (_F("%s: unhandled option '--%s=%s'", argv[0],
-				    long_options[long_opt - 1].name, optarg));
-	      else
-		server_error (_F("%s: unhandled option '--%s'", argv[0],
-				    long_options[long_opt - 1].name));
-            }
-          break;
         }
     }
 
@@ -1140,35 +1129,28 @@ getRequestedPrivilege (const vector<string> &stapargv)
       switch (grc)
         {
 	default:
-	  // We can ignore all short options
+	  // We can ignore all options other than --privilege and --unprivileged.
 	  break;
-        case 0:
-          switch (stap_long_opt)
-            {
-	    default:
-	      // We can ignore all options other than --privilege and --unprivileged.
-	      break;
-	    case LONG_OPT_PRIVILEGE:
-	      if (strcmp (optarg, "stapdev") == 0)
-		privilege = pr_stapdev;
-	      else if (strcmp (optarg, "stapsys") == 0)
-		privilege = pr_stapsys;
-	      else if (strcmp (optarg, "stapusr") == 0)
-		privilege = pr_stapusr;
-	      else
-		{
-		  server_error (_F("Invalid argument '%s' for --privilege", optarg));
-		  privilege = pr_highest;
-		}
-	      // We have discovered the client side --privilege option. We can exit now since
-	      // stap only tolerates one privilege setting option.
-	      goto done; // break 2 switches and a loop
-	    case LONG_OPT_UNPRIVILEGED:
-	      privilege = pr_unprivileged;
-	      // We have discovered the client side --unprivileged option. We can exit now since
-	      // stap only tolerates one privilege setting option.
-	      goto done; // break 2 switches and a loop
+	case LONG_OPT_PRIVILEGE:
+	  if (strcmp (optarg, "stapdev") == 0)
+	    privilege = pr_stapdev;
+	  else if (strcmp (optarg, "stapsys") == 0)
+	    privilege = pr_stapsys;
+	  else if (strcmp (optarg, "stapusr") == 0)
+	    privilege = pr_stapusr;
+	  else
+	    {
+	      server_error (_F("Invalid argument '%s' for --privilege", optarg));
+	      privilege = pr_highest;
 	    }
+	  // We have discovered the client side --privilege option. We can exit now since
+	  // stap only tolerates one privilege setting option.
+	  goto done; // break 2 switches and a loop
+	case LONG_OPT_UNPRIVILEGED:
+	  privilege = pr_unprivileged;
+	  // We have discovered the client side --unprivileged option. We can exit now since
+	  // stap only tolerates one privilege setting option.
+	  goto done; // break 2 switches and a loop
 	}
     }
  done:

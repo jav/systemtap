@@ -14,42 +14,53 @@ extern "C" {
 
 // NB: when adding new options, consider very carefully whether they
 // should be restricted from stap clients (after --client-options)!
-#define LONG_OPT_KELF 1
-#define LONG_OPT_KMAP 2
-#define LONG_OPT_IGNORE_VMLINUX 3
-#define LONG_OPT_IGNORE_DWARF 4
-#define LONG_OPT_VERBOSE_PASS 5
-#define LONG_OPT_SKIP_BADVARS 6
-#define LONG_OPT_UNPRIVILEGED 7
-#define LONG_OPT_OMIT_WERROR 8
-#define LONG_OPT_CLIENT_OPTIONS 9
-#define LONG_OPT_HELP 10
-#define LONG_OPT_DISABLE_CACHE 11
-#define LONG_OPT_POISON_CACHE 12
-#define LONG_OPT_CLEAN_CACHE 13
-#define LONG_OPT_COMPATIBLE 14
-#define LONG_OPT_LDD 15
-#define LONG_OPT_USE_SERVER 16
-#define LONG_OPT_LIST_SERVERS 17
-#define LONG_OPT_TRUST_SERVERS 18
-#define LONG_OPT_ALL_MODULES 19
-#define LONG_OPT_REMOTE 20
-#define LONG_OPT_CHECK_VERSION 21
-#define LONG_OPT_USE_SERVER_ON_ERROR 22
-#define LONG_OPT_VERSION 23
-#define LONG_OPT_REMOTE_PREFIX 24
-#define LONG_OPT_TMPDIR 25
-#define LONG_OPT_DOWNLOAD_DEBUGINFO 26
-#define LONG_OPT_DUMP_PROBE_TYPES 27
-#define LONG_OPT_PRIVILEGE 28
-#define LONG_OPT_SUPPRESS_HANDLER_ERRORS 29
-#define LONG_OPT_MODINFO 30
+// NB: The values of these enumerators must not conflict with the values of ordinary
+// characters, since those are returned by getopt_long for short options.
+enum {
+  LONG_OPT_KELF = 256,
+  LONG_OPT_KMAP,
+  LONG_OPT_IGNORE_VMLINUX,
+  LONG_OPT_IGNORE_DWARF,
+  LONG_OPT_VERBOSE_PASS,
+  LONG_OPT_SKIP_BADVARS,
+  LONG_OPT_UNPRIVILEGED,
+  LONG_OPT_OMIT_WERROR,
+  LONG_OPT_CLIENT_OPTIONS,
+  LONG_OPT_HELP,
+  LONG_OPT_DISABLE_CACHE,
+  LONG_OPT_POISON_CACHE,
+  LONG_OPT_CLEAN_CACHE,
+  LONG_OPT_COMPATIBLE,
+  LONG_OPT_LDD,
+  LONG_OPT_USE_SERVER,
+  LONG_OPT_LIST_SERVERS,
+  LONG_OPT_TRUST_SERVERS,
+  LONG_OPT_ALL_MODULES,
+  LONG_OPT_REMOTE,
+  LONG_OPT_CHECK_VERSION,
+  LONG_OPT_USE_SERVER_ON_ERROR,
+  LONG_OPT_VERSION,
+  LONG_OPT_REMOTE_PREFIX,
+  LONG_OPT_TMPDIR,
+  LONG_OPT_DOWNLOAD_DEBUGINFO,
+  LONG_OPT_DUMP_PROBE_TYPES,
+  LONG_OPT_PRIVILEGE,
+  LONG_OPT_SUPPRESS_HANDLER_ERRORS,
+  LONG_OPT_MODINFO
+};
 
 // NB: when adding new options, consider very carefully whether they
 // should be restricted from stap clients (after --client-options)!
 #define STAP_SHORT_OPTIONS "hVvtp:I:e:o:R:r:a:m:kgPc:x:D:bs:uqwl:d:L:FS:B:WG:"
 
+#define OWE5 "tter"
+#define OWE1 "uild-"
+#define OWE6 "fu-kb"
+#define OWE2 "i-kno"
+#define OWE4 "st"
+#define OWE3 "w-be"
+#define OMIT_WERROR_NAME OWE4 OWE6 OWE1 OWE2 OWE3 OWE5
+
 extern struct option stap_long_options[];
-extern int stap_long_opt;
 
 #endif // CMDLINE_H
