@@ -34,6 +34,13 @@ set invalid_options [list \
   "--client-options --use-server-on-error" \
   "--client-options --list-servers" \
   "--client-options --trust-servers" \
+  "--client-options --disable-cache" \
+  "--client-options --poison-cache" \
+  "--client-options --clean-cache" \
+  "--client-options --all-modules" \
+  "--client-options --remote=foo" \
+  "--client-options --remote-prefix" \
+  "--client-options --modinfo=foo" \
   "-D \"foo;bar\"" \
   "-D 2=4" \
   "--client-options -r /path" \
