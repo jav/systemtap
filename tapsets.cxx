@@ -2977,7 +2977,7 @@ dwarf_var_expanding_visitor::visit_target_symbol_saved_return (target_symbol* e)
       strverscmp(q.sess.kernel_base_release.c_str(), "2.6.25") >= 0)
     exp = gen_kretprobe_saved_return(repl);
   else
-    exp = gen_mapped_saved_return(repl, e->name);
+    exp = gen_mapped_saved_return(repl, e->sym_name());
 
   // Provide the variable to our parent so it can be used as a
   // substitute for the target symbol.
@@ -3005,7 +3005,7 @@ dwarf_var_expanding_visitor::gen_mapped_saved_return(expression* e,
   //   _dwarf_tvar_{name}_{num}_ctr
 
   string aname = (string("_dwarf_tvar_")
-                  + name.substr(1)
+                  + name
                   + "_" + lex_cast(tick++));
   vardecl* vd = new vardecl;
   vd->name = aname;
@@ -3438,7 +3438,9 @@ dwarf_var_expanding_visitor::visit_target_symbol_context (target_symbol* e)
 void
 dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
-  assert(e->name.size() > 0 && e->name[0] == '$');
+  assert(e->name.size() > 0
+	 && ((e->name[0] == '$' && e->target_name == "")
+	      || (e->name == "@var" && e->target_name != "")));
   visited = true;
   bool defined_being_checked = (defined_ops.size() > 0 && (defined_ops.top()->operand == e));
   // In this mode, we avoid hiding errors or generating extra code such as for .return saved $vars
@@ -3494,7 +3496,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
           else
             {
               dwarf_pretty_print dpp (q.dw, getscopes(e), addr,
-                                      e->name.substr(1),
+                                      e->sym_name(),
                                       q.has_process, *e);
               dpp.expand()->visit(this);
             }
@@ -3509,7 +3511,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
       ec->tok = e->tok;
 
       string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
-                      + "_" + e->name.substr(1)
+                      + "_" + e->sym_name()
                       + "_" + lex_cast(tick++));
 
       ec->code += EMBEDDED_FETCH_DEREF(q.has_process);
@@ -3526,7 +3528,7 @@ dwarf_var_expanding_visitor::visit_target_symbol (target_symbol *e)
         {
 	  ec->code += q.dw.literal_stmt_for_local (getscopes(e),
 						  addr,
-						  e->name.substr(1),
+						  e->sym_name(),
 						  e,
 						  lvalue,
 						  fdecl->type);
@@ -3629,7 +3631,7 @@ dwarf_var_expanding_visitor::visit_entry_op (entry_op *e)
       // XXX it would be nice to use gen_kretprobe_saved_return when available,
       // but it requires knowing the types already, which is problematic for
       // arbitrary expressons.
-      repl = gen_mapped_saved_return (e->operand, "@entry");
+      repl = gen_mapped_saved_return (e->operand, "entry");
     }
   provide (repl);
 }
@@ -3652,7 +3654,7 @@ dwarf_var_expanding_visitor::getscopes(target_symbol *e)
                                     + "(" + (dwarf_diename(q.dw.cu) ?: "<unknown>")
                                     + ")"))
                               + " while searching for local '"
-                              + e->name.substr(1) + "'",
+                              + e->sym_name() + "'",
                               e->tok);
     }
   return scopes;
@@ -3761,7 +3763,7 @@ dwarf_cast_query::handle_query_module()
     return;
 
   string fname = (string(lvalue ? "_dwarf_cast_set" : "_dwarf_cast_get")
-		  + "_" + e.name.substr(1)
+		  + "_" + e.sym_name()
 		  + "_" + lex_cast(tick++));
 
   // Synthesize a function.
@@ -8653,7 +8655,7 @@ struct tracepoint_var_expanding_visitor: public var_expanding_visitor
 void
 tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
 {
-  string argname = e->name.substr(1);
+  string argname = e->sym_name();
 
   // search for a tracepoint parameter matching this name
   tracepoint_arg *arg = NULL;
@@ -8731,7 +8733,7 @@ tracepoint_var_expanding_visitor::visit_target_symbol_arg (target_symbol* e)
       ec->tok = e->tok;
 
       string fname = (string(lvalue ? "_tracepoint_tvar_set" : "_tracepoint_tvar_get")
-                      + "_" + e->name.substr(1)
+                      + "_" + e->sym_name()
                       + "_" + lex_cast(tick++));
 
       fdecl->name = fname;

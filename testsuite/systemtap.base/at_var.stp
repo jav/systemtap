@@ -1,0 +1,42 @@
+probe process.function("main")
+{
+  printf("$argc: %d\n", $argc);
+  printf("@var(\"argc\"): %d\n", @var("argc"));
+
+  printf("user_string($argv[0]): %s\n", user_string($argv[0]));
+  printf("user_string(@var(\"argv\")[0]): %s\n", user_string(@var("argv")[0]));
+}
+
+probe process.function("sub")
+{
+  printf("$foo->bar: %d\n", $foo->bar);
+  printf("@var(\"foo\")->bar: %d\n", @var("foo")->bar);
+}
+
+probe syscall.utimes
+{
+  printf("$utimes$$: %s\n", $utimes$$);
+  printf("$utimes[1]$$: %s\n", $utimes[1]$$);
+  printf("@var(\"utimes\")$$: %s\n", @var("utimes")$$);
+  printf("@var(\"utimes\")[1]$$: %s\n", @var("utimes")[1]$$);
+}
+
+probe process.function("sub").return
+{
+  /* Take the address and dereference to get current value. */
+  printf("user_int(&$foo->bar): %d\n", user_int(&$foo->bar));
+  printf("user_int(&@var(\"foo\")->bar): %d\n", user_int(&@var("foo")->bar));
+
+  /* $foo->bar is 42 (on entry), the offset of bar in struct foo is zero,
+     so taking the address of that field is 42 again. */
+  printf("&@cast($foo->bar, \"struct foo\")->bar: %d\n",
+	 &@cast($foo->bar, "struct foo")->bar);
+  printf("&@cast(@var(\"foo\")->bar, \"struct foo\")->bar: %d\n",
+	 &@cast(@var("foo")->bar, "struct foo")->bar);
+
+  /* Note that variables are taken at entry in both cases. */
+  printf("$foo->bar == @entry($foo->bar): %s\n",
+	 $foo->bar == @entry($foo->bar) ? "true" : "false");
+  printf("@var(\"foo\")->bar == @entry(@var(\"foo\")->bar): %s\n",
+	 @var("foo")->bar == @entry(@var("foo")->bar) ? "true" : "false");
+}

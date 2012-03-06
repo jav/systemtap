@@ -275,6 +275,13 @@ void target_symbol::chain (const semantic_error &er)
   this->saved_conversion_error = e;
 }
 
+string target_symbol::sym_name ()
+{
+  if (name == "@var")
+    return target_name;
+  else
+    return name.substr(1);
+}
 
 // ------------------------------------------------------------------------
 // parse tree printing
@@ -389,6 +396,8 @@ void target_symbol::print (ostream& o) const
   if (addressof)
     o << "&";
   o << name;
+  if (name == "@var")
+    o << "(\"" << target_name << "\")";
   for (unsigned i = 0; i < components.size(); ++i)
     o << components[i];
 }

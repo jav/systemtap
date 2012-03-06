@@ -265,9 +265,11 @@ struct target_symbol: public symbol
     };
 
   bool addressof;
+  std::string target_name;
   std::vector<component> components;
   semantic_error* saved_conversion_error; // hand-made linked list
   target_symbol(): addressof(false), saved_conversion_error (0) {}
+  std::string sym_name ();
   void chain (const semantic_error& er);
   void print (std::ostream& o) const;
   void visit (visitor* u);
