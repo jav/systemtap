@@ -1130,6 +1130,9 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	  our_rlimit.rlim_max = our_rlimit.rlim_cur = strtoul (optarg, &num_endptr, 0);
 	  if(*num_endptr || setrlimit (RLIMIT_AS, & our_rlimit))
 	    cerr << _F("Unable to set resource limits for rlimit_as : %s", strerror (errno)) << endl;
+          /* Disable core dumps, since exhaustion results in uncaught bad_alloc etc. exceptions */
+	  our_rlimit.rlim_max = our_rlimit.rlim_cur = 0;
+	  (void) setrlimit (RLIMIT_CORE, & our_rlimit);
 	  break;
 
 	case LONG_OPT_RLIMIT_CPU:
@@ -1154,6 +1157,9 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
 	  our_rlimit.rlim_max = our_rlimit.rlim_cur = strtoul (optarg, &num_endptr, 0);
 	  if(*num_endptr || setrlimit (RLIMIT_STACK, & our_rlimit))
 	    cerr << _F("Unable to set resource limits for rlimit_stack : %s", strerror (errno)) << endl;
+          /* Disable core dumps, since exhaustion results in SIGSEGV */
+	  our_rlimit.rlim_max = our_rlimit.rlim_cur = 0;
+	  (void) setrlimit (RLIMIT_CORE, & our_rlimit);
 	  break;
 
 	case LONG_OPT_RLIMIT_FSIZE:
