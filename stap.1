@@ -527,7 +527,33 @@ show abrt output, and ask before continuing download. No timeout will be set.
 .BI <timeout>
 specify a timeout as a positive number to stop the download if it is taking 
 too long.
+.RE
+.IP
 
+.TP
+.BI \-\-rlimit-as "=NUM"
+Specify the maximum size of the process's virtual memory (address space),
+in bytes. If nothing is specified, no limits are imposed.
+
+.TP
+.BI \-\-rlimit-cpu "=NUM"
+Specify the CPU time limit, in seconds. If nothing is specified, no limits are
+imposed.
+
+.TP
+.BI \-\-rlimit-nproc "=NUM"
+Specify the maximum number of processes that can be created. If nothing is
+specified, no limits are imposed.
+
+.TP
+.BI \-\-rlimit-stack "=NUM"
+Specify the maximum size of the process stack, in bytes. If nothing is specified,
+no limits are imposed.
+
+.TP
+.BI \-\-rlimit-fsize "=NUM"
+Specify the maximum size of files that the process may create, in bytes. If nothing is specified, no limits are
+imposed.
 
 .SH ARGUMENTS
 

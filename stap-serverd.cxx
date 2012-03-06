@@ -34,7 +34,6 @@ extern "C" {
 #include <wordexp.h>
 #include <glob.h>
 #include <fcntl.h>
-#include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include <sys/types.h>
@@ -66,13 +65,12 @@ using namespace std;
 static void cleanup ();
 static PRStatus spawn_and_wait (const vector<string> &argv,
                                 const char* fd0, const char* fd1, const char* fd2,
-				const char *pwd, bool setrlimits = false, const vector<string>& envVec = vector<string> ());
+				const char *pwd, const vector<string>& envVec = vector<string> ());
 
 /* getopt variables */
 extern int optind;
 
 /* File scope statics. Set during argument parsing and initialization. */
-static bool set_rlimits;
 static bool use_db_password;
 static unsigned short port;
 static long max_threads;
@@ -87,23 +85,8 @@ static string R_option;
 static string D_options;
 static bool   keep_temp;
 
-// Used to save our resource limits for these categories and impose smaller
-// limits on the translator while servicing a request.
-static struct rlimit our_RLIMIT_FSIZE;
-static struct rlimit our_RLIMIT_STACK;
-static struct rlimit our_RLIMIT_CPU;
-static struct rlimit our_RLIMIT_NPROC;
-static struct rlimit our_RLIMIT_AS;
-
-static struct rlimit translator_RLIMIT_FSIZE;
-static struct rlimit translator_RLIMIT_STACK;
-static struct rlimit translator_RLIMIT_CPU;
-static struct rlimit translator_RLIMIT_NPROC;
-static struct rlimit translator_RLIMIT_AS;
-
 sem_t sem_client;
 static int pending_interrupts;
-static int interrupt_sig;
 #define CONCURRENCY_TIMEOUT_S 3
 
 // Message handling.
@@ -288,27 +271,7 @@ extern "C"
 void
 handle_interrupt (int sig)
 {
-  // If one of the resource limits that we set for the translator was exceeded, then we can
-  // continue, as long as it wasn't our own limit that was exceeded.
-  int rc;
-  struct rlimit rl;
-  switch (sig)
-    {
-    case SIGXFSZ:
-      rc = getrlimit (RLIMIT_FSIZE, & rl);
-      if (rc == 0 && rl.rlim_cur < our_RLIMIT_FSIZE.rlim_cur)
-	return;
-      break;
-    case SIGXCPU:
-      rc = getrlimit (RLIMIT_CPU, & rl);
-      if (rc == 0 && rl.rlim_cur < our_RLIMIT_CPU.rlim_cur)
-	return;
-      break;
-    default:
-      break;
-    }
   pending_interrupts++;
-  interrupt_sig = sig;
   if(pending_interrupts >= 2)
     {
       log (_F("Received another signal %d, exiting (forced)", sig));
@@ -610,7 +573,6 @@ unadvertise_presence ()
 static void
 initialize (int argc, char **argv) {
   pending_interrupts = 0;
-  interrupt_sig = 0;
   setup_signals (& handle_interrupt);
 
   // Seed the random number generator. Used to generate noise used during key generation.
@@ -631,45 +593,16 @@ initialize (int argc, char **argv) {
   parse_options (argc, argv);
 
   // PR11197: security prophylactics.
-  // 1) Reject use as root, except via a special environment variable.
+  // Reject use as root, except via a special environment variable.
   if (! getenv ("STAP_PR11197_OVERRIDE")) {
     if (geteuid () == 0)
       fatal ("For security reasons, invocation of stap-serverd as root is not supported.");
   }
-  // 2) resource limits should be set if the user is the 'stap-server' daemon.
+
   struct passwd *pw = getpwuid (geteuid ());
   if (! pw)
     fatal (_F("Unable to determine effective user name: %s", strerror (errno)));
   string username = pw->pw_name;
-  if (username == "stap-server") {
-    // First obtain the current limits.
-    int rc = getrlimit (RLIMIT_FSIZE, & our_RLIMIT_FSIZE);
-    rc |= getrlimit (RLIMIT_STACK, & our_RLIMIT_STACK);
-    rc |= getrlimit (RLIMIT_CPU,   & our_RLIMIT_CPU);
-    rc |= getrlimit (RLIMIT_NPROC, & our_RLIMIT_NPROC);
-    rc |= getrlimit (RLIMIT_AS,    & our_RLIMIT_AS);
-    if (rc != 0)
-      fatal (_F("Unable to obtain current resource limits: %s", strerror (errno)));
-
-    // Now establish limits for the translator. Make sure these limits do not exceed the current
-    // limits.
-    #define TRANSLATOR_LIMIT(category, limit) \
-      do { \
-	translator_RLIMIT_##category = our_RLIMIT_##category; \
-	if (translator_RLIMIT_##category.rlim_cur > (limit)) \
-	  translator_RLIMIT_##category.rlim_cur = (limit); \
-      } while (0);
-    TRANSLATOR_LIMIT (FSIZE, 50000 * 1024);
-    TRANSLATOR_LIMIT (STACK, 1000 * 1024);
-    TRANSLATOR_LIMIT (CPU, 60);
-    TRANSLATOR_LIMIT (NPROC, 20);
-    TRANSLATOR_LIMIT (AS, 500000 * 1024);
-    set_rlimits = true;
-    #undef TRANSLATOR_LIMIT
-  }
-  else
-    set_rlimits = false;
-
   pid_t pid = getpid ();
   log (_F("===== compile server pid %d starting as %s =====", pid, username.c_str ()));
 
@@ -1275,7 +1208,7 @@ handleRequest (const string &requestDirName, const string &responseDirName, stri
 
   /* All ready, let's run the translator! */
   rc = spawn_and_wait(stapargv, "/dev/null", stapstdout.c_str (), stapstderr.c_str (),
-		      requestDirName.c_str (), set_rlimits, envVec);
+		      requestDirName.c_str (), envVec);
 
   /* Save the RC */
   string staprc = responseDirName + "/rc";
@@ -1358,7 +1291,7 @@ handleRequest (const string &requestDirName, const string &responseDirName, stri
 static PRStatus
 spawn_and_wait (const vector<string> &argv,
 		const char* fd0, const char* fd1, const char* fd2,
-		const char *pwd,  bool setrlimits, const vector<string>& envVec)
+		const char *pwd, const vector<string>& envVec)
 { 
   pid_t pid;
   int rc;
@@ -1402,38 +1335,8 @@ spawn_and_wait (const vector<string> &argv,
         }
     }
 
-  // Set resource limits, if requested, in order to prevent
-  // DOS. spawn_and_wait ultimately uses posix_spawp which behaves like
-  // fork (according to the posix_spawnbp man page), so the limits we set here will be
-  // respected (according to the setrlimit man page).
-  rc = 0;
-  if (setrlimits) {
-    rc = setrlimit (RLIMIT_FSIZE, & translator_RLIMIT_FSIZE);
-    rc |= setrlimit (RLIMIT_STACK, & translator_RLIMIT_STACK);
-    rc |= setrlimit (RLIMIT_CPU,   & translator_RLIMIT_CPU);
-    rc |= setrlimit (RLIMIT_NPROC, & translator_RLIMIT_NPROC);
-    rc |= setrlimit (RLIMIT_AS,    & translator_RLIMIT_AS);
-  }
-  if (rc == 0)
-    {
-      pid = stap_spawn (0, argv, & actions, envVec);
-      /* NB: don't react to pid==-1 right away; need to chdir back first. */
-    }
-  else {
-    server_error (_F("Unable to set resource limits for %s: %s",
-			argv[0].c_str (), strerror (errno)));
-    pid = -1;
-  }
-  if (set_rlimits) {
-    int rrlrc = setrlimit (RLIMIT_FSIZE, & our_RLIMIT_FSIZE);
-    rrlrc |= setrlimit (RLIMIT_STACK, & our_RLIMIT_STACK);
-    rrlrc |= setrlimit (RLIMIT_CPU,   & our_RLIMIT_CPU);
-    rrlrc |= setrlimit (RLIMIT_NPROC, & our_RLIMIT_NPROC);
-    rrlrc |= setrlimit (RLIMIT_AS,    & our_RLIMIT_AS);
-    if (rrlrc != 0)
-      log (_F("Unable to restore resource limits after %s: %s",
-	      argv[0].c_str (), strerror (errno)));
-  }
+  pid = stap_spawn (0, argv, & actions, envVec);
+  /* NB: don't react to pid==-1 right away; need to chdir back first. */
 
   if (pwd && dotfd >= 0)
     {
@@ -1854,7 +1757,7 @@ server_main (PRFileDesc *listenSocket)
       if(pending_interrupts && timeout++ > CONCURRENCY_TIMEOUT_S)
         {
           log(_("Timeout reached, exiting (forced)"));
-          kill_stap_spawn (interrupt_sig);
+          kill_stap_spawn (SIGTERM);
           cleanup ();
           _exit(0);
         }

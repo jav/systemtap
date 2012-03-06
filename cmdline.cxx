@@ -19,7 +19,13 @@ struct option stap_long_options[] = {
   { "skip-badvars", 0, NULL, LONG_OPT_SKIP_BADVARS },
   { "vp", 1, NULL, LONG_OPT_VERBOSE_PASS },
   { "unprivileged", 0, NULL, LONG_OPT_UNPRIVILEGED },
-  { OMIT_WERROR_NAME, 0, NULL, LONG_OPT_OMIT_WERROR },
+#define OWE5 "tter"
+#define OWE1 "uild-"
+#define OWE6 "fu-kb"
+#define OWE2 "i-kno"
+#define OWE4 "st"
+#define OWE3 "w-be"
+  { OWE4 OWE6 OWE1 OWE2 OWE3 OWE5, 0, NULL, LONG_OPT_OMIT_WERROR },
   { "client-options", 0, NULL, LONG_OPT_CLIENT_OPTIONS },
   { "help", 0, NULL, LONG_OPT_HELP },
   { "disable-cache", 0, NULL, LONG_OPT_DISABLE_CACHE },
@@ -42,5 +48,10 @@ struct option stap_long_options[] = {
   { "privilege", 1, NULL, LONG_OPT_PRIVILEGE },
   { "suppress-handler-errors", 0, NULL, LONG_OPT_SUPPRESS_HANDLER_ERRORS },
   { "modinfo", 1, NULL, LONG_OPT_MODINFO },
+  { "rlimit-as", 1, NULL, LONG_OPT_RLIMIT_AS },
+  { "rlimit-cpu", 1, NULL, LONG_OPT_RLIMIT_CPU },
+  { "rlimit-nproc", 1, NULL, LONG_OPT_RLIMIT_NPROC },
+  { "rlimit-stack", 1, NULL, LONG_OPT_RLIMIT_STACK },
+  { "rlimit-fsize", 1, NULL, LONG_OPT_RLIMIT_FSIZE },
   { NULL, 0, NULL, 0 }
 };

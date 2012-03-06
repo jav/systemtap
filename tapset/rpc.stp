@@ -1080,11 +1080,12 @@ function port_from_xprt:long(cl_xprt:long)
 	 * inside that buffer. The 'struct sockaddr', 'struct
 	 * sockaddr_in', and 'sockaddr_in6' structures all have a
 	 * family type as their 1st member. */
-	if (@cast(addr, "sockaddr")->sa_family == %{ /* pure */ AF_INET %}) {
+	if (@cast(addr, "sockaddr")->sa_family
+		== %{ /* pure */ /* unprivileged */ AF_INET %}) {
 		return ntohs(@cast(addr, "sockaddr_in")->sin_port)
 	}
 	else if (@cast(addr, "sockaddr")->sa_family
-		 == %{ /* pure */ AF_INET6 %}) {
+		 == %{ /* pure */ /* unprivileged */ AF_INET6 %}) {
 		return ntohs(@cast(addr, "sockaddr_in6")->sin6_port)
 	}
 	return 0
@@ -1140,11 +1141,12 @@ function addr_from_rqst:long(rqstp:long)
 	 * inside that buffer. The 'struct sockaddr', 'struct
 	 * sockaddr_in', and 'sockaddr_in6' structures all have a
 	 * family type as their 1st member. */
-	if (@cast(addr, "sockaddr")->sa_family == %{ /* pure */ AF_INET %}) {
+	if (@cast(addr, "sockaddr")->sa_family
+		== %{ /* pure */ /* unprivileged */ AF_INET %}) {
 		return @cast(addr, "sockaddr_in")->sin_addr->s_addr
 	}
 	else if (@cast(addr, "sockaddr")->sa_family
-		 == %{ /* pure */ AF_INET6 %}) {
+		 == %{ /* pure */ /* unprivileged */ AF_INET6 %}) {
 		return &@cast(addr, "sockaddr_in6")->sin6_addr
 	}
     }
@@ -1164,13 +1166,15 @@ function addr_from_rqst_str:string(rqstp:long)
 	if (s_addr == 0)
 		return "Unsupported Address Family"
 	if (@cast(addr, "sockaddr_in")->sin_family
-		  == %{ /* pure */ AF_INET %}) {
+		  == %{ /* pure */ /* unprivileged */ AF_INET %}) {
 		return sprintf("%s:%d",
-			       format_ipaddr(s_addr, %{ /* pure */ AF_INET %}), 
-			       @cast(addr, "sockaddr_in")->sin_port)
+			       format_ipaddr(s_addr,
+				  %{ /* pure */ /* unprivileged */ AF_INET %}), 
+				  @cast(addr, "sockaddr_in")->sin_port)
 	}
 	return sprintf("[%s]:%d",
-		       format_ipaddr(s_addr, %{ /* pure */ AF_INET6 %}),
-		       @cast(addr, "sockaddr_in6")->sin6_port)
+		       format_ipaddr(s_addr,
+			  %{ /* pure */ /* unprivileged */ AF_INET6 %}),
+			  @cast(addr, "sockaddr_in6")->sin6_port)
 }
 

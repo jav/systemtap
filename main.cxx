@@ -260,7 +260,8 @@ void handle_interrupt (int sig)
 {
   // This might be nice, but we don't know our current verbosity...
   // clog << _F("Received signal %d", sig) << endl << flush;
-  kill_stap_spawn(sig);
+  kill_stap_spawn(SIGTERM);
+
   pending_interrupts ++;
   // Absorb the first two signals.   This used to be one, but when
   // stap is run under sudo, and then interrupted, sudo relays a

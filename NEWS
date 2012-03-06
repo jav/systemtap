@@ -1,5 +1,15 @@
 * What's new in version 1.8
 
+- Stap now has resource limit options:
+    --rlimit-as=NUM
+    --rlimit-cpu=NUM
+    --rlimit-nproc=NUM
+    --rlimit-stack=NUM
+    --rlimit-fsize=NUM
+  All resource limiting has been moved from the compile server to stap
+  itself. When running the server as "stap-server", default resource
+  limit values are specified in ~stap-server/.systemtap/rc.
+
 - Bug CVE-2012-0875 (kernel panic when processing malformed DWARF unwind data)
   is fixed.
 
