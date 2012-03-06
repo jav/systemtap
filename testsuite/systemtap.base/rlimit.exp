@@ -1,0 +1,186 @@
+# rlimit tests
+
+set script {"kernel.function(\"*\")"}
+
+# Unlimited
+set test "rlimit unlimited"
+set cmd "stap -L $script"
+eval spawn $cmd
+set failed 1
+expect {
+  timeout 180
+  -re {^kernel.function[^\r\n]*\r\n} {set failed 0}
+  -re {^[^\r\n]*\r\n} {exp_continue}
+
+  timeout { fail "$test (timeout)" }
+}
+catch close
+wait
+
+if { $failed == 1 } {
+  fail $test
+} else {
+  pass $test
+}
+
+# Large AS limit
+set test "rlimit AS large"
+set cmd "stap -L $script --rlimit-as=614400000"
+eval spawn $cmd
+expect {
+  timeout 180
+  -re {^terminate called after throwing an instance of 'std::bad_alloc'\r\n} {fail $test }
+  -re {^kernel.function[^\r\n]*\r\n} {pass $test}
+  -re {^[^\r\n]*\r\n} {exp_continue}
+
+  timeout { fail "$test (timeout)" }
+}
+catch close
+wait
+
+# Small AS limit
+set test "rlimit AS small"
+set cmd "stap -L $script --rlimit-as=1"
+eval spawn $cmd
+expect {
+  timeout 180
+  -re {^terminate called after throwing an instance of 'std::bad_alloc'\r\n} {pass $test }
+  -re {^kernel.function[^\r\n]*\r\n} {fail $test}
+  -re {^[^\r\n]*\r\n} {exp_continue}
+
+  timeout { fail "$test (timeout)" }
+}
+catch close
+wait
+
+# Large CPU limit
+set test "rlimit CPU large"
+set cmd "stap -L $script --rlimit-cpu=60"
+eval spawn $cmd
+set failed 1
+expect {
+  timeout 180
+  -re {^kernel.function[^\r\n]*\r\n} {set failed 0}
+  -re {^[^\r\n]*\r\n} {exp_continue}
+
+  timeout { fail "$test (timeout)" }
+}
+catch close
+wait
+
+if { $failed == 1 } {
+  fail $test
+} else {
+  pass $test
+}
+
+# Small CPU limit
+set test "rlimit CPU small"
+set cmd "stap -L $script --rlimit-cpu=1"
+eval spawn $cmd
+set failed 0
+expect {
+  timeout 180
+  -re {^kernel.function[^\r\n]*\r\n} {set failed 1}
+  -re {^[^\r\n]*\r\n} {exp_continue}
+
+  timeout { fail "$test (timeout)" }
+}
+catch close
+wait
+
+if { $failed == 1 } {
+  fail $test
+} else {
+  pass $test
+}
+
+# Large NPROC limit
+set test "rlimit NPROC large"
+set cmd "stap -L $script --rlimit-nproc=20"
+eval spawn $cmd
+set failed 1
+expect {
+  timeout 180
+  -re {^kernel.function[^\r\n]*\r\n} {set failed 0}
+  -re {^[^\r\n]*\r\n} {exp_continue}
+
+  timeout { fail "$test (timeout)" }
+}
+catch close
+wait
+
+if { $failed == 1 } {
+  fail $test
+} else {
+  pass $test
+}
+
+# Small NPROC limit
+# Did not seem to change functionality
+
+# Large STACK limit
+set test "rlimit STACK large"
+set cmd "stap -L $script --rlimit-stack=1024000"
+eval spawn $cmd
+set failed 1
+expect {
+  timeout 180
+  -re {^kernel.function[^\r\n]*\r\n} {set failed 0}
+  -re {^[^\r\n]*\r\n} {exp_continue}
+
+  timeout { fail "$test (timeout)" }
+}
+catch close
+wait
+
+if { $failed == 1 } {
+  fail $test
+} else {
+  pass $test
+}
+
+# Small STACK limit
+set test "rlimit STACK small"
+set cmd "stap -L $script --rlimit-stack=1"
+eval spawn $cmd
+set failed 0
+expect {
+  timeout 180
+  -re {^kernel.function[^\r\n]*\r\n} {set failed 1}
+  -re {^[^\r\n]*\r\n} {exp_continue}
+
+  timeout { fail "$test (timeout)" }
+}
+catch close
+wait
+
+if { $failed == 1 } {
+  fail $test
+} else {
+  pass $test
+}
+
+# Large FSIZE limit
+set test "rlimit FSIZE large"
+set cmd "stap -L $script --rlimit-fsize=51200000"
+eval spawn $cmd
+set failed 1
+expect {
+  timeout 180
+  -re {^kernel.function[^\r\n]*\r\n} {set failed 0}
+  -re {^[^\r\n]*\r\n} {exp_continue}
+
+  timeout { fail "$test (timeout)" }
+}
+catch close
+wait
+
+if { $failed == 1 } {
+  fail $test
+} else {
+  pass $test
+}
+
+# Small FSIZE limit
+# Did not seem to change functionality
