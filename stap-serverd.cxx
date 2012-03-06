@@ -87,7 +87,6 @@ static bool   keep_temp;
 
 sem_t sem_client;
 static int pending_interrupts;
-static int interrupt_sig;
 #define CONCURRENCY_TIMEOUT_S 3
 
 // Message handling.
@@ -284,7 +283,6 @@ void
 handle_interrupt (int sig)
 {
   pending_interrupts++;
-  interrupt_sig = sig;
   if(pending_interrupts >= 2)
     {
       log (_F("Received another signal %d, exiting (forced)", sig));
@@ -586,7 +584,6 @@ unadvertise_presence ()
 static void
 initialize (int argc, char **argv) {
   pending_interrupts = 0;
-  interrupt_sig = 0;
   setup_signals (& handle_interrupt);
 
   // Seed the random number generator. Used to generate noise used during key generation.
@@ -1778,7 +1775,7 @@ server_main (PRFileDesc *listenSocket)
       if(pending_interrupts && timeout++ > CONCURRENCY_TIMEOUT_S)
         {
           log(_("Timeout reached, exiting (forced)"));
-          kill_stap_spawn (interrupt_sig);
+          kill_stap_spawn (SIGTERM);
           cleanup ();
           _exit(0);
         }
