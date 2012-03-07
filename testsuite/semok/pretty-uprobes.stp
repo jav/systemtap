@@ -1,0 +1,31 @@
+#! stap -p2
+
+
+# NB: Most of these can't go beyond pass-2, because systemtap_session and
+# task_struct are huge.  It's still useful to test that the entire beast can
+# be expanded though...
+
+
+global i = 1
+
+
+# pretty-printing in dwarf user context
+probe process("stap").function("parse_cmdline") {
+    log($$vars$)
+    log($$vars$$)
+    log($$parms$)
+    log($$parms$$)
+    log($$locals$)
+    log($$locals$$)
+
+    log($this$)
+    log($this$$)
+    log($this->base_hash$)
+    log($this->base_hash$$)
+    log($this->perpass_verbose$)
+    log($this->perpass_verbose$$)
+    log($this->perpass_verbose[0]$)
+    log($this->perpass_verbose[0]$$)
+    log($this->perpass_verbose[i]$)
+    log($this->perpass_verbose[i]$$)
+}

@@ -1,6 +1,12 @@
 set self semko
 foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
     set test $self/[file tail $file]
+    switch $test {
+	semko/utrace.stp {
+	    # These tests require a system without utrace.
+	    if {[utrace_p]} { untested $test; continue } }
+    }
+
     verbose -log "Running $file"
     set rc [stap_run_batch $file]
     if {$rc < 0} {

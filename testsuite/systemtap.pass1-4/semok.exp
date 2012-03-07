@@ -1,10 +1,17 @@
 set self semok
 set uprobes_p [uprobes_p]
+set utrace_p [utrace_p]
 foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
     set test $self/[file tail $file]
     switch $test {
+	semok/thirtysix-utrace.stp -
+	semok/utrace01.stp {
+	    # These tests need utrace
+	    if {!$utrace_p} { untested $test; continue } }
+
 	semok/bz11911.stp -
-	semok/mangled.stp {
+	semok/mangled.stp -
+	semok/pretty-uprobes.stp {
 	    # These tests need uprobes
 	    if {!$uprobes_p} { untested $test; continue } }
 

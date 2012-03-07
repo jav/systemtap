@@ -1,0 +1,7 @@
+#! stap -p2
+
+probe process("stap").syscall { println(@defined($arg1)?$arg1:$nosuchvar) } # valid
+probe process("stap").begin { println(@defined($arg7)?$arg7:0) } # invalid
+probe process("stap").syscall { println(@defined($argZZ)?$argZZ:0) } # invalid
+probe process("stap").syscall.return { println(@defined($nosuchvar)?$nosuchvar:0) } # invalid
+probe process("stap").syscall.return { println(@defined($syscall)?$syscall:$nosuchvar) } # valid

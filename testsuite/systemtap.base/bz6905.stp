@@ -1,4 +1,4 @@
 #! stap -p2
-probe %( CONFIG_UTRACE == "y" %? process("./bz6905").statement("main@bz6905.c:*") %: never %) {
+probe process("./bz6905").statement("main@bz6905.c:*") {
   printf("ok")
 }

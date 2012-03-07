@@ -1,16 +1,10 @@
 #! stap -p4
 
 probe begin {
-	# On platforms without uprobes, this will fail.  This
-	# CONFIG_UTRACE check will get this test passing on all
-	# platforms without uprobes, except for rhel5 ia64 (since it
-	# has utrace, but not uprobes).
-%(CONFIG_UTRACE=="y" %?
+	# On platforms without uprobes, this will fail.  But,
+	# buildok.exp will figure that out and kfail this test.
 	print_ubacktrace()
 	print_ubacktrace_brief()
 	printf("%s\n", ubacktrace())
 	printf("%s\n", sprint_ubacktrace())
-%:
-	printf("\n")
-%)
 }

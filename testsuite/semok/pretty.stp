@@ -9,29 +9,6 @@
 global i = 1
 
 
-%( CONFIG_UTRACE == "y" %?
-# pretty-printing in dwarf user context
-probe process("stap").function("parse_cmdline") {
-    log($$vars$)
-    log($$vars$$)
-    log($$parms$)
-    log($$parms$$)
-    log($$locals$)
-    log($$locals$$)
-
-    log($this$)
-    log($this$$)
-    log($this->base_hash$)
-    log($this->base_hash$$)
-    log($this->perpass_verbose$)
-    log($this->perpass_verbose$$)
-    log($this->perpass_verbose[0]$)
-    log($this->perpass_verbose[0]$$)
-    log($this->perpass_verbose[i]$)
-    log($this->perpass_verbose[i]$$)
-}
-%)
-
 # pretty-printing with @cast
 probe begin {
     t = task_current()

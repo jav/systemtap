@@ -1,0 +1,15 @@
+#! stap -p4
+
+global i = 1
+
+# pretty-printing in dwarf user context
+probe process("stap").function("parse_cmdline") {
+    log($this->base_hash$)
+    log($this->base_hash$$)
+    log($this->perpass_verbose$)
+    log($this->perpass_verbose$$)
+    log($this->perpass_verbose[0]$)
+    log($this->perpass_verbose[0]$$)
+    log($this->perpass_verbose[i]$)
+    log($this->perpass_verbose[i]$$)
+}

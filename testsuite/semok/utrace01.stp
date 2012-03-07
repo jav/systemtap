@@ -1,4 +1,4 @@
 #! stap -p2
 
 # process path doesn't need to be absolute
-probe  %( CONFIG_UTRACE == "y" %?  process("cat").end %: never %) { }
+probe process("cat").end { }
