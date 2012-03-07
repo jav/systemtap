@@ -1,185 +1,118 @@
 # rlimit tests
 
-set script {"kernel.function(\"*\")"}
-
 # Unlimited
 set test "rlimit unlimited"
-set cmd "stap -L $script"
-eval spawn $cmd
-set failed 1
-expect {
-  timeout 180
-  -re {^kernel.function[^\r\n]*\r\n} {set failed 0}
-  -re {^[^\r\n]*\r\n} {exp_continue}
-
-  timeout { fail "$test (timeout)" }
-}
-catch close
-wait
-
-if { $failed == 1 } {
-  fail $test
+if {[catch { exec stap -L "kernel.function(\"*\")"} res ]} {
+     fail $test
 } else {
-  pass $test
+     pass $test
 }
 
-# Large AS limit
-set test "rlimit AS large"
-set cmd "stap -L $script --rlimit-as=614400000"
-eval spawn $cmd
-expect {
-  timeout 180
-  -re {^terminate called after throwing an instance of 'std::bad_alloc'\r\n} {fail $test }
-  -re {^kernel.function[^\r\n]*\r\n} {pass $test}
-  -re {^[^\r\n]*\r\n} {exp_continue}
-
-  timeout { fail "$test (timeout)" }
+# Increase AS limit
+set test "rlimit AS increase"
+if {[catch { exec stap --rlimit-as=1 --rlimit-as=999999999999 -L "kernel.function(\"*\")"} res ]} {
+     pass $test
+} else {
+     fail $test
 }
-catch close
-wait
+
+# Realistic AS limit
+set test "rlimit AS realistic"
+if {[catch { exec stap --rlimit-as=614400000 -L "kernel.function(\"*\")"} res ]} {
+     fail $test
+} else {
+     pass $test
+}
 
 # Small AS limit
 set test "rlimit AS small"
-set cmd "stap -L $script --rlimit-as=1"
-eval spawn $cmd
-expect {
-  timeout 180
-  -re {^terminate called after throwing an instance of 'std::bad_alloc'\r\n} {pass $test }
-  -re {^kernel.function[^\r\n]*\r\n} {fail $test}
-  -re {^[^\r\n]*\r\n} {exp_continue}
-
-  timeout { fail "$test (timeout)" }
-}
-catch close
-wait
-
-# Large CPU limit
-set test "rlimit CPU large"
-set cmd "stap -L $script --rlimit-cpu=60"
-eval spawn $cmd
-set failed 1
-expect {
-  timeout 180
-  -re {^kernel.function[^\r\n]*\r\n} {set failed 0}
-  -re {^[^\r\n]*\r\n} {exp_continue}
-
-  timeout { fail "$test (timeout)" }
-}
-catch close
-wait
-
-if { $failed == 1 } {
-  fail $test
+if {[catch { exec stap --rlimit-as=1 -L "kernel.function(\"*\")"} res ]} {
+     pass $test
 } else {
-  pass $test
+     fail $test
+}
+
+# Increase CPU limit
+set test "rlimit CPU increase"
+if {[catch { exec stap --rlimit-cpu=1 --rlimit-cpu=999999999999 -L "kernel.function(\"*\")"} res ]} {
+     pass $test
+} else {
+     fail $test
+}
+
+# Realistic CPU limit
+set test "rlimit CPU realistic"
+if {[catch { exec stap --rlimit-cpu=60 -L "kernel.function(\"*\")"} res ]} {
+     fail $test
+} else {
+     pass $test
 }
 
 # Small CPU limit
 set test "rlimit CPU small"
-set cmd "stap -L $script --rlimit-cpu=1"
-eval spawn $cmd
-set failed 0
-expect {
-  timeout 180
-  -re {^kernel.function[^\r\n]*\r\n} {set failed 1}
-  -re {^[^\r\n]*\r\n} {exp_continue}
-
-  timeout { fail "$test (timeout)" }
-}
-catch close
-wait
-
-if { $failed == 1 } {
-  fail $test
+if {[catch { exec stap --rlimit-cpu=1 -L "kernel.function(\"*\")"} res ]} {
+     pass $test
 } else {
-  pass $test
+     fail $test
 }
 
-# Large NPROC limit
-set test "rlimit NPROC large"
-set cmd "stap -L $script --rlimit-nproc=20"
-eval spawn $cmd
-set failed 1
-expect {
-  timeout 180
-  -re {^kernel.function[^\r\n]*\r\n} {set failed 0}
-  -re {^[^\r\n]*\r\n} {exp_continue}
-
-  timeout { fail "$test (timeout)" }
-}
-catch close
-wait
-
-if { $failed == 1 } {
-  fail $test
+# Increase NPROC limit
+set test "rlimit NPROC increase"
+if {[catch { exec stap --rlimit-nproc=1 --rlimit-nproc=999999999999 -L "kernel.function(\"*\")"} res ]} {
+     pass $test
 } else {
-  pass $test
+     fail $test
+}
+
+# Realistic NPROC limit
+set test "rlimit NPROC realistic"
+if {[catch { exec stap --rlimit-nproc=20 -L "kernel.function(\"*\")"} res ]} {
+     fail $test
+} else {
+     pass $test
 }
 
 # Small NPROC limit
 # Did not seem to change functionality
 
-# Large STACK limit
-set test "rlimit STACK large"
-set cmd "stap -L $script --rlimit-stack=1024000"
-eval spawn $cmd
-set failed 1
-expect {
-  timeout 180
-  -re {^kernel.function[^\r\n]*\r\n} {set failed 0}
-  -re {^[^\r\n]*\r\n} {exp_continue}
-
-  timeout { fail "$test (timeout)" }
-}
-catch close
-wait
-
-if { $failed == 1 } {
-  fail $test
+# Increase STACK limit
+set test "rlimit STACK increase"
+if {[catch { exec stap --rlimit-stack=1 --rlimit-stack=999999999999 -L "kernel.function(\"*\")"} res ]} {
+     pass $test
 } else {
-  pass $test
+     fail $test
+}
+
+# Realistic STACK limit
+set test "rlimit STACK realistic"
+if {[catch { exec stap --rlimit-stack=1024000 -L "kernel.function(\"*\")"} res ]} {
+     fail $test
+} else {
+     pass $test
 }
 
 # Small STACK limit
 set test "rlimit STACK small"
-set cmd "stap -L $script --rlimit-stack=1"
-eval spawn $cmd
-set failed 0
-expect {
-  timeout 180
-  -re {^kernel.function[^\r\n]*\r\n} {set failed 1}
-  -re {^[^\r\n]*\r\n} {exp_continue}
-
-  timeout { fail "$test (timeout)" }
-}
-catch close
-wait
-
-if { $failed == 1 } {
-  fail $test
+if {[catch { exec stap --rlimit-stack=1 -L "kernel.function(\"*\")"} res ]} {
+     pass $test
 } else {
-  pass $test
+     fail $test
 }
 
-# Large FSIZE limit
-set test "rlimit FSIZE large"
-set cmd "stap -L $script --rlimit-fsize=51200000"
-eval spawn $cmd
-set failed 1
-expect {
-  timeout 180
-  -re {^kernel.function[^\r\n]*\r\n} {set failed 0}
-  -re {^[^\r\n]*\r\n} {exp_continue}
-
-  timeout { fail "$test (timeout)" }
-}
-catch close
-wait
-
-if { $failed == 1 } {
-  fail $test
+# Increase FSIZE limit
+set test "rlimit FSIZE increase"
+if {[catch { exec stap --rlimit-fsize=1 --rlimit-fsize=999999999999 -L "kernel.function(\"*\")"} res ]} {
+     pass $test
 } else {
-  pass $test
+     fail $test
+}
+
+# Realistic FSIZE limit
+set test "rlimit FSIZE realistic"
+if {[catch { exec stap --rlimit-fsize=51200000 -L "kernel.function(\"*\")"} res ]} {
+     fail $test
+} else {
+     pass $test
 }
 
 # Small FSIZE limit
