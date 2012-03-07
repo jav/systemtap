@@ -2098,7 +2098,7 @@ static u32 uprobe_report_exit(struct utrace_attached_engine *engine,
 		struct task_struct *tsk, long orig_code, long *code)
 {
 	struct uprobe_task *utask;
-	struct uprobe_process *uproc;
+	struct uprobe_process *uproc = NULL;
 	struct uprobe_probept *ppt;
 	int utask_quiescing;
 
@@ -2398,7 +2398,7 @@ static u32 uprobe_report_exec(struct utrace_attached_engine *engine,
 		struct task_struct *tsk, const struct linux_binprm *bprm,
 		struct pt_regs *regs)
 {
-	struct uprobe_process *uproc;
+	struct uprobe_process *uproc = NULL;
 	struct uprobe_task *utask;
 	u32 ret = UTRACE_ACTION_RESUME;
 
