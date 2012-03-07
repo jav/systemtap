@@ -1,14 +1,34 @@
 probe process.function("getdistance")
 {
   printf("getdistance value: %d\n", $value);
+  printf("getdistance value@main: %d\n", @var("value@global_var_main.c"));
+  printf("getdistance value@speed: %d\n", @var("value@global_var_speed.c"));
+  printf("getdistance value@distance: %d\n", @var("value@global_var_distance.c"));
 }
 
 probe process.function("getspeed")
 {
   printf("getspeed value: %d\n", $value);
+  printf("getspeed value@main: %d\n", @var("value@global_var_main.c"));
+  printf("getspeed value@speed: %d\n", @var("value@global_var_speed.c"));
+  printf("getspeed value@distance: %d\n", @var("value@global_var_distance.c"));
 }
 
 probe process.function("compare_value")
 {
   printf("compare value: %d\n", $value);
+  printf("compare value@main: %d\n", @var("value@global_var_main.c"));
+  printf("compare value@speed: %d\n", @var("value@global_var_speed.c"));
+  printf("compare value@distance: %d\n", @var("value@global_var_distance.c"));
+}
+
+probe process.function("main")
+{
+  // Global, not local.
+  printf("main value@main: %d\n", @var("value@global_var_main.c"));
+}
+
+probe process.function("main").return
+{
+  printf("main return value@main: %d\n", @var("value@global_var_main.c"));
 }

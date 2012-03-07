@@ -2621,7 +2621,8 @@ parser::parse_indexable ()
 }
 
 
-// var, indexable[index], func(parms), printf("...", ...), $var, $var->member, @stat_op(stat)
+// var, indexable[index], func(parms), printf("...", ...), $var,r
+// @cast, @defined, @entry, @var, $var->member, @stat_op(stat)
 expression* parser::parse_symbol ()
 {
   hist_op *hop = NULL;
@@ -2635,7 +2636,9 @@ expression* parser::parse_symbol ()
       // now scrutinize this identifier for the various magic forms of identifier
       // (printf, @stat_op, and $var...)
 
-      if (name == "@cast" || (name.size()>0 && name[0] == '$'))
+      if (name == "@cast"
+	  || name == "@var"
+	  || (name.size() > 0 && name[0] == '$'))
         return parse_target_symbol (t);
 
       // NB: PR11343: @defined() is not incompatible with earlier versions
@@ -2646,7 +2649,7 @@ expression* parser::parse_symbol ()
       if (name == "@entry")
         return parse_entry_op (t);
 
-      else if (name.size() > 0 && name[0] == '@')
+      if (name.size() > 0 && name[0] == '@')
 	{
 	  stat_op *sop = new stat_op;
 	  if (name == "@avg")
@@ -2660,7 +2663,7 @@ expression* parser::parse_symbol ()
 	  else if (name == "@max")
 	    sop->ctype = sc_max;
 	  else
-	    throw parse_error(_("unknown statistic operator ") + name);
+	    throw parse_error(_("unknown operator ") + name);
 	  expect_op("(");
 	  sop->tok = t;
 	  sop->stat = parse_expression ();
@@ -2884,12 +2887,32 @@ target_symbol* parser::parse_target_symbol (const token* t)
       target_symbol *tsym = new target_symbol;
       tsym->tok = t;
       tsym->name = t->content;
+      tsym->target_name = "";
+      tsym->cu_name = "";
       parse_target_symbol_components(tsym);
       tsym->addressof = addressof;
       return tsym;
     }
 
-  throw parse_error (_("expected @cast or $var"));
+  if (t->type == tok_identifier && t->content == "@var")
+    {
+      target_symbol *tsym = new target_symbol;
+      tsym->tok = t;
+      tsym->name = t->content;
+      expect_op("(");
+      expect_unknown(tok_string, tsym->target_name);
+      size_t found_at = tsym->target_name.find("@");
+      if (found_at != string::npos)
+	tsym->cu_name = tsym->target_name.substr(found_at + 1);
+      else
+	tsym->cu_name = "";
+      expect_op(")");
+      parse_target_symbol_components(tsym);
+      tsym->addressof = addressof;
+      return tsym;
+    }
+
+  throw parse_error (_("expected @cast, @var or $var"));
 }
 
 
