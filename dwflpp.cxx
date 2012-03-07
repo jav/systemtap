@@ -2148,6 +2148,36 @@ dwflpp::find_variable_and_frame_base (vector<Dwarf_Die>& scopes,
                                (alternatives.str() == "" ? "" : (_(" (alternatives:") + alternatives.str())).c_str()), e->tok);
     }
 
+  /* Some GCC versions would output duplicate external variables, one
+     without a location attribute. If so, try to find the other if it
+     exists in the same scope. See GCC PR51410.  */
+  Dwarf_Attribute attr_mem;
+  if (dwarf_attr_integrate (vardie, DW_AT_const_value, &attr_mem) == NULL
+      && dwarf_attr_integrate (vardie, DW_AT_location, &attr_mem) == NULL
+      && dwarf_attr_integrate (vardie, DW_AT_external, &attr_mem) != NULL
+      && dwarf_tag(&scopes[declaring_scope]) == DW_TAG_compile_unit)
+    {
+      Dwarf_Die *orig_vardie = vardie;
+      bool alt_found = false;
+      if (dwarf_child(&scopes[declaring_scope], vardie) == 0)
+	do
+	  {
+	    if (dwarf_tag (vardie) == DW_TAG_variable
+		&& strcmp (dwarf_diename (vardie), local.c_str ()) == 0
+		&& (dwarf_attr_integrate (vardie, DW_AT_external, &attr_mem)
+		    != NULL)
+		&& ((dwarf_attr_integrate (vardie, DW_AT_const_value, &attr_mem)
+		     != NULL)
+		    || (dwarf_attr_integrate (vardie, DW_AT_location, &attr_mem)
+			!= NULL)))
+	      alt_found = true;
+	  }
+	while (!alt_found && dwarf_siblingof(vardie, vardie) == 0);
+
+      if (! alt_found)
+	vardie = orig_vardie;
+    }
+
   /* We start out walking the "lexical scopes" as returned by
    * as returned by dwarf_getscopes for the address, starting with the
    * declaring_scope that the variable was found in.

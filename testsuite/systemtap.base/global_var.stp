@@ -1,0 +1,14 @@
+probe process.function("getdistance")
+{
+  printf("getdistance value: %d\n", $value);
+}
+
+probe process.function("getspeed")
+{
+  printf("getspeed value: %d\n", $value);
+}
+
+probe process.function("compare_value")
+{
+  printf("compare value: %d\n", $value);
+}
