@@ -2157,7 +2157,7 @@ dwflpp::find_variable_and_frame_base (vector<Dwarf_Die>& scopes,
       && dwarf_attr_integrate (vardie, DW_AT_external, &attr_mem) != NULL
       && dwarf_tag(&scopes[declaring_scope]) == DW_TAG_compile_unit)
     {
-      Dwarf_Die *orig_vardie = vardie;
+      Dwarf_Die orig_vardie = *vardie;
       bool alt_found = false;
       if (dwarf_child(&scopes[declaring_scope], vardie) == 0)
 	do
@@ -2175,7 +2175,7 @@ dwflpp::find_variable_and_frame_base (vector<Dwarf_Die>& scopes,
 	while (!alt_found && dwarf_siblingof(vardie, vardie) == 0);
 
       if (! alt_found)
-	vardie = orig_vardie;
+	*vardie = orig_vardie;
     }
 
   /* We start out walking the "lexical scopes" as returned by
