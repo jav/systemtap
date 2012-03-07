@@ -266,6 +266,7 @@ struct target_symbol: public symbol
 
   bool addressof;
   std::string target_name;
+  std::string cu_name;
   std::vector<component> components;
   semantic_error* saved_conversion_error; // hand-made linked list
   target_symbol(): addressof(false), saved_conversion_error (0) {}

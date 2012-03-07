@@ -2888,6 +2888,7 @@ target_symbol* parser::parse_target_symbol (const token* t)
       tsym->tok = t;
       tsym->name = t->content;
       tsym->target_name = "";
+      tsym->cu_name = "";
       parse_target_symbol_components(tsym);
       tsym->addressof = addressof;
       return tsym;
@@ -2900,6 +2901,11 @@ target_symbol* parser::parse_target_symbol (const token* t)
       tsym->name = t->content;
       expect_op("(");
       expect_unknown(tok_string, tsym->target_name);
+      size_t found_at = tsym->target_name.find("@");
+      if (found_at != string::npos)
+	tsym->cu_name = tsym->target_name.substr(found_at + 1);
+      else
+	tsym->cu_name = "";
       expect_op(")");
       parse_target_symbol_components(tsym);
       tsym->addressof = addressof;

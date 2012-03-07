@@ -3,9 +3,20 @@ set testpath "$srcdir/$subdir"
 
 # Check each "global" value picks up the right one.
 # See GCC PR51410 and Systemtap PR10622
-set ::result_string {getdistance value: 60
+set ::result_string {main value@main: 42
+getdistance value: 60
+getdistance value@main: 42
+getdistance value@speed: 6
+getdistance value@distance: 60
 getspeed value: 6
-compare value: 42}
+getspeed value@main: 42
+getspeed value@speed: 6
+getspeed value@distance: 60
+compare value: 42
+compare value@main: 42
+compare value@speed: 6
+compare value@distance: 60
+main return value@main: 42}
 
 # Only run on make installcheck and uprobes present.
 if {! [installtest_p]} { untested "$test"; return }

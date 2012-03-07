@@ -278,7 +278,12 @@ void target_symbol::chain (const semantic_error &er)
 string target_symbol::sym_name ()
 {
   if (name == "@var")
-    return target_name;
+    {
+      if (cu_name == "")
+	return target_name;
+      else
+	return target_name.substr(0, target_name.length() - cu_name.length() - 1);
+    }
   else
     return name.substr(1);
 }

@@ -2183,6 +2183,7 @@ struct dwarf_var_expanding_visitor: public var_expanding_visitor
   void visit_cast_op (cast_op* e);
   void visit_entry_op (entry_op* e);
 private:
+  vector<Dwarf_Die>& getcuscope(target_symbol *e);
   vector<Dwarf_Die>& getscopes(target_symbol *e);
 };
 
@@ -3636,10 +3637,47 @@ dwarf_var_expanding_visitor::visit_entry_op (entry_op *e)
   provide (repl);
 }
 
+vector<Dwarf_Die>&
+dwarf_var_expanding_visitor::getcuscope(target_symbol *e)
+{
+  Dwarf_Die *cu = NULL;
+
+  string prefixed_srcfile = string("*/") + e->cu_name;
+
+  Dwarf_Off off = 0;
+  size_t cuhl;
+  Dwarf_Off noff;
+  Dwarf_Off module_bias;
+  Dwarf *dw = dwfl_module_getdwarf(q.dw.module, &module_bias);
+  while (cu == NULL && dwarf_nextcu (dw, off, &noff, &cuhl, NULL, NULL, NULL) == 0)
+    {
+      Dwarf_Die die_mem;
+      Dwarf_Die *die;
+      die = dwarf_offdie (dw, off + cuhl, &die_mem);
+      const char *cu_name = dwarf_diename (die);
+      if (fnmatch(prefixed_srcfile.c_str(), cu_name, 0) == 0)
+	cu = die;
+      off = noff;
+    }
+
+  if (cu == NULL)
+    throw semantic_error ("unable to find CU '" + e->cu_name + "'"
+			  + " while searching for '" + e->target_name + "'",
+			  e->tok);
+
+  vector<Dwarf_Die> *cu_scope = new vector<Dwarf_Die>;
+  Dwarf_Die die_cu = *cu;
+  cu_scope->push_back(die_cu);
+  return *cu_scope;
+}
 
 vector<Dwarf_Die>&
 dwarf_var_expanding_visitor::getscopes(target_symbol *e)
 {
+  // "static globals" can only be found in the top-level CU.
+  if (e->name == "@var" && e->cu_name != "")
+    return this->getcuscope(e);
+
   if (scopes.empty())
     {
       scopes = q.dw.getscopes(scope_die);
