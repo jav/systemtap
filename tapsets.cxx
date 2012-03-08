@@ -3640,7 +3640,8 @@ dwarf_var_expanding_visitor::visit_entry_op (entry_op *e)
 vector<Dwarf_Die>&
 dwarf_var_expanding_visitor::getcuscope(target_symbol *e)
 {
-  Dwarf_Die *cu = NULL;
+  Dwarf_Off cu_off = 0;
+  const char *cu_name = NULL;
 
   string prefixed_srcfile = string("*/") + e->cu_name;
 
@@ -3649,25 +3650,38 @@ dwarf_var_expanding_visitor::getcuscope(target_symbol *e)
   Dwarf_Off noff;
   Dwarf_Off module_bias;
   Dwarf *dw = dwfl_module_getdwarf(q.dw.module, &module_bias);
-  while (cu == NULL && dwarf_nextcu (dw, off, &noff, &cuhl, NULL, NULL, NULL) == 0)
+  while (dwarf_nextcu (dw, off, &noff, &cuhl, NULL, NULL, NULL) == 0)
     {
       Dwarf_Die die_mem;
       Dwarf_Die *die;
       die = dwarf_offdie (dw, off + cuhl, &die_mem);
-      const char *cu_name = dwarf_diename (die);
-      if (fnmatch(prefixed_srcfile.c_str(), cu_name, 0) == 0)
-	cu = die;
+      const char *die_name = dwarf_diename (die);
+
+      if (strcmp (die_name, e->cu_name.c_str()) == 0) // Perfect match.
+	{
+	  cu_name = die_name;
+	  cu_off = off + cuhl;
+	  break;
+	}
+
+      if (fnmatch(prefixed_srcfile.c_str(), die_name, 0) == 0)
+	if (cu_name == NULL || strlen (die_name) < strlen (cu_name))
+	  {
+	    cu_name = die_name;
+	    cu_off = off + cuhl;
+	  }
       off = noff;
     }
 
-  if (cu == NULL)
+  if (cu_name == NULL)
     throw semantic_error ("unable to find CU '" + e->cu_name + "'"
 			  + " while searching for '" + e->target_name + "'",
 			  e->tok);
 
   vector<Dwarf_Die> *cu_scope = new vector<Dwarf_Die>;
-  Dwarf_Die die_cu = *cu;
-  cu_scope->push_back(die_cu);
+  Dwarf_Die cu_die;
+  dwarf_offdie (dw, cu_off, &cu_die);
+  cu_scope->push_back(cu_die);
   return *cu_scope;
 }
 
