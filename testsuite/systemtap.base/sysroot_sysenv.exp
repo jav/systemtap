@@ -1,0 +1,15 @@
+set test "sysroot_sysenv"
+
+if {[installtest_p] && [utrace_p] && [uprobes_p]} {
+  spawn stap --sysroot=/ --sysenv=PATH=$env(PATH) $srcdir/$subdir/$test.stp ls -c "ls > /dev/null"
+  expect {
+    -timeout 180
+    -re {^process begin\r\n} { pass "$test" }
+    timeout { fail "$test (timeout)" }
+    eof { fail "$test" }
+  }
+} else {
+  untested "$test"
+}
+catch {close}
+wait
