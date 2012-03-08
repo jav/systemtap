@@ -8938,10 +8938,14 @@ tracepoint_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 {
   try
     {
-      assert(e->name.size() > 0 && e->name[0] == '$');
+      assert(e->name.size() > 0
+	     && ((e->name[0] == '$' && e->target_name == "")
+		 || (e->name == "@var" && e->target_name != "")));
 
       if (e->name == "$$name" || e->name == "$$parms" || e->name == "$$vars")
         visit_target_symbol_context (e);
+      else if (e->name == "@var")
+	throw semantic_error(_("cannot use @var DWARF variables in tracepoints"), e->tok);
       else
         visit_target_symbol_arg (e);
     }
