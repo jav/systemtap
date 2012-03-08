@@ -1,0 +1,13 @@
+set test "at_var_mark"
+set testpath "$srcdir/$subdir"
+
+set stap_path $env(SYSTEMTAP_PATH)/stap
+
+# Check @var, even when var doesn't exist, works in process.mark probes.
+set output_string "pass:yes:0\r\n"
+set invoke "$stap_path -p4 -e 'probe begin \{ log(\"start\")\}'"
+
+# Only run on make installcheck
+if {! [installtest_p]} { untested "$test"; return }
+
+stap_run ${test} no_load $output_string ${testpath}/${test}.stp -c $invoke
