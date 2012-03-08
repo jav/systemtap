@@ -584,13 +584,14 @@ base_query::base_query(dwflpp & dw, literal_map_t const & params):
       has_statement = get_number_param(params, TOK_STATEMENT, statement_num_val);
 
       if (has_process)
-        module_val = find_executable (module_val);
+        module_val = find_executable (module_val, sess.sysroot, sess.sysenv);
       if (has_library)
         {
           if (! contains_glob_chars (library_name))
             {
-              path = module_val;
-              module_val = find_executable (library_name, "LD_LIBRARY_PATH");
+              path = path_remove_sysroot(sess, module_val);
+              module_val = find_executable (library_name, sess.sysroot,
+                                            sess.sysenv, "LD_LIBRARY_PATH");
             }
           else
             path = library_name;
@@ -1127,6 +1128,15 @@ bad:
                        base_probe->tok);
 }
 
+string path_remove_sysroot(const systemtap_session& sess, const string& path)
+{
+  size_t pos;
+  string retval = path;
+  if (!sess.sysroot.empty() &&
+      (pos = retval.find(sess.sysroot)) != string::npos)
+    retval.replace(pos, sess.sysroot.length(), "/");
+  return retval;
+}
 
 void
 dwarf_query::add_probe_point(const string& dw_funcname,
@@ -1188,8 +1198,9 @@ dwarf_query::add_probe_point(const string& dw_funcname,
 
       if (has_process)
         {
+          string module_tgt = path_remove_sysroot(sess, module);
           results.push_back (new uprobe_derived_probe(funcname, filename, line,
-                                                      module, reloc_section, addr, reloc_addr,
+                                                      module_tgt, reloc_section, addr, reloc_addr,
                                                       *this, scope_die));
         }
       else
@@ -2051,7 +2062,8 @@ query_one_library (const char *library, dwflpp & dw,
 {
   if (dw.function_name_matches_pattern(library, user_lib))
     {
-      string library_path = find_executable (library, "LD_LIBRARY_PATH");
+      string library_path = find_executable (library, "", dw.sess.sysenv,
+                                             "LD_LIBRARY_PATH");
       probe_point* specific_loc = new probe_point(*base_loc);
       specific_loc->optional = true;
       vector<probe_point::component*> derived_comps;
@@ -3906,7 +3918,7 @@ void dwarf_cast_expanding_visitor::visit_cast_op (cast_op* e)
 	    }
 	  else
 	    {
-	      module = find_executable (module); // canonicalize it
+              module = find_executable (module, "", s.sysenv); // canonicalize it
 	      dw = db.get_user_dw(s, module);
 	    }
 	}
@@ -6546,13 +6558,14 @@ dwarf_builder::build(systemtap_session & sess,
     }
   else if (get_param (parameters, TOK_PROCESS, module_name) || has_null_param(parameters, TOK_PROCESS))
       {
+      module_name = sess.sysroot + module_name;
       if(has_null_param(filled_parameters, TOK_PROCESS))
         {
           wordexp_t words;
           int rc = wordexp(sess.cmd.c_str(), &words, WRDE_NOCMD|WRDE_UNDEF);
           if(rc || words.we_wordc <= 0)
             throw semantic_error(_("unspecified process probe is invalid without a -c COMMAND"));
-          module_name = words.we_wordv[0];
+          module_name = sess.sysroot + words.we_wordv[0];
           filled_parameters[TOK_PROCESS] = new literal_string(module_name);// this needs to be used in place of the blank map
           // in the case of TOK_MARK we need to modify locations as well
           if(location->components[0]->functor==TOK_PROCESS &&
@@ -6605,9 +6618,10 @@ dwarf_builder::build(systemtap_session & sess,
                   if (sess.verbose > 1)
                     clog << _F("Expanded process(\"%s\") to process(\"%s\")",
                                module_name.c_str(), eglobbed.c_str()) << endl;
+                  string eglobbed_tgt = path_remove_sysroot(sess, eglobbed);
 
                   probe_point::component* ppc = new probe_point::component (TOK_PROCESS,
-                                                                            new literal_string (eglobbed));
+                                                    new literal_string (eglobbed_tgt));
                   ppc->tok = location->components[0]->tok; // overwrite [0] slot, pattern matched above
                   pp->components[0] = ppc;
 
@@ -6633,7 +6647,7 @@ dwarf_builder::build(systemtap_session & sess,
 
       // PR13338: unquote glob results
       module_name = unescape_glob_chars (module_name);
-      user_path = find_executable (module_name); // canonicalize it
+      user_path = find_executable (module_name, "", sess.sysenv); // canonicalize it
 
       // if the executable starts with "#!", we look for the interpreter of the script
       {
@@ -6679,12 +6693,13 @@ dwarf_builder::build(systemtap_session & sess,
                     if (p3 != string::npos)
                     {
                        string env_path = path.substr(p3);
-                       user_path = find_executable (env_path);
+                       user_path = find_executable (env_path, sess.sysroot,
+                                                    sess.sysenv);
                     }
                 }
                 else
                 {
-                   user_path = find_executable (path);
+                  user_path = find_executable (path, sess.sysroot, sess.sysenv);
                 }
 
                 struct stat st;
@@ -6705,8 +6720,9 @@ dwarf_builder::build(systemtap_session & sess,
 
                   // synthesize a new probe_point, with the expanded string
                   probe_point *pp = new probe_point (*location);
+                  string user_path_tgt = path_remove_sysroot(sess, user_path);
                   probe_point::component* ppc = new probe_point::component (TOK_PROCESS,
-                                                                            new literal_string (user_path.c_str()));
+                                                                            new literal_string (user_path_tgt.c_str()));
                   ppc->tok = location->components[0]->tok; // overwrite [0] slot, pattern matched above
                   pp->components[0] = ppc;
 
@@ -6725,7 +6741,8 @@ dwarf_builder::build(systemtap_session & sess,
 
       if(get_param (parameters, TOK_LIBRARY, user_lib)
 	  && user_lib.length() && ! contains_glob_chars (user_lib))
-	module_name = find_executable (user_lib, "LD_LIBRARY_PATH");
+        module_name = find_executable (user_lib, sess.sysroot, sess.sysenv,
+                                       "LD_LIBRARY_PATH");
       else
 	module_name = user_path; // canonicalize it
 
@@ -8189,14 +8206,14 @@ struct kprobe_builder: public derived_probe_builder
 
 
 void
-kprobe_builder::build(systemtap_session &,
+kprobe_builder::build(systemtap_session & sess,
 		      probe * base,
 		      probe_point * location,
 		      literal_map_t const & parameters,
 		      vector<derived_probe *> & finished_results)
 {
   string function_string_val, module_string_val;
-  string path, library;
+  string path, library, path_tgt, library_tgt;
   int64_t statement_num_val = 0, maxactive_val = 0;
   bool has_function_str, has_module_str, has_statement_num;
   bool has_absolute, has_return, has_maxactive;
@@ -8212,9 +8229,16 @@ kprobe_builder::build(systemtap_session &,
   has_library = get_param (parameters, TOK_LIBRARY, library);
 
   if (has_path)
-    path = find_executable (path);
+    {
+      path = find_executable (path, sess.sysroot, sess.sysenv);
+      path_tgt = path_remove_sysroot(sess, path);
+    }
   if (has_library)
-    library = find_executable (library, "LD_LIBRARY_PATH");
+    {
+      library = find_executable (library, sess.sysroot, sess.sysenv,
+                                 "LD_LIBRARY_PATH");
+      library_tgt = path_remove_sysroot(sess, library);
+    }
 
   if (has_function_str)
     {
@@ -8229,8 +8253,8 @@ kprobe_builder::build(systemtap_session &,
 							    has_path,
 							    has_library,
 							    maxactive_val,
-							    path,
-							    library));
+							    path_tgt,
+							    library_tgt));
     }
   else
     {
@@ -8247,8 +8271,8 @@ kprobe_builder::build(systemtap_session &,
 							    has_path,
 							    has_library,
 							    maxactive_val,
-							    path,
-							    library));
+							    path_tgt,
+							    library_tgt));
     }
 }
 

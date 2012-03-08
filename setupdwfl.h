@@ -69,5 +69,6 @@ int internal_find_debuginfo (Dwfl_Module *mod,
 int execute_abrt_action_install_debuginfo_to_abrt_cache (std::string hex);
 std::string get_kernel_build_id (systemtap_session &s);
 int download_kernel_debuginfo (systemtap_session &s, std::string hex);
+void debuginfo_path_insert_sysroot(std::string sysroot);
 
 #endif

@@ -39,14 +39,14 @@ extern "C" {
 // XXX: also consider adding $HOME/.debug/ for perf build-id-cache
 static const char *debuginfo_path_arr = "+:.debug:/usr/lib/debug:/var/cache/abrt-di/usr/lib/debug:build";
 static const char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
-static const char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
+static char *debuginfo_path = (char *)(debuginfo_env_arr ?: debuginfo_path_arr);
 
 // NB: kernel_build_tree doesn't enter into this, as it's for
 // kernel-side modules only.
 // XXX: also consider adding $HOME/.debug/ for perf build-id-cache
 static const char *debuginfo_usr_path_arr = "+:.debug:/usr/lib/debug:/var/cache/abrt-di/usr/lib/debug";
-static const char *debuginfo_usr_path = (debuginfo_env_arr
-					 ?: debuginfo_usr_path_arr);
+static char *debuginfo_usr_path = (char *)(debuginfo_env_arr
+					   ?: debuginfo_usr_path_arr);
 
 // A pointer to the current systemtap session for use only by a few
 // dwfl calls. DO NOT rely on this, as it is cleared after use.
@@ -146,7 +146,10 @@ setup_mod_deps()
     }
   else
     {
-      modulesdep = "/lib/modules/";
+      string sysroot = "";
+      if (current_session_for_find_debuginfo)
+        sysroot = current_session_for_find_debuginfo->sysroot;
+      modulesdep = sysroot + "/lib/modules/";
       modulesdep += elfutils_kernel_path;
       modulesdep += "/modules.dep";
     }
@@ -280,6 +283,30 @@ setup_dwfl_report_kernel_p(const char* modname, const char* filename)
     }
 }
 
+static char * path_insert_sysroot(string sysroot, string path)
+{
+  char * path_new;
+  size_t pos = 1;
+  if (path[0] == '/')
+    path.replace(0, 1, sysroot);
+  while (true) {
+    pos = path.find(":/", pos);
+    if (pos == string::npos)
+      break;
+    path.replace(pos, 2, ":" + sysroot);
+    ++pos;
+  }
+  path_new = new char[path.size()+1];
+  strcpy (path_new, path.c_str());
+  return path_new;
+}
+
+void debuginfo_path_insert_sysroot(string sysroot)
+{
+  debuginfo_path = path_insert_sysroot(sysroot, debuginfo_path);
+  debuginfo_usr_path = path_insert_sysroot(sysroot, debuginfo_usr_path);
+}
+
 static DwflPtr
 setup_dwfl_kernel (unsigned *modules_found, systemtap_session &s)
 {
@@ -295,7 +322,7 @@ setup_dwfl_kernel (unsigned *modules_found, systemtap_session &s)
   // no way to set the dwfl_callback.debuginfo_path and always
   // passs the plain kernel_release here.  So instead we have to
   // hard-code this magic here.
-  if (s.kernel_build_tree == string("/lib/modules/"
+  if (s.kernel_build_tree == string(s.sysroot + "/lib/modules/"
 				    + s.kernel_release
 				    + "/build"))
     elfutils_kernel_path = s.kernel_release;

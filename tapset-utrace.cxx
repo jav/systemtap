@@ -642,7 +642,7 @@ struct utrace_builder: public derived_probe_builder
 		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results)
   {
-    string path;
+    string path, path_tgt;
     int64_t pid;
 
     bool has_path = get_param (parameters, TOK_PROCESS, path);
@@ -679,8 +679,9 @@ struct utrace_builder: public derived_probe_builder
       }
     else if (has_path)
       {
-        path = find_executable (path);
+        path = find_executable (path, sess.sysroot, sess.sysenv);
         sess.unwindsym_modules.insert (path);
+        path_tgt = path_remove_sysroot(sess, path);
       }
     else if (has_pid)
       {
@@ -693,7 +694,7 @@ struct utrace_builder: public derived_probe_builder
       }
 
     finished_results.push_back(new utrace_derived_probe(sess, base, location,
-							has_path, path, pid,
+							has_path, path_tgt, pid,
 							flags));
   }
 };

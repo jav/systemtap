@@ -49,6 +49,8 @@ extern "C" {
 #define LONG_OPT_RLIMIT_NPROC 33
 #define LONG_OPT_RLIMIT_STACK 34
 #define LONG_OPT_RLIMIT_FSIZE 35
+#define LONG_OPT_SYSROOT 36
+#define LONG_OPT_SYSENV 37
 
 // NB: when adding new options, consider very carefully whether they
 // should be restricted from stap clients (after --client-options)!

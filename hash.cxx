@@ -133,6 +133,7 @@ void create_hash_log(const string &type_str, const string &parms, const string &
 static const hash&
 get_base_hash (systemtap_session& s)
 {
+  map<string, string> dummy;
   if (s.base_hash)
     return *s.base_hash;
 
@@ -158,7 +159,7 @@ get_base_hash (systemtap_session& s)
   // Hash compiler path, size, and mtime.  We're just going to assume
   // we'll be using gcc. XXX: getting kbuild to spit out out would be
   // better, especially since this is fooled by ccache.
-  h.add_path("Compiler ", find_executable("gcc"));
+  h.add_path("Compiler ", find_executable("gcc", "", dummy));
 
   // Hash the systemtap size and mtime.  We could use VERSION/DATE,
   // but when developing systemtap that doesn't work well (since you

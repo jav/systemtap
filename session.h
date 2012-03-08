@@ -140,6 +140,9 @@ public:
   std::string kernel_base_release;
   std::string kernel_build_tree;
   std::string kernel_source_tree;
+  std::string sysroot;
+  std::map<std::string,std::string> sysenv;
+  bool update_release_sysroot;
   std::map<std::string,std::string> kernel_config;
   std::set<std::string> kernel_exports;
   std::string machine;

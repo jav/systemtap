@@ -387,7 +387,9 @@ tokenize_cxx(const string& str, vector<string>& tokens)
 // same policy as execvp().  A program name not containing a slash
 // will be searched along the $PATH.
 
-string find_executable(const string& name, const string& env_path)
+string find_executable(const string& name, const string& sysroot,
+		       map<string, string>& sysenv,
+		       const string& env_path)
 {
   string retpath;
 
@@ -398,11 +400,15 @@ string find_executable(const string& name, const string& env_path)
 
   if (name.find('/') != string::npos) // slash in the path already?
     {
-      retpath = name;
+      retpath = sysroot + name;
     }
   else // Nope, search $PATH.
     {
-      char *path = getenv(env_path.c_str());
+      char *path;
+      if (sysenv.count(env_path) != 0)
+        path = (char *)sysenv[env_path].c_str();
+      else
+        path = getenv(env_path.c_str());
       if (path)
         {
           // Split PATH up.
@@ -412,7 +418,7 @@ string find_executable(const string& name, const string& env_path)
           // Search the path looking for the first executable of the right name.
           for (vector<string>::iterator i = dirs.begin(); i != dirs.end(); i++)
             {
-              string fname = *i + "/" + name;
+              string fname = sysroot + *i + "/" + name;
               const char *f = fname.c_str();
 
               // Look for a normal executable file.
@@ -431,13 +437,22 @@ string find_executable(const string& name, const string& env_path)
   // Could not find the program on the $PATH.  We'll just fall back to
   // the unqualified name, which our caller will probably fail with.
   if (retpath == "")
-    retpath = name;
+    retpath = sysroot + name;
 
   // Canonicalize the path name.
   char *cf = canonicalize_file_name (retpath.c_str());
   if (cf)
     {
-      retpath = string(cf);
+      string scf = string(cf);
+      if (sysroot.empty())
+        retpath = scf;
+      else {
+        int pos = scf.find(sysroot);
+        if (pos == 0)
+          retpath = scf;
+        else
+          throw runtime_error(_F("find_executable(): file %s not in sysroot %s", cf, sysroot.c_str()));
+      }
       free (cf);
     }
 

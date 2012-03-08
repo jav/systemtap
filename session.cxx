@@ -150,6 +150,8 @@ systemtap_session::systemtap_session ():
   download_dbinfo = 0;
   suppress_handler_errors = false;
   native_build = true; // presumed
+  sysroot = "";
+  update_release_sysroot = false;
 
   /*  adding in the XDG_DATA_DIRS variable path,
    *  this searches in conjunction with SYSTEMTAP_TAPSET
@@ -311,6 +313,9 @@ systemtap_session::systemtap_session (const systemtap_session& other,
   systemtap_v_check = other.systemtap_v_check;
   download_dbinfo = other.download_dbinfo;
   suppress_handler_errors = other.suppress_handler_errors;
+  sysroot = other.sysroot;
+  update_release_sysroot = other.update_release_sysroot;
+  sysenv = other.sysenv;
 
   include_path = other.include_path;
   runtime_path = other.runtime_path;
@@ -534,6 +539,13 @@ systemtap_session::usage (int exitcode)
     "              yes,no,ask,<timeout value>\n"
     "   --dump-probe-types\n"
     "              show a list of available probe types.\n"
+    "   --sysroot=DIR\n"
+    "              specify sysroot directory where target files (executables,\n"    "              libraries, etc.) are located.\n"
+    "   --sysenv=VAR=VALUE\n"
+    "              provide an alternate value for an environment variable\n"
+    "              where the value on a remote system differs.  Path\n"
+    "              variables (e.g. PATH, LD_LIBRARY_PATH) are assumed to be\n"
+    "              relative to the sysroot.\n"
     , compatible.c_str()) << endl
   ;
 
@@ -1139,6 +1151,52 @@ systemtap_session::parse_cmdline (int argc, char * const argv [])
                 cerr << _F("Unable to set resource limits for rlimit_fsize : %s", strerror (errno)) << endl;
               break;
 
+            case LONG_OPT_SYSROOT:
+              if (client_options) {
+                  cerr << _F("ERROR: %s invalid with %s", "--sysroot", "--client-options") << endl;
+                  return 1;
+              } else if (!sysroot.empty()) {
+                  cerr << "ERROR: multiple --sysroot options not supported" << endl;
+                  return 1;
+              } else {
+                  const char *spath = canonicalize_file_name (optarg);
+                  if (spath == NULL) {
+                      cerr << _F("ERROR: %s is an invalid directory for --sysroot", optarg) << endl;
+                      return 1;
+                  }
+
+                  sysroot = string(spath);
+                  if (sysroot[sysroot.size() - 1] != '/')
+                      sysroot.append("/");
+
+                  break;
+              }
+
+            case LONG_OPT_SYSENV:
+              if (client_options) {
+                  cerr << _F("ERROR: %s invalid with %s", "--sysenv", "--client-options") << endl;
+                  return 1;
+              } else {
+                  string sysenv_str = optarg;
+                  string value;
+                  size_t pos;
+                  if (sysroot.empty()) {
+                      cerr << "ERROR: --sysenv must follow --sysroot" << endl;
+                      return 1;
+                  }
+
+                  pos = sysenv_str.find("=");
+                  if (pos == string::npos) {
+                      cerr << _F("ERROR: %s is an invalid argument for --sysenv", optarg) << endl;
+                      return 1;
+                  }
+
+                  value = sysenv_str.substr(pos + 1);
+                  sysenv[sysenv_str.substr(0, pos)] = value;
+
+                  break;
+              }
+
             default:
               // NOTREACHED unless one added a getopt option but not a corresponding switch/case:
               cerr << _F("Unhandled long argument id %d", stap_long_opt) << endl;
@@ -1428,6 +1486,7 @@ systemtap_session::setup_kernel_release (const char* kstr)
     }
   else
     {
+      update_release_sysroot = true;
       kernel_release = string (kstr);
       if (!kernel_release.empty())
         kernel_build_tree = "/lib/modules/" + kernel_release + "/build";
