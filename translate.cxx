@@ -1795,9 +1795,8 @@ c_unparser::emit_module_exit ()
   o->newline() << "do {";
   o->newline(1) << "int i;";
   o->newline() << "holdon = 0;";
-  o->newline() << "for (i=0; i < NR_CPUS; i++)";
-  o->newline(1) << "if (cpu_possible (i) && "
-		<< "contexts[i] != NULL && "
+  o->newline() << "for_each_possible_cpu(i)";
+  o->newline(1) << "if (contexts[i] != NULL && "
                 << "atomic_read (& contexts[i]->busy)) {";
   o->newline(1) << "holdon = 1;";
 
@@ -1822,7 +1821,7 @@ c_unparser::emit_module_exit ()
   // unloaded).  This is sometimes stinky, so the alternative
   // (default) is to change from a livelock to a livelock that sleeps
   // awhile.
-  o->newline() << "#ifdef STAP_OVERRIDE_STUCK_CONTEXT";
+  o->newline(-1) << "#ifdef STAP_OVERRIDE_STUCK_CONTEXT";
   o->newline() << "if (time_after(jiffies, hold_start + HZ*10)) { "; // > 10 seconds
   o->newline(1) << "printk(KERN_ERR \"%s overriding stuck context to allow module shutdown.\", THIS_MODULE->name);";
   o->newline() << "holdon = 0;"; // allow loop to exit
@@ -1833,7 +1832,7 @@ c_unparser::emit_module_exit ()
 
   // NB: we run at least one of these during the shutdown sequence:
   o->newline () << "yield ();"; // aka schedule() and then some
-  o->newline(-2) << "} while (holdon);";
+  o->newline(-1) << "} while (holdon);";
 
   // cargo cult epilogue
   o->newline() << "atomic_set (&session_state, STAP_SESSION_STOPPED);";
