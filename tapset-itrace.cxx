@@ -100,7 +100,7 @@ struct itrace_builder: public derived_probe_builder
 		     std::map<std::string, literal *> const & parameters,
 		     vector<derived_probe *> & finished_results)
   {
-    string path;
+    string path, path_tgt;
     int64_t pid = 0;
     int single_step;
 
@@ -114,12 +114,13 @@ struct itrace_builder: public derived_probe_builder
     // If we have a path, we need to validate it.
     if (has_path)
       {
-        path = find_executable (path);
+        path = find_executable (path, sess.sysroot, sess.sysenv);
         sess.unwindsym_modules.insert (path);
+        path_tgt = path_remove_sysroot(sess, path);
       }
 
     finished_results.push_back(new itrace_derived_probe(sess, base, location,
-							has_path, path, pid,
+							has_path, path_tgt, pid,
 							single_step
 							));
   }

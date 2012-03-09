@@ -6241,10 +6241,10 @@ add_unwindsym_vdso (systemtap_session &s)
   // having the BUILDDIR we need to do a deep search (the specific
   // arch name dir in the kernel build tree is unknown).
   string vdso_dir;
-  if (s.kernel_build_tree == string("/lib/modules/"
+  if (s.kernel_build_tree == string(s.sysroot + "/lib/modules/"
 				    + s.kernel_release
 				    + "/build"))
-    vdso_dir = "/lib/modules/" + s.kernel_release + "/vdso";
+    vdso_dir = s.sysroot + "/lib/modules/" + s.kernel_release + "/vdso";
   else
     vdso_dir = s.kernel_build_tree + "/arch/";
 

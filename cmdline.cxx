@@ -53,5 +53,7 @@ struct option stap_long_options[] = {
   { "rlimit-nproc", 1, NULL, LONG_OPT_RLIMIT_NPROC },
   { "rlimit-stack", 1, NULL, LONG_OPT_RLIMIT_STACK },
   { "rlimit-fsize", 1, NULL, LONG_OPT_RLIMIT_FSIZE },
+  { "sysroot", 1, NULL, LONG_OPT_SYSROOT },
+  { "sysenv", 1, NULL, LONG_OPT_SYSENV },
   { NULL, 0, NULL, 0 }
 };

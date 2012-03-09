@@ -51,7 +51,9 @@ enum {
   LONG_OPT_RLIMIT_CPU,
   LONG_OPT_RLIMIT_NPROC,
   LONG_OPT_RLIMIT_STACK,
-  LONG_OPT_RLIMIT_FSIZE
+  LONG_OPT_RLIMIT_FSIZE,
+  LONG_OPT_SYSROOT,
+  LONG_OPT_SYSENV,
 };
 
 // NB: when adding new options, consider very carefully whether they

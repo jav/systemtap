@@ -555,6 +555,19 @@ no limits are imposed.
 Specify the maximum size of files that the process may create, in bytes. If nothing is specified, no limits are
 imposed.
 
+.TP
+.BI \-\-sysroot "=DIR"
+Specify sysroot directory where target files (executables, libraries, etc.)
+are located.  With \fI\-r RELEASE\fR, the sysroot will be searched for the
+appropriate kernel build directory.  With \fI\-r /DIR\fR, however, the sysroot
+will not be used to find the kernel build.
+
+.TP
+.BI \-\-sysenv "=VAR=VALUE"
+Provide an alternate value for an environment variable where the value on a
+remote system differs.  Path variables (e.g. PATH, LD_LIBRARY_PATH) are assumed
+to be relative to the directory provided by \fI\-\-sysroot\fR, if provided.
+
 .SH ARGUMENTS
 
 Any additional arguments on the command line are passed to the script

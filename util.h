@@ -12,6 +12,7 @@
 #include <cctype>
 #include <set>
 #include <iomanip>
+#include <map>
 extern "C" {
 #include <libintl.h>
 #include <locale.h>
@@ -53,6 +54,8 @@ void tokenize_full(const std::string& str, std::vector<std::string>& tokens,
 	      const std::string& delimiters);
 void tokenize_cxx(const std::string& str, std::vector<std::string>& tokens);
 std::string find_executable(const std::string& name,
+			    const std::string& sysroot,
+			    std::map<std::string,std::string>& sysenv,
 			    const std::string& env_path = "PATH");
 const std::string cmdstr_quoted(const std::string& cmd);
 const std::string cmdstr_join(const std::vector<std::string>& cmds);

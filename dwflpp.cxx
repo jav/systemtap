@@ -321,7 +321,7 @@ dwflpp::setup_kernel(const string& name, systemtap_session & s, bool debuginfo_n
     {
       if (debuginfo_needed) {
         // Suggest a likely kernel dir to find debuginfo rpm for
-        string dir = string("/lib/modules/" + sess.kernel_release );
+        string dir = string(sess.sysroot + "/lib/modules/" + sess.kernel_release );
         find_debug_rpms(sess, dir.c_str());
       }
       throw semantic_error (_F("missing %s kernel/module debuginfo under '%s'",
@@ -359,7 +359,7 @@ dwflpp::setup_kernel(const vector<string> &names, bool debuginfo_needed)
     {
       if (debuginfo_needed) {
         // Suggest a likely kernel dir to find debuginfo rpm for
-        string dir = string("/lib/modules/" + sess.kernel_release );
+        string dir = string(sess.sysroot + "/lib/modules/" + sess.kernel_release );
         find_debug_rpms(sess, dir.c_str());
       }
       throw semantic_error (_F("missing %s kernel/module debuginfo under '%s'",

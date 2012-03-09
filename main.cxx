@@ -24,6 +24,7 @@
 #include "csclient.h"
 #include "remote.h"
 #include "tapsets.h"
+#include "setupdwfl.h"
 
 #include <libintl.h>
 #include <locale.h>
@@ -486,6 +487,14 @@ passes_0_4 (systemtap_session &s)
   // resolution.
 
   s.kernel_base_release.assign(s.kernel_release, 0, s.kernel_release.find('-'));
+
+  // Update various paths to include the sysroot, if provided.
+  if (!s.sysroot.empty())
+    {
+      if (s.update_release_sysroot && !s.sysroot.empty())
+        s.kernel_build_tree = s.sysroot + s.kernel_build_tree;
+      debuginfo_path_insert_sysroot(s.sysroot);
+    }
 
   // Now that no further changes to s.kernel_build_tree can occur, let's use it.
   if ((rc = parse_kernel_config (s)) != 0)
