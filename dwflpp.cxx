@@ -2196,6 +2196,10 @@ dwflpp::find_variable_and_frame_base (vector<Dwarf_Die>& scopes,
 	*vardie = orig_vardie;
     }
 
+  // Global vars don't need (cannot use) frame base in location descriptor.
+  if (e->cu_name != "")
+    return NULL;
+
   /* We start out walking the "lexical scopes" as returned by
    * as returned by dwarf_getscopes for the address, starting with the
    * declaring_scope that the variable was found in.
@@ -2284,10 +2288,18 @@ dwflpp::translate_location(struct obstack *pool,
       throw semantic_error (_F("dwarf_getlocation_addr failed, %s", dwarf_errmsg(-1)), e->tok);
     }
 
+  Dwarf_Op *cfa_ops;
   // pc is in the dw address space of the current module, which is what
   // c_translate_location expects. get_cfa_ops wants the global dwfl address.
-  Dwarf_Addr addr = pc + module_bias;
-  Dwarf_Op *cfa_ops = get_cfa_ops (addr);
+  // cfa_ops only make sense for locals.
+  if (e->cu_name == "")
+    {
+      Dwarf_Addr addr = pc + module_bias;
+      cfa_ops = get_cfa_ops (addr);
+    }
+  else
+    cfa_ops = NULL;
+
   return c_translate_location (pool, &loc2c_error, this,
                                &loc2c_emit_address,
                                1, 0 /* PR9768 */,
