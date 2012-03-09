@@ -2141,11 +2141,29 @@ dwflpp::find_variable_and_frame_base (vector<Dwarf_Die>& scopes,
     {
       stringstream alternatives;
       print_locals (scopes, alternatives);
-      throw semantic_error (_F("unable to find local '%s' near pc %s %s %s %s (%s)", local.c_str(),
-                               lex_cast_hex(pc).c_str(), (scope_die == NULL) ? "" : _(" in "),
-                               (dwarf_diename(scope_die) ?: "<unknown>"), 
-                               (dwarf_diename(cu) ?: "<unknown>"),
-                               (alternatives.str() == "" ? "" : (_(" (alternatives:") + alternatives.str())).c_str()), e->tok);
+      if (e->cu_name == "")
+        throw semantic_error (_F("unable to find local '%s' near pc %s %s %s %s (%s)",
+                                 local.c_str(),
+                                 lex_cast_hex(pc).c_str(),
+                                 (scope_die == NULL) ? "" : _("in"),
+                                 (dwarf_diename(scope_die) ?: "<unknown>"),
+                                 (dwarf_diename(cu) ?: "<unknown>"),
+                                 (alternatives.str() == ""
+                                  ? (_("<no alternatives>"))
+				  : (_(" (alternatives:")
+                                       + alternatives.str())).c_str()),
+                              e->tok);
+      else
+        throw semantic_error (_F("unable to find global '%s' %s %s %s (%s)",
+                                 local.c_str(),
+                                 (scope_die == NULL) ? "" : _("in"),
+                                 (dwarf_diename(scope_die) ?: "<unknown>"),
+                                 e->cu_name.c_str(),
+                                 (alternatives.str() == ""
+                                  ? (_("<no alternatives>"))
+				  : (_(" (alternatives:")
+                                       + alternatives.str())).c_str()),
+                              e->tok);
     }
 
   /* Some GCC versions would output duplicate external variables, one
@@ -2818,8 +2836,16 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
                                           &vardie, &fb_attr_mem);
 
   if (sess.verbose>2)
-    clog << _F("finding location for local '%s' near address %#" PRIx64 
-               ", module bias %#" PRIx64 "\n", local.c_str(), pc, module_bias);
+    {
+      if (e->cu_name == "")
+        clog << _F("finding location for local '%s' near address %#" PRIx64
+                   ", module bias %#" PRIx64 "\n", local.c_str(), pc,
+	           module_bias);
+      else
+        clog << _F("finding location for global '%s' in CU '%s'\n",
+		   local.c_str(), e->cu_name.c_str());
+    }
+
 
 #define obstack_chunk_alloc malloc
 #define obstack_chunk_free free
@@ -2849,7 +2875,7 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
 				       NULL, &addr_loc, 1, &tail, NULL, NULL);
 	}
       else
-        throw semantic_error (_F("failed to retrieve location attribute for local '%s' (dieoffset: %s)",
+        throw semantic_error (_F("failed to retrieve location attribute for '%s' (dieoffset: %s)",
                                  local.c_str(), lex_cast_hex(dwarf_dieoffset(&vardie)).c_str()), e->tok);
     }
   else
@@ -2859,7 +2885,7 @@ dwflpp::literal_stmt_for_local (vector<Dwarf_Die>& scopes,
 
   Dwarf_Die typedie;
   if (dwarf_attr_die (&vardie, DW_AT_type, &typedie) == NULL)
-    throw semantic_error(_F("failed to retrieve type attribute for local '%s'", local.c_str()), e->tok);
+    throw semantic_error(_F("failed to retrieve type attribute for '%s' (dieoffset: %s)", local.c_str(), lex_cast_hex(dwarf_dieoffset(&vardie)).c_str()), e->tok);
 
   translate_components (&pool, &tail, pc, e, &vardie, &typedie);
 
@@ -2893,7 +2919,7 @@ dwflpp::type_die_for_local (vector<Dwarf_Die>& scopes,
   find_variable_and_frame_base (scopes, pc, local, e, &vardie, &attr_mem);
 
   if (dwarf_attr_die (&vardie, DW_AT_type, typedie) == NULL)
-    throw semantic_error(_F("failed to retrieve type attribute for local '%s'", local.c_str()), e->tok);
+    throw semantic_error(_F("failed to retrieve type attribute for '%s'", local.c_str()), e->tok);
 
   translate_components (NULL, NULL, pc, e, &vardie, typedie);
   return typedie;
