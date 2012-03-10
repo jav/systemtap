@@ -2,7 +2,7 @@ set test "global_var_kernel"
 set testpath "$srcdir/$subdir"
 
 # Check the righ "kernel/time.c" is picked up.
-set output_string "sys_tz = {.tz_minuteswest=\\d+, .tz_dsttime=\\d+}\r\n"
+set output_string "sys_tz = {.tz_minuteswest=-?\\d+, .tz_dsttime=\\d+}\r\n"
 
 # Only run on make installcheck
 if {! [installtest_p]} { untested "$test"; return }
