@@ -84,7 +84,7 @@ function reverse_path_walk:string(dentry:long)
  *
  *   Returns the 'struct mount' pointer value for a 'struct vfsmount'
  *   pointer.
- *   @vfsmount: Pointer to 'struct vfsmount'
+ *   @vfsmnt: Pointer to 'struct vfsmount'
  */
 function real_mount:long(vfsmnt:long)
 {
