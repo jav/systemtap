@@ -34,7 +34,7 @@ function mdelay(ms:long) %{
 
 /**
  * sfunction mdelay - microsecond delay
- * @ms: Number of microseconds to delay.
+ * @us: Number of microseconds to delay.
  *
  * Description: This function inserts a multi-microsecond busy-delay into a probe handler.
  * It requires guru mode.
