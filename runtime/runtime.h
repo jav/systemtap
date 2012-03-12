@@ -242,11 +242,11 @@ void __ia64_save_stack_nonlocal (void) { }
 #if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED)
 void *kallsyms_task_user_regset_view;
 #endif
-#if !defined(STAPCONF_REGISTER_UPROBE_EXPORTED)
-void *kallsyms_register_uprobe;
+#if !defined(STAPCONF_UPROBE_REGISTER_EXPORTED)
+void *kallsyms_uprobe_register;
 #endif
-#if !defined(STAPCONF_UNREGISTER_UPROBE_EXPORTED)
-void *kallsyms_unregister_uprobe;
+#if !defined(STAPCONF_UPROBE_UNREGISTER_EXPORTED)
+void *kallsyms_uprobe_unregister;
 #endif
 
 

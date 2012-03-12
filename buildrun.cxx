@@ -172,6 +172,20 @@ void output_dual_exportconf(systemtap_session& s, ofstream& o,
 }
 
 
+void output_either_exportconf(systemtap_session& s, ofstream& o,
+			      const char *symbol1, const char *symbol2,
+			      const char *deftrue)
+{
+  o << "\t";
+  if (s.verbose < 4)
+    o << "@";
+  if (s.kernel_exports.find(symbol1) != s.kernel_exports.end()
+      || s.kernel_exports.find(symbol2) != s.kernel_exports.end())
+    o << "echo \"#define " << deftrue << " 1\"";
+  o << ">> $@" << endl;
+}
+
+
 int
 compile_pass (systemtap_session& s)
 {
@@ -300,8 +314,11 @@ compile_pass (systemtap_session& s)
   output_exportconf(s, o, "local_clock", "STAPCONF_LOCAL_CLOCK");
 
   // used by runtime/uprobe-inode.c
-  output_exportconf(s, o, "register_uprobe", "STAPCONF_REGISTER_UPROBE_EXPORTED");
-  output_exportconf(s, o, "unregister_uprobe", "STAPCONF_UNREGISTER_UPROBE_EXPORTED");
+  output_either_exportconf(s, o, "uprobe_register", "register_uprobe",
+			   "STAPCONF_UPROBE_REGISTER_EXPORTED");
+  output_either_exportconf(s, o, "uprobe_unregister", "unregister_uprobe",
+			   "STAPCONF_UPROBE_UNREGISTER_EXPORTED");
+  output_autoconf(s, o, "autoconf-old-inode-uprobes.c", "STAPCONF_OLD_INODE_UPROBES", NULL);
   // used by runtime/loc2c-runtime.h
   output_exportconf(s, o, "task_user_regset_view", "STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED");
 
@@ -582,7 +599,7 @@ make_run_command (systemtap_session& s, const string& remotedir,
       staprun_cmd.push_back(lex_cast(s.buffer_size));
     }
 
-  if (s.need_uprobes)
+  if (s.need_uprobes && !kernel_built_uprobes(s))
     {
       string opt_u = "-u";
       if (!s.uprobes_path.empty() &&

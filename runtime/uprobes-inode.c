@@ -24,15 +24,19 @@
 #if !defined(CONFIG_UPROBES)
 #error "not to be built without CONFIG_UPROBES"
 #endif
-#if !defined(STAPCONF_REGISTER_UPROBE_EXPORTED)
-typedef int (*register_uprobe_fn)(struct inode *inode, loff_t offset, 
+#if !defined(STAPCONF_UPROBE_REGISTER_EXPORTED)
+typedef int (*uprobe_register_fn)(struct inode *inode, loff_t offset, 
                                   struct uprobe_consumer *consumer);
-#define register_uprobe (* (register_uprobe_fn)kallsyms_register_uprobe)
+#define uprobe_register (* (uprobe_register_fn)kallsyms_uprobe_register)
+#elif defined(STAPCONF_OLD_INODE_UPROBES)
+#define uprobe_register register_uprobe
 #endif
-#if !defined(STAPCONF_UNREGISTER_UPROBE_EXPORTED)
-typedef void (*unregister_uprobe_fn)(struct inode *inode, loff_t offset,
+#if !defined(STAPCONF_UPROBE_UNREGISTER_EXPORTED)
+typedef void (*uprobe_unregister_fn)(struct inode *inode, loff_t offset,
                                      struct uprobe_consumer *consumer);
-#define unregister_uprobe (* (unregister_uprobe_fn)kallsyms_unregister_uprobe)
+#define uprobe_unregister (* (uprobe_unregister_fn)kallsyms_uprobe_unregister)
+#elif defined(STAPCONF_OLD_INODE_UPROBES)
+#define uprobe_unregister unregister_uprobe
 #endif
 
 
@@ -231,7 +235,7 @@ stapiu_unreg(struct stapiu_consumer *consumers, size_t nconsumers)
 	for (i = 0; i < nconsumers; ++i) {
 		struct stapiu_consumer *uc = &consumers[i];
 		list_del(&uc->target_consumer);
-		unregister_uprobe(uc->target->inode, uc->offset,
+		uprobe_unregister(uc->target->inode, uc->offset,
 				  &uc->consumer);
 	}
 }
@@ -245,7 +249,7 @@ stapiu_reg(struct stapiu_consumer *consumers, size_t nconsumers)
 	size_t i;
 	for (i = 0; i < nconsumers; ++i) {
 		struct stapiu_consumer *uc = &consumers[i];
-		ret = register_uprobe(uc->target->inode, uc->offset,
+		ret = uprobe_register(uc->target->inode, uc->offset,
 				      &uc->consumer);
 		if (ret)
 			break;
