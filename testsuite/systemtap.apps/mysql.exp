@@ -296,7 +296,7 @@ kill -9 $testsuite/stap-mysql/mysql.pid
 ##### end run_tests #####
 
 if \[ ! -r $mysqlrelease.tar.gz \] ; then
-wget  http://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlrelease.tar.gz/from/ftp://mirror.anl.gov/pub/mysql/
+wget -q http://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlrelease.tar.gz/from/ftp://mirror.anl.gov/pub/mysql/
 
 fi
 if \[ ! -r $mysqlrelease.tar.gz \] ; then

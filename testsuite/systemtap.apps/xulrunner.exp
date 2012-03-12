@@ -82,7 +82,7 @@ fi
 ##### end run_tests #####
 
 if \[ ! -r xulrunner-$xulrelease.source.tar.bz2 \] ; then
-wget ftp://ftp.mozilla.org/pub/mozilla.org/xulrunner/releases/$xulrelease/source/xulrunner-$xulrelease.source.tar.bz2
+wget -q ftp://ftp.mozilla.org/pub/mozilla.org/xulrunner/releases/$xulrelease/source/xulrunner-$xulrelease.source.tar.bz2
 fi
 if \[ ! -r xulrunner-$xulrelease.source.tar.bz2 \] ; then
    echo FAIL: wget xulrunner-$xulrelease.source.tar.bz2
