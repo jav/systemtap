@@ -9,7 +9,7 @@ tcldir=`pwd`/tcl/install/
 mkdir -p tcl
 
 if [ ! -r tcl$tclrelease-src.tar.gz ] ; then
-    wget http://sourceforge.net/projects/tcl/files/Tcl/$tclrelease/tcl$tclrelease-src.tar.gz/download
+    wget -q http://sourceforge.net/projects/tcl/files/Tcl/$tclrelease/tcl$tclrelease-src.tar.gz/download
 fi
 if [ ! -r tcl$tclrelease-src.tar.gz ] ; then
    echo FAIL: wget tcl$tclrelease-src.tar.gz
