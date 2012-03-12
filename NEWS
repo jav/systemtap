@@ -1,5 +1,16 @@
 * What's new in version 1.8
 
+- @var now an alternative language syntax for accessing DWARF variables
+  in uprobe and kprobe handlers (process, kernel, module). @var("somevar")
+  can be used where $somevar can be used. The @var syntax also makes it
+  possible to access non-local, global compile unit (CU) variables by
+  specifying the CU source file as follows @var("somevar@some/src/file.c").
+  This will provide the target variable value of global "somevar" as defined
+  in the source file "some/src/file.c". The @var syntax combines with all
+  normal features of DWARF target variables like @defined(), @entry(),
+  [N] array indexing, field access through ->, taking the address with
+  the & prefix and swallow or deep pretty printing with a $ or $$ suffix.
+
 - Stap now has resource limit options:
     --rlimit-as=NUM
     --rlimit-cpu=NUM

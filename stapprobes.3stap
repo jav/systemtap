@@ -410,6 +410,28 @@ pointers (char *) may be copied to systemtap string values using the
 .IR kernel_string " or " user_string
 functions.
 .TP
+@var("varname")
+an alternative syntax for
+.IR $varname
+.
+.TP
+@var("varname@src/file.c")
+refers to the global (either file local or external) variable
+.IR varname
+defined when the file
+.IR src/file.c
+was compiled. The CU in which the variable is resolved is the first CU
+in the module of the probe point which matches the given file name at
+the end and has the shortest file name path (e.g. given
+.IR @var("foo@bar/baz.c")
+and CUs with file name paths
+.IR src/sub/module/bar/baz.c
+and
+.IR src/bar/baz.c
+the second CU will be chosen to resolve the (file) global variable
+.IR foo
+.
+.TP
 $var\->field traversal via a structure's or a pointer's field.  This
 generalized indirection operator may be repeated to follow more
 levels.  Note that the

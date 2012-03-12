@@ -164,6 +164,13 @@ target variables at the entry to the function.
 </para>
 
 <para>
+When a target variable is not local to the probe point, like a global
+external variable or a file local static variable defined in another file
+then it can be referenced through
+<quote><command>@var("<replaceable>varname</replaceable>@<replaceable>src/file.c</replaceable>")</command></quote>.
+</para>
+
+<para>
 SystemTap tracks the typing information of the target variable and can
 examine the fields of a structure with the <command>-></command> operator.
 The <command>-></command> operator can be chained to look at data structures
@@ -173,6 +180,27 @@ structure.
 The <command>-></command> operator is used regardless whether accessing a field
 in a substructure or accessing another structure through a pointer.
 </para>
+
+<para>
+For example to access a field of the static files_stat target variable
+defined in fs/file_table.c (which holds some of the current file system
+sysctl tunables), one could write:
+</para>
+
+<screen>
+stap -e 'probe kernel.function("vfs_read") {
+           printf ("current files_stat max_files: %d\n",
+                   @var("files_stat@fs/file_table.c")->max_files);
+           exit(); }'
+</screen>
+
+<para>
+Which will yield something similar to the following:
+</para>
+
+<screen>
+current files_stat max_files: 386070
+</screen>
 
 <para>
 For pointers to base types such as integers and strings

@@ -52,7 +52,7 @@
 \newpage{}
 This document was derived from other documents contributed to the SystemTap project by employees of Red Hat, IBM and Intel.\newline
 
-Copyright \copyright\space  2007-2010 Red Hat Inc.\newline
+Copyright \copyright\space  2007-2012 Red Hat Inc.\newline
 Copyright \copyright\space  2007-2009 IBM Corp.\newline
 Copyright \copyright\space  2007 Intel Corporation.\newline
 
@@ -799,19 +799,47 @@ module address or an absolute kernel address.
 Some of the source-level variables, such as function parameters, locals,
 or globals visible in the compilation unit, are visible to probe handlers.
 Refer to these variables by prefixing their name with a dollar sign within
-the scripts. In addition, a special syntax allows limited traversal of structures,
-pointers, and arrays.
+the scripts. In addition, a special syntax allows limited traversal of
+structures, pointers, arrays, taking the address of a variable or pretty
+printing a whole structure.
 
 \texttt{\$var} refers to an in-scope variable var. If it is a type similar
 to an integer, it will be cast to a 64-bit integer for script use. Pointers
 similar to a string (char {*}) are copied to SystemTap string values by the
 \texttt{kernel\_string()} or \texttt{user\_string()} functions.
 
-\texttt{\$var->field} traverses a structure's field. The indirection operator
-may be repeated to follow additional levels of pointers.
+\texttt{@var("varname")} is an alternative syntax for \texttt{\$varname}.
+It can also be used to access global variables in a particular compile
+unit (CU).  \texttt{@var("varname@src/file.c")} refers to the global
+(either file local or external) variable varname defined when the file
+src/file.c was compiled. The CU in which the variable is resolved is
+the first CU in the module of the probe point which matches the given
+file name at the end and has the shortest file name path (e.g. given
+\texttt{@var("foo@bar/baz.c")} and CUs with file name paths
+\texttt{src/sub/module/bar/baz.c} and \texttt{src/bar/baz.c} the second
+CU will be chosen to resolve \texttt{foo}).
 
-\texttt{\$var{[}N]} indexes into an array. The index is given with a literal
-number.
+\texttt{\$var->field} or \texttt{@var("var@file.c")->field} traverses a
+structure's field. The indirection operator may be repeated to follow
+additional levels of pointers.
+
+\texttt{\$var{[}N]} or \texttt{@var("var@file.c"){[}N]} indexes into an
+array. The index is given with a literal number.
+
+\texttt{\&\$var} or \texttt{\&@var("var@file.c")} provides the address of
+a variable as a long. It can also be used in combination with field access
+or array indexing to provide the address of a particular field or an
+element in an array with \texttt{\&var->field},
+\texttt{\&@var("var@file.c"){[}N]} or a combination of those accessors.
+
+Using a single \texttt{\$} or a double \texttt{\$\$} suffix provides a
+swallow or deep string representation of the variable data type. Using
+a single \texttt{\$}, as in \texttt{\$var\$}, will provide a string that
+only includes the values of all basic type values of fields of the variable
+structure type but not any nested complex type values (which will be
+represented with \texttt{\{...\}}). Using a double \texttt{\$\$},
+as in \texttt{@var("var")\$\$} will provide a string that also includes
+all values of nested data types.
 
 \texttt{\$\$vars} expands to a character string that is equivalent to
 \texttt{sprintf("parm1=\%x ... parmN=\%x var1=\%x ... varN=\%x", \$parm1, ..., \$parmN,
