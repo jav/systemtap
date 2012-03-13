@@ -2014,6 +2014,15 @@ on at most one VAR or ARRAY identifier.
 foreach ([VAR1, VAR2, ...] in ARRAY) STMT
 \end{verbatim}
 \end{vindent}
+
+You can combine the first and second syntax to capture both the full tuple
+and the keys at the same time as follows.
+\begin{vindent}
+\begin{verbatim}
+foreach (VAR = [VAR1, VAR2, ...] in ARRAY) STMT
+\end{verbatim}
+\end{vindent}
+
 The following statement is the same as the first example, except that the
 \texttt{limit} keyword limits the number of loop iterations to EXP times.
 EXP is evaluated once at the beginning of the loop.
@@ -2181,7 +2190,8 @@ global ARRAY1%[<size>], ARRAY2%
 Like awk, SystemTap's foreach creates a loop that iterates over key tuples
 of an array, not only values. The iteration may be sorted by any single key
 or a value by adding an extra plus symbol (+) or minus symbol (-) to the
-code. The following are examples.
+code or limited to only a few elements with the limit keyword.
+The following are examples.
 
 \begin{vindent}
 \begin{verbatim}
@@ -2194,6 +2204,10 @@ foreach ([a,b] in foo+) { ... }
 
 # Loop in decreasing sequence of first key:
 foreach ([a-,b] in foo) { ... }
+
+# Print the first 10 tuples and values in the array in decreasing sequence
+foreach (v = [i,j] in foo- limit 10)
+    printf("foo[%d,%s] = %d\n", i, j, v)
 \end{verbatim}
 \end{vindent}
 The \texttt{break} and \texttt{continue} statements also work inside foreach
