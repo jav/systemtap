@@ -1,5 +1,5 @@
 // translation pass
-// Copyright (C) 2005-2011 Red Hat Inc.
+// Copyright (C) 2005-2012 Red Hat Inc.
 // Copyright (C) 2005-2008 Intel Corporation.
 // Copyright (C) 2010 Novell Corporation.
 //
@@ -1182,19 +1182,27 @@ c_unparser::emit_compiled_printfs ()
 
       // Might be nice to output the format string in a comment, but we'd have
       // to be extra careful about format strings not escaping the comment...
-      o->newline() << "static noinline void " << name
+      o->newline() << "static void " << name
 		   << " (struct context* __restrict__ c) {";
       o->newline(1) << "struct " << name << "_locals * __restrict__ l = "
 		    << "& c->printf_locals." << name << ";";
       o->newline() << "char *str = NULL, *end = NULL;";
+      o->newline() << "const char *src;";
+      o->newline() << "int width;";
+      o->newline() << "int precision;";
+      o->newline() << "unsigned long ptr_value;";
+      o->newline() << "int num_bytes;";
+
+      o->newline() << "(void) width;";
+      o->newline() << "(void) precision;";
+      o->newline() << "(void) ptr_value;";
+      o->newline() << "(void) num_bytes;";
 
       if (print_to_stream)
         {
 	  // Compute the buffer size needed for these arguments.
 	  size_t arg_ix = 0;
-	  o->newline() << "int num_bytes = 0;";
-	  o->newline() << "{";
-	  o->indent(1);
+	  o->newline() << "num_bytes = 0;";
 	  vector<print_format::format_component>::const_iterator c;
 	  for (c = components.begin(); c != components.end(); ++c)
 	    {
@@ -1207,10 +1215,7 @@ c_unparser::emit_compiled_printfs ()
 		  continue;
 		}
 
-	      o->newline() << "{";
-	      o->indent(1);
-
-	      o->newline() << "int width = ";
+	      o->newline() << "width = ";
 	      if (c->widthtype == print_format::width_dynamic)
 		o->line() << "clamp_t(int, l->arg" << arg_ix++
 		          << ", 0, STP_BUFFER_SIZE);";
@@ -1220,7 +1225,7 @@ c_unparser::emit_compiled_printfs ()
 	      else
 		o->line() << "-1;";
 
-	      o->newline() << "int precision = ";
+	      o->newline() << "precision = ";
 	      if (c->prectype == print_format::prec_dynamic)
 		o->line() << "clamp_t(int, l->arg" << arg_ix++
 		          << ", 0, STP_BUFFER_SIZE);";
@@ -1237,7 +1242,7 @@ c_unparser::emit_compiled_printfs ()
 		  // NB: stap < 1.3 had odd %p behavior... see _stp_vsnprintf
 		  if (strverscmp(session->compatible.c_str(), "1.3") < 0)
 		    {
-		      o->newline() << "unsigned long ptr_value = " << value << ";";
+		      o->newline() << "ptr_value = " << value << ";";
 		      o->newline() << "if (width == -1)";
 		      o->newline(1) << "width = 2 + 2 * sizeof(void*);";
 		      o->newline(-1) << "precision = width - 2;";
@@ -1281,14 +1286,11 @@ c_unparser::emit_compiled_printfs ()
 		  assert(false); // XXX
 		  break;
 		}
-
-	      o->newline(-1) << "}";
 	    }
 
 	  o->newline() << "num_bytes = clamp(num_bytes, 0, STP_BUFFER_SIZE);";
 	  o->newline() << "str = (char*)_stp_reserve_bytes(num_bytes);";
 	  o->newline() << "end = str ? str + num_bytes - 1 : 0;";
-	  o->newline(-1) << "}";
         }
       else // !print_to_stream
 	{
@@ -1308,20 +1310,16 @@ c_unparser::emit_compiled_printfs ()
 	  if (c->type == print_format::conv_literal)
 	    {
 	      literal_string ls(c->literal_string);
-	      o->newline() << "{";
-	      o->newline(1) << "const char *src = ";
+	      o->newline() << "src = ";
 	      visit_literal_string(&ls);
 	      o->line() << ";";
 	      o->newline() << "while (*src && str <= end)";
 	      o->newline(1) << "*str++ = *src++;";
-	      o->newline(-2) << "}";
+              o->indent(-1);
 	      continue;
 	    }
 
-	  o->newline() << "{";
-	  o->indent(1);
-
-	  o->newline() << "int width = ";
+	  o->newline() << "width = ";
 	  if (c->widthtype == print_format::width_dynamic)
 	    o->line() << "clamp_t(int, l->arg" << arg_ix++
 		      << ", 0, end - str + 1);";
@@ -1331,7 +1329,7 @@ c_unparser::emit_compiled_printfs ()
 	  else
 	    o->line() << "-1;";
 
-	  o->newline() << "int precision = ";
+	  o->newline() << "precision = ";
 	  if (c->prectype == print_format::prec_dynamic)
 	    o->line() << "clamp_t(int, l->arg" << arg_ix++
 		      << ", 0, end - str + 1);";
@@ -1348,7 +1346,7 @@ c_unparser::emit_compiled_printfs ()
 	      // NB: stap < 1.3 had odd %p behavior... see _stp_vsnprintf
 	      if (strverscmp(session->compatible.c_str(), "1.3") < 0)
 		{
-		  o->newline() << "unsigned long ptr_value = " << value << ";";
+		  o->newline() << "ptr_value = " << value << ";";
 		  o->newline() << "if (width == -1)";
 		  o->newline(1) << "width = 2 + 2 * sizeof(void*);";
 		  o->newline(-1) << "precision = width - 2;";
@@ -1405,7 +1403,6 @@ c_unparser::emit_compiled_printfs ()
 	      assert(false); // XXX
 	      break;
 	    }
-	  o->newline(-1) << "}";
 	}
 
       if (!print_to_stream)
