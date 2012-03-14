@@ -1,5 +1,5 @@
 // build/run probes
-// Copyright (C) 2005-2011 Red Hat Inc.
+// Copyright (C) 2005-2012 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -99,6 +99,9 @@ make_any_make_cmd(systemtap_session& s, const string& dir, const string& target)
   if (s.architecture != "powerpc" ||
       (strverscmp (s.kernel_base_release.c_str(), "2.6.15") >= 0))
     make_cmd.push_back("ARCH=" + s.architecture); // need make-quoting?
+
+  // PR13847: suppress debuginfo creation by default
+  make_cmd.insert(make_cmd.end(), "CONFIG_DEBUG_INFO=");
 
   // Add any custom kbuild flags
   make_cmd.insert(make_cmd.end(), s.kbuildflags.begin(), s.kbuildflags.end());
