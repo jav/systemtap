@@ -32,8 +32,8 @@ set dpath "[pwd]/sdt_misc_.d"
 set hpath "[pwd]/sdt_misc_.h"
 set opath "[pwd]/sdt_misc_.o"
 
-set exepath "./sdt_misc.x"
-set sopath "./libsdt.so"
+set exepath "[pwd]/sdt_misc.x"
+set sopath "libsdt.so"
 
 # Run dtrace
 
@@ -64,6 +64,8 @@ if { [error_handler [expr {$res == ""}] "target_compile sdt_misc.x"] } { return 
 
 # Test globbing
 
+proc globbing_test { mssg } {
+global sopath exepath srcdir subdir stap_path
 eval set globs "{{*} {*libsdt*} $sopath}"
 foreach glob $globs {
 set ok 0
@@ -93,8 +95,15 @@ expect {
 
 catch {close}; catch {wait}
 
-error_handler [expr {$ok == 15}] "sdt_misc $glob ($ok != 15)"
-} ; # glob
+error_handler [expr {$ok == 15}] "sdt_misc $glob $mssg ($ok != 15)"
+} ; # foreach glob
+} ; # proc globbing_test
+
+globbing_test ""
+set savedir [pwd]
+cd /tmp
+globbing_test "rpath"
+cd $savedir
 
 # Test --ldd
 
