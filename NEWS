@@ -1,5 +1,9 @@
 * What's new in version 1.8
 
+- Systemtap modules are somewhat smaller & faster to compile.  Their
+  debuginfo is now suppressed by default; use -B CONFIG_DEBUG_INFO=y to
+  re-enable.
+
 - @var now an alternative language syntax for accessing DWARF variables
   in uprobe and kprobe handlers (process, kernel, module). @var("somevar")
   can be used where $somevar can be used. The @var syntax also makes it
