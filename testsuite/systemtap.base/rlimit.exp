@@ -2,23 +2,31 @@
 
 # Unlimited
 set test "rlimit unlimited"
-if {[catch { exec stap -L "kernel.function(\"*\")"} res ]} {
+if {[catch { exec stap -p4 $srcdir/$subdir/rlimit.stp} res ]} {
      fail $test
 } else {
      pass $test
 }
 
-# Increase AS limit
-set test "rlimit AS increase"
-if {[catch { exec stap --rlimit-as=1 --rlimit-as=999999999999 -L "kernel.function(\"*\")"} res ]} {
+# Increase AS limit (as non root)
+set test "rlimit AS increase (as non root)"
+if {[as_non_root "stap --rlimit-as=1 --rlimit-as=999999999999 -p4 $srcdir/$subdir/rlimit.stp" ]} {
      pass $test
 } else {
      fail $test
+}
+
+# Increase AS limit (as root)
+set test "rlimit AS increase (as root)"
+if {[as_root "stap --rlimit-as=1 --rlimit-as=999999999999 -p4 $srcdir/$subdir/rlimit.stp" ]} {
+     fail $test
+} else {
+     pass $test
 }
 
 # Realistic AS limit
 set test "rlimit AS realistic"
-if {[catch { exec stap --rlimit-as=614400000 -L "kernel.function(\"*\")"} res ]} {
+if {[catch { exec stap --rlimit-as=614400000 -p4 $srcdir/$subdir/rlimit.stp} res ]} {
      fail $test
 } else {
      pass $test
@@ -26,23 +34,31 @@ if {[catch { exec stap --rlimit-as=614400000 -L "kernel.function(\"*\")"} res ]}
 
 # Small AS limit
 set test "rlimit AS small"
-if {[catch { exec stap --rlimit-as=1 -L "kernel.function(\"*\")"} res ]} {
+if {[catch { exec stap --rlimit-as=1 -p4 $srcdir/$subdir/rlimit.stp} res ]} {
      pass $test
 } else {
      fail $test
 }
 
-# Increase CPU limit
-set test "rlimit CPU increase"
-if {[catch { exec stap --rlimit-cpu=1 --rlimit-cpu=999999999999 -L "kernel.function(\"*\")"} res ]} {
+# Increase CPU limit (as non root)
+set test "rlimit CPU increase (as non root)"
+if {[as_non_root "stap --rlimit-cpu=1 --rlimit-cpu=999999999999 -p4 $srcdir/$subdir/rlimit.stp" ]} {
      pass $test
 } else {
      fail $test
+}
+
+# Increase CPU limit (as root)
+set test "rlimit CPU increase (as root)"
+if {[as_root "stap --rlimit-cpu=1 --rlimit-cpu=999999999999 -p4 $srcdir/$subdir/rlimit.stp" ]} {
+     fail $test
+} else {
+     pass $test
 }
 
 # Realistic CPU limit
 set test "rlimit CPU realistic"
-if {[catch { exec stap --rlimit-cpu=60 -L "kernel.function(\"*\")"} res ]} {
+if {[catch { exec stap --rlimit-cpu=60 -p4 $srcdir/$subdir/rlimit.stp} res ]} {
      fail $test
 } else {
      pass $test
@@ -50,23 +66,30 @@ if {[catch { exec stap --rlimit-cpu=60 -L "kernel.function(\"*\")"} res ]} {
 
 # Small CPU limit
 set test "rlimit CPU small"
-if {[catch { exec stap --rlimit-cpu=1 -L "kernel.function(\"*\")"} res ]} {
+if {[catch { exec stap --rlimit-cpu=1 -p4 $srcdir/$subdir/rlimit.stp} res ]} {
      pass $test
 } else {
      fail $test
 }
 
-# Increase NPROC limit
-set test "rlimit NPROC increase"
-if {[catch { exec stap --rlimit-nproc=1 --rlimit-nproc=999999999999 -L "kernel.function(\"*\")"} res ]} {
+# Increase NPROC limit (as non root)
+set test "rlimit NPROC increase (as non root)"
+if {[as_non_root "stap --rlimit-nproc=1 --rlimit-nproc=999999999999 -p4 $srcdir/$subdir/rlimit.stp" ]} {
      pass $test
 } else {
      fail $test
 }
 
+# Increase NPROC limit (as root)
+set test "rlimit NPROC increase (as non root)"
+if {[as_root "stap --rlimit-nproc=1 --rlimit-nproc=999999999999 -p4 $srcdir/$subdir/rlimit.stp" ]} {
+     fail $test
+} else {
+     pass $test
+}
 # Realistic NPROC limit
 set test "rlimit NPROC realistic"
-if {[catch { exec stap --rlimit-nproc=20 -L "kernel.function(\"*\")"} res ]} {
+if {[catch { exec stap --rlimit-nproc=20 -p4 $srcdir/$subdir/rlimit.stp} res ]} {
      fail $test
 } else {
      pass $test
@@ -75,17 +98,25 @@ if {[catch { exec stap --rlimit-nproc=20 -L "kernel.function(\"*\")"} res ]} {
 # Small NPROC limit
 # Did not seem to change functionality
 
-# Increase STACK limit
-set test "rlimit STACK increase"
-if {[catch { exec stap --rlimit-stack=1 --rlimit-stack=999999999999 -L "kernel.function(\"*\")"} res ]} {
+# Increase STACK limit (as non root)
+set test "rlimit STACK increase (as non root)"
+if {[as_non_root "stap --rlimit-stack=1 --rlimit-stack=999999999999 -p4 $srcdir/$subdir/rlimit.stp" ]} {
      pass $test
 } else {
      fail $test
 }
 
+# Increase STACK limit (as root)
+set test "rlimit STACK increase (as root)"
+if {[as_root "stap --rlimit-stack=1 --rlimit-stack=999999999999 -p4 $srcdir/$subdir/rlimit.stp" ]} {
+     fail $test
+} else {
+     pass $test
+}
+
 # Realistic STACK limit
 set test "rlimit STACK realistic"
-if {[catch { exec stap --rlimit-stack=1024000 -L "kernel.function(\"*\")"} res ]} {
+if {[catch { exec stap --rlimit-stack=1024000 -p4 $srcdir/$subdir/rlimit.stp} res ]} {
      fail $test
 } else {
      pass $test
@@ -93,23 +124,31 @@ if {[catch { exec stap --rlimit-stack=1024000 -L "kernel.function(\"*\")"} res ]
 
 # Small STACK limit
 set test "rlimit STACK small"
-if {[catch { exec stap --rlimit-stack=1 -L "kernel.function(\"*\")"} res ]} {
+if {[catch { exec stap --rlimit-stack=1 -p4 $srcdir/$subdir/rlimit.stp} res ]} {
      pass $test
 } else {
      fail $test
 }
 
-# Increase FSIZE limit
-set test "rlimit FSIZE increase"
-if {[catch { exec stap --rlimit-fsize=1 --rlimit-fsize=999999999999 -L "kernel.function(\"*\")"} res ]} {
+# Increase FSIZE limit (as non root)
+set test "rlimit FSIZE increase (as non root)"
+if {[as_non_root "stap --rlimit-fsize=1 --rlimit-fsize=999999999999 -p4 $srcdir/$subdir/rlimit.stp" ]} {
      pass $test
 } else {
      fail $test
+}
+
+# Increase FSIZE limit (as root)
+set test "rlimit FSIZE increase (as root)"
+if {[as_root "stap --rlimit-fsize=1 --rlimit-fsize=999999999999 -p4 $srcdir/$subdir/rlimit.stp" ]} {
+     fail $test
+} else {
+     pass $test
 }
 
 # Realistic FSIZE limit
 set test "rlimit FSIZE realistic"
-if {[catch { exec stap --rlimit-fsize=51200000 -L "kernel.function(\"*\")"} res ]} {
+if {[catch { exec stap --rlimit-fsize=51200000 -p4 $srcdir/$subdir/rlimit.stp} res ]} {
      fail $test
 } else {
      pass $test

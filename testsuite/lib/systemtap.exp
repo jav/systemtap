@@ -415,6 +415,20 @@ proc as_root { command } {
      return  $res
  }
 
+proc as_non_root { command } {
+
+     set effective_pid [exec /usr/bin/id -u]
+
+     if {$effective_pid == 0} {
+       set command "su -s /bin/sh [exec logname] -c \"$command\""
+     }
+     verbose -log "as_non_root $command"
+     set res [catch {eval exec $command} value]
+     verbose -log "OUT $value"
+     verbose -log "RC $res"
+     return  $res
+}
+
 proc sdt_includes {} {
   global srcdir env
 
