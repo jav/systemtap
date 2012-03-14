@@ -8,8 +8,8 @@ if {[installtest_p] && [utrace_p] && [uprobes_p]} {
     timeout { fail "$test (timeout)" }
     eof { fail "$test" }
   }
+  catch {close}
+  wait
 } else {
   untested "$test"
 }
-catch {close}
-wait
