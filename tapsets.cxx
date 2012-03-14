@@ -592,6 +592,12 @@ base_query::base_query(dwflpp & dw, literal_map_t const & params):
               path = path_remove_sysroot(sess, module_val);
               module_val = find_executable (library_name, sess.sysroot,
                                             sess.sysenv, "LD_LIBRARY_PATH");
+	      if (module_val.find('/') == string::npos)
+		{
+		  // We didn't find library_name so use iterate_over_libraries
+		  module_val = path;
+		  path = library_name;
+		}
             }
           else
             path = library_name;
@@ -2022,7 +2028,9 @@ query_module (Dwfl_Module *mod,
             q->sess.sym_stext = lookup_symbol_address (mod, "_stext");
         }
 
-      if (q->has_library && contains_glob_chars (q->path))
+      // We either have a wildcard or an unresolved library
+      if (q->has_library && (contains_glob_chars (q->path)
+			     || q->path.find('/') == string::npos))
         // handle .library(GLOB)
         q->dw.iterate_over_libraries (&q->query_library_callback, q);
       // .plt is translated to .plt.statement(N).  We only want to iterate for the
@@ -2060,7 +2068,7 @@ query_one_library (const char *library, dwflpp & dw,
     const string user_lib, probe * base_probe, probe_point *base_loc,
     vector<derived_probe *> & results)
 {
-  if (dw.function_name_matches_pattern(library, user_lib))
+  if (dw.function_name_matches_pattern(library, "*" + user_lib))
     {
       string library_path = find_executable (library, "", dw.sess.sysenv,
                                              "LD_LIBRARY_PATH");
@@ -6795,10 +6803,15 @@ dwarf_builder::build(systemtap_session & sess,
          script_file.close();
       }
 
-      if(get_param (parameters, TOK_LIBRARY, user_lib)
+      if (get_param (parameters, TOK_LIBRARY, user_lib)
 	  && user_lib.length() && ! contains_glob_chars (user_lib))
-        module_name = find_executable (user_lib, sess.sysroot, sess.sysenv,
-                                       "LD_LIBRARY_PATH");
+	{
+	  module_name = find_executable (user_lib, sess.sysroot, sess.sysenv,
+					 "LD_LIBRARY_PATH");
+	  if (module_name.find('/') == string::npos)
+	    // We didn't find user_lib so use iterate_over_libraries
+	    module_name = user_path;
+	}
       else
 	module_name = user_path; // canonicalize it
 
