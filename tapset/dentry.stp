@@ -127,8 +127,16 @@ function task_dentry_path:string(task:long,dentry:long,vfsmnt:long)
         root = & @cast(task, "task_struct")->fs->root
 
         while (1) {
-                if (dentry == @cast(root, "path")->dentry &&
-                    vfsmnt == @cast(root, "path")->mnt)
+		# If we've found the right dentry/vfsmnt, we're done.
+		#
+		# (Why check for 'struct path' and 'struct vfs_path'?
+		# Later RHEL5 kernels renamed 'struct path' to 'struct
+		# vfs_path'.)
+		if (@defined(@cast(0, "path")->dentry)
+		    ? (dentry == @cast(root, "path")->dentry
+		       && vfsmnt == @cast(root, "path")->mnt)
+		    : (dentry == @cast(root, "vfs_path")->dentry
+		       && vfsmnt == @cast(root, "vfs_path")->mnt))
                         break;
 
                 if (dentry == @cast(vfsmnt, "vfsmount")->mnt_root ||
