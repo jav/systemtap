@@ -73,9 +73,9 @@ instructions (written in a simple scripting language), translates
 those instructions into C code, compiles this C code, and loads the
 resulting kernel module into a running Linux kernel to perform the
 requested system trace/probe functions.  You can supply the script in
-a named file, from standard input, or from the command line.  The
-program runs until it is interrupted by the user, or if the script
-voluntarily invokes the
+a named file (FILENAME) from standard input (use \- instead of FILENAME),
+or from the command line (using \-e SCRIPT).  The program runs until it
+is interrupted by the user, or if the script voluntarily invokes the
 .I exit()
 function, or by sufficient number of soft errors.
 .PP
@@ -93,6 +93,10 @@ The systemtap translator supports the following options.  Any other option
 prints a list of supported options.  Options may be given on the command line,
 as usual.  If the file $SYSTEMTAP_DIR/rc exist, options are also loaded from
 there and interpreted first.  ($SYSTEMTAP_DIR defaults to $HOME/.systemtap if unset.)
+.TP
+.B \-
+Use standard input instead of a given FILENAME as probe language input,
+unless -e SCRIPT is given.
 .TP
 .B \-h \-\-help
 Show help message.
@@ -215,6 +219,9 @@ effect of setting target() to the pid of the command ran.
 .BI \-x " PID"
 Sets target() to PID. This allows scripts to be written that filter on
 a specific process.
+.TP
+.BI \-e " SCRIPT"
+Run the given SCRIPT specified on the command line.
 .TP
 .BI \-l " PROBE"
 Instead of running a probe script, just list all available probe
