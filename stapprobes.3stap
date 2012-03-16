@@ -918,6 +918,36 @@ when an input script requests 5 hardware breakpoint probes on an x86
 system while x86 architecture supports a maximum of 4 breakpoints.
 Users are cautioned to set probes judiciously.
 
+.SS PERF
+
+This 
+.IR prototype
+family of probe points interfaces to the kernel "perf event"
+infrasture for controlling hardware performance counters.
+The events being attached to are described by the "type",
+"config" fields of the 
+.IR perf_event_attr
+structure, and are sampled at an interval governed by the
+"sample_period" field.
+
+These fields are made available to systemtap scripts using
+the following syntax:
+.SAMPLE
+probe perf.type(NN).config(MM).sample(XX)
+probe perf.type(NN).config(MM)
+.ESAMPLE
+The systemtap probe handler is called once per XX increments
+of the underlying performance counter.  The default sampling
+count is 1000000.
+The range of valid type/config is described by the 
+.IR perf_event_open (2)
+system call, and/or the 
+.IR linux/perf_event.h
+file.  Invalid combinations or exhausted hardware counter resources
+result in errors during systemtap script startup.  Systemtap does
+not sanity-check the values: it merely passes them through to
+the kernel for error- and safety-checking.
+
 .SH EXAMPLES
 .PP
 Here are some example probe points, defining the associated events.
@@ -967,36 +997,6 @@ refers to a hardware preakpoint of type "write" set on pid_max
 .TP
 syscall.*.return
 refers to the group of probe aliases with any name in the third position
-
-.SS PERF
-
-This 
-.IR prototype
-family of probe points interfaces to the kernel "perf event"
-infrasture for controlling hardware performance counters.
-The events being attached to are described by the "type",
-"config" fields of the 
-.IR perf_event_attr
-structure, and are sampled at an interval governed by the
-"sample_period" field.
-
-These fields are made available to systemtap scripts using
-the following syntax:
-.SAMPLE
-probe perf.type(NN).config(MM).sample(XX)
-probe perf.type(NN).config(MM)
-.ESAMPLE
-The systemtap probe handler is called once per XX increments
-of the underlying performance counter.  The default sampling
-count is 1000000.
-The range of valid type/config is described by the 
-.IR perf_event_open (2)
-system call, and/or the 
-.IR linux/perf_event.h
-file.  Invalid combinations or exhausted hardware counter resources
-result in errors during systemtap script startup.  Systemtap does
-not sanity-check the values: it merely passes them through to
-the kernel for error- and safety-checking.
 
 .SH SEE ALSO
 .IR stap (1),
