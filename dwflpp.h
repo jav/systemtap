@@ -1,5 +1,5 @@
 // C++ interface to dwfl
-// Copyright (C) 2005-2011 Red Hat Inc.
+// Copyright (C) 2005-2012 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -42,6 +42,10 @@ enum info_status { info_unknown, info_present, info_absent };
 
 // module -> cu die[]
 typedef unordered_map<Dwarf*, std::vector<Dwarf_Die>*> module_cu_cache_t;
+
+// An instance of this type tracks whether the type units for a given
+// Dwarf have been read.
+typedef std::set<Dwarf*> module_tus_read_t;
 
 // typename -> die
 typedef unordered_map<std::string, Dwarf_Die> cu_type_cache_t;
@@ -201,7 +205,7 @@ struct dwflpp
                             void *data);
 
   void iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
-                         void * data);
+                         void * data, bool want_types);
 
   bool func_is_inline();
 
@@ -331,6 +335,7 @@ private:
   void setup_user(const std::vector<std::string>& modules, bool debuginfo_needed = true);
 
   module_cu_cache_t module_cu_cache;
+  module_tus_read_t module_tus_read;
   mod_cu_function_cache_t cu_function_cache;
   mod_function_cache_t mod_function_cache;
 

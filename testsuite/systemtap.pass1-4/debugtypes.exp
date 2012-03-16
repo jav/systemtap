@@ -1,0 +1,16 @@
+set test debugtypes
+
+if {[target_compile $srcdir/$subdir/$test.cxx $test.exe executable \
+       {debug {additional_flags=-gdwarf-4 -fdebug-types-section}}] != ""} {
+  fail "compiling $test.cxx"
+  return
+}
+pass "compiling $test.cxx"
+
+verbose "path = $env(PATH)" 0
+
+if {[stap_run_batch $srcdir/$subdir/$test.stp] == 0} {
+  pass "compiling $test.stp"
+} else {
+  fail "compiling $test.stp"
+}

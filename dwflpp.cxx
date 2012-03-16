@@ -1,5 +1,5 @@
 // C++ interface to dwfl
-// Copyright (C) 2005-2011 Red Hat Inc.
+// Copyright (C) 2005-2012 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 // Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
@@ -405,7 +405,7 @@ dwflpp::iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
 
 void
 dwflpp::iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
-                          void * data)
+                          void * data, bool want_types)
 {
   get_module_dwarf(false);
   Dwarf *dw = module_dwarf;
@@ -429,6 +429,26 @@ dwflpp::iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
           v->push_back (*die); /* copy */
           off = noff;
         }
+    }
+
+  if (want_types && module_tus_read.find(dw) == module_tus_read.end())
+    {
+      // Process type units.
+      Dwarf_Off off = 0;
+      size_t cuhl;
+      Dwarf_Off noff;
+      uint64_t type_signature;
+      while (dwarf_next_unit (dw, off, &noff, &cuhl, NULL, NULL, NULL, NULL,
+			      &type_signature, NULL) == 0)
+	{
+          if (pending_interrupts) return;
+          Dwarf_Die die_mem;
+          Dwarf_Die *die;
+          die = dwarf_offdie_types (dw, off + cuhl, &die_mem);
+          v->push_back (*die); /* copy */
+          off = noff;
+	}
+      module_tus_read.insert(dw);
     }
 
   for (vector<Dwarf_Die>::iterator i = v->begin(); i != v->end(); ++i)
@@ -816,7 +836,7 @@ dwflpp::global_alias_caching_callback_cus(Dwarf_Die *die, void *arg)
 Dwarf_Die *
 dwflpp::declaration_resolve_other_cus(const string& name)
 {
-  iterate_over_cus(global_alias_caching_callback_cus, this);
+  iterate_over_cus(global_alias_caching_callback_cus, this, true);
   for (mod_cu_type_cache_t::iterator i = global_alias_cache.begin();
          i != global_alias_cache.end(); ++i)
     {
@@ -986,7 +1006,7 @@ dwflpp::iterate_single_function (int (* callback)(Dwarf_Die * func, base_query *
     {
       v = new cu_function_cache_t;
       mod_function_cache[module_dwarf] = v;
-      iterate_over_cus (mod_function_caching_callback, v);
+      iterate_over_cus (mod_function_caching_callback, v, false);
       if (sess.verbose > 4)
         clog << _F("module function cache %s size %zu", module_name.c_str(),
                    v->size()) << endl;
@@ -1031,7 +1051,8 @@ dwflpp::iterate_over_globals (Dwarf_Die *cu_die,
                               void * data)
 {
   assert (cu_die);
-  assert (dwarf_tag(cu_die) == DW_TAG_compile_unit);
+  assert (dwarf_tag(cu_die) == DW_TAG_compile_unit
+	  || dwarf_tag(cu_die) == DW_TAG_type_unit);
 
   // If this is C++, recurse for any inner types
   bool has_inner_types = dwarf_srclang(cu_die) == DW_LANG_C_plus_plus;

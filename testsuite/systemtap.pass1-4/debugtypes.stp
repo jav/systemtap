@@ -1,0 +1,6 @@
+#! stap -p2
+
+probe process("debugtypes.exe").function("func") {
+  println($p->l)
+  println(@cast($p, "struct s1")->l)
+}

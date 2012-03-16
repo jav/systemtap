@@ -892,7 +892,7 @@ dwarf_query::query_module_dwarf()
           !startswith(function, "_Z"))
         query_module_functions();
       else
-        dw.iterate_over_cus(&query_cu, this);
+        dw.iterate_over_cus(&query_cu, this, false);
     }
 }
 
@@ -9489,7 +9489,7 @@ void
 tracepoint_query::handle_query_module()
 {
   // look for the tracepoints in each CU
-  dw.iterate_over_cus(tracepoint_query_cu, this);
+  dw.iterate_over_cus(tracepoint_query_cu, this, false);
 }
 
 
