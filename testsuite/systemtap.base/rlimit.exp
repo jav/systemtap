@@ -1,5 +1,8 @@
 # rlimit tests
 
+# many of these tests use as_root or as_non_root
+if {! [installtest_p]} { return }
+
 # Unlimited
 set test "rlimit unlimited"
 if {[catch { exec stap -p4 $srcdir/$subdir/rlimit.stp} res ]} {
