@@ -4277,8 +4277,8 @@ typeresolution_info::visit_cast_op (cast_op* e)
   if (e->saved_conversion_error)
     throw (* (e->saved_conversion_error));
   else
-    throw semantic_error(_F("type definition '%s' not found",
-                            e->type_name.c_str()), e->tok);
+    throw semantic_error(_F("type definition '%s' not found in '%s'",
+                            e->type_name.c_str(), e->module.c_str()), e->tok);
 }
 
 
