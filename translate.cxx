@@ -3379,7 +3379,7 @@ c_unparser::visit_return_statement (return_statement* s)
 
   if (s->value->type != current_function->type)
     throw semantic_error (_("return type mismatch"), current_function->tok,
-                         "vs", s->tok);
+                          s->tok);
 
   c_assign ("l->__retvalue", s->value, "return value");
   record_actions(1, s->tok, true);
@@ -3969,11 +3969,9 @@ c_unparser::visit_assignment (assignment* e)
   else
     {
       if (e->type != e->left->type)
-	throw semantic_error (_("type mismatch"), e->tok,
-			      "vs", e->left->tok);
+	throw semantic_error (_("type mismatch"), e->tok, e->left->tok);
       if (e->right->type != e->left->type)
-	throw semantic_error (_("type mismatch"), e->right->tok,
-			      "vs", e->left->tok);
+	throw semantic_error (_("type mismatch"), e->right->tok, e->left->tok);
     }
 
   c_unparser_assignment tav (this, e->op, e->right);
@@ -4651,7 +4649,7 @@ c_unparser::visit_functioncall (functioncall* e)
 
       if (r->formal_args[i]->type != e->args[i]->type)
 	throw semantic_error (_("function argument type mismatch"),
-			      e->args[i]->tok, "vs", r->formal_args[i]->tok);
+			      e->args[i]->tok, r->formal_args[i]->tok);
 
       if (e->args[i]->tok->type == tok_number
 	  || e->args[i]->tok->type == tok_string)
@@ -4671,7 +4669,7 @@ c_unparser::visit_functioncall (functioncall* e)
     {
       if (r->formal_args[i]->type != e->args[i]->type)
 	throw semantic_error (_("function argument type mismatch"),
-			      e->args[i]->tok, "vs", r->formal_args[i]->tok);
+			      e->args[i]->tok, r->formal_args[i]->tok);
 
       c_assign ("c->locals[c->nesting+1].function_" +
 		c_varname (r->name) + "." +

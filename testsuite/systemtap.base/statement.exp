@@ -60,7 +60,7 @@ if {![utrace_p]} {
     spawn stap -p2 -we $script
     expect {
         -timeout 60
-        -re {semantic error: no match while resolving probe point.*\r\n} { xfail $no_func }
+        -re {semantic error: .*while resolving probe point.*\r\n} { xfail $no_func }
         timeout { fail "$no_func (timeout)" }
         eof { fail $no_func }
     }

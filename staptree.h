@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2011 Red Hat Inc.
+// Copyright (C) 2005-2012 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -28,16 +28,16 @@ struct systemtap_session; // session.h
 struct semantic_error: public std::runtime_error
 {
   const token* tok1;
-  std::string msg2;
   const token* tok2;
-  semantic_error *chain;
+  const semantic_error *chain;
 
   ~semantic_error () throw () {}
   semantic_error (const std::string& msg, const token* t1=0):
     runtime_error (msg), tok1 (t1), tok2 (0), chain (0) {}
+
   semantic_error (const std::string& msg, const token* t1,
-                  const std::string& m2, const token* t2):
-    runtime_error (msg), tok1 (t1), msg2 (m2), tok2 (t2), chain (0) {}
+                  const token* t2):
+                  runtime_error (msg), tok1 (t1), tok2 (t2), chain (0) {}
 };
 
 // ------------------------------------------------------------------------

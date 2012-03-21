@@ -1538,12 +1538,9 @@ systemtap_session::register_library_aliases()
             }
           catch (const semantic_error& e)
             {
-              semantic_error* er = new semantic_error (e); // copy it
-              stringstream msg;
-              msg << e.msg2;
-              msg << _(" while registering probe alias ");
-              alias->printsig(msg);
-              er->msg2 = msg.str();
+              semantic_error* er = new semantic_error (_("while registering probe alias"),
+                                                       alias->tok);
+              er->chain = & e;
               print_error (* er);
               delete er;
             }
@@ -1599,13 +1596,22 @@ systemtap_session::print_error (const semantic_error& e)
         message << ": ";
       if (e.tok1)
         {
-          if (i == 0) print_token (message, e.tok1);
+          if (i == 0)
+            {
+              print_token (message, e.tok1);
+              message << endl;
+              print_error_source (message, align_semantic_error, e.tok1);
+            }
           else message << *e.tok1;
         }
-      message << e.msg2;
       if (e.tok2)
         {
-          if (i == 0) print_token (message, e.tok2);
+          if (i == 0)
+            {
+              print_token (message, e.tok2);
+              message << endl;
+              print_error_source (message, align_semantic_error, e.tok2);
+            }
           else message << *e.tok2;
         }
       message << endl;
@@ -1617,12 +1623,6 @@ systemtap_session::print_error (const semantic_error& e)
     {
       seen_errors.insert (message_str[1]);
       cerr << message_str[0];
-
-      if (e.tok1)
-        print_error_source (cerr, align_semantic_error, e.tok1);
-
-      if (e.tok2)
-        print_error_source (cerr, align_semantic_error, e.tok2);
     }
 
   if (e.chain)

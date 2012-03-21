@@ -1,5 +1,5 @@
 // elaboration functions
-// Copyright (C) 2005-2011 Red Hat Inc.
+// Copyright (C) 2005-2012 Red Hat Inc.
 // Copyright (C) 2008 Intel Corporation
 //
 // This file is part of systemtap, and is free software.  You can
@@ -843,11 +843,9 @@ derive_probes (systemtap_session& s,
           if (!s.listing_mode || (s.listing_mode && s.verbose > 1))
             {
               // XXX: prefer not to print_error at every nest/unroll level
-              semantic_error* er = new semantic_error (e); // copy it
-              stringstream msg;
-              msg << e.msg2;
-              msg << _(" while resolving probe point ") << *loc;
-              er->msg2 = msg.str();
+              semantic_error* er = new semantic_error (_("while resolving probe point"),
+                                                       loc->components[0]->tok);
+              er->chain = & e;
               s.print_error (* er);
               delete er;
             }
@@ -1319,13 +1317,39 @@ semantic_pass_symbols (systemtap_session& s)
 
       // Pass 1: add globals and functions to systemtap-session master list,
       //         so the find_* functions find them
+      //
+      // NB: tapset global/function definitions may duplicate or conflict
+      // with those already in s.globals/functions.  We need to deconflict
+      // here.
 
       for (unsigned i=0; i<dome->globals.size(); i++)
-        s.globals.push_back (dome->globals[i]);
+        {
+          vardecl* g = dome->globals[i];
+          for (unsigned j=0; j<s.globals.size(); j++)
+            {
+              vardecl* g2 = s.globals[j];
+              if (g->name == g2->name)
+                {
+                  s.print_error (semantic_error (_("conflicting global variables"), 
+                                                 g->tok, g2->tok));
+                }
+            }
+          s.globals.push_back (g);
+        }
 
       for (unsigned i=0; i<dome->functions.size(); i++)
-        s.functions[dome->functions[i]->name] = dome->functions[i];
+        {
+          functiondecl* f = dome->functions[i];
+          functiondecl* f2 = s.functions[f->name];
+          if (f2 && f != f2)
+            {
+              s.print_error (semantic_error (_("conflicting functions"), 
+                                             f->tok, f2->tok));
+            }
+          s.functions[f->name] = f;
+        }
 
+      // NB: embeds don't conflict with each other
       for (unsigned i=0; i<dome->embeds.size(); i++)
         s.embeds.push_back (dome->embeds[i]);
 
@@ -2004,9 +2028,13 @@ symresolution_info::find_function (const string& name, unsigned arity)
       assert (fd->name == name);
       if (fd->formal_args.size() == arity)
         return fd;
+
+      session.print_warning (_F("mismatched arity-%zu function found", fd->formal_args.size()),
+                             fd->tok);
+      // and some semantic_error will shortly follow
     }
 
-  // search library globals
+  // search library functions
   for (unsigned i=0; i<session.library_files.size(); i++)
     {
       stapfile* f = session.library_files[i];
