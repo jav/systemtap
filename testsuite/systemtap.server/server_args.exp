@@ -87,9 +87,11 @@ proc stap_direct_and_with_client {stap options} {
 	# Some messages contain the names of files or directories
 	# and will be prefixed for the client.
 	if {[regexp "^              (.*)" $expected_line match data]} {
+            verbose -log "MATCH: $match"
+            verbose -log "DATA: $data"
 	    # Special characters in the regexp need to be quoted.
-	    regsub -all "\[\"\\\\;\*\]" $data {\\\0} data
-	    if {[regexp "^              tapsets.*/$data" $line]} {
+	    regsub -all "\[\"\\\\;\*\(\)\]" $data {\\\0} data
+	    if {[regexp "^              tapset.*/$data" $line]} {
 		incr n
 		continue
 	    }
