@@ -143,7 +143,6 @@ set restricted_probe_types [list \
   "kernel.data(string).write" \
   "kernel.function(number)" \
   "kernel.function(number).call" \
-  "kernel.function(number).inline" \
   "kernel.function(number).return" \
   "kernel.function(number).exported" \
   "kernel.function(number).return.maxactive(number)" \
@@ -169,7 +168,6 @@ set restricted_probe_types [list \
   "kprobe.statement(number).absolute" \
   "module(string).function(number)" \
   "module(string).function(number).call" \
-  "module(string).function(number).inline" \
   "module(string).function(number).return" \
   "module(string).function(number).exported" \
   "module(string).function(number).return.maxactive(number)" \
