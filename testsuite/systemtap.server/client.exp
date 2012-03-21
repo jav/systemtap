@@ -1,3 +1,6 @@
+# many of these tests use as_root
+if {! [installtest_p]} { return }
+
 # Let's start with a clean slate in terms of trust.
 exec rm -fr $env(SYSTEMTAP_DIR)/ssl
 
