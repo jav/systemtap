@@ -1,0 +1,23 @@
+#! stap -gp2
+
+# PR 13876
+
+%{
+#include <linux/version.h>
+#include <net/sock.h>
+#include <net/tcp.h>
+#include <net/ip.h>
+#include <linux/skbuff.h>
+%}
+
+function tcp_ts_get_info_state:long(sock:long)
+%{
+        struct sock *sk = (struct sock *)(long) THIS->sock;
+        THIS->__retvalue = (int64_t) kread(&(sk->sk_state));
+        CATCH_DEREF_FAULT();
+%}
+
+probe tcp.sendmsg {
+   printf("%s: TCP: Sending message. state is : %d , Flags %d. Size%d\n",
+   execname(),tcp_ts_get_info_state($sk), $sk->sk_flags, size)
+}
