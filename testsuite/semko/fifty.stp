@@ -1,4 +1,6 @@
-#! stap -gp2
+#! /bin/sh
+
+stap -g -p2 -e '
 
 # PR 13876
 
@@ -21,3 +23,4 @@ probe tcp.sendmsg {
    printf("%s: TCP: Sending message. state is : %d , Flags %d. Size%d\n",
    execname(),tcp_ts_get_info_state($sk), $sk->sk_flags, size)
 }
+'
