@@ -9867,9 +9867,9 @@ else
       as_fn_error $? "missing elfutils development headers/libraries (install elfutils-devel, libebl-dev, libdw-dev and/or libebl-devel)" "$LINENO" 5
 fi
 
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for dwarf_getcfi_elf in -ldw" >&5
-$as_echo_n "checking for dwarf_getcfi_elf in -ldw... " >&6; }
-if ${ac_cv_lib_dw_dwarf_getcfi_elf+:} false; then :
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for dwarf_next_unit in -ldw" >&5
+$as_echo_n "checking for dwarf_next_unit in -ldw... " >&6; }
+if ${ac_cv_lib_dw_dwarf_next_unit+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -9883,27 +9883,27 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char dwarf_getcfi_elf ();
+char dwarf_next_unit ();
 int
 main ()
 {
-return dwarf_getcfi_elf ();
+return dwarf_next_unit ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_dw_dwarf_getcfi_elf=yes
+  ac_cv_lib_dw_dwarf_next_unit=yes
 else
-  ac_cv_lib_dw_dwarf_getcfi_elf=no
+  ac_cv_lib_dw_dwarf_next_unit=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_dw_dwarf_getcfi_elf" >&5
-$as_echo "$ac_cv_lib_dw_dwarf_getcfi_elf" >&6; }
-if test "x$ac_cv_lib_dw_dwarf_getcfi_elf" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_dw_dwarf_next_unit" >&5
+$as_echo "$ac_cv_lib_dw_dwarf_next_unit" >&6; }
+if test "x$ac_cv_lib_dw_dwarf_next_unit" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_LIBDW 1
 _ACEOF
@@ -9912,7 +9912,7 @@ _ACEOF
 
 else
 
-      as_fn_error $? "elfutils, libdw too old, need 0.142+" "$LINENO" 5
+      as_fn_error $? "elfutils, libdw too old, need 0.148+" "$LINENO" 5
 fi
 
     stap_LIBS="$stap_LIBS -Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf"

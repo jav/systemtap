@@ -412,8 +412,8 @@ if test $enable_translator = yes; then
     AC_CHECK_LIB(dw, dwfl_module_getsym,[],[
       AC_MSG_ERROR([missing elfutils development headers/libraries (install elfutils-devel, libebl-dev, libdw-dev and/or libebl-devel)])],
       [-Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf])
-    AC_CHECK_LIB(dw, dwarf_getcfi_elf,[],[
-      AC_MSG_ERROR([elfutils, libdw too old, need 0.142+])],
+    AC_CHECK_LIB(dw, dwarf_next_unit,[],[
+      AC_MSG_ERROR([elfutils, libdw too old, need 0.148+])],
       [-Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf])
     stap_LIBS="$stap_LIBS -Wl,--start-group -ldw $ebl_LIBS -Wl,--end-group -lelf"
     LIBS="$save_LIBS"
