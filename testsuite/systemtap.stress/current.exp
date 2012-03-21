@@ -21,4 +21,4 @@ proc current_load {} {
 
 set output_string "(\\w+ = \\d+\r\n){5}${all_pass_string}(WARNING.*skipped.*)?"
 
-stap_run $srcdir/$subdir/$test.stp current_load $output_string -g
+stap_run $srcdir/$subdir/$test.stp current_load $output_string -g -w
