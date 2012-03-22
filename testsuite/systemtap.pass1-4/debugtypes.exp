@@ -7,8 +7,6 @@ if {[target_compile $srcdir/$subdir/$test.cxx $test.exe executable \
 }
 pass "compiling $test.cxx"
 
-verbose "path = $env(PATH)" 0
-
 if {[stap_run_batch $srcdir/$subdir/$test.stp] == 0} {
   pass "compiling $test.stp"
 } else {
