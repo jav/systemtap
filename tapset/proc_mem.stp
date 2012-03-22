@@ -26,6 +26,14 @@
 #define _STP_PF_KTHREAD 0
 #endif
 
+/* PF_STARTING was removed in later kernels */
+#ifdef PF_STARTING
+#define _STP_BAD_TASK_FLAGS (_STP_PF_KTHREAD | PF_EXITING | PF_STARTING)
+#else
+#define _STP_BAD_TASK_FLAGS (_STP_PF_KTHREAD | PF_EXITING)
+#endif
+
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
 #include <linux/mm_types.h>
 #else
@@ -47,7 +55,7 @@ function _stp_valid_task:long(tsk:long)
   if (tsk) {
     unsigned int flags = kread(&(tsk->flags));
 
-    if (flags & ~(_STP_PF_KTHREAD | PF_EXITING | PF_STARTING))
+    if (flags & ~_STP_BAD_TASK_FLAGS)
       THIS->__retvalue = 1;
   }
   CATCH_DEREF_FAULT();
