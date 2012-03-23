@@ -239,32 +239,40 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 	return NULL;
 }
 
-static int _stp_build_id_check (struct _stp_module *m, unsigned long notes_addr, int user_module)
+static int _stp_build_id_check (struct _stp_module *m,
+				unsigned long notes_addr,
+				struct task_struct *tsk)
 {
   int j;
-  for (j=0; j<m->build_id_len; j++) {
-    /* Use set_fs / get_user to access
-       conceivably invalid addresses.  If
-       loc2c-runtime.h were more easily usable,
-       a deref() loop could do it too. */
+
+  for (j = 0; j < m->build_id_len; j++) {
+    /* Use set_fs / get_user to access conceivably invalid addresses.
+     * If loc2c-runtime.h were more easily usable, a deref() loop
+     * could do it too. */
     mm_segment_t oldfs = get_fs();
     int rc;
-    unsigned char theory, practice;
+    unsigned char theory, practice = 0;
 
 #ifdef STAPCONF_PROBE_KERNEL
-    if (!user_module)
-      {
-        theory = m->build_id_bits[j];
-        rc=probe_kernel_read(&practice, (void*)(notes_addr+j), 1);
-      }
+    if (!tsk) {
+      theory = m->build_id_bits[j];
+      set_fs(KERNEL_DS);
+      rc = probe_kernel_read(&practice, (void*)(notes_addr + j), 1);
+    }
     else
 #endif
-      {
-        set_fs (user_module ? USER_DS : KERNEL_DS);
-        theory = m->build_id_bits[j];
-        rc = get_user(practice,((unsigned char*) (void*) (notes_addr+j)));
-        set_fs(oldfs);
+    {
+      theory = m->build_id_bits[j];
+      set_fs (tsk ? USER_DS : KERNEL_DS);
+      if (!tsk || tsk == current) {
+	rc = get_user(practice, ((unsigned char*)(void*)(notes_addr + j)));
       }
+      else {
+	rc = (__access_process_vm(tsk, (notes_addr + j), &practice, 1, 0)
+	      != 1);
+      }
+    }
+    set_fs(oldfs);
 
     if (rc || (theory != practice)) {
       const char *basename;
@@ -279,8 +287,8 @@ static int _stp_build_id_check (struct _stp_module *m, unsigned long notes_addr,
 		  m->name, basename, j, theory, practice, notes_addr, rc);
       return 1;
 #else
-      /* This branch is a surrogate for kernels
-       * affected by Fedora bug #465873. */
+      /* This branch is a surrogate for kernels affected by Fedora bug
+       * #465873. */
       _stp_warn (KERN_WARNING
 		 "Build-id mismatch: \"%s\" vs. \"%s\" byte %d (0x%02x vs 0x%02x) rc %d\n",
 		 m->name, basename, j, theory, practice, rc);
@@ -333,7 +341,7 @@ static int _stp_module_check(void)
                   notes_addr, base_addr);
               continue;
           }
-          return _stp_build_id_check (m, notes_addr, 0);
+          return _stp_build_id_check (m, notes_addr, NULL);
       } /* end checking */
     } /* end loop */
   return 0;
@@ -370,7 +378,7 @@ static int _stp_kmodule_check (const char *name)
                   notes_addr, base_addr);
               continue;
           }
-          return _stp_build_id_check (m, notes_addr, 0);
+          return _stp_build_id_check (m, notes_addr, NULL);
       } /* end checking */
     } /* end loop */
 
@@ -410,7 +418,7 @@ static int _stp_usermodule_check(struct task_struct *tsk, const char *path_name,
 		     notes_addr, addr);
 	  continue;
 	}
-	return _stp_build_id_check (m, notes_addr, 1);
+	return _stp_build_id_check (m, notes_addr, tsk);
       }
     }
 

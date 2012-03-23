@@ -27,10 +27,20 @@
 #include <linux/hardirq.h>
 #include <asm/uaccess.h>
 #include <linux/kallsyms.h>
+#include <linux/vermagic.h>
+#include <linux/utsname.h>
 #include <linux/version.h>
 #include <linux/compat.h>
 #include <linux/sched.h>
 #include <linux/mm.h>
+#include <linux/timer.h>
+#include <linux/delay.h>
+#include <linux/profile.h>
+//#include <linux/utsrelease.h> // newer kernels only
+//#include <linux/compile.h>
+#ifdef STAPCONF_GENERATED_COMPILE
+#include <generated/compile.h>
+#endif
 
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,15)
@@ -127,6 +137,20 @@ static struct
 #endif
 #endif
 
+// PR13489, inode-uprobes sometimes lacks the necessary SYMBOL_EXPORT's.
+#if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED)
+void *kallsyms_task_user_regset_view;
+#endif
+#if !defined(STAPCONF_UPROBE_REGISTER_EXPORTED)
+void *kallsyms_uprobe_register;
+#endif
+#if !defined(STAPCONF_UPROBE_UNREGISTER_EXPORTED)
+void *kallsyms_uprobe_unregister;
+#endif
+
+#include "access_process_vm.h"
+#include "loc2c-runtime.h"
+
 #include "alloc.c"
 #include "print.h"
 #include "string.c"
@@ -146,6 +170,7 @@ static struct
 #include "perf.c"
 #endif
 #include "addr-map.c"
+#include "stat.c"
 
 /* DWARF unwinder only tested so far on i386, x86_64 and ppc64.
    We only need to compile in the unwinder when both STP_NEED_UNWIND_DATA
@@ -236,19 +261,6 @@ void cleanup_module(void)
    around the undefined reference.  */
 void __ia64_save_stack_nonlocal (void) { }
 #endif
-
-
-// PR13489, inode-uprobes sometimes lacks the necessary SYMBOL_EXPORT's.
-#if !defined(STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED)
-void *kallsyms_task_user_regset_view;
-#endif
-#if !defined(STAPCONF_UPROBE_REGISTER_EXPORTED)
-void *kallsyms_uprobe_register;
-#endif
-#if !defined(STAPCONF_UPROBE_UNREGISTER_EXPORTED)
-void *kallsyms_uprobe_unregister;
-#endif
-
 
 MODULE_LICENSE("GPL");
 

@@ -56,8 +56,16 @@ static void _stp_vma_match_vdso(struct task_struct *tsk)
 		int rc;
 		unsigned char b;
 		/* We are called from the task_finder, so it should be
-		   save to just copy_from_user here. utrace callback. */
-		rc = copy_from_user(&b, (void*)(notes_addr + j), 1);
+		   safe to just copy_from_user here. utrace callback. */
+		if (tsk == current)
+		  {
+		    rc = copy_from_user(&b, (void*)(notes_addr + j), 1);
+		  }
+		else
+		  {
+		    rc = (__access_process_vm(tsk, (notes_addr + j), &b, 1,
+					      0) != 1);
+		  }
 		if (rc || b != m->build_id_bits[j])
 		  {
 #ifdef DEBUG_TASK_FINDER_VMA

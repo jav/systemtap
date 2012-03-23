@@ -6558,23 +6558,6 @@ translate_pass (systemtap_session& s)
 	s.op->newline() << "#define STP_NEED_UNWIND_DATA 1";
 
       s.op->newline() << "#include \"runtime.h\"";
-      s.op->newline() << "#include \"stat.c\"";
-      s.op->newline() << "#include <linux/string.h>";
-      s.op->newline() << "#include <linux/timer.h>";
-      s.op->newline() << "#include <linux/sched.h>";
-      s.op->newline() << "#include <linux/delay.h>";
-      s.op->newline() << "#include <linux/profile.h>";
-      s.op->newline() << "#include <linux/random.h>";
-      // s.op->newline() << "#include <linux/utsrelease.h>"; // newer kernels only
-      s.op->newline() << "#include <linux/vermagic.h>";
-      s.op->newline() << "#include <linux/utsname.h>";
-      s.op->newline() << "#include <linux/version.h>";
-      // s.op->newline() << "#include <linux/compile.h>";
-      s.op->newline() << "#ifdef STAPCONF_GENERATED_COMPILE";
-      s.op->newline() << "#include <generated/compile.h>";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#include \"loc2c-runtime.h\" ";
-      s.op->newline() << "#include \"access_process_vm.h\" ";
 
       // Emit embeds ahead of time, in case they affect context layout
       for (unsigned i=0; i<s.embeds.size(); i++)
