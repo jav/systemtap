@@ -1,8 +1,8 @@
 * What's new in version 1.8
 
 - Support for DWARF4 .debug_types sections (for executables and shared
-  libraries). PR12997.
-  SystemTap now requires elfutils 0.148+, full .debug_types support
+  libraries compiled with recent GCC's -gdwarf-4 / -fdebug-types-section).
+  PR12997.  SystemTap now requires elfutils 0.148+, full .debug_types support
   depends on elfutils 0.154+.
 
 - Systemtap modules are somewhat smaller & faster to compile.  Their
