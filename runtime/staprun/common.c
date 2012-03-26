@@ -7,7 +7,7 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2007-2010 Red Hat Inc.
+ * Copyright (C) 2007-2012 Red Hat Inc.
  */
 
 #include "staprun.h"
@@ -16,6 +16,7 @@
 #include <sys/utsname.h>
 #include <assert.h>
 #include <string.h>
+#include "git_version.h"
 
 /* variables needed by parse_args() */
 int verbose;
@@ -129,7 +130,7 @@ void parse_args(int argc, char **argv)
         remote_id = -1;
         remote_uri = NULL;
 
-	while ((c = getopt(argc, argv, "ALu::vb:t:dc:o:x:S:DwRr:")) != EOF) {
+	while ((c = getopt(argc, argv, "ALu::vb:t:dc:o:x:S:DwRr:V")) != EOF) {
 		switch (c) {
 		case 'u':
 			need_uprobes = 1;
@@ -196,6 +197,13 @@ void parse_args(int argc, char **argv)
 				usage(argv[0]);
                         }
 			break;
+		case 'V':
+                        err(_("Systemtap module loader/runner (version %s %s)\n"
+                              "Copyright (C) 2005-2012 Red Hat, Inc. and others\n"
+                              "This is free software; see the source for copying conditions.\n"),
+                              VERSION, GIT_MESSAGE);
+                        _exit(1);
+                        break;
 		default:
 			usage(argv[0]);
 		}
@@ -268,9 +276,10 @@ void parse_args(int argc, char **argv)
 
 void usage(char *prog)
 {
-	err(_("\n%s [-v] [-w] [-u] [-c cmd ] [-x pid] [-u user] [-A|-L|-d]\n"
+	err(_("\n%s [-v] [-w] [-V] [-u] [-c cmd ] [-x pid] [-u user] [-A|-L|-d]\n"
                 "\t[-b bufsize] [-R] [-r N:URI] [-o FILE [-D] [-S size[,N]]] MODULE [module-options]\n"), prog);
 	err(_("-v              Increase verbosity.\n"
+	"-V              Print version number and exit.\n"
 	"-w              Suppress warnings.\n"
 	"-u              Load uprobes.ko\n"
 	"-c cmd          Command \'cmd\' will be run and staprun will\n"
