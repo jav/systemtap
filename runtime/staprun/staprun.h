@@ -49,9 +49,13 @@
 #define _N(string, string_plural, count) \
         ( (count) == 1 ? (string) : (string_plural) )
 #endif
+/* NB: _F and _NF not available for staprun, since autosprintf() is defined
+   in c++ in ../../util.cxx, in a memory-leak-free way. */
+#if 0
 #define _F(format, ...) autosprintf(_(format), __VA_ARGS__)
 #define _NF(format, format_plural, count, ...) \
         autosprintf(_N((format), (format_plural), (count)), __VA_ARGS__)
+#endif
 
 /* For probes in staprun.c, staprun_funcs.c, mainloop.c and common.c */
 #include "stap-probe.h"
