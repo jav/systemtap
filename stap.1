@@ -370,12 +370,23 @@ specified more than once, in which case a list of servers is accumulated
 in the order specified. Servers may be specified by host name, ip address, or
 by certificate serial number (obtained using
 .IR \-\-list\-servers ).
-The latter is most commonly used when revoking
+The latter is most commonly used when adding or revoking
 trust in a server (see
 .I \-\-trust\-servers
 below). If a server is specified by host name or ip address, then an optional
 port number may be specified. This is useful for accessing servers which are
 not on the local network or to specify a particular server.
+
+IP addresses may be IPv4 or IPv6 addresses.
+
+If a particular IPv6 address is link local and exists
+on more than one interface, the intended interface may be specified by appending the address with
+a percent sign (%) followed by the intended interface name. For example,
+"fe80::5eff:35ff:fe07:55ca%eth0".
+
+In order to specify a port number with an IPv6 address, it is necessary to enclose the IPv6 address
+in square brackets ([]) in order to separate the port number from the rest of the address. For
+example, "[fe80::5eff:35ff:fe07:55ca]:5000" or "[fe80::5eff:35ff:fe07:55ca%eth0]:5000".
 
 If \fI\-\-use\-server\fR has not been specified,
 \fI\-pN\fR has not been specified with N < 5,
@@ -442,6 +453,23 @@ If no servers were specified using
 then the default servers for
 .IR \-\-use\-server
 are listed.
+
+Note that
+.IR \-\-list\-servers
+uses the
+.IR avahi\-daemon
+service to detect online servers. If this service is not avaiable, then
+.IR \-\-list\-servers
+will fail to detect any
+.IR online
+servers. In order for
+.IR \-\-list\-servers
+to detect servers listening on IPv6 addresses, the
+.IR avahi\-daemon
+configuration file
+.IR /etc/avahi/avahi-daemon.conf
+must contain an active "use-ipv6=yes" line. The service must be restarted after adding this line
+in order for IPv6 to be enabled.
 
 .TP
 .BI \-\-trust\-servers "[=TRUST_SPEC]"

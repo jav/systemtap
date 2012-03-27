@@ -323,7 +323,7 @@ if {$failed == 0} {
 # Reinstate trust in our server. Specify the server by ip address.
 # The default for --trusted servers is 'ssl'.
 set test "Server has ip address"
-if {[regexp {^.*ip=([^ ]*).*} $our_servers(0) match ip_address]} {
+if {[regexp {^.*address=([^ ]*).*} $our_servers(0) match ip_address]} {
     pass $test
 } else {
     fail $test

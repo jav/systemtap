@@ -1,5 +1,20 @@
 * What's new in version 1.8
 
+- The systemtap compile-server and client now support IPv6 networks.
+  - IPv6 addresses may now be specified on the --use-server option and will
+    be displayed by --list-servers, if the avahi-daemon service is running and
+    has IPv6 enabled.
+  - Automatic server selection will automatically choose IPv4 or IPv6 servers
+    according to the normal server selection criteria when avahi-daemon is
+    running. One is not preferred over the other.
+  - The compile-server will automatically listen on IPv6 addresses, if
+    available.
+  - To enable IPv6 in avahi-daemon, ensure that /etc/avahi/avahi-daemon.conf
+    contains an active "use-ipv6=yes" line. After adding this line run
+    "service avahi-daemon restart" to activate IPv6 support.
+  - See man stap(1) for details on how to use IPv6 addresses with the
+    --use-server option.
+
 - Support for DWARF4 .debug_types sections (for executables and shared
   libraries compiled with recent GCC's -gdwarf-4 / -fdebug-types-section).
   PR12997.  SystemTap now requires elfutils 0.148+, full .debug_types support
@@ -33,7 +48,7 @@
 - Bug CVE-2012-0875 (kernel panic when processing malformed DWARF unwind data)
   is fixed.
 
-- The systemtap server now supports multiple concurrent connections.
+- The systemtap compile-server now supports multiple concurrent connections.
   Specify the desired maximum number of concurrent connections with
   the new stap-server/stap-serverd --max-threads option. Specify a
   value of '0' to tell the server not to spawn any new threads (handle

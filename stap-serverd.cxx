@@ -1379,6 +1379,7 @@ handle_connection (void *arg)
 {
   PRFileDesc *       sslSocket = NULL;
   SECStatus          secStatus = SECFailure;
+  PRStatus           prStatus;
   int                rc;
   char              *rc1;
   char               tmpdir[PATH_MAX];
@@ -1552,26 +1553,29 @@ cleanup:
 	}
     }
 
-      if (secStatus != SECSuccess)
-	server_error (_("Error processing client request"));
+  if (secStatus != SECSuccess)
+    server_error (_("Error processing client request"));
 
-      // Log the end of the request.
-      log (_F("Request from %d.%d.%d.%d:%d complete",
-	      (addr.inet.ip      ) & 0xff,
-	      (addr.inet.ip >>  8) & 0xff,
-	      (addr.inet.ip >> 16) & 0xff,
-	      (addr.inet.ip >> 24) & 0xff,
-	      addr.inet.port));
+  // Log the end of the request.
+  char buf[1024];
+  prStatus = PR_NetAddrToString (& addr, buf, sizeof (buf));
+  if (prStatus == PR_SUCCESS)
+    {
+      if (addr.raw.family == PR_AF_INET)
+	log (_F("Request from %s:%d complete", buf, addr.inet.port));
+      else if (addr.raw.family == PR_AF_INET6)
+	log (_F("Request from [%s]:%d complete", buf, addr.ipv6.port));
+    }
 
-      /* Increment semephore to indicate this thread is finished. */
-      free(t_arg);
-      if (max_threads > 0)
-        {
-          sem_post(&sem_client);
-          pthread_exit(0);
-        }
-      else
-        return 0;
+  /* Increment semephore to indicate this thread is finished. */
+  free(t_arg);
+  if (max_threads > 0)
+    {
+      sem_post(&sem_client);
+      pthread_exit(0);
+    }
+  else
+    return 0;
 }
 
 /* Function:  int accept_connection()
@@ -1584,6 +1588,7 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
 {
   PRNetAddr   addr;
   PRFileDesc *tcpSocket;
+  PRStatus    prStatus;
   SECStatus   secStatus;
   CERTCertDBHandle *dbHandle;
   pthread_t tid;
@@ -1617,12 +1622,15 @@ accept_connections (PRFileDesc *listenSocket, CERTCertificate *cert)
         }
 
       /* Log the accepted connection.  */
-      log (_F("Accepted connection from %d.%d.%d.%d:%d",
-	      (addr.inet.ip      ) & 0xff,
-	      (addr.inet.ip >>  8) & 0xff,
-	      (addr.inet.ip >> 16) & 0xff,
-	      (addr.inet.ip >> 24) & 0xff,
-	      addr.inet.port));
+      char buf[1024];
+      prStatus = PR_NetAddrToString (&addr, buf, sizeof (buf));
+      if (prStatus == PR_SUCCESS)
+	{
+	  if (addr.raw.family == PR_AF_INET)
+	    log (_F("Accepted connection from %s:%d", buf, addr.inet.port));
+	  else if (addr.raw.family == PR_AF_INET6)
+	    log (_F("Accepted connection from [%s]:%d", buf, addr.ipv6.port));
+	}
 
       /* XXX: alarm() or somesuch to set a timeout. */
 
@@ -1785,7 +1793,7 @@ static void
 listen ()
 {
   // Create a new socket.
-  PRFileDesc *listenSocket = PR_NewTCPSocket ();
+  PRFileDesc *listenSocket = PR_OpenTCPSocket (PR_AF_INET6); // Accepts IPv4 too
   if (listenSocket == NULL)
     {
       server_error (_("Error creating socket"));
@@ -1819,36 +1827,50 @@ listen ()
 
   // Configure the network connection.
   PRNetAddr addr;
-  addr.inet.family = PR_AF_INET;
-  addr.inet.ip	   = PR_INADDR_ANY;
+  memset (& addr, 0, sizeof(addr));
+  prStatus = PR_InitializeNetAddr (PR_IpAddrAny, port, & addr);
+  addr.ipv6.family = PR_AF_INET6;
+#if 0
+  // addr.inet.ip = PR_htonl(PR_INADDR_ANY);
+  PR_StringToNetAddr ("::", & addr);
+  // PR_StringToNetAddr ("fe80::5eff:35ff:fe07:55ca", & addr);
+  // PR_StringToNetAddr ("::1", & addr);
+  addr.ipv6.port = PR_htons (port);
+#endif
 
-  // Bind the socket to an address. Retry if the selected port is busy.
+  // Bind the socket to an address. Retry if the selected port is busy, unless the port was
+  // specified directly.
   for (;;)
     {
-      addr.inet.port = PR_htons (port);
-
       /* Bind the address to the listener socket. */
       prStatus = PR_Bind (listenSocket, & addr);
       if (prStatus == PR_SUCCESS)
 	break;
 
-      // If the selected port is busy. Try another.
+      // If the selected port is busy. Try another, but only if a specific port was not specified.
       PRErrorCode errorNumber = PR_GetError ();
       switch (errorNumber)
 	{
 	case PR_ADDRESS_NOT_AVAILABLE_ERROR:
-	  server_error (_F("Network port %hu is unavailable. Trying another port", port));
-	  port = 0; // Will automatically select an available port
-	  continue;
+	  if (port == 0)
+	    {
+	      server_error (_F("Network port %hu is unavailable. Trying another port", port));
+	      continue;
+	    }
+	  break;
 	case PR_ADDRESS_IN_USE_ERROR:
-	  server_error (_F("Network port %hu is busy. Trying another port", port));
-	  port = 0; // Will automatically select an available port
-	  continue;
+	  if (port == 0)
+	    {
+	      server_error (_F("Network port %hu is busy. Trying another port", port));
+	      continue;
+	    }
+	  break;
 	default:
-	  server_error (_("Error setting socket address"));
-	  nssError ();
-	  goto done;
+	  break;
 	}
+      server_error (_("Error setting socket address"));
+      nssError ();
+      goto done;
     }
 
   // Query the socket for the port that was assigned.
@@ -1859,8 +1881,10 @@ listen ()
       nssError ();
       goto done;
     }
-  port = PR_ntohs (addr.inet.port);
-  log (_F("Using network port %hu", port));
+  char buf[1024];
+  prStatus = PR_NetAddrToString (&addr, buf, sizeof (buf));
+  port = PR_ntohs (addr.ipv6.port);
+  log (_F("Using network address [%s]:%hu", buf, port));
 
   if (max_threads > 0)
     log (_F("Using a maximum of %ld threads", max_threads));
