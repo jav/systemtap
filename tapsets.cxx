@@ -5102,6 +5102,24 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline(-1) << "}";
 }
 
+static void sdt_v3_tokenize(const string& str, vector<string>& tokens)
+{
+  string::size_type pos;
+  string::size_type lastPos = str.find_first_not_of(" ", 0);
+  string::size_type nextAt = str.find("@", lastPos);
+  while (lastPos != string::npos)
+   {
+     pos = nextAt + 1;
+     nextAt = str.find("@", pos);
+     if (nextAt == string::npos)
+       pos = string::npos;
+     else
+       pos = str.rfind(" ", nextAt);
+
+     tokens.push_back(str.substr(lastPos, pos - lastPos));
+     lastPos = str.find_first_not_of(" ", pos);
+   }
+}
 
 struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
 {
@@ -5274,17 +5292,39 @@ struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
       DRI ("%r13", 13, DI);
       DRI ("%r14", 14, DI);
       DRI ("%r15", 15, DI);
+    } else if (elf_machine == EM_ARM) {
+      DRI ("r0", 0, SI);
+      DRI ("r1", 1, SI);
+      DRI ("r2", 2, SI);
+      DRI ("r3", 3, SI);
+      DRI ("r4", 4, SI);
+      DRI ("r5", 5, SI);
+      DRI ("r6", 6, SI);
+      DRI ("r7", 7, SI);
+      DRI ("r8", 8, SI);
+      DRI ("r9", 9, SI);
+      DRI ("sl", 10, SI);
+      DRI ("fp", 11, SI);
+      DRI ("ip", 12, SI);
+      DRI ("sp", 13, SI);
+      DRI ("lr", 14, SI);
+      DRI ("pc", 15, SI);
     } else if (arg_count) {
       /* permit this case; just fall back to dwarf */
     }
 #undef DRI
 
     need_debug_info = false;
-    tokenize(arg_string, arg_tokens, " ");
     if (probe_type == uprobe3_type)
-      assert(arg_count <= 12);
+      {
+        sdt_v3_tokenize(arg_string, arg_tokens);
+        assert(arg_count <= 12);
+      }
     else
-      assert(arg_count <= 10);
+      {
+        tokenize(arg_string, arg_tokens, " ");
+        assert(arg_count <= 10);
+      }
   }
 
   systemtap_session& session;
@@ -5445,7 +5485,7 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
       // anyway.  With -mregnames, we could, if gcc somehow
       // communicated to us the presence of that option, but alas it
       // doesn't.  http://gcc.gnu.org/PR44995.
-      rc = regexp_match (asmarg, "^[i\\$][-]?[0-9][0-9]*$", matches);
+      rc = regexp_match (asmarg, "^[i\\$#][-]?[0-9][0-9]*$", matches);
       if (! rc)
         {
 	  string sn = matches[0].substr(1);
@@ -5494,11 +5534,12 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
         }
       // clip off leading |
       regnames = regnames.substr(1);
-      percent_regnames = percent_regnames.substr(1);
+      if (percent_regnames != "")
+          percent_regnames = percent_regnames.substr(1);
 
       // test for REGISTER
       // NB: Because PR11821, we must use percent_regnames here.
-      if (elf_machine == EM_PPC || elf_machine == EM_PPC64)
+      if (elf_machine == EM_PPC || elf_machine == EM_PPC64 || elf_machine == EM_ARM)
 	rc = regexp_match (asmarg, string("^(")+regnames+string(")$"), matches);
       else
 	rc = regexp_match (asmarg, string("^(")+percent_regnames+string(")$"), matches);
@@ -5547,22 +5588,33 @@ sdt_uprobe_var_expanding_visitor::visit_target_symbol_arg (target_symbol *e)
           // invalid register name, fall through
         }
 
+      int reg, offset1;
       // test for OFFSET(REGISTER) where OFFSET is +-N+-N+-N
       // NB: Despite PR11821, we can use regnames here, since the parentheses
       // make things unambiguous. (Note: gdb/stap-probe.c also parses this)
-      rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-][0-9]*)?([+-][0-9]*)?[(](")+regnames+string(")[)]$"), matches);
+      // On ARM test for [REGISTER, OFFSET]
+     if (elf_machine == EM_ARM)
+       {
+         rc = regexp_match (asmarg, string("^\\[(")+regnames+string("), #([+-]?[0-9]+)([+-][0-9]*)?([+-][0-9]*)?\\]$"), matches);
+         reg = 1;
+         offset1 = 2;
+       }
+     else
+       {
+         rc = regexp_match (asmarg, string("^([+-]?[0-9]*)([+-][0-9]*)?([+-][0-9]*)?[(](")+regnames+string(")[)]$"), matches);
+         reg = 4;
+         offset1 = 1;
+       }
       if (! rc)
         {
           string regname;
           int64_t disp = 0;
-
-
-          if (matches[4].length())
-            regname = matches[4];
+          if (matches[reg].length())
+            regname = matches[reg];
           if (dwarf_regs.find (regname) == dwarf_regs.end())
             goto not_matched;
 
-          for (int i=1; i <= 3; i++)
+          for (int i=offset1; i <= (offset1 + 2); i++)
             if (matches[i].length())
               try
                 {
@@ -6269,10 +6321,8 @@ sdt_query::setup_note_probe_entry (int type, const char *data, size_t len)
 
   arg_count = 0;
   for (unsigned i = 0; i < arg_string.length(); i++)
-    if (arg_string[i] == ' ')
+    if (arg_string[i] == '@')
       arg_count += 1;
-  if (arg_string.length() != 0)
-    arg_count += 1;
   
   GElf_Addr base_ref;
   if (gelf_getclass (elf) == ELFCLASS32)
