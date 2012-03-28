@@ -106,7 +106,11 @@ catch {close}; catch {wait}
 if {$ok == 6} {
     pass "$test $pbtype_mssg"
 } else {
-    fail "$test ($ok) $pbtype_mssg"
+    if {[regexp "^(arm.*)$" $::tcl_platform(machine)] && $pbtype_mssg == "V2_uprobe"} {
+        xfail "$test ($ok) $pbtype_mssg"
+    } else {
+        fail "$test ($ok) $pbtype_mssg"
+    }
 }
 
 # 2. Test attaching to a running process
@@ -147,7 +151,11 @@ catch {close}; catch {wait}
 if {$ok == 6} {
     pass "$test $pbtype_mssg attach"
 } else {
-    fail "$test ($ok) $pbtype_mssg attach"
+    if {[regexp "^(arm.*)$" $::tcl_platform(machine)] && $pbtype_mssg == "V2_uprobe"} {
+        xfail "$test ($ok) $pbtype_mssg attach"
+    } else {
+        fail "$test ($ok) $pbtype_mssg attach"
+    }
 }
 
 set ok 0
@@ -197,9 +205,18 @@ set type_pedantic_mssg [lindex $type_pedantic_mssgs $p]
 set type_flags "[sdt_includes] additional_flags=-Wall additional_flags=-Werror"
 set type_flags "$type_flags additional_flags=-I. $pbtype_flag"
 set type_flags "$type_flags [lindex $extra_type_flags $j] [lindex $type_pedantics $p] [lindex $has_long_long $j]"
-if {![regexp "^i.86$" $::tcl_platform(machine)]} {
+if {![regexp "^(i.86|arm.*)$" $::tcl_platform(machine)]} {
     set type_flags "$type_flags additional_flags=-m64"
 }
+
+# On ARM these tests are known to fail with timeout for V1 and V2 probes.
+# Skip them altogether to speed execution.
+if {[regexp "^(arm.*)$" $::tcl_platform(machine)] && ($pbtype_mssg == "V1_uprobe" || $pbtype_mssg == "V2_kprobe" || $pbtype_mssg == "V2_uprobe")} {
+    xfail "$test types $pbtype_mssg $extra_type_mssg $type_pedantic_mssg"
+    continue
+}
+
+
 set res [target_compile $srcdir/$subdir/sdt_types.c sdt_types.x executable $type_flags]
 if { $res != "" } {
     verbose "target_compile failed: $res" 2
@@ -289,7 +306,11 @@ catch {close}; catch {wait}
 if {$ok == 6} {
     pass "$test shared $pbtype_mssg"
 } else {
-    fail "$test ($ok) shared $pbtype_mssg"
+    if {[regexp "^(arm.*)$" $::tcl_platform(machine)] && $pbtype_mssg == "V2_uprobe"} {
+        xfail "$test ($ok) shared $pbtype_mssg"
+    } else {
+        fail "$test ($ok) shared $pbtype_mssg"
+    }
 }
 
 # 5. Test attaching to a running process with markers in a shared object
@@ -338,7 +359,11 @@ catch {close}; catch {wait}
 if {$ok == 6} {
     pass "$test $pbtype_mssg shared attach"
 } else {
-    fail "$test ($ok) $pbtype_mssg shared attach"
+    if {[regexp "^(arm.*)$" $::tcl_platform(machine)] && $pbtype_mssg == "V2_uprobe"} {
+       xfail "$test ($ok) $pbtype_mssg shared attach"
+    } else {
+       fail "$test ($ok) $pbtype_mssg shared attach"
+    }
 }
 
 set ok 0
@@ -388,7 +413,7 @@ expect {
 
 catch {close}; catch {wait}
 
-if { $ok == 51 || $ok == 48 || (($ok == 43 || $ok == 40 ) && [regexp "^(i.86)$" $::tcl_platform(machine)])} {
+if { $ok == 51 || $ok == 48 || (($ok == 43 || $ok == 40 ) && [regexp "^(i.86|arm.*)$" $::tcl_platform(machine)])} {
     pass "$test wildcard $pbtype_mssg"
 } else {
     fail "$test wildcard ($ok) $pbtype_mssg"
@@ -423,7 +448,11 @@ catch {close}; catch {wait}
 if {$ok == 1} {
     pass "$test $pbtype_mssg --types"
 } else {
-    fail "$test ($ok) $pbtype_mssg --types"
+    if {[regexp "^(arm.*)$" $::tcl_platform(machine)] && $pbtype_mssg == "V2_uprobe"} {
+        xfail "$test ($ok) $pbtype_mssg --types"
+    } else {
+        fail "$test ($ok) $pbtype_mssg --types"
+    }
 }
 
 } ; # end pbtype_flags
