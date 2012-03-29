@@ -142,6 +142,14 @@ stapiu_decrement_process_semaphores(struct stapiu_process *p,
 	/* The task may have exited while we weren't watching.  */
 	if (task) {
 		struct stapiu_consumer *c;
+
+		/* Holding the rcu read lock makes us atomic, and we
+		 * can't write userspace memory while atomic (which
+		 * could pagefault).  So, instead we lock the task
+		 * structure, then release the rcu read lock. */
+		get_task_struct(task);
+		rcu_read_unlock();
+
 		list_for_each_entry(c, consumers, target_consumer) {
 			if (c->sdt_sem_offset) {
 				unsigned long addr = p->base + c->sdt_sem_offset;
@@ -149,9 +157,11 @@ stapiu_decrement_process_semaphores(struct stapiu_process *p,
 						(unsigned short) -1);
 			}
 		}
+		put_task_struct(task);
 	}
-
-	rcu_read_unlock();
+	else {
+		rcu_read_unlock();
+	}
 }
 
 
