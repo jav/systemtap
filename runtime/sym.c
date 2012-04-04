@@ -270,12 +270,9 @@ static int _stp_build_id_check (struct _stp_module *m,
        * utrace, we can always just call get_user() (since we're
        * either reading kernel memory or tsk == current).
        *
-       * If no CONFIG_UTRACE, we have to check for tsk != current,
-       * which mean we need to call __access_process_vm(). We can't
-       * call __access_process_vm() on RHEL5 ia64 since it calls
-       * copy_to_user_page(), which calls flush_icache_user_range(),
-       * which calls flush_icache_range(), which isn't exported.
-       * Sigh.
+       * Since we're only reading here, we can call
+       * __access_process_vm_noflush(), which only calls things that
+       * are exported.
        */
 #ifdef CONFIG_UTRACE
       rc = get_user(practice, ((unsigned char*)(void*)(notes_addr + j)));
@@ -284,8 +281,8 @@ static int _stp_build_id_check (struct _stp_module *m,
 	rc = get_user(practice, ((unsigned char*)(void*)(notes_addr + j)));
       }
       else {
-	rc = (__access_process_vm(tsk, (notes_addr + j), &practice, 1, 0)
-	      != 1);
+	rc = (__access_process_vm_noflush(tsk, (notes_addr + j), &practice,
+					  1, 0) != 1);
       }
 #endif
     }
