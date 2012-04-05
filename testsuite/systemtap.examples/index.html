@@ -197,6 +197,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 </li><li><a name="network/nfsd_unlink.stp"></a><a href="#network/nfsd_unlink.stp">&para;</a> <a href="network/nfsd_unlink.stp">network/nfsd_unlink.stp</a> - Find Which Client Is Removing NFS Files on Server<br>
 keywords: <a href="keyword-index.html#NFS">NFS</a> <a href="keyword-index.html#DISK">DISK</a> <br>
 <p>The nfsd_unlink.stp script lists the ip address and file name each time time a file is being removed or unlinked by the nfsd. This script is run on the nfs server.<p><font size="-2"><pre># stap nfsd_unlink.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a name="network/nfsdtop.stp"></a><a href="#network/nfsdtop.stp">&para;</a> <a href="network/nfsdtop.stp">network/nfsdtop.stp</a> - Keep track of NFS server statistics<br>
+keywords: <a href="keyword-index.html#NFS">NFS</a> <a href="keyword-index.html#STATISTICS">STATISTICS</a> <br>
+<p>The nfsdtop.stp script gathers and displays NFS lookups,<p><font size="-2"><pre># stap nfsd_unlink.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li><li><a name="network/sk_stream_wait_memory.stp"></a><a href="#network/sk_stream_wait_memory.stp">&para;</a> <a href="network/sk_stream_wait_memory.stp">network/sk_stream_wait_memory.stp</a> - Track Start and Stop of Processes Due to Network Buffer Space<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
 <p>The sk_stream-wait_memory.stp prints a time stamp, executable, and pid each time a process blocks due to the send buffer being full. A similar entry is printed each time a process continues because there is room in the buffer.<p><font size="-2"><pre># stap sk_stream_wait_memory.stp -c &quot;sleep 0.2&quot;</pre></font></p>

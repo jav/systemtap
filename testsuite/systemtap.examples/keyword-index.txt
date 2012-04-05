@@ -980,6 +980,14 @@ keywords: nfs disk
   # stap nfsd_unlink.stp -c "sleep 0.2"
 
 
+network/nfsdtop.stp - Keep track of NFS server statistics
+keywords: nfs statistics
+
+  The nfsdtop.stp script gathers and displays NFS lookups,
+
+  # stap nfsd_unlink.stp -c "sleep 0.2"
+
+
 = NUMA =
 
 memory/numa_faults.stp - Summarize Process Misses across NUMA Nodes
@@ -1625,6 +1633,14 @@ keywords: memory slab statistics
   user-space processes.
 
   # stap vm.tracepoints.stp -c "sleep 10"
+
+
+network/nfsdtop.stp - Keep track of NFS server statistics
+keywords: nfs statistics
+
+  The nfsdtop.stp script gathers and displays NFS lookups,
+
+  # stap nfsd_unlink.stp -c "sleep 0.2"
 
 
 network/tcpipstat.stp - Display Network Statistics for Individual TCP Sockets

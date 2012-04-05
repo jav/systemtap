@@ -357,6 +357,9 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 </li><li><a href="network/nfsd_unlink.stp">network/nfsd_unlink.stp</a> - Find Which Client Is Removing NFS Files on Server<br>
 keywords: <a href="keyword-index.html#NFS">NFS</a> <a href="keyword-index.html#DISK">DISK</a> <br>
 <p>The nfsd_unlink.stp script lists the ip address and file name each time time a file is being removed or unlinked by the nfsd. This script is run on the nfs server.<p><font size="-2"><pre># stap nfsd_unlink.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a href="network/nfsdtop.stp">network/nfsdtop.stp</a> - Keep track of NFS server statistics<br>
+keywords: <a href="keyword-index.html#NFS">NFS</a> <a href="keyword-index.html#STATISTICS">STATISTICS</a> <br>
+<p>The nfsdtop.stp script gathers and displays NFS lookups,<p><font size="-2"><pre># stap nfsd_unlink.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li></ul>
 <h3><a name="NUMA"><a href="#NUMA">&para;</a> NUMA</a></h3>
 <ul>
@@ -555,6 +558,9 @@ keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keywor
 </li><li><a href="memory/vm.tracepoints.stp">memory/vm.tracepoints.stp</a> - Collect Slab Allocation Statistics<br>
 keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.html#SLAB">SLAB</a> <a href="keyword-index.html#STATISTICS">STATISTICS</a> <br>
 <p>The script will probe all memory slab/slub allocations and collects information about the size of the object (bytes requested) and user-space process in execution. When run over a period of time, it helps to correlate kernel-space memory consumption owing to user-space processes.<p><font size="-2"><pre># stap vm.tracepoints.stp -c &quot;sleep 10&quot;</pre></font></p>
+</li><li><a href="network/nfsdtop.stp">network/nfsdtop.stp</a> - Keep track of NFS server statistics<br>
+keywords: <a href="keyword-index.html#NFS">NFS</a> <a href="keyword-index.html#STATISTICS">STATISTICS</a> <br>
+<p>The nfsdtop.stp script gathers and displays NFS lookups,<p><font size="-2"><pre># stap nfsd_unlink.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li><li><a href="network/tcpipstat.stp">network/tcpipstat.stp</a> - Display Network Statistics for Individual TCP Sockets<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#STATISTICS">STATISTICS</a> <br>
 <p>The tcpipstat script collects and displays network statistics related to individual TCP sockets or groups of sockets.  The statistics that are collected are simular to that of the command netstat -s, only sorted and grouped by individual sockets.<p><font size="-2"><pre># stap tcpipstat.stp timeout=1</pre></font></p>

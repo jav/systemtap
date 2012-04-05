@@ -1,3 +1,5 @@
+#! /usr/bin/env stap
+
 # nfsd global counters
 global nfsd_lookups
 global nfsd_reads
