@@ -1,0 +1,122 @@
+# nfsd global counters
+global nfsd_lookups
+global nfsd_reads
+global nfsd_read_bytes
+global nfsd_writes
+global nfsd_write_bytes
+global nfsd_creates
+global nfsd_commits
+global nfsd_removes
+
+# nfsd client tables
+global nfsd_lookup_clients
+global nfsd_lookup_clients_last_file
+global nfsd_read_clients
+global nfsd_read_clients_bytes
+global nfsd_write_clients
+global nfsd_write_clients_bytes
+
+
+# Accumulate lookup stats
+# Keep a count of lookups globally and by client_ip
+# also keep track of the last file looked up by each
+# client_ip
+probe nfsd.proc.lookup {
+	nfsd_lookups++
+	nfsd_lookup_clients[client_ip]++
+	nfsd_lookup_clients_last_file[client_ip] = filename
+}
+
+# Accumulate read stats
+# Keep a count of reads globally and by client_ip
+# also keep track of the number of bytes read globally
+# and per-client_ip
+probe nfsd.proc.read {
+	nfsd_reads++
+	nfsd_read_bytes+=size
+	nfsd_read_clients[client_ip]++
+	nfsd_read_clients_bytes[client_ip] += size
+}
+
+# Accumulate write stats
+# Keep a count of writes globally and by client_ip
+# also keep track of the number of bytes writen globally
+# and per-client_ip
+probe nfsd.proc.write {
+	nfsd_writes++
+	nfsd_write_bytes+=size
+	nfsd_write_clients[client_ip]++
+	nfsd_write_clients_bytes[client_ip] += size
+}
+
+# Just count creates for now
+probe nfsd.proc.create {
+	nfsd_creates++
+}
+
+# Just count commits for now
+probe nfsd.proc.commit {
+	nfsd_commits++
+}
+
+# Just count removes for now
+probe nfsd.proc.remove {
+	nfsd_removes++
+}
+
+# This is our "main loop" executed once every $interval
+# We clear the terminal (top-style screen updates) and then
+# to write out all our stats areas as fast as possible.
+# Currently there are three sections:
+#
+# Global stats
+# Top 10 lookup clients
+# Top 10 reading clients
+# Top 10 writing clients
+#
+probe timer.ms(1000)
+{
+	ansi_clear_screen()
+	print("\n")
+	printf("lookups  : %8d\n", nfsd_lookups)
+	printf("reads    : %8d\n", nfsd_reads)
+	printf("r/bytes  : %8d KiB\n", nfsd_read_bytes >> 10)
+	printf("writes   : %8d\n", nfsd_writes)
+	printf("w/bytes  : %8d KiB\n", nfsd_write_bytes >> 10)
+	printf("creates  : %8d\n", nfsd_creates)
+	printf("commits  : %8d\n", nfsd_commits)
+	printf("removes  : %8d\n", nfsd_removes)
+	printf("\n")
+	print("lookups\n")
+	printf("client\tlast file\n")
+	foreach (ip in nfsd_lookup_clients- limit 10)
+		printf("%s\t%s\n", ip, nfsd_lookup_clients_last_file[ip])
+	print("\n")
+	print("reads\n")
+	printf("client\t\t\treads\tbytes\n")
+	foreach (ip in nfsd_read_clients_bytes- limit 10)
+		printf("%s\t%d\t%d\n", ip, nfsd_read_clients[ip],
+			nfsd_read_clients_bytes[ip])
+	print("\n")
+	printf("writes\t\t\twrites\tbytes\n")
+	foreach (ip in nfsd_write_clients_bytes- limit 10)
+		printf("%s\t%d\t%d\n", ip, nfsd_write_clients[ip],
+			nfsd_write_clients_bytes[ip])
+
+	delete nfsd_lookups
+	delete nfsd_reads
+	delete nfsd_read_bytes
+	delete nfsd_writes
+	delete nfsd_write_bytes
+	delete nfsd_creates
+	delete nfsd_commits
+	delete nfsd_removes
+
+	delete nfsd_lookup_clients
+	delete nfsd_lookup_clients_last_file
+	delete nfsd_read_clients
+	delete nfsd_read_clients_bytes
+	delete nfsd_write_clients
+	delete nfsd_write_clients_bytes
+
+}
