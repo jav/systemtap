@@ -1271,7 +1271,7 @@ keywords: profiling
   # stap pf2.stp -c "sleep 0.2"
 
 
-profiling/pf3.stp - Profile Kernel Functions
+profiling/pf3.stp - Profile Kernel/User Functions
 keywords: profiling
 
   The pf3.stp script sets up time-based sampling. Every five seconds it
