@@ -1,4 +1,4 @@
-title: Profile Kernel Functions
+title: Profile Kernel/User Functions
 name: pf3.stp
 keywords: profiling
 exit: user-controlled
