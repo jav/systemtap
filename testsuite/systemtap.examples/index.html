@@ -242,9 +242,6 @@ keywords: <a href="keyword-index.html#SCHEDULER">SCHEDULER</a> <br>
 </li><li><a name="process/noptrace.stp"></a><a href="#process/noptrace.stp">&para;</a> <a href="process/noptrace.stp">process/noptrace.stp</a> - Disable ptrace from Hierarchies of Processes<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <br>
 <p>Blocks ptrace(2) attempts from processes identified by stap -c/-x, as also specifiable from /proc/systemtap/stap_XXX/ control files.  Processes may be added or removed from the blocked list.<p><font size="-2"><pre># stap -g noptrace.stp -c &#39;strace ls || true&#39;</pre></font></p>
-</li><li><a name="process/pf2.stp"></a><a href="#process/pf2.stp">&para;</a> <a href="process/pf2.stp">process/pf2.stp</a> - Profile Kernel Functions<br>
-keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
-<p>The pf2.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top ten kernel functions with samples.<p><font size="-2"><pre># stap pf2.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li><li><a name="process/pfiles.stp"></a><a href="#process/pfiles.stp">&para;</a> <a href="process/pfiles.stp">process/pfiles.stp</a> - Print Process File Descriptors<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#FILE">FILE</a> <br>
 <p>Run pfiles.stp to produce a human-readable summary of all open file descriptors of a given process.  Specify the process-id as -x PID for fastest performance.<p><font size="-2"><pre># stap -g pfiles.stp -x $$</pre></font></p>
@@ -305,6 +302,12 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 </li><li><a name="profiling/periodic.stp"></a><a href="#profiling/periodic.stp">&para;</a> <a href="profiling/periodic.stp">profiling/periodic.stp</a> - Show the Period of the Various Timers on the System<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The periodic.stp script uses the  kernel.trace(&quot;timer_expire_entry&quot;) tracepoint to collect data on period and frequency of the various timers on the system.  The script displays a sorted list of the timers observed on the system from most frequent to least frequent. The script needs to be compiled with the &#39;--all-modules&#39; option to produce list the function names.  Optionally, this script can be used with a numerical argument to indicate the interval in seconds between printing output.<p><font size="-2"><pre># stap periodic.stp --all-modules -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a name="profiling/pf2.stp"></a><a href="#profiling/pf2.stp">&para;</a> <a href="profiling/pf2.stp">profiling/pf2.stp</a> - Profile Kernel Functions<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p>The pf2.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top ten kernel functions with samples.<p><font size="-2"><pre># stap pf2.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a name="profiling/pf3.stp"></a><a href="#profiling/pf3.stp">&para;</a> <a href="profiling/pf3.stp">profiling/pf3.stp</a> - Profile Kernel Functions<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p>The pf3.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top twenty kernel and/or user functions with samples.  Use any of --ldd, --all-modules, -d MODULE, -d /PATH/TO/EXEC to add more symbolic info.<p><font size="-2"><pre># stap pf3.stp -c &quot;sleep 6&quot; --all-modules --ldd</pre></font></p>
 </li><li><a name="profiling/sched_switch.stp"></a><a href="#profiling/sched_switch.stp">&para;</a> <a href="profiling/sched_switch.stp">profiling/sched_switch.stp</a> - Display the Task Switches Happening in the Scheduler<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#FUNCTION">FUNCTION</a> <br>
 <p>The sched_switch.stp script takes two arguments, first argument can be &quot;pid&quot; or &quot;name&quot; to indicate what is being passed as second argument. The script will trace the process based on pid/name and print the scheduler switches happening with the process. If no arguments are passed, it displays all the scheduler switches. This can be used to understand which tasks schedule out the current process being traced, and when it gets scheduled in again.<p><font size="-2"><pre># stap  sched_switch.stp -c &quot;sleep 1&quot;</pre></font></p>

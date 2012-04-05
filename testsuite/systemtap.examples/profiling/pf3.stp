@@ -1,0 +1,18 @@
+#! /usr/bin/env stap
+
+global profile[20000], pcount
+probe timer.profile {
+  pcount <<< 1
+  fn = user_mode() ?
+      ("u:".umodname(uaddr()).":".usymname(uaddr()))  :
+      ("k:".modname(addr()).":".symname(addr()));
+  profile[fn] <<< 1
+}
+probe timer.ms(5000) {
+  printf ("\n--- %d samples recorded:\n", @count(pcount))
+  foreach (f in profile- limit 20) {
+    printf ("%-30s\t%6d\n", f, @count(profile[f]))
+  }
+  delete profile
+  delete pcount
+}

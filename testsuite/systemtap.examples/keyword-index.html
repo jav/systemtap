@@ -417,9 +417,6 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-
 </li><li><a href="io/nfs_func_users.stp">io/nfs_func_users.stp</a> - Tally the Number of NFS Functions Used by Each Process<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The nfs_func_users.stp script counts the uses of NFS functions in the kernel on a per process bases.  The output is sorted from the process with the greatest number of NFS functions called to the least. The output contains the executable name, the process number, and the total number of NFS functions called by the process.<p><font size="-2"><pre># stap nfs_func_users.stp -c &quot;sleep 0.2&quot;</pre></font></p>
-</li><li><a href="process/pf2.stp">process/pf2.stp</a> - Profile Kernel Functions<br>
-keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
-<p>The pf2.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top ten kernel functions with samples.<p><font size="-2"><pre># stap pf2.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li><li><a href="profiling/errno.stp">profiling/errno.stp</a> - Show Which Processes and System Calls Return Errors Most Frequently<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>On exit the errno.stp script provides a sorted list showing which combination of PID, system call, and error occur most frequently.<p><font size="-2"><pre># stap errno.stp -c &quot;sleep 0.2&quot;</pre></font></p>
@@ -438,6 +435,12 @@ keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 </li><li><a href="profiling/periodic.stp">profiling/periodic.stp</a> - Show the Period of the Various Timers on the System<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
 <p>The periodic.stp script uses the  kernel.trace(&quot;timer_expire_entry&quot;) tracepoint to collect data on period and frequency of the various timers on the system.  The script displays a sorted list of the timers observed on the system from most frequent to least frequent. The script needs to be compiled with the &#39;--all-modules&#39; option to produce list the function names.  Optionally, this script can be used with a numerical argument to indicate the interval in seconds between printing output.<p><font size="-2"><pre># stap periodic.stp --all-modules -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a href="profiling/pf2.stp">profiling/pf2.stp</a> - Profile Kernel Functions<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p>The pf2.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top ten kernel functions with samples.<p><font size="-2"><pre># stap pf2.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a href="profiling/pf3.stp">profiling/pf3.stp</a> - Profile Kernel Functions<br>
+keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <br>
+<p>The pf3.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top twenty kernel and/or user functions with samples.  Use any of --ldd, --all-modules, -d MODULE, -d /PATH/TO/EXEC to add more symbolic info.<p><font size="-2"><pre># stap pf3.stp -c &quot;sleep 6&quot; --all-modules --ldd</pre></font></p>
 </li><li><a href="profiling/sched_switch.stp">profiling/sched_switch.stp</a> - Display the Task Switches Happening in the Scheduler<br>
 keywords: <a href="keyword-index.html#PROFILING">PROFILING</a> <a href="keyword-index.html#FUNCTION">FUNCTION</a> <br>
 <p>The sched_switch.stp script takes two arguments, first argument can be &quot;pid&quot; or &quot;name&quot; to indicate what is being passed as second argument. The script will trace the process based on pid/name and print the scheduler switches happening with the process. If no arguments are passed, it displays all the scheduler switches. This can be used to understand which tasks schedule out the current process being traced, and when it gets scheduled in again.<p><font size="-2"><pre># stap  sched_switch.stp -c &quot;sleep 1&quot;</pre></font></p>

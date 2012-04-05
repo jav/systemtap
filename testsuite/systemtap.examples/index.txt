@@ -749,16 +749,6 @@ keywords: process security
   # stap -g noptrace.stp -c 'strace ls || true'
 
 
-process/pf2.stp - Profile Kernel Functions
-keywords: profiling
-
-  The pf2.stp script sets up time-based sampling. Every five seconds it
-  prints out a sorted list with the top ten kernel functions with
-  samples.
-
-  # stap pf2.stp -c "sleep 0.2"
-
-
 process/pfiles.stp - Print Process File Descriptors
 keywords: process file
 
@@ -976,6 +966,27 @@ keywords: profiling
   printing output.
 
   # stap periodic.stp --all-modules -c "sleep 0.2"
+
+
+profiling/pf2.stp - Profile Kernel Functions
+keywords: profiling
+
+  The pf2.stp script sets up time-based sampling. Every five seconds it
+  prints out a sorted list with the top ten kernel functions with
+  samples.
+
+  # stap pf2.stp -c "sleep 0.2"
+
+
+profiling/pf3.stp - Profile Kernel Functions
+keywords: profiling
+
+  The pf3.stp script sets up time-based sampling. Every five seconds it
+  prints out a sorted list with the top twenty kernel and/or user
+  functions with samples.  Use any of --ldd, --all-modules, -d MODULE,
+  -d /PATH/TO/EXEC to add more symbolic info.
+
+  # stap pf3.stp -c "sleep 6" --all-modules --ldd
 
 
 profiling/sched_switch.stp - Display the Task Switches Happening in the Scheduler
