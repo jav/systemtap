@@ -9523,8 +9523,8 @@ fi
 
 
 if test "${have_nss}" != "yes"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: some compile server client functionality will be restricted, cannot find nss development files" >&5
-$as_echo "$as_me: WARNING: some compile server client functionality will be restricted, cannot find nss development files" >&2;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: compile-server client functionality will be disabled, cannot find nss development files" >&5
+$as_echo "$as_me: WARNING: compile-server client functionality will be disabled, cannot find nss development files" >&2;}
 fi
 
 

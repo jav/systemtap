@@ -1046,11 +1046,13 @@ main (int argc, char * const argv [])
         clog << _F("Session arch: %s release: %s",
                    ss.architecture.c_str(), ss.kernel_release.c_str()) << endl;
 
+#if HAVE_NSS
       // If requested, query server status. This is independent of other tasks.
       query_server_status (ss);
 
       // If requested, manage trust of servers. This is independent of other tasks.
       manage_server_trust (ss);
+#endif
 
       // Run the passes only if a script has been specified. The requirement for
       // a script has already been checked in systemtap_session::check_options.

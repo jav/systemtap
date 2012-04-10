@@ -7,6 +7,10 @@
  Public License (GPL); either version 2, or (at your option) any
  later version.
 */
+#include "config.h"
+
+// Disable the code in this file if NSS is not available
+#if HAVE_NSS
 #include "util.h"
 #include "cscommon.h"
 
@@ -18,12 +22,10 @@
 #include <cassert>
 #include <iomanip>
 
-#if HAVE_NSS
 extern "C"
 {
 #include <ssl.h>
 }
-#endif
 
 using namespace std;
 
@@ -77,7 +79,6 @@ cs_protocol_version::operator< (const cs_protocol_version &that) const
   return false;
 }
 
-#if HAVE_NSS
 int
 read_from_file (const string &fname, cs_protocol_version &data)
 {

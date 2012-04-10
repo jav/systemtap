@@ -1277,6 +1277,12 @@ systemtap_session::check_options (int argc, char * const argv [])
   if (client_options)
     print_warning("--client-options is not supported by this version of systemtap");
 
+  if (! server_status_strings.empty ())
+    {
+      print_warning("--list-servers is not supported by this version of systemtap");
+      server_status_strings.clear ();
+    }
+
   if (! server_trust_spec.empty ())
     {
       print_warning("--trust-servers is not supported by this version of systemtap");

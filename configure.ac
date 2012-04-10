@@ -338,7 +338,7 @@ fi
 AM_CONDITIONAL([BUILD_SERVER], [test "${have_nss}" == "yes" -a "$enable_server" != "no"])
 
 if test "${have_nss}" != "yes"; then
-  AC_MSG_WARN([some compile server client functionality will be restricted, cannot find nss development files])
+  AC_MSG_WARN([compile-server client functionality will be disabled, cannot find nss development files])
 fi		       
 
 dnl See if we have the avahi libraries and headers

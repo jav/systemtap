@@ -7,7 +7,10 @@
  Public License (GPL); either version 2, or (at your option) any
  later version.
 */
+
+// Completely disable the client if NSS is not available.
 #include "config.h"
+#if HAVE_NSS
 #include "session.h"
 #include "cscommon.h"
 #include "csclient.h"
@@ -49,7 +52,6 @@ extern "C" {
 }
 #endif // HAVE_AVAHI
 
-#if HAVE_NSS
 extern "C" {
 #include <ssl.h>
 #include <nspr.h>
@@ -62,7 +64,6 @@ extern "C" {
 }
 
 #include "nsscommon.h"
-#endif // HAVE_NSS
 
 using namespace std;
 
@@ -226,7 +227,6 @@ static void resolve_host (systemtap_session& s, compile_server_info &server, vec
 #define CA_CERT_INVALID_ERROR     2
 #define SERVER_CERT_EXPIRED_ERROR 3
 
-#if HAVE_NSS
 // -----------------------------------------------------
 // NSS related code used by the compile server client
 // -----------------------------------------------------
@@ -1998,7 +1998,6 @@ get_server_info_from_db (
 
   nssCleanup (cert_db_path.c_str ());
 }
-#endif // HAVE_NSS
 
 // Utility Functions.
 //-----------------------------------------------------------------------
@@ -2242,7 +2241,6 @@ void
 manage_server_trust (systemtap_session &s)
 {
   // This function should do nothing if we don't have NSS.
-#if HAVE_NSS
   // Nothing to do if --trust-servers was not specified.
   if (s.server_trust_spec.empty ())
     return;
@@ -2388,7 +2386,6 @@ manage_server_trust (systemtap_session &s)
       else
 	add_server_trust (s, cert_db_path, server_list);
     }
-#endif // HAVE_NSS
 }
 
 static compile_server_cache*
@@ -2825,7 +2822,6 @@ get_or_keep_trusted_server_info (
       // performed, in case the search comes up empty.
       trusted_servers.push_back (compile_server_info ());
 
-#if HAVE_NSS
       // Check the private database first.
       string cert_db_path = private_ssl_cert_db_path ();
       get_server_info_from_db (s, trusted_servers, cert_db_path);
@@ -2833,12 +2829,6 @@ get_or_keep_trusted_server_info (
       // Now check the global database.
       cert_db_path = global_ssl_cert_db_path ();
       get_server_info_from_db (s, trusted_servers, cert_db_path);
-#else // ! HAVE_NSS
-      // Without NSS, we can't determine whether a server is trusted.
-      // Issue a warning.
-      if (s.verbose >= 2)
-	clog << _("Unable to determine server trust as an SSL peer without NSS") << endl;
-#endif // ! HAVE_NSS
     } // Server information is not cached
 
   if (keep)
@@ -2875,16 +2865,9 @@ get_or_keep_signing_server_info (
       // performed, in case the search comes up empty.
       signing_servers.push_back (compile_server_info ());
 
-#if HAVE_NSS
       // For all users, check the global database.
       string cert_db_path = signing_cert_db_path ();
       get_server_info_from_db (s, signing_servers, cert_db_path);
-#else // ! HAVE_NSS
-      // Without NSS, we can't determine whether a server is a trusted
-      // signer. Issue a warning.
-      if (s.verbose >= 2)
-	clog << _("Unable to determine server trust as a module signer without NSS") << endl;
-#endif // ! HAVE_NSS
     } // Server information is not cached
 
   if (keep)
@@ -3525,5 +3508,6 @@ merge_server_info (
     merge_server_info (*i, target);
 }
 #endif
+#endif // HAVE_NSS
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */

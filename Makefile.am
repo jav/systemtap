@@ -52,7 +52,7 @@ stap_SOURCES = main.cxx session.cxx \
 	tapset-been.cxx tapset-procfs.cxx tapset-timers.cxx \
 	tapset-perfmon.cxx tapset-mark.cxx tapset-itrace.cxx \
 	tapset-utrace.cxx task_finder.cxx dwflpp.cxx rpm_finder.cxx \
-	setupdwfl.cxx csclient.cxx cscommon.cxx remote.cxx privilege.cxx cmdline.cxx
+	setupdwfl.cxx remote.cxx privilege.cxx cmdline.cxx
 noinst_HEADERS = sdt_types.h
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ @LIBINTL@
 stap_DEPENDENCIES =
@@ -114,7 +114,7 @@ stap_LDADD += $(avahi_LIBS)
 endif
 
 if HAVE_NSS
-stap_SOURCES += nsscommon.cxx
+stap_SOURCES += nsscommon.cxx csclient.cxx cscommon.cxx 
 stap_CFLAGS += $(nss_CFLAGS) -DSTAP
 stap_CXXFLAGS += $(nss_CFLAGS)
 stap_CPPFLAGS += $(nss_CFLAGS)

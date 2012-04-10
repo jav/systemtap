@@ -55,10 +55,10 @@ private:
   unsigned argc;
   cs_protocol_version server_version;
 };
-#endif // HAVE_NSS
 
 // Utility functions
 void query_server_status (systemtap_session &s);
 void manage_server_trust (systemtap_session &s);
+#endif // HAVE_NSS
 
 #endif // CSCLIENT_H
