@@ -475,12 +475,12 @@ Neither form of stap\-server will run if the selected user is root.
 
 .TP
 2
-Run stap\-server with resource limits that impose maximum 
+Run stap\-server requests with resource limits that impose maximum 
 cpu time, file size, memory consumption, in order to bound
 the effects of processing excessively large or bogus inputs.
 
-When the user running the servers is \fIstap\-server\fR,
-each server is run with limits specified in \fI~stap-server/.systemtap/rc\fR
+When the user running the server is \fIstap\-server\fR,
+each server request is run with limits specified in \fI~stap-server/.systemtap/rc\fR
 otherwise, no limits are imposed.
 
 .TP
