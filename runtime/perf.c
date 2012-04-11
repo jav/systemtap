@@ -37,7 +37,7 @@ static long _stp_perf_init (struct stap_perf_probe *stp)
 	}
 
 	/* initialize event on each processor */
-	stp_for_each_cpu(cpu) {
+	for_each_possible_cpu(cpu) {
 		struct perf_event **event = per_cpu_ptr (stp->events, cpu);
 		if (cpu_is_offline(cpu)) {
 			*event = NULL;
@@ -76,7 +76,7 @@ static void _stp_perf_del (struct stap_perf_probe *stp)
 	if (stp && stp->events) {
 		int cpu;
 		/* shut down performance event sampling */
-		stp_for_each_cpu(cpu) {
+		for_each_possible_cpu(cpu) {
 			struct perf_event **event = per_cpu_ptr (stp->events, cpu);
 			if (*event) {
 				perf_event_release_kernel(*event);

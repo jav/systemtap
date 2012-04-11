@@ -109,7 +109,7 @@ static int _stp_register_ctl_channel_fs(void)
 
 #ifdef STP_BULKMODE
 	/* now for each cpu "n", create /proc/systemtap/module_name/n  */
-	stp_for_each_cpu(i) {
+	for_each_possible_cpu(i) {
 		snprintf(buf, sizeof(buf), "%d", i);
 		de = create_proc_entry(buf, 0600, _stp_proc_root);
 		if (de == NULL)
@@ -141,7 +141,7 @@ err1:
 #ifdef STP_BULKMODE
 	for (de = _stp_proc_root->subdir; de; de = de->next)
 		_stp_kfree(de->data);
-	stp_for_each_cpu(j) {
+	for_each_possible_cpu(j) {
 		if (j == i)
 			break;
 		snprintf(buf, sizeof(buf), "%d", j);
@@ -167,7 +167,7 @@ static void _stp_unregister_ctl_channel_fs(void)
 	for (de = _stp_proc_root->subdir; de; de = de->next)
 		_stp_kfree(de->data);
 
-	stp_for_each_cpu(i) {
+	for_each_possible_cpu(i) {
 		snprintf(buf, sizeof(buf), "%d", i);
 		remove_proc_entry(buf, _stp_proc_root);
 	}

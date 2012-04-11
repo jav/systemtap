@@ -732,7 +732,7 @@ struct mapvar
     if(wrap == true)
       {
         if(mtype == "pmap")
-          suffix = suffix + " else { stp_for_each_cpu(cpu) { MAP mp = per_cpu_ptr(" + value() + "->map, cpu); mp->wrap = 1; }} ";
+          suffix = suffix + " else { for_each_possible_cpu(cpu) { MAP mp = per_cpu_ptr(" + value() + "->map, cpu); mp->wrap = 1; }} ";
         else
           suffix = suffix + " else " + value() + "->wrap = 1;";
       }

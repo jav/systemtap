@@ -57,10 +57,6 @@
 #define STP_TRANSPORT_VERSION 1
 #endif
 
-#ifndef stp_for_each_cpu
-#define stp_for_each_cpu(cpu)  for_each_cpu_mask((cpu), cpu_possible_map)
-#endif
-
 #ifndef clamp
 #define clamp(val, low, high)     min(max(low, val), high)
 #endif
