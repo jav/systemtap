@@ -27,7 +27,7 @@ extern "C" {
 // ------------------------------------------------------------------------
 
 struct derived_probe;
-struct match_node;
+class match_node;
 
 struct symresolution_info: public traversing_visitor
 {
@@ -121,7 +121,7 @@ struct typeresolution_info: public visitor
 // provider may transform it.
 
 class translator_output;
-class derived_probe_group;
+struct derived_probe_group;
 
 struct derived_probe: public probe
 {

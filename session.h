@@ -42,8 +42,8 @@ extern "C" {
         autosprintf(_N((format), (format_plural), (count)), __VA_ARGS__)
 
 // forward decls for all referenced systemtap types
-struct hash;
-struct match_node;
+class hash;
+class match_node;
 struct stapfile;
 struct vardecl;
 struct token;
@@ -65,7 +65,7 @@ struct tracepoint_derived_probe_group;
 struct hrtimer_derived_probe_group;
 struct procfs_derived_probe_group;
 struct embeddedcode;
-struct translator_output;
+class translator_output;
 struct unparser;
 struct semantic_error;
 struct module_cache;

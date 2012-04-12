@@ -53,11 +53,11 @@ extern "C" {
 #define STAP_T_07 _("\"histogram index out of range\";")
 using namespace std;
 
-struct var;
+class var;
 struct tmpvar;
 struct aggvar;
 struct mapvar;
-struct itervar;
+class itervar;
 
 struct c_unparser: public unparser, public visitor
 {

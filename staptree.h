@@ -215,7 +215,7 @@ classify_const_indexable(const indexable* ix,
 			 symbol const *& array_out,
 			 hist_op const *& hist_out);
 
-class vardecl;
+struct vardecl;
 struct symbol:
   public expression,
   public indexable
@@ -317,7 +317,7 @@ struct arrayindex: public expression
 };
 
 
-class functiondecl;
+struct functiondecl;
 struct functioncall: public expression
 {
   std::string function;
