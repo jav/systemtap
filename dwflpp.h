@@ -375,7 +375,7 @@ private:
 
   bool has_single_line_record (dwarf_query * q, char const * srcfile, int lineno);
 
-  static void loc2c_error (void *, const char *fmt, ...);
+  static void loc2c_error (void *, const char *fmt, ...) __attribute__ ((noreturn));
 
   // This function generates code used for addressing computations of
   // target variables.
