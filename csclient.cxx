@@ -2634,7 +2634,7 @@ isIPv4 (const string &server, compile_server_info &server_info)
 	return false; // Not a valid IPv4 address
       errno = 0;
       char *estr;
-      unsigned long p = strtoul (components[i].c_str(), & estr, 10);
+      long p = strtol (components[i].c_str(), & estr, 10);
       if (errno != 0 || *estr != '\0' || p < 0 || p > 255)
 	return false; // Not a valid IPv4 address
     }
