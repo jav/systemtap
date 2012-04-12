@@ -6009,7 +6009,7 @@ struct sdt_query : public base_query
 
 private:
   stap_sdt_probe_type probe_type;
-  enum {probe_section=0, note_section=1} probe_loc;
+  enum { probe_section=0, note_section=1, unknown_section=-1 } probe_loc;
   probe * base_probe;
   probe_point * base_loc;
   literal_map_t const & params;
@@ -6055,7 +6055,8 @@ private:
 sdt_query::sdt_query(probe * base_probe, probe_point * base_loc,
                      dwflpp & dw, literal_map_t const & params,
                      vector<derived_probe *> & results, const string user_lib):
-  base_query(dw, params), probe_type(probe_type), probe_loc(probe_loc), base_probe(base_probe),
+  base_query(dw, params), probe_type(unknown_probe_type),
+  probe_loc(unknown_section), base_probe(base_probe),
   base_loc(base_loc), params(params), results(results), user_lib(user_lib),
   probe_scn_offset(0), probe_scn_addr(0), arg_count(0), base(0), pc(0),
   semaphore(0)
@@ -6106,6 +6107,9 @@ sdt_query::handle_probe_entry()
 	  break;
 	case kprobe2_type:
 	  clog << "kprobe2" << endl;
+	  break;
+	default:
+	  clog << "unknown!" << endl;
 	  break;
 	}
     }
@@ -6218,7 +6222,7 @@ sdt_query::handle_query_module()
 	base = 0;
       dw.iterate_over_notes ((void*) this, &sdt_query::setup_note_probe_entry_callback);
     }
-  else
+  else if (probe_loc == probe_section)
     iterate_over_probe_entries ();
 }
 

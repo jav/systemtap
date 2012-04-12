@@ -18,7 +18,8 @@ typedef enum
     kprobe1_type = KPROBE1_TYPE,
     uprobe2_type = UPROBE2_TYPE,
     kprobe2_type = KPROBE2_TYPE,
-    uprobe3_type = UPROBE3_TYPE
+    uprobe3_type = UPROBE3_TYPE,
+    unknown_probe_type = -1,
   } stap_sdt_probe_type;
 
 typedef struct
