@@ -7,7 +7,8 @@ set stap_path $env(SYSTEMTAP_PATH)/stap
 set output_string "pass:yes:0\r\n"
 set invoke "$stap_path -p4 -e 'probe begin \{ log(\"start\")\}'"
 
-# Only run on make installcheck
+# Only run on make installcheck and uprobes present.
 if {! [installtest_p]} { untested "$test"; return }
+if {! [uprobes_p]} { untested "$test"; return }
 
 stap_run ${test} no_load $output_string ${testpath}/${test}.stp -c $invoke
