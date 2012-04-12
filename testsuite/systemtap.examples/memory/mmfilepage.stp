@@ -9,13 +9,13 @@ function log_event:long ()
   return (!traced_pid || traced_pid == pid())
 }
 
-probe kernel.trace("mm_page_allocation") {
+probe kernel.trace("mm_page_alloc")!, kernel.trace("mm_page_allocation") {
   if (!log_event()) next
   allocation[pid()] <<< 1
   command[pid()] = execname()
 }
 
-probe kernel.trace("mm_page_free") {
+probe kernel.trace("mm_page_free")!, kernel.trace("mm_page_free_direct") {
   if (!log_event()) next
   free[pid()] <<< 1
 }
