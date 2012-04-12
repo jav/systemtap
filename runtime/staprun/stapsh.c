@@ -94,12 +94,14 @@ static pid_t staprun_pid = -1;
 
 static unsigned verbose = 0;
 
-#define dbug(level, format, args...) ( (verbose < level) ? 0 : \
-  fprintf (stderr, "stapsh:%s:%d " format, __FUNCTION__, __LINE__, ## args) )
+#define dbug(level, format, args...) do { if (verbose >= level)                \
+    fprintf (stderr, "stapsh:%s:%d " format, __FUNCTION__, __LINE__, ## args); \
+  } while (0)
 
-#define vdbug(level, format, args) ( (verbose < level) ? 0 : \
-  fprintf (stderr, "stapsh:%s:%d ", __FUNCTION__, __LINE__) + \
-  vfprintf (stderr, format, args) )
+#define vdbug(level, format, args) do { if (verbose >= level) { \
+    fprintf (stderr, "stapsh:%s:%d ", __FUNCTION__, __LINE__);  \
+    vfprintf (stderr, format, args);                            \
+  } } while (0)
 
 #define die(format, args...) ({ dbug(1, format, ## args); cleanup(2); })
 
