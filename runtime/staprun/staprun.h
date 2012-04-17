@@ -38,6 +38,7 @@
 
 /* Include config.h to pick up dependency for --prefix usage. */
 #include "config.h"
+#include "../../privilege.h"
 
 /* define gettext options if NLS is set */
 #if ENABLE_NLS
@@ -156,24 +157,30 @@ typedef void (*assert_permissions_func) (
   const char *module_path __attribute__ ((unused)),
   int module_fd __attribute__ ((unused)),
   const void *module_data __attribute__ ((unused)),
-  off_t module_size __attribute__ ((unused))
+  off_t module_size __attribute__ ((unused)),
+  privilege_t *user_credentials __attribute__ ((unused))
 );
 
 void assert_stap_module_permissions (
   const char *module_path __attribute__ ((unused)),
   int module_fd __attribute__ ((unused)),
   const void *module_data __attribute__ ((unused)),
-  off_t module_size __attribute__ ((unused))
+  off_t module_size __attribute__ ((unused)),
+  privilege_t *user_credentials __attribute__ ((unused))
 );
 
 void assert_uprobes_module_permissions (
   const char *module_path __attribute__ ((unused)),
   int module_fd __attribute__ ((unused)),
   const void *module_data __attribute__ ((unused)),
-  off_t module_size __attribute__ ((unused))
+  off_t module_size __attribute__ ((unused)),
+  privilege_t *user_credentials __attribute__ ((unused))
 );
+
 int insert_module(const char *path, const char *special_options,
-		  char **options, assert_permissions_func apf);
+		  char **options, assert_permissions_func apf,
+		  privilege_t *user_credentials
+);
 
 int rename_module(void* module_file, const __off_t st_size);
 

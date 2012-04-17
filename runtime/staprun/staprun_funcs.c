@@ -57,7 +57,8 @@ int insert_module(
   const char *path,
   const char *special_options,
   char **options,
-  assert_permissions_func assert_permissions
+  assert_permissions_func assert_permissions,
+  privilege_t *user_credentials
 ) {
 	int i;
 	long ret, module_read;
@@ -162,7 +163,7 @@ int insert_module(
 
 	/* Check whether this module can be loaded by the current user.
 	 * check_permissions will exit(-1) if permissions are insufficient*/
-	assert_permissions (module_realpath, module_fd, module_file, sbuf.st_size);
+	assert_permissions (module_realpath, module_fd, module_file, sbuf.st_size, user_credentials);
 
 	/* Rename Module if '-R' was passed */
 	if (rename_this_module) {
@@ -700,13 +701,17 @@ check_groups (
   int module_signature_status,
   check_module_path_func check_path,
   const void *module_data,
-  off_t module_size
+  off_t module_size,
+  privilege_t *assigned_user_credentials
 )
 {
   privilege_t user_credentials, module_required_credentials;
+  int rc;
 
   /* Lookup the user's privilege credentials. */
   user_credentials = get_privilege_credentials ();
+  if (assigned_user_credentials)
+    *assigned_user_credentials = user_credentials;
 
   /* Users with stapdev credentials (includes root) can do anything. */
   if (pr_contains (user_credentials, pr_stapdev))
@@ -734,11 +739,19 @@ check_groups (
   /* Not fatal. The module could still be on a blessed path. */
   assert (module_signature_status == MODULE_UNTRUSTED ||
 	  module_signature_status == MODULE_CHECK_ERROR);
-  err("Unable to verify the signature for the module %s.\n", module_path);
 
   /* Check whether this module can be loaded based on its path. check_path is a pointer to a
-     module-specific function which will do this.  */
-  return check_path (module_path, module_fd);
+     module-specific function which will do this.  If we can load this module due to its path,
+     then assign stapdev level credentials to the user, since the module may require it. */
+  rc = check_path (module_path, module_fd);
+  if (rc == 1) {
+    if (assigned_user_credentials)
+      *assigned_user_credentials = pr_stapdev;
+  }
+  else
+    err("Unable to verify the signature for the module %s.\n", module_path);
+
+  return rc;
 }
 
 /*
@@ -758,7 +771,8 @@ void assert_stap_module_permissions(
   const char *module_path,
   int module_fd,
   const void *module_data,
-  off_t module_size
+  off_t module_size,
+  privilege_t *user_credentials
 ) {
 	int check_groups_rc;
 	int check_signature_rc;
@@ -788,7 +802,8 @@ void assert_stap_module_permissions(
 
 	/* Check permissions for group membership.  */
 	check_groups_rc = check_groups (module_path, module_fd, check_signature_rc,
-					check_stap_module_path, module_data, module_size);
+					check_stap_module_path, module_data, module_size,
+					user_credentials);
 	if (check_groups_rc == 1)
 		return;
 
@@ -818,7 +833,8 @@ void assert_uprobes_module_permissions(
   const char *module_path,
   int module_fd,
   const void *module_data,
-  off_t module_size
+  off_t module_size,
+  privilege_t *user_credentials
 ) {
   int check_groups_rc;
   int check_signature_rc;
@@ -835,7 +851,8 @@ void assert_uprobes_module_permissions(
 
 	/* Members of the groups stapdev and stapusr can still load this module. */
 	check_groups_rc = check_groups (module_path, module_fd, check_signature_rc,
-					check_uprobes_module_path, module_data, module_size);
+					check_uprobes_module_path, module_data, module_size,
+					user_credentials);
 	if (check_groups_rc == 1)
 		return;
 

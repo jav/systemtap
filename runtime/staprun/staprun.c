@@ -36,7 +36,7 @@ extern long delete_module(const char *, unsigned int);
 
 int send_relocations ();
 int send_tzinfo ();
-int send_privilege_credentials ();
+int send_privilege_credentials (privilege_t user_credentials);
 int send_remote_id ();
 
 static int remove_module(const char *name, int verb);
@@ -168,7 +168,7 @@ static int enable_uprobes(void)
 	/* This module may be signed, so use insert_module to load it.  */
 	argv[0] = NULL;
 
-	rc = insert_module(runtimeko, NULL, argv, assert_uprobes_module_permissions);
+	rc = insert_module(runtimeko, NULL, argv, assert_uprobes_module_permissions, NULL);
         if ((rc == 0) || /* OK */
             (rc == -EEXIST)) /* Someone else might have loaded it */
 		return 0;
@@ -177,7 +177,7 @@ static int enable_uprobes(void)
 	return 1; /* failure */
 }
 
-static int insert_stap_module(void)
+static int insert_stap_module(privilege_t *user_credentials)
 {
 	char special_options[128];
 
@@ -188,7 +188,8 @@ static int insert_stap_module(void)
 
 	stap_module_inserted = insert_module(modpath, special_options,
 					     modoptions,
-					     assert_stap_module_permissions);
+					     assert_stap_module_permissions,
+					     user_credentials);
         if (stap_module_inserted != 0)
                 err("Error inserting module '%s': %s\n", modpath, moderror(errno));
 	return stap_module_inserted;
@@ -299,6 +300,7 @@ void disable_kprobes_optimization()
 
 int init_staprun(void)
 {
+	privilege_t user_credentials;
 	int rc;
 	dbug(2, "init_staprun\n");
 
@@ -314,7 +316,7 @@ int init_staprun(void)
 
                 disable_kprobes_optimization();
 
-		if (insert_stap_module() < 0) {
+		if (insert_stap_module(& user_credentials) < 0) {
 #ifdef HAVE_ELF_GETSHDRSTRNDX
 			if(!rename_mod && errno == EEXIST)
 				err("Rerun with staprun option '-R' to rename this module.\n");
@@ -330,7 +332,7 @@ int init_staprun(void)
 		     credentials required for loading the module have already been determined and
 		     checked (see check_groups, get_module_required_credentials).
 		  */
-		  send_privilege_credentials();
+		  send_privilege_credentials(user_credentials);
 		  rc = send_relocations();
 		  if (rc == 0) {
 		    rc = send_tzinfo();
@@ -655,11 +657,11 @@ int send_tzinfo ()
   return rc;
 }
 
-int send_privilege_credentials ()
+int send_privilege_credentials (privilege_t user_credentials)
 {
   struct _stp_msg_privilege_credentials pc;
   int rc;
-  pc.pc_group_mask = get_privilege_credentials ();
+  pc.pc_group_mask = user_credentials;
   rc = send_request(STP_PRIVILEGE_CREDENTIALS, & pc, sizeof(pc));
   if (rc != 0) {
     /* Not an error. Happens when pre 1.7 modules are loaded.  */
