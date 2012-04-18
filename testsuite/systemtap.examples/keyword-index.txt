@@ -10,7 +10,7 @@ keywords: monitoring security audit backtrace
   log every record being sent, along with a user-space backtrace of the
   process that caused it.
 
-  # stap auditbt.stp -d /bin/sh --ldd -c "su -c true"
+  # stap auditbt.stp -d /usr/bin/sudo --ldd -c "sudo -c true"
 
 
 = AUTOFS =
@@ -71,7 +71,7 @@ keywords: monitoring security audit backtrace
   log every record being sent, along with a user-space backtrace of the
   process that caused it.
 
-  # stap auditbt.stp -d /bin/sh --ldd -c "su -c true"
+  # stap auditbt.stp -d /usr/bin/sudo --ldd -c "sudo -c true"
 
 
 process/pstrace_exec.stp - Print trace of process ancestors for matching exec commands
@@ -845,7 +845,7 @@ keywords: monitoring security audit backtrace
   log every record being sent, along with a user-space backtrace of the
   process that caused it.
 
-  # stap auditbt.stp -d /bin/sh --ldd -c "su -c true"
+  # stap auditbt.stp -d /usr/bin/sudo --ldd -c "sudo -c true"
 
 
 = NANOSLEEP =
@@ -1494,7 +1494,7 @@ keywords: monitoring security audit backtrace
   log every record being sent, along with a user-space backtrace of the
   process that caused it.
 
-  # stap auditbt.stp -d /bin/sh --ldd -c "su -c true"
+  # stap auditbt.stp -d /usr/bin/sudo --ldd -c "sudo -c true"
 
 
 process/noptrace.stp - Disable ptrace from Hierarchies of Processes

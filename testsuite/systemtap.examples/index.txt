@@ -679,7 +679,7 @@ keywords: monitoring security audit backtrace
   log every record being sent, along with a user-space backtrace of the
   process that caused it.
 
-  # stap auditbt.stp -d /bin/sh --ldd -c "su -c true"
+  # stap auditbt.stp -d /usr/bin/sudo --ldd -c "sudo -c true"
 
 
 process/chng_cpu.stp - Monitor Changes in Processor Executing a Task
