@@ -1,6 +1,16 @@
 SYSTEMTAP EXAMPLES INDEX BY KEYWORD
 (see also index.txt)
 
+= AUDIT =
+
+process/auditbt.stp - Generate backtraces for audit events
+keywords: monitoring security audit backtrace
+
+  Attaches to the kernel audit paths
+
+  # stap auditbt.stp -d /bin/sh --ldd -c "su -c true"
+
+
 = AUTOFS =
 
 network/autofs4.stp - Watch autofs4 Operations
@@ -50,6 +60,14 @@ keywords: io backtrace
   list from most common to least common backtrace.
 
   # stap io_submit.stp -c "sleep 0.2"
+
+
+process/auditbt.stp - Generate backtraces for audit events
+keywords: monitoring security audit backtrace
+
+  Attaches to the kernel audit paths
+
+  # stap auditbt.stp -d /bin/sh --ldd -c "su -c true"
 
 
 process/pstrace_exec.stp - Print trace of process ancestors for matching exec commands
@@ -816,6 +834,14 @@ keywords: io tty monitoring
   # stap --skip-badvars -g ttyspy.stp -c "sleep 1"
 
 
+process/auditbt.stp - Generate backtraces for audit events
+keywords: monitoring security audit backtrace
+
+  Attaches to the kernel audit paths
+
+  # stap auditbt.stp -d /bin/sh --ldd -c "su -c true"
+
+
 = NANOSLEEP =
 
 process/sleeptime.stp - Trace Time Spent in Nanosleep Syscalls
@@ -1454,6 +1480,14 @@ keywords: io profiling scsi
 
 
 = SECURITY =
+
+process/auditbt.stp - Generate backtraces for audit events
+keywords: monitoring security audit backtrace
+
+  Attaches to the kernel audit paths
+
+  # stap auditbt.stp -d /bin/sh --ldd -c "su -c true"
+
 
 process/noptrace.stp - Disable ptrace from Hierarchies of Processes
 keywords: process security

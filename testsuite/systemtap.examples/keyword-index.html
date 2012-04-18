@@ -39,7 +39,13 @@
          	</ul>
 
 <h2>Examples by Keyword</h2>
-<p><tt><a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#FILE">FILE</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FUNCTION">FUNCTION</a> <a href="#FUTEX">FUTEX</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#KVM">KVM</a> <a href="#LIMITS">LIMITS</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITORING">MONITORING</a> <a href="#NANOSLEEP">NANOSLEEP</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#QEMU">QEMU</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SECURITY">SECURITY</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#THREAD">THREAD</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#UTILIZATION">UTILIZATION</a> <a href="#VIRTUALIZATION">VIRTUALIZATION</a> <a href="#WATCHDOG">WATCHDOG</a> <a href="#WATCHPOINT">WATCHPOINT</a> </tt></p>
+<p><tt><a href="#AUDIT">AUDIT</a> <a href="#AUTOFS">AUTOFS</a> <a href="#BACKTRACE">BACKTRACE</a> <a href="#CALLGRAPH">CALLGRAPH</a> <a href="#CPU">CPU</a> <a href="#DEVICE">DEVICE</a> <a href="#DISK">DISK</a> <a href="#FILE">FILE</a> <a href="#FILESYSTEM">FILESYSTEM</a> <a href="#FORMAT">FORMAT</a> <a href="#FUNCTION">FUNCTION</a> <a href="#FUTEX">FUTEX</a> <a href="#INTERRUPT">INTERRUPT</a> <a href="#IO">IO</a> <a href="#KVM">KVM</a> <a href="#LIMITS">LIMITS</a> <a href="#LOCKING">LOCKING</a> <a href="#MEMORY">MEMORY</a> <a href="#MONITORING">MONITORING</a> <a href="#NANOSLEEP">NANOSLEEP</a> <a href="#NETWORK">NETWORK</a> <a href="#NFS">NFS</a> <a href="#NUMA">NUMA</a> <a href="#PROCESS">PROCESS</a> <a href="#PROFILING">PROFILING</a> <a href="#QEMU">QEMU</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SCSI">SCSI</a> <a href="#SECURITY">SECURITY</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SIMPLE">SIMPLE</a> <a href="#SLAB">SLAB</a> <a href="#SOCKET">SOCKET</a> <a href="#STATISTICS">STATISTICS</a> <a href="#SYSCALL">SYSCALL</a> <a href="#TCP">TCP</a> <a href="#THREAD">THREAD</a> <a href="#TIME">TIME</a> <a href="#TRACE">TRACE</a> <a href="#TRACEPOINT">TRACEPOINT</a> <a href="#TRAFFIC">TRAFFIC</a> <a href="#TTY">TTY</a> <a href="#UTILIZATION">UTILIZATION</a> <a href="#VIRTUALIZATION">VIRTUALIZATION</a> <a href="#WATCHDOG">WATCHDOG</a> <a href="#WATCHPOINT">WATCHPOINT</a> </tt></p>
+<h3><a name="AUDIT"><a href="#AUDIT">&para;</a> AUDIT</a></h3>
+<ul>
+<li><a href="process/auditbt.stp">process/auditbt.stp</a> - Generate backtraces for audit events<br>
+keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <a href="keyword-index.html#AUDIT">AUDIT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
+<p>Attaches to the kernel audit paths<p><font size="-2"><pre># stap auditbt.stp -d /bin/sh --ldd -c &quot;su -c true&quot;</pre></font></p>
+</li></ul>
 <h3><a name="AUTOFS"><a href="#AUTOFS">&para;</a> AUTOFS</a></h3>
 <ul>
 <li><a href="network/autofs4.stp">network/autofs4.stp</a> - Watch autofs4 Operations<br>
@@ -58,6 +64,9 @@ keywords: <a href="keyword-index.html#INTERRUPT">INTERRUPT</a> <a href="keyword-
 </li><li><a href="io/io_submit.stp">io/io_submit.stp</a> - Tally Reschedule Reason During AIO io_submit Call<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>When a reschedule occurs during an AIO io_submit call, accumulate the traceback in a histogram. When the script exits prints out a sorted list from most common to least common backtrace.<p><font size="-2"><pre># stap io_submit.stp -c &quot;sleep 0.2&quot;</pre></font></p>
+</li><li><a href="process/auditbt.stp">process/auditbt.stp</a> - Generate backtraces for audit events<br>
+keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <a href="keyword-index.html#AUDIT">AUDIT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
+<p>Attaches to the kernel audit paths<p><font size="-2"><pre># stap auditbt.stp -d /bin/sh --ldd -c &quot;su -c true&quot;</pre></font></p>
 </li><li><a href="process/pstrace_exec.stp">process/pstrace_exec.stp</a> - Print trace of process ancestors for matching exec commands<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The pstrace_exec.stp script watches each exec operation. If the exec contains a substring that matches the script&#39;s command-line argument, it prints out that process and all of its ancestors.<p><font size="-2"><pre># stap pstrace_exec.stp -c &quot;sleep 0.2&quot; bash</pre></font></p>
@@ -303,6 +312,9 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#MON
 </li><li><a href="io/ttyspy.stp">io/ttyspy.stp</a> - Monitor TTY Typing<br>
 keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY">TTY</a> <a href="keyword-index.html#MONITORING">MONITORING</a> <br>
 <p>The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.<p><font size="-2"><pre># stap --skip-badvars -g ttyspy.stp -c &quot;sleep 1&quot;</pre></font></p>
+</li><li><a href="process/auditbt.stp">process/auditbt.stp</a> - Generate backtraces for audit events<br>
+keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <a href="keyword-index.html#AUDIT">AUDIT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
+<p>Attaches to the kernel audit paths<p><font size="-2"><pre># stap auditbt.stp -d /bin/sh --ldd -c &quot;su -c true&quot;</pre></font></p>
 </li></ul>
 <h3><a name="NANOSLEEP"><a href="#NANOSLEEP">&para;</a> NANOSLEEP</a></h3>
 <ul>
@@ -495,7 +507,10 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PRO
 </li></ul>
 <h3><a name="SECURITY"><a href="#SECURITY">&para;</a> SECURITY</a></h3>
 <ul>
-<li><a href="process/noptrace.stp">process/noptrace.stp</a> - Disable ptrace from Hierarchies of Processes<br>
+<li><a href="process/auditbt.stp">process/auditbt.stp</a> - Generate backtraces for audit events<br>
+keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <a href="keyword-index.html#AUDIT">AUDIT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
+<p>Attaches to the kernel audit paths<p><font size="-2"><pre># stap auditbt.stp -d /bin/sh --ldd -c &quot;su -c true&quot;</pre></font></p>
+</li><li><a href="process/noptrace.stp">process/noptrace.stp</a> - Disable ptrace from Hierarchies of Processes<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <br>
 <p>Blocks ptrace(2) attempts from processes identified by stap -c/-x, as also specifiable from /proc/systemtap/stap_XXX/ control files.  Processes may be added or removed from the blocked list.<p><font size="-2"><pre># stap -g noptrace.stp -c &#39;strace ls || true&#39;</pre></font></p>
 </li></ul>

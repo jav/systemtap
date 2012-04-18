@@ -672,6 +672,14 @@ keywords: network statistics
   # stap tcpipstat.stp timeout=1
 
 
+process/auditbt.stp - Generate backtraces for audit events
+keywords: monitoring security audit backtrace
+
+  Attaches to the kernel audit paths
+
+  # stap auditbt.stp -d /bin/sh --ldd -c "su -c true"
+
+
 process/chng_cpu.stp - Monitor Changes in Processor Executing a Task
 keywords: scheduler
 
