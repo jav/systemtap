@@ -672,10 +672,12 @@ keywords: network statistics
   # stap tcpipstat.stp timeout=1
 
 
-process/auditbt.stp - Generate backtraces for audit events
+process/auditbt.stp - Generate backtraces for kernel audit events
 keywords: monitoring security audit backtrace
 
-  Attaches to the kernel audit paths
+  Attaches to the kernel audit-log paths (also used by libaudit), and
+  log every record being sent, along with a user-space backtrace of the
+  process that caused it.
 
   # stap auditbt.stp -d /bin/sh --ldd -c "su -c true"
 
