@@ -46,6 +46,9 @@
 #ifdef __x86_64__
 #define X86_64
 #endif
+#ifdef __arm__
+#define ARM
+#endif
 
 #include <crash/defs.h>
 
