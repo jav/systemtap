@@ -2443,6 +2443,8 @@ private:
 
   void recurse (Dwarf_Die* type, target_symbol* e,
                 print_format* pf, bool top=false);
+  void recurse_bitfield (Dwarf_Die* type, target_symbol* e,
+                         print_format* pf);
   void recurse_base (Dwarf_Die* type, target_symbol* e,
                      print_format* pf);
   void recurse_array (Dwarf_Die* type, target_symbol* e,
@@ -2611,6 +2613,55 @@ dwarf_pretty_print::recurse (Dwarf_Die* start_type, target_symbol* e,
 }
 
 
+// Bit fields are handled as a special-case combination of recurse() and
+// recurse_base(), only called from recurse_struct_members().  The main
+// difference is that the value is always printed numerically, even if the
+// underlying type is a char.
+void
+dwarf_pretty_print::recurse_bitfield (Dwarf_Die* start_type, target_symbol* e,
+                                      print_format* pf)
+{
+  Dwarf_Die type;
+  dw.resolve_unqualified_inner_typedie (start_type, &type, e);
+
+  int tag = dwarf_tag(&type);
+  if (tag != DW_TAG_base_type && tag != DW_TAG_enumeration_type)
+    {
+      // XXX need a warning?
+      // throw semantic_error ("unsupported bitfield type (tag " + lex_cast(tag)
+      //                       + ") for " + dwarf_type_name(&type), e->tok);
+      pf->raw_components.append("?");
+      return;
+    }
+
+  Dwarf_Attribute attr;
+  Dwarf_Word encoding = (Dwarf_Word) -1;
+  dwarf_formudata (dwarf_attr_integrate (&type, DW_AT_encoding, &attr),
+                   &encoding);
+  switch (encoding)
+    {
+    case DW_ATE_float:
+    case DW_ATE_complex_float:
+      // XXX need a warning?
+      // throw semantic_error ("unsupported bitfield type (encoding " + lex_cast(encoding)
+      //                       + ") for " + dwarf_type_name(&type), e->tok);
+      pf->raw_components.append("?");
+      break;
+
+    case DW_ATE_unsigned:
+    case DW_ATE_unsigned_char:
+      push_deref (pf, "%u", e);
+      break;
+
+    case DW_ATE_signed:
+    case DW_ATE_signed_char:
+    default:
+      push_deref (pf, "%i", e);
+      break;
+    }
+}
+
+
 void
 dwarf_pretty_print::recurse_base (Dwarf_Die* type, target_symbol* e,
                                   print_format* pf)
@@ -2638,6 +2689,7 @@ dwarf_pretty_print::recurse_base (Dwarf_Die* type, target_symbol* e,
       push_deref (pf, "%u", e);
       break;
 
+    case DW_ATE_signed:
     default:
       push_deref (pf, "%i", e);
       break;
@@ -2814,7 +2866,11 @@ dwarf_pretty_print::recurse_struct_members (Dwarf_Die* type, target_symbol* e,
             else if (childtag == DW_TAG_class_type)
               pf->raw_components.append("<struct>");
             pf->raw_components.append("=");
-            recurse (&childtype, e2, pf);
+
+            if (dwarf_hasattr_integrate (&child, DW_AT_bit_offset))
+              recurse_bitfield (&childtype, e2, pf);
+            else
+              recurse (&childtype, e2, pf);
           }
         while (dwarf_siblingof (&child, &child) == 0);
     }

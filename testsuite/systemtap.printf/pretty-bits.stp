@@ -1,0 +1,21 @@
+%{
+/* I'm not sure of a good way to find the path to the testsuite header,
+ * used in the @cast as @1, so it's just duped here. */
+struct pretty_bits {
+    signed char a:4, b:4;
+    unsigned char c:4, d:4;
+    signed int e:4, f:4;
+    unsigned int g:4, h:4;
+};
+%}
+
+function get_bits_pointer:long() %{
+    static struct pretty_bits bits = { 0, 1, 1, 2, 3, 5, 8, 13, };
+    THIS->__retvalue = (intptr_t) &bits;
+%}
+
+probe begin {
+    bits = get_bits_pointer();
+    println(@cast(bits, "struct pretty_bits", @1)$);
+    exit();
+}
