@@ -1,0 +1,16 @@
+%{
+/* I'm not sure of a good way to find the path to the testsuite header,
+ * used in the @cast as @1, so it's just duped here. */
+struct pretty_chars { char a, b, c, d, e; };
+%}
+
+function get_chars_pointer:long() %{
+    static struct pretty_chars chars = { 'A', 0, '\b', 236, 'z' };
+    THIS->__retvalue = (intptr_t) &chars;
+%}
+
+probe begin {
+    chars = get_chars_pointer();
+    println(@cast(chars, "struct pretty_chars", @1)$);
+    exit();
+}

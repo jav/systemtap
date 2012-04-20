@@ -2682,7 +2682,9 @@ dwarf_pretty_print::recurse_base (Dwarf_Die* type, target_symbol* e,
 
     case DW_ATE_signed_char:
     case DW_ATE_unsigned_char:
-      push_deref (pf, "'%c'", e);
+      // Use escapes to make sure that non-printable characters
+      // don't interrupt our stream (especially '\0' values).
+      push_deref (pf, "'%#c'", e);
       break;
 
     case DW_ATE_unsigned:
