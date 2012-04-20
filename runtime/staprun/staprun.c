@@ -453,13 +453,13 @@ int send_a_relocation (const char* module, const char* reloc, unsigned long long
   int rc;
 
   if (strlen(module) >= STP_MODULE_NAME_LEN-1) {
-          dbug (1, "module name too long: %s", module);
+          dbug (1, "module name too long: %s\n", module);
           return -EINVAL; 
   }
   strncpy (msg.module, module, STP_MODULE_NAME_LEN);
   
   if (strlen(reloc) >= STP_SYMBOL_NAME_LEN-1) {
-          dbug (1, "reloc name too long: %s", module);
+          dbug (1, "reloc name too long: %s\n", reloc);
           return -EINVAL; 
   }
   strncpy (msg.reloc, reloc, STP_MODULE_NAME_LEN);
@@ -670,7 +670,7 @@ int send_privilege_credentials (privilege_t user_credentials)
   rc = send_request(STP_PRIVILEGE_CREDENTIALS, & pc, sizeof(pc));
   if (rc != 0) {
     /* Not an error. Happens when pre 1.7 modules are loaded.  */
-    dbug (1, "Unable to send user privilege credentials");
+    dbug (1, "Unable to send user privilege credentials\n");
   }
   return rc;
 }
