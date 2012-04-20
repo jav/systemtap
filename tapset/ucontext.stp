@@ -7,7 +7,7 @@
 // later version.
 
 /**
- * sfunction umodname - Returns the (short) name of the user module. EXPERIMENTAL!
+ * sfunction umodname - Returns the (short) name of the user module.
  * @addr: User-space address
  *
  * Returns the short name of the user space module for the current task that

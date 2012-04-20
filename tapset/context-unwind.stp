@@ -25,7 +25,7 @@ function print_backtrace () %{
 %}
 
 /**
- * sfunction sprint_backtrace - Return stack back trace as string (EXPERIMENTAL)
+ * sfunction sprint_backtrace - Return stack back trace as string
  *
  * Returns a simple (kernel) backtrace. One line per address.
  * Includes the symbol name (or hex address if symbol

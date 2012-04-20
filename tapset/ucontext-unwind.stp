@@ -7,7 +7,7 @@
 // later version.
 
 /**
- * sfunction print_ubacktrace - Print stack back trace for current task. EXPERIMENTAL!
+ * sfunction print_ubacktrace - Print stack back trace for current task.
  *
  * Equivalent to print_ustack(ubacktrace()), except that deeper stack
  * nesting may be supported.  Returns nothing.
@@ -22,7 +22,7 @@ function print_ubacktrace () %{ /* pragma:unwind */ /* pragma:symbols */
 %}
 
 /**
- * sfunction sprint_ubacktrace - Return stack back trace for current task as string. EXPERIMENTAL!
+ * sfunction sprint_ubacktrace - Return stack back trace for current task as string.
  *
  * Returns a simple backtrace for the current task. One line per
  * address. Includes the symbol name (or hex address if symbol
@@ -47,7 +47,7 @@ function sprint_ubacktrace:string () %{ /* pragma:unwind */ /* pragma:symbols */
 %}
 
 /**
- * sfunction print_ubacktrace_brief- Print stack back trace for current task. EXPERIMENTAL!
+ * sfunction print_ubacktrace_brief- Print stack back trace for current task.
  *
  * Equivalent to print_ubacktrace(), but output for each symbol is
  * shorter (just name and offset, or just the hex address of no symbol
@@ -63,7 +63,7 @@ function print_ubacktrace_brief () %{ /* pragma:unwind */ /* pragma:symbols */
 %}
 
 /**
- * sfunction ubacktrace - Hex backtrace of current task stack. EXPERIMENTAL!
+ * sfunction ubacktrace - Hex backtrace of current task stack.
  *
  * Return a string of hex addresses that are a backtrace of the 
  * stack of the current task.  Output may be truncated as per maximum

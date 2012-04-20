@@ -36,7 +36,7 @@ function print_stack(stk:string) %{ /* pragma:symbols */
 %}
 
 /**
- * sfunction sprint_stack - Return stack for kernel addresses from string (EXPERIMENTAL)
+ * sfunction sprint_stack - Return stack for kernel addresses from string
  * @stk: String with list of hexadecimal (kernel) addresses
  *
  * Perform a symbolic lookup of the addresses in the given string,

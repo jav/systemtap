@@ -14,7 +14,7 @@
 // </tapsetdescription>
 
 /**
- * sfunction usymname - Return the symbol of an address in the current task. EXPERIMENTAL!
+ * sfunction usymname - Return the symbol of an address in the current task.
  * @addr: The address to translate.
  *
  * Description: Returns the (function) symbol name associated with the
@@ -28,7 +28,7 @@ function usymname:string (addr: long) %{
 %}
 
 /**
- * sfunction usymdata - Return the symbol and module offset of an address. EXPERIMENTAL!
+ * sfunction usymdata - Return the symbol and module offset of an address.
  * @addr: The address to translate.
  *
  * Description: Returns the (function) symbol name associated with the
@@ -46,7 +46,7 @@ function usymdata:string (addr: long) %{
 %}
 
 /**
- * sfunction print_ustack - Print out stack for the current task from string. EXPERIMENTAL!
+ * sfunction print_ustack - Print out stack for the current task from string.
  * @stk: String with list of hexadecimal addresses for the current task.
  *
  *  Perform a symbolic lookup of the addresses in the given string,
@@ -69,7 +69,7 @@ function print_ustack(stk:string) %{
 %}
 
 /**
- * sfunction sprint_ustack - Return stack for the current task from string. EXPERIMENTAL!
+ * sfunction sprint_ustack - Return stack for the current task from string.
  * @stk: String with list of hexadecimal addresses for the current task.
  *
  * Perform a symbolic lookup of the addresses in the given string,

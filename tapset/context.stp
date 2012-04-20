@@ -391,7 +391,7 @@ function addr:long ()
 %}
 
 /**
- * sfunction uaddr - User space address of current running task (EXPERIMENTAL)
+ * sfunction uaddr - User space address of current running task
  *
  * Description: Returns the address in userspace that the current
  * task was at when the probe occurred. When the current running task
