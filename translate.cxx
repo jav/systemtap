@@ -1259,7 +1259,8 @@ c_unparser::emit_compiled_printfs ()
 		  break;
 
 		case print_format::conv_char:
-		  o->newline() << "num_bytes += max(width, 1);";
+		  o->newline() << "num_bytes += _stp_vsprint_char_size("
+			       << value << ", width, " << c->flags << ");";
 		  break;
 
 		case print_format::conv_string:
@@ -1363,13 +1364,8 @@ c_unparser::emit_compiled_printfs ()
 	      break;
 
 	    case print_format::conv_char:
-	      if (c->test_flag(print_format::fmt_flag_left))
-		o->newline() << "*str++ = " << value << ";";
-	      o->newline() << "while (width-- > 1 && str <= end)";
-	      o->newline(1) << "*str++ = ' ';";
-	      o->indent(-1);
-	      if (!c->test_flag(print_format::fmt_flag_left))
-		o->newline() << "*str++ = " << value << ";";
+	      o->newline() << "str = _stp_vsprint_char(str, end, "
+			   << value << ", width, " << c->flags << ");";
 	      break;
 
 	    case print_format::conv_string:

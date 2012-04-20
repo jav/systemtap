@@ -1,5 +1,7 @@
 * What's new in version 1.8
 
+- Printf formats can now use "%#c" to escape non-printing characters.
+
 - The systemtap compile-server and client now support IPv6 networks.
   - IPv6 addresses may now be specified on the --use-server option and will
     be displayed by --list-servers, if the avahi-daemon service is running and

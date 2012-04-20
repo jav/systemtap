@@ -18,6 +18,10 @@ static char *number(char * buf, char * end, uint64_t num, int base,
 static int number_size(uint64_t num, int base, int size, int precision,
 		       enum print_flag type);
 
+static char *_stp_vsprint_char(char * str, char * end, char c,
+			       int width, enum print_flag flags);
+static int _stp_vsprint_char_size(char c, int width, enum print_flag flags);
+
 static char *_stp_vsprint_memory(char * str, char * end, const char * ptr,
 				 int width, int precision,
 				 char format, enum print_flag flags);

@@ -198,6 +198,133 @@ static int number_size(uint64_t num, int base, int size, int precision, enum pri
 
 }
 
+
+/*
+ * Output one character into the buffer.  Usually this is just a
+ * straight copy, padded left or right up to 'width', but if the user
+ * gave the '#' flag then we need to escape special characters.
+ */
+static char *
+_stp_vsprint_char(char * str, char * end, char c,
+		  int width, enum print_flag flags)
+{
+	int size = _stp_vsprint_char_size(c, 0, flags);
+
+	if (!(flags & STP_LEFT)) {
+		while (width-- > size) {
+			if (str <= end)
+				*str = ' ';
+			++str;
+		}
+	}
+
+	if (size == 1) {
+		if (str <= end)
+			*str = c;
+		++str;
+	}
+	else {
+		/* Other sizes mean this is not a printable character.
+		 * First try to match up C escape characters: */
+		char escape = 0;
+		switch (c) {
+			case '\a':
+				escape = 'a';
+				break;
+			case '\b':
+				escape = 'b';
+				break;
+			case '\f':
+				escape = 'f';
+				break;
+			case '\n':
+				escape = 'n';
+				break;
+			case '\r':
+				escape = 'r';
+				break;
+			case '\t':
+				escape = 't';
+				break;
+			case '\v':
+				escape = 'v';
+				break;
+			case '\'':
+				escape = '\'';
+				break;
+			case '\\':
+				escape = '\\';
+				break;
+		}
+
+		if (str <= end)
+			*str = '\\';
+		++str;
+		if (escape) {
+			if (str <= end)
+				*str = escape;
+			++str;
+		}
+		else {
+			/* Fall back to octal for everything else */
+			if (str <= end)
+				*str = to_oct_digit((c >> 6) & 03);
+			++str;
+			if (str <= end)
+				*str = to_oct_digit((c >> 3) & 07);
+			++str;
+			if (str <= end)
+				*str = to_oct_digit(c & 07);
+			++str;
+		}
+	}
+
+	while (width-- > size) {
+		if (str <= end)
+			*str = ' ';
+		++str;
+	}
+
+	return str;
+}
+
+
+/*
+ * Compute the size of a given character in the buffer.  Usually this is
+ * just 1 (padded up to 'width'), but if the user gave the '#' flag then
+ * we need to escape special characters.
+ */
+static int
+_stp_vsprint_char_size(char c, int width, enum print_flag flags)
+{
+	int size = 1;
+
+	/* look for quoteworthy characters */
+	if ((flags & STP_SPECIAL) &&
+	    (!(isprint(c) && isascii(c)) || c == '\'' || c == '\\'))
+		switch (c) {
+			case '\a':
+			case '\b':
+			case '\f':
+			case '\n':
+			case '\r':
+			case '\t':
+			case '\v':
+			case '\'':
+			case '\\':
+				/* backslash and one escape character */
+				size = 2;
+				break;
+			default:
+				/* backslash and three octal digits */
+				size = 4;
+				break;
+		}
+
+	return max(size, width);
+}
+
+
 static char *
 _stp_vsprint_memory(char * str, char * end, const char * ptr,
 		    int width, int precision,
@@ -540,16 +667,8 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
                             break;
 
                     case 'c':
-                            if (!(flags & STP_LEFT)) {
-                              while (--field_width > 0) {
-                                num_bytes++;
-                              }
-                            }
                             c = (unsigned char) va_arg(args_copy, int);
-                            num_bytes++;
-                            while (--field_width > 0) {
-                              num_bytes++;
-                            }
+                            num_bytes += _stp_vsprint_char_size(c, field_width, flags);
                             continue;
 
                     default:
@@ -739,22 +858,8 @@ static int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			break;
 
 		case 'c':
-			if (!(flags & STP_LEFT)) {
-				while (--field_width > 0) {
-					if (str <= end)
-						*str = ' ';
-					++str;
-				}
-			}
 			c = (unsigned char) va_arg(args, int);
-			if (str <= end)
-				*str = c;
-			++str;
-			while (--field_width > 0) {
-				if (str <= end)
-					*str = ' ';
-				++str;
-			}
+			str = _stp_vsprint_char(str, end, c, field_width, flags);
 			continue;
 
 		default:

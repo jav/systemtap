@@ -1,0 +1,7 @@
+set test "char2"
+set ::result_string {abc-ABC 123!
+\a\b\f\n\r\t\v\'\\
+\000\033\177\222\333\377}
+
+stap_run2 $srcdir/$subdir/$test.stp
+stap_run2 $srcdir/$subdir/$test.stp -DSTP_LEGACY_PRINT

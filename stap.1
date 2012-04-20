@@ -1112,6 +1112,12 @@ Unsigned hex value, in all upper-case.
 Writes a %.
 .RE
 .PP
+The
+.IR #
+flag selects the alternate forms.  For octal, this prefixes a 0.  For hex, this
+prefixes 0x or 0X, depending on case.  For characters, this escapes
+non-printing values with either C-like escapes or raw octal.
+.PP
 Examples:
 .SAMPLE
 	a = "alice", b = "bob", p = 0x1234abcd, i = 123, j = \-1, id[a] = 1234, id[b] = 4567
@@ -1129,6 +1135,10 @@ Examples:
 		Prints: 2 byte of kernel buffer at address 0x1234abcd: <binary data>
 	printf("%4b", p)
 		Prints (these values as binary data): 0x1234abcd
+	printf("%#o %#x %#X\\n", 1, 2, 3)
+		Prints: 01 0x2 0X3
+	printf("%#c %#c %#c\\n", 0, 9, 42)
+		Prints: \\000 \\t *
 .ESAMPLE
 
 .SS STATISTICS
