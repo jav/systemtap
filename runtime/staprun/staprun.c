@@ -2,7 +2,7 @@
  *
  * staprun.c - SystemTap module loader
  *
- * Copyright (C) 2005-2011 Red Hat, Inc.
+ * Copyright (C) 2005-2012 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -596,7 +596,12 @@ int send_relocation_modules ()
           if (strstr (section_name, "init.") != NULL) /* .init.text, .devinit.rodata, ... */
              section_address = 0;
 
-          r = send_a_relocation (module_name, section_name, section_address);
+          (void) send_a_relocation (module_name, section_name, section_address);
+          /* PR14005: take a pill, dude, a failure with an overlong
+           * name does not call for freaking out.  Nor does an error
+           * coming back from the write(2) into the module.  We will
+           * just stagger along without that particular module/section
+           * being present in the _stp_sections[] tables. */
         }
 
       if (strcmp (section_name, ".gnu.linkonce.this_module"))
