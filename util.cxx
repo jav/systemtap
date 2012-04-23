@@ -38,7 +38,9 @@ extern "C" {
 #include <unistd.h>
 #include <regex.h>
 #include <stdarg.h>
+#ifndef SINGLE_THREADED
 #include <pthread.h>
+#endif
 }
 
 using namespace std;
@@ -511,16 +513,22 @@ cmdstr_join(const vector<string>& cmds)
 class spawned_pids_t {
   private:
     set<pid_t> pids;
+#ifndef SINGLE_THREADED
     pthread_mutex_t mux_pids;
+#endif
 
   public:
     bool contains (pid_t p)
       {
         stap_sigmasker masked;
 
+#ifndef SINGLE_THREADED
         pthread_mutex_lock(&mux_pids);
+#endif
         bool ret = (pids.count(p)==0) ? true : false;
+#ifndef SINGLE_THREADED
         pthread_mutex_unlock(&mux_pids);
+#endif
 
         return ret;
       }
@@ -528,9 +536,13 @@ class spawned_pids_t {
       {
         stap_sigmasker masked;
 
+#ifndef SINGLE_THREADED
         pthread_mutex_lock(&mux_pids);
+#endif
         bool ret = (p > 0) ? pids.insert(p).second : false;
+#ifndef SINGLE_THREADED
         pthread_mutex_unlock(&mux_pids);
+#endif
 
         return ret;
       }
@@ -538,30 +550,41 @@ class spawned_pids_t {
       {
         stap_sigmasker masked;
 
+#ifndef SINGLE_THREADED
         pthread_mutex_lock(&mux_pids);
+#endif
         pids.erase(p);
+#ifndef SINGLE_THREADED
         pthread_mutex_unlock(&mux_pids);
+#endif
       }
     int killall (int sig)
       {
         int ret = 0;
         stap_sigmasker masked;
 
+#ifndef SINGLE_THREADED
         pthread_mutex_lock(&mux_pids);
+#endif
         for (set<pid_t>::const_iterator it = pids.begin();
              it != pids.end(); ++it)
           ret = kill(*it, sig) ?: ret;
+#ifndef SINGLE_THREADED
         pthread_mutex_unlock(&mux_pids);
-
+#endif
         return ret;
       }
     spawned_pids_t()
       {
+#ifndef SINGLE_THREADED
         pthread_mutex_init(&mux_pids, NULL);
+#endif
       }
     ~spawned_pids_t()
       {
+#ifndef SINGLE_THREADED
         pthread_mutex_destroy (&mux_pids);
+#endif
       }
 
 };
