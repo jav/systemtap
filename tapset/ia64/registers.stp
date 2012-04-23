@@ -1,0 +1,13 @@
+/*
+ * Dwarfless register access for ia64. Unfortunately, getting
+ * registers/arguments on the ia64 is unimplemented.
+ *
+ * Note that using syscall_get_arguments() (as the s390x does) doesn't
+ * work on ia64.
+ *
+ * The rest of this file would be intentionally blank until ia64
+ * register/argument support is added, but tapset files can't be
+ * completely empty.
+ */
+
+global __stp_unused_global
