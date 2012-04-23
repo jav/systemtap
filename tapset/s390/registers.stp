@@ -130,37 +130,45 @@ function u_register:long (name:string) {
  * If truncate=1, mask off the top 32 bits.
  * If sign_extend=1 and (truncate=1 or the probepoint we've hit is in a
  * 32-bit app), sign-extend the 32-bit value.
- *
- * We don't yet support extracting arg #6 and beyond, which are passed
- * on stack
  */
-function _stp_arg:long (argnum:long, sign_extend:long, truncate:long) {
-	val = 0
-	if (argnum < 1 || argnum > 5) {
-		error(sprintf("Cannot access arg(%d)", argnum))
-		return 0
+function _stp_arg:long (argnum:long, sign_extend:long, truncate:long)
+%{ /* pure */
+	unsigned long val = 0;
+	struct pt_regs *regs;
+
+	THIS->__retvalue = 0;
+	if (THIS->argnum < 1 || THIS->argnum > 6) {
+		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+			 "Cannot access arg %d", (int)THIS->argnum);
+		CONTEXT->last_error = CONTEXT->error_buffer;
+		return;
+	}
+	if (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE) {
+		CONTEXT->last_error = ("Cannot access function args in"
+				       " user context");
+		return;
+	}
+	regs = CONTEXT->kregs;
+	if (!regs) {
+		CONTEXT->last_error = ("Cannot access function args"
+				       " (no registers available)");
+		return;
 	}
 
-	if (argnum == 1)
-		val = u_register("r2")
-	else if (argnum == 2)
-		val = u_register("r3")
-	else if (argnum == 3)
-		val = u_register("r4")
-	else if (argnum == 4)
-		val = u_register("r5")
-	else if (argnum == 5)
-		val = u_register("r6")
+	syscall_get_arguments(current, regs, (((int)THIS->argnum) - 1), 1,
+			      &val);
 
-	if (truncate) {
-		if (sign_extend)
-			val = _stp_sign_extend32(val)
+	if (THIS->truncate || _stp_is_compat_task()) {
+		if (THIS->sign_extend)
+			THIS->__retvalue = (int64_t) (int32_t) val;
 		else
 			/* High bits may be garbage. */
-			val = (val & 0xffffffff);
+			THIS->__retvalue = (int64_t) (val & 0xffffffff);
 	}
-	return val;
-}
+	else
+		THIS->__retvalue = (int64_t) val;
+	return;
+%}
 
 /* Return the value of function arg #argnum (1=first arg) as a signed int. */
 function int_arg:long (argnum:long) {
