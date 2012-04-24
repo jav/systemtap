@@ -1,6 +1,7 @@
 /*
  * Dwarfless register access for ia64. Unfortunately, getting
- * registers/arguments on the ia64 is unimplemented.
+ * registers/arguments on the ia64 is unimplemented (because it is
+ * non-trivial retrieving the arguments from the stack).
  *
  * Note that using syscall_get_arguments() (as the s390x does) doesn't
  * work on ia64.
