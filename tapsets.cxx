@@ -6249,7 +6249,9 @@ sdt_query::handle_probe_entry()
 	    section = ".absolute";
 
 	  uprobe_derived_probe* p =
-	    new uprobe_derived_probe ("", "", 0, q.module_val, section,
+	    new uprobe_derived_probe ("", "", 0,
+                                      path_remove_sysroot(sess,q.module_val),
+                                      section,
 				      q.statement_num_val, reloc_addr, q, 0);
 	  p->saveargs (arg_count);
 	  results.push_back (p);

@@ -5984,7 +5984,7 @@ dump_unwindsym_cxt (Dwfl_Module *m,
 
   c->output << "static struct _stp_module _stp_module_" << stpmod_idx << " = {\n";
   c->output << ".name = " << lex_cast_qstring (mainname) << ", \n";
-  c->output << ".path = " << lex_cast_qstring (mainpath) << ",\n";
+  c->output << ".path = " << lex_cast_qstring (path_remove_sysroot(c->session,mainpath)) << ",\n";
   c->output << ".eh_frame_addr = 0x" << hex << eh_addr << dec << ", \n";
   c->output << ".unwind_hdr_addr = 0x" << hex << eh_frame_hdr_addr
 	    << dec << ", \n";
