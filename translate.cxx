@@ -5813,7 +5813,7 @@ dump_unwindsym_cxt (Dwfl_Module *m,
         for (size_t i = 0; i < eh_len; i++)
           {
             int h = ((uint8_t *)eh_frame)[i];
-            c->output << "0x" << hex << h << dec << ",";
+            c->output << h << ","; // decimal is less wordy than hex
             if ((i + 1) % 16 == 0)
               c->output << "\n" << "   ";
           }
