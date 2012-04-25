@@ -5879,6 +5879,9 @@ dump_unwindsym_cxt (Dwfl_Module *m,
 
 	      c->output << "  { 0x" << hex << it->first-extra_offset << dec
 			<< ", " << lex_cast_qstring (it->second) << " },\n";
+              // XXX: these literal strings all suffer ELF relocation bloat too.
+              // See if the tapsets.cxx:dwarf_derived_probe_group::emit_module_decls
+              // CALCIT hack could work here.
 	    }
 	}
 
