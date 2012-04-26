@@ -455,6 +455,9 @@ function probe_type:string()
     case _STP_PROBE_HANDLER_PROFILE_TIMER:
       strlcpy (THIS->__retvalue, "profile_timer", MAXSTRINGLEN);
       break;
+    case _STP_PROBE_HANDLER_NETFILTER:
+      strlcpy (THIS->__retvalue, "netfilter", MAXSTRINGLEN);
+      break;
     case _STP_PROBE_HANDLER_UTRACE:
       strlcpy (THIS->__retvalue, "utrace", MAXSTRINGLEN);
       break;

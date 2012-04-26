@@ -95,6 +95,8 @@ typedef char string_t[MAXSTRINGLEN];
 #define _STP_PROBE_HANDLER_HWBKPT         15
 /* kernel tracepoint probe, triggered by tracepoint event call. */
 #define _STP_PROBE_HANDLER_TRACEPOINT     16
+/* netfilter probe, triggered on network trafic */
+#define _STP_PROBE_HANDLER_NETFILTER        17
 
 /* Defines for CONTEXT probe_flags. */
 /* Probe occured in user space, also indicate regs fully from user. */

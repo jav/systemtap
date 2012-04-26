@@ -59,6 +59,7 @@ struct utrace_derived_probe_group;
 struct itrace_derived_probe_group;
 struct task_finder_derived_probe_group;
 struct timer_derived_probe_group;
+struct netfilter_derived_probe_group;
 struct profile_derived_probe_group;
 struct mark_derived_probe_group;
 struct tracepoint_derived_probe_group;
@@ -298,6 +299,7 @@ public:
   itrace_derived_probe_group* itrace_derived_probes;
   task_finder_derived_probe_group* task_finder_derived_probes;
   timer_derived_probe_group* timer_derived_probes;
+  netfilter_derived_probe_group* netfilter_derived_probes;
   profile_derived_probe_group* profile_derived_probes;
   mark_derived_probe_group* mark_derived_probes;
   tracepoint_derived_probe_group* tracepoint_derived_probes;

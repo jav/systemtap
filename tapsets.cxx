@@ -9949,6 +9949,7 @@ register_standard_tapsets(systemtap_session & s)
   register_tapset_mark(s);
   register_tapset_procfs(s);
   register_tapset_timers(s);
+  register_tapset_netfilter(s);
   register_tapset_utrace(s);
 
   // dwarf-based kprobe/uprobe parts
@@ -10034,6 +10035,7 @@ all_session_groups(systemtap_session& s)
   DOONE(perf);
   DOONE(hrtimer);
   DOONE(procfs);
+  DOONE(netfilter);
 
   // Another "order is important" item.  We want to make sure we
   // "register" the dummy task_finder probe group after all probe

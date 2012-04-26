@@ -140,6 +140,7 @@ loc2c_test_LINK = $(CCLD) $(loc2c_test_CFLAGS) $(CFLAGS) \
 @BUILD_TRANSLATOR_TRUE@	stap-tapset-been.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-tapset-procfs.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-tapset-timers.$(OBJEXT) \
+@BUILD_TRANSLATOR_TRUE@	stap-tapset-netfilter.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-tapset-perfmon.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-tapset-mark.$(OBJEXT) \
 @BUILD_TRANSLATOR_TRUE@	stap-tapset-itrace.$(OBJEXT) \
@@ -442,11 +443,11 @@ oldinclude_HEADERS = includes/sys/sdt.h includes/sys/sdt-config.h
 @BUILD_TRANSLATOR_TRUE@	util.cxx coveragedb.cxx \
 @BUILD_TRANSLATOR_TRUE@	dwarf_wrappers.cxx tapset-been.cxx \
 @BUILD_TRANSLATOR_TRUE@	tapset-procfs.cxx tapset-timers.cxx \
-@BUILD_TRANSLATOR_TRUE@	tapset-perfmon.cxx tapset-mark.cxx \
-@BUILD_TRANSLATOR_TRUE@	tapset-itrace.cxx tapset-utrace.cxx \
-@BUILD_TRANSLATOR_TRUE@	task_finder.cxx dwflpp.cxx \
-@BUILD_TRANSLATOR_TRUE@	rpm_finder.cxx setupdwfl.cxx remote.cxx \
-@BUILD_TRANSLATOR_TRUE@	privilege.cxx cmdline.cxx \
+@BUILD_TRANSLATOR_TRUE@	tapset-netfilter.cxx tapset-perfmon.cxx \
+@BUILD_TRANSLATOR_TRUE@	tapset-mark.cxx tapset-itrace.cxx \
+@BUILD_TRANSLATOR_TRUE@	tapset-utrace.cxx task_finder.cxx \
+@BUILD_TRANSLATOR_TRUE@	dwflpp.cxx rpm_finder.cxx setupdwfl.cxx \
+@BUILD_TRANSLATOR_TRUE@	remote.cxx privilege.cxx cmdline.cxx \
 @BUILD_TRANSLATOR_TRUE@	$(am__append_12)
 @BUILD_TRANSLATOR_TRUE@noinst_HEADERS = sdt_types.h
 @BUILD_TRANSLATOR_TRUE@stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@ \
@@ -792,6 +793,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-been.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-itrace.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-mark.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-netfilter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-perfmon.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-procfs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapset-timers.Po@am__quote@
@@ -1167,6 +1169,22 @@ stap-tapset-timers.obj: tapset-timers.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='tapset-timers.cxx' object='stap-tapset-timers.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-tapset-timers.obj `if test -f 'tapset-timers.cxx'; then $(CYGPATH_W) 'tapset-timers.cxx'; else $(CYGPATH_W) '$(srcdir)/tapset-timers.cxx'; fi`
+
+stap-tapset-netfilter.o: tapset-netfilter.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-tapset-netfilter.o -MD -MP -MF $(DEPDIR)/stap-tapset-netfilter.Tpo -c -o stap-tapset-netfilter.o `test -f 'tapset-netfilter.cxx' || echo '$(srcdir)/'`tapset-netfilter.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-tapset-netfilter.Tpo $(DEPDIR)/stap-tapset-netfilter.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='tapset-netfilter.cxx' object='stap-tapset-netfilter.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-tapset-netfilter.o `test -f 'tapset-netfilter.cxx' || echo '$(srcdir)/'`tapset-netfilter.cxx
+
+stap-tapset-netfilter.obj: tapset-netfilter.cxx
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-tapset-netfilter.obj -MD -MP -MF $(DEPDIR)/stap-tapset-netfilter.Tpo -c -o stap-tapset-netfilter.obj `if test -f 'tapset-netfilter.cxx'; then $(CYGPATH_W) 'tapset-netfilter.cxx'; else $(CYGPATH_W) '$(srcdir)/tapset-netfilter.cxx'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/stap-tapset-netfilter.Tpo $(DEPDIR)/stap-tapset-netfilter.Po
+@am__fastdepCXX_FALSE@	$(AM_V_CXX) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='tapset-netfilter.cxx' object='stap-tapset-netfilter.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-tapset-netfilter.obj `if test -f 'tapset-netfilter.cxx'; then $(CYGPATH_W) 'tapset-netfilter.cxx'; else $(CYGPATH_W) '$(srcdir)/tapset-netfilter.cxx'; fi`
 
 stap-tapset-perfmon.o: tapset-perfmon.cxx
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-tapset-perfmon.o -MD -MP -MF $(DEPDIR)/stap-tapset-perfmon.Tpo -c -o stap-tapset-perfmon.o `test -f 'tapset-perfmon.cxx' || echo '$(srcdir)/'`tapset-perfmon.cxx
