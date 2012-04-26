@@ -130,6 +130,7 @@ set unrestricted_probe_types [list \
   "timer.us(number).randomize(number)" \
   "timer.usec(number)" \
   "timer.usec(number).randomize(number)" \
+
 ]
 
 # These probes should not be acceptable to pass 2 for unprivileged users
@@ -198,6 +199,10 @@ set restricted_probe_types [list \
   "procfs(string).umask(number).read.maxsize(number)" \
   "procfs(string).umask(number).write" \
   "timer.profile" \
+  "netfilter.hook(string)" \
+  "netfilter.hook(string).protocol_f(string)" \
+  "netfilter.hook(string).priority(string)" \
+  "netfilter.hook(string).protocol_f(string).priority(string)" \
 ]
 
 # Add arguments to a probe type template.
