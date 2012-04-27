@@ -174,6 +174,7 @@ stapiu_decrement_semaphores(struct stapiu_target *targets, size_t ntargets)
 	/* NB: no stapiu_process_lock needed, as the task_finder engine is
 	 * already stopped by now, so no one else will mess with us.  We need
 	 * to be sleepable for access_process_vm.  */
+	might_sleep();
 	for (i = 0; i < ntargets; ++i) {
 		struct stapiu_target *ut = &targets[i];
 		struct stapiu_consumer *c;
@@ -307,6 +308,8 @@ stapiu_change_plus(struct stapiu_target* target, struct task_struct *task,
 {
 	size_t i;
 	struct stapiu_process *p;
+	int rc;
+
 	write_lock(&stapiu_process_lock);
 	for (i = 0; i < MAXUPROBES; ++i) {
 		p = &stapiu_process_slots[i];
@@ -321,6 +324,11 @@ stapiu_change_plus(struct stapiu_target* target, struct task_struct *task,
 		}
 	}
 	write_unlock(&stapiu_process_lock);
+
+	if ((rc = _stp_usermodule_check(task, target->filename,
+					relocation)))
+		return rc;
+
 	return 0; /* XXX: or an error? maxskipped? */
 }
 
@@ -357,7 +365,8 @@ stapiu_change_semaphore_plus(struct stapiu_target* target, struct task_struct *t
 		if (c->sdt_sem_offset) {
 			unsigned long addr = process->base + c->sdt_sem_offset;
 			if (addr >= relocation && addr < relocation + length) {
-				int rc2 = stapiu_write_semaphore(addr, +1);
+				int rc2 = stapiu_write_task_semaphore(task,
+								      addr, +1);
 				if (!rc)
 					rc = rc2;
 			}

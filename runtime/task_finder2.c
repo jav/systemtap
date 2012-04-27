@@ -9,6 +9,7 @@
 #ifndef STAPCONF_TASK_UID
 #include <linux/cred.h>
 #endif
+#include <linux/task_work.h>
 #include "syscall.h"
 #include "task_finder_map.c"
 
@@ -119,6 +120,38 @@ __stp_utrace_task_finder_target_syscall_exit(u32 action,
 static void
 __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 				   struct task_struct *tsk);
+
+
+static inline void
+__stp_call_callbacks(struct stap_task_finder_target *tgt,
+		     struct task_struct *tsk, int register_p, int process_p);
+
+static void
+__stp_task_worker(struct task_work *work)
+{
+	struct stap_task_finder_target *tgt = work->data;
+
+	might_sleep();
+	_stp_kfree(work);
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
+		return;
+
+	__stp_tf_handler_start();
+
+	/* Call the callbacks.  Assume that if the thread is a
+	 * thread group leader, it is a process. */
+	__stp_call_callbacks(tgt, current, 1, (current->pid == current->tgid));
+ 
+	/* If this is just a thread other than the thread group
+	 * leader, don't bother inform map callback clients about its
+	 * memory map, since they will simply duplicate each other. */
+	if (tgt->mmap_events == 1 && current->tgid == current->pid) {
+	    __stp_call_mmap_callbacks_for_task(tgt, current);
+	}
+
+	__stp_tf_handler_end();
+	return;
+}
 
 static int
 stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
@@ -1166,16 +1199,38 @@ __stp_utrace_task_finder_target_quiesce(u32 action,
 		_stp_error("utrace_set_events returned error %d on pid %d",
 			   rc, (int)tsk->pid);
 
+	if (in_atomic() || irqs_disabled()) {
+		struct task_work *work;
 
-	/* Call the callbacks.  Assume that if the thread is a
-	 * thread group leader, it is a process. */
-	__stp_call_callbacks(tgt, tsk, 1, (tsk->pid == tsk->tgid));
+		/* If we can't sleep, arrange for the task to truly
+		 * stop so we can sleep. */
+		work = _stp_kmalloc(sizeof(*work));
+		if (work == NULL) {
+			_stp_error("Unable to allocate space for task_work");
+			return UTRACE_RESUME;
+		}
+		init_task_work(work, &__stp_task_worker, tgt);
+		/* FIXME: Hmm, let's say we exit between adding the
+		 * task work and it firing.  How do we cancel? */
+		rc = task_work_add(tsk, work, true);
+		if (rc != 0) {
+			printk(KERN_ERR
+			       "%s:%d - task_work_add() returned %d\n",
+			       __FUNCTION__, __LINE__, rc);
+		}
+	}
+	else {
+		/* Call the callbacks.  Assume that if the thread is a
+		 * thread group leader, it is a process. */
+		__stp_call_callbacks(tgt, tsk, 1, (tsk->pid == tsk->tgid));
  
-	/* If this is just a thread other than the thread group leader,
-           don't bother inform map callback clients about its memory map,
-           since they will simply duplicate each other. */
-	if (tgt->mmap_events == 1 && tsk->tgid == tsk->pid) {
-		__stp_call_mmap_callbacks_for_task(tgt, tsk);
+		/* If this is just a thread other than the thread
+		   group leader, don't bother inform map callback
+		   clients about its memory map, since they will
+		   simply duplicate each other. */
+		if (tgt->mmap_events == 1 && tsk->tgid == tsk->pid) {
+			__stp_call_mmap_callbacks_for_task(tgt, tsk);
+		}
 	}
 
 	__stp_tf_handler_end();

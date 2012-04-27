@@ -325,6 +325,9 @@ compile_pass (systemtap_session& s)
   // used by runtime/loc2c-runtime.h
   output_exportconf(s, o, "task_user_regset_view", "STAPCONF_TASK_USER_REGSET_VIEW_EXPORTED");
 
+  // used by runtime/stp_utrace.c
+  output_exportconf(s, o, "task_work_add", "STAPCONF_TASK_WORK_ADD_EXPORTED");
+
   o << module_cflags << " += -include $(STAPCONF_HEADER)" << endl;
 
   for (unsigned i=0; i<s.macros.size(); i++)

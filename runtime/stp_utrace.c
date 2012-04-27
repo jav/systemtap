@@ -40,6 +40,7 @@
 #include <linux/spinlock.h>
 #include <trace/events/sched.h>
 #include <trace/events/syscalls.h>
+#include <linux/task_work.h>
 
 /*
  * Per-thread structure private to utrace implementation.
@@ -79,11 +80,14 @@ struct utrace {
 	unsigned int death:1;	/* in utrace_report_death() now */
 	unsigned int reap:1;	/* release_task() has run */
 	unsigned int pending_attach:1; /* need splice_attaching() */
+	unsigned int task_work_added:1; /* called task_work_add() */
 
 	unsigned long utrace_flags;
 
 	struct hlist_node hlist;       /* task_utrace_table linkage */
 	struct task_struct *task;
+
+	struct task_work work;
 };
 
 #define TASK_UTRACE_HASH_BITS 5
@@ -126,12 +130,40 @@ static struct ftrace_ops utrace_report_exec_ops __read_mostly =
 #define __UTRACE_REGISTERED	1
 static atomic_t utrace_state = ATOMIC_INIT(__UTRACE_UNREGISTERED);
 
+#if !defined(STAPCONF_TASK_WORK_ADD_EXPORTED)
+typedef int (*task_work_add_fn)(struct task_struct *task,
+				  struct task_work *twork, bool notify);
+#define task_work_add (* (task_work_add_fn)kallsyms_task_work_add)
+typedef struct task_work *(*task_work_cancel_fn)(struct task_struct *,
+						 task_work_func_t);
+#define task_work_cancel (* (task_work_cancel_fn)kallsyms_task_work_cancel)
+#endif
+
 int utrace_init(void)
 {
 	int i;
 	int rc = -1;
 #ifdef STAPCONF_UTRACE_VIA_FTRACE
 	char *report_exec_name;
+#endif
+
+#if !defined(STAPCONF_TASK_WORK_ADD_EXPORTED)
+	/* The task_work_add()/task_work_cancel() functions aren't
+	 * exported. Look up those function addresses. */
+        kallsyms_task_work_add = (void *)kallsyms_lookup_name ("task_work_add");
+        if (kallsyms_task_work_add == NULL) {
+		printk(KERN_ERR "%s can't resolve task_work_add!",
+		       THIS_MODULE->name);
+		rc = -ENOENT;
+		goto error;
+        }
+        kallsyms_task_work_cancel = (void *)kallsyms_lookup_name ("task_work_cancel");
+        if (kallsyms_task_work_cancel == NULL) {
+		printk(KERN_ERR "%s can't resolve task_work_cancel!",
+		       THIS_MODULE->name);
+		rc = -ENOENT;
+		goto error;
+        }
 #endif
 
 	/* initialize the list heads */
@@ -216,6 +248,8 @@ int utrace_exit(void)
 	return 0;
 }
 
+void utrace_resume(struct task_work *work);
+
 /*
  * Clean up everything associated with @task.utrace.
  *
@@ -242,6 +276,16 @@ static void utrace_cleanup(struct utrace *utrace)
 	list_for_each_entry_safe(engine, next, &utrace->attaching, entry) {
 	    list_del(&engine->entry);
 	    kmem_cache_free(utrace_engine_cachep, engine);
+	}
+
+	if (utrace->task_work_added) {
+		if (task_work_cancel(utrace->task, &utrace_resume) == NULL)
+			printk(KERN_ERR "%s:%d - task_work_cancel() failed? task %p, %d, %s\n",
+			       __FUNCTION__, __LINE__, utrace->task,
+			       utrace->task->tgid,
+			       (utrace->task->comm ? utrace->task->comm
+				: "UNKNOWN"));
+		utrace->task_work_added = 0;
 	}
 	spin_unlock(&utrace->lock);
 
@@ -345,6 +389,7 @@ static bool utrace_task_alloc(struct task_struct *task)
 		kmem_cache_free(utrace_cachep, utrace);
 	}
 
+	init_task_work(&utrace->work, &utrace_resume, NULL);
 	return true;
 }
 
@@ -376,6 +421,17 @@ static void utrace_free(struct utrace *utrace)
 		       list_empty(&utrace->attached),
 		       list_empty(&utrace->attaching));
 #endif
+
+	if (utrace->task_work_added) {
+		if (task_work_cancel(utrace->task, &utrace_resume) == NULL)
+			printk(KERN_ERR "%s:%d - task_work_cancel() failed? task %p, %d, %s\n",
+			       __FUNCTION__, __LINE__, utrace->task,
+			       utrace->task->tgid,
+			       (utrace->task->comm ? utrace->task->comm
+				: "UNKNOWN"));
+		utrace->task_work_added = 0;
+	}
+
 	kmem_cache_free(utrace_cachep, utrace);
 }
 
@@ -883,12 +939,18 @@ static bool utrace_do_stop(struct task_struct *target, struct utrace *utrace)
 		if (likely(task_is_stopped(target)))
 			__set_task_state(target, TASK_TRACED);
 		spin_unlock_irq(&target->sighand->siglock);
-#if 0
-	/* FIXME: needed?  If so, what to do here? */
 	} else if (utrace->resume > UTRACE_REPORT) {
 		utrace->resume = UTRACE_REPORT;
-		set_notify_resume(target);
-#endif
+		if (! utrace->task_work_added) {
+			int rc = task_work_add(target, &utrace->work, true);
+			if (rc != 0)
+				printk(KERN_ERR
+				       "%s:%d - task_work_add() returned %d\n",
+				       __FUNCTION__, __LINE__, rc);
+			else {
+				utrace->task_work_added = 1;
+			}
+		}
 	}
 
 	return task_is_traced(target);
@@ -1018,8 +1080,16 @@ relock:
 		 * Ensure a reporting pass when we're resumed.
 		 */
 		utrace->resume = action;
-		/* FIXME: needed? */
-		set_thread_flag(TIF_NOTIFY_RESUME);
+		if (! utrace->task_work_added) {
+			int rc = task_work_add(task, &utrace->work, true);
+			if (rc != 0)
+				printk(KERN_ERR
+				       "%s:%d - task_work_add() returned %d\n",
+				       __FUNCTION__, __LINE__, rc);
+			else {
+				utrace->task_work_added = 1;
+			}
+		}
 	}
 
 	/*
@@ -1360,13 +1430,19 @@ int utrace_control(struct task_struct *target,
 		 * In that case, utrace_get_signal() will be reporting soon.
 		 */
 		clear_engine_wants_stop(engine);
-#if 0
-		/* FIXME: needed?  If so, what to do here? */
 		if (action < utrace->resume) {
 			utrace->resume = action;
-			set_notify_resume(target);
+			if (! utrace->task_work_added) {
+				ret = task_work_add(target, &utrace->work, true);
+				if (ret != 0)
+					printk(KERN_ERR
+					       "%s:%d - task_work_add() returned %d\n",
+					       __FUNCTION__, __LINE__, ret);
+				else {
+					utrace->task_work_added = 1;
+				}
+			}
 		}
-#endif
 		break;
 
 	default:
@@ -1513,8 +1589,16 @@ static void finish_report(struct task_struct *task, struct utrace *utrace,
 	if (resume < utrace->resume) {
 		spin_lock(&utrace->lock);
 		utrace->resume = resume;
-		/* FIXME: Hmm, unsure about calling set_tsk_thread_flag()... */
-		set_tsk_thread_flag(task, TIF_NOTIFY_RESUME);
+		if (! utrace->task_work_added) {
+			int rc = task_work_add(task, &utrace->work, true);
+			if (rc != 0)
+				printk(KERN_ERR
+				       "%s:%d - task_work_add() returned %d\n",
+				       __FUNCTION__, __LINE__, rc);
+			else {
+				utrace->task_work_added = 1;
+			}
+		}
 		spin_unlock(&utrace->lock);
 	}
 
@@ -1883,7 +1967,6 @@ static void utrace_report_clone(void *cb_data __attribute__ ((unused)),
 		unsigned long clone_flags = 0;
 		INIT_REPORT(report);
 
-
 		/* FIXME: Figure out what the clone_flags were. For
 		 * task_finder's purposes, all we need is CLONE_THREAD. */
 		if (task->mm == child->mm)
@@ -2047,11 +2130,21 @@ static void finish_resume_report(struct task_struct *task,
  * We are close to user mode, and this is the place to report or stop.
  * When we return, we're going to user mode or into the signals code.
  */
-void utrace_resume(struct task_struct *task, struct pt_regs *regs)
+void utrace_resume(struct task_work *work)
 {
-	struct utrace *utrace = task_utrace_struct(task);
+	/*
+	 * We could also do 'task_utrace_struct()' here to find the
+	 * task's 'struct utrace', but 'container_of()' should be
+	 * instantaneous (where 'task_utrace_struct()' has to do a
+	 * hash lookup).
+	 */
+	struct utrace *utrace = container_of(work, struct utrace, work);
+	struct task_struct *task = current;
 	INIT_REPORT(report);
 	struct utrace_engine *engine;
+
+	might_sleep();
+	utrace->task_work_added = 0;
 
 	/*
 	 * Some machines get here with interrupts disabled.  The same arch

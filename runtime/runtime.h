@@ -144,6 +144,12 @@ void *kallsyms_uprobe_register;
 void *kallsyms_uprobe_unregister;
 #endif
 
+/* task_work functions lack the necessary SYMBOL_EXPORT's */
+#if !defined(STAPCONF_TASK_WORK_ADD_EXPORTED)
+void *kallsyms_task_work_add;
+void *kallsyms_task_work_cancel;
+#endif
+
 #include "access_process_vm.h"
 #include "loc2c-runtime.h"
 
