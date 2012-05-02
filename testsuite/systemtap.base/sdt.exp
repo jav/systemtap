@@ -29,8 +29,8 @@ set type_pedantics_idx {1 1 2 2 2 2 2 2 2}
 set type_pedantics {{} additional_flags=-pedantic} ; # don't compile -O2 -O3 with -pedantic
 set type_pedantic_mssgs {{} -pedantic}
 
-set pbtype_flags {{""} {additional_flags=-DSTAP_SDT_V2} {additional_flags=-DEXPERIMENTAL_KPROBE_SDT}}
-set pbtype_mssgs {{uprobe} {V2_uprobe} {V2_kprobe}}
+set pbtype_flags {{""} {additional_flags=-DSTAP_SDT_V2}}
+set pbtype_mssgs {{uprobe} {V2_uprobe}}
 
 proc sdt_stap_run { TEST_NAME TEST_FILE FAIL args } {
     set cmd [concat stap $TEST_FILE $args]
@@ -94,9 +94,7 @@ if { $res != "" } {
 }
 
 if {[installtest_p] && [utrace_p] && [uprobes_p]} {
-    if {[regexp "^(s390x)$" $::tcl_platform(machine)] && $pbtype_mssg == "V2_kprobe"} {
-	set FAIL xfail
-    } elseif {[regexp "^(ppc64|s390x)$" $::tcl_platform(machine)] && [regexp "^(-O)" $extra_mssg]} {
+    if {[regexp "^(ppc64|s390x)$" $::tcl_platform(machine)] && [regexp "^(-O)" $extra_mssg]} {
 	# register name and constant is ambiguous in ppc/s390 asm syntax
 	# thus constant folding can throw the result off
 	set FAIL xfail

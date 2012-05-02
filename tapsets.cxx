@@ -506,12 +506,11 @@ private:
 struct dwarf_derived_probe_group: public derived_probe_group
 {
 private:
-  bool has_semaphores;
   multimap<string,dwarf_derived_probe*> probes_by_module;
   typedef multimap<string,dwarf_derived_probe*>::iterator p_b_m_iterator;
 
 public:
-  dwarf_derived_probe_group(): has_semaphores(false) {}
+  dwarf_derived_probe_group() {}
   void enroll (dwarf_derived_probe* probe);
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
@@ -4628,7 +4627,7 @@ void
 dwarf_derived_probe_group::enroll (dwarf_derived_probe* p)
 {
   if (p->sdt_semaphore_addr != 0)
-    has_semaphores = true;
+      throw runtime_error(_("No dwarf kprobe semaphore support"));
   probes_by_module.insert (make_pair (p->module, p));
 
   // XXX: probes put at the same address should all share a
@@ -4727,14 +4726,6 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "const unsigned long address;";
   s.op->newline() << "struct stap_probe * const probe;";
   s.op->newline() << "struct stap_probe * const entry_probe;";
-  if (has_semaphores)
-    {
-      s.op->newline() << "const unsigned long sdt_sem_offset;";
-      s.op->newline() << "unsigned long sdt_sem_address;";
-      s.op->newline() << "struct task_struct *tsk;";
-      s.op->newline() << "const char *pathname;";
-      s.op->newline() << "struct stap_task_finder_target finder;";
-    }
   s.op->newline(-1) << "} stap_dwarf_probes[] = {";
   s.op->indent(1);
 
@@ -4883,29 +4874,12 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
 
   s.op->newline();
-  if (has_semaphores)
-    s.op->newline() << "#define KPROBES_TASK_FINDER 1";
-  s.op->newline() << "#include \"kprobes-common.c\"";
-  s.op->newline();
 }
 
 
 void
 dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 {
-  if (has_semaphores) // Ignore if there are no semaphores
-    {
-      s.op->newline() << "for (i=0; i<ARRAY_SIZE(stap_dwarf_probes); i++) {";
-      s.op->newline(1) << "int rc;";
-      s.op->newline() << "struct stap_dwarf_probe *p = &stap_dwarf_probes[i];";
-      s.op->newline() << "probe_point = p->probe->pp;"; // for error messages
-      s.op->newline() << "if (p->sdt_sem_offset) {";
-      s.op->newline(1) << "rc = stap_register_task_finder_target(&p->finder);";
-      s.op->newline(-1) << "}";
-      s.op->newline() << "if (rc) break;";
-      s.op->newline(-1) << "}";
-    }
-
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
   s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
@@ -5081,18 +5055,6 @@ dwarf_derived_probe_group::emit_module_refresh (systemtap_session& s)
 void
 dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
-  if (has_semaphores)
-    {
-      s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
-      s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
-      s.op->newline() << "unsigned short sdt_semaphore = 0;"; // NB: fixed size
-      s.op->newline() << "if (sdp->sdt_sem_address && __access_process_vm_noflush (sdp->tsk, sdp->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 0)) {";
-      s.op->newline(1) << "sdt_semaphore --;";
-      s.op->newline() << "__access_process_vm_noflush (sdp->tsk, sdp->sdt_sem_address, &sdt_semaphore, sizeof (sdt_semaphore), 1);";
-      s.op->newline(-1) << "}";
-      s.op->newline(-1) << "}";
-    }
-
   //Unregister kprobes by batch interfaces.
   s.op->newline() << "#if defined(STAPCONF_UNREGISTER_KPROBES)";
   s.op->newline() << "j = 0;";
@@ -6101,7 +6063,7 @@ private:
   void record_semaphore(vector<derived_probe *> & results, unsigned start);
   probe* convert_location();
   bool have_uprobe() {return probe_type == uprobe1_type || probe_type == uprobe2_type || probe_type == uprobe3_type;}
-  bool have_kprobe() {return probe_type == kprobe1_type || probe_type == kprobe2_type;}
+  bool have_kprobe() {return probe_type == kprobe1_type;}
   bool have_debuginfo_uprobe(bool need_debug_info)
   {return probe_type == uprobe1_type
       || ((probe_type == uprobe2_type || probe_type == uprobe3_type)
@@ -6162,9 +6124,6 @@ sdt_query::handle_probe_entry()
 	  break;
 	case kprobe1_type:
 	  clog << "kprobe1" << endl;
-	  break;
-	case kprobe2_type:
-	  clog << "kprobe2" << endl;
 	  break;
 	default:
 	  clog << "unknown!" << endl;
@@ -6458,7 +6417,7 @@ sdt_query::iterate_over_probe_entries()
 	    arg_count = pbe_v1->arg;
 	  probe_scn_offset += sizeof (stap_sdt_probe_entry_v1);
 	}
-      else if (probe_type == uprobe2_type || probe_type == kprobe2_type)
+      else if (probe_type == uprobe2_type)
 	{
 	  if (pbe_v2->name == 0) // No name possibly means we have a .so with a relocation
 	    return;
@@ -6540,7 +6499,6 @@ sdt_query::convert_probe (probe *base)
 
   if (have_kprobe())
     {
-      // Generate: if (arg2 != kprobe2_type) next;
       if_statement *istid = new if_statement;
       istid->thenblock = new next_statement;
       istid->elseblock = NULL;
@@ -6653,9 +6611,6 @@ sdt_query::convert_location ()
 	    case kprobe1_type:
 	      clog << "probe_type == kprobe1" << endl;
 	      break;
-	    case kprobe2_type:
-	      clog << "probe_type == kprobe2" << endl;
-	      break;
 	    default:
               clog << _F("probe_type == use_uprobe_no_dwarf, use label name: _stapprobe1_%s",
                          pp_mark.c_str()) << endl;
@@ -6673,7 +6628,6 @@ sdt_query::convert_location ()
             break;
 
 	  case kprobe1_type:
-	  case kprobe2_type:
 	    // kernel.function("*getegid*")
             derived_comps.push_back
               (new probe_point::component(TOK_FUNCTION,

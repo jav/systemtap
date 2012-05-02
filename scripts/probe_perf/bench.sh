@@ -120,9 +120,6 @@ echo Using $TESTSRC/sys/sdt.h
 echo -e "\n##### LABEL (NO SDT)  #####\n"
 stap_test NO_STAP_SDT nosdt
 
-echo -e "\n##### KPROBE #####\n"
-stap_test EXPERIMENTAL_KPROBE_SDT kprobe
-
 echo -e "\n##### UPROBE V1 #####\n"
 stap_test STAP_SDT_V1 uprobe
 

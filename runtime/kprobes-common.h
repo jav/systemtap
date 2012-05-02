@@ -17,7 +17,4 @@ struct stap_dwarf_kprobe {
   #endif
 };
 
-static int stap_kprobe_process_found (struct stap_task_finder_target *finder, struct task_struct *tsk, int register_p, int process_p);
-static int stap_kprobe_mmap_found (struct stap_task_finder_target *finder, struct task_struct *tsk, char *path, struct dentry *dentry, unsigned long addr, unsigned long length, unsigned long offset, unsigned long vm_flags);
-
 #endif /* _KPROBE_COMMON_H_ */
