@@ -5141,29 +5141,6 @@ static void sdt_v3_tokenize(const string& str, vector<string>& tokens)
    }
 }
 
-struct sdt_kprobe_var_expanding_visitor: public var_expanding_visitor
-{
-  sdt_kprobe_var_expanding_visitor(const string & process_name,
-				   const string & provider_name,
-				   const string & probe_name,
-				   const string & arg_string,
-				   int arg_count):
-    process_name (process_name), provider_name (provider_name), probe_name (probe_name),
-    arg_count (arg_count)
-  {
-    tokenize(arg_string, arg_tokens, " ");
-    assert(arg_count <= 10);
-  }
-  const string & process_name;
-  const string & provider_name;
-  const string & probe_name;
-  int arg_count;
-  vector<string> arg_tokens;
-
-  void visit_target_symbol (target_symbol* e);
-  void visit_cast_op (cast_op* e);
-};
-
 
 struct sdt_uprobe_var_expanding_visitor: public var_expanding_visitor
 {
@@ -5874,123 +5851,6 @@ sdt_uprobe_var_expanding_visitor::visit_cast_op (cast_op* e)
 
 
 void
-sdt_kprobe_var_expanding_visitor::visit_target_symbol (target_symbol *e)
-{
-  try
-    {
-      if (e->name == "$$name")
-	{
-	  if (e->addressof)
-	    throw semantic_error(_("cannot take address of sdt context variable"), e->tok);
-
-	  literal_string *myname = new literal_string (probe_name);
-	  myname->tok = e->tok;
-	  provide(myname);
-	  return;
-	}
-      if (e->name == "$$provider")
-	{
-	  if (e->addressof)
-	    throw semantic_error(_("cannot take address of sdt context variable"), e->tok);
-
-	  literal_string *myname = new literal_string (provider_name);
-	  myname->tok = e->tok;
-	  provide(myname);
-	  return;
-	}
-
-      int argno = -1;
-      try
-	{
-	  if (startswith(e->name, "$arg"))
-	    argno = lex_cast<int>(e->name.substr(4));
-	}
-      catch (const runtime_error& f) // non-integral $arg suffix: e.g. $argKKKSDF
-	{
-	}
-      if (argno < 0)
-	throw semantic_error(_("invalid variable, must be of the form $argN"), e->tok);
-      if (argno < 1 || argno > arg_count)
-	throw semantic_error(_("invalid argument number"), e->tok);
-
-      bool lvalue = is_active_lvalue(e);
-      functioncall *fc = new functioncall;
-
-      // First two args are hidden: 1. pointer to probe name 2. task id
-      if (arg_count < 2)
-	{
-	  fc->function = "long_arg";
-	  fc->type = pe_long;
-	  fc->tok = e->tok;
-	  // skip the hidden args
-	  literal_number* num = new literal_number(argno + 2);
-	  num->tok = e->tok;
-	  fc->args.push_back(num);
-	}
-      else
-	{
-	  // args are passed in arg3 as members of a struct
-	  fc->function = "user_long";
-	  fc->tok = e->tok;
-	  binary_expression *be = new binary_expression;
-	  be->tok = e->tok;
-	  functioncall *get_arg1 = new functioncall;
-	  get_arg1->function = "pointer_arg";
-	  get_arg1->tok = e->tok;
-	  // arg3 is the pointer to a struct of arguments
-	  literal_number* num = new literal_number(3);
-	  num->tok = e->tok;
-	  get_arg1->args.push_back(num);
-
-	  be->left = get_arg1;
-	  be->op = "+";
-	  // offset in struct to the desired arg
-	  literal_number* inc = new literal_number((argno - 1) * 8);
-	  inc->tok = e->tok;
-	  be->right = inc;
-	  fc->args.push_back(be);
-	}
-      if (lvalue)
-	*(target_symbol_setter_functioncalls.top()) = fc;
-
-      if (e->components.empty()) // We have a scalar
-	{
-	  if (e->addressof)
-	    throw semantic_error(_("cannot take address of sdt variable"), e->tok);
-
-	  provide(fc);
-	  return;
-	}
-      cast_op *cast = new cast_op;
-      cast->name = "@cast";
-      cast->tok = e->tok;
-      cast->operand = fc;
-      cast->components = e->components;
-      cast->type_name = probe_name + "_arg" + lex_cast(argno);
-      cast->module = process_name;
-
-      cast->visit(this);
-    }
-  catch (const semantic_error &er)
-    {
-      e->chain (er);
-      provide (e);
-    }
-}
-
-
-void
-sdt_kprobe_var_expanding_visitor::visit_cast_op (cast_op* e)
-{
-  // Fill in our current module context if needed
-  if (e->module.empty())
-    e->module = process_name;
-
-  var_expanding_visitor::visit_cast_op(e);
-}
-
-
-void
 plt_expanding_visitor::visit_target_symbol (target_symbol *e)
 {
   try
@@ -6063,7 +5923,6 @@ private:
   void record_semaphore(vector<derived_probe *> & results, unsigned start);
   probe* convert_location();
   bool have_uprobe() {return probe_type == uprobe1_type || probe_type == uprobe2_type || probe_type == uprobe3_type;}
-  bool have_kprobe() {return probe_type == kprobe1_type;}
   bool have_debuginfo_uprobe(bool need_debug_info)
   {return probe_type == uprobe1_type
       || ((probe_type == uprobe2_type || probe_type == uprobe3_type)
@@ -6122,9 +5981,6 @@ sdt_query::handle_probe_entry()
 	case uprobe3_type:
 	  clog << "uprobe3 at 0x" << hex << pc << dec << endl;
 	  break;
-	case kprobe1_type:
-	  clog << "kprobe1" << endl;
-	  break;
 	default:
 	  clog << "unknown!" << endl;
 	  break;
@@ -6144,77 +6000,53 @@ sdt_query::handle_probe_entry()
   Dwarf_Addr bias;
   Elf* elf = dwfl_module_getelf (dw.mod_info->mod, &bias);
 
-  if (have_kprobe())
-    {
-      convert_probe(new_base);
-      // Expand the local variables in the probe body
-      sdt_kprobe_var_expanding_visitor svv (module_val,
-					    provider_name,
-					    probe_name,
-					    arg_string,
-					    arg_count);
-      svv.replace (new_base->body);
-    }
-  else
-    {
-      /* Figure out the architecture of this particular ELF file.
-	 The dwarfless register-name mappings depend on it. */
-      GElf_Ehdr ehdr_mem;
-      GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
-      if (em == 0) { dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
-      int elf_machine = em->e_machine;
-      sdt_uprobe_var_expanding_visitor svv (sess, elf_machine,
-					    module_val,
-					    provider_name,
-					    probe_name,
-					    probe_type,
-					    arg_string,
-					    arg_count);
-      svv.replace (new_base->body);
-      need_debug_info = svv.need_debug_info;
-    }
+  /* Figure out the architecture of this particular ELF file.  The
+     dwarfless register-name mappings depend on it. */
+  GElf_Ehdr ehdr_mem;
+  GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
+  if (em == 0) { dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
+  int elf_machine = em->e_machine;
+  sdt_uprobe_var_expanding_visitor svv (sess, elf_machine, module_val,
+					provider_name, probe_name,
+					probe_type, arg_string, arg_count);
+  svv.replace (new_base->body);
+  need_debug_info = svv.need_debug_info;
 
   unsigned i = results.size();
 
-  if (have_kprobe())
-    derive_probes(sess, new_base, results);
+  // XXX: why not derive_probes() in the uprobes case too?
+  literal_map_t params;
+  for (unsigned i = 0; i < new_location->components.size(); ++i)
+   {
+      probe_point::component *c = new_location->components[i];
+      params[c->functor] = c->arg;
+   }
 
-  else
+  dwarf_query q(new_base, new_location, dw, params, results, "", "");
+  q.has_mark = true; // enables mid-statement probing
+
+  // V2 probes need dwarf info in case of a variable reference
+  if (have_debuginfo_uprobe(need_debug_info))
+    dw.iterate_over_modules(&query_module, &q);
+  else if (have_debuginfoless_uprobe())
     {
-      // XXX: why not derive_probes() in the uprobes case too?
-      literal_map_t params;
-      for (unsigned i = 0; i < new_location->components.size(); ++i)
-	{
-	  probe_point::component *c = new_location->components[i];
-	  params[c->functor] = c->arg;
-	}
+      string section;
+      Dwarf_Addr reloc_addr = q.statement_num_val + bias;
+      if (dwfl_module_relocations (q.dw.mod_info->mod) > 0)
+        {
+	  dwfl_module_relocate_address (q.dw.mod_info->mod, &reloc_addr);
+	  section = ".dynamic";
+        }
+      else
+	section = ".absolute";
 
-      dwarf_query q(new_base, new_location, dw, params, results, "", "");
-      q.has_mark = true; // enables mid-statement probing
-
-      // V2 probes need dwarf info in case of a variable reference
-      if (have_debuginfo_uprobe(need_debug_info))
-	dw.iterate_over_modules(&query_module, &q);
-      else if (have_debuginfoless_uprobe())
-	{
-	  string section;
-	  Dwarf_Addr reloc_addr = q.statement_num_val + bias;
-	  if (dwfl_module_relocations (q.dw.mod_info->mod) > 0)
-	    {
-	      dwfl_module_relocate_address (q.dw.mod_info->mod, &reloc_addr);
-	      section = ".dynamic";
-	    }
-	  else
-	    section = ".absolute";
-
-	  uprobe_derived_probe* p =
-	    new uprobe_derived_probe ("", "", 0,
-                                      path_remove_sysroot(sess,q.module_val),
-                                      section,
-				      q.statement_num_val, reloc_addr, q, 0);
-	  p->saveargs (arg_count);
-	  results.push_back (p);
-	}
+      uprobe_derived_probe* p =
+	new uprobe_derived_probe ("", "", 0,
+				  path_remove_sysroot(sess,q.module_val),
+				  section,
+				  q.statement_num_val, reloc_addr, q, 0);
+      p->saveargs (arg_count);
+      results.push_back (p);
     }
   sess.unwindsym_modules.insert (dw.module_name);
   record_semaphore(results, i);
@@ -6384,7 +6216,7 @@ sdt_query::iterate_over_probe_entries()
       stap_sdt_probe_entry_v1 *pbe_v1 = (stap_sdt_probe_entry_v1 *) ((char*)pdata->d_buf + probe_scn_offset);
       stap_sdt_probe_entry_v2 *pbe_v2 = (stap_sdt_probe_entry_v2 *) ((char*)pdata->d_buf + probe_scn_offset);
       probe_type = (stap_sdt_probe_type)(pbe_v1->type_a);
-      if (! have_uprobe() && ! have_kprobe())
+      if (! have_uprobe())
 	{
 	  // Unless this is a mangled .probes section, this happens
 	  // because the name of the probe comes first, followed by
@@ -6397,24 +6229,19 @@ sdt_query::iterate_over_probe_entries()
       if ((long)pbe_v1 % sizeof(__uint64_t)) // we have stap_sdt_probe_entry_v1.type_b
 	{
 	  pbe_v1 = (stap_sdt_probe_entry_v1*)((char*)pbe_v1 - sizeof(__uint32_t));
-	  if (pbe_v1->type_b != uprobe1_type && pbe_v1->type_b != kprobe1_type)
+	  if (pbe_v1->type_b != uprobe1_type)
 	    continue;
 	}
 
-      if (probe_type == uprobe1_type || probe_type == kprobe1_type)
+      if (probe_type == uprobe1_type)
 	{
 	  if (pbe_v1->name == 0) // No name possibly means we have a .so with a relocation
 	    return;
 	  semaphore = 0;
 	  probe_name = (char*)((char*)pdata->d_buf + pbe_v1->name - (char*)probe_scn_addr);
           provider_name = ""; // unknown
-	  if (probe_type == uprobe1_type)
-	    {
-	      pc = pbe_v1->arg;
-	      arg_count = 0;
-	    }
-	  else if (probe_type == kprobe1_type)
-	    arg_count = pbe_v1->arg;
+	  pc = pbe_v1->arg;
+	  arg_count = 0;
 	  probe_scn_offset += sizeof (stap_sdt_probe_entry_v1);
 	}
       else if (probe_type == uprobe2_type)
@@ -6482,47 +6309,6 @@ sdt_query::convert_probe (probe *base)
   block *b = new block;
   b->tok = base->body->tok;
 
-  // XXX: Does this also need to happen for i386 under x86_64 stap?
-  if (sess.architecture == "i386" && have_kprobe())
-    {
-      functioncall *rp = new functioncall;
-      rp->function = "regparm";
-      rp->tok = b->tok;
-      literal_number* littid = new literal_number(0);
-      littid->tok = b->tok;
-      rp->args.push_back(littid);
-      expr_statement* es = new expr_statement;
-      es->tok = b->tok;
-      es->value = rp;
-      b->statements.push_back(es);
-    }
-
-  if (have_kprobe())
-    {
-      if_statement *istid = new if_statement;
-      istid->thenblock = new next_statement;
-      istid->elseblock = NULL;
-      istid->tok = b->tok;
-      istid->thenblock->tok = b->tok;
-      comparison *betid = new comparison;
-      betid->op = "!=";
-      betid->tok = b->tok;
-
-      functioncall *arg2 = new functioncall;
-      arg2->function = "ulong_arg";
-      arg2->tok = b->tok;
-      literal_number* num = new literal_number(2);
-      num->tok = b->tok;
-      arg2->args.push_back(num);
-
-      betid->left = arg2;
-      literal_number* littid = new literal_number(probe_type);
-      littid->tok = b->tok;
-      betid->right = littid;
-      istid->condition = betid;
-      b->statements.push_back(istid);
-    }
-
   // Generate: if (arg1 != mark("label")) next;
   functioncall *fc = new functioncall;
   fc->function = "ulong_arg";
@@ -6568,18 +6354,13 @@ sdt_query::convert_location ()
        it != specific_loc->components.end(); ++it)
     if ((*it)->functor == TOK_PROCESS)
       {
-        if (have_kprobe())
-          // start the kernel probe_point
-          derived_comps.push_back(new probe_point::component(TOK_KERNEL));
-        else
-          // copy the process name
-          derived_comps.push_back(*it);
+        // copy the process name
+        derived_comps.push_back(*it);
       }
     else if ((*it)->functor == TOK_LIBRARY)
       {
-        if (!have_kprobe())
-          // copy the library name for process probes
-          derived_comps.push_back(*it);
+        // copy the library name for process probes
+        derived_comps.push_back(*it);
       }
     else if ((*it)->functor == TOK_PROVIDER)
       {
@@ -6608,9 +6389,6 @@ sdt_query::convert_location ()
               clog << _("probe_type == uprobe3, use statement addr: 0x")
 		   << hex << pc << dec << endl;
 	      break;
-	    case kprobe1_type:
-	      clog << "probe_type == kprobe1" << endl;
-	      break;
 	    default:
               clog << _F("probe_type == use_uprobe_no_dwarf, use label name: _stapprobe1_%s",
                          pp_mark.c_str()) << endl;
@@ -6626,13 +6404,6 @@ sdt_query::convert_location ()
               (new probe_point::component(TOK_STATEMENT,
                                           new literal_number(pc, true)));
             break;
-
-	  case kprobe1_type:
-	    // kernel.function("*getegid*")
-            derived_comps.push_back
-              (new probe_point::component(TOK_FUNCTION,
-                                          new literal_string("*getegid*")));
-	    break;
 
           default: // deprecated
             // process("executable").function("*").label("_stapprobe1_MARK_NAME")
