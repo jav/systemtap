@@ -91,6 +91,91 @@ struct stap_task_finder_target {
 	stap_task_finder_mprotect_callback mprotect_callback;
 };
 
+static LIST_HEAD(__stp_tf_task_work_list);
+static DEFINE_SPINLOCK(__stp_tf_task_work_list_lock);
+struct __stp_tf_task_work {
+	struct list_head list;
+	struct task_struct *task;
+	struct task_work work;
+};
+
+/*
+ * Allocate a 'struct task_work' for use.  Internally keeps track of
+ * allocated structs for use when shutting down.
+ *
+ * Returns NULL in the case of a memory allocation failure.
+ *
+ * Note that it remembers the current task, so if we need to allocate
+ * a 'struct task_work' for a task that isn't current, we'll need a
+ * __stp_tf_alloc_task_work_for_task(task) variant.
+ */
+static struct task_work *__stp_tf_alloc_task_work(void)
+{
+	struct __stp_tf_task_work *tf_work;
+	unsigned long flags;
+
+	tf_work = _stp_kmalloc(sizeof(*tf_work));
+	if (tf_work == NULL) {
+		_stp_error("Unable to allocate space for task_work");
+		return NULL;
+	}
+
+	tf_work->task = current;
+
+	// Insert new item onto list.  This list could be a hashed
+	// list for easier lookup, but as short as the list should be
+	// (and as short lived as these items are) the extra overhead
+	// probably isn't worth the effort.
+	spin_lock_irqsave(&__stp_tf_task_work_list_lock, flags);
+	list_add(&tf_work->list, &__stp_tf_task_work_list);
+	spin_unlock_irqrestore(&__stp_tf_task_work_list_lock, flags);
+
+	return &tf_work->work;
+}
+
+/* 
+ * Free a 'struct task_work' allocated by __stp_tf_alloc_task_work().
+ */
+static void __stp_tf_free_task_work(struct task_work *work)
+{
+	struct __stp_tf_task_work *tf_work, *node;
+	unsigned long flags;
+
+	tf_work = container_of(work, struct __stp_tf_task_work, work);
+
+	// Remove the item from the list.
+	spin_lock_irqsave(&__stp_tf_task_work_list_lock, flags);
+	list_for_each_entry(node, &__stp_tf_task_work_list, list) {
+		if (tf_work == node) {
+			list_del(&tf_work->list);
+			break;
+		}
+	}
+	spin_unlock_irqrestore(&__stp_tf_task_work_list_lock, flags);
+
+	// Actually free the data.
+	_stp_kfree(tf_work);
+}
+
+/* 
+ * Cancel (and free) all outstanding task work requests.
+ */
+static void __stp_tf_cancel_task_work(void)
+{
+	struct __stp_tf_task_work *node;
+	unsigned long flags;
+
+	// Cancel all remaining requests.
+	spin_lock_irqsave(&__stp_tf_task_work_list_lock, flags);
+	list_for_each_entry(node, &__stp_tf_task_work_list, list) {
+	    // Remove the item from the list, cancel it, then free it.
+	    list_del(&node->list);
+	    task_work_cancel(node->task, node->work.func);
+	    _stp_kfree(node);
+	}
+	spin_unlock_irqrestore(&__stp_tf_task_work_list_lock, flags);
+}
+
 static u32
 __stp_utrace_task_finder_target_exec(u32 action,
 				     struct utrace_engine *engine,
@@ -120,38 +205,6 @@ __stp_utrace_task_finder_target_syscall_exit(u32 action,
 static void
 __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 				   struct task_struct *tsk);
-
-
-static inline void
-__stp_call_callbacks(struct stap_task_finder_target *tgt,
-		     struct task_struct *tsk, int register_p, int process_p);
-
-static void
-__stp_task_worker(struct task_work *work)
-{
-	struct stap_task_finder_target *tgt = work->data;
-
-	might_sleep();
-	_stp_kfree(work);
-	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
-		return;
-
-	__stp_tf_handler_start();
-
-	/* Call the callbacks.  Assume that if the thread is a
-	 * thread group leader, it is a process. */
-	__stp_call_callbacks(tgt, current, 1, (current->pid == current->tgid));
- 
-	/* If this is just a thread other than the thread group
-	 * leader, don't bother inform map callback clients about its
-	 * memory map, since they will simply duplicate each other. */
-	if (tgt->mmap_events == 1 && current->tgid == current->pid) {
-	    __stp_call_mmap_callbacks_for_task(tgt, current);
-	}
-
-	__stp_tf_handler_end();
-	return;
-}
 
 static int
 stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
@@ -1152,6 +1205,33 @@ __stp_call_mmap_callbacks_for_task(struct stap_task_finder_target *tgt,
 	_stp_kfree(mmpath_buf);
 }
 
+static void
+__stp_tf_quiesce_worker(struct task_work *work)
+{
+	struct stap_task_finder_target *tgt = work->data;
+
+	might_sleep();
+	__stp_tf_free_task_work(work);
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
+		return;
+
+	__stp_tf_handler_start();
+
+	/* Call the callbacks.  Assume that if the thread is a
+	 * thread group leader, it is a process. */
+	__stp_call_callbacks(tgt, current, 1, (current->pid == current->tgid));
+ 
+	/* If this is just a thread other than the thread group
+	 * leader, don't bother inform map callback clients about its
+	 * memory map, since they will simply duplicate each other. */
+	if (tgt->mmap_events == 1 && current->tgid == current->pid) {
+	    __stp_call_mmap_callbacks_for_task(tgt, current);
+	}
+
+	__stp_tf_handler_end();
+	return;
+}
+
 static u32
 __stp_utrace_task_finder_target_quiesce(u32 action,
 					struct utrace_engine *engine,
@@ -1204,14 +1284,12 @@ __stp_utrace_task_finder_target_quiesce(u32 action,
 
 		/* If we can't sleep, arrange for the task to truly
 		 * stop so we can sleep. */
-		work = _stp_kmalloc(sizeof(*work));
+		work = __stp_tf_alloc_task_work();
 		if (work == NULL) {
 			_stp_error("Unable to allocate space for task_work");
 			return UTRACE_RESUME;
 		}
-		init_task_work(work, &__stp_task_worker, tgt);
-		/* FIXME: Hmm, let's say we exit between adding the
-		 * task work and it firing.  How do we cancel? */
+		init_task_work(work, &__stp_tf_quiesce_worker, tgt);
 		rc = task_work_add(tsk, work, true);
 		if (rc != 0) {
 			printk(KERN_ERR
@@ -1311,6 +1389,46 @@ __stp_utrace_task_finder_target_syscall_entry(u32 action,
 	return UTRACE_RESUME;
 }
 
+static void
+__stp_tf_mmap_worker(struct task_work *work)
+{
+	struct stap_task_finder_target *tgt = work->data;
+	struct __stp_tf_map_entry *entry;
+
+	might_sleep();
+	__stp_tf_free_task_work(work);
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
+		return;
+
+	// See if we can find saved syscall info.
+	entry = __stp_tf_get_map_entry(current);
+	if (entry == NULL)
+		return;
+
+	__stp_tf_handler_start();
+
+	if (entry->syscall_no == MUNMAP_SYSCALL_NO(current)) {
+		// Call the callbacks
+		__stp_call_munmap_callbacks(tgt, current, entry->arg0,
+					    entry->arg1);
+	}
+	else if (entry->syscall_no == MMAP_SYSCALL_NO(current)
+		 || entry->syscall_no == MMAP2_SYSCALL_NO(current)) {
+		// Call the callbacks.  Note that arg0 is really the
+		// return value of mmap()/mmap2().
+		__stp_call_mmap_callbacks_with_addr(tgt, current, entry->arg0);
+	}
+	else {				// mprotect
+		// Call the callbacks
+		__stp_call_mprotect_callbacks(tgt, current, entry->arg0,
+					      entry->arg1, entry->arg2);
+	}
+	__stp_tf_remove_map_entry(entry);
+
+	__stp_tf_handler_end();
+	return;
+}
+
 static u32
 __stp_utrace_task_finder_target_syscall_exit(u32 action,
 					     struct utrace_engine *engine,
@@ -1354,23 +1472,55 @@ __stp_utrace_task_finder_target_syscall_exit(u32 action,
 		  entry->arg0, rv);
 #endif
 
-	if (entry->syscall_no == MUNMAP_SYSCALL_NO(tsk)) {
-		// Call the callbacks
-		__stp_call_munmap_callbacks(tgt, tsk, entry->arg0, entry->arg1);
+	if (in_atomic() || irqs_disabled()) {
+		struct task_work *work;
+		int rc;
+
+		/* If this is mmap()/mmap2(), we need to remember the
+		 * return value. We'll use entry->arg0, since
+		 * mmap()/mmap2() doesn't use that info. */
+		if (entry->syscall_no == MMAP_SYSCALL_NO(tsk)
+		    || entry->syscall_no == MMAP2_SYSCALL_NO(tsk)) {
+			entry->arg0 = rv;
+		}
+
+		/* If we can't sleep, arrange for the task to truly
+		 * stop so we can sleep. */
+		work = __stp_tf_alloc_task_work();
+		if (work == NULL) {
+			_stp_error("Unable to allocate space for task_work");
+			__stp_tf_remove_map_entry(entry);
+			__stp_tf_handler_end();
+			return UTRACE_RESUME;
+		}
+		init_task_work(work, &__stp_tf_mmap_worker, tgt);
+		rc = task_work_add(tsk, work, true);
+		if (rc != 0) {
+			printk(KERN_ERR
+			       "%s:%d - task_work_add() returned %d\n",
+			       __FUNCTION__, __LINE__, rc);
+		}
 	}
-	else if (entry->syscall_no == MMAP_SYSCALL_NO(tsk)
-		 || entry->syscall_no == MMAP2_SYSCALL_NO(tsk)) {
-		// Call the callbacks
-		__stp_call_mmap_callbacks_with_addr(tgt, tsk, rv);
-	}
-	else {				// mprotect
-		// Call the callbacks
-		__stp_call_mprotect_callbacks(tgt, tsk, entry->arg0,
-					      entry->arg1, entry->arg2);
+	else {
+		if (entry->syscall_no == MUNMAP_SYSCALL_NO(tsk)) {
+			// Call the callbacks
+			__stp_call_munmap_callbacks(tgt, tsk, entry->arg0,
+						    entry->arg1);
+		}
+		else if (entry->syscall_no == MMAP_SYSCALL_NO(tsk)
+			 || entry->syscall_no == MMAP2_SYSCALL_NO(tsk)) {
+			// Call the callbacks
+			__stp_call_mmap_callbacks_with_addr(tgt, tsk, rv);
+		}
+		else {			// mprotect
+			// Call the callbacks
+			__stp_call_mprotect_callbacks(tgt, tsk, entry->arg0,
+						      entry->arg1, entry->arg2);
+		}
+		__stp_tf_remove_map_entry(entry);
 	}
 
 	__stp_tf_handler_end();
-	__stp_tf_remove_map_entry(entry);
 	return UTRACE_RESUME;
 }
 
@@ -1553,6 +1703,9 @@ stap_stop_task_finder(void)
 #endif
 
 	utrace_exit();
+
+	/* Make sure all outstanding task work requests are canceled. */
+	__stp_tf_cancel_task_work();
 }
 
 #endif /* TASK_FINDER2_C */
