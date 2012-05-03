@@ -4097,9 +4097,6 @@ dwarf_derived_probe::join_group (systemtap_session& s)
   if (! s.dwarf_derived_probes)
     s.dwarf_derived_probes = new dwarf_derived_probe_group ();
   s.dwarf_derived_probes->enroll (this);
-
-  if (sdt_semaphore_addr != 0)
-    enable_task_finder(s);
 }
 
 
@@ -4626,8 +4623,6 @@ dwarf_derived_probe::emit_probe_local_init(translator_output * o)
 void
 dwarf_derived_probe_group::enroll (dwarf_derived_probe* p)
 {
-  if (p->sdt_semaphore_addr != 0)
-      throw runtime_error(_("No dwarf kprobe semaphore support"));
   probes_by_module.insert (make_pair (p->module, p));
 
   // XXX: probes put at the same address should all share a
@@ -4756,31 +4751,6 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->line() << " .module=\"" << p->module << "\",";
       s.op->line() << " .section=\"" << p->section << "\",";
       s.op->line() << " .probe=" << common_probe_init (p) << ",";
-      if (p->sdt_semaphore_addr != 0)
-	{
-	  s.op->line() << " .sdt_sem_offset=(unsigned long)0x" << hex << p->sdt_semaphore_addr << dec << "ULL,";
-	  s.op->line() << " .sdt_sem_address=0,";
-	  if (p->has_library)
-	    {
-	      s.op->line() << " .finder={";
-	      s.op->line() << " .pid=0,";
-	      s.op->line() << " .procname=\"" << p->user_path << "\",";
-	      s.op->line() << " .mmap_callback=&stap_kprobe_mmap_found,";
-	      s.op->line() << " },";
-	      s.op->line() << " .pathname=\"" << p->user_lib << "\",";
-	    }
-	  else
-	    {
-	      s.op->line() << " .finder={";
-	      s.op->line() << " .pid=0,";
-	      s.op->line() << " .procname=\"" << p->user_path << "\",";
-	      s.op->line() << " .callback=&stap_kprobe_process_found,";
-	      s.op->line() << " },";
-	      s.op->line() << " .pathname=\"" << p->user_path << "\",";
-	    }
-
-	}
-
       s.op->line() << " },";
     }
 
