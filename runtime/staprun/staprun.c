@@ -300,7 +300,7 @@ void disable_kprobes_optimization()
 
 int init_staprun(void)
 {
-	privilege_t user_credentials;
+	privilege_t user_credentials = pr_unknown;
 	int rc;
 	dbug(2, "init_staprun\n");
 

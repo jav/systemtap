@@ -797,6 +797,8 @@ void assert_stap_module_permissions(
 			err("WARNING: couldn't set staprun GID to '%s': %s",
 					env_id, strerror(errno));
 
+		if (user_credentials)
+		  *user_credentials = pr_all;
 		return;
 	}
 
@@ -846,8 +848,11 @@ void assert_uprobes_module_permissions(
 		exit(-1);
 
 	/* root can still load this module.  */
-	if (getuid() == 0)
+	if (getuid() == 0) {
+		if (user_credentials)
+			*user_credentials = pr_all;
 		return;
+	}
 
 	/* Members of the groups stapdev and stapusr can still load this module. */
 	check_groups_rc = check_groups (module_path, module_fd, check_signature_rc,
