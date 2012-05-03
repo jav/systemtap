@@ -34,7 +34,11 @@ struct netfilter_derived_probe: public derived_probe
   string hook;
   string protocol_family;
   string priority;
-  netfilter_derived_probe (probe* p, probe_point* l, string h, string pf, string pri);
+  bool target_symbol_seen;
+
+  netfilter_derived_probe (systemtap_session &, probe* p,
+                           probe_point* l, string h,
+                           string pf, string pri);
   virtual void join_group (systemtap_session& s);
   void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged (o); }
 };
@@ -48,22 +52,51 @@ public:
   void emit_module_exit (systemtap_session& s);
 };
 
+struct netfilter_var_expanding_visitor: public var_expanding_visitor
+{
+  netfilter_var_expanding_visitor(systemtap_session& s, const string& pn);
 
-netfilter_derived_probe::netfilter_derived_probe (probe* p, probe_point* l, string h, string pf, string pri):
-  derived_probe (p, l), hook (h), protocol_family (pf), priority (pri)
+  systemtap_session& sess;
+  string probe_name;
+  bool target_symbol_seen;
+
+  void visit_target_symbol (target_symbol* e);
+};
+
+netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p,
+                                                  probe_point* l, string h,
+                                                  string pf, string pri):
+  derived_probe (p, l), hook (h), protocol_family (pf), priority (pri), target_symbol_seen(false)
 {
 
   if(protocol_family != "PF_INET" && protocol_family != "PF_INET6")
     throw semantic_error (_("invalid protocol family"));
 
+  // Expand local variables in the probe body
+  netfilter_var_expanding_visitor v (s, name);
+  v.replace (this->body);
+  target_symbol_seen = v.target_symbol_seen;
 }
-
 
 void
 netfilter_derived_probe::join_group (systemtap_session& s)
 {
   if (! s.netfilter_derived_probes)
-    s.netfilter_derived_probes = new netfilter_derived_probe_group ();
+    {
+      s.netfilter_derived_probes = new netfilter_derived_probe_group ();
+      // Make sure 'struct _stp_netfilter_data' is defined early.
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = NULL;
+      ec->code = string("struct _stp_netfilter_data {\n")
+	  + string("  char *buffer;\n")
+	  + string("  size_t bufsize;\n")
+	  + string("  size_t count;\n")
+	  + string("};\n")
+	  + string("#ifndef STP_NETFILTER_BUFSIZE\n")
+	  + string("#define STP_NETFILTER_BUFSIZE MAXSTRINGLEN\n")
+	  + string("#endif\n");
+      s.embeds.push_back(ec);
+    }
   s.netfilter_derived_probes->enroll (this);
 }
 
@@ -110,10 +143,47 @@ netfilter_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "(void) in;";
       s.op->newline() << "(void) out;";
       s.op->newline() << "(void) okfn;";
+
+      // Output routine to fill in the buffer with our data.  Note that we
+      // need to do this even in the case where we have no read probes,
+      // but we can skip most of it then.
+      s.op->newline();
+
+      s.op->newline() << "struct _stp_netfilter_data pdata;";
+
+      // common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING",
+             // "spp->read_probe",
+             // "_STP_PROBE_HANDLER_PROCFS");
+
+      s.op->newline() << "pdata.buffer = spp->buffer;";
+      s.op->newline() << "pdata.bufsize = spp->bufsize;";
+      s.op->newline() << "if (c->ips.netfilter_data == NULL)";
+      s.op->newline(1) << "c->ips.netfilter_data = &pdata;";
+      s.op->newline(-1) << "else {";
+
+      s.op->newline(1) << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
+      s.op->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+      s.op->newline() << "_stp_exit ();";
+      s.op->newline(-1) << "}";
+      s.op->newline() << "atomic_dec (& c->busy);";
+      s.op->newline() << "goto probe_epilogue;";
+      s.op->newline(-1) << "}";
+
       // Finally, invoke the probe handler
       s.op->newline() << "(*stp->ph) (c);";
+
+      // Note that _netfilter_value_set copied string data into spp->buffer
+      s.op->newline() << "c->ips.netfilter_data = NULL;";
+      s.op->newline() << "spp->needs_fill = 0;";
+      s.op->newline() << "spp->count = strlen(spp->buffer);";
+
       common_probe_entryfn_epilogue (s.op, false, s.suppress_handler_errors);
       s.op->newline() << "return NF_ACCEPT;"; // XXX: this could instead be an output from the handler
+      s.op->newline(-1) << "}";
+
+      s.op->newline() << "if (spp->needs_fill) {";
+      s.op->newline(1) << "spp->needs_fill = 0;";
+      s.op->newline() << "return -EIO;";
       s.op->newline(-1) << "}";
 
       // now emit the nf_hook_ops struct for this probe.
@@ -169,7 +239,117 @@ netfilter_derived_probe_group::emit_module_exit (systemtap_session& s)
     }
 }
 
+netfilter_var_expanding_visitor::netfilter_var_expanding_visitor (systemtap_session& s,
+							    const string& pn):
+  sess (s), probe_name (pn), target_symbol_seen (false)
+{
+  // netfilter probes can also handle '.='.
+  valid_ops.insert (".=");
+}
 
+void
+netfilter_var_expanding_visitor::visit_target_symbol (target_symbol* e)
+{
+  try
+    {
+      assert(e->name.size() > 0 && e->name[0] == '$');
+
+      if (e->name != "$verdict")
+        throw semantic_error (_("invalid target symbol for netfilter probe, $verdict expected"),
+                              e->tok);
+
+      e->assert_no_components("netfilter");
+
+      bool lvalue = is_active_lvalue(e);
+
+      if (e->addressof)
+        throw semantic_error(_("cannot take address of netfilter variable"), e->tok);
+
+      // Remember that we've seen a target variable.
+      target_symbol_seen = true;
+
+      // Synthesize a function.
+      functiondecl *fdecl = new functiondecl;
+      fdecl->synthetic = true;
+      fdecl->tok = e->tok;
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = e->tok;
+
+      string fname;
+      string locvalue = "CONTEXT->ips.netfilter_data";
+
+      if (! lvalue)
+        {
+          fname = "_netfilter_value_get";
+          ec->code = string("    struct _stp_netfilter_data *data = (struct _stp_netfilter_data *)(") + locvalue + string("); /* pure */\n")
+
+            + string("    _stp_copy_from_user(THIS->__retvalue, data->buffer, data->count);\n")
+            + string("    THIS->__retvalue[data->count] = '\\0';\n");
+        }
+      else					// lvalue
+        {
+          if (*op == "=")
+            {
+              fname = "_netfilter_value_set";
+              ec->code = string("struct _stp_netfilter_data *data = (struct _stp_netfilter_data *)(") + locvalue + string(");\n")
+                + string("    strlcpy(data->buffer, THIS->value, data->bufsize);\n")
+                + string("    data->count = strlen(data->buffer);\n");
+            }
+          else if (*op == ".=")
+            {
+              fname = "_netfilter_value_append";
+              ec->code = string("struct _stp_netfilter_data *data = (struct _stp_netfilter_data *)(") + locvalue + string(");\n")
+                + string("    strlcat(data->buffer, THIS->value, data->bufsize);\n")
+                + string("    data->count = strlen(data->buffer);\n");
+            }
+          else
+            {
+              throw semantic_error (_("Only the following assign operators are"
+                                    " implemented on netfilter target variables:"
+                                    " '=', '.='"), e->tok);
+            }
+        }
+      fname += lex_cast(++tick);
+
+      fdecl->name = fname;
+      fdecl->body = ec;
+      fdecl->type = pe_string;
+
+      if (lvalue)
+        {
+          // Modify the fdecl so it carries a single pe_string formal
+          // argument called "value".
+
+          vardecl *v = new vardecl;
+          v->type = pe_string;
+          v->name = "verdict";
+          v->tok = e->tok;
+          fdecl->formal_args.push_back(v);
+        }
+      fdecl->join (sess);
+
+      // Synthesize a functioncall.
+      functioncall* n = new functioncall;
+      n->tok = e->tok;
+      n->function = fname;
+
+      if (lvalue)
+        {
+          // Provide the functioncall to our parent, so that it can be
+          // used to substitute for the assignment node immediately above
+          // us.
+          assert(!target_symbol_setter_functioncalls.empty());
+          *(target_symbol_setter_functioncalls.top()) = n;
+        }
+
+      provide (n);
+    }
+  catch (const semantic_error &er)
+    {
+      e->chain (er);
+      provide (e);
+    }
+}
 // ------------------------------------------------------------------------
 // unified probe builder for netfilter probes
 // ------------------------------------------------------------------------
@@ -203,7 +383,7 @@ netfilter_builder::build(systemtap_session & sess,
   get_param(parameters, TOK_PF, protocol_family);
   get_param(parameters, TOK_PRI, priority);
 
-  finished_results.push_back(new netfilter_derived_probe(base, location, hook, protocol_family, priority));
+  finished_results.push_back(new netfilter_derived_probe(sess, base, location, hook, protocol_family, priority));
 }
 
 void
