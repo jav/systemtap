@@ -2298,7 +2298,8 @@ dead_assignment_remover::visit_assignment (assignment* e)
 
           varuse_collecting_visitor lvut(session);
           e->left->visit (& lvut);
-          if (lvut.side_effect_free () && !is_global) // XXX: use _wrt() once we track focal_vars
+          if (lvut.side_effect_free () && !is_global // XXX: use _wrt() once we track focal_vars
+              && !leftvar->skip_init) // don't elide assignment to synthetic $context variables
             {
               /* PR 1119: NB: This is not necessary here.  A write-only
                  variable will also be elided soon at the next _opt2 iteration.
@@ -2307,7 +2308,7 @@ dead_assignment_remover::visit_assignment (assignment* e)
               else
               */
               if (e->left->tok->location.file->name == session.user_file->name) // !tapset
-              session.print_warning(_F("Eliding assignment to %s at %s", leftvar->name.c_str(), lex_cast(*e->tok).c_str()));
+                session.print_warning(_F("Eliding assignment to %s at %s", leftvar->name.c_str(), lex_cast(*e->tok).c_str()));
               provide (e->right); // goodbye assignment*
               relaxed_p = false;
               return;
