@@ -26,30 +26,28 @@ if {$err == "" && [file exists $test]} then {
 
 if {[catch {exec stap $tpath.stp -c "$srcdir/$subdir/$test.sh"} res]} {
     untested "$test longjmp to a uretprobed function"
-    puts "$res"
- #   catch {exec rm -f $test.out}
+    verbose -log "$res"
+    catch {exec rm -f $test.out}
 } else {
     if {[catch {exec cmp $test.out $srcdir/$subdir/$test.exp_out} res]} {
         fail "$test longjmp to a uretprobed function"
-        puts "$res"
-#        catch {exec rm -f $test.out}
+	verbose -log "$res"
+        catch {exec rm -f $test.out}
     } else {
         pass "$test longjmp to a uretprobed function"
- #       catch {exec rm -f $test.out}
+        catch {exec rm -f $test.out}
     }
 }
 
 if {[catch {exec stap $tpath.a.stp -c $srcdir/$subdir/$test.sh} res]} {
     untested "$test longjmp to a non-uretprobed function"
-    puts "$res"
+    verbose -log "$res"
     catch {exec rm -f $test.out $test}
-    return
 } else {
     if {[catch {exec cmp $test.out $srcdir/$subdir/$test.exp_out} res]} {
         fail "$test longjmp to a non-uretprobed function"
-        puts "$res"
+	verbose -log "$res"
         catch {exec rm -f $test.out $test}
-        return
     } else {
         pass "$test longjmp to a non-uretprobed function"
         catch {exec rm -f $test.out $test}
