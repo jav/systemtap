@@ -382,7 +382,7 @@ static void set_no_state_rule(uleb128_t reg, enum item_location where,
 static void set_offset_rule(uleb128_t reg, enum item_location where,
                             sleb128_t svalue, struct unwind_state *state)
 {
-	dbug_unwind(1, "reg=%lx, where=%d, svalue=%lx\n", reg, where, value);
+	dbug_unwind(1, "reg=%lx, where=%d, svalue=%lx\n", reg, where, svalue);
 	if (reg < ARRAY_SIZE(REG_STATE.regs)) {
 		REG_STATE.regs[reg].where = where;
 		REG_STATE.regs[reg].state.off = svalue;
@@ -485,7 +485,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc,
 			case DW_CFA_offset_extended_sf:
 				value = get_uleb128(&ptr.p8, end);
 				svalue = get_sleb128(&ptr.p8, end);
-				dbug_unwind(1, "map DW_CFA_offset_extended_sf value %ld to reg_info idx %ld, with offset: %ld\n", value, DWARF_REG_MAP(value));
+				dbug_unwind(1, "map DW_CFA_offset_extended_sf value %ld to reg_info idx %ld, with offset: %ld\n", value, DWARF_REG_MAP(value), svalue);
 				value = DWARF_REG_MAP(value);
 				set_offset_rule(value, Memory,
 						svalue * state->dataAlign,
