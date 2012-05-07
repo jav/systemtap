@@ -21,8 +21,8 @@ using namespace __gnu_cxx;
 
 static const string TOK_NETFILTER("netfilter");
 static const string TOK_HOOK("hook");
-static const string TOK_PF("protocol_f");
-static const string TOK_PRI("priority");
+static const string TOK_PF("pf");
+static const string TOK_PRIORITY("priority");
 
 // ------------------------------------------------------------------------
 // netfilter derived probes
@@ -32,15 +32,15 @@ static const string TOK_PRI("priority");
 struct netfilter_derived_probe: public derived_probe
 {
   string hook;
-  string protocol_family;
+  string pf;
   string priority;
-  bool target_symbol_seen;
+
+  set<string> context_vars;
 
   netfilter_derived_probe (systemtap_session &, probe* p,
                            probe_point* l, string h,
                            string pf, string pri);
   virtual void join_group (systemtap_session& s);
-  void print_dupe_stamp(ostream& o) { print_dupe_stamp_unprivileged (o); }
 };
 
 
@@ -58,7 +58,7 @@ struct netfilter_var_expanding_visitor: public var_expanding_visitor
 
   systemtap_session& sess;
   string probe_name;
-  bool target_symbol_seen;
+  set<string> context_vars;
 
   void visit_target_symbol (target_symbol* e);
 };
@@ -66,37 +66,63 @@ struct netfilter_var_expanding_visitor: public var_expanding_visitor
 netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p,
                                                   probe_point* l, string h,
                                                   string pf, string pri):
-  derived_probe (p, l), hook (h), protocol_family (pf), priority (pri), target_symbol_seen(false)
+  derived_probe (p, l), hook (h), pf (pf), priority (pri)
 {
-
-  if(protocol_family != "PF_INET" && protocol_family != "PF_INET6")
-    throw semantic_error (_("invalid protocol family"));
+  if (! s.guru_mode)
+    {
+    // validate hook, pf, priority... OR ELSE! (see below)
+      bool valid_pf_hook = false;
+      
+      if (pf == "NFPROTO_IPV4" || pf == "NFPROTO_IPV6")
+        if (hook == "NF_INET_PRE_ROUTING" ||
+            hook == "NF_INET_LOCAL_IN" ||
+            hook == "NF_INET_FORWARD" ||
+            hook == "NF_INET_LOCAL_OUT" ||
+            hook == "NF_INET_POST_ROUTING")
+          valid_pf_hook = true;
+      // XXX: add values from netfilter_arp.h, netfilter_bridge.h etc.
+      
+      if (! valid_pf_hook)
+        throw semantic_error (_("unsupported netfilter pf/hook combination; need stap -g"));
+      
+      try 
+        {
+          int prio = lex_cast<int>(pri);
+          (void) prio;
+        }
+      catch (const runtime_error&) 
+        {
+          throw semantic_error (_("invalid netfilter hook priority"));
+        }
+    }
 
   // Expand local variables in the probe body
   netfilter_var_expanding_visitor v (s, name);
   v.replace (this->body);
-  target_symbol_seen = v.target_symbol_seen;
+
+  // Create probe-local vardecls, before symbol resolution might make
+  // one for us, so that we can set the all-important skip_init flag.
+  for (set<string>::iterator it = v.context_vars.begin();
+       it != v.context_vars.end();
+       it++)
+    {
+      string name = *it;
+      this->context_vars.insert(name);
+      vardecl *v = new vardecl;
+      v->name = name;
+      v->tok = this->tok; /* XXX: but really the $context var. */
+      v->set_arity (0, this->tok);
+      v->type = pe_long;
+      v->skip_init = true; // suppress rvalue or lvalue optimizations
+      this->locals.push_back (v);
+    }
 }
 
 void
 netfilter_derived_probe::join_group (systemtap_session& s)
 {
   if (! s.netfilter_derived_probes)
-    {
-      s.netfilter_derived_probes = new netfilter_derived_probe_group ();
-      // Make sure 'struct _stp_netfilter_data' is defined early.
-      embeddedcode *ec = new embeddedcode;
-      ec->tok = NULL;
-      ec->code = string("struct _stp_netfilter_data {\n")
-	  + string("  char *buffer;\n")
-	  + string("  size_t bufsize;\n")
-	  + string("  size_t count;\n")
-	  + string("};\n")
-	  + string("#ifndef STP_NETFILTER_BUFSIZE\n")
-	  + string("#define STP_NETFILTER_BUFSIZE MAXSTRINGLEN\n")
-	  + string("#endif\n");
-      s.embeds.push_back(ec);
-    }
+    s.netfilter_derived_probes = new netfilter_derived_probe_group ();
   s.netfilter_derived_probes->enroll (this);
 }
 
@@ -130,68 +156,62 @@ netfilter_derived_probe_group::emit_module_decls (systemtap_session& s)
     {
       netfilter_derived_probe *np = probes[i];
       s.op->newline() << "static unsigned int enter_netfilter_probe_" << np->name;
-      s.op->newline() << "(unsigned int hooknum, struct sk_buff *skb, const struct net_device *in, const struct net_device *out, int (*okfn)(struct sk_buff *))";
+      s.op->newline() << "(unsigned int nf_hooknum, struct sk_buff *nf_skb, const struct net_device *nf_in, const struct net_device *nf_out, int (*nf_okfn)(struct sk_buff *))";
       s.op->newline() << "{";
       s.op->newline(1) << "struct stap_probe * const stp = & stap_probes[" << np->session_index << "];";
+      s.op->newline() << "int nf_verdict = NF_ACCEPT;"; // default NF_ACCEPT, to be used by $verdict context var
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING", "stp",
                                      "_STP_PROBE_HANDLER_NETFILTER",
                                      false);
-      // Pretend to touch each netfilter hook callback argument, so we
-      // don't get complaints about unused parameters.
-      s.op->newline() << "(void) hooknum;";
-      s.op->newline() << "(void) skb;";
-      s.op->newline() << "(void) in;";
-      s.op->newline() << "(void) out;";
-      s.op->newline() << "(void) okfn;";
 
-      // Output routine to fill in the buffer with our data.  Note that we
-      // need to do this even in the case where we have no read probes,
-      // but we can skip most of it then.
-      s.op->newline();
+      // Copy or pretend-to-touch each incoming parameter.
 
-      s.op->newline() << "struct _stp_netfilter_data pdata;";
+      string c_p = "c->probe_locals." + lex_cast(np->name); // this is where the $context vars show up
 
-      // common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING",
-             // "spp->read_probe",
-             // "_STP_PROBE_HANDLER_PROCFS");
+      if (np->context_vars.find("__nf_hooknum") != np->context_vars.end())
+        s.op->newline() << c_p + ".__nf_hooknum = (int64_t)(uintptr_t) nf_hooknum;";
+      else
+        s.op->newline() << "(void) nf_hooknum;";
+      if (np->context_vars.find("__nf_skb") != np->context_vars.end())
+        s.op->newline() << c_p + ".__nf_skb = (int64_t)(uintptr_t) nf_skb;";
+      else
+        s.op->newline() << "(void) nf_skb;";
+      if (np->context_vars.find("__nf_in") != np->context_vars.end())
+        s.op->newline() << c_p + ".__nf_in = (int64_t)(uintptr_t) nf_in;";
+      else
+        s.op->newline() << "(void) nf_in;";
+      if (np->context_vars.find("__nf_out") != np->context_vars.end())
+        s.op->newline() << c_p + ".__nf_in = (int64_t)(uintptr_t) nf_out;";
+      else
+        s.op->newline() << "(void) nf_out;";
+      if (np->context_vars.find("__nf_verdict") != np->context_vars.end())
+        s.op->newline() << c_p + ".__nf_verdict = (int64_t) nf_verdict;";
+      else
+        s.op->newline() << "(void) nf_out;";
 
-      s.op->newline() << "pdata.buffer = spp->buffer;";
-      s.op->newline() << "pdata.bufsize = spp->bufsize;";
-      s.op->newline() << "if (c->ips.netfilter_data == NULL)";
-      s.op->newline(1) << "c->ips.netfilter_data = &pdata;";
-      s.op->newline(-1) << "else {";
-
-      s.op->newline(1) << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
-      s.op->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-      s.op->newline() << "_stp_exit ();";
-      s.op->newline(-1) << "}";
-      s.op->newline() << "atomic_dec (& c->busy);";
-      s.op->newline() << "goto probe_epilogue;";
-      s.op->newline(-1) << "}";
-
-      // Finally, invoke the probe handler
+      // Invoke the probe handler
       s.op->newline() << "(*stp->ph) (c);";
 
-      // Note that _netfilter_value_set copied string data into spp->buffer
-      s.op->newline() << "c->ips.netfilter_data = NULL;";
-      s.op->newline() << "spp->needs_fill = 0;";
-      s.op->newline() << "spp->count = strlen(spp->buffer);";
-
       common_probe_entryfn_epilogue (s.op, false, s.suppress_handler_errors);
-      s.op->newline() << "return NF_ACCEPT;"; // XXX: this could instead be an output from the handler
-      s.op->newline(-1) << "}";
 
-      s.op->newline() << "if (spp->needs_fill) {";
-      s.op->newline(1) << "spp->needs_fill = 0;";
-      s.op->newline() << "return -EIO;";
+      if (np->context_vars.find("__nf_verdict") != np->context_vars.end())
+        s.op->newline() << "nf_verdict = (int) "+c_p+".__nf_verdict;";
+
+      s.op->newline() << "return nf_verdict;";
       s.op->newline(-1) << "}";
 
       // now emit the nf_hook_ops struct for this probe.
       s.op->newline() << "static struct nf_hook_ops netfilter_opts_" << np->name << " = {";
       s.op->newline() << ".hook = enter_netfilter_probe_" << np->name << ",";
       s.op->newline() << ".owner = THIS_MODULE,";
+
+      // XXX: if these strings/numbers are not range-limited / validated before we get here,
+      // ie during the netfilter_derived_probe ctor, then we will emit potential trash here,
+      // leading to all kinds of horror.  Like zombie women eating roach-filled walnuts.  Dogs
+      // and cats living together.  Foreign foods taking over the refrigerator.  Don't let this
+      // happen to you!
       s.op->newline() << ".hooknum = " << np->hook << ",";
-      s.op->newline() << ".pf = " << np->protocol_family << ",";
+      s.op->newline() << ".pf = " << np->pf << ",";
       s.op->newline() << ".priority = " << np->priority << ",";
       s.op->newline() << "};";
     }
@@ -239,13 +259,13 @@ netfilter_derived_probe_group::emit_module_exit (systemtap_session& s)
     }
 }
 
+
 netfilter_var_expanding_visitor::netfilter_var_expanding_visitor (systemtap_session& s,
-							    const string& pn):
-  sess (s), probe_name (pn), target_symbol_seen (false)
+                                                                  const string& pn):
+  sess (s), probe_name (pn)
 {
-  // netfilter probes can also handle '.='.
-  valid_ops.insert (".=");
 }
+
 
 void
 netfilter_var_expanding_visitor::visit_target_symbol (target_symbol* e)
@@ -254,95 +274,34 @@ netfilter_var_expanding_visitor::visit_target_symbol (target_symbol* e)
     {
       assert(e->name.size() > 0 && e->name[0] == '$');
 
-      if (e->name != "$verdict")
-        throw semantic_error (_("invalid target symbol for netfilter probe, $verdict expected"),
-                              e->tok);
-
-      e->assert_no_components("netfilter");
-
-      bool lvalue = is_active_lvalue(e);
-
       if (e->addressof)
-        throw semantic_error(_("cannot take address of netfilter variable"), e->tok);
+        throw semantic_error(_("cannot take address of netfilter hook context variable"), e->tok);
 
-      // Remember that we've seen a target variable.
-      target_symbol_seen = true;
+      // We map all $context variables to similarly named probe locals.
+      // See emit_module_decls for how the parameters & result are handled.
+      string c_var;
+      bool lvalue_ok = false;
+      if (e->name == "$hooknum") { c_var = "__nf_hooknum"; }
+      else if (e->name == "$skb") { c_var = "__nf_skb"; }
+      else if (e->name == "$in") { c_var = "__nf_in"; }
+      else if (e->name == "$out") { c_var = "__nf_out"; }
+      else if (e->name == "$okfn") { c_var = "__nf_okfn"; }
+      else if (e->name == "$verdict") { c_var = "__nf_verdict"; lvalue_ok = true; }
+      // XXX: also support $$vars / $$parms
+      else
+        throw semantic_error(_("unsupported context variable"), e->tok);
 
-      // Synthesize a function.
-      functiondecl *fdecl = new functiondecl;
-      fdecl->synthetic = true;
-      fdecl->tok = e->tok;
-      embeddedcode *ec = new embeddedcode;
-      ec->tok = e->tok;
+      if (! lvalue_ok && is_active_lvalue (e))
+        throw semantic_error(_("write to netfilter parameter not permitted"), e->tok);
 
-      string fname;
-      string locvalue = "CONTEXT->ips.netfilter_data";
+      context_vars.insert (c_var);
 
-      if (! lvalue)
-        {
-          fname = "_netfilter_value_get";
-          ec->code = string("    struct _stp_netfilter_data *data = (struct _stp_netfilter_data *)(") + locvalue + string("); /* pure */\n")
-
-            + string("    _stp_copy_from_user(THIS->__retvalue, data->buffer, data->count);\n")
-            + string("    THIS->__retvalue[data->count] = '\\0';\n");
-        }
-      else					// lvalue
-        {
-          if (*op == "=")
-            {
-              fname = "_netfilter_value_set";
-              ec->code = string("struct _stp_netfilter_data *data = (struct _stp_netfilter_data *)(") + locvalue + string(");\n")
-                + string("    strlcpy(data->buffer, THIS->value, data->bufsize);\n")
-                + string("    data->count = strlen(data->buffer);\n");
-            }
-          else if (*op == ".=")
-            {
-              fname = "_netfilter_value_append";
-              ec->code = string("struct _stp_netfilter_data *data = (struct _stp_netfilter_data *)(") + locvalue + string(");\n")
-                + string("    strlcat(data->buffer, THIS->value, data->bufsize);\n")
-                + string("    data->count = strlen(data->buffer);\n");
-            }
-          else
-            {
-              throw semantic_error (_("Only the following assign operators are"
-                                    " implemented on netfilter target variables:"
-                                    " '=', '.='"), e->tok);
-            }
-        }
-      fname += lex_cast(++tick);
-
-      fdecl->name = fname;
-      fdecl->body = ec;
-      fdecl->type = pe_string;
-
-      if (lvalue)
-        {
-          // Modify the fdecl so it carries a single pe_string formal
-          // argument called "value".
-
-          vardecl *v = new vardecl;
-          v->type = pe_string;
-          v->name = "verdict";
-          v->tok = e->tok;
-          fdecl->formal_args.push_back(v);
-        }
-      fdecl->join (sess);
-
-      // Synthesize a functioncall.
-      functioncall* n = new functioncall;
-      n->tok = e->tok;
-      n->function = fname;
-
-      if (lvalue)
-        {
-          // Provide the functioncall to our parent, so that it can be
-          // used to substitute for the assignment node immediately above
-          // us.
-          assert(!target_symbol_setter_functioncalls.empty());
-          *(target_symbol_setter_functioncalls.top()) = n;
-        }
-
-      provide (n);
+      // Synthesize a symbol to reference those variables
+      symbol* sym = new symbol;
+      sym->type = pe_long;
+      sym->tok = e->tok;
+      sym->name = c_var;
+      provide (sym);
     }
   catch (const semantic_error &er)
     {
@@ -373,17 +332,17 @@ netfilter_builder::build(systemtap_session & sess,
     literal_map_t const & parameters,
     vector<derived_probe *> & finished_results)
 {
-  string hook;
-  string protocol_family = "PF_INET"; // Default ipv4 protocol
-  string priority = "NF_IP_PRI_FIRST";
+  string hook;                // no default
+  string pf = "NFPROTO_IPV4"; // Default: IPV4 protocols 
+  string priority = "0";      // Default: somewhere in the middle
 
   if(!get_param(parameters, TOK_HOOK, hook))
     throw semantic_error (_("missing hooknum"));
 
-  get_param(parameters, TOK_PF, protocol_family);
-  get_param(parameters, TOK_PRI, priority);
+  get_param(parameters, TOK_PF, pf);
+  get_param(parameters, TOK_PRIORITY, priority);
 
-  finished_results.push_back(new netfilter_derived_probe(sess, base, location, hook, protocol_family, priority));
+  finished_results.push_back(new netfilter_derived_probe(sess, base, location, hook, pf, priority));
 }
 
 void
@@ -399,10 +358,10 @@ register_tapset_netfilter(systemtap_session& s)
   root->bind(TOK_NETFILTER)->bind_str(TOK_HOOK)->bind_str(TOK_PF)->bind(builder);
 
   // netfilter.hook().priority()
-  root->bind(TOK_NETFILTER)->bind_str(TOK_HOOK)->bind_str(TOK_PRI)->bind(builder);
+  root->bind(TOK_NETFILTER)->bind_str(TOK_HOOK)->bind_str(TOK_PRIORITY)->bind(builder);
 
   //netfilter.hook().protocol_f().priority()
-  root->bind(TOK_NETFILTER)->bind_str(TOK_HOOK)->bind_str(TOK_PF)->bind_str(TOK_PRI)->bind(builder);
+  root->bind(TOK_NETFILTER)->bind_str(TOK_HOOK)->bind_str(TOK_PF)->bind_str(TOK_PRIORITY)->bind(builder);
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
