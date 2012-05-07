@@ -1,0 +1,57 @@
+/* netfilter.stp - netfilter hook tapset
+ *
+ * Copyright (C) 2012 Red Hat Inc.
+ */
+
+probe netfilter.ipv4.pre_routing = netfilter.hook("NF_INET_PRE_ROUTING").pf("NFPROTO_IPV4") {
+      indev_name = kernel_string(@cast($in,"struct net_device")->name)
+      outdev_name = kernel_string(@cast($out,"struct net_device")->name)
+}
+probe netfilter.ipv4.local_in = netfilter.hook("NF_INET_LOCAL_IN").pf("NFPROTO_IPV4") {
+      indev_name = kernel_string(@cast($in,"struct net_device")->name)
+      outdev_name = kernel_string(@cast($out,"struct net_device")->name)
+}
+probe netfilter.ipv4.forward = netfilter.hook("NF_INET_FORWARD").pf("NFPROTO_IPV4") {
+      indev_name = kernel_string(@cast($in,"struct net_device")->name)
+      outdev_name = kernel_string(@cast($out,"struct net_device")->name)
+}
+probe netfilter.ipv4.local_out = netfilter.hook("NF_INET_LOCAL_OUT").pf("NFPROTO_IPV4") {
+      indev_name = kernel_string(@cast($in,"struct net_device")->name)
+      outdev_name = kernel_string(@cast($out,"struct net_device")->name)
+}
+probe netfilter.ipv4.post_routing = netfilter.hook("NF_INET_POST_ROUTING").pf("NFPROTO_IPV4") {
+      indev_name = kernel_string(@cast($in,"struct net_device")->name)
+      outdev_name = kernel_string(@cast($out,"struct net_device")->name)
+}
+
+probe netfilter.ipv6.pre_routing = netfilter.hook("NF_INET_PRE_ROUTING").pf("NFPROTO_IPV6") {
+      indev_name = kernel_string(@cast($in,"struct net_device")->name)
+      outdev_name = kernel_string(@cast($out,"struct net_device")->name)
+}
+probe netfilter.ipv6.local_in = netfilter.hook("NF_INET_LOCAL_IN").pf("NFPROTO_IPV6") {
+      indev_name = kernel_string(@cast($in,"struct net_device")->name)
+      outdev_name = kernel_string(@cast($out,"struct net_device")->name)
+}
+probe netfilter.ipv6.forward = netfilter.hook("NF_INET_FORWARD").pf("NFPROTO_IPV6") {
+      indev_name = kernel_string(@cast($in,"struct net_device")->name)
+      outdev_name = kernel_string(@cast($out,"struct net_device")->name)
+}
+probe netfilter.ipv6.local_out = netfilter.hook("NF_INET_LOCAL_OUT").pf("NFPROTO_IPV6") {
+      indev_name = kernel_string(@cast($in,"struct net_device")->name)
+      outdev_name = kernel_string(@cast($out,"struct net_device")->name)
+}
+probe netfilter.ipv6.post_routing = netfilter.hook("NF_INET_POST_ROUTING").pf("NFPROTO_IPV6") {
+      indev_name = kernel_string(@cast($in,"struct net_device")->name)
+      outdev_name = kernel_string(@cast($out,"struct net_device")->name)
+}
+
+/* XXX: include arp, bridge, etc. */
+
+/* include/linux/netfilter.h */
+
+global NF_DROP = 0
+global NF_ACCEPT = 1
+global NF_STOLEN = 2
+global NF_QUEUE = 3
+global NF_REPEAT = 4
+global NF_STOP = 5
