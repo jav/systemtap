@@ -101,7 +101,7 @@ netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p
   v.replace (this->body);
 
   // Create probe-local vardecls, before symbol resolution might make
-  // one for us, so that we can set the all-important skip_init flag.
+  // one for us, so that we can set the all-important synthetic flag.
   for (set<string>::iterator it = v.context_vars.begin();
        it != v.context_vars.end();
        it++)
@@ -113,7 +113,7 @@ netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p
       v->tok = this->tok; /* XXX: but really the $context var. */
       v->set_arity (0, this->tok);
       v->type = pe_long;
-      v->skip_init = true; // suppress rvalue or lvalue optimizations
+      v->synthetic = true; // suppress rvalue or lvalue optimizations
       this->locals.push_back (v);
     }
 }

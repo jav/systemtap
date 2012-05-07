@@ -8888,7 +8888,7 @@ tracepoint_derived_probe::tracepoint_derived_probe (systemtap_session& s,
 	v->tok = this->tok;
 	v->set_arity(0, this->tok);
 	v->type = pe_long;
-	v->skip_init = true;
+	v->synthetic = true;
 	this->locals.push_back (v);
       }
 

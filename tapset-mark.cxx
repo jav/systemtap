@@ -233,7 +233,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
 	v->tok = this->tok;
 	v->set_arity(0, this->tok);
 	v->type = mark_args[i]->stp_type;
-	v->skip_init = true;
+	v->synthetic = true;
 	this->locals.push_back (v);
       }
 

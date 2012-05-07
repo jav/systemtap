@@ -2116,7 +2116,7 @@ c_unparser::emit_probe (derived_probe* v)
       // initialize locals
       for (unsigned j=0; j<v->locals.size(); j++)
         {
-	  if (v->locals[j]->skip_init)
+	  if (v->locals[j]->synthetic)
             continue;
 	  if (v->locals[j]->index_types.size() > 0) // array?
             throw semantic_error (_("array locals not supported, missing global declaration?"),

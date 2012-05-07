@@ -146,7 +146,7 @@ probe_point::component::component (std::string const & f, literal * a):
 
 
 vardecl::vardecl ():
-  arity_tok(0), arity (-1), maxsize(0), init(NULL), skip_init(false), wrap(false)
+  arity_tok(0), arity (-1), maxsize(0), init(NULL), synthetic(false), wrap(false)
 {
 }
 

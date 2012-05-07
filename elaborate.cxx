@@ -2132,7 +2132,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
         vardecl* l = s.probes[i]->locals[j];
 
         // skip over "special" locals
-        if (l->skip_init) { j++; continue; }
+        if (l->synthetic) { j++; continue; }
 
         if (vut.read.find (l) == vut.read.end() &&
             vut.written.find (l) == vut.written.end())
@@ -2299,7 +2299,7 @@ dead_assignment_remover::visit_assignment (assignment* e)
           varuse_collecting_visitor lvut(session);
           e->left->visit (& lvut);
           if (lvut.side_effect_free () && !is_global // XXX: use _wrt() once we track focal_vars
-              && !leftvar->skip_init) // don't elide assignment to synthetic $context variables
+              && !leftvar->synthetic) // don't elide assignment to synthetic $context variables
             {
               /* PR 1119: NB: This is not necessary here.  A write-only
                  variable will also be elided soon at the next _opt2 iteration.
