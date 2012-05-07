@@ -50,10 +50,6 @@
    And the instruction pointer should be set from the return address
    column (which normally is the link register (uregs[14]). */
 
-#define UNW_DEFAULT_RA(raItem, dataAlign) \
-	((raItem).where == Memory && \
-	 !((raItem).value * (dataAlign) + 8))
-
 static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
                                             /*const*/ struct pt_regs *regs,
 					    int sanitize)

@@ -293,24 +293,26 @@ typedef   signed long sleb128_t;
 
 struct unwind_item {
 	enum item_location {
-		Same,
-		Nowhere,
-		Memory,
-		Register,
-		Value,
-		Expr,
-		ValExpr
+		Same,     /* no state */
+		Nowhere,  /* no state */
+		Memory,   /* signed offset from CFA */
+		Register, /* unsigned register number */
+		Value,    /* signed offset from CFA */
+		Expr,     /* DWARF expression */
+		ValExpr   /* DWARF expression */
 	} where;
 	union {
-		uleb128_t value;
+		uleb128_t reg;
+		sleb128_t off;
 		const u8 *expr;
-	};
+	} state;
 };
 
 struct unwind_reg_state {
 	union {
 		struct cfa {
-			uleb128_t reg, offs;
+			uleb128_t reg;
+			sleb128_t off;
 		} cfa;
 		const u8 *cfa_expr;
 	};

@@ -82,10 +82,6 @@
 
 #define UNW_NR_REAL_REGS 35 /* We don't count nip. */
 
-#define UNW_DEFAULT_RA(raItem, dataAlign) \
-	((raItem).where == Memory && \
-	 !((raItem).value * (dataAlign) + 8))
-
 static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
                                             /*const*/ struct pt_regs *regs,
 					    int sanitize)

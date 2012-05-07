@@ -87,10 +87,6 @@
 #define UNW_NR_REAL_REGS 16
 #define UNW_PC_FROM_RA 0 /* Because rip == return address column already. */
 
-#define UNW_DEFAULT_RA(raItem, dataAlign) \
-	((raItem).where == Memory && \
-	 !((raItem).value * (dataAlign) + 8))
-
 static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
                                             /*const*/ struct pt_regs *regs,
 					    int sanitize)

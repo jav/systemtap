@@ -62,10 +62,6 @@
 #define UNW_NR_REAL_REGS 8
 #define UNW_PC_FROM_RA 0 /* Because [e]ip == return address column already. */
 
-#define UNW_DEFAULT_RA(raItem, dataAlign) \
-	((raItem).where == Memory && \
-	 !((raItem).value * (dataAlign) + 4))
-
 
 /* 2.6.9-era compatibility */
 #ifndef user_mode_vm
