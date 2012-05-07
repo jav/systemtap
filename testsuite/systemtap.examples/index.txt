@@ -35,7 +35,8 @@ general/eventcount.stp - Count Specified Events
 keywords: statistics thread process
 
   The script prints a count of specified events and their related tid's
-  over the course of execution.
+  over the course of execution.  Numerous configuration options exist
+  to control filtering / reporting, see the script source.
 
   # stap eventcount.stp syscall.* -c 'sleep 0.2'
 
@@ -679,7 +680,7 @@ keywords: monitoring security audit backtrace
   log every record being sent, along with a user-space backtrace of the
   process that caused it.
 
-  # stap auditbt.stp -d /usr/bin/sudo --ldd -c "sudo -c true"
+  # stap auditbt.stp -d /usr/bin/sudo --ldd -c "sudo true"
 
 
 process/chng_cpu.stp - Monitor Changes in Processor Executing a Task

@@ -44,7 +44,7 @@
 <ul>
 <li><a href="process/auditbt.stp">process/auditbt.stp</a> - Generate backtraces for kernel audit events<br>
 keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <a href="keyword-index.html#AUDIT">AUDIT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
-<p>Attaches to the kernel audit-log paths (also used by libaudit), and log every record being sent, along with a user-space backtrace of the process that caused it.<p><font size="-2"><pre># stap auditbt.stp -d /usr/bin/sudo --ldd -c &quot;sudo -c true&quot;</pre></font></p>
+<p>Attaches to the kernel audit-log paths (also used by libaudit), and log every record being sent, along with a user-space backtrace of the process that caused it.<p><font size="-2"><pre># stap auditbt.stp -d /usr/bin/sudo --ldd -c &quot;sudo true&quot;</pre></font></p>
 </li></ul>
 <h3><a name="AUTOFS"><a href="#AUTOFS">&para;</a> AUTOFS</a></h3>
 <ul>
@@ -66,7 +66,7 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#BAC
 <p>When a reschedule occurs during an AIO io_submit call, accumulate the traceback in a histogram. When the script exits prints out a sorted list from most common to least common backtrace.<p><font size="-2"><pre># stap io_submit.stp -c &quot;sleep 0.2&quot;</pre></font></p>
 </li><li><a href="process/auditbt.stp">process/auditbt.stp</a> - Generate backtraces for kernel audit events<br>
 keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <a href="keyword-index.html#AUDIT">AUDIT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
-<p>Attaches to the kernel audit-log paths (also used by libaudit), and log every record being sent, along with a user-space backtrace of the process that caused it.<p><font size="-2"><pre># stap auditbt.stp -d /usr/bin/sudo --ldd -c &quot;sudo -c true&quot;</pre></font></p>
+<p>Attaches to the kernel audit-log paths (also used by libaudit), and log every record being sent, along with a user-space backtrace of the process that caused it.<p><font size="-2"><pre># stap auditbt.stp -d /usr/bin/sudo --ldd -c &quot;sudo true&quot;</pre></font></p>
 </li><li><a href="process/pstrace_exec.stp">process/pstrace_exec.stp</a> - Print trace of process ancestors for matching exec commands<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
 <p>The pstrace_exec.stp script watches each exec operation. If the exec contains a substring that matches the script&#39;s command-line argument, it prints out that process and all of its ancestors.<p><font size="-2"><pre># stap pstrace_exec.stp -c &quot;sleep 0.2&quot; bash</pre></font></p>
@@ -314,7 +314,7 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#TTY
 <p>The ttyspy.stp script uses tty_audit hooks to monitor recent typing activity on the system, printing a scrolling record of recent keystrokes, on a per-tty basis.<p><font size="-2"><pre># stap --skip-badvars -g ttyspy.stp -c &quot;sleep 1&quot;</pre></font></p>
 </li><li><a href="process/auditbt.stp">process/auditbt.stp</a> - Generate backtraces for kernel audit events<br>
 keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <a href="keyword-index.html#AUDIT">AUDIT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
-<p>Attaches to the kernel audit-log paths (also used by libaudit), and log every record being sent, along with a user-space backtrace of the process that caused it.<p><font size="-2"><pre># stap auditbt.stp -d /usr/bin/sudo --ldd -c &quot;sudo -c true&quot;</pre></font></p>
+<p>Attaches to the kernel audit-log paths (also used by libaudit), and log every record being sent, along with a user-space backtrace of the process that caused it.<p><font size="-2"><pre># stap auditbt.stp -d /usr/bin/sudo --ldd -c &quot;sudo true&quot;</pre></font></p>
 </li></ul>
 <h3><a name="NANOSLEEP"><a href="#NANOSLEEP">&para;</a> NANOSLEEP</a></h3>
 <ul>
@@ -383,7 +383,7 @@ keywords: <a href="keyword-index.html#MEMORY">MEMORY</a> <a href="keyword-index.
 <ul>
 <li><a href="general/eventcount.stp">general/eventcount.stp</a> - Count Specified Events<br>
 keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keyword-index.html#THREAD">THREAD</a> <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
-<p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p>
+<p>The script prints a count of specified events and their related tid&#39;s over the course of execution.  Numerous configuration options exist to control filtering / reporting, see the script source.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p>
 </li><li><a href="network/sk_stream_wait_memory.stp">network/sk_stream_wait_memory.stp</a> - Track Start and Stop of Processes Due to Network Buffer Space<br>
 keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-index.html#TCP">TCP</a> <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
 <p>The sk_stream-wait_memory.stp prints a time stamp, executable, and pid each time a process blocks due to the send buffer being full. A similar entry is printed each time a process continues because there is room in the buffer.<p><font size="-2"><pre># stap sk_stream_wait_memory.stp -c &quot;sleep 0.2&quot;</pre></font></p>
@@ -509,7 +509,7 @@ keywords: <a href="keyword-index.html#IO">IO</a> <a href="keyword-index.html#PRO
 <ul>
 <li><a href="process/auditbt.stp">process/auditbt.stp</a> - Generate backtraces for kernel audit events<br>
 keywords: <a href="keyword-index.html#MONITORING">MONITORING</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <a href="keyword-index.html#AUDIT">AUDIT</a> <a href="keyword-index.html#BACKTRACE">BACKTRACE</a> <br>
-<p>Attaches to the kernel audit-log paths (also used by libaudit), and log every record being sent, along with a user-space backtrace of the process that caused it.<p><font size="-2"><pre># stap auditbt.stp -d /usr/bin/sudo --ldd -c &quot;sudo -c true&quot;</pre></font></p>
+<p>Attaches to the kernel audit-log paths (also used by libaudit), and log every record being sent, along with a user-space backtrace of the process that caused it.<p><font size="-2"><pre># stap auditbt.stp -d /usr/bin/sudo --ldd -c &quot;sudo true&quot;</pre></font></p>
 </li><li><a href="process/noptrace.stp">process/noptrace.stp</a> - Disable ptrace from Hierarchies of Processes<br>
 keywords: <a href="keyword-index.html#PROCESS">PROCESS</a> <a href="keyword-index.html#SECURITY">SECURITY</a> <br>
 <p>Blocks ptrace(2) attempts from processes identified by stap -c/-x, as also specifiable from /proc/systemtap/stap_XXX/ control files.  Processes may be added or removed from the blocked list.<p><font size="-2"><pre># stap -g noptrace.stp -c &#39;strace ls || true&#39;</pre></font></p>
@@ -563,7 +563,7 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <ul>
 <li><a href="general/eventcount.stp">general/eventcount.stp</a> - Count Specified Events<br>
 keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keyword-index.html#THREAD">THREAD</a> <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
-<p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p>
+<p>The script prints a count of specified events and their related tid&#39;s over the course of execution.  Numerous configuration options exist to control filtering / reporting, see the script source.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p>
 </li><li><a href="general/func_time_stats.stp">general/func_time_stats.stp</a> - Function Time Statistics<br>
 keywords: <a href="keyword-index.html#FUNCTION">FUNCTION</a> <a href="keyword-index.html#STATISTICS">STATISTICS</a> <br>
 <p>The func_time_stats.stp script tracks the wall clock time for each invocation of the function probe listed as the first command line argument. When the script exits it prints out the minimum, average, and maximum times in microseconds followed by a count of times that the function was called and a histogram showing the distributions of times.<p><font size="-2"><pre># stap func_time_stats.stp &#39;syscall.nanosleep&#39; -c &quot;sleep 0.2&quot;</pre></font></p>
@@ -623,7 +623,7 @@ keywords: <a href="keyword-index.html#NETWORK">NETWORK</a> <a href="keyword-inde
 <ul>
 <li><a href="general/eventcount.stp">general/eventcount.stp</a> - Count Specified Events<br>
 keywords: <a href="keyword-index.html#STATISTICS">STATISTICS</a> <a href="keyword-index.html#THREAD">THREAD</a> <a href="keyword-index.html#PROCESS">PROCESS</a> <br>
-<p>The script prints a count of specified events and their related tid&#39;s over the course of execution.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p>
+<p>The script prints a count of specified events and their related tid&#39;s over the course of execution.  Numerous configuration options exist to control filtering / reporting, see the script source.<p><font size="-2"><pre># stap eventcount.stp syscall.* -c &#39;sleep 0.2&#39;</pre></font></p>
 </li></ul>
 <h3><a name="TIME"><a href="#TIME">&para;</a> TIME</a></h3>
 <ul>
