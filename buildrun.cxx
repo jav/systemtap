@@ -37,6 +37,9 @@ static int
 run_make_cmd(systemtap_session& s, vector<string>& make_cmd,
              bool null_out=false, bool null_err=false)
 {
+  if (pending_interrupts)
+    return -1;
+
   // Before running make, fix up the environment a bit.  PATH should
   // already be overridden.  Clean out a few variables that
   // s.kernel_build_tree/Makefile uses.
