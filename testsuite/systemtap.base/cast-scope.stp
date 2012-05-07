@@ -1,16 +1,31 @@
+global function_string, statement_string, mark_string
+
 probe process.function("length@cast-scope.cxx")
 {
-  println("function direct: ", $str$$)
-  println("function cast: ", @cast($str, "std::string")$$)
+  function_string .= sprintf("function direct: %s\n", $str$$)
+  function_string .= sprintf("function cast: %s\n", @cast($str, "std::string")$$)
 }
 
 probe process.statement("length@cast-scope.cxx+4")
 {
-  println("statement direct: ", $str$$)
-  println("statement cast: ", @cast($str, "std::string")$$)
+  statement_string .= sprintf("statement direct: %s\n", $str$$)
+  statement_string .= sprintf("statement cast: %s\n", @cast($str, "std::string")$$)
 }
 
 probe process.mark("length")
 {
-  println("mark cast: ", @cast($arg1, "std::string")$$)
+  mark_string .= sprintf("mark cast: %s\n", @cast($arg1, "std::string")$$)
+}
+
+probe end
+{
+	# Why print the strings this way? cast-scope.exp expects the
+	# output in a certain order.  If the probe addresses end up
+	# the same, the process.function/process.mark probes might get
+	# called in any order.
+	#
+	# So, we'll print the strings in a defined order.
+	printf("%s", function_string);
+	printf("%s", mark_string);
+	printf("%s", statement_string);
 }
