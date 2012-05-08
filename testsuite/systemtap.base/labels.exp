@@ -113,9 +113,14 @@ if {[uprobes_p]} {
     verbose -log "spawn stap -c $label_exepath $label_stppath"
     spawn stap -c $label_exepath $label_stppath
 
+    # Note that the output can come out in a bit different order
+    # depending on when the probes fire.  This is reasonable since
+    # we've got 2 probes at the same probe point (.label("init_*") and
+    # .label("init_an_int"))
     expect {
 	-timeout 180
 	-re {VARS a=0x0 b=0x0.*init_an_int.*VARS a=0x2 b=0x0.*VARS a=0x2 b=0x3 c=0x[a-f01-9]} { incr ok; exp_continue }
+	-re {init_an_int.*VARS a=0x0 b=0x0.*VARS a=0x2 b=0x0.*VARS a=0x2 b=0x3 c=0x[a-f01-9]} { incr ok; exp_continue }
 	timeout { fail "$test (timeout)" }
 	eof { }
     }
