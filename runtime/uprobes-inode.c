@@ -222,15 +222,26 @@ stapiu_get(struct stapiu_target *targets, size_t ntargets)
 		INIT_LIST_HEAD(&ut->consumers);
 		INIT_LIST_HEAD(&ut->processes);
 		ret = stap_register_task_finder_target(&ut->finder);
-		if (!ret)
-			ret = kern_path(ut->filename, LOOKUP_FOLLOW, &path);
-		if (!ret) {
-			ut->inode = igrab(path.dentry->d_inode);
-			if (!ut->inode)
-				ret = -EINVAL;
-		}
-		if (ret)
+		if (ret != 0) {
+			_stp_error("Couldn't register task finder target for file '%s': %d\n",
+				   ut->filename, ret);
 			break;
+		}
+
+		ret = kern_path(ut->filename, LOOKUP_FOLLOW, &path);
+		if (ret != 0) {
+			_stp_error("Couldn't lookup file '%s': %d\n",
+				   ut->filename, ret);
+			break;
+		}
+
+		ut->inode = igrab(path.dentry->d_inode);
+		if (!ut->inode) {
+			_stp_error("Couldn't get inode for file '%s'\n",
+				   ut->filename);
+			ret = -EINVAL;
+			break;
+		}
 	}
 	if (ret)
 		stapiu_put(targets, i);
@@ -262,8 +273,11 @@ stapiu_reg(struct stapiu_consumer *consumers, size_t nconsumers)
 		struct stapiu_consumer *uc = &consumers[i];
 		ret = uprobe_register(uc->target->inode, uc->offset,
 				      &uc->consumer);
-		if (ret)
+		if (ret) {
+			_stp_error("probe %s registration error (rc %d)",
+				   uc->probe->pp, ret);
 			break;
+		}
 		list_add(&uc->target_consumer, &uc->target->consumers);
 	}
 	if (ret)

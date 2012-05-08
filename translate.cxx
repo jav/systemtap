@@ -1661,7 +1661,11 @@ c_unparser::emit_module_init ()
       // NB: this gives O(N**2) amount of code, but luckily there
       // are only seven or eight derived_probe_groups, so it's ok.
       o->newline() << "if (rc) {";
+      // If a probe types's emit_module_init() wants to handle error
+      // messages itself, it should set probe_point to NULL, 
+      o->newline(1) << "if (probe_point)";
       o->newline(1) << "_stp_error (\"probe %s registration error (rc %d)\", probe_point, rc);";
+      o->indent(-1);
       // NB: we need to be in the error state so timers can shutdown cleanly,
       // and so end probes don't run.  OTOH, error probes can run.
       o->newline() << "atomic_set (&session_state, STAP_SESSION_ERROR);";
