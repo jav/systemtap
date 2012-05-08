@@ -1,0 +1,44 @@
+// context-caller tapset
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+// <tapsetdescription>
+// Provides caller and caller_addr function for context for kernel and user
+// space.
+// </tapsetdescription>
+
+%{
+/* caller_addr() might be user caller, so needs at least uprobes structs. */
+#include "uprobes-inc.h"
+%}
+
+/**
+ *  sfunction caller - Return name and address of calling function
+ *
+ *  Description: This function returns the address and name of the 
+ *  calling function. This is equivalent to calling:
+ *  sprintf("%s 0x%x", symname(caller_addr(), caller_addr()))
+ *  Works only for return probes at this time.
+ */
+function caller:string() {
+	return sprintf("%s 0x%x", symname(caller_addr()), caller_addr());
+}
+
+/**
+ *  sfunction caller_addr - Return caller address
+ *
+ *  Description: This function returns the address of the calling function. 
+ *  Works only for return probes at this time.
+ */
+function caller_addr:long () %{ /* pure */
+        if (CONTEXT->probe_type == _STP_PROBE_HANDLER_KRETPROBE)
+		THIS->__retvalue = (int64_t)(long)_stp_ret_addr_r(CONTEXT->ips.krp.pi);
+#ifdef STAPCONF_UPROBE_GET_PC
+	else if (CONTEXT->probe_type == _STP_PROBE_HANDLER_URETPROBE)
+		THIS->__retvalue = (int64_t)(long)_stp_ret_addr_r(CONTEXT->ips.ri);
+#endif
+        else
+		THIS->__retvalue = 0;
+%}
