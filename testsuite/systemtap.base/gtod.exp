@@ -7,30 +7,107 @@ set filename "$srcdir/$subdir/gtod.c"
 
 target_compile $filename $wd/gtod executable ""
 
+# Notice the state machine when checking output.  We're looking for
+# lines in the following format:
+#
+#   1336494634008794 :00 appl
+#   1336494634008971 :00 kern
+#   1336494634009194 :00 prog
+#   1336494634009196 :01 appl
+#   1336494634009199 :01 kern
+#   1336494634009203 :01 prog
+#   ...
+#
+# The lines must be in the order 'appl', 'kern', and 'prog'.  The
+# second number, the count, must match on each of the 3 lines.
+#
+# The state machine should hopefully give a better ok count than the
+# old multi-line matching (which once it got out of sync could never
+# seem to get back into sync).
+
 # non interval (check timer drift in short range)
+set state -1
+set count "XX"
 spawn $srcdir/$subdir/gtod.sh $srcdir/$subdir/gtod.stp $wd/gtod
 set ok 0
 expect {
 	-timeout 120
-	-re {^[0-9]+ \:([0-9]+) appl\r\n[0-9]+ \:\1 kern\r\n[0-9]+ \:\1 prog\r\n} { incr ok; exp_continue }
+	-re {^[0-9]+ \:([0-9]+) appl\r\n} {
+		set state 0
+		set count $expect_out(1,string)
+		exp_continue
+	}
+	-re {^[0-9]+ \:([0-9]+) kern\r\n} {
+		if {$state == 0 && $count == $expect_out(1,string)} {
+			set state 1
+		} else {
+			set state -1
+		}
+		exp_continue
+	}
+	-re {^[0-9]+ \:([0-9]+) prog\r\n} {
+		if {$state == 1 && $count == $expect_out(1,string)} { incr ok }
+		set state -1
+		exp_continue
+	}
 	timeout { fail "$test (timeout)" }
 	eof { }
 }
 wait
+
 #10ms interval (check timer drift in middle range)
+set state -1
+set count "XX"
 spawn $srcdir/$subdir/gtod.sh $srcdir/$subdir/gtod.stp $wd/gtod 10000
 expect {
 	-timeout 120
-	-re {^[0-9]+ \:([0-9]+) appl\r\n[0-9]+ \:\1 kern\r\n[0-9]+ \:\1 prog\r\n} { incr ok; exp_continue }
+	-re {^[0-9]+ \:([0-9]+) appl\r\n} {
+		set state 0
+		set count $expect_out(1,string)
+		exp_continue
+	}
+	-re {^[0-9]+ \:([0-9]+) kern\r\n} {
+		if {$state == 0 && $count == $expect_out(1,string)} {
+			set state 1
+		} else {
+			set state -1
+		}
+		exp_continue
+	}
+	-re {^[0-9]+ \:([0-9]+) prog\r\n} {
+		if {$state == 1 && $count == $expect_out(1,string)} { incr ok }
+		set state -1
+		exp_continue
+	}
 	timeout { fail "$test (timeout)" }
 	eof { }
 }
 wait
+
 #100ms interval (calm down processors and CPU freq might be changed)
+set state -1
+set count "XX"
 spawn $srcdir/$subdir/gtod.sh $srcdir/$subdir/gtod.stp $wd/gtod 100000
 expect {
 	-timeout 120
-	-re {^[0-9]+ \:([0-9]+) appl\r\n[0-9]+ \:\1 kern\r\n[0-9]+ \:\1 prog\r\n} { incr ok; exp_continue }
+	-re {^[0-9]+ \:([0-9]+) appl\r\n} {
+		set state 0
+		set count $expect_out(1,string)
+		exp_continue
+	}
+	-re {^[0-9]+ \:([0-9]+) kern\r\n} {
+		if {$state == 0 && $count == $expect_out(1,string)} {
+			set state 1
+		} else {
+			set state -1
+		}
+		exp_continue
+	}
+	-re {^[0-9]+ \:([0-9]+) prog\r\n} {
+		if {$state == 1 && $count == $expect_out(1,string)} { incr ok }
+		set state -1
+		exp_continue
+	}
 	timeout { fail "$test (timeout)" }
 	eof { }
 }
