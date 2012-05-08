@@ -9679,7 +9679,7 @@ if test "x$ac_cv_lib_rpm_rpmtsInitIterator" = xyes; then :
 
 $as_echo "#define HAVE_LIBRPM 1" >>confdefs.h
 
-                    stap_LIBS="$stap_LIBS -lrpm"
+                    stap_LIBS="$stap_LIBS -lc -lrpm"
                     have_librpm="yes"
 else
   have_librpm="no"
@@ -9726,7 +9726,7 @@ if test "x$ac_cv_lib_rpmio_rpmFreeCrypto" = xyes; then :
 
 $as_echo "#define HAVE_LIBRPMIO 1" >>confdefs.h
 
-                    stap_LIBS="$stap_LIBS -lrpmio"
+                    stap_LIBS="$stap_LIBS -lc -lrpmio"
                     have_librpmio="yes"
 else
   have_librpmio="no"
