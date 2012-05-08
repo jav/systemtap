@@ -1152,7 +1152,9 @@ skip:
   else
     {
       n->type = tok_junk;
-      n->content = (char) c;
+      ostringstream s;
+      s << "\\x" << hex << setw(2) << setfill('0') << c;
+      n->content = s.str();
       return n;
     }
 }
