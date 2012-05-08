@@ -682,8 +682,6 @@ MSGFMT
 GETTEXT_MACRO_VERSION
 USE_NLS
 RANLIB
-ANSI2KNR
-U
 am__fastdepCXX_FALSE
 am__fastdepCXX_TRUE
 CXXDEPMODE
@@ -6447,43 +6445,6 @@ if test "$am_t" != yes; then
    # and then we could set am__CC="\$(top_srcdir)/compile \$(CC)"
    CC="$am_aux_dir/compile $CC"
 fi
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for function prototypes" >&5
-$as_echo_n "checking for function prototypes... " >&6; }
-if test "$ac_cv_prog_cc_c89" != no; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-
-$as_echo "#define PROTOTYPES 1" >>confdefs.h
-
-
-$as_echo "#define __PROTOTYPES 1" >>confdefs.h
-
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-if test "$ac_cv_prog_cc_stdc" != no; then
-  U= ANSI2KNR=
-else
-  U=_ ANSI2KNR=./ansi2knr
-fi
-# Ensure some checks needed by ansi2knr itself.
-
-for ac_header in string.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "string.h" "ac_cv_header_string_h" "$ac_includes_default"
-if test "x$ac_cv_header_string_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_STRING_H 1
-_ACEOF
-
-fi
-
-done
 
 
 if test -n "$ac_tool_prefix"; then
