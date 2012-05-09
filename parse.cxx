@@ -800,6 +800,10 @@ lexer::lexer (istream& input, const string& in, systemtap_session& s):
 
   if (keywords.empty())
     {
+      // NB: adding new keywords is highly disruptive to the language,
+      // in particular to existing scripts that could be suddenly
+      // broken.  If done at all, it has to be s.compatible-sensitive,
+      // and broadly advertised.
       keywords.insert("probe");
       keywords.insert("global");
       keywords.insert("function");
