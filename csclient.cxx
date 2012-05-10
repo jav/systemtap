@@ -3122,12 +3122,12 @@ void resolve_callback(
   
 	    // We support both IPv4 and IPv6. Ignore other protocols.
 	    if (protocol == AVAHI_PROTO_INET6) {
-	      assert (info.address.ipv6.family == PR_AF_INET6);
+	      info.address.ipv6.family = PR_AF_INET6;
 	      info.address.ipv6.port = htons (port);
 	      info.address.ipv6.scope_id = interface;
 	    }
 	    else if (protocol == AVAHI_PROTO_INET) {
-	      assert (info.address.inet.family == PR_AF_INET);
+	      info.address.inet.family = PR_AF_INET;
 	      info.address.inet.port = htons (port);
 	    }
 	    else
