@@ -1,3 +1,11 @@
+# Note that this test is *really* testing the bug fix for pr6503:
+#   permit probes on module .init and __exit functions
+#   <http://sourceware.org/bugzilla/show_bug.cgi?id=6503>
+#
+# Not BZ6503:
+#   ypserve does not work
+#   <https://bugzilla.redhat.com/show_bug.cgi?id=6503>
+
 set test bz6503
 
 if {! [installtest_p]} {
@@ -5,9 +13,22 @@ if {! [installtest_p]} {
     return
 }
 
-# jffs2 and ext2 seem to cover a span of kernels
+# If we aren't root, make sure the test still succeeds.
+set effective_pid [exec /usr/bin/id -u]
+if {$effective_pid != 0} {
+    set root_cmd "sudo "
+} else {
+    set root_cmd ""
+}
 
-spawn stap -t $srcdir/$subdir/bz6503.stp -c "( (/sbin/modprobe jffs2; /sbin/modprobe ext2);wait;(/sbin/rmmod jffs2& /sbin/rmmod ext2&); wait) 2>/dev/null"
+
+# jffs2/ext2/fat/vfat should cover a span of kernels.
+#
+# Note that this test might fail if there is a filesystem of one of
+# these types already mounted.  The filesystem mount will be
+# unaffected (since the module can't be removed).
+spawn stap -t $srcdir/$subdir/bz6503.stp -c "( ($root_cmd /sbin/modprobe jffs2; $root_cmd /sbin/modprobe ext2; $root_cmd /sbin/modprobe fat; $root_cmd /sbin/modprobe vfat); wait; ($root_cmd /sbin/rmmod jffs2; $root_cmd /sbin/rmmod ext2; $root_cmd /sbin/rmmod vfat; $root_cmd /sbin/rmmod fat); wait) 2>/dev/null"
+
 set ok 0
 set ko 0
 expect {

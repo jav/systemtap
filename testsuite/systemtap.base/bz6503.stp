@@ -1,3 +1,5 @@
 probe module("jffs2").function("*").call ?,
       module("ext2").function("*").call ?,
+      module("fat").function("*").call ?,
+      module("vfat").function("*").call ?,
       never { }
