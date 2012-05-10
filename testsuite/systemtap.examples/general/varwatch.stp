@@ -8,7 +8,8 @@ probe $1 {
      try {
          newvar = $2;
          if (var[t] != newvar) {
-            printf("%s %s changed in thread %d from %s to %s\n", pp(), @2, t, sprint(var[t]), sprint(newvar));
+            printf("%s[%d] %s %s:\n", execname(), t, pp(), @2);
+            println(newvar);
             var[t] = newvar;
          }
      } catch { varerr ++ }  # error during $2 resolution or perhaps var[] assignment
