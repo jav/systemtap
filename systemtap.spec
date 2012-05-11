@@ -207,8 +207,15 @@ License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: systemtap = %{version}-%{release}
 Requires: systemtap-sdt-devel = %{version}-%{release}
+Requires: systemtap-server = %{version}-%{release}
 Requires: dejagnu which prelink elfutils grep nc
 Requires: gcc gcc-c++ make glibc-devel
+# testsuite/systemtap.server/client.exp needs avahi
+Requires: avahi
+%if %{with_crash}
+# testsuite/systemtap.base/crash.exp needs crash
+Requires: crash
+%endif
 %if %{_arch} == x86_64
 Requires: glibc-devel(%{__isa_name}-32)
 %endif
