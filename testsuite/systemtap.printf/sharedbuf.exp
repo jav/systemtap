@@ -53,7 +53,7 @@ expect {
 	    verbose -log $res
 
 	    # Ignore the possible modpost warning message.
-	    if {[regexp "^WARNING: \"stp_print_flush_test1\".+ undefined!" $res]} {
+	    if {[regexp "^WARNING: \"\.?stp_print_flush_test1\".+ undefined!" $res]} {
 		pass "shared buffer guest"
 		incr c1
 	    } else {	    
