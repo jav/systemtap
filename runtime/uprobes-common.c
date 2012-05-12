@@ -253,9 +253,7 @@ static int stap_uprobe_change_minus (struct task_struct *tsk, unsigned long relo
 static int stap_uprobe_process_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p) {
   const struct stap_uprobe_tf *stf = container_of(tgt, struct stap_uprobe_tf, finder);
   if (! process_p) return 0; /* ignore threads */
-  #ifdef DEBUG_TASK_FINDER_VMA
-  _stp_dbug (__FUNCTION__,__LINE__, "%cproc pid %d stf %p %p path %s\n", register_p?'+':'-', tsk->tgid, tgt, stf, stf->pathname);
-  #endif
+  dbug_task_vma(1, "%cproc pid %d stf %p %p path %s\n", register_p?'+':'-', tsk->tgid, tgt, stf, stf->pathname);
   /* ET_EXEC events are like shlib events, but with 0 relocation bases */
   if (register_p) {
     int rc = stap_uprobe_change_plus (tsk, 0, TASK_SIZE, stf, 0, 0);
@@ -288,12 +286,10 @@ stap_uprobe_mmap_found (struct stap_task_finder_target *tgt,
 
   /* Check non-writable, executable sections for probes. */
   if ((vm_flags & VM_EXEC) && !(vm_flags & VM_WRITE)) {
-    #ifdef DEBUG_TASK_FINDER_VMA
-    _stp_dbug (__FUNCTION__,__LINE__,
+    dbug_task_vma (1,
                "+mmap X pid %d path %s addr %p length %u offset %p stf %p %p path %s\n",
                tsk->tgid, path, (void *) addr, (unsigned)length, (void*) offset,
                tgt, stf, stf->pathname);
-    #endif
     rc = stap_uprobe_change_plus (tsk, addr, length, stf, offset, vm_flags);
   }
 
@@ -303,12 +299,10 @@ stap_uprobe_mmap_found (struct stap_task_finder_target *tgt,
    *     no error (rc == 0), we need to look for semaphores too.
    */
   if ((rc == 0) && (vm_flags & VM_WRITE)) {
-    #ifdef DEBUG_TASK_FINDER_VMA
-    _stp_dbug (__FUNCTION__,__LINE__,
+    dbug_task_vma (1,
                "+mmap W pid %d path %s addr %p length %u offset %p stf %p %p path %s\n",
                tsk->tgid, path, (void *) addr, (unsigned)length, (void*) offset,
                tgt, stf, stf->pathname);
-    #endif
     rc = stap_uprobe_change_semaphore_plus (tsk, addr, length, stf);
   }
 
@@ -318,9 +312,7 @@ stap_uprobe_mmap_found (struct stap_task_finder_target *tgt,
 /* The task_finder_munmap_callback */
 static int stap_uprobe_munmap_found (struct stap_task_finder_target *tgt, struct task_struct *tsk, unsigned long addr, unsigned long length) {
   const struct stap_uprobe_tf *stf = container_of(tgt, struct stap_uprobe_tf, finder);
-  #ifdef DEBUG_TASK_FINDER_VMA
-  _stp_dbug (__FUNCTION__,__LINE__, "-mmap pid %d addr %p length %lu stf %p %p path %s\n", tsk->tgid, (void *) addr, length, tgt, stf, stf->pathname);
-  #endif
+  dbug_task_vma (1, "-mmap pid %d addr %p length %lu stf %p %p path %s\n", tsk->tgid, (void *) addr, length, tgt, stf, stf->pathname);
   return stap_uprobe_change_minus (tsk, addr, length, stf);
 }
 
@@ -330,9 +322,7 @@ static int stap_uprobe_munmap_found (struct stap_task_finder_target *tgt, struct
 static int stap_uprobe_process_munmap (struct stap_task_finder_target *tgt, struct task_struct *tsk, int register_p, int process_p) {
   const struct stap_uprobe_tf *stf = container_of(tgt, struct stap_uprobe_tf, finder);
   if (! process_p) return 0; /* ignore threads */
-  #ifdef DEBUG_TASK_FINDER_VMA
-  _stp_dbug (__FUNCTION__,__LINE__, "%cproc pid %d stf %p %p path %s\n", register_p?'+':'-', tsk->tgid, tgt, stf, stf->pathname);
-  #endif
+  dbug_task_vma (1, "%cproc pid %d stf %p %p path %s\n", register_p?'+':'-', tsk->tgid, tgt, stf, stf->pathname);
   /* Covering 0->TASK_SIZE means "unmap everything" */
   if (!register_p)
     return stap_uprobe_change_minus (tsk, 0, TASK_SIZE, stf);

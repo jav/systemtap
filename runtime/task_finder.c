@@ -668,8 +668,7 @@ __stp_call_mmap_callbacks(struct stap_task_finder_target *tgt,
 	if (tgt == NULL || tsk == NULL)
 		return;
 
-#ifdef DEBUG_TASK_FINDER_VMA
-	_stp_dbug(__FUNCTION__, __LINE__,
+	dbug_task_vma(1,
 		  "pid %d, a/l/o/p/path 0x%lx  0x%lx  0x%lx  %c%c%c%c  %s\n",
 		  tsk->pid, addr, length, offset,
 		  vm_flags & VM_READ ? 'r' : '-',
@@ -677,7 +676,6 @@ __stp_call_mmap_callbacks(struct stap_task_finder_target *tgt,
 		  vm_flags & VM_EXEC ? 'x' : '-',
 		  vm_flags & VM_MAYSHARE ? 's' : 'p',
 		  path);
-#endif
 	list_for_each(cb_node, &tgt->callback_list_head) {
 		struct stap_task_finder_target *cb_tgt;
 
@@ -1543,8 +1541,7 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 	__stp_tf_handler_start();
 	rv = syscall_get_return_value(tsk, regs);
 
-#ifdef DEBUG_TASK_FINDER_VMA
-	_stp_dbug(__FUNCTION__, __LINE__,
+	dbug_task_vma(1,
 		  "tsk %d found %s(0x%lx), returned 0x%lx\n",
 		  tsk->pid,
 		  ((entry->syscall_no == MMAP_SYSCALL_NO(tsk)) ? "mmap"
@@ -1555,7 +1552,6 @@ __stp_utrace_task_finder_target_syscall_exit(enum utrace_resume_action action,
 			    ? "munmap"
 			    : "UNKNOWN")))),
 		  entry->arg0, rv);
-#endif
 
 	if (entry->syscall_no == MUNMAP_SYSCALL_NO(tsk)) {
 		// Call the callbacks

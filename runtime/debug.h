@@ -57,6 +57,16 @@
 #define dbug_unwind(level, args...) ;
 #endif
 
+#if defined(DEBUG_TASK_FINDER_VMA)
+#define dbug_task_vma(level, args...) do {                                     \
+               if ((level) <= DEBUG_TASK_FINDER_VMA)                               \
+                       _stp_dbug(__FUNCTION__, __LINE__, args);        \
+       } while (0)
+#else
+#define dbug_task_vma(level, args...) ;
+#endif
+
+
 #ifdef DEBUG_SYMBOLS
 #define dbug_sym(level, args...) do {					\
 		if ((level) <= DEBUG_SYMBOLS)				\
