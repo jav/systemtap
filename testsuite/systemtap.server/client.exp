@@ -156,7 +156,7 @@ if {$failed == 0} {
 }
 
 # Now start our own server and make sure we can work with it.
-if {! [setup_server]} {
+if {! [setup_server] || $avahi_ok_p != 1} {
     untested "Compile-server client tests against a server"
     return;
 }

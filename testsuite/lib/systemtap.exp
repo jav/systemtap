@@ -143,7 +143,7 @@ proc setup_systemtap_environment {} {
 # Set up the environment so that tests will be performed using the systemtap
 # client and server.
 proc setup_server { args } {
-    global srcdir env installed_stap logfile use_server
+    global srcdir env installed_stap logfile use_server avahi_ok_p
 
     # Start the server
     if {! [start_server $args]} then {
@@ -158,8 +158,11 @@ proc setup_server { args } {
     set res [catch { exec grep "^ host" stap-list-servers.out } looksee]
     verbose -log "grep for servers returned: res==$res\n$looksee"
 
+    set avahi_ok_p 1
     if {$res != 0} then {
 	verbose -log "Unable to automatically find the systemtap server -- check firewall settings for mDNS"
+	set avahi_ok_p 0
+
 	# Try to discover the port the server is listening on from the server
 	# log.
 	set res [catch { exec /bin/cat $logfile | awk "/^Systemtap Compile Server on port .* ready/ {print \$6}" } server_port]
