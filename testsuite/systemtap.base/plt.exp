@@ -58,14 +58,12 @@ expect {
     -timeout 180
     -re {__libc_start_main 1\r\n} { incr ok; exp_continue }
     -re {xmalloc 2\r\n} { incr ok; exp_continue }
-    -re {malloc 3\r\n} { incr ok; exp_continue }
     -re {savestring 1\r\n} { incr ok; exp_continue }
     -re {memcpy 1\r\n} { incr ok; exp_continue }
     -re {open2 1\r\n} { incr ok; exp_continue }
     -re {stpcpy 4\r\n} { incr ok; exp_continue }
     -re {open 2\r\n} { incr ok; exp_continue }
     -re {open3 1\r\n} { incr ok; exp_continue }
-    -re {free 4\r\n} { incr ok; exp_continue }
     -re {basename2 1\r\n} { incr ok; exp_continue }
     -re {__xpg_basename 1\r\n} { incr ok; exp_continue }
     -re {critters 1\r\n} { incr ok; exp_continue }
@@ -86,15 +84,13 @@ expect {
     -re {asctime 1\r\n} { incr ok; exp_continue }
     -re {fputs 3\r\n} { incr ok; exp_continue }
     -re {strftime 2\r\n} { incr ok; exp_continue }
-    -re {__cxa_finalize \d\r\n} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof {  }
 }
 
 catch { close}; catch { wait}
 
-# The number of __cxa_finalize can be different or non-existent.
-error_handler [expr {$ok == 30 || $ok == 31}] "plt" "($ok != 30 || $ok != 31)"
+error_handler [expr {$ok == 28}] "plt" "($ok != 28)"
 
 # test process.library.plt
 
@@ -105,14 +101,12 @@ expect {
     -timeout 180
     -re {__libc_start_main 1\r\n} { incr ok; exp_continue }
     -re {xmalloc 2\r\n} { incr ok; exp_continue }
-    -re {malloc 3\r\n} { incr ok; exp_continue }
     -re {savestring 1\r\n} { incr ok; exp_continue }
     -re {memcpy 1\r\n} { incr ok; exp_continue }
     -re {open2 1\r\n} { incr ok; exp_continue }
     -re {stpcpy 4\r\n} { incr ok; exp_continue }
     -re {open 2\r\n} { incr ok; exp_continue }
     -re {open3 1\r\n} { incr ok; exp_continue }
-    -re {free \d+\r\n} { incr ok; exp_continue }
     -re {basename2 1\r\n} { incr ok; exp_continue }
     -re {__xpg_basename 1\r\n} { incr ok; exp_continue }
     -re {critters 1\r\n} { incr ok; exp_continue }
@@ -133,15 +127,13 @@ expect {
     -re {asctime 1\r\n} { incr ok; exp_continue }
     -re {fputs 3\r\n} { incr ok; exp_continue }
     -re {strftime 2\r\n} { incr ok; exp_continue }
-    -re {__cxa_finalize \d\r\n} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof {  }
 }
 
 catch { close}; catch { wait}
 
-# The number of __cxa_finalize can be different or non-existent.
-error_handler [expr {$ok == 30 || $ok == 31}] "plt library" "($ok != 30 || $ok != 31)"
+error_handler [expr {$ok == 28}] "plt library" "($ok != 28)"
 
 # test process.plt("glob")
 
