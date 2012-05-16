@@ -11,9 +11,18 @@
 #include "tapsets.h"
 #include "translate.h"
 #include "util.h"
-
 #include <cstring>
 #include <string>
+
+#include <sys/socket.h>
+#include <linux/if.h>
+#include <linux/in.h>
+#include <linux/in6.h>
+#include <linux/netfilter.h>
+#include <linux/netfilter_ipv4.h>
+#include <linux/netfilter_ipv6.h>
+#include <linux/netfilter_arp.h>
+#include <linux/netfilter_bridge.h>
 
 
 using namespace std;
@@ -70,30 +79,111 @@ netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p
 {
   if (! s.guru_mode)
     {
-    // validate hook, pf, priority... OR ELSE! (see below)
-      bool valid_pf_hook = false;
-      
-      if (pf == "NFPROTO_IPV4" || pf == "NFPROTO_IPV6")
-        if (hook == "NF_INET_PRE_ROUTING" ||
-            hook == "NF_INET_LOCAL_IN" ||
-            hook == "NF_INET_FORWARD" ||
-            hook == "NF_INET_LOCAL_OUT" ||
-            hook == "NF_INET_POST_ROUTING")
-          valid_pf_hook = true;
-      // XXX: add values from netfilter_arp.h, netfilter_bridge.h etc.
-      
-      if (! valid_pf_hook)
-        throw semantic_error (_("unsupported netfilter pf/hook combination; need stap -g"));
-      
-      try 
+
+      bool hook_error = false;
+
+     // Map the strings passed in to the actual values defined in netfilter_*.h
+#define IF_HOOKNAME(n) if (hook == #n) { hook = lex_cast(n); }
+#define IF_PRIORITY(n) if (priority == #n) { priority = lex_cast(n); }
+
+      // Validate hook, pf, priority
+      if(pf == "NFPROTO_IPV4")
         {
-          int prio = lex_cast<int>(pri);
+          IF_HOOKNAME (NF_INET_PRE_ROUTING)
+          else IF_HOOKNAME (NF_INET_LOCAL_IN)
+          else IF_HOOKNAME (NF_INET_FORWARD)
+          else IF_HOOKNAME (NF_INET_LOCAL_OUT)
+          else IF_HOOKNAME (NF_INET_POST_ROUTING)
+          else IF_HOOKNAME (NF_IP_PRE_ROUTING)
+          else IF_HOOKNAME (NF_IP_LOCAL_IN)
+          else IF_HOOKNAME (NF_IP_FORWARD)
+          else IF_HOOKNAME (NF_IP_LOCAL_OUT)
+          else IF_HOOKNAME (NF_IP_POST_ROUTING)
+          else
+            hook_error = true;
+
+          IF_PRIORITY (NF_IP_PRI_FIRST)
+          else IF_PRIORITY (NF_IP_PRI_CONNTRACK_DEFRAG)
+          else IF_PRIORITY (NF_IP_PRI_RAW)
+          else IF_PRIORITY (NF_IP_PRI_SELINUX_FIRST)
+          else IF_PRIORITY (NF_IP_PRI_CONNTRACK)
+          else IF_PRIORITY (NF_IP_PRI_MANGLE)
+          else IF_PRIORITY (NF_IP_PRI_NAT_DST)
+          else IF_PRIORITY (NF_IP_PRI_FILTER)
+          else IF_PRIORITY (NF_IP_PRI_SECURITY)
+          else IF_PRIORITY (NF_IP_PRI_NAT_SRC)
+          else IF_PRIORITY (NF_IP_PRI_SELINUX_LAST)
+          else IF_PRIORITY (NF_IP_PRI_CONNTRACK_CONFIRM)
+          else IF_PRIORITY (NF_IP_PRI_LAST)
+        }
+      else if(pf=="NFPROTO_IPV6")
+        {
+          IF_HOOKNAME (NF_IP6_PRE_ROUTING)
+          else IF_HOOKNAME (NF_IP6_LOCAL_IN)
+          else IF_HOOKNAME (NF_IP6_FORWARD)
+          else IF_HOOKNAME (NF_IP6_LOCAL_OUT)
+          else IF_HOOKNAME (NF_IP6_POST_ROUTING)
+          else
+            hook_error = true;
+
+          IF_PRIORITY (NF_IP6_PRI_FIRST)
+          else IF_PRIORITY (NF_IP6_PRI_CONNTRACK_DEFRAG)
+          else IF_PRIORITY (NF_IP6_PRI_RAW)
+          else IF_PRIORITY (NF_IP6_PRI_SELINUX_FIRST)
+          else IF_PRIORITY (NF_IP6_PRI_CONNTRACK)
+          else IF_PRIORITY (NF_IP6_PRI_MANGLE)
+          else IF_PRIORITY (NF_IP6_PRI_NAT_DST)
+          else IF_PRIORITY (NF_IP6_PRI_FILTER)
+          else IF_PRIORITY (NF_IP6_PRI_SECURITY)
+          else IF_PRIORITY (NF_IP6_PRI_NAT_SRC)
+          else IF_PRIORITY (NF_IP6_PRI_SELINUX_LAST)
+          else IF_PRIORITY (NF_IP6_PRI_LAST)
+        }
+      else if (pf == "NFPROTO_ARP")
+        {
+          IF_HOOKNAME(NF_ARP_IN)
+          else IF_HOOKNAME (NF_ARP_OUT)
+          else IF_HOOKNAME (NF_ARP_FORWARD)
+          else
+            hook_error = true;
+        }
+      else if (pf == "NFPROTO_BRIDGE")
+        {
+          IF_HOOKNAME(NF_BR_PRE_ROUTING)
+          else IF_HOOKNAME (NF_BR_LOCAL_IN)
+          else IF_HOOKNAME (NF_BR_FORWARD)
+          else IF_HOOKNAME (NF_BR_LOCAL_OUT)
+          else IF_HOOKNAME (NF_BR_POST_ROUTING)
+          else
+            hook_error = true;
+        }
+      else
+            throw semantic_error
+                (_F("unsupported netfilter protocol family \"%s\"; need stap -g", pf.c_str()));
+
+      // At this point the priority should be a 32 bit integer encoded as a string.
+      // Ensure that this is the case.
+      try
+        {
+          int prio = lex_cast<int32_t>(priority);
           (void) prio;
         }
       catch (const runtime_error&) 
         {
-          throw semantic_error (_("invalid netfilter hook priority"));
+          throw semantic_error
+              (_F("unsupported netfilter priority \"%s\" for protocol family \"%s\"; need stap -g",
+              priority.c_str(), pf.c_str()));
         }
+
+      // Complain and abort if there were any hook name errors
+      if (hook_error)
+            throw semantic_error
+                (_F("unsupported netfilter hook \"%s\" for protocol family \"%s\"; need stap -g",
+                hook.c_str(), pf.c_str()));
+
+#undef IF_HOOKNAME
+#undef IF_PRIORITY
+
     }
 
   // Expand local variables in the probe body
@@ -146,7 +236,6 @@ netfilter_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "/* ---- netfilter probes ---- */";
 
   s.op->newline() << "#include <linux/netfilter.h>";
-  s.op->newline() << "#include <linux/netfilter_ipv4.h>";
   s.op->newline() << "#include <linux/skbuff.h>";
   s.op->newline() << "#include <linux/udp.h>";
   s.op->newline() << "#include <linux/tcp.h>";
