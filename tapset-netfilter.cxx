@@ -77,6 +77,9 @@ netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p
                                                   string pf, string pri):
   derived_probe (p, l), hook (h), pf (pf), priority (pri)
 {
+  // If not running in guru mode, we need more strict checks on hook name,
+  // protocol family and priority to avoid people putting in wacky embedded c
+  // nastiness
   if (! s.guru_mode)
     {
 
@@ -370,18 +373,23 @@ netfilter_var_expanding_visitor::visit_target_symbol (target_symbol* e)
       // See emit_module_decls for how the parameters & result are handled.
       string c_var;
       bool lvalue_ok = false;
+      bool need_guru = false;
       if (e->name == "$hooknum") { c_var = "__nf_hooknum"; }
       else if (e->name == "$skb") { c_var = "__nf_skb"; }
       else if (e->name == "$in") { c_var = "__nf_in"; }
       else if (e->name == "$out") { c_var = "__nf_out"; }
       else if (e->name == "$okfn") { c_var = "__nf_okfn"; }
-      else if (e->name == "$verdict") { c_var = "__nf_verdict"; lvalue_ok = true; }
+      else if (e->name == "$verdict") { c_var = "__nf_verdict"; lvalue_ok = true; need_guru = true; }
       // XXX: also support $$vars / $$parms
       else
         throw semantic_error(_("unsupported context variable"), e->tok);
 
       if (! lvalue_ok && is_active_lvalue (e))
         throw semantic_error(_("write to netfilter parameter not permitted"), e->tok);
+
+      // Writing to variables like $verdict requires guru mode, for obvious reasons
+      if(need_guru && !sess.guru_mode)
+        throw semantic_error(_("write to netfilter parameter requires guru mode; need stap -g"), e->tok);
 
       context_vars.insert (c_var);
 
