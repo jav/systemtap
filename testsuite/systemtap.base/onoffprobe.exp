@@ -39,13 +39,13 @@ expect {
   -timeout 240
   -re {(begin1 probed): ([^\r\n]+)\r\n}
 	{ set modname "$expect_out(2,string)"; advance }
-  -re "^(function return probed)\r\n" { advance }
-  -re "^(function entry probed)\r\n" { advance }
-  -re "^(timer probed)\r\n" { advance }
-  -re "^(profile probed)\r\n" { advance }
-  -re "^(alias\.one\.a and alias\.one and alias\.\* probed)\r\n" { advance }
-  -re "^(alias\.one\.b and alias\.one and alias\.\* probed)\r\n" { advance }
-  -re "^(alias\.two and alias\.\* probed)\r\n" {
+  -re "(function return probed)\r\n" { advance }
+  -re "(function entry probed)\r\n" { advance }
+  -re "(timer probed)\r\n" { advance }
+  -re "(profile probed)\r\n" { advance }
+  -re "(alias\.one\.a and alias\.one and alias\.\* probed)\r\n" { advance }
+  -re "(alias\.one\.b and alias\.one and alias\.\* probed)\r\n" { advance }
+  -re "(alias\.two and alias\.\* probed)\r\n" {
       pass "$test $expect_out(1,string)"
       incr ok
   }
