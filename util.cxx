@@ -283,12 +283,24 @@ getmemusage ()
   ostringstream oss;
   ifstream statm("/proc/self/statm");
   statm >> pages;
-  long kb1 = pages * sz / 1024;
+  long kb1 = pages * sz / 1024; // total program size; vmsize
   statm >> pages;
-  long kb2 = pages * sz / 1024;
+  long kb2 = pages * sz / 1024; // resident set size; vmrss
   statm >> pages;
-  long kb3 = pages * sz / 1024;
-  oss << _F("using %ldvirt/%ldres/%ldshr kb, ", kb1, kb2, kb3);
+  long kb3 = pages * sz / 1024; // shared pages
+  statm >> pages;
+  long kb4 = pages * sz / 1024; // text
+  statm >> pages;
+  (void) kb4;
+  long kb5 = pages * sz / 1024; // library
+  statm >> pages;
+  (void) kb5;
+  long kb6 = pages * sz / 1024; // data+stack
+  statm >> pages;
+  long kb7 = pages * sz / 1024; // dirty
+  (void) kb7;
+
+  oss << _F("using %ldvirt/%ldres/%ldshr/%lddata kb, ", kb1, kb2, kb3, kb6);
   return oss.str();
 }
 
