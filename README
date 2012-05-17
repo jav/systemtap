@@ -11,7 +11,7 @@ Prerequisites:
 
 - linux kernel with kprobes (mainline 2.6.11+ or backport)
 - kernel module build environment (kernel-devel rpm)
-- kernel debugging information (kernel-debuginfo rpm)
+- optionally, debugging information for kernel/user-space being instrumented
 - C compiler (same as what kernel was compiled with)
 - elfutils with libdwfl for debugging information parsing
 - root privileges
