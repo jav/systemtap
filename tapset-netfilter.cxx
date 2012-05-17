@@ -235,7 +235,7 @@ netfilter_derived_probe_group::emit_module_init (systemtap_session& s)
         {
           s.op->newline() << "if (rc < 0) {";
           s.op->newline(1);
-          for (unsigned j=i-1; j>=0; j++)
+          for (int j=i-1; j>=0; j--) // XXX: j must be signed for loop to work
             {
               netfilter_derived_probe *np2 = probes[j];
               s.op->newline() << "nf_unregister_hook (& netfilter_opts_" << np2->name << ");";
