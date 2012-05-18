@@ -435,7 +435,7 @@ netfilter_builder::build(systemtap_session & sess,
     vector<derived_probe *> & finished_results)
 {
   string hook;                // no default
-  string pf = "NFPROTO_IPV4"; // Default: IPV4 protocols 
+  string pf; // no default
   string priority = "0";      // Default: somewhere in the middle
 
   if(!get_param(parameters, TOK_HOOK, hook))
@@ -453,17 +453,18 @@ register_tapset_netfilter(systemtap_session& s)
   match_node* root = s.pattern_root;
   derived_probe_builder *builder = new netfilter_builder();
 
-  // netfilter.hook()
-  root->bind(TOK_NETFILTER)->bind_str(TOK_HOOK)->bind(builder);
 
-  //netfilter.hook().protocol_f()
+  //netfilter.hook().pf()
   root->bind(TOK_NETFILTER)->bind_str(TOK_HOOK)->bind_str(TOK_PF)->bind(builder);
 
-  // netfilter.hook().priority()
-  root->bind(TOK_NETFILTER)->bind_str(TOK_HOOK)->bind_str(TOK_PRIORITY)->bind(builder);
+  //netfilter.pf().hook()
+  root->bind(TOK_NETFILTER)->bind_str(TOK_PF)->bind_str(TOK_HOOK)->bind(builder);
 
-  //netfilter.hook().protocol_f().priority()
+  //netfilter.hook().pf().priority()
   root->bind(TOK_NETFILTER)->bind_str(TOK_HOOK)->bind_str(TOK_PF)->bind_str(TOK_PRIORITY)->bind(builder);
+
+  //netfilter.pf().hook().priority()
+  root->bind(TOK_NETFILTER)->bind_str(TOK_PF)->bind_str(TOK_HOOK)->bind_str(TOK_PRIORITY)->bind(builder);
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
