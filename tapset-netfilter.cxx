@@ -389,7 +389,7 @@ netfilter_var_expanding_visitor::visit_target_symbol (target_symbol* e)
 
       // Writing to variables like $verdict requires guru mode, for obvious reasons
       if(need_guru && !sess.guru_mode)
-        throw semantic_error(_("write to netfilter parameter requires guru mode; need stap -g"), e->tok);
+        throw semantic_error(_("write to netfilter verdict requires guru mode; need stap -g"), e->tok);
 
       context_vars.insert (c_var);
 
