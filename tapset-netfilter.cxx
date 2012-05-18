@@ -77,93 +77,94 @@ netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p
                                                   string pf, string pri):
   derived_probe (p, l), hook (h), pf (pf), priority (pri)
 {
-  // If not running in guru mode, we need more strict checks on hook name,
-  // protocol family and priority to avoid people putting in wacky embedded c
-  // nastiness
-  if (! s.guru_mode)
-    {
 
-      bool hook_error = false;
+  bool hook_error = false;
+  bool pf_error = false;
 
-     // Map the strings passed in to the actual values defined in netfilter_*.h
+  // Map the strings passed in to the actual values defined in netfilter_*.h
 #define IF_HOOKNAME(n) if (hook == #n) { hook = lex_cast(n); }
 #define IF_PRIORITY(n) if (priority == #n) { priority = lex_cast(n); }
 
-      // Validate hook, pf, priority
-      if(pf == "NFPROTO_IPV4")
-        {
-          IF_HOOKNAME (NF_INET_PRE_ROUTING)
-          else IF_HOOKNAME (NF_INET_LOCAL_IN)
-          else IF_HOOKNAME (NF_INET_FORWARD)
-          else IF_HOOKNAME (NF_INET_LOCAL_OUT)
-          else IF_HOOKNAME (NF_INET_POST_ROUTING)
-          else IF_HOOKNAME (NF_IP_PRE_ROUTING)
-          else IF_HOOKNAME (NF_IP_LOCAL_IN)
-          else IF_HOOKNAME (NF_IP_FORWARD)
-          else IF_HOOKNAME (NF_IP_LOCAL_OUT)
-          else IF_HOOKNAME (NF_IP_POST_ROUTING)
-          else
-            hook_error = true;
-
-          IF_PRIORITY (NF_IP_PRI_FIRST)
-          else IF_PRIORITY (NF_IP_PRI_CONNTRACK_DEFRAG)
-          else IF_PRIORITY (NF_IP_PRI_RAW)
-          else IF_PRIORITY (NF_IP_PRI_SELINUX_FIRST)
-          else IF_PRIORITY (NF_IP_PRI_CONNTRACK)
-          else IF_PRIORITY (NF_IP_PRI_MANGLE)
-          else IF_PRIORITY (NF_IP_PRI_NAT_DST)
-          else IF_PRIORITY (NF_IP_PRI_FILTER)
-          else IF_PRIORITY (NF_IP_PRI_SECURITY)
-          else IF_PRIORITY (NF_IP_PRI_NAT_SRC)
-          else IF_PRIORITY (NF_IP_PRI_SELINUX_LAST)
-          else IF_PRIORITY (NF_IP_PRI_CONNTRACK_CONFIRM)
-          else IF_PRIORITY (NF_IP_PRI_LAST)
-        }
-      else if(pf=="NFPROTO_IPV6")
-        {
-          IF_HOOKNAME (NF_IP6_PRE_ROUTING)
-          else IF_HOOKNAME (NF_IP6_LOCAL_IN)
-          else IF_HOOKNAME (NF_IP6_FORWARD)
-          else IF_HOOKNAME (NF_IP6_LOCAL_OUT)
-          else IF_HOOKNAME (NF_IP6_POST_ROUTING)
-          else
-            hook_error = true;
-
-          IF_PRIORITY (NF_IP6_PRI_FIRST)
-          else IF_PRIORITY (NF_IP6_PRI_CONNTRACK_DEFRAG)
-          else IF_PRIORITY (NF_IP6_PRI_RAW)
-          else IF_PRIORITY (NF_IP6_PRI_SELINUX_FIRST)
-          else IF_PRIORITY (NF_IP6_PRI_CONNTRACK)
-          else IF_PRIORITY (NF_IP6_PRI_MANGLE)
-          else IF_PRIORITY (NF_IP6_PRI_NAT_DST)
-          else IF_PRIORITY (NF_IP6_PRI_FILTER)
-          else IF_PRIORITY (NF_IP6_PRI_SECURITY)
-          else IF_PRIORITY (NF_IP6_PRI_NAT_SRC)
-          else IF_PRIORITY (NF_IP6_PRI_SELINUX_LAST)
-          else IF_PRIORITY (NF_IP6_PRI_LAST)
-        }
-      else if (pf == "NFPROTO_ARP")
-        {
-          IF_HOOKNAME(NF_ARP_IN)
-          else IF_HOOKNAME (NF_ARP_OUT)
-          else IF_HOOKNAME (NF_ARP_FORWARD)
-          else
-            hook_error = true;
-        }
-      else if (pf == "NFPROTO_BRIDGE")
-        {
-          IF_HOOKNAME(NF_BR_PRE_ROUTING)
-          else IF_HOOKNAME (NF_BR_LOCAL_IN)
-          else IF_HOOKNAME (NF_BR_FORWARD)
-          else IF_HOOKNAME (NF_BR_LOCAL_OUT)
-          else IF_HOOKNAME (NF_BR_POST_ROUTING)
-          else
-            hook_error = true;
-        }
+  // Validate hook, pf, priority
+  if(pf == "NFPROTO_IPV4")
+    {
+      IF_HOOKNAME (NF_INET_PRE_ROUTING)
+      else IF_HOOKNAME (NF_INET_LOCAL_IN)
+      else IF_HOOKNAME (NF_INET_FORWARD)
+      else IF_HOOKNAME (NF_INET_LOCAL_OUT)
+      else IF_HOOKNAME (NF_INET_POST_ROUTING)
+      else IF_HOOKNAME (NF_IP_PRE_ROUTING)
+      else IF_HOOKNAME (NF_IP_LOCAL_IN)
+      else IF_HOOKNAME (NF_IP_FORWARD)
+      else IF_HOOKNAME (NF_IP_LOCAL_OUT)
+      else IF_HOOKNAME (NF_IP_POST_ROUTING)
       else
-            throw semantic_error
-                (_F("unsupported netfilter protocol family \"%s\"; need stap -g", pf.c_str()));
+        hook_error = true;
 
+      IF_PRIORITY (NF_IP_PRI_FIRST)
+      else IF_PRIORITY (NF_IP_PRI_CONNTRACK_DEFRAG)
+      else IF_PRIORITY (NF_IP_PRI_RAW)
+      else IF_PRIORITY (NF_IP_PRI_SELINUX_FIRST)
+      else IF_PRIORITY (NF_IP_PRI_CONNTRACK)
+      else IF_PRIORITY (NF_IP_PRI_MANGLE)
+      else IF_PRIORITY (NF_IP_PRI_NAT_DST)
+      else IF_PRIORITY (NF_IP_PRI_FILTER)
+      else IF_PRIORITY (NF_IP_PRI_SECURITY)
+      else IF_PRIORITY (NF_IP_PRI_NAT_SRC)
+      else IF_PRIORITY (NF_IP_PRI_SELINUX_LAST)
+      else IF_PRIORITY (NF_IP_PRI_CONNTRACK_CONFIRM)
+      else IF_PRIORITY (NF_IP_PRI_LAST)
+    }
+  else if(pf=="NFPROTO_IPV6")
+    {
+      IF_HOOKNAME (NF_IP6_PRE_ROUTING)
+      else IF_HOOKNAME (NF_IP6_LOCAL_IN)
+      else IF_HOOKNAME (NF_IP6_FORWARD)
+      else IF_HOOKNAME (NF_IP6_LOCAL_OUT)
+      else IF_HOOKNAME (NF_IP6_POST_ROUTING)
+      else
+        hook_error = true;
+
+      IF_PRIORITY (NF_IP6_PRI_FIRST)
+      else IF_PRIORITY (NF_IP6_PRI_CONNTRACK_DEFRAG)
+      else IF_PRIORITY (NF_IP6_PRI_RAW)
+      else IF_PRIORITY (NF_IP6_PRI_SELINUX_FIRST)
+      else IF_PRIORITY (NF_IP6_PRI_CONNTRACK)
+      else IF_PRIORITY (NF_IP6_PRI_MANGLE)
+      else IF_PRIORITY (NF_IP6_PRI_NAT_DST)
+      else IF_PRIORITY (NF_IP6_PRI_FILTER)
+      else IF_PRIORITY (NF_IP6_PRI_SECURITY)
+      else IF_PRIORITY (NF_IP6_PRI_NAT_SRC)
+      else IF_PRIORITY (NF_IP6_PRI_SELINUX_LAST)
+      else IF_PRIORITY (NF_IP6_PRI_LAST)
+    }
+  else if (pf == "NFPROTO_ARP")
+    {
+      IF_HOOKNAME(NF_ARP_IN)
+      else IF_HOOKNAME (NF_ARP_OUT)
+      else IF_HOOKNAME (NF_ARP_FORWARD)
+      else
+        hook_error = true;
+    }
+  else if (pf == "NFPROTO_BRIDGE")
+    {
+      IF_HOOKNAME(NF_BR_PRE_ROUTING)
+      else IF_HOOKNAME (NF_BR_LOCAL_IN)
+      else IF_HOOKNAME (NF_BR_FORWARD)
+      else IF_HOOKNAME (NF_BR_LOCAL_OUT)
+      else IF_HOOKNAME (NF_BR_POST_ROUTING)
+      else
+        hook_error = true;
+    }
+  else
+    pf_error = true;
+
+  // If not running in guru mode, we need more strict checks on hook name,
+  // protocol family and priority to avoid people putting in wacky embedded c
+  // nastiness. Otherwise, and if it didn't match any of the above lists,
+  // pass the string in as is.
+  if(!s.guru_mode)
+    {
       // At this point the priority should be a 32 bit integer encoded as a string.
       // Ensure that this is the case.
       try
@@ -184,10 +185,14 @@ netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p
                 (_F("unsupported netfilter hook \"%s\" for protocol family \"%s\"; need stap -g",
                 hook.c_str(), pf.c_str()));
 
+      // Complain and abort if there were any pf errors
+      if (pf_error)
+        throw semantic_error
+            (_F("unsupported netfilter protocol family \"%s\"; need stap -g", pf.c_str()));
+    }
+
 #undef IF_HOOKNAME
 #undef IF_PRIORITY
-
-    }
 
   // Expand local variables in the probe body
   netfilter_var_expanding_visitor v (s, name);
