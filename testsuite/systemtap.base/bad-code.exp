@@ -1,0 +1,44 @@
+# Testcase for PR14107 missing kernel ASM CFI.
+set test "bad-code"
+set testpath "$srcdir/$subdir"
+
+set output_string {0x[\\da-f]+ : func+[^\\r\\n]+\r\n0x[\\da-f]+ : main+[^\\r\\n]+\r\n}
+
+# Note don't optimize we are really interested in the non-inlined case
+set test_flags "additional_flags=-g"
+
+set res [target_compile $srcdir/$subdir/$test.c $test executable "$test_flags"]
+if { $res != "" } {
+  verbose "target_compile $test failed: $res" 2
+  fail "$test.c compile"
+  untested "$test"
+  continue
+} else {
+  pass "$test.c compile"
+
+  if {[installtest_p]} {
+    set main 0
+    set func 0
+    set libc 0
+    send_log "Running: stap ${testpath}/${test}.stp -w -d ./$test -c ./$test\n"
+
+    spawn stap ${testpath}/${test}.stp -w -d ./$test -c ./$test
+    expect {
+      -timeout 60
+      -re {^ 0x[a-f0-9]+ : func\+0x[^\r\n]+\r\n} {incr func; exp_continue}
+      -re {^ 0x[a-f0-9]+ : main\+0x[^\r\n]+\r\n} {incr main; exp_continue}
+      -re {^ 0x[a-f0-9]+ [^\r\n]+/libc-[^\r\n]+\r\n} {incr libc; exp_continue}
+      timeout { fail "$test (timeout)"; exec kill -INT -[exp_pid] }
+      eof { }
+    }
+
+    exec kill -INT -[exp_pid]
+    catch {close}; catch {wait}
+
+    send_log "main: $main, func: $func, libc: $libc\n"
+
+    if {$main == 1 && $func == 1 && $libc == 1} {pass "$test"} {fail "$test"}
+  } else {
+    untested "$test"
+  }
+}
