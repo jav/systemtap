@@ -201,8 +201,10 @@ set restricted_probe_types [list \
   "timer.profile" \
   "netfilter.hook(string)" \
   "netfilter.hook(string).pf(string)" \
+  "netfilter.pf(string).hook(string)" \
   "netfilter.hook(string).priority(string)" \
   "netfilter.hook(string).pf(string).priority(string)" \
+  "netfilter.pf(string).hook(string).priority(string)" \
 ]
 
 # Add arguments to a probe type template.
