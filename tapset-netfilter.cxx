@@ -30,6 +30,21 @@
 #define NF_IP6_PRI_RAW -300
 #endif
 
+/* Only introduced in 2.6.26. */
+#ifndef NF_IP_PRI_SECURITY
+#define NF_IP_PRI_SECURITY 50
+#define NF_IP6_PRI_SECURITY 50
+#endif
+
+/* Renamed in 2.6.24 */
+#ifndef NF_INET_PRE_ROUTING
+#define NF_INET_PRE_ROUTING  0
+#define NF_INET_LOCAL_IN     1
+#define NF_INET_FORWARD      2
+#define NF_INET_LOCAL_OUT    3
+#define NF_INET_POST_ROUTING 4
+#define NF_INET_NUMHOOKS     5
+#endif
 
 using namespace std;
 using namespace __gnu_cxx;
