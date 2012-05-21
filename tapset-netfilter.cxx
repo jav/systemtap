@@ -13,6 +13,7 @@
 #include "util.h"
 #include <cstring>
 #include <string>
+#include <limits.h>
 
 #include <sys/socket.h>
 #include <linux/if.h>
@@ -23,6 +24,11 @@
 #include <linux/netfilter_ipv6.h>
 #include <linux/netfilter_arp.h>
 #include <linux/netfilter_bridge.h>
+
+/* Only introduced in 2.6.34 */
+#ifndef NF_IP6_PRI_RAW
+#define NF_IP6_PRI_RAW -300
+#endif
 
 
 using namespace std;
