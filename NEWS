@@ -2,6 +2,9 @@
 
 - Printf formats can now use "%#c" to escape non-printing characters.
 
+- Pretty-printed bitfields use integers and chars use escaped formatting
+  for printing.
+
 - The systemtap compile-server and client now support IPv6 networks.
   - IPv6 addresses may now be specified on the --use-server option and will
     be displayed by --list-servers, if the avahi-daemon service is running and
@@ -35,7 +38,7 @@
   in the source file "some/src/file.c". The @var syntax combines with all
   normal features of DWARF target variables like @defined(), @entry(),
   [N] array indexing, field access through ->, taking the address with
-  the & prefix and swallow or deep pretty printing with a $ or $$ suffix.
+  the & prefix and shallow or deep pretty printing with a $ or $$ suffix.
 
 - Stap now has resource limit options:
     --rlimit-as=NUM
