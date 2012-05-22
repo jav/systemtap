@@ -41,6 +41,7 @@ function __get_mac_addr:string(addr:long) {
 
 /**
  * probe netfilter.ip.pre_routing - Called before an IP packet is routed
+ * @pf: Protocol family -- either "ipv4" or "ipv6"
  * @indev: Address of net_device representing input device, 0 if unknown
  * @outdev: Address of net_device representing output device, 0 if unknown
  * @indev_name: Name of network device packet was received on (if known)
@@ -75,6 +76,8 @@ probe netfilter.ip.pre_routing = netfilter.ipv4.pre_routing,
 probe netfilter.ipv4.pre_routing
         = netfilter.hook("NF_INET_PRE_ROUTING").pf("NFPROTO_IPV4")
 {
+        pf = "ipv4"
+
         IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
         IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
 
@@ -132,6 +135,8 @@ probe netfilter.ipv4.pre_routing
 probe netfilter.ipv6.pre_routing
         = netfilter.hook("NF_IP6_PRE_ROUTING").pf("NFPROTO_IPV6")
 {
+        pf = "ipv6"
+
         IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
         IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
 
@@ -191,6 +196,7 @@ probe netfilter.ipv6.pre_routing
 /**
  * probe netfilter.ip.local_in - Called on an incoming IP packet addressed to
  * the local computer
+ * @pf: Protocol family -- either "ipv4" or "ipv6"
  * @indev: Address of net_device representing input device, 0 if unknown
  * @outdev: Address of net_device representing output device, 0 if unknown
  * @indev_name: Name of network device packet was received on (if known)
@@ -225,6 +231,8 @@ probe netfilter.ip.local_in = netfilter.ipv4.local_in,
 probe netfilter.ipv4.local_in
         = netfilter.hook("NF_INET_LOCAL_IN").pf("NFPROTO_IPV4")
 {
+        pf = "ipv4"
+
         IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
         IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
 
@@ -282,6 +290,8 @@ probe netfilter.ipv4.local_in
 probe netfilter.ipv6.local_in
         = netfilter.hook("NF_IP6_LOCAL_IN").pf("NFPROTO_IPV6")
 {
+        pf = "ipv6"
+
         IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
         IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
 
@@ -341,6 +351,7 @@ probe netfilter.ipv6.local_in
 /**
  * probe netfilter.ip.forward - Called on an incoming IP packet addressed to
  * some other computer
+ * @pf: Protocol family -- either "ipv4" or "ipv6"
  * @indev: Address of net_device representing input device, 0 if unknown
  * @outdev: Address of net_device representing output device, 0 if unknown
  * @indev_name: Name of network device packet was received on (if known)
@@ -375,6 +386,8 @@ probe netfilter.ip.forward = netfilter.ipv4.forward,
 probe netfilter.ipv4.forward
         = netfilter.hook("NF_INET_FORWARD").pf("NFPROTO_IPV4")
 {
+        pf = "ipv4"
+
         IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
         IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
 
@@ -432,6 +445,8 @@ probe netfilter.ipv4.forward
 probe netfilter.ipv6.forward
         = netfilter.hook("NF_IP6_FORWARD").pf("NFPROTO_IPV6")
 {
+        pf = "ipv6"
+
         IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
         IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
 
@@ -490,6 +505,7 @@ probe netfilter.ipv6.forward
 
 /**
  * probe netfilter.ip.local_out - Called on an outgoing IP packet
+ * @pf: Protocol family -- either "ipv4" or "ipv6"
  * @indev: Address of net_device representing input device, 0 if unknown
  * @outdev: Address of net_device representing output device, 0 if unknown
  * @indev_name: Name of network device packet was received on (if known)
@@ -524,6 +540,8 @@ probe netfilter.ip.local_out = netfilter.ipv4.local_out,
 probe netfilter.ipv4.local_out
         = netfilter.hook("NF_INET_LOCAL_OUT").pf("NFPROTO_IPV4")
 {
+        pf = "ipv4"
+
         IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
         IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
 
@@ -580,6 +598,8 @@ probe netfilter.ipv4.local_out
 probe netfilter.ipv6.local_out
         = netfilter.hook("NF_IP6_LOCAL_OUT").pf("NFPROTO_IPV6")
 {
+        pf = "ipv6"
+
         IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
         IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
 
@@ -639,6 +659,7 @@ probe netfilter.ipv6.local_out
 /**
  * probe netfilter.ip.post_routing - Called immediately before an outgoing IP
  * packet leaves the computer
+ * @pf: Protocol family -- either "ipv4" or "ipv6"
  * @indev: Address of net_device representing input device, 0 if unknown
  * @outdev: Address of net_device representing output device, 0 if unknown
  * @indev_name: Name of network device packet was received on (if known)
@@ -673,6 +694,8 @@ probe netfilter.ip.post_routing = netfilter.ipv4.post_routing,
 probe netfilter.ipv4.post_routing
         = netfilter.hook("NF_INET_POST_ROUTING").pf("NFPROTO_IPV4")
 {
+        pf = "ipv4"
+
         IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
         IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
 
@@ -730,6 +753,8 @@ probe netfilter.ipv4.post_routing
 probe netfilter.ipv6.post_routing
         = netfilter.hook("NF_IP6_POST_ROUTING").pf("NFPROTO_IPV6")
 {
+        pf = "ipv6"
+
         IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
         IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
 
