@@ -1,0 +1,4 @@
+#! stap -p2
+
+# no priority value
+probe netfilter.hook("NF_INET_PRE_ROUTING").priority { $verdict = "DROP" }

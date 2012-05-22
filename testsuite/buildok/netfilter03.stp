@@ -1,0 +1,4 @@
+#! stap -gp4
+
+# setting verdict in guru mode should succeed
+probe netfilter.pf("NFPROTO_IPV4").hook("NF_INET_PRE_ROUTING") { $verdict = 0 /* NF_DROP */ }

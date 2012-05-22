@@ -1,0 +1,3 @@
+#! stap -gp4
+
+probe netfilter.hook("NF_INET_PRE_ROUTING") { $verdict = NF_DROP }

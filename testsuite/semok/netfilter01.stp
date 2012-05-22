@@ -1,0 +1,4 @@
+#! stap -gp2
+
+# guru mode should enable use of weird hook/pf options without complaining
+probe netfilter.hook("NF_INET_WARP_10").pf("INTERGALACTIC_IPV3000") { }

@@ -1,0 +1,7 @@
+#! stap -p4
+
+# use string as priority value
+probe netfilter.hook("NF_INET_PRE_ROUTING").pf("NFPROTO_IPV4").priority("-1") { printf("a") }
+probe netfilter.hook("NF_INET_PRE_ROUTING").pf("NFPROTO_IPV4") { printf("b") }
+probe netfilter.hook("NF_INET_PRE_ROUTING").pf("NFPROTO_IPV4").priority("3") { printf("c\n") }
+

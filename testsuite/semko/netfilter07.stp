@@ -1,0 +1,4 @@
+#! stap -p2
+
+# setting verdict in non-guru mode should fail
+probe netfilter.hook("NF_INET_PRE_ROUTING") { $verdict = NF_DROP }
