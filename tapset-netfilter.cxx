@@ -64,6 +64,7 @@ struct netfilter_derived_probe: public derived_probe
   string hook;
   string pf;
   string priority;
+  unsigned nf_index;
 
   set<string> context_vars;
 
@@ -98,6 +99,10 @@ netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p
                                                   string pf, string pri):
   derived_probe (p, l), hook (h), pf (pf), priority (pri)
 {
+  static unsigned nf_index_ctr = 0;
+  this->nf_index = nf_index_ctr++; // PR14137: need to generate unique
+                                   // identifier, since p->name may be
+                                   // shared in c_unparser::emit_probe()
 
   bool hook_error = false;
   bool pf_error = false;
@@ -273,7 +278,7 @@ netfilter_derived_probe_group::emit_module_decls (systemtap_session& s)
   for (unsigned i=0; i < probes.size(); i++)
     {
       netfilter_derived_probe *np = probes[i];
-      s.op->newline() << "static unsigned int enter_netfilter_probe_" << np->name;
+      s.op->newline() << "static unsigned int enter_netfilter_probe_" << np->nf_index;
       s.op->newline() << "(unsigned int nf_hooknum, struct sk_buff *nf_skb, const struct net_device *nf_in, const struct net_device *nf_out, int (*nf_okfn)(struct sk_buff *))";
       s.op->newline() << "{";
       s.op->newline(1) << "struct stap_probe * const stp = & stap_probes[" << np->session_index << "];";
@@ -285,6 +290,8 @@ netfilter_derived_probe_group::emit_module_decls (systemtap_session& s)
       // Copy or pretend-to-touch each incoming parameter.
 
       string c_p = "c->probe_locals." + lex_cast(np->name); // this is where the $context vars show up
+      // NB: PR14137: this should be the potentially shared name,
+      // since the generated probe handler body refers to that name.
 
       if (np->context_vars.find("__nf_hooknum") != np->context_vars.end())
         s.op->newline() << c_p + ".__nf_hooknum = (int64_t)(uintptr_t) nf_hooknum;";
@@ -319,8 +326,8 @@ netfilter_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline(-1) << "}";
 
       // now emit the nf_hook_ops struct for this probe.
-      s.op->newline() << "static struct nf_hook_ops netfilter_opts_" << np->name << " = {";
-      s.op->newline() << ".hook = enter_netfilter_probe_" << np->name << ",";
+      s.op->newline() << "static struct nf_hook_ops netfilter_opts_" << np->nf_index << " = {";
+      s.op->newline() << ".hook = enter_netfilter_probe_" << np->nf_index << ",";
       s.op->newline() << ".owner = THIS_MODULE,";
 
       // XXX: if these strings/numbers are not range-limited / validated before we get here,
@@ -348,15 +355,15 @@ netfilter_derived_probe_group::emit_module_init (systemtap_session& s)
   for (unsigned i=0; i < probes.size(); i++)
     {
       netfilter_derived_probe *np = probes[i];
-      s.op->newline() << "rc = nf_register_hook (& netfilter_opts_" << np->name << ");";
+      s.op->newline() << "rc = nf_register_hook (& netfilter_opts_" << np->nf_index << ");";
       if (i > 0) // unregister others upon failure
         {
           s.op->newline() << "if (rc < 0) {";
-          s.op->newline(1);
+          s.op->indent(1);
           for (int j=i-1; j>=0; j--) // XXX: j must be signed for loop to work
             {
               netfilter_derived_probe *np2 = probes[j];
-              s.op->newline() << "nf_unregister_hook (& netfilter_opts_" << np2->name << ");";
+              s.op->newline() << "nf_unregister_hook (& netfilter_opts_" << np2->nf_index << ");";
             }
           s.op->newline(-1) << "}";
         }
@@ -373,7 +380,7 @@ netfilter_derived_probe_group::emit_module_exit (systemtap_session& s)
   for (unsigned i=0; i < probes.size(); i++)
     {
       netfilter_derived_probe *np = probes[i];
-      s.op->newline() << "nf_unregister_hook (& netfilter_opts_" << np->name << ");";
+      s.op->newline() << "nf_unregister_hook (& netfilter_opts_" << np->nf_index << ");";
     }
 }
 
