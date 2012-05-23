@@ -1922,7 +1922,7 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
       throw semantic_error(msg.str ());
     }
 
-  if (q->sess.verbose>2)
+  if (q->sess.verbose>1)
     clog << _F("focused on module '%s' = [%#" PRIx64 "-%#" PRIx64 ", bias %#" PRIx64 
                " file %s ELF machine %s|%s (code %d)\n",
                q->dw.module_name.c_str(), q->dw.module_start, q->dw.module_end,
