@@ -1,6 +1,9 @@
 /* netfilter.stp - netfilter hook tapset
  *
  * Copyright (C) 2012 Red Hat Inc.
+ * <tapsetdescription>
+ * This family of probe points provides a simple way to examine network traffic using the netfilter hooks mechanism.
+ * </tapsetdescription>
  */
 
 %{
@@ -10,7 +13,6 @@
 %}
 
 # XXX: note that functionality was inspired by tcp.stp and networking.stp
-# XXX: tapsetdescription entry near the top
 # XXX: a macro facility might be nice to avoid duplication -- see PR11207
 # XXX: IPPROTO_* and NF_* constants should be secure globals -- needs PR10607
   # ... currently we use a hideous copypasta hack which defines them as
@@ -194,8 +196,7 @@ probe netfilter.ipv6.pre_routing
 }
 
 /**
- * probe netfilter.ip.local_in - Called on an incoming IP packet addressed to
- * the local computer
+ * probe netfilter.ip.local_in - Called on an incoming IP packet addressed to the local computer
  * @pf: Protocol family -- either "ipv4" or "ipv6"
  * @indev: Address of net_device representing input device, 0 if unknown
  * @outdev: Address of net_device representing output device, 0 if unknown
@@ -349,8 +350,7 @@ probe netfilter.ipv6.local_in
 }
 
 /**
- * probe netfilter.ip.forward - Called on an incoming IP packet addressed to
- * some other computer
+ * probe netfilter.ip.forward - Called on an incoming IP packet addressed to some other computer
  * @pf: Protocol family -- either "ipv4" or "ipv6"
  * @indev: Address of net_device representing input device, 0 if unknown
  * @outdev: Address of net_device representing output device, 0 if unknown
@@ -657,8 +657,7 @@ probe netfilter.ipv6.local_out
 }
 
 /**
- * probe netfilter.ip.post_routing - Called immediately before an outgoing IP
- * packet leaves the computer
+ * probe netfilter.ip.post_routing - Called immediately before an outgoing IP packet leaves the computer
  * @pf: Protocol family -- either "ipv4" or "ipv6"
  * @indev: Address of net_device representing input device, 0 if unknown
  * @outdev: Address of net_device representing output device, 0 if unknown
