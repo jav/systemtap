@@ -555,6 +555,19 @@ keywords: network device traffic
   # stap netdev.stp -c "sleep 0.2"
 
 
+network/netfilter_summary.stp - System-Wide Count of Network Packets by IPs
+keywords: network traffic
+
+  The script watches all IPv4 network traffic on the system. On exit
+  the script prints a list showing the number of packets sent along
+  source IP address / destination IP address pair encountered, and the
+  total number of bytes sent among the pair. The list is ordered from
+  greatest to least number of packets seen among the source/destination
+  pairs.
+
+  # stap netfilter_summary.stp -c "sleep 0.4"
+
+
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
 keywords: network traffic
 
