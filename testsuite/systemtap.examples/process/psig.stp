@@ -1,6 +1,9 @@
-#!/usr/bin/env bash
+#! /bin/sh
+
+//bin/true && exec stap -DMAXACTION=10000 -g $0 ${1+"$@"}
+
 # psig
-# Copyright (C) 2008 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
+# Copyright (C) 2008-2012 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -12,8 +15,6 @@
 # output at http://developers.sun.com/solaris/articles/solaris_linux_app.html.
 # This script requires the signal.stp-psig.patch for tapset/signal.stp (not in
 # the upstream version of SystemTap at the time of writing).
-#
-# Last updated: Tue Jan 15 00:12:12 SGT 2008
 #
 # $ psig $$ | head -10
 # 1852:    bash
@@ -71,18 +72,6 @@
 # #define SA_RESTORER     0x04000000
 #
 
-if [ $# -eq 0 ]; then
-	cat >&2 <<-EOF
-	usage:  psig pid ...
-	  (report signal information of each process)
-	EOF
-	exit
-fi
-
-pid=$1
-
-/usr/bin/env stap -g -DMAXACTION=10000 -e '
-
 global _NSIG = 64
 
 function get_k_sigaction:long (task:long, sig:long) %{
@@ -125,8 +114,11 @@ function sa_flags_str2:string (sa_flags:string) %{
 %}
 
 probe begin {
-	pid = '$pid'
-
+%( $# < 1
+        %? pid = target()
+        %: pid = $1
+%)
+        # if (pid == 0) error ("Please provide valid target process-id as $1 or -x PID");
 	task = pid2task(pid)
 	if (!task)
 		error("pid2task: process not found. exiting.\n")
@@ -144,6 +136,7 @@ probe begin {
 		sig = signal_str(i+1)
 
 		handler = sa_handler_str(get_sa_handler(act))
+                # XXX: convert hex pointer via usymdata() to useful function
 		if (! (isinstr(handler, "default") || isinstr(handler, "ignored"))) {
 			blocked = is_sig_blocked(task, i+1)
 			if (blocked)
@@ -164,4 +157,3 @@ probe begin {
 
 	exit()
 }
-'
