@@ -48,6 +48,7 @@ function __get_mac_addr:string(addr:long) {
  * @outdev: Address of net_device representing output device, 0 if unknown
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
  * @iphdr: IP header address
  * @protocol: Packet protocol from driver (ipv4 only)
  * @IPPROTO_TCP: Constant used to signify that the packet protocol is TCP
@@ -202,6 +203,7 @@ probe netfilter.ipv6.pre_routing
  * @outdev: Address of net_device representing output device, 0 if unknown
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
  * @iphdr: IP header address
  * @protocol: Packet protocol from driver (ipv4 only)
  * @IPPROTO_TCP: Constant used to signify that the packet protocol is TCP
@@ -356,6 +358,7 @@ probe netfilter.ipv6.local_in
  * @outdev: Address of net_device representing output device, 0 if unknown
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
  * @iphdr: IP header address
  * @protocol: Packet protocol from driver (ipv4 only)
  * @IPPROTO_TCP: Constant used to signify that the packet protocol is TCP
@@ -510,6 +513,7 @@ probe netfilter.ipv6.forward
  * @outdev: Address of net_device representing output device, 0 if unknown
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
  * @iphdr: IP header address
  * @protocol: Packet protocol from driver (ipv4 only)
  * @IPPROTO_TCP: Constant used to signify that the packet protocol is TCP
@@ -663,6 +667,7 @@ probe netfilter.ipv6.local_out
  * @outdev: Address of net_device representing output device, 0 if unknown
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
  * @iphdr: IP header address
  * @protocol: Packet protocol from driver (ipv4 only)
  * @IPPROTO_TCP: Constant used to signify that the packet protocol is TCP
@@ -811,3 +816,368 @@ probe netfilter.ipv6.post_routing
 }
 
 # XXX: include functionality for arp, bridge, etc.
+
+/**
+ * probe netfilter.arp.in -- Called for each incoming ARP packet
+ * @pf: Protocol family -- always "arp"
+ * @indev: Address of net_device representing input device, 0 if unknown
+ * @outdev: Address of net_device representing output device, 0 if unknown
+ * @indev_name: Name of network device packet was received on (if known)
+ * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
+ * @NF_DROP: Constant used to signify a 'drop' verdict
+ * @NF_ACCEPT: Constant used to signify an 'accept' verdict
+ * @NF_STOLEN: Constant used to signify a 'stolen' verdict
+ * @NF_QUEUE: Constant used to signify a 'queue' verdict
+ * @NF_REPEAT: Constant used to signify a 'repeat' verdict
+ * @NF_STOP: Constant used to signify a 'stop' verdict
+ */
+probe netfilter.arp.in = netfilter.hook("NF_ARP_IN").pf("NFPROTO_ARP")
+{
+        pf = "arp"
+
+        /* from include/linux/netfilter.h: */
+        NF_DROP = 0
+        NF_ACCEPT = 1
+        NF_STOLEN = 2
+        NF_QUEUE = 3
+        NF_REPEAT = 4
+        NF_STOP = 5
+
+        indev = $in; outdev = $out
+        indev_name = kernel_string2(@cast($in,"struct net_device")->name,
+                                    "")
+        outdev_name = kernel_string2(@cast($out,"struct net_device")->name,
+                                     "")
+
+        if (indev) {
+           indev_mac_len = @cast(indev,"struct net_device")->addr_len
+           in_mac = __get_mac_addr(indev)
+        }
+        if (outdev) {
+           outdev_mac_len = @cast(outdev,"struct net_device")->addr_len
+           out_mac = __get_mac_addr(outdev)
+        }
+
+        length = @cast($skb, "struct sk_buff")->len
+
+}
+
+
+/**
+ * probe netfilter.arp.out -- Called for each outgoing ARP packet
+ * @pf: Protocol family -- always "arp"
+ * @indev: Address of net_device representing input device, 0 if unknown
+ * @outdev: Address of net_device representing output device, 0 if unknown
+ * @indev_name: Name of network device packet was received on (if known)
+ * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
+ * @NF_DROP: Constant used to signify a 'drop' verdict
+ * @NF_ACCEPT: Constant used to signify an 'accept' verdict
+ * @NF_STOLEN: Constant used to signify a 'stolen' verdict
+ * @NF_QUEUE: Constant used to signify a 'queue' verdict
+ * @NF_REPEAT: Constant used to signify a 'repeat' verdict
+ * @NF_STOP: Constant used to signify a 'stop' verdict
+ */
+probe netfilter.arp.out = netfilter.hook("NF_ARP_OUT").pf("NFPROTO_ARP")
+{
+        pf = "arp"
+
+        /* from include/linux/netfilter.h: */
+        NF_DROP = 0
+        NF_ACCEPT = 1
+        NF_STOLEN = 2
+        NF_QUEUE = 3
+        NF_REPEAT = 4
+        NF_STOP = 5
+
+        indev = $in; outdev = $out
+        indev_name = kernel_string2(@cast($in,"struct net_device")->name,
+                                    "")
+        outdev_name = kernel_string2(@cast($out,"struct net_device")->name,
+                                     "")
+
+        if (indev) {
+           indev_mac_len = @cast(indev,"struct net_device")->addr_len
+           in_mac = __get_mac_addr(indev)
+        }
+        if (outdev) {
+           outdev_mac_len = @cast(outdev,"struct net_device")->addr_len
+           out_mac = __get_mac_addr(outdev)
+        }
+
+        length = @cast($skb, "struct sk_buff")->len
+}
+
+/**
+ * probe netfilter.arp.forward -- Called for each ARP packet to be forwarded
+ * @pf: Protocol family -- always "arp"
+ * @indev: Address of net_device representing input device, 0 if unknown
+ * @outdev: Address of net_device representing output device, 0 if unknown
+ * @indev_name: Name of network device packet was received on (if known)
+ * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
+ * @NF_DROP: Constant used to signify a 'drop' verdict
+ * @NF_ACCEPT: Constant used to signify an 'accept' verdict
+ * @NF_STOLEN: Constant used to signify a 'stolen' verdict
+ * @NF_QUEUE: Constant used to signify a 'queue' verdict
+ * @NF_REPEAT: Constant used to signify a 'repeat' verdict
+ * @NF_STOP: Constant used to signify a 'stop' verdict
+ */
+probe netfilter.arp.forward = netfilter.hook("NF_ARP_FORWARD").pf("NFPROTO_ARP")
+{
+        pf = "arp"
+
+        /* from include/linux/netfilter.h: */
+        NF_DROP = 0
+        NF_ACCEPT = 1
+        NF_STOLEN = 2
+        NF_QUEUE = 3
+        NF_REPEAT = 4
+        NF_STOP = 5
+
+        indev = $in; outdev = $out
+        indev_name = kernel_string2(@cast($in,"struct net_device")->name,
+                                    "")
+        outdev_name = kernel_string2(@cast($out,"struct net_device")->name,
+                                     "")
+
+        if (indev) {
+           indev_mac_len = @cast(indev,"struct net_device")->addr_len
+           in_mac = __get_mac_addr(indev)
+        }
+        if (outdev) {
+           outdev_mac_len = @cast(outdev,"struct net_device")->addr_len
+           out_mac = __get_mac_addr(outdev)
+        }
+
+        length = @cast($skb, "struct sk_buff")->len
+}
+
+# XXX: 'bridge' means Spanning Tree Protocol, riiiiiight?
+
+/**
+ * probe netfilter.bridge.pre_routing -- Called before a bridging packet is routed
+ * @pf: Protocol family -- always "bridge"
+ * @indev: Address of net_device representing input device, 0 if unknown
+ * @outdev: Address of net_device representing output device, 0 if unknown
+ * @indev_name: Name of network device packet was received on (if known)
+ * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
+ * @NF_DROP: Constant used to signify a 'drop' verdict
+ * @NF_ACCEPT: Constant used to signify an 'accept' verdict
+ * @NF_STOLEN: Constant used to signify a 'stolen' verdict
+ * @NF_QUEUE: Constant used to signify a 'queue' verdict
+ * @NF_REPEAT: Constant used to signify a 'repeat' verdict
+ * @NF_STOP: Constant used to signify a 'stop' verdict
+ */
+probe netfilter.bridge.pre_routing
+        = netfilter.hook("NF_BR_PRE_ROUTING").pf("NFPROTO_BRIDGE")
+{
+        pf = "bridge"
+
+        /* from include/linux/netfilter.h: */
+        NF_DROP = 0
+        NF_ACCEPT = 1
+        NF_STOLEN = 2
+        NF_QUEUE = 3
+        NF_REPEAT = 4
+        NF_STOP = 5
+
+        indev = $in; outdev = $out
+        indev_name = kernel_string2(@cast($in,"struct net_device")->name,
+                                    "")
+        outdev_name = kernel_string2(@cast($out,"struct net_device")->name,
+                                     "")
+
+        if (indev) {
+           indev_mac_len = @cast(indev,"struct net_device")->addr_len
+           in_mac = __get_mac_addr(indev)
+        }
+        if (outdev) {
+           outdev_mac_len = @cast(outdev,"struct net_device")->addr_len
+           out_mac = __get_mac_addr(outdev)
+        }
+}
+
+/**
+ * probe netfilter.bridge.local_in - Called on a bridging packet destined for the local computer
+ * @pf: Protocol family -- always "bridge"
+ * @indev: Address of net_device representing input device, 0 if unknown
+ * @outdev: Address of net_device representing output device, 0 if unknown
+ * @indev_name: Name of network device packet was received on (if known)
+ * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
+ * @NF_DROP: Constant used to signify a 'drop' verdict
+ * @NF_ACCEPT: Constant used to signify an 'accept' verdict
+ * @NF_STOLEN: Constant used to signify a 'stolen' verdict
+ * @NF_QUEUE: Constant used to signify a 'queue' verdict
+ * @NF_REPEAT: Constant used to signify a 'repeat' verdict
+ * @NF_STOP: Constant used to signify a 'stop' verdict
+ */
+probe netfilter.bridge.local_in
+        = netfilter.hook("NF_BR_LOCAL_IN").pf("NFPROTO_BRIDGE")
+{
+        pf = "bridge"
+
+        /* from include/linux/netfilter.h: */
+        NF_DROP = 0
+        NF_ACCEPT = 1
+        NF_STOLEN = 2
+        NF_QUEUE = 3
+        NF_REPEAT = 4
+        NF_STOP = 5
+
+        indev = $in; outdev = $out
+        indev_name = kernel_string2(@cast($in,"struct net_device")->name,
+                                    "")
+        outdev_name = kernel_string2(@cast($out,"struct net_device")->name,
+                                     "")
+
+        if (indev) {
+           indev_mac_len = @cast(indev,"struct net_device")->addr_len
+           in_mac = __get_mac_addr(indev)
+        }
+        if (outdev) {
+           outdev_mac_len = @cast(outdev,"struct net_device")->addr_len
+           out_mac = __get_mac_addr(outdev)
+        }
+}
+
+/**
+ * probe netfilter.bridge.forward - Called on an incoming bridging packet destined for some other computer
+ * @pf: Protocol family -- always "bridge"
+ * @indev: Address of net_device representing input device, 0 if unknown
+ * @outdev: Address of net_device representing output device, 0 if unknown
+ * @indev_name: Name of network device packet was received on (if known)
+ * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
+ * @NF_DROP: Constant used to signify a 'drop' verdict
+ * @NF_ACCEPT: Constant used to signify an 'accept' verdict
+ * @NF_STOLEN: Constant used to signify a 'stolen' verdict
+ * @NF_QUEUE: Constant used to signify a 'queue' verdict
+ * @NF_REPEAT: Constant used to signify a 'repeat' verdict
+ * @NF_STOP: Constant used to signify a 'stop' verdict
+ */
+probe netfilter.bridge.forward
+        = netfilter.hook("NF_BR_FORWARD").pf("NFPROTO_BRIDGE")
+{
+        pf = "bridge"
+
+        /* from include/linux/netfilter.h: */
+        NF_DROP = 0
+        NF_ACCEPT = 1
+        NF_STOLEN = 2
+        NF_QUEUE = 3
+        NF_REPEAT = 4
+        NF_STOP = 5
+
+        indev = $in; outdev = $out
+        indev_name = kernel_string2(@cast($in,"struct net_device")->name,
+                                    "")
+        outdev_name = kernel_string2(@cast($out,"struct net_device")->name,
+                                     "")
+
+        if (indev) {
+           indev_mac_len = @cast(indev,"struct net_device")->addr_len
+           in_mac = __get_mac_addr(indev)
+        }
+        if (outdev) {
+           outdev_mac_len = @cast(outdev,"struct net_device")->addr_len
+           out_mac = __get_mac_addr(outdev)
+        }
+
+        length = @cast($skb, "struct sk_buff")->len
+}
+
+/**
+ * probe netfilter.bridge.local_out - Called on a bridging packet coming from a local process
+ * @pf: Protocol family -- always "bridge"
+ * @indev: Address of net_device representing input device, 0 if unknown
+ * @outdev: Address of net_device representing output device, 0 if unknown
+ * @indev_name: Name of network device packet was received on (if known)
+ * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
+ * @NF_DROP: Constant used to signify a 'drop' verdict
+ * @NF_ACCEPT: Constant used to signify an 'accept' verdict
+ * @NF_STOLEN: Constant used to signify a 'stolen' verdict
+ * @NF_QUEUE: Constant used to signify a 'queue' verdict
+ * @NF_REPEAT: Constant used to signify a 'repeat' verdict
+ * @NF_STOP: Constant used to signify a 'stop' verdict
+ */
+probe netfilter.bridge.local_out
+        = netfilter.hook("NF_BR_LOCAL_OUT").pf("NFPROTO_BRIDGE")
+{
+        pf = "bridge"
+
+        /* from include/linux/netfilter.h: */
+        NF_DROP = 0
+        NF_ACCEPT = 1
+        NF_STOLEN = 2
+        NF_QUEUE = 3
+        NF_REPEAT = 4
+        NF_STOP = 5
+
+        indev = $in; outdev = $out
+        indev_name = kernel_string2(@cast($in,"struct net_device")->name,
+                                    "")
+        outdev_name = kernel_string2(@cast($out,"struct net_device")->name,
+                                     "")
+
+        if (indev) {
+           indev_mac_len = @cast(indev,"struct net_device")->addr_len
+           in_mac = __get_mac_addr(indev)
+        }
+        if (outdev) {
+           outdev_mac_len = @cast(outdev,"struct net_device")->addr_len
+           out_mac = __get_mac_addr(outdev)
+        }
+
+        length = @cast($skb, "struct sk_buff")->len
+}
+
+/**
+ * probe netfilter.bridge.post_routing -- Called before a bridging packet hits the wire
+ * @pf: Protocol family -- always "bridge"
+ * @indev: Address of net_device representing input device, 0 if unknown
+ * @outdev: Address of net_device representing output device, 0 if unknown
+ * @indev_name: Name of network device packet was received on (if known)
+ * @outdev_name: Name of network device packet will be routed to (if known)
+ * @length: The length of the packet buffer contents, in bytes
+ * @NF_DROP: Constant used to signify a 'drop' verdict
+ * @NF_ACCEPT: Constant used to signify an 'accept' verdict
+ * @NF_STOLEN: Constant used to signify a 'stolen' verdict
+ * @NF_QUEUE: Constant used to signify a 'queue' verdict
+ * @NF_REPEAT: Constant used to signify a 'repeat' verdict
+ * @NF_STOP: Constant used to signify a 'stop' verdict
+ */
+probe netfilter.bridge.post_routing
+        = netfilter.hook("NF_BR_POST_ROUTING").pf("NFPROTO_BRIDGE")
+{
+        pf = "bridge"
+
+        /* from include/linux/netfilter.h: */
+        NF_DROP = 0
+        NF_ACCEPT = 1
+        NF_STOLEN = 2
+        NF_QUEUE = 3
+        NF_REPEAT = 4
+        NF_STOP = 5
+
+        indev = $in; outdev = $out
+        indev_name = kernel_string2(@cast($in,"struct net_device")->name,
+                                    "")
+        outdev_name = kernel_string2(@cast($out,"struct net_device")->name,
+                                     "")
+
+        if (indev) {
+           indev_mac_len = @cast(indev,"struct net_device")->addr_len
+           in_mac = __get_mac_addr(indev)
+        }
+        if (outdev) {
+           outdev_mac_len = @cast(outdev,"struct net_device")->addr_len
+           out_mac = __get_mac_addr(outdev)
+        }
+
+        length = @cast($skb, "struct sk_buff")->len
+}
