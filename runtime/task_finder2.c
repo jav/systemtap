@@ -1289,9 +1289,11 @@ __stp_utrace_task_finder_target_quiesce(u32 action,
 		}
 		init_task_work(work, &__stp_tf_quiesce_worker, tgt);
 		rc = task_work_add(tsk, work, true);
-		if (rc != 0) {
-			printk(KERN_ERR
-			       "%s:%d - task_work_add() returned %d\n",
+		/* task_work_add() returns -ESRCH if the task has
+		 * already passed exit_task_work(). Just ignore this
+		 * error. */
+		if (rc != -ESRCH) {
+			printk(KERN_ERR "%s:%d - task_work_add() returned %d\n",
 			       __FUNCTION__, __LINE__, rc);
 		}
 	}
@@ -1491,9 +1493,11 @@ __stp_utrace_task_finder_target_syscall_exit(u32 action,
 		}
 		init_task_work(work, &__stp_tf_mmap_worker, tgt);
 		rc = task_work_add(tsk, work, true);
-		if (rc != 0) {
-			printk(KERN_ERR
-			       "%s:%d - task_work_add() returned %d\n",
+		/* task_work_add() returns -ESRCH if the task has
+		 * already passed exit_task_work(). Just ignore this
+		 * error. */
+		if (rc != -ESRCH) {
+			printk(KERN_ERR "%s:%d - task_work_add() returned %d\n",
 			       __FUNCTION__, __LINE__, rc);
 		}
 	}

@@ -943,12 +943,16 @@ static bool utrace_do_stop(struct task_struct *target, struct utrace *utrace)
 		utrace->resume = UTRACE_REPORT;
 		if (! utrace->task_work_added) {
 			int rc = task_work_add(target, &utrace->work, true);
-			if (rc != 0)
+			if (rc == 0) {
+				utrace->task_work_added = 1;
+			}
+			/* task_work_add() returns -ESRCH if the task
+			 * has already passed exit_task_work(). Just
+			 * ignore this error. */
+			else if (rc != -ESRCH) {
 				printk(KERN_ERR
 				       "%s:%d - task_work_add() returned %d\n",
 				       __FUNCTION__, __LINE__, rc);
-			else {
-				utrace->task_work_added = 1;
 			}
 		}
 	}
@@ -1082,12 +1086,16 @@ relock:
 		utrace->resume = action;
 		if (! utrace->task_work_added) {
 			int rc = task_work_add(task, &utrace->work, true);
-			if (rc != 0)
+			if (rc == 0) {
+				utrace->task_work_added = 1;
+			}
+			/* task_work_add() returns -ESRCH if the task
+			 * has already passed exit_task_work(). Just
+			 * ignore this error. */
+			else if (rc != -ESRCH) {
 				printk(KERN_ERR
 				       "%s:%d - task_work_add() returned %d\n",
 				       __FUNCTION__, __LINE__, rc);
-			else {
-				utrace->task_work_added = 1;
 			}
 		}
 	}
@@ -1433,13 +1441,19 @@ int utrace_control(struct task_struct *target,
 		if (action < utrace->resume) {
 			utrace->resume = action;
 			if (! utrace->task_work_added) {
-				ret = task_work_add(target, &utrace->work, true);
-				if (ret != 0)
+				ret = task_work_add(target, &utrace->work,
+						    true);
+				if (ret == 0) {
+					utrace->task_work_added = 1;
+				}
+				/* task_work_add() returns -ESRCH if
+				 * the task has already passed
+				 * exit_task_work(). Just ignore this
+				 * error. */
+				else if (ret != -ESRCH) {
 					printk(KERN_ERR
 					       "%s:%d - task_work_add() returned %d\n",
 					       __FUNCTION__, __LINE__, ret);
-				else {
-					utrace->task_work_added = 1;
 				}
 			}
 		}
