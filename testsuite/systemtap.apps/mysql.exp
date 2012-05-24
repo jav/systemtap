@@ -13,7 +13,7 @@ if {! [info exists env(SYSTEMTAP_TESTAPPS)] || (
 
 ########## Create /tmp/stap-mysql.stp ########## 
 set msdata "[pwd]/stap-mysql"
-set mysqlrelease "mysql-5.5.19"
+set mysqlrelease "mysql-5.5.24"
 set mysqldir "[pwd]/mysql/install/"
 set testsuite "[pwd]"
 
@@ -296,7 +296,7 @@ kill -9 $testsuite/stap-mysql/mysql.pid
 ##### end run_tests #####
 
 if \[ ! -r $mysqlrelease.tar.gz \] ; then
-wget -q http://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlrelease.tar.gz/from/ftp://mirror.anl.gov/pub/mysql/
+wget -q http://downloads.mysql.com/archives/mysql-5.5/$mysqlrelease.tar.gz
 
 fi
 if \[ ! -r $mysqlrelease.tar.gz \] ; then
