@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+# psig
+# Copyright (C) 2008 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# psig reports information about signals by the process id.
+#
+# psig is not a port of Solaris' psig tool. It was written based on the example
+# output at http://developers.sun.com/solaris/articles/solaris_linux_app.html.
+# This script requires the signal.stp-psig.patch for tapset/signal.stp (not in
+# the upstream version of SystemTap at the time of writing).
+#
+# Last updated: Tue Jan 15 00:12:12 SGT 2008
+#
+# $ psig $$ | head -10
+# 1852:    bash
+# HUP      caught   0x0808d040  0  HUP,INT,ILL,TRAP,ABRT,BUS,FPE,USR1,SEGV,USR2,PIPE,ALRM,TERM,XCPU,XFSZ,VTALRM,SYS
+# INT      caught   0x0808d280  0  
+# QUIT     ignored  
+# ILL      caught   0x0808d040  0  HUP,INT,ILL,TRAP,ABRT,BUS,FPE,USR1,SEGV,USR2,PIPE,ALRM,TERM,XCPU,XFSZ,VTALRM,SYS
+# TRAP     caught   0x0808d040  0  HUP,INT,ILL,TRAP,ABRT,BUS,FPE,USR1,SEGV,USR2,PIPE,ALRM,TERM,XCPU,XFSZ,VTALRM,SYS
+# ABRT     caught   0x0808d040  0  HUP,INT,ILL,TRAP,ABRT,BUS,FPE,USR1,SEGV,USR2,PIPE,ALRM,TERM,XCPU,XFSZ,VTALRM,SYS
+# BUS      caught   0x0808d040  0  HUP,INT,ILL,TRAP,ABRT,BUS,FPE,USR1,SEGV,USR2,PIPE,ALRM,TERM,XCPU,XFSZ,VTALRM,SYS
+# FPE      caught   0x0808d040  0  HUP,INT,ILL,TRAP,ABRT,BUS,FPE,USR1,SEGV,USR2,PIPE,ALRM,TERM,XCPU,XFSZ,VTALRM,SYS
+# KILL     default  
+# $ stap -V # systemtap-20071229.tar.bz2
+# SystemTap translator/driver (version 0.6/0.131 built 2008-01-12)
+# $ cat /etc/redhat-release 
+# Fedora release 8 (Werewolf)
+# $ uname -a
+# Linux kerndev.xxx.redhat.com 2.6.23.9-85.fc8 #1 SMP Fri Dec 7 15:49:59 EST 2007 i686 i686 i386 GNU/Linux
+#
+# NOTES:
+# HUP      caught   0x0808d040  0  HUP,INT,ILL,TRAP,ABRT,BUS,...
+# [.......][.......][..........][.][............................
+# |<-- type of signal (1..64)
+#          |<-- signal disposition. it can be SIG_{DFL,IGN,ERR} or a pointer to a function
+#                   |<-- address of the signal-catching function
+#                               |<-- sa_flags. see the code snippet below
+#                                  |<-- set of signals to be blocked when executing the handler
+#
+# linux-2.6/include/asm-x86/signal.h:
+# [...]
+# /*
+#  * SA_FLAGS values:
+#  *
+#  * SA_ONSTACK indicates that a registered stack_t will be used.
+#  * SA_RESTART flag to get restarting signals (which were the default long ago)
+#  * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
+#  * SA_RESETHAND clears the handler when the signal is delivered.
+#  * SA_NOCLDWAIT flag on SIGCHLD to inhibit zombies.
+#  * SA_NODEFER prevents the current signal from being masked in the handler.
+#  *
+#  * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
+#  * Unix names RESETHAND and NODEFER respectively.
+#  */
+# #define SA_NOCLDSTOP    0x00000001u
+# #define SA_NOCLDWAIT    0x00000002u
+# #define SA_SIGINFO      0x00000004u
+# #define SA_ONSTACK      0x08000000u
+# #define SA_RESTART      0x10000000u
+# #define SA_NODEFER      0x40000000u
+# #define SA_RESETHAND    0x80000000u
+# 
+# #define SA_NOMASK       SA_NODEFER
+# #define SA_ONESHOT      SA_RESETHAND
+# 
+# #define SA_RESTORER     0x04000000
+#
+
+if [ $# -eq 0 ]; then
+	cat >&2 <<-EOF
+	usage:  psig pid ...
+	  (report signal information of each process)
+	EOF
+	exit
+fi
+
+pid=$1
+
+/usr/bin/env stap -g -DMAXACTION=10000 -e '
+
+global _NSIG = 64
+
+function get_k_sigaction:long (task:long, sig:long) %{
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+
+	THIS->__retvalue = (long)&p->sighand->action[(int)THIS->sig];
+%}
+
+function get_task_info:string (task:long) %{
+	char pid[10]; /* just to realign the header properly */
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+
+	if (!p)
+		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		sprintf(pid, "%d:", p->pid);
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "%-8s %s", pid, p->comm);
+	}
+%}
+
+function translate_mask (mask) {
+	delim = ","
+	str = signal_str(strtol(tokenize(mask, delim), 10))
+	while (1) {
+		sig = signal_str(strtol(tokenize("", delim), 10))
+		if (strlen(sig) == 0)
+			break;
+		str = str . "," . sig
+	}
+	return str;
+}
+
+/*
+ * if sa_flags is 0, then return 0. If not, return the interpreted sa_flags.
+ */
+function sa_flags_str2:string (sa_flags:string) %{
+	if (strlen(THIS->sa_flags) == 0)
+		strcpy(THIS->sa_flags, "0");
+	strlcpy (THIS->__retvalue, THIS->sa_flags, MAXSTRINGLEN);
+%}
+
+probe begin {
+	pid = '$pid'
+
+	task = pid2task(pid)
+	if (!task)
+		error("pid2task: process not found. exiting.\n")
+
+	task_info = get_task_info(task)
+	if (isinstr(task_info, "NULL"))
+		error("get_task_info: invalid task_struct. exiting.\n")
+	printf("%s\n", task_info)
+
+	for (i = 0; i < _NSIG; ++i) {
+		handler_status = ""
+		act = get_k_sigaction(task, i)
+		if (!act)
+			error("get_k_sigaction: invalid k_sigaction pointer. exiting.\n")
+		sig = signal_str(i+1)
+
+		handler = sa_handler_str(get_sa_handler(act))
+		if (! (isinstr(handler, "default") || isinstr(handler, "ignored"))) {
+			blocked = is_sig_blocked(task, i+1)
+			if (blocked)
+				handler_status = "blocked,"
+			handler_status = handler_status . "caught"
+		} else
+			handler_status = handler
+
+		flags = sa_flags_str2(sa_flags_str(get_sa_flags(act)))
+		mask = sigset_mask_str(__get_action_mask(act))
+
+		printf("%-8s %-8s ", sig, handler_status);
+		if (isinstr(handler_status, "caught"))
+			printf("%s  %s  %s\n", handler, flags, translate_mask(mask))
+		else
+			printf("\n")
+	}
+
+	exit()
+}
+'
