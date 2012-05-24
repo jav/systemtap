@@ -544,11 +544,10 @@ set_cached_uprobes(systemtap_session& s)
 int
 uprobes_pass (systemtap_session& s)
 {
-  if (!s.need_uprobes)
+  if (!s.need_uprobes || kernel_built_uprobes(s))
     return 0;
 
-  if (!kernel_built_uprobes(s)
-      && s.kernel_config["CONFIG_UTRACE"] != string("y"))
+  if (s.kernel_config["CONFIG_UTRACE"] != string("y"))
     {
       clog << _("user-space facilities not available without kernel CONFIG_UTRACE or CONFIG_TRACEPOINTS/CONFIG_ARCH_SUPPORTS_UPROBES/CONFIG_UPROBES") << endl;
       s.set_try_server ();
