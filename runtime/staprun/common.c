@@ -23,6 +23,7 @@ int verbose;
 int suppress_warnings;
 int target_pid;
 unsigned int buffer_size;
+unsigned int reader_timeout_ms;
 char *target_cmd;
 char *outfile_name;
 int rename_mod;
@@ -117,6 +118,7 @@ void parse_args(int argc, char **argv)
 	suppress_warnings = 0;
 	target_pid = 0;
 	buffer_size = 0;
+        reader_timeout_ms = 0;
 	target_cmd = NULL;
 	outfile_name = NULL;
 	rename_mod = 0;
@@ -130,7 +132,7 @@ void parse_args(int argc, char **argv)
         remote_id = -1;
         remote_uri = NULL;
 
-	while ((c = getopt(argc, argv, "ALu::vb:t:dc:o:x:S:DwRr:V")) != EOF) {
+	while ((c = getopt(argc, argv, "ALu::vb:t:dc:o:x:S:DwRr:VT:")) != EOF) {
 		switch (c) {
 		case 'u':
 			need_uprobes = 1;
@@ -203,6 +205,13 @@ void parse_args(int argc, char **argv)
                               "This is free software; see the source for copying conditions.\n"),
                               VERSION, GIT_MESSAGE);
                         _exit(1);
+                        break;
+                case 'T':
+                        reader_timeout_ms = (unsigned)atoi(optarg);
+                        if (reader_timeout_ms < 1) {
+                                err(_("Invalid reader timeout value '%d' (should be >= 1).\n"), reader_timeout_ms);
+                                usage(argv[0]);
+                        }
                         break;
 		default:
 			usage(argv[0]);
@@ -313,7 +322,10 @@ void usage(char *prog)
 	"                assumed to be the maximum file size in MB.\n"
 	"                When the number of output files reaches N, it\n"
 	"                switches to the first output file. You can omit\n"
-	"                the second argument.\n\n"
+	"                the second argument.\n"
+        "-T timeout      Specifies upper limit on amount of time reader thread\n"
+        "                will wait for new full trace buffer. Value should be an\n"
+        "                integer >= 1, which is timeout value in ms. Default 200ms.\n\n"
 	"MODULE can be either a module name or a module path.  If a\n"
 	"module name is used, it is searched in the following directory:\n"));
         {

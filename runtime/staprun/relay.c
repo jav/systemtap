@@ -152,6 +152,11 @@ static void *reader_thread(void *data)
 		timeout = NULL;
 #endif
 	}
+
+        if (reader_timeout_ms) {
+                timeout->tv_sec = reader_timeout_ms / 1000;
+                timeout->tv_nsec = (reader_timeout_ms - timeout->tv_sec * 1000) * 1000000;
+        }
 	
 	pollfd.fd = relay_fd[cpu];
 	pollfd.events = POLLIN;

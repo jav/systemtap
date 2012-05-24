@@ -208,6 +208,7 @@ extern int kernel_ptr_size;
 extern int verbose;
 extern int suppress_warnings;
 extern unsigned int buffer_size;
+extern unsigned int reader_timeout_ms;
 extern char *modname;
 extern char *modpath;
 #define MAXMODOPTIONS 64

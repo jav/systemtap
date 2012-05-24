@@ -106,6 +106,14 @@ output files exceed
 .B N
 , systemtap removes the oldest output file. You can omit the second argument.
 .TP
+.B \-T timeout
+Sets maximum time reader thread will wait before dumping trace buffer. Value is
+in ms, default is 200ms. Setting this to a high value decreases number of stapio
+wake-ups, allowing deeper sleep for embedded platforms. But it impacts interactivity
+on terminal as traces are dumped less often in case of low throughput.
+There is no interactivity or performance impact for high throughput as trace is
+dumped when buffer is full, before this timeout expires.
+.TP
 .B var1=val
 Sets the value of global variable var1 to val. Global variables contained 
 within a module are treated as module options and can be set from the 
