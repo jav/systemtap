@@ -1,5 +1,8 @@
 * What's new in version 1.8
 
+- staprun accepts a -T timeout option to allow less frequent wake-ups
+  to poll for low-throughput output from scripts.
+
 - Printf formats can now use "%#c" to escape non-printing characters.
 
 - Pretty-printed bitfields use integers and chars use escaped formatting
