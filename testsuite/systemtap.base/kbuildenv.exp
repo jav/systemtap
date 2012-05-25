@@ -1,0 +1,14 @@
+set test "kbuild PATH sanitization"
+
+exec rm -rf kbuild_path
+exec mkdir kbuild_path
+exec ln -s /bin/false kbuild_path/gcc
+
+if {[catch {exec env "PATH=[pwd]/kbuild_path:$env(PATH)" stap -p4 -e {probe begin {}} -w} res]} {
+    verbose -log "rc $res"
+    fail $test
+} else {
+    pass $test
+}
+
+exec rm -rf kbuild_path

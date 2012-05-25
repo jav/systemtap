@@ -40,18 +40,8 @@ run_make_cmd(systemtap_session& s, vector<string>& make_cmd,
   if (pending_interrupts)
     return -1;
 
-  // Before running make, fix up the environment a bit.  PATH should
-  // already be overridden.  Clean out a few variables that
-  // s.kernel_build_tree/Makefile uses.
-  int rc = unsetenv("ARCH") || unsetenv("KBUILD_EXTMOD")
-      || unsetenv("CROSS_COMPILE") || unsetenv("KBUILD_IMAGE")
-      || unsetenv("KCONFIG_CONFIG") || unsetenv("INSTALL_PATH");
-  if (rc)
-    {
-      const char* e = strerror (errno);
-      cerr << "unsetenv failed: " << e << endl;
-      s.set_try_server ();
-    }
+  // PR14168: we used to unsetenv values here; instead do it via
+  // env(1) in make_any_make_cmd().
 
   // Disable ccache to avoid saving files that will never be reused.
   // (ccache is useless to us, because our compiler commands always
@@ -82,7 +72,7 @@ run_make_cmd(systemtap_session& s, vector<string>& make_cmd,
       null_out = true;
     }
 
-  rc = stap_system (s.verbose, make_cmd, null_out, null_err);
+  int rc = stap_system (s.verbose, make_cmd, null_out, null_err);
   if (rc != 0)
     s.set_try_server ();
   return rc;
@@ -92,6 +82,18 @@ static vector<string>
 make_any_make_cmd(systemtap_session& s, const string& dir, const string& target)
 {
   vector<string> make_cmd;
+
+  // PR14168: sanitize environment variables for kbuild invocation
+  make_cmd.push_back("env");
+  make_cmd.push_back("-uARCH");
+  make_cmd.push_back("-uKBUILD_EXTMOD");
+  make_cmd.push_back("-uCROSS_COMPILE");
+  make_cmd.push_back("-uKBUILD_IMAGE");
+  make_cmd.push_back("-uKCONFIG_CONFIG");
+  make_cmd.push_back("-uINSTALL_PATH");
+  string newpath = string("PATH=/usr/bin:/bin:") + (getenv("PATH") ?: "");
+  make_cmd.push_back(newpath.c_str());
+
   make_cmd.push_back("make");
   make_cmd.push_back("-C");
   make_cmd.push_back(s.kernel_build_tree);
