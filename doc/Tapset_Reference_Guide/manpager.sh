@@ -2,6 +2,8 @@
 # This script builds the man pages from comments in tapsets. As such, the man page content 
 # generated herein should be in sync with Tapset Reference Guide
 
+# NOTE: proposed newer version is being developed in doc/Systemtap_Tapset_Reference/manpager.sh
+
 # cleanup
 rm -rf man_pages
 

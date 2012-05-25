@@ -1,0 +1,109 @@
+#!/bin/bash
+shopt -s extglob
+
+# This script builds overview man pages for each tapset from the doc
+# comments in the tapset source. As such, the man page content
+# generated herein should be in sync with the SystemTap Tapset
+# Reference.
+
+# If testing manually, just run this script with
+# doc/SystemTap_Tapset_Reference as the working directory.
+
+# cleanup
+rm -rf man_pages
+
+# create working directory
+mkdir workingdir ;
+
+# create list of man pages to generate
+cat tapsets.tmpl | grep  ^\!Itapset > manpageus ;
+sed -i -e 's/\!Itapset\///g' manpageus ;
+
+# copy list of man pages into working directory
+for i in `cat manpageus` ; do cp ../../tapset/$i workingdir ; done ;
+
+# enter workdir
+cd workingdir ;
+
+# copy tapsetdescriptions, then clean
+for i in `cat ../manpageus`; do 
+sed -n '/\/\/ <tapsetdescription>/,/\/\/ <\/tapsetdescription>/ s/.*/&/w temp' < $i ; 
+mv temp $i.tapsetdescription ; 
+sed -i -e 's/\/\/ <tapsetdescription>//g' $i.tapsetdescription ;
+sed -i -e 's/\/\/ <\/tapsetdescription>//g' $i.tapsetdescription ;
+sed -i -e 's/\/\///g' $i.tapsetdescription ;
+# XXX: may want to trim whitespace from tapset edges
+done
+
+# strip all tapset files to just comments; but all comments must be exactly 1 space before and after "*"
+for i in `cat ../manpageus` ; do sed -i -e 's/^  \*/ \*/g' $i; 
+sed -i -e 's/^ \*  / \* /g' $i; 
+# mark the start of each probe entry (sub "/**")
+perl -p -i -e 's|^/\*\*| *probestart|g' $i; 
+sed -i -e '/^ \*/!d' $i; 
+# rename all tapsets (remove .stp filename suffix), create templates 
+echo $i > tempname ; 
+sed -i -e 's/.stp//g' tempname ; 
+mv $i `cat tempname` ; mv tempname $i ; 
+done ;
+
+# create man page headers
+for i in `ls | grep -v .stp | grep -v tapsetdescription` ; do 
+echo ".\" -*- nroff -*-" >> $i.template ;
+echo ".TH tapset::"$i" 3stap --- IBM" >> $i.template ;
+echo ".SH NAME" >> $i.template ;
+echo "tapset::"`cat $i.stp`" \- systemtap "`cat $i.stp`" tapset" >> $i.template ;
+echo " " >> $i.template ;
+echo ".SH DESCRIPTION" >> $i.template ;
+cat $i.stp.tapsetdescription >> $i.template ;
+echo ".TP" >> $i.template ;
+done
+
+# clean man page body
+sed -i -e 's/\.stp$//g' ../manpageus ;
+for i in `cat ../manpageus` ; 
+do mv $i $i.tmp ;
+
+perl -e 'while(<>){print"$1\n"if/ \* probe ([^\n]*) -/;}' $i.tmp >$i.probenames;
+perl -e 'while(<>){print"$1\n"if/ \* sfunction ([^\n]*) -/;}' $i.tmp >$i.funcnames;
+# perl -p -i -e 's/ \* (probe|sfunction) ([^\n]*)\n/.P\n.TP\n.B $1 \n $2\n$3\n
+perl -p -i -e 's/ \* sfunction ([^\n]*) - ([^\n]*)\n/.P\n.TP\n.B $1 \n$2\n.IP\nSee \n.IR function::$1 \(3stap\)\n for details.\n/g' $i.tmp ;
+perl -p -i -e 's/ \* probe ([^\n]*) - ([^\n]*)\n/.P\n.TP\n.B $1 \n$2\n.IP\n See \n.IR probe::$1 \(3stap\)\n for details.\n/g' $i.tmp ;
+# XXX: the people hunger for argument descriptions, which would be extracted here
+perl -p -i -e 's/ \*([^\n]*)\n//g' $i.tmp ; # nuke the rest of it
+done
+
+# generate footer template
+for i in `cat ../manpageus` ; do
+echo "" >> $i.footer
+echo ".SH SEE ALSO" >> $i.footer
+for j in `cat $i.funcnames` ; do
+    echo ".IR \\%function::"$j" (3stap)," >> $i.footer
+done
+for j in `cat $i.probenames` ; do
+    echo ".IR \\%probe::"$j" (3stap)," >> $i.footer
+done
+echo ".IR stap (1)," >> $i.footer
+echo ".IR stapprobes (3stap)" >> $i.footer
+done
+
+# assemble parts
+for i in `cat ../manpageus`; do 
+cat $i.template >> tapset\:\:$i.3stap ;
+cat $i.tmp >> tapset\:\:$i.3stap ;
+cat $i.footer >> tapset\:\:$i.3stap ;
+# final polish
+sed -i -e 's/\*\/$//g' tapset\:\:$i.3stap ;
+done
+
+# cleanup
+for i in `ls !(tapset\:\:*.3stap)` ; do
+rm $i ;
+done
+
+rm ../manpageus ;
+cd ..
+mv workingdir man_pages
+echo " "
+echo "Finished! man pages generated in ./man_pages."
+echo " "
