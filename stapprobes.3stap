@@ -908,9 +908,15 @@ guru mode script forces all ipv6 network packets to be dropped:
 
 .SAMPLE
 probe netfilter.pf("NFPROTO_IPV6").hook("NF_IP6_PRE_ROUTING") {
-  $verdict = 0 /* NF_DROP */
+  $verdict = 0 /* nf_drop */
 }
 .ESAMPLE
+
+For convenience, unlike the primitive probe points discussed here, the
+probes defined in
+.IR tapset::netfilter (3stap)
+export the lowercase names of the verdict constants (e.g. NF_DROP
+becomes nf_drop) as local variables.
 
 .SS MARKERS
 

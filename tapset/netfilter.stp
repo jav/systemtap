@@ -43,7 +43,7 @@ function __get_mac_addr:string(addr:long) {
 
 /**
  * probe netfilter.ip.pre_routing - Called before an IP packet is routed
- * @pf: Protocol family -- either "ipv4" or "ipv6"
+ * @pf: Protocol family - either 'ipv4' or 'ipv6'
  * @indev: Address of net_device representing input device, 0 if unknown
  * @outdev: Address of net_device representing output device, 0 if unknown
  * @indev_name: Name of network device packet was received on (if known)
@@ -51,14 +51,14 @@ function __get_mac_addr:string(addr:long) {
  * @length: The length of the packet buffer contents, in bytes
  * @iphdr: IP header address
  * @protocol: Packet protocol from driver (ipv4 only)
- * @IPPROTO_TCP: Constant used to signify that the packet protocol is TCP
- * @IPPROTO_UDP: Constant used to signify that the packet protocol is UDP
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @ipproto_tcp: Constant used to signify that the packet protocol is TCP
+ * @ipproto_udp: Constant used to signify that the packet protocol is UDP
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  * @family: IP address family
  * @saddr: A string representing the source IP address
  * @daddr: A string representing the destination IP address
@@ -81,16 +81,16 @@ probe netfilter.ipv4.pre_routing
 {
         pf = "ipv4"
 
-        IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
-        IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
+        ipproto_tcp = %{ /* pure */ IPPROTO_TCP %}
+        ipproto_udp = %{ /* pure */ IPPROTO_UDP %}
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast(indev,"struct net_device")->name,
@@ -116,7 +116,7 @@ probe netfilter.ipv4.pre_routing
         length = @cast($skb, "struct sk_buff")->len
 
         tcphdr = __get_skb_tcphdr($skb)
-        if (protocol == IPPROTO_TCP) {
+        if (protocol == ipproto_tcp) {
            dport = __tcp_skb_dport(tcphdr)
            sport = __tcp_skb_sport(tcphdr)
            urg = __tcp_skb_urg(tcphdr)
@@ -128,7 +128,7 @@ probe netfilter.ipv4.pre_routing
         }
 
         udphdr = tcphdr /* the same place where tcphdr would have been */
-        if (protocol == IPPROTO_UDP) {
+        if (protocol == ipproto_udp) {
            dport = ntohs(@cast(udphdr,"udphdr")->dest)
            sport = ntohs(@cast(udphdr,"udphdr")->source)
         }
@@ -140,16 +140,16 @@ probe netfilter.ipv6.pre_routing
 {
         pf = "ipv6"
 
-        IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
-        IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
+        ipproto_tcp = %{ /* pure */ IPPROTO_TCP %}
+        ipproto_udp = %{ /* pure */ IPPROTO_UDP %}
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -178,7 +178,7 @@ probe netfilter.ipv6.pre_routing
         length = @cast($skb, "struct sk_buff")->len
 
         // tcphdr = __get_skb_tcphdr($skb)
-        // if (protocol == IPPROTO_TCP) {
+        // if (protocol == ipproto_tcp) {
         //    dport = __tcp_skb_dport(tcphdr)
         //    sport = __tcp_skb_sport(tcphdr)
         //    urg = __tcp_skb_urg(tcphdr)
@@ -190,7 +190,7 @@ probe netfilter.ipv6.pre_routing
         // }
 
         // udphdr = tcphdr /* the same place where tcphdr would have been */
-        // if (protocol == IPPROTO_UDP) {
+        // if (protocol == ipproto_udp) {
         //    dport = ntohs(@cast(udphdr,"udphdr")->dest)
         //    sport = ntohs(@cast(udphdr,"udphdr")->source)
         // }
@@ -206,14 +206,14 @@ probe netfilter.ipv6.pre_routing
  * @length: The length of the packet buffer contents, in bytes
  * @iphdr: IP header address
  * @protocol: Packet protocol from driver (ipv4 only)
- * @IPPROTO_TCP: Constant used to signify that the packet protocol is TCP
- * @IPPROTO_UDP: Constant used to signify that the packet protocol is UDP
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @ipproto_tcp: Constant used to signify that the packet protocol is TCP
+ * @ipproto_udp: Constant used to signify that the packet protocol is UDP
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  * @family: IP address family
  * @saddr: A string representing the source IP address
  * @daddr: A string representing the destination IP address
@@ -236,16 +236,16 @@ probe netfilter.ipv4.local_in
 {
         pf = "ipv4"
 
-        IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
-        IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
+        ipproto_tcp = %{ /* pure */ IPPROTO_TCP %}
+        ipproto_udp = %{ /* pure */ IPPROTO_UDP %}
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast(indev,"struct net_device")->name,
@@ -271,7 +271,7 @@ probe netfilter.ipv4.local_in
         length = @cast($skb, "struct sk_buff")->len
 
         tcphdr = __get_skb_tcphdr($skb)
-        if (protocol == IPPROTO_TCP) {
+        if (protocol == ipproto_tcp) {
            dport = __tcp_skb_dport(tcphdr)
            sport = __tcp_skb_sport(tcphdr)
            urg = __tcp_skb_urg(tcphdr)
@@ -283,7 +283,7 @@ probe netfilter.ipv4.local_in
         }
 
         udphdr = tcphdr /* the same place where tcphdr would have been */
-        if (protocol == IPPROTO_UDP) {
+        if (protocol == ipproto_udp) {
            dport = ntohs(@cast(udphdr,"udphdr")->dest)
            sport = ntohs(@cast(udphdr,"udphdr")->source)
         }
@@ -295,16 +295,16 @@ probe netfilter.ipv6.local_in
 {
         pf = "ipv6"
 
-        IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
-        IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
+        ipproto_tcp = %{ /* pure */ IPPROTO_TCP %}
+        ipproto_udp = %{ /* pure */ IPPROTO_UDP %}
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -333,7 +333,7 @@ probe netfilter.ipv6.local_in
         length = @cast($skb, "struct sk_buff")->len
 
         // tcphdr = __get_skb_tcphdr($skb)
-        // if (protocol == IPPROTO_TCP) {
+        // if (protocol == ipproto_tcp) {
         //    dport = __tcp_skb_dport(tcphdr)
         //    sport = __tcp_skb_sport(tcphdr)
         //    urg = __tcp_skb_urg(tcphdr)
@@ -345,7 +345,7 @@ probe netfilter.ipv6.local_in
         // }
 
         // udphdr = tcphdr /* the same place where tcphdr would have been */
-        // if (protocol == IPPROTO_UDP) {
+        // if (protocol == ipproto_udp) {
         //    dport = ntohs(@cast(udphdr,"udphdr")->dest)
         //    sport = ntohs(@cast(udphdr,"udphdr")->source)
         // }
@@ -361,14 +361,14 @@ probe netfilter.ipv6.local_in
  * @length: The length of the packet buffer contents, in bytes
  * @iphdr: IP header address
  * @protocol: Packet protocol from driver (ipv4 only)
- * @IPPROTO_TCP: Constant used to signify that the packet protocol is TCP
- * @IPPROTO_UDP: Constant used to signify that the packet protocol is UDP
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @ipproto_tcp: Constant used to signify that the packet protocol is TCP
+ * @ipproto_udp: Constant used to signify that the packet protocol is UDP
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  * @family: IP address family
  * @saddr: A string representing the source IP address
  * @daddr: A string representing the destination IP address
@@ -391,16 +391,16 @@ probe netfilter.ipv4.forward
 {
         pf = "ipv4"
 
-        IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
-        IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
+        ipproto_tcp = %{ /* pure */ IPPROTO_TCP %}
+        ipproto_udp = %{ /* pure */ IPPROTO_UDP %}
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast(indev,"struct net_device")->name,
@@ -426,7 +426,7 @@ probe netfilter.ipv4.forward
         length = @cast($skb, "struct sk_buff")->len
 
         tcphdr = __get_skb_tcphdr($skb)
-        if (protocol == IPPROTO_TCP) {
+        if (protocol == ipproto_tcp) {
            dport = __tcp_skb_dport(tcphdr)
            sport = __tcp_skb_sport(tcphdr)
            urg = __tcp_skb_urg(tcphdr)
@@ -438,7 +438,7 @@ probe netfilter.ipv4.forward
         }
 
         udphdr = tcphdr /* the same place where tcphdr would have been */
-        if (protocol == IPPROTO_UDP) {
+        if (protocol == ipproto_udp) {
            dport = ntohs(@cast(udphdr,"udphdr")->dest)
            sport = ntohs(@cast(udphdr,"udphdr")->source)
         }
@@ -450,16 +450,16 @@ probe netfilter.ipv6.forward
 {
         pf = "ipv6"
 
-        IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
-        IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
+        ipproto_tcp = %{ /* pure */ IPPROTO_TCP %}
+        ipproto_udp = %{ /* pure */ IPPROTO_UDP %}
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -488,7 +488,7 @@ probe netfilter.ipv6.forward
         length = @cast($skb, "struct sk_buff")->len
 
         // tcphdr = __get_skb_tcphdr($skb)
-        // if (protocol == IPPROTO_TCP) {
+        // if (protocol == ipproto_tcp) {
         //    dport = __tcp_skb_dport(tcphdr)
         //    sport = __tcp_skb_sport(tcphdr)
         //    urg = __tcp_skb_urg(tcphdr)
@@ -500,7 +500,7 @@ probe netfilter.ipv6.forward
         // }
 
         // udphdr = tcphdr /* the same place where tcphdr would have been */
-        // if (protocol == IPPROTO_UDP) {
+        // if (protocol == ipproto_udp) {
         //    dport = ntohs(@cast(udphdr,"udphdr")->dest)
         //    sport = ntohs(@cast(udphdr,"udphdr")->source)
         // }
@@ -516,14 +516,14 @@ probe netfilter.ipv6.forward
  * @length: The length of the packet buffer contents, in bytes
  * @iphdr: IP header address
  * @protocol: Packet protocol from driver (ipv4 only)
- * @IPPROTO_TCP: Constant used to signify that the packet protocol is TCP
- * @IPPROTO_UDP: Constant used to signify that the packet protocol is UDP
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @ipproto_tcp: Constant used to signify that the packet protocol is TCP
+ * @ipproto_udp: Constant used to signify that the packet protocol is UDP
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  * @family: IP address family
  * @saddr: A string representing the source IP address
  * @daddr: A string representing the destination IP address
@@ -546,16 +546,16 @@ probe netfilter.ipv4.local_out
 {
         pf = "ipv4"
 
-        IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
-        IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
+        ipproto_tcp = %{ /* pure */ IPPROTO_TCP %}
+        ipproto_udp = %{ /* pure */ IPPROTO_UDP %}
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast(indev,"struct net_device")->name,
@@ -581,7 +581,7 @@ probe netfilter.ipv4.local_out
         length = @cast($skb, "struct sk_buff")->len
 
         tcphdr = __get_skb_tcphdr($skb)
-        if (protocol == IPPROTO_TCP) {
+        if (protocol == ipproto_tcp) {
            dport = __tcp_skb_dport(tcphdr)
            sport = __tcp_skb_sport(tcphdr)
            urg = __tcp_skb_urg(tcphdr)
@@ -593,7 +593,7 @@ probe netfilter.ipv4.local_out
         }
 
         udphdr = tcphdr /* the same place where tcphdr would have been */
-        if (protocol == IPPROTO_UDP) {
+        if (protocol == ipproto_udp) {
            dport = ntohs(@cast(udphdr,"udphdr")->dest)
            sport = ntohs(@cast(udphdr,"udphdr")->source)
         }
@@ -604,16 +604,16 @@ probe netfilter.ipv6.local_out
 {
         pf = "ipv6"
 
-        IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
-        IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
+        ipproto_tcp = %{ /* pure */ IPPROTO_TCP %}
+        ipproto_udp = %{ /* pure */ IPPROTO_UDP %}
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -642,7 +642,7 @@ probe netfilter.ipv6.local_out
         length = @cast($skb, "struct sk_buff")->len
 
         // tcphdr = __get_skb_tcphdr($skb)
-        // if (protocol == IPPROTO_TCP) {
+        // if (protocol == ipproto_tcp) {
         //    dport = __tcp_skb_dport(tcphdr)
         //    sport = __tcp_skb_sport(tcphdr)
         //    urg = __tcp_skb_urg(tcphdr)
@@ -654,7 +654,7 @@ probe netfilter.ipv6.local_out
         // }
 
         // udphdr = tcphdr /* the same place where tcphdr would have been */
-        // if (protocol == IPPROTO_UDP) {
+        // if (protocol == ipproto_udp) {
         //    dport = ntohs(@cast(udphdr,"udphdr")->dest)
         //    sport = ntohs(@cast(udphdr,"udphdr")->source)
         // }
@@ -670,14 +670,14 @@ probe netfilter.ipv6.local_out
  * @length: The length of the packet buffer contents, in bytes
  * @iphdr: IP header address
  * @protocol: Packet protocol from driver (ipv4 only)
- * @IPPROTO_TCP: Constant used to signify that the packet protocol is TCP
- * @IPPROTO_UDP: Constant used to signify that the packet protocol is UDP
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @ipproto_tcp: Constant used to signify that the packet protocol is TCP
+ * @ipproto_udp: Constant used to signify that the packet protocol is UDP
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  * @family: IP address family
  * @saddr: A string representing the source IP address
  * @daddr: A string representing the destination IP address
@@ -700,16 +700,16 @@ probe netfilter.ipv4.post_routing
 {
         pf = "ipv4"
 
-        IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
-        IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
+        ipproto_tcp = %{ /* pure */ IPPROTO_TCP %}
+        ipproto_udp = %{ /* pure */ IPPROTO_UDP %}
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast(indev,"struct net_device")->name,
@@ -735,7 +735,7 @@ probe netfilter.ipv4.post_routing
         length = @cast($skb, "struct sk_buff")->len
 
         tcphdr = __get_skb_tcphdr($skb)
-        if (protocol == IPPROTO_TCP) {
+        if (protocol == ipproto_tcp) {
            dport = __tcp_skb_dport(tcphdr)
            sport = __tcp_skb_sport(tcphdr)
            urg = __tcp_skb_urg(tcphdr)
@@ -747,7 +747,7 @@ probe netfilter.ipv4.post_routing
         }
 
         udphdr = tcphdr /* the same place where tcphdr would have been */
-        if (protocol == IPPROTO_UDP) {
+        if (protocol == ipproto_udp) {
            dport = ntohs(@cast(udphdr,"udphdr")->dest)
            sport = ntohs(@cast(udphdr,"udphdr")->source)
         }
@@ -759,16 +759,16 @@ probe netfilter.ipv6.post_routing
 {
         pf = "ipv6"
 
-        IPPROTO_TCP = %{ /* pure */ IPPROTO_TCP %}
-        IPPROTO_UDP = %{ /* pure */ IPPROTO_UDP %}
+        ipproto_tcp = %{ /* pure */ IPPROTO_TCP %}
+        ipproto_udp = %{ /* pure */ IPPROTO_UDP %}
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -797,7 +797,7 @@ probe netfilter.ipv6.post_routing
         length = @cast($skb, "struct sk_buff")->len
 
         // tcphdr = __get_skb_tcphdr($skb)
-        // if (protocol == IPPROTO_TCP) {
+        // if (protocol == ipproto_tcp) {
         //    dport = __tcp_skb_dport(tcphdr)
         //    sport = __tcp_skb_sport(tcphdr)
         //    urg = __tcp_skb_urg(tcphdr)
@@ -809,7 +809,7 @@ probe netfilter.ipv6.post_routing
         // }
 
         // udphdr = tcphdr /* the same place where tcphdr would have been */
-        // if (protocol == IPPROTO_UDP) {
+        // if (protocol == ipproto_udp) {
         //    dport = ntohs(@cast(udphdr,"udphdr")->dest)
         //    sport = ntohs(@cast(udphdr,"udphdr")->source)
         // }
@@ -825,24 +825,24 @@ probe netfilter.ipv6.post_routing
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  */
 probe netfilter.arp.in = netfilter.hook("NF_ARP_IN").pf("NFPROTO_ARP")
 {
         pf = "arp"
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -872,24 +872,24 @@ probe netfilter.arp.in = netfilter.hook("NF_ARP_IN").pf("NFPROTO_ARP")
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  */
 probe netfilter.arp.out = netfilter.hook("NF_ARP_OUT").pf("NFPROTO_ARP")
 {
         pf = "arp"
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -917,24 +917,24 @@ probe netfilter.arp.out = netfilter.hook("NF_ARP_OUT").pf("NFPROTO_ARP")
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  */
 probe netfilter.arp.forward = netfilter.hook("NF_ARP_FORWARD").pf("NFPROTO_ARP")
 {
         pf = "arp"
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -964,12 +964,12 @@ probe netfilter.arp.forward = netfilter.hook("NF_ARP_FORWARD").pf("NFPROTO_ARP")
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  */
 probe netfilter.bridge.pre_routing
         = netfilter.hook("NF_BR_PRE_ROUTING").pf("NFPROTO_BRIDGE")
@@ -977,12 +977,12 @@ probe netfilter.bridge.pre_routing
         pf = "bridge"
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -1008,12 +1008,12 @@ probe netfilter.bridge.pre_routing
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  */
 probe netfilter.bridge.local_in
         = netfilter.hook("NF_BR_LOCAL_IN").pf("NFPROTO_BRIDGE")
@@ -1021,12 +1021,12 @@ probe netfilter.bridge.local_in
         pf = "bridge"
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -1052,12 +1052,12 @@ probe netfilter.bridge.local_in
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  */
 probe netfilter.bridge.forward
         = netfilter.hook("NF_BR_FORWARD").pf("NFPROTO_BRIDGE")
@@ -1065,12 +1065,12 @@ probe netfilter.bridge.forward
         pf = "bridge"
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -1098,12 +1098,12 @@ probe netfilter.bridge.forward
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  */
 probe netfilter.bridge.local_out
         = netfilter.hook("NF_BR_LOCAL_OUT").pf("NFPROTO_BRIDGE")
@@ -1111,12 +1111,12 @@ probe netfilter.bridge.local_out
         pf = "bridge"
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
@@ -1144,12 +1144,12 @@ probe netfilter.bridge.local_out
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @NF_DROP: Constant used to signify a 'drop' verdict
- * @NF_ACCEPT: Constant used to signify an 'accept' verdict
- * @NF_STOLEN: Constant used to signify a 'stolen' verdict
- * @NF_QUEUE: Constant used to signify a 'queue' verdict
- * @NF_REPEAT: Constant used to signify a 'repeat' verdict
- * @NF_STOP: Constant used to signify a 'stop' verdict
+ * @nf_drop: Constant used to signify a 'drop' verdict
+ * @nf_accept: Constant used to signify an 'accept' verdict
+ * @nf_stolen: Constant used to signify a 'stolen' verdict
+ * @nf_queue: Constant used to signify a 'queue' verdict
+ * @nf_repeat: Constant used to signify a 'repeat' verdict
+ * @nf_stop: Constant used to signify a 'stop' verdict
  */
 probe netfilter.bridge.post_routing
         = netfilter.hook("NF_BR_POST_ROUTING").pf("NFPROTO_BRIDGE")
@@ -1157,12 +1157,12 @@ probe netfilter.bridge.post_routing
         pf = "bridge"
 
         /* from include/linux/netfilter.h: */
-        NF_DROP = 0
-        NF_ACCEPT = 1
-        NF_STOLEN = 2
-        NF_QUEUE = 3
-        NF_REPEAT = 4
-        NF_STOP = 5
+        nf_drop = 0
+        nf_accept = 1
+        nf_stolen = 2
+        nf_queue = 3
+        nf_repeat = 4
+        nf_stop = 5
 
         indev = $in; outdev = $out
         indev_name = kernel_string2(@cast($in,"struct net_device")->name,
