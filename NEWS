@@ -3,6 +3,10 @@
 - staprun accepts a -T timeout option to allow less frequent wake-ups
   to poll for low-throughput output from scripts.
 
+- When invoked by systemtap, the kbuild $PATH environment is sanitized
+  (prefixed with /usr/bin:/bin:) in an attempt to exclude compilers
+  other than the one the kernel was presumed built with.
+
 - Printf formats can now use "%#c" to escape non-printing characters.
 
 - Pretty-printed bitfields use integers and chars use escaped formatting
