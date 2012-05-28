@@ -1,5 +1,4 @@
 #!/bin/bash
-shopt -s extglob
 
 # This script builds overview man pages for each tapset from the doc
 # comments in the tapset source. As such, the man page content
@@ -9,6 +8,8 @@ shopt -s extglob
 # If testing manually, just run this script with
 # doc/SystemTap_Tapset_Reference as the working directory.
 
+echo "Starting manpager in" `pwd`
+
 # cleanup
 rm -rf man_pages
 
@@ -16,11 +17,11 @@ rm -rf man_pages
 mkdir workingdir ;
 
 # create list of man pages to generate
-cat tapsets.tmpl | grep  ^\!Itapset > manpageus ;
+cat $SRCTREE/doc/SystemTap_Tapset_Reference/tapsets.tmpl | grep  ^\!Itapset > manpageus ;
 sed -i -e 's/\!Itapset\///g' manpageus ;
 
 # copy list of man pages into working directory
-for i in `cat manpageus` ; do cp ../../tapset/$i workingdir ; done ;
+for i in `cat manpageus` ; do cp $SRCTREE/tapset/$i workingdir ; done ;
 
 # enter workdir
 cd workingdir ;
@@ -32,7 +33,7 @@ mv temp $i.tapsetdescription ;
 sed -i -e 's/\/\/ <tapsetdescription>//g' $i.tapsetdescription ;
 sed -i -e 's/\/\/ <\/tapsetdescription>//g' $i.tapsetdescription ;
 sed -i -e 's/\/\///g' $i.tapsetdescription ;
-# XXX: may want to trim whitespace from tapset edges
+# XXX: may want to trim whitespace from description edges
 done
 
 # strip all tapset files to just comments; but all comments must be exactly 1 space before and after "*"
@@ -83,8 +84,8 @@ done
 for j in `cat $i.probenames` ; do
     echo ".IR \\%probe::"$j" (3stap)," >> $i.footer
 done
-echo ".IR stap (1)," >> $i.footer
-echo ".IR stapprobes (3stap)" >> $i.footer
+echo ".IR \\%stap (1)," >> $i.footer
+echo ".IR \\%stapprobes (3stap)" >> $i.footer
 done
 
 # assemble parts
@@ -97,7 +98,7 @@ sed -i -e 's/\*\/$//g' tapset\:\:$i.3stap ;
 done
 
 # cleanup
-for i in `ls !(tapset\:\:*.3stap)` ; do
+for i in `ls | grep -v -e "tapset::.*\\.3stap"` ; do
 rm $i ;
 done
 

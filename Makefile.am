@@ -259,7 +259,6 @@ if BUILD_SERVER
 	test -e $(DESTDIR)$(localstatedir)/run/stap-server || mkdir -p $(DESTDIR)$(localstatedir)/run/stap-server
 	test -e $(DESTDIR)$(localstatedir)/log || mkdir -p $(DESTDIR)$(localstatedir)/log
 endif
-	(cd $(srcdir)/man; for f in *.3*; do $(INSTALL_DATA) -D $$f "$(DESTDIR)$(man3dir)/$$f" || exit $$?; done)
 
 
 TEST_COV_DIR = coverage
@@ -312,7 +311,7 @@ endif
 
 SUBDIRS = . runtime/staprun doc po
 DIST_SUBDIRS = testsuite $(SUBDIRS)
-EXTRA_DIST = m4/ChangeLog  man/tapset*.3stap
+EXTRA_DIST = m4/ChangeLog
 
 check-local:
 	SRCDIR=`cd $(srcdir); pwd`; \

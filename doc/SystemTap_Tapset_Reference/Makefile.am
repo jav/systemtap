@@ -28,6 +28,9 @@ noinst_PROGRAMS = docproc
 SRCTREE=$(abs_top_srcdir)/
 DOCPROC=$(abs_builddir)/docproc
 
+noinst_SCRIPTS = manpager
+MANPAGER=$(abs_srcdir)/manpager
+
 all: $(PDFDOCS) stamp-htmldocs stamp-mandocs
 tapsets.xml: docproc $(shell find $(SRCTREE)/tapset -name '*.stp')
 	SRCTREE=$(SRCTREE) $(DOCPROC) doc $(abs_srcdir)/tapsets.tmpl > tapsets.xml.new
@@ -50,6 +53,7 @@ tapsets.pdf: tapsets.xml
 
 stamp-mandocs: tapsets.xml
 	xmlto $(XMLTOMANPARAMS) man -o man3 tapsets.xml >/dev/null 2>&1
+	SRCTREE=$(SRCTREE) $(MANPAGER) # generate tapset::* pages
 	touch stamp-mandocs
 
 #FIXME need to figure out where to install things appropriately
@@ -61,10 +65,11 @@ if BUILD_PDFREFDOCS
 endif
 	$(MKDIR_P)  $(MAN_INSTALL_DIR)
 	$(INSTALL_DATA) man3/* $(MAN_INSTALL_DIR)
+	$(INSTALL_DATA) man_pages/* $(MAN_INSTALL_DIR) # manpager output
 	$(MKDIR_P)  $(HTML_INSTALL_DIR)
 	$(INSTALL_DATA) tapsets/* $(HTML_INSTALL_DIR)
 endif
 
 CLEANFILES=tapsets.xml stamp-* $(PDFDOCS)
 clean-local:
-	rm -rf man3 tapsets
+	rm -rf man3 man_pages tapsets

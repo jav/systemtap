@@ -17,6 +17,7 @@
 
 # Makefile.am --- automake input file for systemtap tapset reference manual
 
+
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -55,6 +56,7 @@ PROGRAMS = $(noinst_PROGRAMS)
 docproc_SOURCES = docproc.c
 docproc_OBJECTS = docproc.$(OBJEXT)
 docproc_LDADD = $(LDADD)
+SCRIPTS = $(noinst_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -152,7 +154,6 @@ SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STAP_PREFIX = @STAP_PREFIX@
 STRIP = @STRIP@
-U = @U@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
 XGETTEXT = @XGETTEXT@
@@ -241,6 +242,8 @@ HTML_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/tapsets
 @XMLTO_STRINGPARAM_TRUE@XMLTOHTMLPARAMS = --stringparam use.id.as.filename=1
 @BUILD_REFDOCS_TRUE@SRCTREE = $(abs_top_srcdir)/
 @BUILD_REFDOCS_TRUE@DOCPROC = $(abs_builddir)/docproc
+@BUILD_REFDOCS_TRUE@noinst_SCRIPTS = manpager
+@BUILD_REFDOCS_TRUE@MANPAGER = $(abs_srcdir)/manpager
 CLEANFILES = tapsets.xml stamp-* $(PDFDOCS)
 all: all-am
 
@@ -360,7 +363,7 @@ distclean-tags:
 	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS)
+all-am: Makefile $(PROGRAMS) $(SCRIPTS)
 installdirs:
 install: install-am
 install-exec: install-exec-am
@@ -498,6 +501,7 @@ uninstall-am:
 
 @BUILD_REFDOCS_TRUE@stamp-mandocs: tapsets.xml
 @BUILD_REFDOCS_TRUE@	xmlto $(XMLTOMANPARAMS) man -o man3 tapsets.xml >/dev/null 2>&1
+@BUILD_REFDOCS_TRUE@	SRCTREE=$(SRCTREE) $(MANPAGER) # generate tapset::* pages
 @BUILD_REFDOCS_TRUE@	touch stamp-mandocs
 
 #FIXME need to figure out where to install things appropriately
@@ -507,10 +511,11 @@ uninstall-am:
 @BUILD_PDFREFDOCS_TRUE@@BUILD_REFDOCS_TRUE@	$(INSTALL_DATA) tapsets.pdf $(DOC_INSTALL_DIR)
 @BUILD_REFDOCS_TRUE@	$(MKDIR_P)  $(MAN_INSTALL_DIR)
 @BUILD_REFDOCS_TRUE@	$(INSTALL_DATA) man3/* $(MAN_INSTALL_DIR)
+@BUILD_REFDOCS_TRUE@	$(INSTALL_DATA) man_pages/* $(MAN_INSTALL_DIR) # manpager output
 @BUILD_REFDOCS_TRUE@	$(MKDIR_P)  $(HTML_INSTALL_DIR)
 @BUILD_REFDOCS_TRUE@	$(INSTALL_DATA) tapsets/* $(HTML_INSTALL_DIR)
 clean-local:
-	rm -rf man3 tapsets
+	rm -rf man3 man_pages tapsets
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
