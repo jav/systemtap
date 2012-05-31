@@ -15,37 +15,6 @@
 #include <string>
 #include <limits.h>
 
-#include <sys/socket.h>
-#include <linux/if.h>
-#include <linux/in.h>
-#include <linux/in6.h>
-#include <linux/netfilter.h>
-#include <linux/netfilter_ipv4.h>
-#include <linux/netfilter_ipv6.h>
-#include <linux/netfilter_arp.h>
-#include <linux/netfilter_bridge.h>
-
-/* Only introduced in 2.6.34 */
-#ifndef NF_IP6_PRI_RAW
-#define NF_IP6_PRI_RAW -300
-#endif
-
-/* Only introduced in 2.6.26. */
-#ifndef NF_IP_PRI_SECURITY
-#define NF_IP_PRI_SECURITY 50
-#define NF_IP6_PRI_SECURITY 50
-#endif
-
-/* Renamed in 2.6.24 */
-#ifndef NF_INET_PRE_ROUTING
-#define NF_INET_PRE_ROUTING  0
-#define NF_INET_LOCAL_IN     1
-#define NF_INET_FORWARD      2
-#define NF_INET_LOCAL_OUT    3
-#define NF_INET_POST_ROUTING 4
-#define NF_INET_NUMHOOKS     5
-#endif
-
 using namespace std;
 using namespace __gnu_cxx;
 
@@ -70,7 +39,7 @@ struct netfilter_derived_probe: public derived_probe
 
   netfilter_derived_probe (systemtap_session &, probe* p,
                            probe_point* l, string h,
-                           string pf, string pri);
+                           string protof, string pri);
   virtual void join_group (systemtap_session& s);
 };
 
@@ -96,8 +65,8 @@ struct netfilter_var_expanding_visitor: public var_expanding_visitor
 
 netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p,
                                                   probe_point* l, string h,
-                                                  string pf, string pri):
-  derived_probe (p, l), hook (h), pf (pf), priority (pri)
+                                                  string protof, string pri):
+  derived_probe (p, l), hook (h), pf (protof), priority (pri)
 {
   static unsigned nf_index_ctr = 0;
   this->nf_index = nf_index_ctr++; // PR14137: need to generate unique
@@ -108,79 +77,97 @@ netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p
   bool pf_error = false;
 
   // Map the strings passed in to the actual values defined in netfilter_*.h
-#define IF_HOOKNAME(n) if (hook == #n) { hook = lex_cast(n); }
-#define IF_PRIORITY(n) if (priority == #n) { priority = lex_cast(n); }
+  // NOTE: We need to hard code all the following
+  // constants rather than just include the
+  // appropriate kernel headers because in different
+  // versions of the kernel, certain constants are not
+  // defined. This was the best method at the time to
+  // get them to compile properly.
 
   // Validate hook, pf, priority
   if(pf == "NFPROTO_IPV4")
     {
-      IF_HOOKNAME (NF_INET_PRE_ROUTING)
-      else IF_HOOKNAME (NF_INET_LOCAL_IN)
-      else IF_HOOKNAME (NF_INET_FORWARD)
-      else IF_HOOKNAME (NF_INET_LOCAL_OUT)
-      else IF_HOOKNAME (NF_INET_POST_ROUTING)
-      else IF_HOOKNAME (NF_IP_PRE_ROUTING)
-      else IF_HOOKNAME (NF_IP_LOCAL_IN)
-      else IF_HOOKNAME (NF_IP_FORWARD)
-      else IF_HOOKNAME (NF_IP_LOCAL_OUT)
-      else IF_HOOKNAME (NF_IP_POST_ROUTING)
-      else
-        hook_error = true;
+      // Protocol Family
+      pf = "2";
 
-      IF_PRIORITY (NF_IP_PRI_FIRST)
-      else IF_PRIORITY (NF_IP_PRI_CONNTRACK_DEFRAG)
-      else IF_PRIORITY (NF_IP_PRI_RAW)
-      else IF_PRIORITY (NF_IP_PRI_SELINUX_FIRST)
-      else IF_PRIORITY (NF_IP_PRI_CONNTRACK)
-      else IF_PRIORITY (NF_IP_PRI_MANGLE)
-      else IF_PRIORITY (NF_IP_PRI_NAT_DST)
-      else IF_PRIORITY (NF_IP_PRI_FILTER)
-      else IF_PRIORITY (NF_IP_PRI_SECURITY)
-      else IF_PRIORITY (NF_IP_PRI_NAT_SRC)
-      else IF_PRIORITY (NF_IP_PRI_SELINUX_LAST)
-      else IF_PRIORITY (NF_IP_PRI_CONNTRACK_CONFIRM)
-      else IF_PRIORITY (NF_IP_PRI_LAST)
+      // Hook
+      if (hook == "NF_INET_PRE_ROUTING") hook = "0";
+      else if (hook == "NF_INET_LOCAL_IN") hook = "1";
+      else if (hook == "NF_INET_FORWARD") hook = "2";
+      else if (hook == "NF_INET_LOCAL_OUT") hook = "3";
+      else if (hook == "NF_INET_POST_ROUTING") hook = "4";
+      else if (hook == "NF_IP_PRE_ROUTING") hook = "0";
+      else if (hook == "NF_IP_LOCAL_IN") hook = "1";
+      else if (hook == "NF_IP_FORWARD") hook = "2";
+      else if (hook == "NF_IP_LOCAL_OUT") hook = "3";
+      else if (hook == "NF_IP_POST_ROUTING") hook = "4";
+      else hook_error = true;
+
+      // Priority
+      if (priority == "NF_IP_PRI_FIRST") priority = lex_cast(INT_MIN);
+      else if (priority == "NF_IP_PRI_CONNTRACK_DEFRAG") priority = "-400";
+      else if (priority == "NF_IP_PRI_RAW") priority = "-300";
+      else if (priority == "NF_IP_PRI_SELINUX_FIRST") priority = "-225";
+      else if (priority == "NF_IP_PRI_CONNTRACK") priority = "-200";
+      else if (priority == "NF_IP_PRI_MANGLE") priority = "-150";
+      else if (priority == "NF_IP_PRI_NAT_DST") priority = "-100";
+      else if (priority == "NF_IP_PRI_FILTER") priority = "0";
+      else if (priority == "NF_IP_PRI_SECURITY") priority = "50";
+      else if (priority == "NF_IP_PRI_NAT_SRC") priority = "100";
+      else if (priority == "NF_IP_PRI_SELINUX_LAST") priority = "225";
+      else if (priority == "NF_IP_PRI_CONNTRACK_CONFIRM") priority = lex_cast(INT_MAX);
+      else if (priority == "NF_IP_PRI_LAST") priority = lex_cast(INT_MAX);
     }
   else if(pf=="NFPROTO_IPV6")
     {
-      IF_HOOKNAME (NF_IP6_PRE_ROUTING)
-      else IF_HOOKNAME (NF_IP6_LOCAL_IN)
-      else IF_HOOKNAME (NF_IP6_FORWARD)
-      else IF_HOOKNAME (NF_IP6_LOCAL_OUT)
-      else IF_HOOKNAME (NF_IP6_POST_ROUTING)
-      else
-        hook_error = true;
+      // Protocol Family
+      pf = "10";
 
-      IF_PRIORITY (NF_IP6_PRI_FIRST)
-      else IF_PRIORITY (NF_IP6_PRI_CONNTRACK_DEFRAG)
-      else IF_PRIORITY (NF_IP6_PRI_RAW)
-      else IF_PRIORITY (NF_IP6_PRI_SELINUX_FIRST)
-      else IF_PRIORITY (NF_IP6_PRI_CONNTRACK)
-      else IF_PRIORITY (NF_IP6_PRI_MANGLE)
-      else IF_PRIORITY (NF_IP6_PRI_NAT_DST)
-      else IF_PRIORITY (NF_IP6_PRI_FILTER)
-      else IF_PRIORITY (NF_IP6_PRI_SECURITY)
-      else IF_PRIORITY (NF_IP6_PRI_NAT_SRC)
-      else IF_PRIORITY (NF_IP6_PRI_SELINUX_LAST)
-      else IF_PRIORITY (NF_IP6_PRI_LAST)
+      // Hook
+      if (hook == "NF_IP6_PRE_ROUTING") hook = "0";
+      else if (hook == "NF_IP6_LOCAL_IN") hook = "1";
+      else if (hook == "NF_IP6_FORWARD") hook = "2";
+      else if (hook == "NF_IP6_LOCAL_OUT") hook = "3";
+      else if (hook == "NF_IP6_POST_ROUTING") hook = "4";
+      else hook_error = true;
+
+      // Priority
+      if (priority == "NF_IP6_PRI_FIRST") priority = lex_cast(INT_MIN);
+      else if (priority == "NF_IP6_PRI_CONNTRACK_DEFRAG") priority = "-400";
+      else if (priority == "NF_IP6_PRI_RAW") priority = "-300";
+      else if (priority == "NF_IP6_PRI_SELINUX_FIRST") priority = "-225";
+      else if (priority == "NF_IP6_PRI_CONNTRACK") priority = "-200";
+      else if (priority == "NF_IP6_PRI_MANGLE") priority = "-150";
+      else if (priority == "NF_IP6_PRI_NAT_DST") priority = "-100";
+      else if (priority == "NF_IP6_PRI_FILTER") priority = "0";
+      else if (priority == "NF_IP6_PRI_SECURITY") priority = "50";
+      else if (priority == "NF_IP6_PRI_NAT_SRC") priority = "100";
+      else if (priority == "NF_IP6_PRI_SELINUX_LAST") priority = "225";
+      else if (priority == "NF_IP6_PRI_LAST") priority = lex_cast(INT_MAX);
     }
   else if (pf == "NFPROTO_ARP")
-    {
-      IF_HOOKNAME(NF_ARP_IN)
-      else IF_HOOKNAME (NF_ARP_OUT)
-      else IF_HOOKNAME (NF_ARP_FORWARD)
-      else
-        hook_error = true;
+   {
+      // Protocol Family
+      pf = "3";
+
+      // Hook
+      if (hook == "NF_ARP_IN") hook = "0";
+      else if (hook == "NF_ARP_OUT") hook = "1";
+      else if (hook == "NF_ARP_FORWARD") hook = "2";
+      else hook_error = true;
     }
   else if (pf == "NFPROTO_BRIDGE")
     {
-      IF_HOOKNAME(NF_BR_PRE_ROUTING)
-      else IF_HOOKNAME (NF_BR_LOCAL_IN)
-      else IF_HOOKNAME (NF_BR_FORWARD)
-      else IF_HOOKNAME (NF_BR_LOCAL_OUT)
-      else IF_HOOKNAME (NF_BR_POST_ROUTING)
-      else
-        hook_error = true;
+      // Protocol Family
+      pf = "7";
+
+      // Hook
+      if (hook == "NF_BR_PRE_ROUTING") hook = "0";
+      else if (hook == "NF_BR_LOCAL_IN") hook = "1";
+      else if (hook == "NF_BR_FORWARD") hook = "2";
+      else if (hook == "NF_BR_LOCAL_OUT") hook = "3";
+      else if (hook == "NF_BR_POST_ROUTING") hook = "4";
+      else hook_error = true;
     }
   else
     pf_error = true;
@@ -216,9 +203,6 @@ netfilter_derived_probe::netfilter_derived_probe (systemtap_session &s, probe* p
         throw semantic_error
             (_F("unsupported netfilter protocol family \"%s\"; need stap -g", pf.c_str()));
     }
-
-#undef IF_HOOKNAME
-#undef IF_PRIORITY
 
   // Expand local variables in the probe body
   netfilter_var_expanding_visitor v (s, name);
