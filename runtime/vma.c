@@ -97,6 +97,7 @@ static void _stp_vma_match_vdso(struct task_struct *tsk)
 #endif /* STAPCONF_MM_CONTEXT_VDSO */
 }
 
+#ifdef HAVE_TASK_FINDER
 /* exec callback, will try to match vdso for new process,
    will drop all vma maps for a process that disappears. */
 static int _stp_vma_exec_cb(struct stap_task_finder_target *tgt,
@@ -255,6 +256,7 @@ static int _stp_vma_init(void)
 #endif
 	return rc;
 }
+#endif
 
 /* Get rid of the vma tracker (memory). */
 static void _stp_vma_done(void)

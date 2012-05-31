@@ -7,15 +7,12 @@
  * CONFIG_UTRACE.
  * (2) Internal utrace.  Requires either
  * STAPCONF_UTRACE_VIA_TRACEPOINTS or STAPCONF_UTRACE_VIA_FTRACE.
- * (3) If we don't have either (old kernels), just define some dummy
- * functions.
+ * (3) If we don't have either (old kernels or new kernels without all
+ * the pre-requisites), error.
  */
 
 #ifndef HAVE_TASK_FINDER
-/* Dummy definitions for use in sym.c */
-struct stap_task_finder_target { };
-static int stap_start_task_finder(void) { return 0; }
-static void stap_stop_task_finder(void) { }
+#error "Process probes not available without kernel CONFIG_UTRACE or CONFIG_TRACEPOINTS/CONFIG_ARCH_SUPPORTS_UPROBES/CONFIG_UPROBES. The latter method also requires specific tracepoints and task_work_add()."
 #else  /* HAVE_TASK_FINDER */
 #if !defined(CONFIG_UTRACE)
 #include "task_finder2.c"

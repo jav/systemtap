@@ -164,8 +164,8 @@ void *kallsyms_task_work_cancel;
 #if (defined(CONFIG_UTRACE) || defined(STAPCONF_UTRACE_VIA_TRACEPOINTS) \
      || defined(STAPCONF_UTRACE_VIA_FTRACE))
 #define HAVE_TASK_FINDER
-#endif
 #include "task_finder.c"
+#endif
 
 #include "sym.c"
 #ifdef STP_PERFMON
