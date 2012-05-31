@@ -1605,12 +1605,16 @@ static void finish_report(struct task_struct *task, struct utrace *utrace,
 		utrace->resume = resume;
 		if (! utrace->task_work_added) {
 			int rc = task_work_add(task, &utrace->work, true);
-			if (rc != 0)
+			if (rc == 0) {
+				utrace->task_work_added = 1;
+			}
+			/* task_work_add() returns -ESRCH if the task
+			 * has already passed exit_task_work(). Just
+			 * ignore this error. */
+			else if (rc != -ESRCH) {
 				printk(KERN_ERR
 				       "%s:%d - task_work_add() returned %d\n",
 				       __FUNCTION__, __LINE__, rc);
-			else {
-				utrace->task_work_added = 1;
 			}
 		}
 		spin_unlock(&utrace->lock);
