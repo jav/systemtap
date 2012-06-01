@@ -3,5 +3,8 @@
 # Test for getting at an external global variable PR10622
 probe kernel.function("do_gettimeofday")
 {
-  printf("xtime.tv_sec:%d\n", $xtime->tv_sec); exit();
+  printf("xtime.tv_sec:%d\n",
+	 (@defined($timekeeper->xtime->tv_sec) ? $timekeeper->xtime->tv_sec
+	  : $xtime->tv_sec))
+  exit();
 }

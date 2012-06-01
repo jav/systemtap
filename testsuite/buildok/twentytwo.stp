@@ -7,7 +7,7 @@ probe kernel.function("deactivate_super")
 	printf("s_maxbytes %d\n", $s->s_maxbytes)
 }
 
-probe kernel.function("vfs_llseek")
+probe kernel.function("vfs_llseek").call
 { 
 	printf("offset %d\n", $offset)
 }
