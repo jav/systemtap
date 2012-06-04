@@ -110,6 +110,11 @@ public:
   systemtap_session ();
   ~systemtap_session ();
 
+  // To reset the tmp_dir
+  void create_tmp_dir();
+  void remove_tmp_dir();
+  void reset_tmp_dir();
+
   // NB: It is very important for all of the above (and below) fields
   // to be cleared in the systemtap_session ctor (session.cxx).
   void setup_kernel_release (const char* kstr);

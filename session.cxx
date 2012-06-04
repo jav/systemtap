@@ -218,6 +218,7 @@ systemtap_session::systemtap_session ():
   if (s_kr != NULL) {
     setup_kernel_release(s_kr);
   }
+  create_tmp_dir();
 }
 
 systemtap_session::systemtap_session (const systemtap_session& other,
@@ -347,10 +348,13 @@ systemtap_session::systemtap_session (const systemtap_session& other,
 
   unwindsym_modules = other.unwindsym_modules;
   automatic_server_mode = other.automatic_server_mode;
+
+  create_tmp_dir();
 }
 
 systemtap_session::~systemtap_session ()
 {
+  remove_tmp_dir();
   delete_map(subsessions);
   delete pattern_root;
 }
@@ -1692,6 +1696,64 @@ systemtap_session::print_warning (const string& message_str, const token* tok)
     }
 }
 
+void
+systemtap_session::create_tmp_dir()
+{
+  if (!tmpdir.empty())
+    return;
+
+  // Create the temp directory
+  const char * tmpdir_env = getenv("TMPDIR");
+  if (!tmpdir_env)
+    tmpdir_env = "/tmp";
+
+  string stapdir = "/stapXXXXXX";
+  string tmpdirt = tmpdir_env + stapdir;
+  const char *tmpdir_name = mkdtemp((char *)tmpdirt.c_str());
+  if (! tmpdir_name)
+    {
+      const char* e = strerror(errno);
+      //TRANSLATORS: we can't make the directory due to the error
+      throw runtime_error(_F("cannot create temporary directory (\" %s \"): %s", tmpdirt.c_str(), e));
+    }
+  else
+    tmpdir = tmpdir_name;
+}
+
+void
+systemtap_session::remove_tmp_dir()
+{
+  if(tmpdir.empty())
+    return;
+
+  // Remove temporary directory
+  if (keep_tmpdir && !tmpdir_opt_set)
+      clog << _F("Keeping temporary directory \"%s\"", tmpdir.c_str()) << endl;
+  else if (!tmpdir_opt_set)
+    {
+      // Mask signals while we're deleting the temporary directory.
+      stap_sigmasker masked;
+
+      // Remove the temporary directory.
+      vector<string> cleanupcmd;
+      cleanupcmd.push_back("rm");
+      cleanupcmd.push_back("-rf");
+      cleanupcmd.push_back(tmpdir);
+
+      (void) stap_system(verbose, cleanupcmd);
+      if (verbose>1)
+        clog << _F("Removed temporary directory \"%s\"", tmpdir.c_str()) << endl;
+      tmpdir.clear();
+
+    }
+}
+
+void
+systemtap_session::reset_tmp_dir()
+{
+  remove_tmp_dir();
+  create_tmp_dir();
+}
 
 translator_output* systemtap_session::op_create_auxiliary()
 {

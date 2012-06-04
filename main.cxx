@@ -377,61 +377,6 @@ int parse_kernel_exports (systemtap_session &s)
   return 0;
 }
 
-
-static int
-create_temp_dir (systemtap_session &s)
-{
-  if (!s.tmpdir.empty())
-    return 0;
-
-  // Create a temporary directory to build within.
-  // Be careful with this, as "tmpdir" is "rm -rf"'d at the end.
-  const char * tmpdir_env = getenv("TMPDIR");
-  if (!tmpdir_env)
-    tmpdir_env = "/tmp";
-
-  string stapdir = "/stapXXXXXX";
-  string tmpdirt = tmpdir_env + stapdir;
-  const char *tmpdir_name = mkdtemp((char *)tmpdirt.c_str());
-  if (! tmpdir_name)
-    {
-      const char* e = strerror(errno);
-      //TRANSLATORS: we can't make the directory due to the error
-      cerr << _F("ERROR: cannot create temporary directory (\" %s \"): %s", tmpdirt.c_str(), e) << endl;
-      return 1;
-    }
-  else
-    s.tmpdir = tmpdir_name;
-
-  if (s.verbose>1)
-    clog << _F("Created temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
-  return 0;
-}
-
-static void
-remove_temp_dir(systemtap_session &s)
-{
-  if (!s.tmpdir.empty())
-    {
-      if (s.keep_tmpdir && !s.tmpdir_opt_set)
-          clog << _F("Keeping temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
-      else if (!s.tmpdir_opt_set)
-        {
-          // Mask signals while we're deleting the temporary directory.
-          stap_sigmasker masked;
-
-          // Remove the temporary directory.
-          vector<string> cleanupcmd;
-          cleanupcmd.push_back("rm");
-          cleanupcmd.push_back("-rf");
-          cleanupcmd.push_back(s.tmpdir);
-
-          (void) stap_system(s.verbose, cleanupcmd);
-          s.tmpdir.clear();
-        }
-    }
-}
-
 // Compilation passes 0 through 4
 static int
 passes_0_4 (systemtap_session &s)
@@ -448,12 +393,6 @@ passes_0_4 (systemtap_session &s)
                    s.kernel_build_tree.c_str()) << endl;
       return 1;
     }
-
-  // Create a temporary directory to build within.
-  // Be careful with this, as "s.tmpdir" is "rm -rf"'d at the end.
-  rc = create_temp_dir (s);
-  if (rc)
-    return rc;
 
   // Perform passes 0 through 4 using a compile server?
   if (! s.specified_servers.empty ())
@@ -922,9 +861,6 @@ cleanup (systemtap_session &s, int rc)
 #endif
   }
 
-  // Clean up temporary directory.  Obviously, be careful with this.
-  remove_temp_dir (s);
-
   PROBE1(stap, pass6__end, &s);
 }
 
@@ -938,12 +874,13 @@ passes_0_4_again_with_server (systemtap_session &s)
   // Specify default server(s).
   s.specified_servers.push_back ("");
 
-  // Remove the previous temporary directory and start fresh.
-  remove_temp_dir (s);
+  // Reset the previous temporary directory and start fresh
+  s.reset_tmp_dir();
 
   // Try to compile again, using the server
   clog << _("Attempting compilation using a compile server")
        << endl;
+
   int rc = passes_0_4 (s);
   return rc;
 }
@@ -952,6 +889,7 @@ int
 main (int argc, char * const argv [])
 {
   // Initialize defaults.
+  try {
   systemtap_session s;
 
   setlocale (LC_ALL, "");
@@ -1011,9 +949,10 @@ main (int argc, char * const argv [])
   if (s.verbose > 1)
     s.version ();
 
-  // Some of the remote methods need to write temporary data, so go ahead
-  // and create the main tempdir now.
-  rc = create_temp_dir (s);
+  // Need to send the verbose message here, rather than in the session ctor, since
+  // we didn't know if verbose was set.
+  if (rc == 0 && s.verbose>1)
+    clog << _F("Created temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
 
   // Prepare connections for each specified remote target.
   vector<remote*> targets;
@@ -1088,6 +1027,12 @@ main (int argc, char * const argv [])
   cleanup (s, rc);
 
   return (rc||pending_interrupts) ? EXIT_FAILURE : EXIT_SUCCESS;
+
+  }
+  catch (runtime_error &e){
+      cerr << _("ERROR: ") <<e.what() << endl;
+      exit(1);
+  }
 }
 
 /* vim: set sw=2 ts=8 cino=>4,n-2,{2,^-2,t0,(0,u0,w1,M1 : */
