@@ -890,144 +890,143 @@ main (int argc, char * const argv [])
 {
   // Initialize defaults.
   try {
-  systemtap_session s;
+    systemtap_session s;
 
-  setlocale (LC_ALL, "");
-  bindtextdomain (PACKAGE, LOCALEDIR);
-  textdomain (PACKAGE);
+    setlocale (LC_ALL, "");
+    bindtextdomain (PACKAGE, LOCALEDIR);
+    textdomain (PACKAGE);
 
-  // Set up our handler to catch routine signals, to allow clean
-  // and reasonably timely exit.
-  setup_signals(&handle_interrupt);
+    // Set up our handler to catch routine signals, to allow clean
+    // and reasonably timely exit.
+    setup_signals(&handle_interrupt);
 
-  // PR13520: Parse $SYSTEMTAP_DIR/rc for extra options
-  string rc_file = s.data_path + "/rc";
-  ifstream rcf (rc_file.c_str());
-  string rcline;
-  wordexp_t words;
-  memset (& words, 0, sizeof(words));
-  int rc = 0;
-  int linecount = 0;
-  while (getline (rcf, rcline))
-    {
-      rc = wordexp (rcline.c_str(), & words, WRDE_NOCMD|WRDE_UNDEF|
-                    (linecount > 0 ? WRDE_APPEND : 0)); 
-      // NB: WRDE_APPEND automagically reallocates words.* as more options are added.
-      linecount ++;
-      if (rc) break;
-    }
-  int extended_argc = words.we_wordc + argc;
-  char **extended_argv = (char**) calloc (extended_argc + 1, sizeof(char*));
-  if (rc || !extended_argv)
-    {
-      clog << _F("Error processing extra options in %s", rc_file.c_str());
-      exit (1);
-    }
-  // Copy over the arguments *by reference*, first the ones from the rc file.
-  char **p = & extended_argv[0];
-  *p++ = argv[0];
-  for (unsigned i=0; i<words.we_wordc; i++) *p++ = words.we_wordv[i];
-  for (int j=1; j<argc; j++) *p++ = argv[j];
-  *p++ = NULL;
+    // PR13520: Parse $SYSTEMTAP_DIR/rc for extra options
+    string rc_file = s.data_path + "/rc";
+    ifstream rcf (rc_file.c_str());
+    string rcline;
+    wordexp_t words;
+    memset (& words, 0, sizeof(words));
+    int rc = 0;
+    int linecount = 0;
+    while (getline (rcf, rcline))
+      {
+        rc = wordexp (rcline.c_str(), & words, WRDE_NOCMD|WRDE_UNDEF|
+                      (linecount > 0 ? WRDE_APPEND : 0)); 
+        // NB: WRDE_APPEND automagically reallocates words.* as more options are added.
+        linecount ++;
+        if (rc) break;
+      }
+    int extended_argc = words.we_wordc + argc;
+    char **extended_argv = (char**) calloc (extended_argc + 1, sizeof(char*));
+    if (rc || !extended_argv)
+      {
+        clog << _F("Error processing extra options in %s", rc_file.c_str());
+        exit (1);
+      }
+    // Copy over the arguments *by reference*, first the ones from the rc file.
+    char **p = & extended_argv[0];
+    *p++ = argv[0];
+    for (unsigned i=0; i<words.we_wordc; i++) *p++ = words.we_wordv[i];
+    for (int j=1; j<argc; j++) *p++ = argv[j];
+    *p++ = NULL;
 
-  // Process the command line.
-  rc = s.parse_cmdline (extended_argc, extended_argv);
-  if (rc != 0)
-    exit (rc);
+    // Process the command line.
+    rc = s.parse_cmdline (extended_argc, extended_argv);
+    if (rc != 0)
+      exit (rc);
 
-  if (words.we_wordc > 0 && s.verbose > 1)
-    clog << _F("Extra options in %s: %d\n", rc_file.c_str(), (int)words.we_wordc);
+    if (words.we_wordc > 0 && s.verbose > 1)
+      clog << _F("Extra options in %s: %d\n", rc_file.c_str(), (int)words.we_wordc);
 
-  // Check for options conflicts. Exits if errors are detected.
-  s.check_options (extended_argc, extended_argv);
+    // Check for options conflicts. Exits if errors are detected.
+    s.check_options (extended_argc, extended_argv);
 
-  // We don't need these strings any more.
-  wordfree (& words);
-  free (extended_argv);
+    // We don't need these strings any more.
+    wordfree (& words);
+    free (extended_argv);
 
-  // arguments parsed; get down to business
-  if (s.verbose > 1)
-    s.version ();
+    // arguments parsed; get down to business
+    if (s.verbose > 1)
+      s.version ();
 
-  // Need to send the verbose message here, rather than in the session ctor, since
-  // we didn't know if verbose was set.
-  if (rc == 0 && s.verbose>1)
-    clog << _F("Created temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
+    // Need to send the verbose message here, rather than in the session ctor, since
+    // we didn't know if verbose was set.
+    if (rc == 0 && s.verbose>1)
+      clog << _F("Created temporary directory \"%s\"", s.tmpdir.c_str()) << endl;
 
-  // Prepare connections for each specified remote target.
-  vector<remote*> targets;
-  bool fake_remote=false;
-  if (s.remote_uris.empty())
-    {
-      fake_remote=true;
-      s.remote_uris.push_back("direct:");
-    }
-  for (unsigned i = 0; rc == 0 && i < s.remote_uris.size(); ++i)
-    {
-      // PR13354: pass remote id#/url only in non --remote=HOST cases
-      remote *target = remote::create(s, s.remote_uris[i],
-                                      fake_remote ? -1 : (int)i);
-      if (target)
-        targets.push_back(target);
-      else
-        rc = 1;
-    }
+    // Prepare connections for each specified remote target.
+    vector<remote*> targets;
+    bool fake_remote=false;
+    if (s.remote_uris.empty())
+      {
+        fake_remote=true;
+        s.remote_uris.push_back("direct:");
+      }
+    for (unsigned i = 0; rc == 0 && i < s.remote_uris.size(); ++i)
+      {
+        // PR13354: pass remote id#/url only in non --remote=HOST cases
+        remote *target = remote::create(s, s.remote_uris[i],
+                                        fake_remote ? -1 : (int)i);
+        if (target)
+          targets.push_back(target);
+        else
+          rc = 1;
+      }
 
-  // Discover and loop over each unique session created by the remote targets.
-  set<systemtap_session*> sessions;
-  for (unsigned i = 0; i < targets.size(); ++i)
-    sessions.insert(targets[i]->get_session());
-  for (set<systemtap_session*>::iterator it = sessions.begin();
-       rc == 0 && !pending_interrupts && it != sessions.end(); ++it)
-    {
-      systemtap_session& ss = **it;
-      if (ss.verbose > 1)
-        clog << _F("Session arch: %s release: %s",
-                   ss.architecture.c_str(), ss.kernel_release.c_str()) << endl;
+    // Discover and loop over each unique session created by the remote targets.
+    set<systemtap_session*> sessions;
+    for (unsigned i = 0; i < targets.size(); ++i)
+      sessions.insert(targets[i]->get_session());
+    for (set<systemtap_session*>::iterator it = sessions.begin();
+         rc == 0 && !pending_interrupts && it != sessions.end(); ++it)
+      {
+        systemtap_session& ss = **it;
+        if (ss.verbose > 1)
+          clog << _F("Session arch: %s release: %s",
+                     ss.architecture.c_str(), ss.kernel_release.c_str()) << endl;
 
 #if HAVE_NSS
-      // If requested, query server status. This is independent of other tasks.
-      query_server_status (ss);
+        // If requested, query server status. This is independent of other tasks.
+        query_server_status (ss);
 
-      // If requested, manage trust of servers. This is independent of other tasks.
-      manage_server_trust (ss);
+        // If requested, manage trust of servers. This is independent of other tasks.
+        manage_server_trust (ss);
 #endif
 
-      // Run the passes only if a script has been specified. The requirement for
-      // a script has already been checked in systemtap_session::check_options.
-      // Run the passes also if a dump of supported probe types has been requested via a server.
-      if (ss.have_script || (ss.dump_probe_types && ! s.specified_servers.empty ()))
-        {
-          // Run passes 0-4 for each unique session,
-          // either locally or using a compile-server.
-          ss.init_try_server ();
-          if ((rc = passes_0_4 (ss)))
-            {
-              // Compilation failed.
-              // Try again using a server if appropriate.
-              if (ss.try_server ())
-                rc = passes_0_4_again_with_server (ss);
-            }
-        }
-      else if (ss.dump_probe_types)
-	{
-	  // Dump a list of known probe point types, if requested.
-	  register_standard_tapsets(ss);
-	  ss.pattern_root->dump (ss);
-	}
-    }
+        // Run the passes only if a script has been specified. The requirement for
+        // a script has already been checked in systemtap_session::check_options.
+        // Run the passes also if a dump of supported probe types has been requested via a server.
+        if (ss.have_script || (ss.dump_probe_types && ! s.specified_servers.empty ()))
+          {
+            // Run passes 0-4 for each unique session,
+            // either locally or using a compile-server.
+            ss.init_try_server ();
+            if ((rc = passes_0_4 (ss)))
+              {
+                // Compilation failed.
+                // Try again using a server if appropriate.
+                if (ss.try_server ())
+                  rc = passes_0_4_again_with_server (ss);
+              }
+          }
+        else if (ss.dump_probe_types)
+          {
+            // Dump a list of known probe point types, if requested.
+            register_standard_tapsets(ss);
+            ss.pattern_root->dump (ss);
+          }
+      }
 
-  // Run pass 5, if requested
-  if (rc == 0 && s.have_script && s.last_pass >= 5 && ! pending_interrupts)
-    rc = pass_5 (s, targets);
+    // Run pass 5, if requested
+    if (rc == 0 && s.have_script && s.last_pass >= 5 && ! pending_interrupts)
+      rc = pass_5 (s, targets);
 
-  // Pass 6. Cleanup
-  for (unsigned i = 0; i < targets.size(); ++i)
-    delete targets[i];
-  cleanup (s, rc);
+    // Pass 6. Cleanup
+    for (unsigned i = 0; i < targets.size(); ++i)
+      delete targets[i];
+    cleanup (s, rc);
 
-  return (rc||pending_interrupts) ? EXIT_FAILURE : EXIT_SUCCESS;
-
+    return (rc||pending_interrupts) ? EXIT_FAILURE : EXIT_SUCCESS;
   }
   catch (runtime_error &e){
       cerr << _("ERROR: ") <<e.what() << endl;
