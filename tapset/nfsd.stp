@@ -996,7 +996,7 @@ probe nfsd.open = kernel.function("nfsd_open") !,
 	client_ip = addr_from_rqst_str($rqstp)
 	fh = __svc_fh($fhp)
 
-	access = $access
+	access = (@defined($access) ? $access : $may_flags)
 	type = $type
 
 	name = "nfsd.open"
