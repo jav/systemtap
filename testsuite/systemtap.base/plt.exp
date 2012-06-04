@@ -2,7 +2,7 @@ set test "plt"
 
 proc cleanup_handler { verbose } {
     if { $verbose == 0 } {
-	catch {exec rm -f libplt.so plt.x }
+	catch {exec rm -f libplt1.so libplt2.so plt.x }
     }
 }
 
@@ -11,7 +11,6 @@ global verbose
 if { $res == 0 } {
     verbose "$test $message" 2
     fail "$test $message"
-    cleanup_handler $verbose
     return 1
 } elseif { $message != "" } {
     pass $test
