@@ -6,17 +6,22 @@
  * </tapsetdescription>
  */
 
+/* The below functionality is mostly inspired by tcp.stp and networking.stp. */
+
 %{
 #include <linux/in.h>
 #include <linux/skbuff.h>
+#include <linux/netfilter_arp.h>
+#include <linux/if_arp.h>
 #include <net/ipv6.h>
 %}
 
-# XXX: note that functionality was inspired by tcp.stp and networking.stp
 # XXX: a macro facility might be nice to avoid duplication -- see PR11207
 # XXX: IPPROTO_* and NF_* constants should be secure globals -- needs PR10607
   # ... currently we use a hideous copypasta hack which defines them as
   # locals in each probe alias. Blegh
+# XXX: mangling locals would be nice to avoid the constant name
+# collisions that popped up in the process of writing this tapset -- see PR
 
 function __get_mac_addr:string(addr:long) {
          return sprintf("%02x:%02x:%02x:%02x:%02x:%02x",
@@ -29,17 +34,38 @@ function __get_mac_addr:string(addr:long) {
 
 }
 
-# XXX: old kernels have a different definition of ipv6_skip_exthdr
-# XXX1: this needs a whole pile of additional checks before we enable it
-// function __ip6_skb_proto:long(addr:long)
-// %{ /* pure */
-//    struct sk_buff *skb = (struct sk_buff *)(uintptr_t)THIS->addr;
-//    struct ipv6hdr *hdr = ipv6_hdr(skb)
-//    __be16 frag_offp = 0; u8 nexthdr = hdr->nexthdr;
-//    int extoff = (u8 *)(hdr + 1) - skb->data;
-//    ipv6_skip_exthdr(skb, extoff, &result, &frag_offp);
-//    THIS->__retvalue = result;
-// %}
+function __get_skb_arphdr:long(addr:long)
+{
+        // The method is exactly the same as for an IP header:
+        return __get_skb_iphdr(addr)
+}
+
+function __ip6_skb_proto:long(addr:long)
+%{ /* pure */
+   struct sk_buff *skb = (struct sk_buff *)(uintptr_t)THIS->addr;
+   struct ipv6hdr *hdr;
+   u8 nexthdr;
+
+   /* We call deref() here to ensure the memory at the skb location
+    * is valid to read, to avoid potential kernel panic calling ipv6_hdr(). */
+   (void)kderef_buffer(NULL, skb, sizeof(struct sk_buff));
+   hdr = ipv6_hdr(skb);
+   nexthdr = kread(&(hdr->nexthdr));
+
+   if (ipv6_ext_hdr(nexthdr)) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,3,0)
+     long result = ipv6_skip_exthdr(skb, sizeof(*hdr), &nexthdr);     
+#else
+     __be16 frag_offp;
+     int extoff = (u8 *)(hdr + 1) - kread(&(skb->data));
+     long result = ipv6_skip_exthdr(skb, extoff, &nexthdr, &frag_offp);
+#endif
+     THIS->__retvalue = result < 0 ? 0 : result;
+   } else {
+     THIS->__retvalue = 0;
+   }
+   CATCH_DEREF_FAULT();
+%}
 
 /**
  * probe netfilter.ip.pre_routing - Called before an IP packet is routed
@@ -49,7 +75,7 @@ function __get_mac_addr:string(addr:long) {
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @iphdr: IP header address
+ * @iphdr: Address of IP header
  * @protocol: Packet protocol from driver (ipv4 only)
  * @ipproto_tcp: Constant used to signify that the packet protocol is TCP
  * @ipproto_udp: Constant used to signify that the packet protocol is UDP
@@ -172,28 +198,27 @@ probe netfilter.ipv6.pre_routing
                               %{ /* pure */ AF_INET6 %})
         daddr = format_ipaddr(&@cast(iphdr, "ipv6hdr")->daddr,
                               %{ /* pure */ AF_INET6 %})
-# XXX1 cont'd
-//         protocol = __ip6_skb_proto(iphdr)
+        protocol = __ip6_skb_proto($skb)
 
         length = @cast($skb, "struct sk_buff")->len
 
-        // tcphdr = __get_skb_tcphdr($skb)
-        // if (protocol == ipproto_tcp) {
-        //    dport = __tcp_skb_dport(tcphdr)
-        //    sport = __tcp_skb_sport(tcphdr)
-        //    urg = __tcp_skb_urg(tcphdr)
-        //    ack = __tcp_skb_ack(tcphdr)
-        //    psh = __tcp_skb_psh(tcphdr)
-        //    rst = __tcp_skb_rst(tcphdr)
-        //    syn = __tcp_skb_syn(tcphdr)
-        //    fin = __tcp_skb_fin(tcphdr)
-        // }
+        tcphdr = __get_skb_tcphdr($skb)
+        if (protocol == ipproto_tcp) {
+           dport = __tcp_skb_dport(tcphdr)
+           sport = __tcp_skb_sport(tcphdr)
+           urg = __tcp_skb_urg(tcphdr)
+           ack = __tcp_skb_ack(tcphdr)
+           psh = __tcp_skb_psh(tcphdr)
+           rst = __tcp_skb_rst(tcphdr)
+           syn = __tcp_skb_syn(tcphdr)
+           fin = __tcp_skb_fin(tcphdr)
+        }
 
-        // udphdr = tcphdr /* the same place where tcphdr would have been */
-        // if (protocol == ipproto_udp) {
-        //    dport = ntohs(@cast(udphdr,"udphdr")->dest)
-        //    sport = ntohs(@cast(udphdr,"udphdr")->source)
-        // }
+        udphdr = tcphdr /* the same place where tcphdr would have been */
+        if (protocol == ipproto_udp) {
+           dport = ntohs(@cast(udphdr,"udphdr")->dest)
+           sport = ntohs(@cast(udphdr,"udphdr")->source)
+        }
 }
 
 /**
@@ -204,7 +229,7 @@ probe netfilter.ipv6.pre_routing
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @iphdr: IP header address
+ * @iphdr: Address of IP header
  * @protocol: Packet protocol from driver (ipv4 only)
  * @ipproto_tcp: Constant used to signify that the packet protocol is TCP
  * @ipproto_udp: Constant used to signify that the packet protocol is UDP
@@ -327,28 +352,26 @@ probe netfilter.ipv6.local_in
                               %{ /* pure */ AF_INET6 %})
         daddr = format_ipaddr(&@cast(iphdr, "ipv6hdr")->daddr,
                               %{ /* pure */ AF_INET6 %})
-# XXX1 cont'd
-//         protocol = __ip6_skb_proto(iphdr)
-
         length = @cast($skb, "struct sk_buff")->len
+        protocol = __ip6_skb_proto($skb)
 
-        // tcphdr = __get_skb_tcphdr($skb)
-        // if (protocol == ipproto_tcp) {
-        //    dport = __tcp_skb_dport(tcphdr)
-        //    sport = __tcp_skb_sport(tcphdr)
-        //    urg = __tcp_skb_urg(tcphdr)
-        //    ack = __tcp_skb_ack(tcphdr)
-        //    psh = __tcp_skb_psh(tcphdr)
-        //    rst = __tcp_skb_rst(tcphdr)
-        //    syn = __tcp_skb_syn(tcphdr)
-        //    fin = __tcp_skb_fin(tcphdr)
-        // }
+        tcphdr = __get_skb_tcphdr($skb)
+        if (protocol == ipproto_tcp) {
+           dport = __tcp_skb_dport(tcphdr)
+           sport = __tcp_skb_sport(tcphdr)
+           urg = __tcp_skb_urg(tcphdr)
+           ack = __tcp_skb_ack(tcphdr)
+           psh = __tcp_skb_psh(tcphdr)
+           rst = __tcp_skb_rst(tcphdr)
+           syn = __tcp_skb_syn(tcphdr)
+           fin = __tcp_skb_fin(tcphdr)
+        }
 
-        // udphdr = tcphdr /* the same place where tcphdr would have been */
-        // if (protocol == ipproto_udp) {
-        //    dport = ntohs(@cast(udphdr,"udphdr")->dest)
-        //    sport = ntohs(@cast(udphdr,"udphdr")->source)
-        // }
+        udphdr = tcphdr /* the same place where tcphdr would have been */
+        if (protocol == ipproto_udp) {
+           dport = ntohs(@cast(udphdr,"udphdr")->dest)
+           sport = ntohs(@cast(udphdr,"udphdr")->source)
+        }
 }
 
 /**
@@ -359,7 +382,7 @@ probe netfilter.ipv6.local_in
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @iphdr: IP header address
+ * @iphdr: Address of IP header
  * @protocol: Packet protocol from driver (ipv4 only)
  * @ipproto_tcp: Constant used to signify that the packet protocol is TCP
  * @ipproto_udp: Constant used to signify that the packet protocol is UDP
@@ -482,28 +505,25 @@ probe netfilter.ipv6.forward
                               %{ /* pure */ AF_INET6 %})
         daddr = format_ipaddr(&@cast(iphdr, "ipv6hdr")->daddr,
                               %{ /* pure */ AF_INET6 %})
-# XXX1 cont'd
-//         protocol = __ip6_skb_proto(iphdr)
+        protocol = __ip6_skb_proto($skb)
 
-        length = @cast($skb, "struct sk_buff")->len
+        tcphdr = __get_skb_tcphdr($skb)
+        if (protocol == ipproto_tcp) {
+           dport = __tcp_skb_dport(tcphdr)
+           sport = __tcp_skb_sport(tcphdr)
+           urg = __tcp_skb_urg(tcphdr)
+           ack = __tcp_skb_ack(tcphdr)
+           psh = __tcp_skb_psh(tcphdr)
+           rst = __tcp_skb_rst(tcphdr)
+           syn = __tcp_skb_syn(tcphdr)
+           fin = __tcp_skb_fin(tcphdr)
+        }
 
-        // tcphdr = __get_skb_tcphdr($skb)
-        // if (protocol == ipproto_tcp) {
-        //    dport = __tcp_skb_dport(tcphdr)
-        //    sport = __tcp_skb_sport(tcphdr)
-        //    urg = __tcp_skb_urg(tcphdr)
-        //    ack = __tcp_skb_ack(tcphdr)
-        //    psh = __tcp_skb_psh(tcphdr)
-        //    rst = __tcp_skb_rst(tcphdr)
-        //    syn = __tcp_skb_syn(tcphdr)
-        //    fin = __tcp_skb_fin(tcphdr)
-        // }
-
-        // udphdr = tcphdr /* the same place where tcphdr would have been */
-        // if (protocol == ipproto_udp) {
-        //    dport = ntohs(@cast(udphdr,"udphdr")->dest)
-        //    sport = ntohs(@cast(udphdr,"udphdr")->source)
-        // }
+        udphdr = tcphdr /* the same place where tcphdr would have been */
+        if (protocol == ipproto_udp) {
+           dport = ntohs(@cast(udphdr,"udphdr")->dest)
+           sport = ntohs(@cast(udphdr,"udphdr")->source)
+        }
 }
 
 /**
@@ -514,7 +534,7 @@ probe netfilter.ipv6.forward
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @iphdr: IP header address
+ * @iphdr: Address of IP header
  * @protocol: Packet protocol from driver (ipv4 only)
  * @ipproto_tcp: Constant used to signify that the packet protocol is TCP
  * @ipproto_udp: Constant used to signify that the packet protocol is UDP
@@ -636,28 +656,25 @@ probe netfilter.ipv6.local_out
                               %{ /* pure */ AF_INET6 %})
         daddr = format_ipaddr(&@cast(iphdr, "ipv6hdr")->daddr,
                               %{ /* pure */ AF_INET6 %})
-# XXX1 cont'd
-//         protocol = __ip6_skb_proto(iphdr)
+        protocol = __ip6_skb_proto($skb)
 
-        length = @cast($skb, "struct sk_buff")->len
+        tcphdr = __get_skb_tcphdr($skb)
+        if (protocol == ipproto_tcp) {
+           dport = __tcp_skb_dport(tcphdr)
+           sport = __tcp_skb_sport(tcphdr)
+           urg = __tcp_skb_urg(tcphdr)
+           ack = __tcp_skb_ack(tcphdr)
+           psh = __tcp_skb_psh(tcphdr)
+           rst = __tcp_skb_rst(tcphdr)
+           syn = __tcp_skb_syn(tcphdr)
+           fin = __tcp_skb_fin(tcphdr)
+        }
 
-        // tcphdr = __get_skb_tcphdr($skb)
-        // if (protocol == ipproto_tcp) {
-        //    dport = __tcp_skb_dport(tcphdr)
-        //    sport = __tcp_skb_sport(tcphdr)
-        //    urg = __tcp_skb_urg(tcphdr)
-        //    ack = __tcp_skb_ack(tcphdr)
-        //    psh = __tcp_skb_psh(tcphdr)
-        //    rst = __tcp_skb_rst(tcphdr)
-        //    syn = __tcp_skb_syn(tcphdr)
-        //    fin = __tcp_skb_fin(tcphdr)
-        // }
-
-        // udphdr = tcphdr /* the same place where tcphdr would have been */
-        // if (protocol == ipproto_udp) {
-        //    dport = ntohs(@cast(udphdr,"udphdr")->dest)
-        //    sport = ntohs(@cast(udphdr,"udphdr")->source)
-        // }
+        udphdr = tcphdr /* the same place where tcphdr would have been */
+        if (protocol == ipproto_udp) {
+           dport = ntohs(@cast(udphdr,"udphdr")->dest)
+           sport = ntohs(@cast(udphdr,"udphdr")->source)
+        }
 }
 
 /**
@@ -668,7 +685,7 @@ probe netfilter.ipv6.local_out
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
- * @iphdr: IP header address
+ * @iphdr: Address of IP header
  * @protocol: Packet protocol from driver (ipv4 only)
  * @ipproto_tcp: Constant used to signify that the packet protocol is TCP
  * @ipproto_udp: Constant used to signify that the packet protocol is UDP
@@ -791,31 +808,29 @@ probe netfilter.ipv6.post_routing
                               %{ /* pure */ AF_INET6 %})
         daddr = format_ipaddr(&@cast(iphdr, "ipv6hdr")->daddr,
                               %{ /* pure */ AF_INET6 %})
-# XXX1 cont'd
-//         protocol = __ip6_skb_proto(iphdr)
+        protocol = __ip6_skb_proto($skb)
 
-        length = @cast($skb, "struct sk_buff")->len
+        tcphdr = __get_skb_tcphdr($skb)
+        if (protocol == ipproto_tcp) {
+           dport = __tcp_skb_dport(tcphdr)
+           sport = __tcp_skb_sport(tcphdr)
+           urg = __tcp_skb_urg(tcphdr)
+           ack = __tcp_skb_ack(tcphdr)
+           psh = __tcp_skb_psh(tcphdr)
+           rst = __tcp_skb_rst(tcphdr)
+           syn = __tcp_skb_syn(tcphdr)
+           fin = __tcp_skb_fin(tcphdr)
+        }
 
-        // tcphdr = __get_skb_tcphdr($skb)
-        // if (protocol == ipproto_tcp) {
-        //    dport = __tcp_skb_dport(tcphdr)
-        //    sport = __tcp_skb_sport(tcphdr)
-        //    urg = __tcp_skb_urg(tcphdr)
-        //    ack = __tcp_skb_ack(tcphdr)
-        //    psh = __tcp_skb_psh(tcphdr)
-        //    rst = __tcp_skb_rst(tcphdr)
-        //    syn = __tcp_skb_syn(tcphdr)
-        //    fin = __tcp_skb_fin(tcphdr)
-        // }
-
-        // udphdr = tcphdr /* the same place where tcphdr would have been */
-        // if (protocol == ipproto_udp) {
-        //    dport = ntohs(@cast(udphdr,"udphdr")->dest)
-        //    sport = ntohs(@cast(udphdr,"udphdr")->source)
-        // }
+        udphdr = tcphdr /* the same place where tcphdr would have been */
+        if (protocol == ipproto_udp) {
+           dport = ntohs(@cast(udphdr,"udphdr")->dest)
+           sport = ntohs(@cast(udphdr,"udphdr")->source)
+        }
 }
 
-# XXX: include functionality for arp, bridge, etc.
+# XXX: include functionality to parse ARP packet contents
+# XXX: think of some way to comprehensively study bridged packets?
 
 /**
  * probe netfilter.arp.in -- Called for each incoming ARP packet
@@ -825,6 +840,12 @@ probe netfilter.ipv6.post_routing
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
+ * @arphdr: Address of ARP header
+ * @ar_hrd: Format of hardware address
+ * @ar_pro: Format of protocol address
+ * @ar_hln: Length of hardware address
+ * @ar_pln: Length of protocol address
+ * @ar_op: ARP opcode (command)
  * @nf_drop: Constant used to signify a 'drop' verdict
  * @nf_accept: Constant used to signify an 'accept' verdict
  * @nf_stolen: Constant used to signify a 'stolen' verdict
@@ -859,6 +880,14 @@ probe netfilter.arp.in = netfilter.hook("NF_ARP_IN").pf("NFPROTO_ARP")
            out_mac = __get_mac_addr(outdev)
         }
 
+        arphdr = __get_skb_arphdr($skb)
+        family = %{ /* pure */ NF_ARP %} // from linux/netfilter_arp.h
+        ar_hrd = @cast(arphdr, "struct arphdr")->ar_hrd
+        ar_pro = @cast(arphdr, "struct arphdr")->ar_pro
+        ar_hln = @cast(arphdr, "struct arphdr")->ar_hln
+        ar_pln = @cast(arphdr, "struct arphdr")->ar_pln
+        ar_op = @cast(arphdr, "struct arphdr")->ar_op
+
         length = @cast($skb, "struct sk_buff")->len
 
 }
@@ -872,6 +901,12 @@ probe netfilter.arp.in = netfilter.hook("NF_ARP_IN").pf("NFPROTO_ARP")
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
+ * @arphdr: Address of ARP header
+ * @ar_hrd: Format of hardware address
+ * @ar_pro: Format of protocol address
+ * @ar_hln: Length of hardware address
+ * @ar_pln: Length of protocol address
+ * @ar_op: ARP opcode (command)
  * @nf_drop: Constant used to signify a 'drop' verdict
  * @nf_accept: Constant used to signify an 'accept' verdict
  * @nf_stolen: Constant used to signify a 'stolen' verdict
@@ -906,6 +941,14 @@ probe netfilter.arp.out = netfilter.hook("NF_ARP_OUT").pf("NFPROTO_ARP")
            out_mac = __get_mac_addr(outdev)
         }
 
+        arphdr = __get_skb_arphdr($skb)
+        family = %{ /* pure */ NF_ARP %} // from linux/netfilter_arp.h
+        ar_hrd = @cast(arphdr, "struct arphdr")->ar_hrd
+        ar_pro = @cast(arphdr, "struct arphdr")->ar_pro
+        ar_hln = @cast(arphdr, "struct arphdr")->ar_hln
+        ar_pln = @cast(arphdr, "struct arphdr")->ar_pln
+        ar_op = @cast(arphdr, "struct arphdr")->ar_op
+
         length = @cast($skb, "struct sk_buff")->len
 }
 
@@ -917,6 +960,12 @@ probe netfilter.arp.out = netfilter.hook("NF_ARP_OUT").pf("NFPROTO_ARP")
  * @indev_name: Name of network device packet was received on (if known)
  * @outdev_name: Name of network device packet will be routed to (if known)
  * @length: The length of the packet buffer contents, in bytes
+ * @arphdr: Address of ARP header
+ * @ar_hrd: Format of hardware address
+ * @ar_pro: Format of protocol address
+ * @ar_hln: Length of hardware address
+ * @ar_pln: Length of protocol address
+ * @ar_op: ARP opcode (command)
  * @nf_drop: Constant used to signify a 'drop' verdict
  * @nf_accept: Constant used to signify an 'accept' verdict
  * @nf_stolen: Constant used to signify a 'stolen' verdict
@@ -951,10 +1000,16 @@ probe netfilter.arp.forward = netfilter.hook("NF_ARP_FORWARD").pf("NFPROTO_ARP")
            out_mac = __get_mac_addr(outdev)
         }
 
+        arphdr = __get_skb_arphdr($skb)
+        family = %{ /* pure */ NF_ARP %} // from linux/netfilter_arp.h
+        ar_hrd = @cast(arphdr, "struct arphdr")->ar_hrd
+        ar_pro = @cast(arphdr, "struct arphdr")->ar_pro
+        ar_hln = @cast(arphdr, "struct arphdr")->ar_hln
+        ar_pln = @cast(arphdr, "struct arphdr")->ar_pln
+        ar_op = @cast(arphdr, "struct arphdr")->ar_op
+
         length = @cast($skb, "struct sk_buff")->len
 }
-
-# XXX: 'bridge' means Spanning Tree Protocol, riiiiiight?
 
 /**
  * probe netfilter.bridge.pre_routing -- Called before a bridging packet is routed
@@ -998,6 +1053,8 @@ probe netfilter.bridge.pre_routing
            outdev_mac_len = @cast(outdev,"struct net_device")->addr_len
            out_mac = __get_mac_addr(outdev)
         }
+
+        length = @cast($skb, "struct sk_buff")->len
 }
 
 /**
@@ -1042,6 +1099,8 @@ probe netfilter.bridge.local_in
            outdev_mac_len = @cast(outdev,"struct net_device")->addr_len
            out_mac = __get_mac_addr(outdev)
         }
+
+        length = @cast($skb, "struct sk_buff")->len
 }
 
 /**
