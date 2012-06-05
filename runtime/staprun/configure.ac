@@ -67,11 +67,21 @@ AS_IF([test "x$enable_sdt_probes" != xno], [
             [Define to 1 to enable process.mark probes in staprun, stapio.])
 ])
 
-PKG_CHECK_MODULES([nss], [nss >= 3], [have_nss=yes], [have_nss=no])
-AM_CONDITIONAL([HAVE_NSS], [test $have_nss = yes])
-AS_IF([test $have_nss = yes], [
-  AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
-])
+dnl See if we have the nss/nspr headers and libraries
+AC_ARG_WITH([nss],
+  AS_HELP_STRING([--without-nss],
+    [Do not use NSS even if present]))
+
+AS_IF([test "x$with_nss" != "xno"], [
+  PKG_CHECK_MODULES([nss], [nss >= 3],
+    [have_nss=yes
+     AC_DEFINE([HAVE_NSS], [1], [Define to 1 if you have the nss libraries.])
+    ], [have_nss=no])
+], [have_nss=no])
+
+AM_CONDITIONAL([HAVE_NSS], [test "${have_nss}" = "yes"])
+
+
 AC_ARG_ENABLE([nls], [AS_HELP_STRING([--enable-nls], [enable translating program messages])])
 AS_IF([test "x$enable_nls" != xno], [
 AC_DEFINE([ENABLE_NLS], [1], [Define to 1 if program messages should be translated.])
