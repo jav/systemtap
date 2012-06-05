@@ -15,7 +15,7 @@ foreach value {0 0xd34db33f 0xffffffff 0xffffffffffffffff} {
             timeout { fail "$test (timeout)" }
         }
         verbose -log "done exp $test $errs"
-        wait
+        catch {close}; catch {wait}
         if {$errs == 1} { pass $test } else { fail "$test ($errs)" }
         verbose -log "done $test $errs"
     }
