@@ -1,0 +1,22 @@
+# Testcase for various embedded-C functions in tcp.stp and netfilter.stp.
+
+set file $srcdir/$subdir/net-sanity.stp
+foreach value {0 0xd34db33f 0xffffffff 0xffffffffffffffff} {
+    foreach ix {0 1 2 3 4} {
+        set test "net-sanity $value $ix"
+        if {![installtest_p]} {untested $test; continue}
+        spawn stap -vv $file $value $ix
+        set errs 0
+        verbose -log "exp $test $errs"
+        expect {
+            -timeout 180
+            -re {(ERROR)[^\r\n]*\r\n} { incr errs; exp_continue }
+            eof { }
+            timeout { fail "$test (timeout)" }
+        }
+        verbose -log "done exp $test $errs"
+        wait
+        if {$errs == 1} { pass $test } else { fail "$test ($errs)" }
+        verbose -log "done $test $errs"
+    }
+}

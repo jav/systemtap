@@ -1,0 +1,12 @@
+#! stap
+
+# Test sensitive embedded-C functions with nonsense values!
+probe begin(-1) { print("\n") }
+probe begin {
+      if ($2 == 0) print(__ip6_skb_proto($1))
+      else if ($2 == 1) print(__get_skb_tcphdr($1))
+      else if ($2 == 2) print(__get_skb_iphdr($1))
+      else if ($2 == 3) print(tcp_ts_get_info_snd_ssthresh($1))
+      else if ($2 == 4) print(tcp_ts_get_info_rcv_mss($1))
+}
+probe begin(1) { print("\n"); exit() }
