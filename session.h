@@ -20,6 +20,7 @@
 #include <sstream>
 #include <map>
 #include <set>
+#include <stdexcept>
 
 extern "C" {
 #include <signal.h>
@@ -357,6 +358,14 @@ public:
 
 // global counter of SIGINT/SIGTERM's received
 extern int pending_interrupts;
+
+// Interrupt exception subclass for catching
+// interrupts (i.e. ctrl-c).
+struct interrupt_exception: public std::runtime_error
+{
+  interrupt_exception ():
+    runtime_error (_("interrupt received")){}
+};
 
 #endif // SESSION_H
 

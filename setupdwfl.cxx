@@ -218,7 +218,8 @@ setup_mod_deps()
 static int
 setup_dwfl_report_kernel_p(const char* modname, const char* filename)
 {
-  if (pending_interrupts || setup_dwfl_done)
+  if (pending_interrupts) throw interrupt_exception();
+  if (setup_dwfl_done)
     return -1;
 
   // elfutils sends us NULL filenames sometimes if it can't find dwarf
@@ -691,8 +692,7 @@ execute_abrt_action_install_debuginfo_to_abrt_cache (string hex)
         return -1;
       if (rc > 0 && WIFEXITED(rstatus)) 
         break;
-      if(pending_interrupts) 
-        return -1;
+      if (pending_interrupts) throw interrupt_exception();
       timer++;
     }
   if(timer == timeout)

@@ -514,7 +514,7 @@ match_node::find_and_build (systemtap_session& s,
 	  const match_key& subkey = i->first;
 	  match_node* subnode = i->second;
 
-          if (pending_interrupts) break;
+          if (pending_interrupts) throw interrupt_exception();
 
 	  if (match.globmatch(subkey))
 	    {
@@ -787,7 +787,7 @@ derive_probes (systemtap_session& s,
 {
   for (unsigned i = 0; i < p->locations.size(); ++i)
     {
-      if (pending_interrupts) break;
+      if (pending_interrupts) throw interrupt_exception();
 
       probe_point *loc = p->locations[i];
 
@@ -1312,7 +1312,7 @@ semantic_pass_symbols (systemtap_session& s)
   s.files.push_back (s.user_file);
   for (unsigned i = 0; i < s.files.size(); i++)
     {
-      if (pending_interrupts) break;
+      if (pending_interrupts) throw interrupt_exception();
       stapfile* dome = s.files[i];
 
       // Pass 1: add globals and functions to systemtap-session master list,
@@ -1358,7 +1358,7 @@ semantic_pass_symbols (systemtap_session& s)
 
       for (unsigned i=0; i<dome->probes.size(); i++)
         {
-          if (pending_interrupts) break;
+          if (pending_interrupts) throw interrupt_exception();
           probe* p = dome->probes [i];
           vector<derived_probe*> dps;
 
@@ -1368,7 +1368,7 @@ semantic_pass_symbols (systemtap_session& s)
 
           for (unsigned j=0; j<dps.size(); j++)
             {
-              if (pending_interrupts) break;
+              if (pending_interrupts) throw interrupt_exception();
               derived_probe* dp = dps[j];
               s.probes.push_back (dp);
               dp->join_group (s);
@@ -1399,7 +1399,7 @@ semantic_pass_symbols (systemtap_session& s)
 
       for (unsigned i=0; i<dome->functions.size(); i++)
         {
-          if (pending_interrupts) break;
+          if (pending_interrupts) throw interrupt_exception();
           functiondecl* fd = dome->functions[i];
 
           try
@@ -2605,7 +2605,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
 
   for (unsigned i=0; i<s.probes.size(); i++)
     {
-      if (pending_interrupts) break;
+      if (pending_interrupts) throw interrupt_exception();
 
       derived_probe* p = s.probes[i];
 
@@ -2628,7 +2628,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
     }
   for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
     {
-      if (pending_interrupts) break;
+      if (pending_interrupts) throw interrupt_exception();
 
       functiondecl* fn = it->second;
       duv.focal_vars.clear ();
@@ -3734,7 +3734,7 @@ semantic_pass_optimize1 (systemtap_session& s)
   unsigned iterations = 0;
   while (! relaxed_p)
     {
-      if (pending_interrupts) break;
+      if (pending_interrupts) throw interrupt_exception();
 
       relaxed_p = true; // until proven otherwise
 
@@ -3784,7 +3784,7 @@ semantic_pass_optimize2 (systemtap_session& s)
   unsigned iterations = 0;
   while (! relaxed_p)
     {
-      if (pending_interrupts) break;
+      if (pending_interrupts) throw interrupt_exception();
       relaxed_p = true; // until proven otherwise
 
       // If the verbosity is high enough, always print warnings (overrides -w),
@@ -3822,7 +3822,7 @@ semantic_pass_types (systemtap_session& s)
   // XXX: maybe convert to exception-based error signalling
   while (1)
     {
-      if (pending_interrupts) break;
+      if (pending_interrupts) throw interrupt_exception();
 
       iterations ++;
       ti.num_newly_resolved = 0;
@@ -3830,7 +3830,7 @@ semantic_pass_types (systemtap_session& s)
 
   for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
         {
-          if (pending_interrupts) break;
+          if (pending_interrupts) throw interrupt_exception();
 
           functiondecl* fd = it->second;
           ti.current_probe = 0;
@@ -3849,7 +3849,7 @@ semantic_pass_types (systemtap_session& s)
 
       for (unsigned j=0; j<s.probes.size(); j++)
         {
-          if (pending_interrupts) break;
+          if (pending_interrupts) throw interrupt_exception();
 
           derived_probe* pn = s.probes[j];
           ti.current_function = 0;

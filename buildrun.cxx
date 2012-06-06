@@ -37,8 +37,7 @@ static int
 run_make_cmd(systemtap_session& s, vector<string>& make_cmd,
              bool null_out=false, bool null_err=false)
 {
-  if (pending_interrupts)
-    return -1;
+  if (pending_interrupts) throw interrupt_exception();
 
   // PR14168: we used to unsetenv values here; instead do it via
   // env(1) in make_any_make_cmd().
