@@ -72,7 +72,7 @@ printscript(systemtap_session& s, ostream& o)
       // Pre-process the probe alias
       for (unsigned i=0; i<s.probes.size(); i++)
         {
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
 
           derived_probe* p = s.probes[i];
           // NB: p->basest() is not so interesting;
@@ -182,7 +182,7 @@ printscript(systemtap_session& s, ostream& o)
         o << _("# global embedded code") << endl;
       for (unsigned i=0; i<s.embeds.size(); i++)
         {
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
           embeddedcode* ec = s.embeds[i];
           ec->print (o);
           o << endl;
@@ -192,7 +192,7 @@ printscript(systemtap_session& s, ostream& o)
         o << _("# globals") << endl;
       for (unsigned i=0; i<s.globals.size(); i++)
         {
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
           vardecl* v = s.globals[i];
           v->printsig (o);
           if (s.verbose && v->init)
@@ -207,7 +207,7 @@ printscript(systemtap_session& s, ostream& o)
         o << _("# functions") << endl;
       for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
         {
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
           functiondecl* f = it->second;
           f->printsig (o);
           o << endl;
@@ -231,7 +231,7 @@ printscript(systemtap_session& s, ostream& o)
         o << _("# probes") << endl;
       for (unsigned i=0; i<s.probes.size(); i++)
         {
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
           derived_probe* p = s.probes[i];
           p->printsig (o);
           o << endl;
@@ -537,7 +537,7 @@ passes_0_4 (systemtap_session &s)
 
           for (unsigned j=0; j<globbuf.gl_pathc; j++)
             {
-              if (pending_interrupts) throw interrupt_exception();
+              assert_no_interrupts();
 
               struct stat tapset_file_stat;
               int stat_rc = stat (globbuf.gl_pathv[j], & tapset_file_stat);
@@ -629,7 +629,7 @@ passes_0_4 (systemtap_session &s)
 
   PROBE1(stap, pass1__end, &s);
 
-  if (pending_interrupts) throw interrupt_exception();
+  assert_no_interrupts();
   if (rc || s.last_pass == 1) return rc;
 
   times (& tms_before);
@@ -670,11 +670,11 @@ passes_0_4 (systemtap_session &s)
 
   PROBE1(stap, pass2__end, &s);
 
-  if (pending_interrupts) throw interrupt_exception();
+  assert_no_interrupts();
   if (rc || s.listing_mode || s.last_pass == 2) return rc;
 
   rc = prepare_translate_pass (s);
-  if (pending_interrupts) throw interrupt_exception();
+  assert_no_interrupts();
   if (rc) return rc;
 
   // Generate hash.  There isn't any point in generating the hash
@@ -705,7 +705,7 @@ passes_0_4 (systemtap_session &s)
 
 	  // If our last pass isn't 5, we're done (since passes 3 and
 	  // 4 just generate what we just pulled out of the cache).
-	  if (pending_interrupts) throw interrupt_exception();
+	  assert_no_interrupts();
 	  if (rc || s.last_pass < 5) return rc;
 
 	  // Short-circuit to pass 5.
@@ -745,7 +745,7 @@ passes_0_4 (systemtap_session &s)
 
   PROBE1(stap, pass3__end, &s);
 
-  if (pending_interrupts) throw interrupt_exception();
+  assert_no_interrupts();
   if (rc || s.last_pass == 3) return rc;
 
   // PASS 4: COMPILATION
@@ -1029,7 +1029,7 @@ main (int argc, char * const argv [])
       delete targets[i];
     cleanup (s, rc);
 
-    if (pending_interrupts) throw interrupt_exception();
+    assert_no_interrupts();
     return (rc) ? EXIT_FAILURE : EXIT_SUCCESS;
   }
   catch (interrupt_exception) {

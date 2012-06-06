@@ -333,7 +333,7 @@ dwflpp::setup_kernel(const string& name, systemtap_session & s, bool debuginfo_n
       ptrdiff_t off = 0;
       do
         {
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
           off = dwfl_getmodules (dwfl, &add_module_build_id_to_hash, &s, off);
         }
       while (off > 0);
@@ -422,7 +422,7 @@ dwflpp::iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
       Dwarf_Off noff;
       while (dwarf_nextcu (dw, off, &noff, &cuhl, NULL, NULL, NULL) == 0)
         {
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
           Dwarf_Die die_mem;
           Dwarf_Die *die;
           die = dwarf_offdie (dw, off + cuhl, &die_mem);
@@ -441,7 +441,7 @@ dwflpp::iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
       while (dwarf_next_unit (dw, off, &noff, &cuhl, NULL, NULL, NULL, NULL,
 			      &type_signature, NULL) == 0)
 	{
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
           Dwarf_Die die_mem;
           Dwarf_Die *die;
           die = dwarf_offdie_types (dw, off + cuhl, &die_mem);
@@ -454,7 +454,7 @@ dwflpp::iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
   for (vector<Dwarf_Die>::iterator i = v->begin(); i != v->end(); ++i)
     {
       int rc = (*callback)(&*i, data);
-      if (pending_interrupts) throw interrupt_exception();
+      assert_no_interrupts();
       if (rc != DWARF_CB_OK)
         break;
     }
@@ -565,7 +565,7 @@ dwflpp::iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * 
   for (vector<Dwarf_Die>::iterator i = v->begin(); i != v->end(); ++i)
     {
       int rc = (*callback)(&*i, data);
-      if (pending_interrupts) throw interrupt_exception();
+      assert_no_interrupts();
       if (rc != DWARF_CB_OK)
         break;
     }
@@ -1537,7 +1537,7 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
       pair<set<int>::iterator,bool> line_probed;
       int ret = 0;
 
-      if (pending_interrupts) throw interrupt_exception();
+      assert_no_interrupts();
 
       nsrcs = 0;
       ret = dwarf_getsrc_file (module_dwarf, srcfile, l, 0,
@@ -1617,7 +1617,7 @@ dwflpp::iterate_over_srcfile_lines (char const * srcfile,
 
       for (size_t i = 0; i < nsrcs; ++i)
         {
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
           if (srcsp [i]) // skip over mismatched lines
             callback (dwarf_line_t(srcsp[i]), data);
         }

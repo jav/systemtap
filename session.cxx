@@ -1764,7 +1764,9 @@ translator_output* systemtap_session::op_create_auxiliary()
   return n;
 }
 
-
+// Wrapper for checking if there are pending interrupts
+void
+assert_no_interrupts() {if(pending_interrupts) throw interrupt_exception();};
 
 // --------------------------------------------------------------------------
 

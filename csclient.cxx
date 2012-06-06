@@ -737,23 +737,23 @@ compile_server_client::passes_0_4 ()
 
   // Create the request package.
   int rc = initialize ();
-  if (pending_interrupts) throw interrupt_exception();
+  assert_no_interrupts();
   if (rc != 0) goto done;
   rc = create_request ();
-  if (pending_interrupts) throw interrupt_exception();
+  assert_no_interrupts();
   if (rc != 0) goto done;
   rc = package_request ();
-  if (pending_interrupts) throw interrupt_exception();
+  assert_no_interrupts();
   if (rc != 0) goto done;
 
   // Submit it to the server.
   rc = find_and_connect_to_server ();
-  if (pending_interrupts) throw interrupt_exception();
+  assert_no_interrupts();
   if (rc != 0) goto done;
 
   // Unpack and process the response.
   rc = unpack_response ();
-  if (pending_interrupts) throw interrupt_exception();
+  assert_no_interrupts();
   if (rc != 0) goto done;
   rc = process_response ();
 

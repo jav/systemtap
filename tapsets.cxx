@@ -6466,7 +6466,7 @@ dwarf_builder::build(systemtap_session & sess,
             throw semantic_error (_F("glob %s error (%s)", module_name.c_str(), lex_cast(rc).c_str() ));
           for (unsigned i = 0; i < the_blob.gl_pathc; ++i)
             {
-              if (pending_interrupts) throw interrupt_exception();
+              assert_no_interrupts();
 
               const char* globbed = the_blob.gl_pathv[i];
               struct stat st;
@@ -9544,7 +9544,7 @@ tracepoint_builder::init_dw(systemtap_session& s)
           Dwarf_Addr bias;
           while ((cudie = dwfl_nextcu (dwfl, cudie, &bias)) != NULL)
             {
-              if (pending_interrupts) throw interrupt_exception();
+              assert_no_interrupts();
               Dwarf_Attribute attr;
               const char* name = dwarf_formstring (dwarf_attr (cudie, DW_AT_comp_dir, &attr));
               if (name) 

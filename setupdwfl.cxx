@@ -218,7 +218,7 @@ setup_mod_deps()
 static int
 setup_dwfl_report_kernel_p(const char* modname, const char* filename)
 {
-  if (pending_interrupts) throw interrupt_exception();
+  assert_no_interrupts();
   if (setup_dwfl_done)
     return -1;
 
@@ -692,7 +692,7 @@ execute_abrt_action_install_debuginfo_to_abrt_cache (string hex)
         return -1;
       if (rc > 0 && WIFEXITED(rstatus)) 
         break;
-      if (pending_interrupts) throw interrupt_exception();
+      assert_no_interrupts();
       timer++;
     }
   if(timer == timeout)

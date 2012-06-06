@@ -6338,7 +6338,7 @@ emit_symbol_data (systemtap_session& s)
   ptrdiff_t off = 0;
   do
     {
-      if (pending_interrupts) throw interrupt_exception();
+      assert_no_interrupts();
       if (ctx.undone_unwindsym_modules.empty()) break;
       off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, off);
     }
@@ -6361,7 +6361,7 @@ emit_symbol_data (systemtap_session& s)
           ptrdiff_t off = 0;
           do
             {
-              if (pending_interrupts) throw interrupt_exception();
+              assert_no_interrupts();
               if (ctx.undone_unwindsym_modules.empty()) break;
               off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, off);
             }
@@ -6591,7 +6591,7 @@ translate_pass (systemtap_session& s)
         s.op->newline(1);
         for (unsigned i=0; i<s.globals.size(); i++)
           {
-            if (pending_interrupts) throw interrupt_exception();
+            assert_no_interrupts();
             s.up->emit_global_init (s.globals[i]);
           }
         s.op->newline(-1) << "};";
@@ -6600,7 +6600,7 @@ translate_pass (systemtap_session& s)
 
       for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
 	{
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
 	  s.op->newline();
 	  s.up->emit_functionsig (it->second);
 	}
@@ -6608,7 +6608,7 @@ translate_pass (systemtap_session& s)
 
       for (map<string,functiondecl*>::iterator it = s.functions.begin(); it != s.functions.end(); it++)
 	{
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
 	  s.op->newline();
 	  s.up->emit_function (it->second);
 	}
@@ -6619,7 +6619,7 @@ translate_pass (systemtap_session& s)
       // emit_locks()/emit_unlocks().
       for (unsigned i=0; i<s.probes.size(); i++)
 	{
-        if (pending_interrupts) throw interrupt_exception();
+        assert_no_interrupts();
         if (s.probes[i]->needs_global_locks())
 	    s.probes[i]->body->visit (&cup.vcv_needs_global_locks);
 	}
@@ -6627,7 +6627,7 @@ translate_pass (systemtap_session& s)
 
       for (unsigned i=0; i<s.probes.size(); i++)
         {
-          if (pending_interrupts) throw interrupt_exception();
+          assert_no_interrupts();
           s.up->emit_probe (s.probes[i]);
         }
       s.op->assert_0_indent();
