@@ -9,7 +9,7 @@
  * the values of a probed function's arguments. (The latter can be
  * called when you have hit a probe point at the entry to a function,
  * and are useful when the code you are probing was built without debugging
- * informaiton.)
+ * information.)
  *
  * Function arguments are referred to by number, starting at 1.
  * On 32-bit architectures
@@ -226,3 +226,7 @@ function fastcall() { }
 function regparm(n:long) { }
 
 %)
+
+/* There needs to be *something* in the tapset in order for it to pass
+   the smoketest when running make installcheck. */
+function registers_tapset_stub() { printf("Hello, World!") }
