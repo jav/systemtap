@@ -34,7 +34,7 @@
  * high values of n.
  * </tapsetdescription> */
 
-(% kernel_vr == "invalidkernel" %?
+%( kernel_vr == "invalidkernel" %?
 
 /**
  * sfunction register - Return the signed value of the named CPU register
