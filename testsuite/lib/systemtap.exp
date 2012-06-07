@@ -93,11 +93,7 @@ proc setup_systemtap_environment {} {
 
     # need an absolute SRCDIR for the top-level src/ tree
     # XXX: or, we could change nearby uses of ${SRCDIR}/testsuite to ${SRCDIR}
-    if {[string index $srcdir 0] != "/"} then {
-        set env(SRCDIR) [exec pwd]/$srcdir/..
-    } else {
-        set env(SRCDIR) $srcdir/..
-    }
+    set env(SRCDIR) [fullpath $srcdir/..]
 
     # Use a local systemtap directory and cache.  Add user name so
     # make check and sudo make check don't clobber each other.
@@ -248,6 +244,15 @@ proc normalize_arch { arch } {
     if {$arch == "armv7l"} then {return "arm"}
     if {$arch == "armv7lh"} then {return "arm"}
     return $arch
+}
+
+proc fullpath { path } {
+    if {[string index $path 0] != "/"} then {
+        # relative paths are anchored to the current directory
+        return [pwd]/$path
+    } else {
+        return $path
+    }
 }
 
 proc get_system_info {} {

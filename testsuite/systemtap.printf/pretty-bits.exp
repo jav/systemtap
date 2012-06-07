@@ -2,7 +2,7 @@ set test "pretty-bits"
 set ::result_string {{.a=0, .b=1, .c=1, .d=2, .e=3, .f=5, .g=8, .h=13}}
 
 set script $srcdir/$subdir/$test.stp
-set header $srcdir/$subdir/$test.h
+set header [fullpath $srcdir/$subdir/$test.h]
 
 stap_run2 $script kernel<$header> -g
 stap_run2 $script kernel<$header> -g -DSTP_LEGACY_PRINT
