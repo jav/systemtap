@@ -9,15 +9,12 @@
 #return a string with the data
 proc get_meta_data { FILE } {
     set meta_data ""
-    
-    if [catch {open "$FILE" RDONLY} fl] {
-	puts "open $FILE failed: $err"
-	return ""
-    } else {
+    catch {
+        set fl [open "$FILE" RDONLY]
 	set meta_data [read -nonewline $fl]
 	close $fl
-	return "$meta_data"
     }
+    return $meta_data
 }
 
 #extract value for TAG from string META_DATA
@@ -53,7 +50,6 @@ proc run_command { test action command } {
     }
 }
 
-set curdir [pwd]
 
 set src_examples $srcdir/systemtap.examples
 set meta_files [lsort [exec find  $src_examples -path "*.meta"]]
@@ -62,10 +58,14 @@ foreach file $meta_files {
     set test [regsub {.*/testsuite/} $file ""]
     set test [regsub {.meta} $test ""]
     
-    cd $dir
-    
     set meta_data [get_meta_data $file]
     set test_support [extract_tag "$meta_data" "test_support"]
+
+    # Do this after get_meta_data, as $file/$srcdir may be relative,
+    # and become invalid after cd $dir.
+    set curdir [pwd]
+    cd $dir
+    
     set command $test_support
     set supported_p 1
     if { $command != "" }  { # need to test support
@@ -95,6 +95,8 @@ foreach file $meta_files {
              untested "$test run" 
          }
     }
+
+    cd $curdir
+    # get back to starting point
 }
 
-cd $curdir
