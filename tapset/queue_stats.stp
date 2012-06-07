@@ -1,4 +1,20 @@
 # qstats.stp: Queue statistics gathering tapset
+/* <tapsetdescription>
+ * The queue_stats tapset provides functions that,
+ * given notifications of elementary queuing events (wait, run, done),
+ * tracks averages such as queue length, service and wait times,
+ * utilization.
+ * 
+ * The functions qs_wait(), qs_run(), and qs_done() should be called
+ * from appropriate probes, in sequence.
+ * 
+ * Functions with the prefix qsq_ are for querying the statistics averaged
+ * since the first queue operation (or when qsq_start() was called).
+ * Since statistics are often fractional, a scale parameter is used to
+ * multiply the result to a more useful scale. For some fractions, a scale
+ * of 100 will usefully return percentage numbers.
+ * </tapsetdescription>
+ */
 
 # ------------------------------------------------------------------------
 
@@ -6,6 +22,7 @@
 # go into a separate file (say, qstats_qs_time.stp), so that a user
 # script can override it with another definition.
 
+/* XXX: docstring */
 function qs_time () { return gettimeofday_us () }
 
 # ------------------------------------------------------------------------
@@ -57,7 +74,7 @@ function qs_run (qname:string) { # starting to service request
 }
 
 /**
- * sfunction qs_run - Function to record finishing request 
+ * sfunction qs_done - Function to record finishing request 
  * @qname: the name of the service that finished 
  *
  * Description: This function records that a request 
@@ -188,7 +205,7 @@ function qsq_throughput:long (qname:string, scale:long) {
 # ------------------------------------------------------------------------
 
 /**
- * sfunction qsq_blocked - Returns a line of statistics for the given queue
+ * sfunction qsq_print - Prints a line of statistics for the given queue
  * @qname: queue name
  *
  * Description: This function prints a line containing the following

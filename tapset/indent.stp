@@ -1,3 +1,10 @@
+/* <tapsetdescription>
+ * The indent tapset provides functions to generate indented lines for
+ * nested kinds of trace messages.  Each line contains a relative
+ * timestamp, and the process name / pid.
+ * </tapsetdescription>
+ */
+
 global _indent_counters, _indent_timestamps
 
 function _generic_indent (idx, desc, delta) 

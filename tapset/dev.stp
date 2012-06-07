@@ -10,23 +10,44 @@
 #include <linux/kdev_t.h>
 %}
 
+/**
+ * sfunction MAJOR - Extract major device number from a kernel device number (kdev_t)
+ *
+ * @dev: Kernel device number to query.
+ */
 function MAJOR:long(dev:long)
 %{ /* pure */
     THIS->__retvalue = MAJOR(THIS->dev);
 %}
 
 
+/**
+ * sfunction MINOR - Extract minor device number from a kernel device number (kdev_t)
+ *
+ * @dev: Kernel device number to query.
+ */
 function MINOR:long(dev:long)
 %{ /* pure */
     THIS->__retvalue = MINOR(THIS->dev);
 %}
 
 
+/**
+ * sfunction MKDEF - Creates a value that can be compared to a kernel device number (kdev_t)
+ *
+ * @major: Intended major device number.
+ * @minor: Intended minor device number.
+ */
 function MKDEV:long(major:long, minor:long)
 %{ /* pure */
     THIS->__retvalue = MKDEV(THIS->major,THIS->minor);
 %}
 
+/**
+ * sfunction usrdev2kerndev - Converts a user-space device number into the format used in the kernel
+ *
+ * @dev: Device number in user-space format.
+ */
 function usrdev2kerndev:long(dev:long)
 %{ /* pure */
     THIS->__retvalue = new_decode_dev(THIS->dev);

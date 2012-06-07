@@ -748,11 +748,21 @@ probe signal.flush = kernel.function("flush_signals")
     pid_name = kernel_string($t->comm)
 }
 
+/**
+ * sfunction get_sa_flags - Returns the numeric value of sa_flags
+ *
+ * @act: address of the sigaction to query.
+ */
 function get_sa_flags:long (act:long)
 {
 	return @cast(act, "k_sigaction", "kernel")->sa->sa_flags
 }
 
+/**
+ * sfunction get_sa_flags - Returns the numeric value of sa_handler
+ *
+ * @act: address of the sigaction to query.
+ */
 function get_sa_handler:long (act:long)
 {
 	return @cast(act, "k_sigaction", "kernel")->sa->sa_handler
@@ -779,6 +789,11 @@ function get_sa_handler:long (act:long)
 //         sigset_t sa_mask;
 // };
 
+/**
+ * sfunction get_sa_flags - Returns the string representation of a sigset
+ *
+ * @mask: the sigset to convert to string.
+ */
 function sigset_mask_str:string (mask:long) %{ /* pure */
 	int i, len;
 	char *str = THIS->__retvalue, tmp[5];
@@ -799,6 +814,12 @@ function sigset_mask_str:string (mask:long) %{ /* pure */
 // [...]
 //         sigset_t blocked, real_blocked;
 
+/**
+ * sfunction is_sig_blocked - Returns 1 if the signal is currently blocked, or 0 if it is not
+ *
+ * @task: address of the task_struct to query.
+ * @sig: the signal number to test.
+ */
 function is_sig_blocked:long (task:long, sig:long) %{ /* pure */
 	int i;
 	sigset_t blocked;
@@ -809,6 +830,11 @@ function is_sig_blocked:long (task:long, sig:long) %{ /* pure */
 	CATCH_DEREF_FAULT();
 %}
 
+/**
+ * sfunction sa_flags_str - Returns the string representation of sa_flags
+ *
+ * @sa_flags: the set of flags to convert to string.
+ */
 function sa_flags_str:string (sa_flags:long) %{ /* pure */
 	int len;
 	char *str = THIS->__retvalue;
@@ -825,6 +851,15 @@ function sa_flags_str:string (sa_flags:long) %{ /* pure */
 	if (len) str[len - 1] = '\0';
 %}
 
+/**
+ * sfunction sa_handler - Returns the string representation of an sa_handler
+ *
+ * @handler: the sa_handler to convert to string.
+ *
+ * Description: Returns the string representation of an sa_handler.
+ * If it is not SIG_DFL, SIG_IGN or SIG_ERR, it will return the address
+ * of the handler.
+ */
 function sa_handler_str(handler) {
 	if (handler == 0) return "default"; /* SIG_DFL */
 	if (handler == 1) return "ignored"; /* SIG_IGN */
@@ -836,6 +871,11 @@ function sa_handler_str(handler) {
 
 global __sig[64]
 
+/**
+ * sfunction signal_str - Returns the string representation of a signal number
+ *
+ * @num: the signal number to convert to string.
+ */
 function signal_str(num) {
     if (!(64 in __sig)) {
 	__sig[1] = "HUP"

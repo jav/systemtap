@@ -29,11 +29,11 @@ by the
 environment variable or the
 .I XDG_DATA_DIRS
 environment variable.
-This directory stores a set of builtin functions and probe point
+This directory stores a set of builtin probe point
 aliases are provided by the scripts installed here.
 These are described in the
-.IR stapfuncs "(3stap) and " stapprobes (3stap)
-manual pages.
+.IR stapprobes (3stap)
+manual page.
 .TP
 Runtime Path: @prefix@/share/systemtap/runtime/
 The runtime sources, unless overridden by the
@@ -132,7 +132,6 @@ stap\-server service default log file.
 
 .SH SEE ALSO
 .IR stapprobes (3stap),
-.IR stapfuncs (3stap),
 .IR staprun (8),
 .IR stapvars (3stap),
 .IR stapex (3stap),

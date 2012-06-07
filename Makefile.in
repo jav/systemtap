@@ -435,9 +435,8 @@ AM_CPPFLAGS = -DBINDIR='"$(bindir)"' \
 
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
-man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap \
-	stapex.3stap dtrace.1 stap-merge.1 stappaths.7 $(am__append_2) \
-	$(am__append_5)
+man_MANS = stapprobes.3stap stapvars.3stap stapex.3stap dtrace.1 \
+	stap-merge.1 stappaths.7 $(am__append_2) $(am__append_5)
 bin_SCRIPTS = stap-report $(am__append_3) $(am__append_7)
 pkglibexec_SCRIPTS = stap-env $(am__append_8)
 oldinclude_HEADERS = includes/sys/sdt.h includes/sys/sdt-config.h

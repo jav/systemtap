@@ -118,5 +118,4 @@ The directory to find more examples can be found in the stappaths (7) manual pag
 .SH SEE ALSO
 .IR stap (1)
 .IR stapprobes (3stap)
-.IR stapfuncs (3stap)
 .IR stappaths (7)

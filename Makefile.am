@@ -17,7 +17,7 @@ AM_CPPFLAGS = -DBINDIR='"$(bindir)"' \
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 
-man_MANS = stapprobes.3stap stapfuncs.3stap stapvars.3stap stapex.3stap \
+man_MANS = stapprobes.3stap stapvars.3stap stapex.3stap \
 dtrace.1 stap-merge.1\
 stappaths.7
 

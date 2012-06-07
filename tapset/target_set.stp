@@ -1,6 +1,15 @@
 
 global _target_set # map: target-set-pid -> ancestor-pid
 
+/**
+ * sfunction target_set_pid - Does pid descend from target process?
+ *
+ * @pid: The pid of the process to query
+ *
+ * Description: This function returns whether the given process-id is
+ * within the "target set", that is whether it is a descendant of the
+ * top-level target() process.
+ */
 function target_set_pid (pid)
 {
 	return ([pid] in _target_set)
@@ -48,6 +57,12 @@ probe syscall.exit
 }
 %)
 
+/**
+ * sfunction target_set_report - Print a report about the target set
+ *
+ * Description: This function prints a report about the processes in the
+ * target set, and their ancestry.
+ */
 function target_set_report ()
 {
 	printf("target set:\n")

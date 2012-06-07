@@ -1,5 +1,11 @@
 /* Some functions from libc <arpa/inet.h> */
 
+/* <tapsetdescription>
+ * These functions convert between network (big-endian) and host byte
+ * order, like their namesake C functions.
+ * </tapsetdescription>
+ */
+
 /**
  * sfunction htonll - Convert 64-bit long long from host to network order
  * @x: Value to convert
