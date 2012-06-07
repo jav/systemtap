@@ -90,8 +90,13 @@ the <systemtap@sourceware.org> mailing list.
   It may be necessary to prefix symbols with the tapset name to ensure
   systemtap-wide uniqueness.  All "external interfaces" expected to be
   used by user scripts (or perhaps other tapsets) should be documented
-  in stapfuncs.5, stapprobes.5.  Major or incompatible changes should
-  be mentioned in the NEWS file; see also the deprecation section below.
+  -- either in stapprobes.3stap if they are built into the language or
+  otherwise somehow essential; or in kernel-doc style comments if they
+  are defined in a tapset (see almost any existing tapset for an
+  example of how this is done); any new tapset should be mentioned in
+  doc/SystemTap_Tapset_Reference/tapsets.tmpl.  Major or incompatible
+  changes should be mentioned in the NEWS file; see also the
+  deprecation section below.
 
   Internal function, variable, probe identifiers should be prefixed
   with "_" for extra uniqueness, and not documented in the man pages.

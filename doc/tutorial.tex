@@ -228,7 +228,7 @@ the line.
 Systemtap provides a variety of such contextual data, ready for
 formatting.  They usually appear as function calls within the handler,
 like you already saw in Figure~\ref{fig:strace-open}.  {\bf See the
-\verb+stapfuncs+ man page for those functions and more defined in the
+\verb+function::*+ man pages for those functions and more defined in the
 tapset library}, but here's a sampling:
 
 \begin{tabular}{rl}
@@ -1079,9 +1079,11 @@ There are \verb+man+ pages:
 \begin{tabular}{rl}
 \verb+stap+ & systemtap program usage, language summary \\
 \verb+stappaths+ & your systemtap installation paths \\
-\verb+stapfuncs+ & functions provided by tapsets \\
-\verb+stapprobes+ & probes / probe aliases provided by tapsets \\
-\verb+stapex+ & some example scripts \\
+\verb+stapprobes+ & probes / probe aliases provided by built-in tapsets \\
+\verb+stapex+ & a few basic example scripts \\
+\verb+tapset::*+ & summaries of the probes and functions in each tapset \\
+\verb+probe::*+ & detailed descriptions of each probe \\
+\verb+function::*+ & detailed descriptions of each function
 \end{tabular}
 
 There is much more documentation and sample scripts included.  You
