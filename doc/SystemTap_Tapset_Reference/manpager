@@ -6,7 +6,9 @@
 # Reference.
 
 # If testing manually, just run this script with
-# doc/SystemTap_Tapset_Reference as the working directory.
+# doc/SystemTap_Tapset_Reference as the working directory
+# and the SRCTREE variable set to the location of your
+# systemtap source tree.
 
 echo "Starting manpager in" `pwd`
 
