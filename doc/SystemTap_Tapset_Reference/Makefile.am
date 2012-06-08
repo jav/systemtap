@@ -23,6 +23,12 @@ XMLTOMANPARAMS=--stringparam man.authors.section.enabled=0 --stringparam man.cop
 XMLTOHTMLPARAMS=--stringparam use.id.as.filename=1
 endif
 
+if HAVE_FOP
+XMLTOPDF_FOP=--with-fop
+else
+XMLTOPDF_FOP=
+endif
+
 if BUILD_REFDOCS
 noinst_PROGRAMS = docproc
 SRCTREE=$(abs_top_srcdir)/
@@ -49,7 +55,7 @@ stamp-htmldocs: tapsets.xml
 
 # bump up the allocated space so "xmlto pdf" works
 tapsets.pdf: tapsets.xml
-	env pool_size=6000000 hash_extra=6000000 xmlto $(XMLTOPDFPARAMS) pdf tapsets.xml >/dev/null 2>&1
+	env pool_size=6000000 hash_extra=6000000 xmlto $(XMLTOPDF_FOP) $(XMLTOPDFPARAMS) pdf tapsets.xml >/dev/null 2>&1
 
 stamp-mandocs: tapsets.xml
 	xmlto $(XMLTOMANPARAMS) man -o man3 tapsets.xml >/dev/null 2>&1

@@ -168,6 +168,7 @@ dvidir = @dvidir@
 elfutils_abs_srcdir = @elfutils_abs_srcdir@
 exec_prefix = @exec_prefix@
 have_dvips = @have_dvips@
+have_fop = @have_fop@
 have_latex = @have_latex@
 have_latex2html = @have_latex2html@
 have_ps2pdf = @have_ps2pdf@

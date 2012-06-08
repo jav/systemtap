@@ -260,6 +260,9 @@ if test "x${have_xmlto}" == "xyes" -a "$enable_refdocs" != "no" -a "${building_d
 fi
 AM_CONDITIONAL([BUILD_REFDOCS], [test "$building_refdocs" == "yes"])
 
+AC_CHECK_PROG(have_fop, fop, yes, no)
+AM_CONDITIONAL([HAVE_FOP], [test "$have_fop" == "yes"])
+
 dnl There is a strange bug in older versions of xmlto when generating pdf.
 dnl https://bugzilla.redhat.com/show_bug.cgi?id=526273
 dnl So make sure to have a chapter title starting with L plus an refentry.

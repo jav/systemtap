@@ -186,6 +186,7 @@ dvidir = @dvidir@
 elfutils_abs_srcdir = @elfutils_abs_srcdir@
 exec_prefix = @exec_prefix@
 have_dvips = @have_dvips@
+have_fop = @have_fop@
 have_latex = @have_latex@
 have_latex2html = @have_latex2html@
 have_ps2pdf = @have_ps2pdf@
@@ -240,6 +241,8 @@ HTML_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/tapsets
 @BUILD_PDFREFDOCS_TRUE@PDFDOCS = tapsets.pdf
 @XMLTO_STRINGPARAM_TRUE@XMLTOMANPARAMS = --stringparam man.authors.section.enabled=0 --stringparam man.copyright.section.enabled=0
 @XMLTO_STRINGPARAM_TRUE@XMLTOHTMLPARAMS = --stringparam use.id.as.filename=1
+@HAVE_FOP_FALSE@XMLTOPDF_FOP = 
+@HAVE_FOP_TRUE@XMLTOPDF_FOP = --with-fop
 @BUILD_REFDOCS_TRUE@SRCTREE = $(abs_top_srcdir)/
 @BUILD_REFDOCS_TRUE@DOCPROC = $(abs_builddir)/docproc
 @BUILD_REFDOCS_TRUE@noinst_SCRIPTS = manpager
@@ -500,7 +503,7 @@ uninstall-am:
 
 # bump up the allocated space so "xmlto pdf" works
 @BUILD_REFDOCS_TRUE@tapsets.pdf: tapsets.xml
-@BUILD_REFDOCS_TRUE@	env pool_size=6000000 hash_extra=6000000 xmlto $(XMLTOPDFPARAMS) pdf tapsets.xml >/dev/null 2>&1
+@BUILD_REFDOCS_TRUE@	env pool_size=6000000 hash_extra=6000000 xmlto $(XMLTOPDF_FOP) $(XMLTOPDFPARAMS) pdf tapsets.xml >/dev/null 2>&1
 
 @BUILD_REFDOCS_TRUE@stamp-mandocs: tapsets.xml
 @BUILD_REFDOCS_TRUE@	xmlto $(XMLTOMANPARAMS) man -o man3 tapsets.xml >/dev/null 2>&1
