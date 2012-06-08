@@ -49,6 +49,10 @@
 
 static long __stp_strncpy_from_user(char *dst, const char __user *src, long count);
 
+#ifdef CONFIG_GENERIC_STRNCPY_FROM_USER
+#define __stp_strncpy_from_user(dst,src,count,res) \
+	do { res = strncpy_from_user(dst, src, count); } while(0)
+#else  /* !CONFIG_GENERIC_STRNCPY_FROM_USER */
 #if defined (__i386__)
 #define __stp_strncpy_from_user(dst,src,count,res)			   \
 do {									   \
@@ -112,8 +116,8 @@ do {									   \
 #elif defined (__s390__) || defined (__s390x__)
 #define __stp_strncpy_from_user(dst,src,count,res) \
 	do { res = strncpy_from_user(dst, src, count); } while(0)
-
 #endif
+#endif	/* !CONFIG_GENERIC_STRNCPY_FROM_USER */
 
 /** Copy a NULL-terminated string from userspace.
  * On success, returns the length of the string (not including the trailing
