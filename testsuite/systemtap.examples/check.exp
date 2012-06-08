@@ -51,7 +51,7 @@ proc run_command { test action command } {
 }
 
 
-set src_examples $srcdir/systemtap.examples
+set src_examples [fullpath $srcdir/systemtap.examples]
 set meta_files [lsort [exec find  $src_examples -path "*.meta"]]
 foreach file $meta_files {
     set dir [file dirname $file]
