@@ -173,8 +173,50 @@
 - New tapset functions for cpu_clock and local_clock access were added.
 
 - There is some limited preliminary support for user-space probing
-  against kernels such as linux-next, which have no utrace but do have
+  against kernels >= 3.5, which have no utrace but do have
   the newer inode-uprobes work by Srikar Dronamraju and colleagues.
+  For kernels < 3.5, the following 3 sets of kernel patches would need
+  to be backported to your kernel to use this preliminary user-space
+  probing support:
+
+  - inode-uprobes patches:  An entire series of patches, starting with:
+
+    - 2b144498350860b6ee9dc57ff27a93ad488de5dc:  uprobes, mm, x86: Add
+      the ability to install and remove uprobes breakpoints
+    - 7b2d81d48a2d8e37efb6ce7b4d5ef58822b30d89:  uprobes/core: Clean
+      up, refactor and improve the code
+    - a5f4374a9610fd7286c2164d4e680436727eff71:  uprobes: Move to
+      kernel/events/
+    - 04a3d984d32e47983770d314cdb4e4d8f38fccb7:  uprobes/core: Make
+      instruction tables volatile
+    - 96379f60075c75b261328aa7830ef8aa158247ac:  uprobes/core: Remove
+      uprobe_opcode_sz
+    - 3ff54efdfaace9e9b2b7c1959a865be6b91de96c:  uprobes/core: Move
+      insn to arch specific structure
+    - 35aa621b5ab9d08767f7bc8d209b696df281d715:  uprobes: Update
+      copyright notices
+    - 900771a483ef28915a48066d7895d8252315607a:  uprobes/core: Make
+      macro names consistent
+    - e3343e6a2819ff5d0dfc4bb5c9fb7f9a4d04da73:  uprobes/core: Make
+      order of function parameters consistent across functions
+
+  - exec tracepoint kernel patch:
+
+    - 4ff16c25e2cc48cbe6956e356c38a25ac063a64d:  tracepoint, vfs,
+      sched: Add exec() tracepoint
+
+  - task_work_add kernel patches:
+
+    - e73f8959af0439d114847eab5a8a5ce48f1217c4:  task_work_add:
+      generic process-context callbacks
+    - 4d1d61a6b203d957777d73fcebf19d90b038b5b2:  genirq: reimplement
+      exit_irq_thread() hook via task_work_add()
+    - 413cd3d9abeaef590e5ce00564f7a443165db238:  keys: change
+      keyctl_session_to_parent() to use task_work_add()
+    - dea649b8ac1861107c5d91e1a71121434fc64193:  keys: kill the dummy
+      key_replace_session_keyring()
+    - f23ca335462e3c84f13270b9e65f83936068ec2c:  keys: kill
+      task_struct->replacement_session_keyring
 
 - The following probe types are deprecated in release 1.7 and will be
   removed in release 1.8:
