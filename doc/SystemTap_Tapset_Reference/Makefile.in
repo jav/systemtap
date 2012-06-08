@@ -500,7 +500,7 @@ uninstall-am:
 
 # bump up the allocated space so "xmlto pdf" works
 @BUILD_REFDOCS_TRUE@tapsets.pdf: tapsets.xml
-@BUILD_REFDOCS_TRUE@	env pool_size=3000000 hash_extra=3000000 xmlto $(XMLTOPDFPARAMS) pdf tapsets.xml >/dev/null 2>&1
+@BUILD_REFDOCS_TRUE@	env pool_size=6000000 hash_extra=6000000 xmlto $(XMLTOPDFPARAMS) pdf tapsets.xml >/dev/null 2>&1
 
 @BUILD_REFDOCS_TRUE@stamp-mandocs: tapsets.xml
 @BUILD_REFDOCS_TRUE@	xmlto $(XMLTOMANPARAMS) man -o man3 tapsets.xml >/dev/null 2>&1
