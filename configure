@@ -9257,6 +9257,17 @@ $as_echo "no" >&6; }
 fi
 
 
+if test "x${have_fop}" == "xyes"; then
+   # Due to rhbz505364 / 830266, we must actually test-run fop, not just
+   # hope that it works.
+   if xmlto --with-fop pdf ${srcdir}/doc/SystemTap_Tapset_Reference/dummy-tapsets.xml >/dev/null 2>&1; then
+      true # whew
+   else
+      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: fop present but xmlto --with-fop is broken, disabling fop" >&5
+$as_echo "$as_me: WARNING: fop present but xmlto --with-fop is broken, disabling fop" >&2;}
+      have_fop="broken"
+   fi
+fi
  if test "$have_fop" == "yes"; then
   HAVE_FOP_TRUE=
   HAVE_FOP_FALSE='#'

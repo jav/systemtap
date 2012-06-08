@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE book SYSTEM "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<book id="TapsetRef">
+ <bookinfo>
+  <title>SystemTap Tapset Reference Manual</title>
+<!--starthere-->
+  <copyright>
+   <year>2008-2012</year>
+   <holder>Red Hat, Inc. and others</holder>
+  </copyright>
+
+  <authorgroup>
+   <author>
+    <othername>SystemTap</othername>
+    <contrib>Hackers</contrib>
+   </author>
+  </authorgroup>
+
+
+ </bookinfo>
+<!-- pls dont remove marker comments, as they are used in publican conversion-->
+<toc/>
+<chapter id="introduction"><title>Introduction</title><para>
+    SystemTap provides free software (GPL) infrastructure to simplify the
+    gathering of information about the running Linux system. This assists
+    diagnosis of a performance or functional problem. SystemTap eliminates the
+    need for the developer to go through the tedious and disruptive instrument,
+    recompile, install, and reboot sequence that may be otherwise required to
+    collect data.
+  </para><para>
+    SystemTap provides a simple command line interface and scripting language
+    for writing instrumentation for a live running kernel. The instrumentation
+    makes extensive use of the probe points and functions provided in the
+    <firstterm>tapset</firstterm> library. This document describes the various
+    probe points and functions.
+  </para></chapter>
+</book>
