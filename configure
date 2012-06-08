@@ -9260,11 +9260,14 @@ fi
 if test "x${have_fop}" == "xyes"; then
    # Due to rhbz505364 / 830266, we must actually test-run fop, not just
    # hope that it works.
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking to see if xmlto --with-fop actually works" >&5
+$as_echo_n "checking to see if xmlto --with-fop actually works... " >&6; }
    if xmlto --with-fop pdf ${srcdir}/doc/SystemTap_Tapset_Reference/dummy-tapsets.xml >/dev/null 2>&1; then
-      true # whew
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
    else
-      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: fop present but xmlto --with-fop is broken, disabling fop" >&5
-$as_echo "$as_me: WARNING: fop present but xmlto --with-fop is broken, disabling fop" >&2;}
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: it's dead, Jim" >&5
+$as_echo "it's dead, Jim" >&6; }
       have_fop="broken"
    fi
 fi
