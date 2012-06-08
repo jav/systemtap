@@ -241,6 +241,7 @@ HTML_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/tapsets
 @BUILD_PDFREFDOCS_TRUE@PDFDOCS = tapsets.pdf
 @XMLTO_STRINGPARAM_TRUE@XMLTOMANPARAMS = --stringparam man.authors.section.enabled=0 --stringparam man.copyright.section.enabled=0
 @XMLTO_STRINGPARAM_TRUE@XMLTOHTMLPARAMS = --stringparam use.id.as.filename=1
+@XMLTO_STRINGPARAM_TRUE@XMLTOPDFPARAMS = --stringparam refentry.generate.name=0 --stringparam refentry.generate.title=1
 @HAVE_FOP_FALSE@XMLTOPDF_FOP = 
 @HAVE_FOP_TRUE@XMLTOPDF_FOP = --with-fop
 @BUILD_REFDOCS_TRUE@SRCTREE = $(abs_top_srcdir)/
