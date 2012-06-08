@@ -64,12 +64,12 @@ if { [error_handler [expr {$res == ""}] "target_compile sdt_misc.x"] } { return 
 
 # Test globbing
 
-proc globbing_test { mssg } {
+proc globbing_test { mssg script } {
 global sopath exepath srcdir subdir stap_path
 eval set globs "{{*} {*libsdt*} $sopath}"
 foreach glob $globs {
 set ok 0
-spawn $stap_path -c $exepath $srcdir/$subdir/library.stp $exepath "$glob"
+spawn $stap_path -c $exepath $script $exepath "$glob"
 
 expect {
     -timeout 180
@@ -99,10 +99,11 @@ error_handler [expr {$ok == 15}] "sdt_misc $glob $mssg ($ok != 15)"
 } ; # foreach glob
 } ; # proc globbing_test
 
-globbing_test ""
+set script_path [fullpath $srcdir/$subdir/library.stp]
+globbing_test "" $script_path
 set savedir [pwd]
 cd /tmp
-globbing_test "rpath"
+globbing_test "rpath" $script_path
 cd $savedir
 
 # Test --ldd
