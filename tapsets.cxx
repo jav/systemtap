@@ -4120,9 +4120,8 @@ check_process_probe_kernel_support(systemtap_session& s)
 
   // We don't have utrace.  For process probes that aren't
   // uprobes-based, we just need the task_finder.  The task_finder
-  // needs CONFIG_TRACEPOINTS and specific tracepoints (and perhaps
-  // some CONFIG_FTRACE support).  There are specific autoconf tests
-  // for its needs.
+  // needs CONFIG_TRACEPOINTS and specific tracepoints.  There is a
+  // specific autoconf test for its needs.
   //
   // We'll just require CONFIG_TRACEPOINTS here as a quick-and-dirty
   // approximation.

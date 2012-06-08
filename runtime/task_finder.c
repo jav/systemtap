@@ -5,8 +5,7 @@
  * Which utrace shall we use?
  * (1) Built-in kernel utrace (preferred), indicated by
  * CONFIG_UTRACE.
- * (2) Internal utrace.  Requires either
- * STAPCONF_UTRACE_VIA_TRACEPOINTS or STAPCONF_UTRACE_VIA_FTRACE.
+ * (2) Internal utrace.  Requires STAPCONF_UTRACE_VIA_TRACEPOINTS.
  * (3) If we don't have either (old kernels or new kernels without all
  * the pre-requisites), error.
  */

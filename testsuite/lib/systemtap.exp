@@ -18,21 +18,16 @@ proc utrace_p {} {
     if {! [catch {exec grep -q utrace_attach $path} dummy]} {
 	return 1
 
-    # (2) Tracepoint-based utrace.  Check for either:
-    # (2a) the set of 5 tracepoints we need (see
-    # runtime/autoconf-utrace-via-ftrace.c)
-    # (2b) the 4 tracepoints and the ftrace function we need (see
-    # runtime/autoconf-utrace-via-ftrace.c)
-    #
-    # Since 4 tracepoints are shared between the 2 methods, that makes
-    # things a bit easier.
+    # (2) Tracepoint-based utrace.  Check for the set of 5 tracepoints
+    # we need and task_work_add() (see
+    # runtime/autoconf-utrace-via-tracepoints.c for details).
     } elseif {! [catch {exec grep -q tracepoint_sched_process_fork $path} dummy]
 	      && ! [catch {exec grep -q tracepoint_sched_process_exit $path} dummy]
 	      && ! [catch {exec grep -q tracepoint_sys_enter $path} dummy]
 	      && ! [catch {exec grep -q tracepoint_sys_exit $path} dummy]
 
-	      && (! [catch {exec grep -q tracepoint_sched_process_exec $path} dummy]
-		  || ! [catch {exec grep -q ftrace_set_filter $path} dummy])} {
+	      && ! [catch {exec grep -q tracepoint_sched_process_exec $path} dummy]
+	      && ! [catch {exec grep -q tasK_worK_add $path} dummy]} {
         return 1
     }
     return 0
