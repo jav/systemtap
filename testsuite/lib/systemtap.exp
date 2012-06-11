@@ -27,7 +27,7 @@ proc utrace_p {} {
 	      && ! [catch {exec grep -q tracepoint_sys_exit $path} dummy]
 
 	      && ! [catch {exec grep -q tracepoint_sched_process_exec $path} dummy]
-	      && ! [catch {exec grep -q tasK_worK_add $path} dummy]} {
+	      && ! [catch {exec grep -q task_work_add $path} dummy]} {
         return 1
     }
     return 0
