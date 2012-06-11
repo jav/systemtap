@@ -501,13 +501,11 @@ profile_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
   if (probes.empty()) return;
 
-  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++)";
-  s.op->newline(1) << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)"; // == using_rpn of yore
+  s.op->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)"; // == using_rpn of yore
   s.op->newline() << "unregister_profile_notifier (& stap_profile_notifier);";
   s.op->newline() << "#else";
   s.op->newline() << "unregister_timer_hook (& enter_profile_probes);";
   s.op->newline() << "#endif";
-  s.op->indent(-1);
 }
 
 
