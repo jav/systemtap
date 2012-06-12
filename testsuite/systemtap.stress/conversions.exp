@@ -42,3 +42,11 @@ if {! [catch {exec stap -l "kernel.trace(\"sched_switch\")"} dummy]} {
 
 # Test memory accesses from timer.profile probes.
 run_conv_test $srcdir/$subdir/conversions_profile.stp
+
+# Test memory accesses from perf probes (if we've got perf probes).
+set path "/proc/kallsyms"
+if {! [catch {exec grep -q perf_event_create_kernel_counter $path} dummy]} {
+    run_conv_test $srcdir/$subdir/conversions_perf.stp
+} else {
+    untested "conversions_perf.stp"
+}

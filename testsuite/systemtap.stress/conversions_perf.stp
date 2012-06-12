@@ -1,0 +1,173 @@
+#! stap
+# Usage: set $1 to supply test address; -DMAXERRORS=<many>
+#
+# Note that each test has to be in a separate probe, since an error
+# aborts the current probe, but others will continue.
+
+global hits
+
+probe perf.sw.cpu_clock {
+	if (hits[0] == 0) {
+		hits[0] = 1
+		print (kernel_string ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[1] == 0) {
+		hits[1] = 1
+		print (kernel_long ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[2] == 0) {
+		hits[2] = 1
+		print (kernel_int($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[3] == 0) {
+		hits[3] = 1
+		print (kernel_short ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[4] == 0) {
+		hits[4] = 1
+		print (kernel_char ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[5] == 0) {
+		hits[5] = 1
+		print (kernel_int ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[6] == 0) {
+		hits[6] = 1
+		printf ("%m", $1)
+ 	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[7] == 0) {
+		hits[7] = 1
+		str = sprintf("%m", $1); printf ("%s", str)
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[8] == 0) {
+		hits[8] = 1
+		printf ("%M", $1)
+ 	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[9] == 0) {
+		hits[9] = 1
+		str = sprintf("%M", $1); printf ("%s", str)
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[10] == 0) {
+		hits[10] = 1
+		print (user_string ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[11] == 0) {
+		hits[11] = 1
+		print (user_string2 ($1,"<only suspected, not known>"))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[12] == 0) {
+		hits[12] = 1
+		print (user_string_warn ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[13] == 0) {
+		hits[13] = 1
+		print (user_string_quoted ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[14] == 0) {
+		hits[14] = 1
+		print (user_string_n ($1, 5))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[15] == 0) {
+		hits[15] = 1
+		print (user_string_n ($1, 5))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[16] == 0) {
+		hits[16] = 1
+		print (user_string_n2 ($1, 5, "<only suspected, not known>"))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[17] == 0) {
+		hits[17] = 1
+		print (user_string_n_warn ($1, 5))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[18] == 0) {
+		hits[18] = 1
+		print (user_string_n_quoted ($1, 5))
+ 	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[19] == 0) {
+		hits[19] = 1
+		print (user_short ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[20] == 0) {
+		hits[20] = 1
+		print (user_short_warn ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[21] == 0) {
+		hits[21] = 1
+		print (user_int ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[22] == 0) {
+		hits[22] = 1
+		print (user_int_warn ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[23] == 0) {
+		hits[23] = 1
+		print (user_long ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[24] == 0) {
+		hits[24] = 1
+		print (user_long_warn ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[25] == 0) {
+		hits[25] = 1
+		print (user_char ($1))
+	}
+}
+probe perf.sw.cpu_clock {
+	if (hits[26] == 0) {
+		hits[26] = 1
+		print (user_char_warn ($1))
+	}
+}
+
+# Assume that by 3 seconds, all the above probes have been hit.
+probe timer.s(3) { print ("\n") exit () }
