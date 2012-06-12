@@ -1,24 +1,45 @@
 
-set file $srcdir/$subdir/conversions.stp
-foreach value {0 0xffffffff 0xffffffffffffffff} {
-    # PR 4121: address 0 is valid on s390x
-    if {[istarget s390x-*-*] && $value == 0} { set value 0x7777777777 }
-    # PR 4540: ia64 thinks 0xffffffffffffffff okay for character accesses
-    if {[istarget ia64-*-*] && $value == 0xffffffffffffffff } { set value 0xafffffffffffffff }
-    set test "conversions.stp $value"
-    if {![installtest_p]} { untested $test; continue }
-    # Turn off the duplication elimination to get an accurate count (PR12168)
-    spawn stap -vv -DMAXERRORS=40 $file $value
-    set errs 0
-    verbose -log "exp $test $errs"
-    expect {
-        -timeout 180
-        -re {(ERROR|WARNING)[^\r\n]*\r\n} { incr errs; exp_continue }
-        eof { }
-        timeout { fail "$test (timeout)" }
+proc run_conv_test {filename} {
+    foreach value {0 0xffffffff 0xffffffffffffffff} {
+	# PR 4121: address 0 is valid on s390x
+	if {[istarget s390x-*-*] && $value == 0} { set value 0x7777777777 }
+	# PR 4540: ia64 thinks 0xffffffffffffffff okay for character accesses
+	if {[istarget ia64-*-*] && $value == 0xffffffffffffffff } {
+	    set value 0xafffffffffffffff
+	}
+
+	set test "[file tail $filename] $value"
+	if {![installtest_p]} { untested $test; continue }
+
+	# Turn off the duplication elimination to get an accurate
+	# count (PR12168)
+	spawn stap -vv -DMAXERRORS=40 $filename $value
+	set errs 0
+	verbose -log "exp $test $errs"
+	expect {
+	    -timeout 180
+	    -re {(ERROR|WARNING)[^\r\n]*\r\n} { incr errs; exp_continue }
+	    eof { }
+	    timeout { fail "$test (timeout)" }
+	}
+	verbose -log "done exp $test $errs"
+	catch {close}; catch {wait}
+	if {$errs == 18} { pass $test } else { fail "$test ($errs)" }
+	verbose -log "done $test $errs"
     }
-    verbose -log "done exp $test $errs"
-    catch {close}; catch {wait}
-    if {$errs == 18} { pass $test } else { fail "$test ($errs)" }
-    verbose -log "done $test $errs"
 }
+
+# Test memory accesses from begin probes.
+run_conv_test $srcdir/$subdir/conversions.stp
+
+# Test memory accesses from kernel.trace probes (if the "sched_switch"
+# tracepoint exists).
+set path "/proc/kallsyms"
+if {! [catch {exec grep -q tracepoint_sched_switch $path} dummy]} {
+    run_conv_test $srcdir/$subdir/conversions_trace.stp
+} else {
+    untested "conversions_trace.stp"
+}
+
+# Test memory accesses from timer.profile probes.
+run_conv_test $srcdir/$subdir/conversions_profile.stp
