@@ -34,8 +34,7 @@ run_conv_test $srcdir/$subdir/conversions.stp
 
 # Test memory accesses from kernel.trace probes (if the "sched_switch"
 # tracepoint exists).
-set path "/proc/kallsyms"
-if {! [catch {exec grep -q tracepoint_sched_switch $path} dummy]} {
+if {! [catch {exec stap -l "kernel.trace(\"sched_switch\")"} dummy]} {
     run_conv_test $srcdir/$subdir/conversions_trace.stp
 } else {
     untested "conversions_trace.stp"
