@@ -426,7 +426,8 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
   bool deref_fault_needed = false;
   for (unsigned i = 0; i < mark_args.size(); i++)
     {
-      string localname = "l->__mark_arg" + lex_cast(i+1);
+      string localname = "l->" +
+        sess.up->c_localname("__mark_arg" + lex_cast(i+1));
       switch (mark_args[i]->stp_type)
         {
 	case pe_long:
