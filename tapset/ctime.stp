@@ -98,18 +98,18 @@ function ctime:string(epochsecs:long)
     int64_t MAX_POS_SECS =  2147483647LL;
     int64_t MIN_NEG_SECS = -2147483648LL;
 
-    if (THIS->epochsecs > MAX_POS_SECS)
+    if (STAP_ARG_epochsecs > MAX_POS_SECS)
       {
-        strlcpy(THIS->__retvalue, "far far in the future...", MAXSTRINGLEN);
+        strlcpy(STAP_RETVALUE, "far far in the future...", MAXSTRINGLEN);
 	return;
       }
-    if (THIS->epochsecs < MIN_NEG_SECS)
+    if (STAP_ARG_epochsecs < MIN_NEG_SECS)
       {
-        strlcpy(THIS->__retvalue, "a long, long time ago...", MAXSTRINGLEN);
+        strlcpy(STAP_RETVALUE, "a long, long time ago...", MAXSTRINGLEN);
         return;
       }
 
-    lcltime = THIS->epochsecs;
+    lcltime = STAP_ARG_epochsecs;
    
     days = ((long)lcltime) / SECSPERDAY;
     rem = ((long)lcltime) % SECSPERDAY;
@@ -167,7 +167,7 @@ function ctime:string(epochsecs:long)
      * convert it to an ascii representation.
      */
 
-    snprintf (THIS->__retvalue, MAXSTRINGLEN, "%.3s %.3s%3d %.2d:%.2d:%.2d %d",
+    snprintf (STAP_RETVALUE, MAXSTRINGLEN, "%.3s %.3s%3d %.2d:%.2d:%.2d %d",
 	      day_name[tm_wday], mon_name[tm_mon],
 	      tm_mday, tm_hour, tm_min,
 	      tm_sec, tm_year);

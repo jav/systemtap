@@ -6,15 +6,15 @@ global activity_time, activity_log
 /* Concatenate head and tail, to a max of @num chars, preferring to keep the tail
    (as if it were a recent history buffer). */
 function strcattail:string(head:string,tail:string,num:long) %{ /* pure */
-         unsigned taillen = strlen(THIS->tail);
-         unsigned headlen = strlen(THIS->head);
-         unsigned maxlen = THIS->num < MAXSTRINGLEN ? THIS->num : MAXSTRINGLEN;
+         unsigned taillen = strlen(STAP_ARG_tail);
+         unsigned headlen = strlen(STAP_ARG_head);
+         unsigned maxlen = STAP_ARG_num < MAXSTRINGLEN ? STAP_ARG_num : MAXSTRINGLEN;
          unsigned headkeep = min(maxlen-taillen,headlen);
          unsigned headdrop = headlen-headkeep;
 
          if (headkeep)
-            strlcpy (THIS->__retvalue, &THIS->head[headdrop], headkeep+1); /* includes \0 */
-         strlcat (THIS->__retvalue, THIS->tail, maxlen);
+            strlcpy (STAP_RETVALUE, &STAP_ARG_head[headdrop], headkeep+1); /* includes \0 */
+         strlcat (STAP_RETVALUE, STAP_ARG_tail, maxlen);
 %}
 
 probe kernel.function("tty_audit_add_data") {

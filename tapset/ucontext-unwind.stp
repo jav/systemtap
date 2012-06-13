@@ -42,7 +42,7 @@ function print_ubacktrace () %{ /* pragma:unwind */ /* pragma:symbols */
  */
 function sprint_ubacktrace:string () %{ /* pragma:unwind */ /* pragma:symbols */
 /* pure */ /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-    _stp_stack_user_sprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT,
+    _stp_stack_user_sprint (STAP_RETVALUE, MAXSTRINGLEN, CONTEXT,
 			    _STP_SYM_SIMPLE);
 %}
 
@@ -76,6 +76,6 @@ function print_ubacktrace_brief () %{ /* pragma:unwind */ /* pragma:symbols */
  */
 function ubacktrace:string () %{ /* pragma:unwind */
 /* pure */ /* myproc-unprivileged */ /* pragma:uprobes */ /* pragma:vma */
-    _stp_stack_user_sprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT,
+    _stp_stack_user_sprint (STAP_RETVALUE, MAXSTRINGLEN, CONTEXT,
 			    _STP_SYM_NONE);
 %}

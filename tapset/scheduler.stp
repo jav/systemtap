@@ -17,7 +17,7 @@ function __is_idle:long()
      * - current == this_rq()->idle
      * - others?
      */
-    THIS->__retvalue = (current->pid == 0);
+    STAP_RETVALUE = (current->pid == 0);
 %}
 
 

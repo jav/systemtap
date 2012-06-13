@@ -114,5 +114,5 @@ probe end(1)
 function get_buffer:long () %{
     static char buffer[MAXSTRINGLEN];
     memset(buffer, 0, sizeof(buffer));
-    THIS->__retvalue = (long)buffer;
+    STAP_RETVALUE = (long)buffer;
 %}

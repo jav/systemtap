@@ -15,13 +15,13 @@
  */
 function atomic_read:long(addr:long)
 %{ /* pure */
-	atomic_t *a = (atomic_t *)(long)THIS->addr;
+	atomic_t *a = (atomic_t *)(long)STAP_ARG_addr;
 
 	/* We call deref() here to ensure the memory is valid to read.
 	 * Note the result is thrown away, then we use the "real"
 	 * atomic read function now that we know the address is safe. */
 	(void)kderef(sizeof(*a), a);
-	THIS->__retvalue = atomic_read(a);
+	STAP_RETVALUE = atomic_read(a);
 	CATCH_DEREF_FAULT();
 %}
 
@@ -36,13 +36,13 @@ function atomic_read:long(addr:long)
 function atomic_long_read:long(addr:long)
 %{ /* pure */
 #ifdef ATOMIC_LONG_INIT
-	atomic_long_t *a = (atomic_long_t *)(long)THIS->addr;
+	atomic_long_t *a = (atomic_long_t *)(long)STAP_ARG_addr;
 
 	/* We call deref() here to ensure the memory is valid to read.
 	 * Note the result is thrown away, then we use the "real"
 	 * atomic read function now that we know the address is safe. */
 	(void)kderef(sizeof(*a), a);
-	THIS->__retvalue = atomic_long_read(a);
+	STAP_RETVALUE = atomic_long_read(a);
 	CATCH_DEREF_FAULT();
 #endif
 %}

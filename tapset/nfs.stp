@@ -190,30 +190,30 @@ function __file_parentname:string (file:long)
 function __iov_length:long (iov:long, nr_segs:long, check_flag:long, access_flags:long) %{ /* pure */
         unsigned long seg;
         size_t ret = 0;
-        const struct iovec *iov = (const struct iovec *)(long)THIS->iov;
-        unsigned long nr_segs = (unsigned long)THIS->nr_segs;
+        const struct iovec *iov = (const struct iovec *)(long)STAP_ARG_iov;
+        unsigned long nr_segs = (unsigned long)STAP_ARG_nr_segs;
 
         for (seg = 0; seg < nr_segs; seg++)
 	{   __kernel_size_t iov_len  = kread(&(iov[seg].iov_len));
             ret += iov_len;
 		
-	    if (THIS->check_flag) {
+	    if (STAP_ARG_check_flag) {
 
                 if (unlikely((ssize_t)(ret|iov_len) < 0)) {
-			THIS->__retvalue = -EINVAL;
+			STAP_RETVALUE = -EINVAL;
 			return;
 		}
-                if (access_ok((int)THIS->access_flags, kread(&(iov[seg].iov_base)), iov_len))
+                if (access_ok((int)STAP_ARG_access_flags, kread(&(iov[seg].iov_base)), iov_len))
                         continue;
                 if (seg == 0) {
-        		THIS->__retvalue = -EFAULT;
+        		STAP_RETVALUE = -EFAULT;
 			return;
 		}
                 ret -= iov_len;     /* This segment is no good */
                 break;
 	   }
 	}
-        THIS->__retvalue = (long)ret;
+        STAP_RETVALUE = (long)ret;
         CATCH_DEREF_FAULT();
 %}
 

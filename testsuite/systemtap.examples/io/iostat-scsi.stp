@@ -30,7 +30,7 @@ function get_sector_size:long (data:long) {
 %}
 
 function get_nr_sectors:long(rq:long) %{ /* pure */
-  THIS->__retvalue = blk_rq_sectors((const struct request *)(long)THIS->rq);
+  STAP_RETVALUE = blk_rq_sectors((const struct request *)(long)STAP_ARG_rq);
 %}
 %)
 

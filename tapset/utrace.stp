@@ -9,7 +9,7 @@ function _utrace_syscall_nr:long () %{		/* pure */ /* myproc-unprivileged */
         || ! (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)) {
        CONTEXT->last_error = "invalid call without context registers";
     } else {
-       THIS->__retvalue = syscall_get_nr(current, CONTEXT->uregs);
+       STAP_RETVALUE = syscall_get_nr(current, CONTEXT->uregs);
     }
 %}
 
@@ -19,9 +19,9 @@ function _utrace_syscall_arg:long (n:long) %{	/* pure */ /* myproc-unprivileged 
         || ! (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)) {
        CONTEXT->last_error = "invalid call without context registers";
     } else {
-       syscall_get_arguments(current, CONTEXT->uregs, (int)THIS->n, 1, &arg);
+       syscall_get_arguments(current, CONTEXT->uregs, (int)STAP_ARG_n, 1, &arg);
     }
-    THIS->__retvalue = arg;
+    STAP_RETVALUE = arg;
 %}
 
 function _utrace_syscall_return:long () %{	/* pure */ /* myproc-unprivileged */
@@ -35,7 +35,7 @@ function _utrace_syscall_return:long () %{	/* pure */ /* myproc-unprivileged */
         || ! (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)) {
        CONTEXT->last_error = "invalid call without context registers";
     } else {
-       THIS->__retvalue = (unsigned long)syscall_get_return_value(current,
+       STAP_RETVALUE = (unsigned long)syscall_get_return_value(current,
 							       CONTEXT->uregs);
     }
 %}

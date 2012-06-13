@@ -16,12 +16,12 @@
  * copy fault.
  */
 function kernel_string:string (addr:long) %{ /* pure */
-  char *destination = THIS->__retvalue;
-  kderef_string (destination, THIS->addr, MAXSTRINGLEN);
+  char *destination = STAP_RETVALUE;
+  kderef_string (destination, STAP_ARG_addr, MAXSTRINGLEN);
   if (0) {
 deref_fault: /* branched to from deref_string() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel string copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel string copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -48,13 +48,13 @@ function kernel_string2:string (addr:long, err_msg:string) {
  * given kernel memory address. Reports an error on string copy fault.
  */
 function kernel_string_n:string (addr:long, n:long) %{ /* pure */
-  char *destination = THIS->__retvalue;
-  int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
-  kderef_string (destination, THIS->addr, len);
+  char *destination = STAP_RETVALUE;
+  int64_t len = clamp_t(int64_t, STAP_ARG_n + 1, 1, MAXSTRINGLEN);
+  kderef_string (destination, STAP_ARG_addr, len);
   if (0) {
 deref_fault: /* branched to from deref_string() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel string copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel string copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -67,11 +67,11 @@ deref_fault: /* branched to from deref_string() */
  * Reports an error when reading from the given address fails.
  */
 function kernel_long:long (addr:long) %{ /* pure */
-  THIS->__retvalue = kread((long *) (intptr_t) THIS->addr);
+  STAP_RETVALUE = kread((long *) (intptr_t) STAP_ARG_addr);
   if (0) {
 deref_fault: /* branched to from kread() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel long copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel long copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -84,11 +84,11 @@ deref_fault: /* branched to from kread() */
  * Reports an error when reading from the given address fails.
  */
 function kernel_int:long (addr:long) %{ /* pure */
-  THIS->__retvalue = kread((int *) (intptr_t) THIS->addr);
+  STAP_RETVALUE = kread((int *) (intptr_t) STAP_ARG_addr);
   if (0) {
 deref_fault: /* branched to from kread() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel int copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel int copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -101,11 +101,11 @@ deref_fault: /* branched to from kread() */
  * Reports an error when reading from the given address fails.
  */
 function kernel_short:long (addr:long) %{ /* pure */
-  THIS->__retvalue = kread((short *) (intptr_t) THIS->addr);
+  STAP_RETVALUE = kread((short *) (intptr_t) STAP_ARG_addr);
   if (0) {
 deref_fault: /* branched to from kread() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel short copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel short copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -118,11 +118,11 @@ deref_fault: /* branched to from kread() */
  * Reports an error when reading from the given address fails.
  */
 function kernel_char:long (addr:long) %{ /* pure */
-  THIS->__retvalue = kread((char *) (intptr_t) THIS->addr);
+  STAP_RETVALUE = kread((char *) (intptr_t) STAP_ARG_addr);
   if (0) {
 deref_fault: /* branched to from kread() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel char copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel char copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -136,11 +136,11 @@ deref_fault: /* branched to from kread() */
  * fails.
  */
 function kernel_pointer:long (addr:long) %{ /* pure */
-  THIS->__retvalue = (uintptr_t) kread((void **) (uintptr_t) THIS->addr);
+  STAP_RETVALUE = (uintptr_t) kread((void **) (uintptr_t) STAP_ARG_addr);
   if (0) {
 deref_fault: /* branched to from kread() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel pointer copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel pointer copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}

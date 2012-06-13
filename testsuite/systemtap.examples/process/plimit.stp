@@ -21,23 +21,23 @@ function getrlimit:string (rlim:long, pid:long) %{ /* pure */
 	list_for_each_safe(_p, _n, &current->tasks) {
 		p = list_entry(_p, struct task_struct, tasks);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,12)
-		cur = p->signal->rlim[THIS->rlim].rlim_cur;
-		max = p->signal->rlim[THIS->rlim].rlim_max;
+		cur = p->signal->rlim[STAP_ARG_rlim].rlim_cur;
+		max = p->signal->rlim[STAP_ARG_rlim].rlim_max;
 #else
-		cur = p->rlim[THIS->rlim].rlim_cur;
-		max = p->rlim[THIS->rlim].rlim_max;
+		cur = p->rlim[STAP_ARG_rlim].rlim_cur;
+		max = p->rlim[STAP_ARG_rlim].rlim_max;
 #endif
-		if (p->pid == (int)THIS->pid) {
+		if (p->pid == (int)STAP_ARG_pid) {
 			if (cur == -1 && max == -1)
-				strcat(THIS->__retvalue, "unlimited  unlimited");
+				strcat(STAP_RETVALUE, "unlimited  unlimited");
 			else if (cur == -1)
-				snprintf(THIS->__retvalue, MAXSTRINGLEN, "%-9s  %-9ld",
+				snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%-9s  %-9ld",
 					"unlimited", max);
 			else if (max == -1)
-				snprintf(THIS->__retvalue, MAXSTRINGLEN, "%-9ld  %-9s",
+				snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%-9ld  %-9s",
 					cur, "unlimited");
 			else
-				snprintf(THIS->__retvalue, MAXSTRINGLEN, "%-9ld  %-9ld",
+				snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%-9ld  %-9ld",
 					cur, max);
 		}
 	}
@@ -48,8 +48,8 @@ function task_execname_by_pid:string (pid:long) %{ /* pure */
 	struct list_head *_p, *_n;
 	list_for_each_safe(_p, _n, &current->tasks) {
 		p = list_entry(_p, struct task_struct, tasks);
-		if (p->pid == (int)THIS->pid) 
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s", p->comm);
+		if (p->pid == (int)STAP_ARG_pid) 
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%s", p->comm);
 	}
 %}
 

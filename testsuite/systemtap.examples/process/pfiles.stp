@@ -84,14 +84,14 @@
 %}
 
 function task_valid_file_handle:long (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	struct file *filp;
 
 	rcu_read_lock();
 	if ((files = kread(&p->files))) {
-		filp = fcheck_files(files, THIS->fd);
-		THIS->__retvalue = !!filp;
+		filp = fcheck_files(files, STAP_ARG_fd);
+		STAP_RETVALUE = !!filp;
 	}
 
 	CATCH_DEREF_FAULT();
@@ -99,24 +99,24 @@ function task_valid_file_handle:long (task:long, fd:long) %{ /* pure */
 %}
 
 function i_mode2str:string (i_mode:long) {
-	if (%{ S_ISLNK(THIS->i_mode) %})
+	if (%{ S_ISLNK(STAP_ARG_i_mode) %})
 		return "S_IFLNK"
-	if (%{ S_ISREG(THIS->i_mode) %})
+	if (%{ S_ISREG(STAP_ARG_i_mode) %})
 		return "S_IFREG"
-	if (%{ S_ISDIR(THIS->i_mode) %})
+	if (%{ S_ISDIR(STAP_ARG_i_mode) %})
 		return "S_IFDIR"
-	if (%{ S_ISCHR(THIS->i_mode) %})
+	if (%{ S_ISCHR(STAP_ARG_i_mode) %})
 		return "S_IFCHR"
-	if (%{ S_ISBLK(THIS->i_mode) %})
+	if (%{ S_ISBLK(STAP_ARG_i_mode) %})
 		return "S_IFBLK"
-	if (%{ S_ISFIFO(THIS->i_mode) %})
+	if (%{ S_ISFIFO(STAP_ARG_i_mode) %})
 		return "S_IFIFO"
-	if (%{ S_ISSOCK(THIS->i_mode) %})
+	if (%{ S_ISSOCK(STAP_ARG_i_mode) %})
 		return "S_IFSOCK"
 }
 
 function task_file_handle_i_mode:long (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	struct file *filp;
 	struct dentry *dentry;
@@ -124,10 +124,10 @@ function task_file_handle_i_mode:long (task:long, fd:long) %{ /* pure */
 
 	rcu_read_lock();
 	if ((files = kread(&p->files)) &&
-	    (filp = fcheck_files(files, THIS->fd)) &&
+	    (filp = fcheck_files(files, STAP_ARG_fd)) &&
 	    (dentry = kread(&filp->f_dentry)) &&
 	    (inode = kread(&dentry->d_inode))) {
-		THIS->__retvalue = kread(&inode->i_mode);
+		STAP_RETVALUE = kread(&inode->i_mode);
 	}
 
 	CATCH_DEREF_FAULT();
@@ -135,7 +135,7 @@ function task_file_handle_i_mode:long (task:long, fd:long) %{ /* pure */
 %}
 
 function task_file_handle_majmin_dev:string (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	struct file *filp;
 	struct dentry *dentry;
@@ -145,12 +145,12 @@ function task_file_handle_majmin_dev:string (task:long, fd:long) %{ /* pure */
 
 	rcu_read_lock();
 	if ((files = kread(&p->files)) &&
-	    (filp = fcheck_files(files, THIS->fd)) &&
+	    (filp = fcheck_files(files, STAP_ARG_fd)) &&
 	    (dentry = kread(&filp->f_dentry)) &&
 	    (inode = kread(&dentry->d_inode)) &&
 	    (sb = kread(&inode->i_sb))) {
 		dev_nr = kread(&sb->s_dev);
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			"%d,%d", MAJOR(dev_nr), MINOR(dev_nr));
 	}
 
@@ -159,7 +159,7 @@ function task_file_handle_majmin_dev:string (task:long, fd:long) %{ /* pure */
 %}
 
 function task_file_handle_majmin_rdev:string (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	struct file *filp;
 	struct dentry *dentry;
@@ -168,11 +168,11 @@ function task_file_handle_majmin_rdev:string (task:long, fd:long) %{ /* pure */
 
 	rcu_read_lock();
 	if ((files = kread(&p->files)) &&
-	    (filp = fcheck_files(files, THIS->fd)) &&
+	    (filp = fcheck_files(files, STAP_ARG_fd)) &&
 	    (dentry = kread(&filp->f_dentry)) &&
 	    (inode = kread(&dentry->d_inode))) {
 		rdev_nr = kread(&inode->i_rdev);
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			"%d,%d", MAJOR(rdev_nr), MINOR(rdev_nr));
 	}
 
@@ -181,7 +181,7 @@ function task_file_handle_majmin_rdev:string (task:long, fd:long) %{ /* pure */
 %}
 
 function task_file_handle_i_node:long (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	struct file *filp;
 	struct dentry *dentry;
@@ -189,10 +189,10 @@ function task_file_handle_i_node:long (task:long, fd:long) %{ /* pure */
 
 	rcu_read_lock();
 	if ((files = kread(&p->files)) &&
-	    (filp = fcheck_files(files, THIS->fd)) &&
+	    (filp = fcheck_files(files, STAP_ARG_fd)) &&
 	    (dentry = kread(&filp->f_dentry)) &&
 	    (inode = kread(&dentry->d_inode))) {
-		THIS->__retvalue = kread(&inode->i_ino);
+		STAP_RETVALUE = kread(&inode->i_ino);
 	}
 
 	CATCH_DEREF_FAULT();
@@ -200,21 +200,21 @@ function task_file_handle_i_node:long (task:long, fd:long) %{ /* pure */
 %}
 
 function task_file_handle_uid:long (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	struct file *filp;
 
 	rcu_read_lock();
 	if ((files = kread(&p->files)) &&
-	    (filp = fcheck_files(files, THIS->fd))) {
+	    (filp = fcheck_files(files, STAP_ARG_fd))) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29)
 		/* git commit d76b0d9b */
 		const struct cred *cred;
 		if ((cred = kread(&filp->f_cred))) {
-			THIS->__retvalue = kread(&cred->fsuid);
+			STAP_RETVALUE = kread(&cred->fsuid);
 		}
 #else
-		THIS->__retvalue = kread(&filp->f_uid);
+		STAP_RETVALUE = kread(&filp->f_uid);
 #endif
 	}
 
@@ -223,21 +223,21 @@ function task_file_handle_uid:long (task:long, fd:long) %{ /* pure */
 %}
 
 function task_file_handle_gid:long (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	struct file *filp;
 
 	rcu_read_lock();
 	if ((files = kread(&p->files)) &&
-	    (filp = fcheck_files(files, THIS->fd))) {
+	    (filp = fcheck_files(files, STAP_ARG_fd))) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,29)
 		/* git commit d76b0d9b */
 		const struct cred *cred;
 		if ((cred = kread(&filp->f_cred))) {
-			THIS->__retvalue = kread(&cred->fsgid);
+			STAP_RETVALUE = kread(&cred->fsgid);
 		}
 #else
-		THIS->__retvalue = kread(&filp->f_gid);
+		STAP_RETVALUE = kread(&filp->f_gid);
 #endif
 	}
 
@@ -246,14 +246,14 @@ function task_file_handle_gid:long (task:long, fd:long) %{ /* pure */
 %}
 
 function task_file_handle_f_flags:long (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	struct file *filp;
 
 	rcu_read_lock();
 	if ((files = kread(&p->files)) &&
-	    (filp = fcheck_files(files, THIS->fd))) {
-		THIS->__retvalue = kread(&filp->f_flags);
+	    (filp = fcheck_files(files, STAP_ARG_fd))) {
+		STAP_RETVALUE = kread(&filp->f_flags);
 	}
 
 	CATCH_DEREF_FAULT();
@@ -261,7 +261,7 @@ function task_file_handle_f_flags:long (task:long, fd:long) %{ /* pure */
 %}
 
 function task_file_handle_fd_flags:string (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	struct fdtable *fdt;
 	int gcoe;
@@ -269,8 +269,8 @@ function task_file_handle_fd_flags:string (task:long, fd:long) %{ /* pure */
 	rcu_read_lock();
 	if ((files = kread(&p->files)) &&
 	    (fdt = files_fdtable(files))) {
-		gcoe = FD_ISSET(THIS->fd, kread(&fdt->close_on_exec));
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		gcoe = FD_ISSET(STAP_ARG_fd, kread(&fdt->close_on_exec));
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			"%s", gcoe ? "FD_CLOEXEC" : "");
 	}
 
@@ -279,7 +279,7 @@ function task_file_handle_fd_flags:string (task:long, fd:long) %{ /* pure */
 %}
 
 function task_file_handle_flock:string (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	struct file_lock *flock;
 	int fl_type, fl_pid;
@@ -289,7 +289,7 @@ function task_file_handle_flock:string (task:long, fd:long) %{ /* pure */
 
 	rcu_read_lock();
 	if ((files = kread(&p->files)) &&
-	    (filp = fcheck_files(files, THIS->fd)) &&
+	    (filp = fcheck_files(files, STAP_ARG_fd)) &&
 	    (dentry = kread(&filp->f_dentry)) &&
 	    (inode = kread(&dentry->d_inode))) {
 		if ((flock = kread(&inode->i_flock))) {
@@ -301,11 +301,11 @@ function task_file_handle_flock:string (task:long, fd:long) %{ /* pure */
 		}
 
 		if (fl_type != -1) { /* !flock */
-			snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 				"      advisory %s lock set by process %d",
 				fl_type ? "write" : "read", fl_pid);
 		} else {
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "NULL");
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN, "NULL");
 		}
 	}
 
@@ -314,7 +314,7 @@ function task_file_handle_flock:string (task:long, fd:long) %{ /* pure */
 %}
 
 function task_file_handle_d_path:string (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	char *page = NULL;
 	struct file *filp;
@@ -327,7 +327,7 @@ function task_file_handle_d_path:string (task:long, fd:long) %{ /* pure */
 	    // We need GFP_ATOMIC since we're inside a lock so we
 	    // can't sleep.
 	    (page = (char *)__get_free_page(GFP_ATOMIC)) &&
-	    (filp = fcheck_files(files, THIS->fd))) {
+	    (filp = fcheck_files(files, STAP_ARG_fd))) {
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26)
 		/* git commit 9d1bc601 */
@@ -341,7 +341,7 @@ function task_file_handle_d_path:string (task:long, fd:long) %{ /* pure */
 		}
 #endif
 		if (path && !IS_ERR(path)) {
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s", path);
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%s", path);
 		}
 	}
 	CATCH_DEREF_FAULT();
@@ -352,7 +352,7 @@ function task_file_handle_d_path:string (task:long, fd:long) %{ /* pure */
 %}
 
 function task_file_handle_socket:long (task:long, fd:long) %{ /* pure */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 	struct files_struct *files;
 	struct file *filp;
 	struct dentry *dentry;
@@ -360,11 +360,11 @@ function task_file_handle_socket:long (task:long, fd:long) %{ /* pure */
 
 	rcu_read_lock();
 	if ((files = kread(&p->files)) &&
-	    (filp = fcheck_files(files, THIS->fd)) &&
+	    (filp = fcheck_files(files, STAP_ARG_fd)) &&
 	    (dentry = kread(&filp->f_dentry)) &&
 	    (inode = kread(&filp->f_dentry->d_inode))) {
 		if (S_ISSOCK(kread(&inode->i_mode)))
-			THIS->__retvalue = (long)SOCKET_I(inode);
+			STAP_RETVALUE = (long)SOCKET_I(inode);
 	}
 
 	CATCH_DEREF_FAULT();
@@ -372,19 +372,19 @@ function task_file_handle_socket:long (task:long, fd:long) %{ /* pure */
 %}
 
 function socket_userlocks:string (sock:long) %{ /* pure */
-	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct socket *sock = (struct socket *)((long)STAP_ARG_sock);
 	struct sock *sk = (struct sock *)kread(&sock->sk);
 	unsigned char locks = sk->sk_userlocks;
 	int printed = 0;
 
-	THIS->__retvalue[0] = '\0';
+	STAP_RETVALUE[0] = '\0';
 
 	if (locks & SOCK_RCVBUF_LOCK)
-		printed = snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		printed = snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			"ulocks: rcv");
 
 	if (locks & SOCK_SNDBUF_LOCK)
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			"ulocks: %ssnd",
 			printed ? "rcv, " : "");
 
@@ -392,7 +392,7 @@ function socket_userlocks:string (sock:long) %{ /* pure */
 %}
 
 function socket_optname:string (sock:long) %{ /* pure */
-    struct socket *sock = (struct socket *)((long)THIS->sock);
+    struct socket *sock = (struct socket *)((long)STAP_ARG_sock);
     int optval;
     int optlen;
     int ret, a;
@@ -430,7 +430,7 @@ function socket_optname:string (sock:long) %{ /* pure */
                snprintf(str, MAXSTRINGLEN, "%s,", p->optname);
            else
                snprintf(str, MAXSTRINGLEN, "%s(%d),", p->optname, optval);
-           strcat(THIS->__retvalue, str);
+           strcat(STAP_RETVALUE, str);
        }
     }
 
@@ -438,21 +438,21 @@ function socket_optname:string (sock:long) %{ /* pure */
     ret = kernel_getsockopt(sock, SOL_SOCKET, SO_LINGER, (void *)&ling, &optlen);
     if (ret == 0 && ling.l_onoff != 0) {
         snprintf(str, MAXSTRINGLEN, "SO_LINGER(%d),", ling.l_linger);
-        strcat(THIS->__retvalue, str);
+        strcat(STAP_RETVALUE, str);
     }
 
-    THIS->__retvalue[strlen(THIS->__retvalue) - 1] = '\0';
+    STAP_RETVALUE[strlen(STAP_RETVALUE) - 1] = '\0';
 %}
 
 function socket_family:long (sock:long) %{ /* pure */
-	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct socket *sock = (struct socket *)((long)STAP_ARG_sock);
 	const struct proto_ops *ops = kread(&sock->ops);
-	THIS->__retvalue = (long)kread(&ops->family);
+	STAP_RETVALUE = (long)kread(&ops->family);
 	CATCH_DEREF_FAULT();
 %}
 
 function socket_unix_sockname:string (sock:long) %{ /* pure */
-	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct socket *sock = (struct socket *)((long)STAP_ARG_sock);
 	const struct proto_ops *ops = kread(&sock->ops);
 	struct sockaddr_un un_addr;
 	int err, len;
@@ -461,16 +461,16 @@ function socket_unix_sockname:string (sock:long) %{ /* pure */
 //	err = kernel_getsockname(kread(&sock), (struct sockaddr *)(&un_addr), &len);
 	if (!err) {
 		if (kread(&un_addr.sun_path[0]) != 0)
-			snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 				"        sockname: AF_UNIX %s", un_addr.sun_path);
 		else
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "        sockname: AF_UNIX");
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN, "        sockname: AF_UNIX");
 	}
 	CATCH_DEREF_FAULT();
 %}
 
 function socket_unix_peername:string (sock:long) %{ /* pure */
-	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct socket *sock = (struct socket *)((long)STAP_ARG_sock);
 	const struct proto_ops *ops = kread(&sock->ops);
 	struct sockaddr_un un_addr;
 	int err, len;
@@ -479,10 +479,10 @@ function socket_unix_peername:string (sock:long) %{ /* pure */
 //	err = kernel_getpeername(kread(&sock), (struct sockaddr *)(&un_addr), &len);
 	if (!err) {
 		if (un_addr.sun_path[0] != 0)
-			snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 				"        peername: AF_UNIX %s", un_addr.sun_path);
 		else
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "        peername: AF_UNIX");
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN, "        peername: AF_UNIX");
 	}
 	CATCH_DEREF_FAULT();
 %}
@@ -501,7 +501,7 @@ function socket_unix_peername:string (sock:long) %{ /* pure */
 %}
 
 function socket_ipv4_sockname:string (sock:long) %{ /* pure */
-	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct socket *sock = (struct socket *)((long)STAP_ARG_sock);
 	const struct proto_ops *ops = kread(&sock->ops);
 	struct sockaddr_in in_addr;
 	__be32 addr, port;
@@ -511,7 +511,7 @@ function socket_ipv4_sockname:string (sock:long) %{ /* pure */
 	if (!err) {
 		addr = in_addr.sin_addr.s_addr;
 		port = htons(in_addr.sin_port);
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			"        sockname: AF_INET " NIPQUAD_FMT "  port: %d",
 			NIPQUAD(addr), port);
 	}
@@ -519,7 +519,7 @@ function socket_ipv4_sockname:string (sock:long) %{ /* pure */
 %}
 
 function socket_ipv4_peername:string (sock:long) %{ /* pure */
-	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct socket *sock = (struct socket *)((long)STAP_ARG_sock);
 	const struct proto_ops *ops = kread(&sock->ops);
 	struct sockaddr_in in_addr;
 	__be32 addr, port;
@@ -529,7 +529,7 @@ function socket_ipv4_peername:string (sock:long) %{ /* pure */
 	if (!err) {
 		addr = in_addr.sin_addr.s_addr;
 		port = htons(in_addr.sin_port);
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			"        peername: AF_INET " NIPQUAD_FMT "  port: %d",
 			NIPQUAD(addr), port);
 	}
@@ -555,7 +555,7 @@ function socket_ipv4_peername:string (sock:long) %{ /* pure */
 %}
 
 function socket_ipv6_sockname:string (sock:long) %{ /* pure */
-	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct socket *sock = (struct socket *)((long)STAP_ARG_sock);
 	const struct proto_ops *ops = kread(&sock->ops);
 	struct sockaddr_in6 in_addr;
 	__be32 port;
@@ -564,7 +564,7 @@ function socket_ipv6_sockname:string (sock:long) %{ /* pure */
 	err = ops->getname (sock, (struct sockaddr*)(&in_addr), &len, 0);
 	if (!err) {
 		port = htons(in_addr.sin6_port);
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			"        sockname: AF_INET6 " NIP6_FMT "  port: %d",
 			NIP6(in_addr.sin6_addr), port);
 	}
@@ -572,7 +572,7 @@ function socket_ipv6_sockname:string (sock:long) %{ /* pure */
 %}
 
 function socket_ipv6_peername:string (sock:long) %{ /* pure */
-	struct socket *sock = (struct socket *)((long)THIS->sock);
+	struct socket *sock = (struct socket *)((long)STAP_ARG_sock);
 	const struct proto_ops *ops = kread(&sock->ops);
 	struct sockaddr_in6 in_addr;
 	__be32 port;
@@ -581,7 +581,7 @@ function socket_ipv6_peername:string (sock:long) %{ /* pure */
 	err = ops->getname (sock, (struct sockaddr*)(&in_addr), &len, 1);
 	if (!err) {
 		port = htons(in_addr.sin6_port);
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			"        peername: AF_INET6 " NIP6_FMT "  port: %d",
 			NIP6(in_addr.sin6_addr), port);
 	}

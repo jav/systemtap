@@ -20,7 +20,7 @@
  * messages. 
  */
 function log (msg:string) %{ /* unprivileged */
-	_stp_printf ("%s\n", THIS->msg);
+	_stp_printf ("%s\n", STAP_ARG_msg);
 %}
 
 
@@ -34,7 +34,7 @@ function log (msg:string) %{ /* unprivileged */
  * being used. If the last characater is not a newline, the one is added.
  */
 function warn (msg:string) %{ /* unprivileged */
-    _stp_warn ("%s", THIS->msg);
+    _stp_warn ("%s", STAP_ARG_msg);
 %}
 
 
@@ -69,12 +69,12 @@ function error (msg:string) %{ /* unprivileged */
        code ensures that upon an error (last_error != NULL), the
        context stack is only ever unwound, and not reused, before
        the probe-level stp-error call.  */
-    CONTEXT->last_error = THIS->msg;
+    CONTEXT->last_error = STAP_ARG_msg;
     CONTEXT->last_stmt = NULL;
 %}
 
 function stp_print_binary(n:long, arg1:long, arg2:long, arg3:long, arg4:long) %{
-	_stp_print_binary (THIS->n, THIS->arg1, THIS->arg2, THIS->arg3, THIS->arg4);
+	_stp_print_binary (STAP_ARG_n, STAP_ARG_arg1, STAP_ARG_arg2, STAP_ARG_arg3, STAP_ARG_arg4);
 %}
 
 
@@ -90,7 +90,7 @@ function stp_print_binary(n:long, arg1:long, arg2:long, arg3:long, arg4:long) %{
 function ftrace (msg:string) %{
 #ifdef STAPCONF_TRACE_PRINTK
        static char *fmt = "%s\n";
-       trace_printk (fmt, THIS->msg);
+       trace_printk (fmt, STAP_ARG_msg);
 
        /* The "fmt" is designed to be non __builtin_constant_p(), so as
        to defeat trace_printk -> __trace_bprintk optimization.  That's
@@ -113,18 +113,18 @@ function ftrace (msg:string) %{
  * to guru mode only.
  */
 function printk (level:long,msg:string) %{ /* guru */
-         printk (THIS->level == 0 ? KERN_EMERG "%s\n":
-                 THIS->level == 1 ? KERN_ALERT "%s\n":
-                 THIS->level == 2 ? KERN_CRIT "%s\n":
-                 THIS->level == 3 ? KERN_ERR "%s\n":
-                 THIS->level == 4 ? KERN_WARNING "%s\n":
-                 THIS->level == 5 ? KERN_NOTICE "%s\n":
-                 THIS->level == 6 ? KERN_INFO "%s\n":
-                 THIS->level == 7 ? KERN_DEBUG "%s\n":
+         printk (STAP_ARG_level == 0 ? KERN_EMERG "%s\n":
+                 STAP_ARG_level == 1 ? KERN_ALERT "%s\n":
+                 STAP_ARG_level == 2 ? KERN_CRIT "%s\n":
+                 STAP_ARG_level == 3 ? KERN_ERR "%s\n":
+                 STAP_ARG_level == 4 ? KERN_WARNING "%s\n":
+                 STAP_ARG_level == 5 ? KERN_NOTICE "%s\n":
+                 STAP_ARG_level == 6 ? KERN_INFO "%s\n":
+                 STAP_ARG_level == 7 ? KERN_DEBUG "%s\n":
 #ifdef KERN_DEFAULT
                  KERN_DEFAULT "%s\n"
 #else
                  KERN_INFO "%s\n"
 #endif
-                 , THIS->msg);
+                 , STAP_ARG_msg);
 %}

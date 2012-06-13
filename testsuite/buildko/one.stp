@@ -8,7 +8,7 @@ stap -p4 -g - $@ <<'END'
 
 function get_release () %{
 /* this is a type error, detected by gcc */
-THIS->__retvalue = 5;
+STAP_RETVALUE = 5;
 %}
 
 probe begin

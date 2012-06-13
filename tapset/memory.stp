@@ -27,30 +27,30 @@ global FAULT_FLAG_WRITE=1
 function vm_fault_contains:long (value:long, test:long)
 %{
 	int res;
-	switch (THIS->test){
-	case 0: res = THIS->value & VM_FAULT_OOM; break;
-	case 1: res = THIS->value & VM_FAULT_SIGBUS; break;
+	switch (STAP_ARG_test){
+	case 0: res = STAP_ARG_value & VM_FAULT_OOM; break;
+	case 1: res = STAP_ARG_value & VM_FAULT_SIGBUS; break;
 #if defined(VM_FAULT_MINOR) && VM_FAULT_MINOR != 0
 	case 2: /* VM_FAULT_MINOR infered by that flags off */
 		res = !((VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_MAJOR) & 
-				 THIS->value);
+				 STAP_ARG_value);
 		break;
 #else
-	case 2: res = THIS->value == VM_FAULT_MINOR; break;
+	case 2: res = STAP_ARG_value == VM_FAULT_MINOR; break;
 #endif
-	case 3: res = THIS->value & VM_FAULT_MAJOR; break;
+	case 3: res = STAP_ARG_value & VM_FAULT_MAJOR; break;
 #ifdef VM_FAULT_NOPAGE
-	case 4: res = THIS->value & VM_FAULT_NOPAGE; break;
+	case 4: res = STAP_ARG_value & VM_FAULT_NOPAGE; break;
 #endif
 #ifdef VM_FAULT_LOCKED
-	case 5: res = THIS->value & VM_FAULT_LOCKED; break;
+	case 5: res = STAP_ARG_value & VM_FAULT_LOCKED; break;
 #endif
 #ifdef VM_FAULT_ERROR
-	case 6: res = THIS->value & VM_FAULT_ERROR; break;
+	case 6: res = STAP_ARG_value & VM_FAULT_ERROR; break;
 #endif
 	default: res = 0; break;
 	}
-	THIS->__retvalue = (res != 0);
+	STAP_RETVALUE = (res != 0);
 	return;
 %}
 
@@ -100,7 +100,7 @@ probe vm.pagefault.return =
  * node that the given address belongs to in a NUMA system.
  */
 function addr_to_node:long(addr:long) %{ /* pure */ 
-	int pfn = __pa(THIS->addr) >> PAGE_SHIFT;
+	int pfn = __pa(STAP_ARG_addr) >> PAGE_SHIFT;
 	int nid;
 #ifdef for_each_online_node
 	for_each_online_node(nid)
@@ -112,14 +112,14 @@ function addr_to_node:long(addr:long) %{ /* pure */
 			pfn < (NODE_DATA(nid)->node_start_pfn +
 			NODE_DATA(nid)->node_spanned_pages) )
 		{
-			THIS->__retvalue = nid;
+			STAP_RETVALUE = nid;
 			break;
 		}
 %}
 
 // Return whether a page to be copied is a zero page.
 function _IS_ZERO_PAGE:long(from:long, vaddr:long) %{ /* pure */
-    THIS->__retvalue = (THIS->from == (long) ZERO_PAGE(THIS->vaddr));
+    STAP_RETVALUE = (STAP_ARG_from == (long) ZERO_PAGE(STAP_ARG_vaddr));
 %}
 
 
@@ -238,13 +238,13 @@ probe vm.oom_kill = kernel.function("oom_kill_process") !,
 
 function GFP_KERNEL:long()
 %{ /* pure */ /* unprivileged */
-	THIS->__retvalue = GFP_KERNEL;
+	STAP_RETVALUE = GFP_KERNEL;
 %}
 
 function __gfp_flag_str:string(gfp_flag:long)
 %{
-	long gfp_flag = THIS->gfp_flag;
-	THIS->__retvalue[0] = '\0';
+	long gfp_flag = STAP_ARG_gfp_flag;
+	STAP_RETVALUE[0] = '\0';
 
 /* Older kernels < 2.6.32 didn't have some of these GFP defines yet. */
 #ifndef __GFP_DMA32
@@ -313,9 +313,9 @@ function __gfp_flag_str:string(gfp_flag:long)
 /* The resulted GFP_FLAGS may be either single or concatenation of the multiple bitmasks. */
 
 
-#define __GFP_BITMASKS(FLAG)  if(gfp_flag & FLAG) { if(THIS->__retvalue[0] != '\0') \
-                strlcat(THIS->__retvalue, " | "#FLAG, MAXSTRINGLEN); \
-                else strlcat(THIS->__retvalue, #FLAG, MAXSTRINGLEN); }
+#define __GFP_BITMASKS(FLAG)  if(gfp_flag & FLAG) { if(STAP_RETVALUE[0] != '\0') \
+                strlcat(STAP_RETVALUE, " | "#FLAG, MAXSTRINGLEN); \
+                else strlcat(STAP_RETVALUE, #FLAG, MAXSTRINGLEN); }
 
 
 /* Macro for Composite Flags. */
@@ -323,7 +323,7 @@ function __gfp_flag_str:string(gfp_flag:long)
 
 
 #define __GFP_COMPOSITE_FLAG(FLAG)  if(gfp_flag == FLAG) { \
-                strlcat(THIS->__retvalue, #FLAG, MAXSTRINGLEN); return; }
+                strlcat(STAP_RETVALUE, #FLAG, MAXSTRINGLEN); return; }
 
 
 /* Composite GFP FLAGS of the BitMasks. */

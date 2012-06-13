@@ -37,7 +37,7 @@
  */
 function task_utime:long ()
 %{ /* pure */ /* unprivileged */
-  THIS->__retvalue = current->utime;
+  STAP_RETVALUE = current->utime;
 %}
 
 /**
@@ -68,7 +68,7 @@ function task_utime_tid:long(tid:long)
  */
 function task_stime:long ()
 %{ /* pure */ /* unprivileged */
-  THIS->__retvalue = current->stime;
+  STAP_RETVALUE = current->stime;
 %}
 
 /**
@@ -96,7 +96,7 @@ function task_stime_tid:long(tid:long)
  */
 function cputime_to_msecs:long (cputime:long)
 %{ /* pure */ /* unprivileged */
-  THIS->__retvalue = cputime_to_msecs (THIS->cputime);
+  STAP_RETVALUE = cputime_to_msecs (STAP_ARG_cputime);
 %}
 
 /**

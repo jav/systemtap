@@ -45,9 +45,9 @@ function _stp_register_regs() {
 function probing_32bit_app() %{ /* pure */
 	if ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
 	    && _stp_is_compat_task())
-		THIS->__retvalue = 1;
+		STAP_RETVALUE = 1;
 	else
-		THIS->__retvalue = 0;
+		STAP_RETVALUE = 0;
 %}
 
 function _stp_probing_kernel: long () {
@@ -63,25 +63,25 @@ function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 		CONTEXT->last_error = "No registers available in this context";
 		return;
 	}
-	if (THIS->offset < 0 || THIS->offset > sizeof(struct pt_regs) - sizeof(unsigned short)) {
+	if (STAP_ARG_offset < 0 || STAP_ARG_offset > sizeof(struct pt_regs) - sizeof(unsigned short)) {
 		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
 				"Bad register offset: %lld",
-				(long long)THIS->offset);
+				(long long)STAP_ARG_offset);
 		CONTEXT->last_error = CONTEXT->error_buffer;
 		return;
 	}
 
-	if (THIS->offset < sizeof(struct pt_regs) - 2 * sizeof(unsigned short))
-		memcpy(&value, ((char *)regs) + THIS->offset,
+	if (STAP_ARG_offset < sizeof(struct pt_regs) - 2 * sizeof(unsigned short))
+		memcpy(&value, ((char *)regs) + STAP_ARG_offset,
 				sizeof(value));
 	else {
 		/* ilc or trap */
 		unsigned short us_value;
-		memcpy(&us_value, ((char *)regs) + THIS->offset,
+		memcpy(&us_value, ((char *)regs) + STAP_ARG_offset,
 				sizeof(us_value));
 		value = us_value;	// not sign-extended
 	}
-	THIS->__retvalue = value;
+	STAP_RETVALUE = value;
 %}
 
 function _stp_sign_extend32:long (value:long) {
@@ -136,10 +136,10 @@ function _stp_arg:long (argnum:long, sign_extend:long, truncate:long)
 	unsigned long val = 0;
 	struct pt_regs *regs;
 
-	THIS->__retvalue = 0;
-	if (THIS->argnum < 1 || THIS->argnum > 6) {
+	STAP_RETVALUE = 0;
+	if (STAP_ARG_argnum < 1 || STAP_ARG_argnum > 6) {
 		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-			 "Cannot access arg %d", (int)THIS->argnum);
+			 "Cannot access arg %d", (int)STAP_ARG_argnum);
 		CONTEXT->last_error = CONTEXT->error_buffer;
 		return;
 	}
@@ -155,18 +155,18 @@ function _stp_arg:long (argnum:long, sign_extend:long, truncate:long)
 		return;
 	}
 
-	syscall_get_arguments(current, regs, (((int)THIS->argnum) - 1), 1,
+	syscall_get_arguments(current, regs, (((int)STAP_ARG_argnum) - 1), 1,
 			      &val);
 
-	if (THIS->truncate || _stp_is_compat_task()) {
-		if (THIS->sign_extend)
-			THIS->__retvalue = (int64_t) (int32_t) val;
+	if (STAP_ARG_truncate || _stp_is_compat_task()) {
+		if (STAP_ARG_sign_extend)
+			STAP_RETVALUE = (int64_t) (int32_t) val;
 		else
 			/* High bits may be garbage. */
-			THIS->__retvalue = (int64_t) (val & 0xffffffff);
+			STAP_RETVALUE = (int64_t) (val & 0xffffffff);
 	}
 	else
-		THIS->__retvalue = (int64_t) val;
+		STAP_RETVALUE = (int64_t) val;
 	return;
 %}
 

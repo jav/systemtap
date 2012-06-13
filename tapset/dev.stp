@@ -17,7 +17,7 @@
  */
 function MAJOR:long(dev:long)
 %{ /* pure */
-    THIS->__retvalue = MAJOR(THIS->dev);
+    STAP_RETVALUE = MAJOR(STAP_ARG_dev);
 %}
 
 
@@ -28,7 +28,7 @@ function MAJOR:long(dev:long)
  */
 function MINOR:long(dev:long)
 %{ /* pure */
-    THIS->__retvalue = MINOR(THIS->dev);
+    STAP_RETVALUE = MINOR(STAP_ARG_dev);
 %}
 
 
@@ -40,7 +40,7 @@ function MINOR:long(dev:long)
  */
 function MKDEV:long(major:long, minor:long)
 %{ /* pure */
-    THIS->__retvalue = MKDEV(THIS->major,THIS->minor);
+    STAP_RETVALUE = MKDEV(STAP_ARG_major,STAP_ARG_minor);
 %}
 
 /**
@@ -50,7 +50,7 @@ function MKDEV:long(major:long, minor:long)
  */
 function usrdev2kerndev:long(dev:long)
 %{ /* pure */
-    THIS->__retvalue = new_decode_dev(THIS->dev);
+    STAP_RETVALUE = new_decode_dev(STAP_ARG_dev);
 %}
 
 function bdevname:string(bdev:long)

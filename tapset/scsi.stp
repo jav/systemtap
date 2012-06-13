@@ -20,31 +20,31 @@
 
 function describe_data_direction:string(state:long)
 %{ /* pure */
-	switch ((long)THIS->state) {
-		case DMA_BIDIRECTIONAL:  strlcpy(THIS->__retvalue, "BIDIRECTIONAL", MAXSTRINGLEN); break;
-		case DMA_TO_DEVICE:      strlcpy(THIS->__retvalue, "TO_DEVICE",     MAXSTRINGLEN); break;
-		case DMA_FROM_DEVICE:    strlcpy(THIS->__retvalue, "FROM_DEVICE",   MAXSTRINGLEN); break;
-		case DMA_NONE:           strlcpy(THIS->__retvalue, "NONE",          MAXSTRINGLEN); break;
-		default:                 strlcpy(THIS->__retvalue, "[INVALID]",     MAXSTRINGLEN);
+	switch ((long)STAP_ARG_state) {
+		case DMA_BIDIRECTIONAL:  strlcpy(STAP_RETVALUE, "BIDIRECTIONAL", MAXSTRINGLEN); break;
+		case DMA_TO_DEVICE:      strlcpy(STAP_RETVALUE, "TO_DEVICE",     MAXSTRINGLEN); break;
+		case DMA_FROM_DEVICE:    strlcpy(STAP_RETVALUE, "FROM_DEVICE",   MAXSTRINGLEN); break;
+		case DMA_NONE:           strlcpy(STAP_RETVALUE, "NONE",          MAXSTRINGLEN); break;
+		default:                 strlcpy(STAP_RETVALUE, "[INVALID]",     MAXSTRINGLEN);
 	}
 %}
 
 function describe_device_state:string(state:long)
 %{ /* pure */
-	switch ((long)THIS->state) {
-		case SDEV_CREATED:       strlcpy(THIS->__retvalue, "CREATED",       MAXSTRINGLEN); break;
-		case SDEV_RUNNING:       strlcpy(THIS->__retvalue, "RUNNING",       MAXSTRINGLEN); break;
-		case SDEV_CANCEL:        strlcpy(THIS->__retvalue, "CANCEL",        MAXSTRINGLEN); break;
-		case SDEV_DEL:           strlcpy(THIS->__retvalue, "DEL",           MAXSTRINGLEN); break;
-		case SDEV_QUIESCE:       strlcpy(THIS->__retvalue, "QUIESCE",       MAXSTRINGLEN); break;
-		case SDEV_OFFLINE:       strlcpy(THIS->__retvalue, "OFFLINE",       MAXSTRINGLEN); break;
+	switch ((long)STAP_ARG_state) {
+		case SDEV_CREATED:       strlcpy(STAP_RETVALUE, "CREATED",       MAXSTRINGLEN); break;
+		case SDEV_RUNNING:       strlcpy(STAP_RETVALUE, "RUNNING",       MAXSTRINGLEN); break;
+		case SDEV_CANCEL:        strlcpy(STAP_RETVALUE, "CANCEL",        MAXSTRINGLEN); break;
+		case SDEV_DEL:           strlcpy(STAP_RETVALUE, "DEL",           MAXSTRINGLEN); break;
+		case SDEV_QUIESCE:       strlcpy(STAP_RETVALUE, "QUIESCE",       MAXSTRINGLEN); break;
+		case SDEV_OFFLINE:       strlcpy(STAP_RETVALUE, "OFFLINE",       MAXSTRINGLEN); break;
 #ifdef SDEV_BLOCK
-		case SDEV_BLOCK:         strlcpy(THIS->__retvalue, "BLOCK",         MAXSTRINGLEN); break;
+		case SDEV_BLOCK:         strlcpy(STAP_RETVALUE, "BLOCK",         MAXSTRINGLEN); break;
 #endif
 #ifdef SDEV_CREATED_BLOCK
-		case SDEV_CREATED_BLOCK: strlcpy(THIS->__retvalue, "CREATED_BLOCK", MAXSTRINGLEN); break;
+		case SDEV_CREATED_BLOCK: strlcpy(STAP_RETVALUE, "CREATED_BLOCK", MAXSTRINGLEN); break;
 #endif
-		default:                 strlcpy(THIS->__retvalue, "[INVALID]",     MAXSTRINGLEN);
+		default:                 strlcpy(STAP_RETVALUE, "[INVALID]",     MAXSTRINGLEN);
 	}
 %}
 /**

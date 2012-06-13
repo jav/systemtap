@@ -27,18 +27,18 @@
  */
 function format_ipaddr:string (addr:long, family:long)
 %{ /* pure */
-	if (THIS->family == AF_INET) {
-		__be32 ip = (__be32)THIS->addr;
+	if (STAP_ARG_family == AF_INET) {
+		__be32 ip = (__be32)STAP_ARG_addr;
 #ifndef NIPQUAD_FMT			// kver >= 2.6.36
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "%pI4", &ip);
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%pI4", &ip);
 #else
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, NIPQUAD_FMT,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, NIPQUAD_FMT,
 			 NIPQUAD(ip));
 #endif
 	}
 #if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
-	else if (THIS->family == AF_INET6) {
-		struct in6_addr *ipv6 = (struct in6_addr *)(uintptr_t)THIS->addr;
+	else if (STAP_ARG_family == AF_INET6) {
+		struct in6_addr *ipv6 = (struct in6_addr *)(uintptr_t)STAP_ARG_addr;
 		// We need to derefence the memory safely from the
 		// address passed to us that contains the IPv6 address.
 		// However, kderef()/kread() only handle data with a
@@ -46,14 +46,14 @@ function format_ipaddr:string (addr:long, family:long)
 		// kderef_buffer() which goes byte by byte.
 		kderef_buffer(NULL, ipv6, sizeof(struct in6_addr));
 #ifndef NIP6_FMT			// kver >= 2.6.36
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "%pI6", ipv6);
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%pI6", ipv6);
 #else
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, NIP6_FMT, NIP6(*ipv6));
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, NIP6_FMT, NIP6(*ipv6));
 #endif
 	}
 #endif /* CONFIG_IPV6 || CONFIG_IPV6_MODULE */
 	else
-		strncpy(THIS->__retvalue, "*unknown address family*",
+		strncpy(STAP_RETVALUE, "*unknown address family*",
 			MAXSTRINGLEN);
 #if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
 	CATCH_DEREF_FAULT();
@@ -138,12 +138,12 @@ function __get_skb_iphdr:long(skb:long)
 %:
 %{ /* pure */
 	struct sk_buff *skb;
-	skb = (struct sk_buff *)(long)THIS->skb;
+	skb = (struct sk_buff *)(long)STAP_ARG_skb;
 	/* as done by skb_network_header() */
 	#ifdef NET_SKBUFF_DATA_USES_OFFSET
-		THIS->__retvalue = (long)(kread(&(skb->head)) + kread(&(skb->network_header)));
+		STAP_RETVALUE = (long)(kread(&(skb->head)) + kread(&(skb->network_header)));
 	#else
-		THIS->__retvalue = (long)kread(&(skb->network_header));
+		STAP_RETVALUE = (long)kread(&(skb->network_header));
 	#endif
 	CATCH_DEREF_FAULT();
 %}

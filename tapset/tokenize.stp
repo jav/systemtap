@@ -30,16 +30,16 @@ function tokenize:string(input:string, delim:string)
 	char *token = NULL;
 	char *token_end = NULL;
 
-	if (THIS->input[0]) {
-		strncpy(CONTEXT->tok_str, THIS->input, MAXSTRINGLEN);
+	if (STAP_ARG_input[0]) {
+		strncpy(CONTEXT->tok_str, STAP_ARG_input, MAXSTRINGLEN);
 		CONTEXT->tok_start = &CONTEXT->tok_str[0];
 		CONTEXT->tok_end = &CONTEXT->tok_str[0] + strlen(CONTEXT->tok_str);
 	}
 	do {
-		token = strsep(& CONTEXT->tok_start, THIS->delim);
+		token = strsep(& CONTEXT->tok_start, STAP_ARG_delim);
 	} while (token && !token[0]);
 	if (token) {
 		token_end = (CONTEXT->tok_start ? CONTEXT->tok_start - 1 : CONTEXT->tok_end);
-		memcpy(THIS->__retvalue, token, token_end - token + 1);
+		memcpy(STAP_RETVALUE, token, token_end - token + 1);
 	}
 %}

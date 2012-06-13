@@ -4,42 +4,42 @@
 #
 function _struct_timeval_u:string(uaddr:long, n:long)
 %{ /* pure */
-	int n = (int)THIS->n;
+	int n = (int)STAP_ARG_n;
 	struct timeval tv[n];
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 	
 	if (ptr == NULL || n > 2)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		if(_stp_copy_from_user((char*)&tv, ptr, n*sizeof(struct timeval)) == 0) {
 			if (n == 2)
-				snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
+				snprintf(STAP_RETVALUE, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
 					tv[0].tv_sec, tv[0].tv_usec, tv[1].tv_sec, tv[1].tv_usec);
 			else
-				snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", tv[0].tv_sec, tv[0].tv_usec);
+				snprintf(STAP_RETVALUE, MAXSTRINGLEN, "[%ld.%06ld]", tv[0].tv_sec, tv[0].tv_usec);
 	   	} else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 	}
 %}
 
 function _struct_compat_timeval_u:string(uaddr:long, n:long)
 %{ /* pure */
 #ifdef CONFIG_COMPAT
-	int n = (int)THIS->n;
+	int n = (int)STAP_ARG_n;
 	struct compat_timeval tv[n];
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 
 	if (ptr == NULL || n > 2)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		if(_stp_copy_from_user((char*)&tv, ptr, 	n*sizeof(struct compat_timeval)) == 0)
 			if (n == 2)
-				snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
+				snprintf(STAP_RETVALUE, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
 					(long)tv[0].tv_sec, (long)tv[0].tv_usec, (long)tv[1].tv_sec, (long)tv[1].tv_usec);
 			else
-				snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", (long)tv[0].tv_sec, (long)tv[0].tv_usec);
+				snprintf(STAP_RETVALUE, MAXSTRINGLEN, "[%ld.%06ld]", (long)tv[0].tv_sec, (long)tv[0].tv_usec);
 	   	else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 	}
 #endif
 %}
@@ -47,15 +47,15 @@ function _struct_compat_timeval_u:string(uaddr:long, n:long)
 function _struct_timezone_u:string(uaddr:long)
 %{ /* pure */
 	struct timezone tz;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 	
 	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		if(_stp_copy_from_user((char*)&tz,ptr,sizeof(struct timezone)) == 0)
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d, %d]", tz.tz_minuteswest, tz.tz_dsttime);
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN, "[%d, %d]", tz.tz_minuteswest, tz.tz_dsttime);
 		else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 	}
 %} 
 
@@ -71,15 +71,15 @@ function _struct_timezone_u:string(uaddr:long)
 function _struct_utimbuf_actime:long(uaddr:long)
 %{ /* pure */
 	struct utimbuf ubuf;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 	
 	if (ptr == NULL)
-	  THIS->__retvalue = 0;
+	  STAP_RETVALUE = 0;
 	else
 	  if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0)
-	    THIS->__retvalue = ubuf.actime;
+	    STAP_RETVALUE = ubuf.actime;
 	  else
-	    THIS->__retvalue = 0;
+	    STAP_RETVALUE = 0;
 %} 
 
 // Returns the value of the modtime field of a utimbuf in user space
@@ -87,15 +87,15 @@ function _struct_utimbuf_actime:long(uaddr:long)
 function _struct_utimbuf_modtime:long(uaddr:long)
 %{ /* pure */
 	struct utimbuf ubuf;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 	
 	if (ptr == NULL)
-	  THIS->__retvalue = 0;
+	  STAP_RETVALUE = 0;
 	else
 	  if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0)
-	    THIS->__retvalue = ubuf.modtime;
+	    STAP_RETVALUE = ubuf.modtime;
 	  else
-	    THIS->__retvalue = 0;
+	    STAP_RETVALUE = 0;
 %} 
 
 // Returns the value of the actime field of a compat_utimbuf in user space
@@ -104,15 +104,15 @@ function _struct_compat_utimbuf_actime:long(uaddr:long)
 %{ /* pure */
 #ifdef CONFIG_COMPAT
 	struct compat_utimbuf ubuf;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 	
 	if (ptr == NULL)
-	  THIS->__retvalue = 0;
+	  STAP_RETVALUE = 0;
 	else
 	  if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0)
-	    THIS->__retvalue = ubuf.actime;
+	    STAP_RETVALUE = ubuf.actime;
 	  else
-	    THIS->__retvalue = 0;
+	    STAP_RETVALUE = 0;
 #endif
 %} 
 
@@ -122,15 +122,15 @@ function _struct_compat_utimbuf_modtime:long(uaddr:long)
 %{ /* pure */
 #ifdef CONFIG_COMPAT
 	struct compat_utimbuf ubuf;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 	
 	if (ptr == NULL)
-	  THIS->__retvalue = 0;
+	  STAP_RETVALUE = 0;
 	else
 	  if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0)
-	    THIS->__retvalue = ubuf.modtime;
+	    STAP_RETVALUE = ubuf.modtime;
 	  else
-	    THIS->__retvalue = 0;
+	    STAP_RETVALUE = 0;
 #endif
 %} 
 
@@ -138,19 +138,19 @@ function _struct_timespec_u:string(uaddr:long, n:long)
 %{ /* pure */
 #define STP_UTIME_NOW  ((1l << 30) - 1l)
 #define STP_UTIME_OMIT ((1l << 30) - 2l)
-	int n = (int)THIS->n;
+	int n = (int)STAP_ARG_n;
 	struct timespec ts[n];
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 
 	if (ptr == NULL || n > 2)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		if(_stp_copy_from_user((char *)&ts, ptr, n*sizeof(struct timespec)))  {
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 		} else {
 			char *str;
 			int len, i = 0;
-			ptr = THIS->__retvalue;
+			ptr = STAP_RETVALUE;
 			while (i < n) {
 				str = NULL;
 				if (ts[i].tv_nsec == STP_UTIME_NOW)
@@ -173,19 +173,19 @@ function _struct_compat_timespec_u:string(uaddr:long, n:long)
 #ifdef CONFIG_COMPAT
 #define STP_UTIME_NOW  ((1l << 30) - 1l)
 #define STP_UTIME_OMIT ((1l << 30) - 2l)
-	int n = (int)THIS->n;
+	int n = (int)STAP_ARG_n;
 	struct compat_timespec ts[n];
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 
 	if (ptr == NULL || n > 2)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		if(_stp_copy_from_user((char *)&ts, ptr, n*sizeof(struct compat_timespec)))  {
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 		} else {
 			char *str;
 			int len, i = 0;
-			ptr = THIS->__retvalue;
+			ptr = STAP_RETVALUE;
 			while (i < n) {
 				str = NULL;
 				if (ts[i].tv_nsec == STP_UTIME_NOW)
@@ -209,15 +209,15 @@ function _struct_compat_timespec_u:string(uaddr:long, n:long)
 function _struct_itimerspec_u:string(uaddr:long)
 %{ /* pure */
 	struct itimerspec its;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 	
 	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		if(_stp_copy_from_user((char *)&its, ptr,sizeof(struct itimerspec)))
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 		else
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d.%06d,%d.%06d]",
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN, "[%d.%06d,%d.%06d]",
 				(int)its.it_interval.tv_sec, (int)its.it_interval.tv_nsec,
 				(int)its.it_value.tv_sec, (int)its.it_value.tv_nsec);
 	}	
@@ -226,15 +226,15 @@ function _struct_itimerspec_u:string(uaddr:long)
 function _struct_itimerval_u:string(uaddr:long)
 %{ /* pure */
 	struct itimerval itv;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 
 	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		if(_stp_copy_from_user((char *)&itv,ptr,sizeof(struct itimerval)))
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 		else
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d.%06d,%d.%06d]", 
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN, "[%d.%06d,%d.%06d]", 
 				(int)itv.it_interval.tv_sec, (int)itv.it_interval.tv_usec,
 				(int)itv.it_value.tv_sec, (int)itv.it_value.tv_usec);
 	}
@@ -244,15 +244,15 @@ function _struct_compat_itimerval_u:string(uaddr:long)
 %{ /* pure */
 #ifdef CONFIG_COMPAT
 	struct compat_itimerval itv;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 
 	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		if(_stp_copy_from_user((char *)&itv,ptr,sizeof(struct compat_itimerval)))
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 		else
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d.%06d,%d.%06d]", 
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN, "[%d.%06d,%d.%06d]", 
 				(int)itv.it_interval.tv_sec, (int)itv.it_interval.tv_usec,
 				(int)itv.it_value.tv_sec, (int)itv.it_value.tv_usec);
 	}
@@ -275,20 +275,20 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 #include <linux/un.h>
 #include <linux/if_packet.h>
 
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 	char buf[128];
-	size_t len = THIS->len < 128 ? THIS->len : 128;
+	size_t len = STAP_ARG_len < 128 ? STAP_ARG_len : 128;
 	struct sockaddr *sa = (struct sockaddr *)buf;
 
 	if (ptr == NULL)
 	{
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 		return;
 	}
 
 	if (_stp_copy_from_user(buf, ptr, len))
 	{
-		strlcpy (THIS->__retvalue, "[...]", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "[...]", MAXSTRINGLEN);
 		return;
 	}
 
@@ -307,10 +307,10 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 	{
 		struct sockaddr_in *sin = (struct sockaddr_in *)buf;
 #ifndef NIPQUAD_FMT			// kver >= 2.6.36
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "{AF_INET, %pI4, %d}",
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "{AF_INET, %pI4, %d}",
 			 &sin->sin_addr, _stp_ntohs(sin->sin_port));
 #else
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			 "{AF_INET, " NIPQUAD_FMT ", %d}",
 			 NIPQUAD(sin->sin_addr), _stp_ntohs(sin->sin_port));
 #endif
@@ -319,14 +319,14 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 		 && (len == sizeof(struct sockaddr_un)))
 	{	
 		struct sockaddr_un *sun = (struct sockaddr_un *)buf;	
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "{AF_UNIX, %s}",
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "{AF_UNIX, %s}",
 			 sun->sun_path); 
 	}
 	else if ((sa->sa_family == AF_NETLINK)
 		 && (len == sizeof(struct sockaddr_nl)))
 	{
 		struct sockaddr_nl *nl = (struct sockaddr_nl *)buf;
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			 "{AF_NETLINK, pid=%d, groups=%08x}",
 			 nl->nl_pid, nl->nl_groups);
 	}
@@ -335,11 +335,11 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 	{
 		struct sockaddr_in6 *sin = (struct sockaddr_in6 *)buf;
 #ifndef NIP6_FMT			// kver >= 2.6.36
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			 "{AF_INET6, %pI6, %d}", &sin->sin6_addr,
 			 _stp_ntohs(sin->sin6_port));
 #else
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			 "{AF_INET6, " NIP6_FMT ", %d}", NIP6(sin->sin6_addr),
 			 _stp_ntohs(sin->sin6_port));
 #endif
@@ -348,7 +348,7 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 		 && (len == sizeof(struct sockaddr_ll))) 
 	{
 		struct sockaddr_ll *sll = (struct sockaddr_ll *)buf;
-		snprintf(THIS->__retvalue, MAXSTRINGLEN,
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			 "{AF_PACKET, proto=%d, ind=%d, hatype=%d, pkttype=%d, halen=%d, addr=0x%llx}",
 			 (int)sll->sll_protocol, sll->sll_ifindex,
 			 (int)sll->sll_hatype, (int)sll->sll_pkttype,
@@ -359,13 +359,13 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 	{
 		if (len >= sizeof(sa_family_t))
 		{
-			snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 				 "{unknown sockaddr with sa=%d, salen=%d}",
 				 sa->sa_family, (int) len);
 		}
 		else
 		{
-			snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 				 "{unknown sockaddr with salen=%d}", (int)len);
 		}
 	}
@@ -374,39 +374,39 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 function _struct_rlimit_u:string(uaddr:long)
 %{ /* pure */
 	struct rlimit rl;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 
 	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		if (_stp_copy_from_user((char *)&rl, ptr, sizeof(struct rlimit)) == 0)
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld,%ld]",
+			snprintf(STAP_RETVALUE, MAXSTRINGLEN, "[%ld,%ld]",
 				rl.rlim_cur, rl.rlim_max);
 		else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 	}
 %}
 
 function _fildes_u:string (uaddr:long)
 %{ /* pure */
 	int fd[2];
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
 
 	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		if (_stp_copy_from_user((char *)&fd, ptr, 2*sizeof(int)) == 0)
-			 snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d, %d]", fd[0], fd[1]);
+			 snprintf(STAP_RETVALUE, MAXSTRINGLEN, "[%d, %d]", fd[0], fd[1]);
 		else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 	}
 %}
 
 
 function __sem_flags:string(semflg:long)
 %{ /* pure */
-	long semflg = THIS->semflg;
-	char *str = THIS->__retvalue;
+	long semflg = STAP_ARG_semflg;
+	char *str = STAP_RETVALUE;
 	int mode = semflg & S_IRWXUGO;
 	int len;
 
@@ -519,8 +519,8 @@ function _inotify_watch_mask_str(f) {
 function _sigprocmask_how_str:string(how:long)
 %{ /* pure */
 	int len;
-	char *str = THIS->__retvalue;
-	switch (THIS->how) {
+	char *str = STAP_RETVALUE;
+	switch (STAP_ARG_how) {
 	case SIG_BLOCK:
 		strlcpy(str, "SIG_BLOCK", MAXSTRINGLEN);
 		break;
@@ -531,7 +531,7 @@ function _sigprocmask_how_str:string(how:long)
 		strlcpy(str, "SIG_SETMASK", MAXSTRINGLEN);
 		break;
 	default:
-		snprintf(str, MAXSTRINGLEN, "0x%lx", (long)THIS->how);
+		snprintf(str, MAXSTRINGLEN, "0x%lx", (long)STAP_ARG_how);
 	}	
 %}
 
@@ -599,8 +599,8 @@ function _flock_cmd_str(c) {
 /* `man 2 pipe2` for more information */
 function _sys_pipe2_flag_str:string (f:long)
 %{ /* pure */ /* unprivileged */
-  long flags = THIS->f;
-  char *str = THIS->__retvalue;
+  long flags = STAP_ARG_f;
+  char *str = STAP_RETVALUE;
   int len;
 
   str[0] = '\0';
@@ -621,82 +621,82 @@ function _sys_pipe2_flag_str:string (f:long)
 /* `man 2 open` for more information */
 function _sys_open_flag_str:string (f:long)
 %{ /* pure */
-	int flags = (int)THIS->f;
+	int flags = (int)STAP_ARG_f;
 	int acc = flags & O_ACCMODE;
 
 	switch (acc) {
 	case O_WRONLY:
-		strlcpy (THIS->__retvalue, "O_WRONLY", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "O_WRONLY", MAXSTRINGLEN);
 		break;
 	case O_RDWR:
-		strlcpy (THIS->__retvalue, "O_RDWR", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "O_RDWR", MAXSTRINGLEN);
 		break;
 	default:
-		strlcpy (THIS->__retvalue, "O_RDONLY", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "O_RDONLY", MAXSTRINGLEN);
 	}
 
 #ifdef O_APPEND
 	if (flags & O_APPEND)
-		strlcat (THIS->__retvalue, "|O_APPEND", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_APPEND", MAXSTRINGLEN);
 #endif
 #ifdef O_CLOEXEC
 	if (flags & O_CLOEXEC)
-		strlcat (THIS->__retvalue, "|O_CLOEXEC", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_CLOEXEC", MAXSTRINGLEN);
 #endif
 #ifdef O_CREAT
 	if (flags & O_CREAT)
-		strlcat (THIS->__retvalue, "|O_CREAT", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_CREAT", MAXSTRINGLEN);
 #endif
 #ifdef O_ASYNC
 	if (flags & O_ASYNC)
-		strlcat (THIS->__retvalue, "|O_ASYNC", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_ASYNC", MAXSTRINGLEN);
 #elif defined(FASYNC)
 	if (flags & FASYNC)
-		strlcat (THIS->__retvalue, "|O_ASYNC", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_ASYNC", MAXSTRINGLEN);
 #endif
 #ifdef O_DIRECT
 	if (flags & O_DIRECT)
-		strlcat (THIS->__retvalue, "|O_DIRECT", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_DIRECT", MAXSTRINGLEN);
 #endif
 #ifdef O_DIRECTORY
 	if (flags & O_DIRECTORY)
-		strlcat (THIS->__retvalue, "|O_DIRECTORY", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_DIRECTORY", MAXSTRINGLEN);
 #endif
 #ifdef O_EXCL
 	if (flags & O_EXCL)
-		strlcat (THIS->__retvalue, "|O_EXCL", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_EXCL", MAXSTRINGLEN);
 #endif
 #ifdef O_LARGEFILE
 	if (flags & O_LARGEFILE)
-		strlcat (THIS->__retvalue, "|O_LARGEFILE", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_LARGEFILE", MAXSTRINGLEN);
 #endif
 #ifdef O_NOATIME
 	if (flags & O_NOATIME)
-		strlcat (THIS->__retvalue, "|O_NOATIME", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_NOATIME", MAXSTRINGLEN);
 #endif
 #ifdef O_NOCTTY
 	if (flags & O_NOCTTY)
-		strlcat (THIS->__retvalue, "|O_NOCTTY", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_NOCTTY", MAXSTRINGLEN);
 #endif
 #ifdef O_NOFOLLOW
 	if (flags & O_NOFOLLOW)
-		strlcat (THIS->__retvalue, "|O_NOFOLLOW", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_NOFOLLOW", MAXSTRINGLEN);
 #endif
 #ifdef O_NONBLOCK
 	if (flags & O_NONBLOCK)
-		strlcat (THIS->__retvalue, "|O_NONBLOCK", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_NONBLOCK", MAXSTRINGLEN);
 #endif
 #ifdef O_SYNC
 	if (flags & O_SYNC)
-		strlcat (THIS->__retvalue, "|O_SYNC", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_SYNC", MAXSTRINGLEN);
 #endif
 #ifdef O_TRUNC
 	if (flags & O_TRUNC)
-		strlcat (THIS->__retvalue, "|O_TRUNC", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_TRUNC", MAXSTRINGLEN);
 #endif
 #ifdef O_CLOEXEC
 	if (flags & O_CLOEXEC)
-		strlcat (THIS->__retvalue, "|O_CLOEXEC", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|O_CLOEXEC", MAXSTRINGLEN);
 #endif
 %}
 
@@ -923,8 +923,8 @@ function _mlockall_flags_str:string(flags:long)
 %{ /* pure */
 	#include <linux/mman.h>
 	int len;
-	long f = THIS->flags;
-	char *str = THIS->__retvalue;
+	long f = STAP_ARG_flags;
+	char *str = STAP_RETVALUE;
 	str[0] = '\0';
 	if (f & MCL_CURRENT)
 		strlcat(str, "MCL_CURRENT|", MAXSTRINGLEN);
@@ -941,8 +941,8 @@ function _mlockall_flags_str:string(flags:long)
 function _module_flags_str:string(flags:long)
 %{ /* pure */
 	int len;
-	long flags = THIS->flags;
-	char *str = THIS->__retvalue;
+	long flags = STAP_ARG_flags;
+	char *str = STAP_RETVALUE;
 	str[0] = '\0';
 	if (flags & O_TRUNC)
 		strlcat(str,"O_TRUNC|", MAXSTRINGLEN);
@@ -984,30 +984,30 @@ function _shutdown_how_str(how) {
 
 function _reboot_magic_str:string(magic:long)
 %{ /* pure */
-	int magic = (int)THIS->magic;
+	int magic = (int)STAP_ARG_magic;
 	switch (magic) {
 	case LINUX_REBOOT_MAGIC1:
-		strlcpy(THIS->__retvalue, "LINUX_REBOOT_MAGIC1", MAXSTRINGLEN);
+		strlcpy(STAP_RETVALUE, "LINUX_REBOOT_MAGIC1", MAXSTRINGLEN);
 		break;
 	case LINUX_REBOOT_MAGIC2:
-		strlcpy(THIS->__retvalue, "LINUX_REBOOT_MAGIC2", MAXSTRINGLEN);
+		strlcpy(STAP_RETVALUE, "LINUX_REBOOT_MAGIC2", MAXSTRINGLEN);
 		break;
 	case LINUX_REBOOT_MAGIC2A:
-		strlcpy(THIS->__retvalue, "LINUX_REBOOT_MAGIC2A", MAXSTRINGLEN);
+		strlcpy(STAP_RETVALUE, "LINUX_REBOOT_MAGIC2A", MAXSTRINGLEN);
 		break;
 	case LINUX_REBOOT_MAGIC2B:
-		strlcpy(THIS->__retvalue, "LINUX_REBOOT_MAGIC2B", MAXSTRINGLEN);
+		strlcpy(STAP_RETVALUE, "LINUX_REBOOT_MAGIC2B", MAXSTRINGLEN);
 		break;
 /*
 	LINUX_REBOOT_MAGIC2C is supported from kernel 2.6
 */
 #ifdef LINUX_REBOOT_MAGIC2C
 	case LINUX_REBOOT_MAGIC2C:
-		strlcpy(THIS->__retvalue, "LINUX_REBOOT_MAGIC2C", MAXSTRINGLEN);
+		strlcpy(STAP_RETVALUE, "LINUX_REBOOT_MAGIC2C", MAXSTRINGLEN);
 		break;
 #endif
 	default:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "UNKNOWN VALUE: %d", magic);
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "UNKNOWN VALUE: %d", magic);
 	}
 %}
 
@@ -1053,8 +1053,8 @@ function _futex_op_str(op) {
 
 function _mountflags_str:string(op:long) 
 %{ /* pure */
-	int len, op = THIS->op;
-	char *str = THIS->__retvalue;
+	int len, op = STAP_ARG_op;
+	char *str = STAP_RETVALUE;
 	str[0] = '\0';
 	if (op & MS_BIND)
 		strlcat(str,"MS_BIND|",MAXSTRINGLEN);
@@ -1091,8 +1091,8 @@ function _mountflags_str:string(op:long)
 
 function _umountflags_str:string(op:long) 
 %{ /* pure */
-	int len, op = THIS->op;
-	char *str = THIS->__retvalue;
+	int len, op = STAP_ARG_op;
+	char *str = STAP_RETVALUE;
 	if (op == 0)
 		strlcpy(str,"0",MAXSTRINGLEN);
 	else {
@@ -1431,47 +1431,47 @@ function _sock_family_str(f) {
 function _sock_type_str:string(type:long)
 %{ /* pure */
 #ifdef SOCK_TYPE_MASK
-	int flags = (int)THIS->type & ~SOCK_TYPE_MASK;
-	int t = (int)THIS->type & SOCK_TYPE_MASK;
+	int flags = (int)STAP_ARG_type & ~SOCK_TYPE_MASK;
+	int t = (int)STAP_ARG_type & SOCK_TYPE_MASK;
 #else
-	int t = (int)THIS->type;
+	int t = (int)STAP_ARG_type;
 #endif
 
 	switch (t) {
 	case SOCK_STREAM:
-		strlcpy (THIS->__retvalue, "SOCK_STREAM", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "SOCK_STREAM", MAXSTRINGLEN);
 		break;
 	case SOCK_DGRAM:
-		strlcpy (THIS->__retvalue, "SOCK_DGRAM", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "SOCK_DGRAM", MAXSTRINGLEN);
 		break;
 	case SOCK_RAW:
-		strlcpy (THIS->__retvalue, "SOCK_RAW", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "SOCK_RAW", MAXSTRINGLEN);
 		break;
 	case SOCK_RDM:
-		strlcpy (THIS->__retvalue, "SOCK_RDM", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "SOCK_RDM", MAXSTRINGLEN);
 		break;
 	case SOCK_SEQPACKET:
-		strlcpy (THIS->__retvalue, "SOCK_SEQPACKET", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "SOCK_SEQPACKET", MAXSTRINGLEN);
 		break;
 #ifdef SOL_DCCP
 	case SOCK_DCCP:
-		strlcpy (THIS->__retvalue, "SOCK_DCCP", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "SOCK_DCCP", MAXSTRINGLEN);
 		break;
 #endif
 	case SOCK_PACKET:
-		strlcpy (THIS->__retvalue, "SOCK_PACKET", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "SOCK_PACKET", MAXSTRINGLEN);
 		break;
 	default:
-		snprintf (THIS->__retvalue, MAXSTRINGLEN, "UNKNOWN VALUE: %d", t);
+		snprintf (STAP_RETVALUE, MAXSTRINGLEN, "UNKNOWN VALUE: %d", t);
 		break;
 	}
 
 #ifdef SOCK_TYPE_MASK
 	if (flags & SOCK_CLOEXEC) {
-		strlcat (THIS->__retvalue, "|SOCK_CLOEXEC", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|SOCK_CLOEXEC", MAXSTRINGLEN);
 	}
 	if (flags & SOCK_NONBLOCK) {
-		strlcat (THIS->__retvalue, "|SOCK_NONBLOCK", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "|SOCK_NONBLOCK", MAXSTRINGLEN);
 	}
 #endif
 %}
@@ -1479,22 +1479,22 @@ function _sock_type_str:string(type:long)
 function _sock_flags_str:string(f:long)
 %{ /* pure */
 #ifdef SOCK_TYPE_MASK
-	int flags = (int)THIS->f;
+	int flags = (int)STAP_ARG_f;
 	int len;
 
-	THIS->__retvalue[0] = '\0';
+	STAP_RETVALUE[0] = '\0';
 	if (flags & SOCK_CLOEXEC) {
-		strlcat (THIS->__retvalue, "SOCK_CLOEXEC|", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "SOCK_CLOEXEC|", MAXSTRINGLEN);
 	}
 	if (flags & SOCK_NONBLOCK) {
-		strlcat (THIS->__retvalue, "SOCK_NONBLOCK|", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "SOCK_NONBLOCK|", MAXSTRINGLEN);
 	}
-	len = strlen(THIS->__retvalue);
+	len = strlen(STAP_RETVALUE);
 	if (len) {
-		THIS->__retvalue[len - 1] = '\0';
+		STAP_RETVALUE[len - 1] = '\0';
 	}
 	else {
-		strlcat (THIS->__retvalue, "0", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "0", MAXSTRINGLEN);
 	}
 #endif
 %}
@@ -1550,18 +1550,18 @@ function _rusage_who_str(w) {
 
 /* for accessing 16-bit values encoded in a long */
 function __short:long(val:long) %{ /* pure */
-	THIS->__retvalue = (short)THIS->val;
+	STAP_RETVALUE = (short)STAP_ARG_val;
 %}
 
 /* uid_t is unsigned, but calling functions take "-1" as a parameter */
 /* so this hack is necessary to correct that mismatch. */
 function __int32:long(val:long) %{ /* pure */
-	THIS->__retvalue = (int32_t)THIS->val;
+	STAP_RETVALUE = (int32_t)STAP_ARG_val;
 %}
 
 /* Unsigned values can get get sign-extended and become negative. */
 function __ulong:long(val:long) %{ /* pure */
-	THIS->__retvalue = (unsigned long)THIS->val;
+	STAP_RETVALUE = (unsigned long)STAP_ARG_val;
 %}
 
 # For utimensat and futimesat, the directory fd can have a special value
@@ -1700,7 +1700,7 @@ static void _stp_sigset_str(sigset_t *mask, char *ptr, int len)
 
 function _signal_name:string(sig:long)
 %{ /* pure */
-	_stp_lookup_str(_stp_signal_list, THIS->sig, THIS->__retvalue, MAXSTRINGLEN);
+	_stp_lookup_str(_stp_signal_list, STAP_ARG_sig, STAP_RETVALUE, MAXSTRINGLEN);
 %}
 
 %{
@@ -1724,21 +1724,21 @@ static const _stp_val_array const _stp_semctl_list[] = {
 
 function _semctl_cmd:string(cmd:long)
 %{ /* pure */
-	_stp_lookup_str(_stp_semctl_list, THIS->cmd, THIS->__retvalue, MAXSTRINGLEN);
+	_stp_lookup_str(_stp_semctl_list, STAP_ARG_cmd, STAP_RETVALUE, MAXSTRINGLEN);
 %}
 
 function _stp_sigset_u:string(setptr:long)
 %{ /* pure */
-	char *ptr = (char *)(unsigned long)THIS->setptr;
+	char *ptr = (char *)(unsigned long)STAP_ARG_setptr;
 	sigset_t set;
 
 	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		if(_stp_copy_from_user((char*)&set,ptr,sizeof(sigset_t)) == 0)
-			_stp_sigset_str(&set, THIS->__retvalue, MAXSTRINGLEN);			
+			_stp_sigset_str(&set, STAP_RETVALUE, MAXSTRINGLEN);			
 		else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 	}
 %}
 
@@ -1783,12 +1783,12 @@ static const _stp_val_array const _stp_fork_list[] = {
 
 function __fork_flags:string(flags:long)
 %{ /* pure */
-	_stp_lookup_or_str(_stp_fork_list, THIS->flags & ~0xff, THIS->__retvalue, MAXSTRINGLEN);
-	if ( THIS->flags & 0xff ) {
+	_stp_lookup_or_str(_stp_fork_list, STAP_ARG_flags & ~0xff, STAP_RETVALUE, MAXSTRINGLEN);
+	if ( STAP_ARG_flags & 0xff ) {
 		/* flags contains the termination signal */
-		if (*THIS->__retvalue)
-			strlcat(THIS->__retvalue, "|", MAXSTRINGLEN);
-		_stp_lookup_str(_stp_signal_list, THIS->flags & 0xff, THIS->__retvalue, MAXSTRINGLEN);
+		if (*STAP_RETVALUE)
+			strlcat(STAP_RETVALUE, "|", MAXSTRINGLEN);
+		_stp_lookup_str(_stp_signal_list, STAP_ARG_flags & 0xff, STAP_RETVALUE, MAXSTRINGLEN);
 	}
 %}
 
@@ -1809,7 +1809,7 @@ static const _stp_val_array const _stp_atflag_list[] = {
 
 function _at_flag_str:string(f:long)
 %{ /* pure */
-	_stp_lookup_str(_stp_atflag_list, THIS->f, THIS->__retvalue, MAXSTRINGLEN);
+	_stp_lookup_str(_stp_atflag_list, STAP_ARG_f, STAP_RETVALUE, MAXSTRINGLEN);
 %}
 
 %{
@@ -1818,8 +1818,8 @@ function _at_flag_str:string(f:long)
 function _epoll_create1_flag_str:string(f:long)
 %{ /* pure */
 #ifdef EPOLL_CLOEXEC
-	if (THIS->f == EPOLL_CLOEXEC)
-		strlcpy (THIS->__retvalue, "EPOLL_CLOEXEC", MAXSTRINGLEN);
+	if (STAP_ARG_f == EPOLL_CLOEXEC)
+		strlcpy (STAP_RETVALUE, "EPOLL_CLOEXEC", MAXSTRINGLEN);
 #endif
 %}
 
@@ -1830,8 +1830,8 @@ function _epoll_create1_flag_str:string(f:long)
 %}
 function _eventfd2_flag_str:string(f:long)
 %{ /* pure */
-  long flags = THIS->f;
-  char *str = THIS->__retvalue;
+  long flags = STAP_ARG_f;
+  char *str = STAP_RETVALUE;
   int len;
 
   str[0] = '\0';
@@ -1854,8 +1854,8 @@ function _eventfd2_flag_str:string(f:long)
 %}
 function _signalfd4_flags_str:string(f:long)
 %{ /* pure */
-  long flags = THIS->f;
-  char *str = THIS->__retvalue;
+  long flags = STAP_ARG_f;
+  char *str = STAP_RETVALUE;
   int len;
 
   str[0] = '\0';
@@ -1878,8 +1878,8 @@ function _signalfd4_flags_str:string(f:long)
 %}
 function _inotify_init1_flag_str:string(f:long)
 %{ /* pure */
-  long flags = THIS->f;
-  char *str = THIS->__retvalue;
+  long flags = STAP_ARG_f;
+  char *str = STAP_RETVALUE;
   int len;
 
   str[0] = '\0';
@@ -1898,11 +1898,11 @@ function _inotify_init1_flag_str:string(f:long)
 function _dup3_flag_str:string(f:long)
 %{ /* pure */
 #ifdef O_CLOEXEC
-	if (THIS->f == O_CLOEXEC)
-		strlcpy (THIS->__retvalue, "O_CLOEXEC", MAXSTRINGLEN);
+	if (STAP_ARG_f == O_CLOEXEC)
+		strlcpy (STAP_RETVALUE, "O_CLOEXEC", MAXSTRINGLEN);
 	else
 #endif
-		strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 %}
 
 %{
@@ -1918,7 +1918,7 @@ static const _stp_val_array const _stp_shmat_list[] = {
 
 function _shmat_flags_str:string(f:long)
 %{ /* pure */
-	_stp_lookup_or_str(_stp_shmat_list, THIS->f, THIS->__retvalue, MAXSTRINGLEN);
+	_stp_lookup_or_str(_stp_shmat_list, STAP_ARG_f, STAP_RETVALUE, MAXSTRINGLEN);
 %}
 
 
@@ -1936,7 +1936,7 @@ static const _stp_val_array const _stp_mprotect_list[] = {
 
 function _mprotect_prot_str:string(prot:long) 
 %{ /* pure */
-	_stp_lookup_or_str(_stp_mprotect_list, THIS->prot, THIS->__retvalue, MAXSTRINGLEN);
+	_stp_lookup_or_str(_stp_mprotect_list, STAP_ARG_prot, STAP_RETVALUE, MAXSTRINGLEN);
 %}
 
 %{
@@ -1959,7 +1959,7 @@ static const _stp_val_array const _stp_mmap_list[] = {
 
 function _mmap_flags:string(flags:long) 
 %{ /* pure */
-	_stp_lookup_or_str(_stp_mmap_list, THIS->flags, THIS->__retvalue, MAXSTRINGLEN);
+	_stp_lookup_or_str(_stp_mmap_list, STAP_ARG_flags, STAP_RETVALUE, MAXSTRINGLEN);
 %}
 
 # old mmap functions passed in a struct like this.
@@ -1986,17 +1986,17 @@ function get_mmap_args:string (args:long)
 	} a;
 #endif
 
-	if(_stp_copy_from_user((char *)&a,(char *)(unsigned long)THIS->args, sizeof(a))== 0) {
+	if(_stp_copy_from_user((char *)&a,(char *)(unsigned long)STAP_ARG_args, sizeof(a))== 0) {
 		int len;
-		_stp_snprintf(THIS->__retvalue, MAXSTRINGLEN, "0x%lx, %ld, ", (long)a.addr, (long)a.len);
-		_stp_lookup_or_str(_stp_mprotect_list, a.prot, THIS->__retvalue, MAXSTRINGLEN);
-		strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
-		_stp_lookup_or_str(_stp_mmap_list, a.flags, THIS->__retvalue, MAXSTRINGLEN);
-		strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
-		len = strlen(THIS->__retvalue);
-		_stp_snprintf(THIS->__retvalue + len, MAXSTRINGLEN - len, "%ld, %ld", (long)a.fd, (long)a.offset);
+		_stp_snprintf(STAP_RETVALUE, MAXSTRINGLEN, "0x%lx, %ld, ", (long)a.addr, (long)a.len);
+		_stp_lookup_or_str(_stp_mprotect_list, a.prot, STAP_RETVALUE, MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, ", ", MAXSTRINGLEN);
+		_stp_lookup_or_str(_stp_mmap_list, a.flags, STAP_RETVALUE, MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, ", ", MAXSTRINGLEN);
+		len = strlen(STAP_RETVALUE);
+		_stp_snprintf(STAP_RETVALUE + len, MAXSTRINGLEN - len, "%ld, %ld", (long)a.fd, (long)a.offset);
 	} else
-		strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 %}
 
 
@@ -2007,7 +2007,7 @@ function _sighandler_str:string(uaddr:long)
 		{1, "SIG_IGN"},
 		{0, NULL}
 	};
-	_stp_lookup_str(_stp_sa_handler_list, (long)THIS->uaddr, THIS->__retvalue, MAXSTRINGLEN);
+	_stp_lookup_str(_stp_sa_handler_list, (long)STAP_ARG_uaddr, STAP_RETVALUE, MAXSTRINGLEN);
 %}
 
 %{
@@ -2055,17 +2055,17 @@ static void _stp_sigaction_str(struct sigaction *act, char *ptr, int len)
 function _struct_sigaction_u:string(uaddr:long)
 %{ /* pure */
   struct sigaction act;
-  char *ptr = (char *)(unsigned long)THIS->uaddr;
+  char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
   
   if (ptr == NULL)
-    strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+    strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
   else
     {
       if(_stp_copy_from_user((char*)&act, ptr,
 			     sizeof(struct sigaction)) == 0)
-	_stp_sigaction_str(&act, THIS->__retvalue, MAXSTRINGLEN);
+	_stp_sigaction_str(&act, STAP_RETVALUE, MAXSTRINGLEN);
       else
-	strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
     }
 %}
 
@@ -2085,10 +2085,10 @@ function _struct_sigaction32_u:string(uaddr:long)
   };
   
   struct sigaction32 act32;
-  char *ptr = (char *)(unsigned long)THIS->uaddr;
+  char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
   
   if (ptr == NULL)
-    strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+    strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
   else
     {
       if(_stp_copy_from_user((char*)&act32, ptr,
@@ -2113,10 +2113,10 @@ function _struct_sigaction32_u:string(uaddr:long)
 		| (((long)act32.sa_mask.sig[1]) << 32);
 	    }
 
-	  _stp_sigaction_str(&act, THIS->__retvalue, MAXSTRINGLEN);	  
+	  _stp_sigaction_str(&act, STAP_RETVALUE, MAXSTRINGLEN);	  
 	}
       else
-	strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
     }
 #endif
 %}
@@ -2137,10 +2137,10 @@ function _struct_old_sigaction32_u:string(uaddr:long)
   };
 
   struct old_sigaction32 act32;
-  char *ptr = (char *)(unsigned long)THIS->uaddr;
+  char *ptr = (char *)(unsigned long)STAP_ARG_uaddr;
   
   if (ptr == NULL)
-    strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+    strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
   else
     {
       if(_stp_copy_from_user((char*)&act32, ptr,
@@ -2152,10 +2152,10 @@ function _struct_old_sigaction32_u:string(uaddr:long)
 	  act.sa_restorer = (void *)compat_ptr(act32.sa_restorer);
 	  act.sa_flags = (unsigned long)act32.sa_flags;
 	  siginitset(&act.sa_mask, act32.sa_mask);
-	  _stp_sigaction_str(&act, THIS->__retvalue, MAXSTRINGLEN);	  
+	  _stp_sigaction_str(&act, STAP_RETVALUE, MAXSTRINGLEN);	  
 	}
       else
-	strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
     }
 #endif
 %}
@@ -2203,7 +2203,7 @@ static const _stp_val_array const _stp_irq_list[] = {
 
 function irqflags_str:string(f:long)
 %{ /* pure */
-	_stp_lookup_or_str(_stp_irq_list, THIS->f, THIS->__retvalue, MAXSTRINGLEN);
+	_stp_lookup_or_str(_stp_irq_list, STAP_ARG_f, STAP_RETVALUE, MAXSTRINGLEN);
 %}
 
 /* PTRACE_SETOPTIONS parser of the DATA parameter. */
@@ -2315,7 +2315,7 @@ function _ptrace_return_geteventmsg_data(request,data)
 function __is_user_regs:long (regs:long)
 %{
 	/* pure */
-	struct pt_regs * regs = (void *)((unsigned long)THIS->regs);
+	struct pt_regs * regs = (void *)((unsigned long)STAP_ARG_regs);
 /* copied from asm/ptrace.h */
 #if defined(__i386__)
 #ifdef STAPCONF_X86_UNIREGS
@@ -2323,25 +2323,25 @@ function __is_user_regs:long (regs:long)
 #else
 	int cs = kread(&regs->xcs);
 #endif
-	THIS->__retvalue = (!!((cs & 3)));
+	STAP_RETVALUE = (!!((cs & 3)));
 #elif defined(__x86_64__)
 	unsigned long cs = kread(&regs->cs);
-	THIS->__retvalue = (!!((cs & 3)));
+	STAP_RETVALUE = (!!((cs & 3)));
 #elif defined(__ia64__)
 	unsigned long psr = kread(&regs->cr_ipsr);
-	THIS->__retvalue = (((struct ia64_psr *) &psr)->cpl != 0);
+	STAP_RETVALUE = (((struct ia64_psr *) &psr)->cpl != 0);
 #elif defined(__powerpc64__)
 	unsigned long msr = kread(&regs->msr);
-	THIS->__retvalue = ((msr >> MSR_PR_LG) & 0x1);
+	STAP_RETVALUE = ((msr >> MSR_PR_LG) & 0x1);
 #elif defined(__powerpc__)
 	unsigned long msr = kread(&regs->msr);
-	THIS->__retvalue = ((msr >> MSR_PR) != 0);
+	STAP_RETVALUE = ((msr >> MSR_PR) != 0);
 #elif defined(__arm__)
 	long cpsr = kread(&regs->ARM_cpsr);
-	THIS->__retvalue = ((cpsr & 0xf) == 0);
+	STAP_RETVALUE = ((cpsr & 0xf) == 0);
 #elif defined(__s390__) || defined(__s390x__)
 	unsigned long mask = kread(&regs->psw.mask);
-	THIS->__retvalue = ((mask & PSW_MASK_PSTATE) != 0);
+	STAP_RETVALUE = ((mask & PSW_MASK_PSTATE) != 0);
 #else
 #error "Unimplemented architecture"
 #endif

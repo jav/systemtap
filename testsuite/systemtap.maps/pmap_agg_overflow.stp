@@ -36,9 +36,9 @@ probe end {
 }
 
 function max_map_entries:long() %{
-    THIS->__retvalue = MAXMAPENTRIES;
+    STAP_RETVALUE = MAXMAPENTRIES;
 %}
 
 function num_online_cpus:long() %{
-    THIS->__retvalue = num_online_cpus();
+    STAP_RETVALUE = num_online_cpus();
 %}

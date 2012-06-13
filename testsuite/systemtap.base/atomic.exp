@@ -59,7 +59,7 @@ set atomic_long_script_module_template {
 
     function get_atomic_long_addr:long()
     %%{
-	THIS->__retvalue = (long)&stp_atomic_struct.a;
+	STAP_RETVALUE = (long)&stp_atomic_struct.a;
     %%}
 
     probe begin {
@@ -117,7 +117,7 @@ set atomic_script_module_template {
 
     function get_atomic_addr:long()
     %%{
-	THIS->__retvalue = (long)&stp_atomic_struct.a;
+	STAP_RETVALUE = (long)&stp_atomic_struct.a;
     %%}
 
     probe begin {

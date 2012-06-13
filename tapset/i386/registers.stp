@@ -9,9 +9,9 @@ global _reg_offsets, _stp_regs_registered, _sp_offset, _ss_offset
 
 function test_x86_gs:long() %{ /* pure */
 #ifdef STAPCONF_X86_GS
-	THIS->__retvalue = 1;
+	STAP_RETVALUE = 1;
 #else
-	THIS->__retvalue = 0;
+	STAP_RETVALUE = 0;
 #endif
 %}
 
@@ -55,14 +55,14 @@ function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 		CONTEXT->last_error = "No registers available in this context";
 		return;
 	}
-	if (THIS->offset < 0 || THIS->offset > sizeof(struct pt_regs) - sizeof(long)) {
+	if (STAP_ARG_offset < 0 || STAP_ARG_offset > sizeof(struct pt_regs) - sizeof(long)) {
 		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-				"Bad register offset: %lld", THIS->offset);
+				"Bad register offset: %lld", STAP_ARG_offset);
 		CONTEXT->last_error = CONTEXT->error_buffer;
 		return;
 	}
-	memcpy(&value, ((char *)regs) + THIS->offset, sizeof(value));
-	THIS->__retvalue = value;
+	memcpy(&value, ((char *)regs) + STAP_ARG_offset, sizeof(value));
+	STAP_RETVALUE = value;
 %}
 
 function _stp_probing_kernel:long () {
@@ -74,14 +74,14 @@ function _stp_probing_kernel:long () {
  * the pre-trap stack pointer is &regs->sp.
  */
 function _stp_kernel_sp:long (sp_offset:long) %{ /* pure */
-	THIS->__retvalue = ((long) CONTEXT->kregs) + THIS->sp_offset;
+	STAP_RETVALUE = ((long) CONTEXT->kregs) + STAP_ARG_sp_offset;
 %}
 
 /* Assume ss register hasn't changed since we took the trap. */
 function _stp_kernel_ss:long () %{ /* pure */
 	unsigned short ss;
 	asm volatile("movw %%ss, %0" : : "m" (ss));
-	THIS->__retvalue = ss;
+	STAP_RETVALUE = ss;
 %}
 
 /* Return the named register value as a signed value. */
@@ -121,16 +121,16 @@ function _stp_arg:long (argnum:long) %{ /* pure */
 	struct pt_regs *regs;
 	regs = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
 		? CONTEXT->uregs : CONTEXT->kregs);
-	THIS->__retvalue = 0;
+	STAP_RETVALUE = 0;
 	if (!regs) {
 		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
 			"cannot access function args in this context");
 		CONTEXT->last_error = CONTEXT->error_buffer;
 		return;
 	}
-	if (THIS->argnum < 1)
+	if (STAP_ARG_argnum < 1)
 		goto bad_argnum;
-	n = (int) THIS->argnum;
+	n = (int) STAP_ARG_argnum;
 	if (CONTEXT->regparm == 0) {
 		/* Default */
 		if (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
@@ -143,11 +143,11 @@ function _stp_arg:long (argnum:long) %{ /* pure */
 	switch (result) {
 	case 0:
 		/* Arg is in register. */
-		THIS->__retvalue = (int64_t) val;
+		STAP_RETVALUE = (int64_t) val;
 		break;
 	case 1:
 		/* Arg is on kernel stack. */
-		THIS->__retvalue = kread((long *) val);
+		STAP_RETVALUE = kread((long *) val);
 		break;
 	case 2:
 	    {
@@ -157,9 +157,9 @@ function _stp_arg:long (argnum:long) %{ /* pure */
 			/* Stack page not resident. */
 			_stp_warn("cannot access arg(%d) "
 				"at user stack address %p\n", n, vaddr);
-			THIS->__retvalue = 0;
+			STAP_RETVALUE = 0;
 		} else
-			THIS->__retvalue = (int64_t) val;
+			STAP_RETVALUE = (int64_t) val;
 		break;
 	    }
 	default:
@@ -169,7 +169,7 @@ function _stp_arg:long (argnum:long) %{ /* pure */
 
 bad_argnum:
 	snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-				"cannot access arg(%lld)", THIS->argnum);
+				"cannot access arg(%lld)", STAP_ARG_argnum);
 	CONTEXT->last_error = CONTEXT->error_buffer;
 	return;
 
@@ -177,7 +177,7 @@ bad_argnum:
 deref_fault: /* branched to from kread() */
 		snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
         		"kernel fault at %#lx accessing arg(%lld)", val,
-			THIS->argnum);
+			STAP_ARG_argnum);
     		CONTEXT->last_error = CONTEXT->error_buffer;
 	}
 %}
@@ -243,10 +243,10 @@ function fastcall() %{
 %}
 
 function regparm(n:long) %{
-	if (THIS->n < 0 || THIS->n > 3) {
+	if (STAP_ARG_n < 0 || STAP_ARG_n > 3) {
 		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
 			"For i386, regparm value must be in the range 0-3.");
 		CONTEXT->last_error = CONTEXT->error_buffer;
 	} else
-		CONTEXT->regparm = _STP_REGPARM | (int) THIS->n;
+		CONTEXT->regparm = _STP_REGPARM | (int) STAP_ARG_n;
 %}

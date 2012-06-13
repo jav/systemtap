@@ -10,7 +10,7 @@
 // </tapsetdescription>
 
 function _IS_ERR:long(ptr:long) %{ /* pure */
-    THIS->__retvalue = IS_ERR((const void *)(long)THIS->ptr);
+    STAP_RETVALUE = IS_ERR((const void *)(long)STAP_ARG_ptr);
 %}
 
 

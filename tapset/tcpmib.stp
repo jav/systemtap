@@ -236,13 +236,13 @@ tcpmib.OutRsts = __tcpmib.OutRsts.*
 
 function _rtn_local:long ()
 %{
-        THIS->__retvalue = RTN_LOCAL;
+        STAP_RETVALUE = RTN_LOCAL;
 %}
 
 function _is_reset:long (skb:long)
 %{ /* pure */
         struct tcphdr *th;
-        struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
+        struct sk_buff *skb = (struct sk_buff *)(long)STAP_ARG_skb;
 
 	#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,21)
 		th = (struct tcphdr *)kread(&(skb->h.th));
@@ -254,14 +254,14 @@ function _is_reset:long (skb:long)
 		th = (struct tcphdr *)kread(&(skb->network_header));
 	#endif
 	#endif
-        THIS->__retvalue = th->rst;
+        STAP_RETVALUE = th->rst;
         CATCH_DEREF_FAULT();
 %}
 
 function _tcpmib_input_route_type:long (skb:long)
 %{ /* pure */
 	struct rtable *rt;
-	struct sk_buff *skb = (struct sk_buff *)(long)THIS->skb;
+	struct sk_buff *skb = (struct sk_buff *)(long)STAP_ARG_skb;
 
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35)
 		rt = (struct rtable *)kread(&(skb->_skb_refdst));
@@ -280,9 +280,9 @@ function _tcpmib_input_route_type:long (skb:long)
 	#endif
 
 	if ( rt )
-		THIS->__retvalue = kread(&(rt->rt_type));
+		STAP_RETVALUE = kread(&(rt->rt_type));
 	else
-		THIS->__retvalue = RTN_UNSPEC;
+		STAP_RETVALUE = RTN_UNSPEC;
 	CATCH_DEREF_FAULT();
 %}
 

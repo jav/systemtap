@@ -15,7 +15,7 @@
  * can be zero up to MAXSTRINGLEN.
  */
 function strlen:long(s:string) %{ /* pure */ /* unprivileged */
-        THIS->__retvalue = strlen(THIS->s);
+        STAP_RETVALUE = strlen(STAP_ARG_s);
 %}
 
 /**
@@ -31,9 +31,9 @@ function strlen:long(s:string) %{ /* pure */ /* unprivileged */
  * MAXSTRINGLEN).
  */
 function substr:string(str:string,start:long, length:long) %{ /* pure */ /* unprivileged */
-	int64_t length = clamp_t(int64_t, THIS->length + 1, 0, MAXSTRINGLEN);
-	if (THIS->start >= 0 && THIS->start < strlen(THIS->str))
-		strlcpy(THIS->__retvalue, THIS->str + THIS->start, length);
+	int64_t length = clamp_t(int64_t, STAP_ARG_length + 1, 0, MAXSTRINGLEN);
+	if (STAP_ARG_start >= 0 && STAP_ARG_start < strlen(STAP_ARG_str))
+		strlcpy(STAP_RETVALUE, STAP_ARG_str + STAP_ARG_start, length);
 %}
 
 /**
@@ -46,10 +46,10 @@ function substr:string(str:string,start:long, length:long) %{ /* pure */ /* unpr
  * the string or zero if thestring doesn't have as many characters.
  */
 function stringat:long(str:string, pos:long) %{ /* pure */ /* unprivileged */
-	if (THIS->pos >= 0 && THIS->pos < strlen(THIS->str))
-		THIS->__retvalue = THIS->str[THIS->pos];
+	if (STAP_ARG_pos >= 0 && STAP_ARG_pos < strlen(STAP_ARG_str))
+		STAP_RETVALUE = STAP_ARG_str[STAP_ARG_pos];
 	else
-		THIS->__retvalue = 0;
+		STAP_RETVALUE = 0;
 %}
 
 /**
@@ -62,10 +62,10 @@ function stringat:long(str:string, pos:long) %{ /* pure */ /* unprivileged */
  * otherwise zero. 
  */
 function isinstr:long(s1:string,s2:string) %{ /* pure */ /* unprivileged */
-	if (strstr(THIS->s1,THIS->s2) != NULL)
-		THIS->__retvalue = 1;
+	if (strstr(STAP_ARG_s1,STAP_ARG_s2) != NULL)
+		STAP_RETVALUE = 1;
 	else
-		THIS->__retvalue = 0;
+		STAP_RETVALUE = 0;
 %}
 
 /**
@@ -80,7 +80,7 @@ function isinstr:long(s1:string,s2:string) %{ /* pure */ /* unprivileged */
  */
 function text_str:string(input:string) 
 %{ /* pure */ /* unprivileged */
-	_stp_text_str(THIS->__retvalue, THIS->input, 0, 0, 0);
+	_stp_text_str(STAP_RETVALUE, STAP_ARG_input, 0, 0, 0);
 %}
 
 /**
@@ -98,8 +98,8 @@ function text_str:string(input:string)
  */
 function text_strn:string(input:string, len:long, quoted:long)
 %{ /* pure */ /* unprivileged */
-	int64_t len = clamp_t(int64_t, THIS->len, 0, MAXSTRINGLEN);
-	_stp_text_str(THIS->__retvalue, THIS->input, len, THIS->quoted, 0);
+	int64_t len = clamp_t(int64_t, STAP_ARG_len, 0, MAXSTRINGLEN);
+	_stp_text_str(STAP_RETVALUE, STAP_ARG_input, len, STAP_ARG_quoted, 0);
 %}
 
 
@@ -115,26 +115,26 @@ function text_strn:string(input:string, len:long, quoted:long)
  */
 function str_replace:string (prnt_str:string, srch_str:string, rplc_str:string)
 %{ /* pure */ /* unprivileged */
-	char *ptr = THIS->prnt_str;
-	char *ptr_base = THIS->prnt_str;
-	int strlen_srch_str = strlen(THIS->srch_str);
+	char *ptr = STAP_ARG_prnt_str;
+	char *ptr_base = STAP_ARG_prnt_str;
+	int strlen_srch_str = strlen(STAP_ARG_srch_str);
 
-	THIS->__retvalue[0] = '\0';
+	STAP_RETVALUE[0] = '\0';
 	if(strlen_srch_str == 0) {
-		strlcat(THIS->__retvalue, ptr_base, MAXSTRINGLEN);
+		strlcat(STAP_RETVALUE, ptr_base, MAXSTRINGLEN);
 		return;
 	}
 
-	while((ptr = strstr(ptr, THIS->srch_str)) != NULL) {
+	while((ptr = strstr(ptr, STAP_ARG_srch_str)) != NULL) {
 
 		*ptr = '\0';
-		strlcat(THIS->__retvalue, ptr_base, MAXSTRINGLEN);
-		strlcat(THIS->__retvalue, THIS->rplc_str, MAXSTRINGLEN);
+		strlcat(STAP_RETVALUE, ptr_base, MAXSTRINGLEN);
+		strlcat(STAP_RETVALUE, STAP_ARG_rplc_str, MAXSTRINGLEN);
 		ptr = ptr + strlen_srch_str;
 		ptr_base = ptr;
 	}
 
-	strlcat(THIS->__retvalue, ptr_base, MAXSTRINGLEN);
+	strlcat(STAP_RETVALUE, ptr_base, MAXSTRINGLEN);
 	return;
 %}
 
@@ -149,7 +149,7 @@ function str_replace:string (prnt_str:string, srch_str:string, rplc_str:string)
  */
 function strtol:long(str:string, base:long)
 %{ /* pure */ /* unprivileged */
-	THIS->__retvalue = simple_strtol(THIS->str, NULL, THIS->base);
+	STAP_RETVALUE = simple_strtol(STAP_ARG_str, NULL, STAP_ARG_base);
 %}
 
 /**
@@ -163,5 +163,5 @@ function strtol:long(str:string, base:long)
  */
 function isdigit:long(str:string)
 %{ /* pure */ /* unprivileged */
-	THIS->__retvalue = isdigit(THIS->str[0]);
+	STAP_RETVALUE = isdigit(STAP_ARG_str[0]);
 %}

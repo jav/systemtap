@@ -145,7 +145,7 @@ function get_32mmap_args:string (args:long)
 	char proto[60];
 	char flags[160];
 
-	if(_stp_copy_from_user((char *)&a, (char *)THIS->args, sizeof(a))== 0){
+	if(_stp_copy_from_user((char *)&a, (char *)STAP_ARG_args, sizeof(a))== 0){
 		/* _mprotect_prot_str */
 		proto[0] = '\0';
 		if(a.prot){
@@ -185,11 +185,11 @@ function get_32mmap_args:string (args:long)
                         strlcat (flags, "MAP_NONBLOCK|", sizeof(flags));
                 if (flags[0] != '\0') flags[strlen(flags)-1] = '\0';
 
-                snprintf (THIS->__retvalue, MAXSTRINGLEN,
+                snprintf (STAP_RETVALUE, MAXSTRINGLEN,
                           "0x%x, %d, %s, %s, %d, %d", a.addr, a.len,
                           proto, flags, a.fd, a.offset);
 	}else{
-		strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "UNKNOWN", MAXSTRINGLEN);
 	}
 %}
 

@@ -6,7 +6,7 @@ stap -p3 -g $@ - <<'END'
 void just_some_declaration () {}
 %}
 
-function bar(foo) %{ just_some_declaration(); THIS->__retvalue = THIS->foo + 5; %}
+function bar(foo) %{ just_some_declaration(); STAP_RETVALUE = STAP_ARG_foo + 5; %}
 
 probe begin
 {

@@ -3,13 +3,13 @@
 %}
 
 function mmap_syscall_no:long () %{
-    THIS->__retvalue = MMAP_SYSCALL_NO(current); /* pure */
+    STAP_RETVALUE = MMAP_SYSCALL_NO(current); /* pure */
 %}
 function mmap2_syscall_no:long () %{
-    THIS->__retvalue = MMAP2_SYSCALL_NO(current); /* pure */
+    STAP_RETVALUE = MMAP2_SYSCALL_NO(current); /* pure */
 %}
 function munmap_syscall_no:long () %{
-    THIS->__retvalue = MUNMAP_SYSCALL_NO(current); /* pure */
+    STAP_RETVALUE = MUNMAP_SYSCALL_NO(current); /* pure */
 %}
 
 global syscalls_seen = 0

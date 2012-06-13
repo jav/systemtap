@@ -26,7 +26,7 @@
  *  its position within that function.  Return nothing.
  */
 function print_stack(stk:string) %{ /* pragma:symbols */
-	char *ptr = THIS->stk;
+	char *ptr = STAP_ARG_stk;
 	char *tok = strsep(&ptr, " ");
 	while (tok && *tok) {
 		_stp_print_addr (simple_strtol(tok, NULL, 16),
@@ -53,9 +53,9 @@ function print_stack(stk:string) %{ /* pragma:symbols */
  * print_stack.
  */
 function sprint_stack:string(stk:string) %{ /* pure */ /* pragma:symbols */
-	char *ptr = THIS->stk;
+	char *ptr = STAP_ARG_stk;
 	char *tok = strsep(&ptr, " ");
-	char *str = THIS->__retvalue;
+	char *str = STAP_RETVALUE;
 	size_t len = MAXSTRINGLEN - 1;
 	while (tok && *tok && len > 0) {
 		int s = _stp_snprint_addr(str, len,
@@ -70,7 +70,7 @@ function sprint_stack:string(stk:string) %{ /* pure */ /* pragma:symbols */
         if (len > 0)
                 str[0] = '\0';
         else
-                THIS->__retvalue[MAXSTRINGLEN - 1] = '\0';
+                STAP_RETVALUE[MAXSTRINGLEN - 1] = '\0';
 %}
 
 /**
@@ -85,7 +85,7 @@ function sprint_stack:string(stk:string) %{ /* pure */ /* pragma:symbols */
 function probefunc:string () %{ /* pure */ /* pragma:symbols */
 	char *ptr, *start;
 
-	THIS->__retvalue[0] = '\0';
+	STAP_RETVALUE[0] = '\0';
 	start = strstr(CONTEXT->probe_point, "function(\"");
 	ptr = start + 10; 
 	if (!start) {
@@ -95,7 +95,7 @@ function probefunc:string () %{ /* pure */ /* pragma:symbols */
 
 	if (start) {
 		int len = MAXSTRINGLEN;
-		char *dst = THIS->__retvalue;
+		char *dst = STAP_RETVALUE;
 		while (*ptr != '@' && *ptr != '"' && --len > 0 && *ptr)
 			*dst++ = *ptr++;
 		*dst = 0;
@@ -106,7 +106,7 @@ function probefunc:string () %{ /* pure */ /* pragma:symbols */
 		user_mode = c->probe_flags & _STP_PROBE_STATE_USER_MODE;
 		regs = user_mode ? CONTEXT->uregs : CONTEXT->kregs;
 		if (regs) {
-			_stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN,
+			_stp_snprint_addr(STAP_RETVALUE, MAXSTRINGLEN,
 					  REG_IP(regs), _STP_SYM_SYMBOL,
 					  (user_mode ? current : NULL));
 		}
@@ -127,7 +127,7 @@ function probemod:string () %{ /* pure */
 
 	if (start) {
 		int len = MAXSTRINGLEN;
-		char *dst = THIS->__retvalue;
+		char *dst = STAP_RETVALUE;
 		while (*ptr != '"' && --len && *ptr)
 			*dst++ = *ptr++;
 		*dst = 0;
@@ -136,11 +136,11 @@ function probemod:string () %{ /* pure */
 		struct _stp_module *m;
 		m = _stp_kmod_sec_lookup (REG_IP(CONTEXT->kregs), NULL);
 		if (m && m->name)
-			strlcpy (THIS->__retvalue, m->name, MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, m->name, MAXSTRINGLEN);
 		else
-			strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+			strlcpy (STAP_RETVALUE, "<unknown>", MAXSTRINGLEN);
 	} else
-		strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "<unknown>", MAXSTRINGLEN);
 %}
 
 /**
@@ -157,25 +157,25 @@ function modname:string (addr: long) %{ /* pure */
 #ifdef STAPCONF_MODULE_TEXT_ADDRESS
 	struct module *ko;
 #endif
-	m = _stp_kmod_sec_lookup (THIS->addr, NULL);
+	m = _stp_kmod_sec_lookup (STAP_ARG_addr, NULL);
 	if (m && m->name)
 	  {
-	    strlcpy (THIS->__retvalue, m->name, MAXSTRINGLEN);
+	    strlcpy (STAP_RETVALUE, m->name, MAXSTRINGLEN);
 	    return;
 	  }
 
 #ifdef STAPCONF_MODULE_TEXT_ADDRESS
 	preempt_disable();
-	ko = __module_text_address (THIS->addr);
+	ko = __module_text_address (STAP_ARG_addr);
 	if (ko && ko->name)
 	  {
-	    strlcpy (THIS->__retvalue, ko->name, MAXSTRINGLEN);
+	    strlcpy (STAP_RETVALUE, ko->name, MAXSTRINGLEN);
 	    preempt_enable_no_resched();
 	    return;
 	  }
 	preempt_enable_no_resched();
 #endif
-	strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+	strlcpy (STAP_RETVALUE, "<unknown>", MAXSTRINGLEN);
 %}
 
 /**
@@ -187,7 +187,7 @@ function modname:string (addr: long) %{ /* pure */
  * representation of addr.
  */
 function symname:string (addr: long) %{ /* pure */ /* pragma:symbols */
-	 _stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+	 _stp_snprint_addr(STAP_RETVALUE, MAXSTRINGLEN, STAP_ARG_addr,
 			   _STP_SYM_SYMBOL, NULL);
 %}
 
@@ -204,6 +204,6 @@ function symname:string (addr: long) %{ /* pure */ /* pragma:symbols */
  * string for the given address.
  */
 function symdata:string (addr: long) %{ /* pure */ /* pragma:symbols */
-	_stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+	_stp_snprint_addr(STAP_RETVALUE, MAXSTRINGLEN, STAP_ARG_addr,
 			  _STP_SYM_DATA, NULL);
 %}

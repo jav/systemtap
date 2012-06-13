@@ -75,20 +75,20 @@
 global _NSIG = 64
 
 function get_k_sigaction:long (task:long, sig:long) %{
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 
-	THIS->__retvalue = (long)&p->sighand->action[(int)THIS->sig];
+	STAP_RETVALUE = (long)&p->sighand->action[(int)STAP_ARG_sig];
 %}
 
 function get_task_info:string (task:long) %{
 	char pid[10]; /* just to realign the header properly */
-	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	struct task_struct *p = (struct task_struct *)((long)STAP_ARG_task);
 
 	if (!p)
-		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
+		strlcpy(STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else {
 		sprintf(pid, "%d:", p->pid);
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "%-8s %s", pid, p->comm);
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%-8s %s", pid, p->comm);
 	}
 %}
 
@@ -108,9 +108,9 @@ function translate_mask (mask) {
  * if sa_flags is 0, then return 0. If not, return the interpreted sa_flags.
  */
 function sa_flags_str2:string (sa_flags:string) %{
-	if (strlen(THIS->sa_flags) == 0)
-		strcpy(THIS->sa_flags, "0");
-	strlcpy (THIS->__retvalue, THIS->sa_flags, MAXSTRINGLEN);
+	if (strlen(STAP_ARG_sa_flags) == 0)
+		strcpy(STAP_ARG_sa_flags, "0");
+	strlcpy (STAP_RETVALUE, STAP_ARG_sa_flags, MAXSTRINGLEN);
 %}
 
 probe begin {

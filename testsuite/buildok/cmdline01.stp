@@ -14,7 +14,7 @@ stap -g -p4 -DFOO=1 - <<EOF
 function footest:string()
 %{
 #ifdef FOO
-    strncpy(THIS->__retvalue, "footest called", MAXSTRINGLEN);
+    strncpy(STAP_RETVALUE, "footest called", MAXSTRINGLEN);
 #else
 #error undefined FOO
 #endif

@@ -36,61 +36,61 @@ function log_test(test:string, result:long) {
 
 function kread_u8:long() %{
   uint8_t local = 0x42;
-  THIS->__retvalue = (local == kread(&local));
+  STAP_RETVALUE = (local == kread(&local));
   CATCH_DEREF_FAULT();
 %}
 
 function kread_u16:long() %{
   uint16_t local = 0xBEEF;
-  THIS->__retvalue = (local == kread(&local));
+  STAP_RETVALUE = (local == kread(&local));
   CATCH_DEREF_FAULT();
 %}
 
 function kread_u32:long() %{
   uint32_t local = 0xDEADBEEF;
-  THIS->__retvalue = (local == kread(&local));
+  STAP_RETVALUE = (local == kread(&local));
   CATCH_DEREF_FAULT();
 %}
 
 function kread_u64:long() %{
   uint64_t local = 0xDEADBEEFBAADF00DLL;
-  THIS->__retvalue = (local == kread(&local));
+  STAP_RETVALUE = (local == kread(&local));
   CATCH_DEREF_FAULT();
 %}
 
 function kread_ptr:long() %{
   struct task_struct *local = current;
-  THIS->__retvalue = (local == kread(&local));
+  STAP_RETVALUE = (local == kread(&local));
   CATCH_DEREF_FAULT();
 %}
 
 function kread_const_u8:long() %{
   const uint8_t local = 0x42;
-  THIS->__retvalue = (local == kread(&local));
+  STAP_RETVALUE = (local == kread(&local));
   CATCH_DEREF_FAULT();
 %}
 
 function kread_const_u16:long() %{
   const uint16_t local = 0xBEEF;
-  THIS->__retvalue = (local == kread(&local));
+  STAP_RETVALUE = (local == kread(&local));
   CATCH_DEREF_FAULT();
 %}
 
 function kread_const_u32:long() %{
   const uint32_t local = 0xDEADBEEF;
-  THIS->__retvalue = (local == kread(&local));
+  STAP_RETVALUE = (local == kread(&local));
   CATCH_DEREF_FAULT();
 %}
 
 function kread_const_u64:long() %{
   const uint64_t local = 0xDEADBEEFBAADF00DLL;
-  THIS->__retvalue = (local == kread(&local));
+  STAP_RETVALUE = (local == kread(&local));
   CATCH_DEREF_FAULT();
 %}
 
 function kread_const_ptr:long() %{
   const struct task_struct *local = current;
-  THIS->__retvalue = (local == kread(&local));
+  STAP_RETVALUE = (local == kread(&local));
   CATCH_DEREF_FAULT();
 %}
 
@@ -105,34 +105,34 @@ function kread_const_ptr:long() %{
 function kwrite_u8:long() %{
   volatile uint8_t local = 0;
   kwrite(&local, 0x42);
-  THIS->__retvalue = (local == 0x42);
+  STAP_RETVALUE = (local == 0x42);
   CATCH_DEREF_FAULT();
 %}
 
 function kwrite_u16:long() %{
   volatile uint16_t local = 0;
   kwrite(&local, 0xBEEF);
-  THIS->__retvalue = (local == 0xBEEF);
+  STAP_RETVALUE = (local == 0xBEEF);
   CATCH_DEREF_FAULT();
 %}
 
 function kwrite_u32:long() %{
   volatile uint32_t local = 0;
   kwrite(&local, 0xDEADBEEF);
-  THIS->__retvalue = (local == 0xDEADBEEF);
+  STAP_RETVALUE = (local == 0xDEADBEEF);
   CATCH_DEREF_FAULT();
 %}
 
 function kwrite_u64:long() %{
   volatile uint64_t local = 0;
   kwrite(&local, 0xDEADBEEFBAADF00DLL);
-  THIS->__retvalue = (local == 0xDEADBEEFBAADF00DLL);
+  STAP_RETVALUE = (local == 0xDEADBEEFBAADF00DLL);
   CATCH_DEREF_FAULT();
 %}
 
 function kwrite_ptr:long() %{
   struct task_struct * volatile local = NULL;
   kwrite(&local, current);
-  THIS->__retvalue = (local == current);
+  STAP_RETVALUE = (local == current);
   CATCH_DEREF_FAULT();
 %}

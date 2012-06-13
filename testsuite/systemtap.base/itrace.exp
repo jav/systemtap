@@ -96,7 +96,7 @@ set itrace_single_step_script {
     %}
 
     function has_single_step() %{
-        THIS->__retvalue = arch_has_single_step(); /* pure */
+        STAP_RETVALUE = arch_has_single_step(); /* pure */
     %}
 
     probe begin {
@@ -111,7 +111,7 @@ set itrace_block_step_script {
     %}
 
     function has_block_step() %{
-        THIS->__retvalue = arch_has_block_step(); /* pure */
+        STAP_RETVALUE = arch_has_block_step(); /* pure */
     %}
 
     probe begin {

@@ -133,18 +133,18 @@ probe kernel.function("rpc_create").return !,
 
 function __rpc_prot_from_protocol:long(protocol:long)
 %{
-	switch (THIS->protocol) {
+	switch (STAP_ARG_protocol) {
 #ifdef XPRT_TRANSPORT_BC
 	case XPRT_TRANSPORT_UDP:
-		THIS->__retvalue = IPPROTO_UDP;
+		STAP_RETVALUE = IPPROTO_UDP;
 		break;
 	case XPRT_TRANSPORT_TCP:
 	case XPRT_TRANSPORT_BC_TCP:
-		THIS->__retvalue = IPPROTO_TCP;
+		STAP_RETVALUE = IPPROTO_TCP;
 		break;
 #endif
 	default:
-		THIS->__retvalue = -1;
+		STAP_RETVALUE = -1;
 		break;
 	}
 %}

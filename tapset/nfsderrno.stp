@@ -236,14 +236,14 @@ function nfsderror:string(err:long)
 	int tabsz = (sizeof(nfs_errtbl)/sizeof(nfs_errtbl[0]));
 
 	for (i = 0; i < tabsz; i++) {
-		if (nfs_errtbl[i].nfserr == THIS->err) {
+		if (nfs_errtbl[i].nfserr == STAP_ARG_err) {
 			break;
 		}
 	}
 	if (i == tabsz)
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "nfsderr %d", ntohl(THIS->err));
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "nfsderr %d", ntohl(STAP_ARG_err));
 	else
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, 
 			"nfsderr %d(%s)", ntohl(nfs_errtbl[i].nfserr), nfs_errtbl[i].string);
 
 %}

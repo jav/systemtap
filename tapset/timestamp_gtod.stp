@@ -21,8 +21,8 @@
 function gettimeofday_ns:long () %{ /* pure */ /* unprivileged */
   /* NOTE: we can't use do_gettimeofday because we could be called from a
    * context where xtime_lock is already held.  See bug #2525. */
-  THIS->__retvalue = _stp_gettimeofday_ns();
-  if (THIS->__retvalue < 0)
+  STAP_RETVALUE = _stp_gettimeofday_ns();
+  if (STAP_RETVALUE < 0)
     CONTEXT->last_error = "gettimeofday not initialized";
 %}
 

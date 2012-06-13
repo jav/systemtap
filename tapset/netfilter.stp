@@ -42,7 +42,7 @@ function __get_skb_arphdr:long(addr:long)
 
 function __ip6_skb_proto:long(addr:long)
 %{ /* pure */
-   struct sk_buff *skb = (struct sk_buff *)(uintptr_t)THIS->addr;
+   struct sk_buff *skb = (struct sk_buff *)(uintptr_t)STAP_ARG_addr;
    struct ipv6hdr *hdr;
    u8 nexthdr;
 
@@ -60,9 +60,9 @@ function __ip6_skb_proto:long(addr:long)
      int extoff = (u8 *)(hdr + 1) - kread(&(skb->data));
      long result = ipv6_skip_exthdr(skb, extoff, &nexthdr, &frag_offp);
 #endif
-     THIS->__retvalue = result < 0 ? 0 : result;
+     STAP_RETVALUE = result < 0 ? 0 : result;
    } else {
-     THIS->__retvalue = 0;
+     STAP_RETVALUE = 0;
    }
    CATCH_DEREF_FAULT();
 %}

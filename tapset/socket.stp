@@ -605,66 +605,66 @@ function sock_flags_num2str:string (flags:long)
 #ifndef SOCK_PASSSEC
 #define SOCK_PASSSEC 4   /* introduced in 2.6.18 */
 #endif
-	unsigned long flags = THIS->flags;
+	unsigned long flags = STAP_ARG_flags;
 
-	THIS->__retvalue[0] = '\0';
+	STAP_RETVALUE[0] = '\0';
 	if (test_bit (SOCK_ASYNC_NOSPACE, &flags))
-		strlcat (THIS->__retvalue, "ASYNC_NOSPACE|", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "ASYNC_NOSPACE|", MAXSTRINGLEN);
 	if (test_bit (SOCK_ASYNC_WAITDATA, &flags))
-		strlcat (THIS->__retvalue, "ASYNC_WAITDATA|", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "ASYNC_WAITDATA|", MAXSTRINGLEN);
 	if (test_bit (SOCK_NOSPACE, &flags))
-		strlcat (THIS->__retvalue, "NOSPACE|", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "NOSPACE|", MAXSTRINGLEN);
 	if (test_bit (SOCK_PASSCRED, &flags))
-		strlcat (THIS->__retvalue, "PASSCRED|", MAXSTRINGLEN);
+		strlcat (STAP_RETVALUE, "PASSCRED|", MAXSTRINGLEN);
 	if (test_bit (SOCK_PASSSEC, &flags))
-		strlcat (THIS->__retvalue, "PASSSEC|", MAXSTRINGLEN);
-	if (THIS->__retvalue[0] != '\0')
-		THIS->__retvalue[strlen(THIS->__retvalue)-1] = '\0';
+		strlcat (STAP_RETVALUE, "PASSSEC|", MAXSTRINGLEN);
+	if (STAP_RETVALUE[0] != '\0')
+		STAP_RETVALUE[strlen(STAP_RETVALUE)-1] = '\0';
 %}
 
 ######### MESSAGE FLAGS HELPER FUNCTIONS #########
 
 function msg_flags_num2str:string (flags:long)
 %{ /* pure */
-	THIS->__retvalue[0] = '\0';
+	STAP_RETVALUE[0] = '\0';
 
-	if (THIS->flags & MSG_OOB)
-		strlcat (THIS->__retvalue, "OOB|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_PEEK)
-		strlcat (THIS->__retvalue, "PEEK|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_DONTROUTE)
-		strlcat (THIS->__retvalue, "DONTROUTE|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_TRYHARD)
-		strlcat (THIS->__retvalue, "TRYHARD|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_CTRUNC)
-		strlcat (THIS->__retvalue, "CTRUNC|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_PROBE)
-		strlcat (THIS->__retvalue, "PROBE|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_TRUNC)
-		strlcat (THIS->__retvalue, "TRUNC|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_DONTWAIT)
-		strlcat (THIS->__retvalue, "DONTWAIT|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_EOR)
-		strlcat (THIS->__retvalue, "EOR|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_WAITALL)
-		strlcat (THIS->__retvalue, "WAITALL|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_FIN)
-		strlcat (THIS->__retvalue, "FIN|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_SYN)
-		strlcat (THIS->__retvalue, "SYN|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_CONFIRM)
-		strlcat (THIS->__retvalue, "CONFIRM|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_RST)
-		strlcat (THIS->__retvalue, "RST|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_ERRQUEUE)
-		strlcat (THIS->__retvalue, "ERRQUEUE|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_NOSIGNAL)
-		strlcat (THIS->__retvalue, "NOSIGNAL|", MAXSTRINGLEN);
-	if (THIS->flags & MSG_MORE)
-		strlcat (THIS->__retvalue, "MORE|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_OOB)
+		strlcat (STAP_RETVALUE, "OOB|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_PEEK)
+		strlcat (STAP_RETVALUE, "PEEK|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_DONTROUTE)
+		strlcat (STAP_RETVALUE, "DONTROUTE|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_TRYHARD)
+		strlcat (STAP_RETVALUE, "TRYHARD|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_CTRUNC)
+		strlcat (STAP_RETVALUE, "CTRUNC|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_PROBE)
+		strlcat (STAP_RETVALUE, "PROBE|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_TRUNC)
+		strlcat (STAP_RETVALUE, "TRUNC|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_DONTWAIT)
+		strlcat (STAP_RETVALUE, "DONTWAIT|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_EOR)
+		strlcat (STAP_RETVALUE, "EOR|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_WAITALL)
+		strlcat (STAP_RETVALUE, "WAITALL|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_FIN)
+		strlcat (STAP_RETVALUE, "FIN|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_SYN)
+		strlcat (STAP_RETVALUE, "SYN|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_CONFIRM)
+		strlcat (STAP_RETVALUE, "CONFIRM|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_RST)
+		strlcat (STAP_RETVALUE, "RST|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_ERRQUEUE)
+		strlcat (STAP_RETVALUE, "ERRQUEUE|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_NOSIGNAL)
+		strlcat (STAP_RETVALUE, "NOSIGNAL|", MAXSTRINGLEN);
+	if (STAP_ARG_flags & MSG_MORE)
+		strlcat (STAP_RETVALUE, "MORE|", MAXSTRINGLEN);
 
-	if (THIS->__retvalue[0] != '\0')
-		THIS->__retvalue[strlen(THIS->__retvalue)-1] = '\0';
+	if (STAP_RETVALUE[0] != '\0')
+		STAP_RETVALUE[strlen(STAP_RETVALUE)-1] = '\0';
 %}
 
 ###########################
@@ -888,7 +888,7 @@ function _success_check:long (ret:long)
 
 function _get_sock_addr:long (file:long)
 %{ /* pure */
-	struct file *filep = (struct file *)(long)(THIS->file);
+	struct file *filep = (struct file *)(long)(STAP_ARG_file);
 	struct socket *sockp;
 	if (filep) {
 		struct dentry *dentry = kread(&(filep->f_dentry));
@@ -898,22 +898,22 @@ function _get_sock_addr:long (file:long)
 		sockp = NULL;
 	}
 	if (sockp == NULL)
-		THIS->__retvalue = -1;
+		STAP_RETVALUE = -1;
 	else
-		THIS->__retvalue = (long) sockp;
+		STAP_RETVALUE = (long) sockp;
 	CATCH_DEREF_FAULT();
 %}
 
 function _get_sock_size:long (iov:long, nr_segs:long)
 %{ /* pure */
-	struct iovec *iovp = (struct iovec *)(long)(THIS->iov);
+	struct iovec *iovp = (struct iovec *)(long)(STAP_ARG_iov);
 	if (iovp == NULL)
-		THIS->__retvalue = -1;
+		STAP_RETVALUE = -1;
 	else {
 		int i;
-		THIS->__retvalue = 0;
-		for (i = 0 ; i < THIS->nr_segs ; i++)
-			THIS->__retvalue += kread(&(iovp[i].iov_len));
+		STAP_RETVALUE = 0;
+		for (i = 0 ; i < STAP_ARG_nr_segs ; i++)
+			STAP_RETVALUE += kread(&(iovp[i].iov_len));
 	}
 	CATCH_DEREF_FAULT();
 %}

@@ -11,13 +11,13 @@
 #define __STP_GET_USER(t, warn)						\
 	do {								\
 		__label__ deref_fault;					\
-		t *_ptr = (t*) (intptr_t) THIS->addr;			\
+		t *_ptr = (t*) (intptr_t) STAP_ARG_addr;			\
 		assert_is_myproc();					\
 		if (! access_ok(VERIFY_READ, _ptr, sizeof(t)))		\
 			goto deref_fault;				\
-	   	if (__stp_get_user(THIS->__retvalue, _ptr)) {		\
+	   	if (__stp_get_user(STAP_RETVALUE, _ptr)) {		\
 		deref_fault:						\
-			THIS->__retvalue = 0;				\
+			STAP_RETVALUE = 0;				\
 			CONTEXT->last_error = NULL;			\
 			if (warn) {					\
 				snprintf(CONTEXT->error_buffer,		\
@@ -54,10 +54,10 @@ function user_string:string (addr:long) { return user_string2 (addr, "<unknown>"
  * userspace data is not accessible.
  */
 function user_string2:string (addr:long, err_msg:string) %{ /* pure */ /* myproc-unprivileged */
-  if (_stp_strncpy_from_user (THIS->__retvalue,
-        (const char __user*) (uintptr_t) THIS->addr,
+  if (_stp_strncpy_from_user (STAP_RETVALUE,
+        (const char __user*) (uintptr_t) STAP_ARG_addr,
         MAXSTRINGLEN) < 0)
-    strlcpy (THIS->__retvalue, THIS->err_msg, MAXSTRINGLEN);
+    strlcpy (STAP_RETVALUE, STAP_ARG_err_msg, MAXSTRINGLEN);
 %}
 
 /**
@@ -71,16 +71,16 @@ function user_string2:string (addr:long, err_msg:string) %{ /* pure */ /* myproc
  */
 function user_string_warn:string (addr:long) %{ /* pure */ /* myproc-unprivileged */
   long rc;
-  rc = _stp_strncpy_from_user (THIS->__retvalue,
-      (const char __user*) (uintptr_t) THIS->addr, MAXSTRINGLEN);
+  rc = _stp_strncpy_from_user (STAP_RETVALUE,
+      (const char __user*) (uintptr_t) STAP_ARG_addr, MAXSTRINGLEN);
   if (rc < 0) {
     // NB: using error_buffer to get local space for the warning, but we're
     // not aborting, so leave last_error alone.
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
         "user string copy fault %ld at %p", rc,
-        (void *) (uintptr_t) THIS->addr);
+        (void *) (uintptr_t) STAP_ARG_addr);
     _stp_warn(CONTEXT->error_buffer);
-    strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+    strlcpy (STAP_RETVALUE, "<unknown>", MAXSTRINGLEN);
   }
 %}
 
@@ -96,11 +96,11 @@ function user_string_warn:string (addr:long) %{ /* pure */ /* myproc-unprivilege
  * cases when userspace data is not accessible at the given address.
  */
 function user_string_quoted:string (addr:long) %{ /* pure */ /* myproc-unprivileged */
-  if (THIS->addr == 0)
-    strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+  if (STAP_ARG_addr == 0)
+    strlcpy (STAP_RETVALUE, "NULL", MAXSTRINGLEN);
   else
     /* XXX: stp_text_str uses sleepy __get_user() => unsafe ?!  */
-    _stp_text_str(THIS->__retvalue, (char *)(uintptr_t)THIS->addr,
+    _stp_text_str(STAP_RETVALUE, (char *)(uintptr_t)STAP_ARG_addr,
         MAXSTRINGLEN, 1, 1);
 %}
 
@@ -131,13 +131,13 @@ function user_string_n:string (addr:long, n:long) {
  * address.
  */
 function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */ /* myproc-unprivileged */
-	int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
-	if (_stp_strncpy_from_user(THIS->__retvalue,
-				(char __user *) (uintptr_t) THIS->addr,
+	int64_t len = clamp_t(int64_t, STAP_ARG_n + 1, 1, MAXSTRINGLEN);
+	if (_stp_strncpy_from_user(STAP_RETVALUE,
+				(char __user *) (uintptr_t) STAP_ARG_addr,
 				len) < 0)
-		strlcpy(THIS->__retvalue, THIS->err_msg, MAXSTRINGLEN);
+		strlcpy(STAP_RETVALUE, STAP_ARG_err_msg, MAXSTRINGLEN);
 	else
-		THIS->__retvalue[len - 1] = '\0';
+		STAP_RETVALUE[len - 1] = '\0';
 %}
 
 /**
@@ -152,20 +152,20 @@ function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */
  * about the failure.
  */
 function user_string_n_warn:string (addr:long, n:long) %{ /* pure */ /* myproc-unprivileged */
-	int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
+	int64_t len = clamp_t(int64_t, STAP_ARG_n + 1, 1, MAXSTRINGLEN);
 	long rc;
-	rc = _stp_strncpy_from_user(THIS->__retvalue,
-			(char __user *) (uintptr_t) THIS->addr, len);
+	rc = _stp_strncpy_from_user(STAP_RETVALUE,
+			(char __user *) (uintptr_t) STAP_ARG_addr, len);
 	if (rc < 0) {
 		// NB: using error_buffer to get local space for the warning, but we're
 		// not aborting, so leave last_error alone.
 		snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
 				"user string copy fault %ld at %p", rc,
-				(void *) (uintptr_t) THIS->addr);
+				(void *) (uintptr_t) STAP_ARG_addr);
 		_stp_warn(CONTEXT->error_buffer);
-		strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, "<unknown>", MAXSTRINGLEN);
 	} else
-		THIS->__retvalue[len - 1] = '\0';
+		STAP_RETVALUE[len - 1] = '\0';
 %}
 
 /**
@@ -182,12 +182,12 @@ function user_string_n_warn:string (addr:long, n:long) %{ /* pure */ /* myproc-u
  * address.
  */
 function user_string_n_quoted:string (addr:long, n:long) %{ /* pure */ /* myproc-unprivileged */
-        int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
-	if (THIS->addr == 0)
-		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
+        int64_t len = clamp_t(int64_t, STAP_ARG_n + 1, 1, MAXSTRINGLEN);
+	if (STAP_ARG_addr == 0)
+		strlcpy(STAP_RETVALUE, "NULL", MAXSTRINGLEN);
 	else
 		/* XXX: stp_text_str uses sleepy __get_user() => unsafe ?!  */
-		_stp_text_str(THIS->__retvalue, (char *)(uintptr_t)THIS->addr,
+		_stp_text_str(STAP_RETVALUE, (char *)(uintptr_t)STAP_ARG_addr,
 				len, 1, 1);
 %}
 
@@ -417,12 +417,12 @@ function user_int64:long (addr:long) %{ /* pure */ /* myproc-unprivileged */
 	 * want to complicate all the other callers. */
 	uint32_t value[2];
 	STP_GET_USER(uint32_t);
-	value[0] = THIS->__retvalue;
+	value[0] = STAP_RETVALUE;
 	if (!CONTEXT->last_error) {
-		THIS->addr += 4;
+		STAP_ARG_addr += 4;
 		STP_GET_USER(uint32_t);
-		value[1] = THIS->__retvalue;
-		THIS->__retvalue = *(int64_t*)value;
+		value[1] = STAP_RETVALUE;
+		STAP_RETVALUE = *(int64_t*)value;
 	}
 #else
 	STP_GET_USER(int64_t);

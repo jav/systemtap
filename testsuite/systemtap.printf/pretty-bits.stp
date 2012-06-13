@@ -11,7 +11,7 @@ struct pretty_bits {
 
 function get_bits_pointer:long() %{
     static struct pretty_bits bits = { 0, 1, 1, 2, 3, 5, 8, 13, };
-    THIS->__retvalue = (intptr_t) &bits;
+    STAP_RETVALUE = (intptr_t) &bits;
 %}
 
 probe begin {

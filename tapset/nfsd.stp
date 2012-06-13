@@ -40,10 +40,10 @@
 
 /*Get file handler from struct svc_fh */
 function __svc_fh:string(fh :long) %{  /* pure */
-	struct svc_fh * fhp = (struct svc_fh *) (long)(THIS->fh);
+	struct svc_fh * fhp = (struct svc_fh *) (long)(STAP_ARG_fh);
 	struct knfsd_fh *fh = &fhp->fh_handle;
 
-	snprintf(THIS->__retvalue, MAXSTRINGLEN,
+	snprintf(STAP_RETVALUE, MAXSTRINGLEN,
 			"%d: %08x %08x %08x %08x %08x %08x",
 			kread(&(fh->fh_size)),
 			kread(&(fh->fh_base.fh_pad[0])),
@@ -56,92 +56,92 @@ function __svc_fh:string(fh :long) %{  /* pure */
 %}
 
 function nfs3_cmode:string(cmode:long) %{ /* pure */
-	int cmode = (int)(long)THIS->cmode;
+	int cmode = (int)(long)STAP_ARG_cmode;
 	
 	switch (cmode) {
 	case NFS3_CREATE_UNCHECKED:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "UNCHECKED");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "UNCHECKED");
 		break;
 	case NFS3_CREATE_GUARDED:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "GUARDED");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "GUARDED");
 		break;
 	case NFS3_CREATE_EXCLUSIVE:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "EXCLUSIVE");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "EXCLUSIVE");
 		break;
 	default: 
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "Bad Value(%d)", 
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "Bad Value(%d)", 
 			cmode);
 	}
 	CATCH_DEREF_FAULT();
 %}
 
 function nfs4_ctype:string(cmode:long) %{ /* pure */
-	int cmode = (int)(long)THIS->cmode;
+	int cmode = (int)(long)STAP_ARG_cmode;
 	
 	switch (cmode) {
 	case NF4BAD:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4BAD");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "NF4BAD");
 		break;
 	case NF4REG:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4REG");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "NF4REG");
 		break;
 	case NF4DIR:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4DIR");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "NF4DIR");
 		break;
 	case NF4BLK:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4BLK");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "NF4BLK");
 		break;
 	case NF4CHR:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4CHR");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "NF4CHR");
 		break;
 	case NF4LNK:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4LNK");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "NF4LNK");
 		break;
 	case NF4SOCK:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4SOCK");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "NF4SOCK");
 		break;
 	case NF4FIFO:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4FIFO");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "NF4FIFO");
 		break;
 	case NF4ATTRDIR:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4ATTRDIR");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "NF4ATTRDIR");
 		break;
 	case NF4NAMEDATTR:
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "NF4NAMEDATTR");
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, "NF4NAMEDATTR");
 		break;
 	default: 
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, 
 			"Bad Value(%d)", cmode);
 	}
 	CATCH_DEREF_FAULT();
 %}
 
 function ftype:string(type:long) %{ /* pure */
-	int type = (int)(long)THIS->type;
+	int type = (int)(long)STAP_ARG_type;
 
 	if (S_ISLNK(type)) {
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, 
 			"0%o (ISLNK)", type);
 	} else if (S_ISREG(type)) {
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, 
 			"0%o (ISREG)", type);
 	} else if (S_ISDIR(type)) {
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, 
 			"0%o (ISDIR)", type);
 	} else if (S_ISCHR(type)) {
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, 
 			"0%o (ISCHR)", type);
 	} else if (S_ISBLK(type)) {
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, 
 			"0%o (ISBLK)", type);
 	} else if (S_ISFIFO(type)) {
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, 
 			"0%o (ISFIFO)", type);
 	} else if (S_ISSOCK(type)) {
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, 
 			"0%o (ISSOCK)", type);
 	} else  {
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, 
+		snprintf(STAP_RETVALUE, MAXSTRINGLEN, 
 			"0%o (Unknown)", type);
 	}
 %}

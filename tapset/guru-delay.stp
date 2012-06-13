@@ -29,7 +29,7 @@
  */
 function mdelay(ms:long) %{
   /* guru */
-  mdelay(THIS->ms);
+  mdelay(STAP_ARG_ms);
 %}
 
 /**
@@ -41,5 +41,5 @@ function mdelay(ms:long) %{
  */
 function udelay(us:long) %{
   /* guru */
-  udelay(THIS->us);
+  udelay(STAP_ARG_us);
 %}

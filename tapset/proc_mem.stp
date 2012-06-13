@@ -49,26 +49,26 @@ enum {
    starting, exiting or (coopted by) a kernel thread. */
 function _stp_valid_task:long(tsk:long)
 %{
-  struct task_struct *tsk = (struct task_struct *)(long)THIS->tsk;
+  struct task_struct *tsk = (struct task_struct *)(long)STAP_ARG_tsk;
 
-  THIS->__retvalue = 0;
+  STAP_RETVALUE = 0;
   if (tsk) {
     unsigned int flags = kread(&(tsk->flags));
 
     if (flags & ~_STP_BAD_TASK_FLAGS)
-      THIS->__retvalue = 1;
+      STAP_RETVALUE = 1;
   }
   CATCH_DEREF_FAULT();
 %}
 
 function _MM_FILEPAGES:long()
 %{ /* pure */ /* unprivileged */
-  THIS->__retvalue = MM_FILEPAGES;
+  STAP_RETVALUE = MM_FILEPAGES;
 %}
 
 function _MM_ANONPAGES:long()
 %{ /* pure */ /* unprivileged */
-  THIS->__retvalue = MM_ANONPAGES;
+  STAP_RETVALUE = MM_ANONPAGES;
 %}
 
 function _stp_get_mm_counter:long(mm:long, member:long)
@@ -233,9 +233,9 @@ function proc_mem_shr_pid:long (pid:long)
 
 function _stp_mem_txt_adjust:long (start_code:long, end_code:long)
 %{ /* pure */
-  unsigned long start_code = (unsigned long) THIS->start_code;
-  unsigned long end_code = (unsigned long) THIS->end_code;
-  THIS->__retvalue = (PAGE_ALIGN(end_code)
+  unsigned long start_code = (unsigned long) STAP_ARG_start_code;
+  unsigned long end_code = (unsigned long) STAP_ARG_end_code;
+  STAP_RETVALUE = (PAGE_ALIGN(end_code)
                       - (start_code & PAGE_MASK)) >> PAGE_SHIFT;
 %}
 
@@ -332,7 +332,7 @@ function proc_mem_data_pid:long (pid:long)
  */
 function mem_page_size:long ()
 %{ /* pure */ /* unprivileged */
-   THIS->__retvalue = PAGE_SIZE;
+   STAP_RETVALUE = PAGE_SIZE;
 %}
 
 // Return a 5 character wide string " x.yyp", " xx.yp", " xxxp", "xxxxp".

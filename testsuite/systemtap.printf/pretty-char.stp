@@ -6,7 +6,7 @@ struct pretty_chars { char a, b, c, d, e; };
 
 function get_chars_pointer:long() %{
     static struct pretty_chars chars = { 'A', 0, '\b', 236, 'z' };
-    THIS->__retvalue = (intptr_t) &chars;
+    STAP_RETVALUE = (intptr_t) &chars;
 %}
 
 probe begin {

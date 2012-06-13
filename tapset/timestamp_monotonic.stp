@@ -36,19 +36,19 @@
  */
 function cpu_clock_ns:long (cpu:long) %{ /* pure */ /* unprivileged */
 #if defined (STAPCONF_CPU_CLOCK)
-  if (likely(THIS->cpu >= 0 && THIS->cpu < NR_CPUS && cpu_online(THIS->cpu)))
-    THIS->__retvalue = cpu_clock(THIS->cpu);
+  if (likely(STAP_ARG_cpu >= 0 && STAP_ARG_cpu < NR_CPUS && cpu_online(STAP_ARG_cpu)))
+    STAP_RETVALUE = cpu_clock(STAP_ARG_cpu);
   else
     {
       snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-               "cpu %lld is not online", THIS->cpu);
+               "cpu %lld is not online", STAP_ARG_cpu);
       CONTEXT->last_error = CONTEXT->error_buffer;
     }
 #else
   /* NOTE: we can't use do_gettimeofday because we could be called from a
    * context where xtime_lock is already held.  See bug #2525. */
-  THIS->__retvalue = _stp_gettimeofday_ns();
-  if (THIS->__retvalue < 0)
+  STAP_RETVALUE = _stp_gettimeofday_ns();
+  if (STAP_RETVALUE < 0)
     CONTEXT->last_error = "gettimeofday not initialized";
 #endif
 %}
@@ -99,14 +99,14 @@ function cpu_clock_s:long (cpu:long) {
  */
 function local_clock_ns:long () %{ /* pure */ /* unprivileged */
 #if defined (STAPCONF_LOCAL_CLOCK)
-  THIS->__retvalue = local_clock();
+  STAP_RETVALUE = local_clock();
 #elif defined (STAPCONF_CPU_CLOCK)
-  THIS->__retvalue = cpu_clock(smp_processor_id());
+  STAP_RETVALUE = cpu_clock(smp_processor_id());
 #else
   /* NOTE: we can't use do_gettimeofday because we could be called from a
    * context where xtime_lock is already held.  See bug #2525. */
-  THIS->__retvalue = _stp_gettimeofday_ns();
-  if (THIS->__retvalue < 0)
+  STAP_RETVALUE = _stp_gettimeofday_ns();
+  if (STAP_RETVALUE < 0)
     CONTEXT->last_error = "gettimeofday not initialized";
 #endif
 %}

@@ -23,7 +23,7 @@
  */
 function usymname:string (addr: long) %{
 /* pure */ /* myproc-unprivileged */ /* pragma:vma */ /* pragma:symbols */
-	 _stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+	 _stp_snprint_addr(STAP_RETVALUE, MAXSTRINGLEN, STAP_ARG_addr,
 			   _STP_SYM_SYMBOL, current);
 %}
 
@@ -41,7 +41,7 @@ function usymname:string (addr: long) %{
  */
 function usymdata:string (addr: long) %{
 /* pure */ /* myproc-unprivileged */ /* pragma:vma */ /* pragma:symbols */
-	 _stp_snprint_addr(THIS->__retvalue, MAXSTRINGLEN, THIS->addr,
+	 _stp_snprint_addr(STAP_RETVALUE, MAXSTRINGLEN, STAP_ARG_addr,
 			   _STP_SYM_DATA, current);
 %}
 
@@ -59,7 +59,7 @@ function usymdata:string (addr: long) %{
  */
 function print_ustack(stk:string) %{
 /* myproc-unprivileged */ /* pragma:vma */ /* pragma:symbols */
-        char *ptr = THIS->stk;
+        char *ptr = STAP_ARG_stk;
         char *tok = strsep(&ptr, " ");
         while (tok && *tok) {
                 _stp_print_addr(simple_strtol(tok, NULL, 16),
@@ -87,9 +87,9 @@ function print_ustack(stk:string) %{
  * print_ustack.
  */
 function sprint_ustack:string(stk:string) %{ /* pure */ /* pragma:symbols */
-	char *ptr = THIS->stk;
+	char *ptr = STAP_ARG_stk;
 	char *tok = strsep(&ptr, " ");
-	char *str = THIS->__retvalue;
+	char *str = STAP_RETVALUE;
 	size_t len = MAXSTRINGLEN - 1;
 	while (tok && *tok && len > 0) {
 		int s = _stp_snprint_addr(str, len,
@@ -104,5 +104,5 @@ function sprint_ustack:string(stk:string) %{ /* pure */ /* pragma:symbols */
 	if (len > 0)
 		str[0] = '\0';
 	else
-		THIS->__retvalue[MAXSTRINGLEN - 1] = '\0';
+		STAP_RETVALUE[MAXSTRINGLEN - 1] = '\0';
 %}

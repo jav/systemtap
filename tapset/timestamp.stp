@@ -23,7 +23,7 @@
  */
 function get_cycles:long () %{ /* pure */ /* unprivileged */
   cycles_t c = get_cycles();
-  THIS->__retvalue = (int64_t) c;
+  STAP_RETVALUE = (int64_t) c;
 %}
 
 
@@ -35,7 +35,7 @@ function get_cycles:long () %{ /* pure */ /* unprivileged */
  * and may wrap around a 32-bit or 64-bit boundary.  See HZ().
  */
 function jiffies:long () %{ /* pure */ /* unprivileged */
-  THIS->__retvalue = (int64_t) jiffies;
+  STAP_RETVALUE = (int64_t) jiffies;
 %}
 
 
@@ -46,5 +46,5 @@ function jiffies:long () %{ /* pure */ /* unprivileged */
  * which corresponds to the rate of increase of the jiffies value.
  */
 function HZ:long () %{ /* pure */ /* unprivileged */
-  THIS->__retvalue = (int64_t) HZ;
+  STAP_RETVALUE = (int64_t) HZ;
 %}

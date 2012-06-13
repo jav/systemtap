@@ -17,8 +17,8 @@
 function umodname:string (addr:long) %{
 /* pure */ /* myproc-unprivileged */ /* pragma:vma */
   const char *name = NULL;
-  _stp_umod_lookup(THIS->addr, current, &name, NULL, NULL);
+  _stp_umod_lookup(STAP_ARG_addr, current, &name, NULL, NULL);
   if (!name)
     name = "<unknown>";
-  strlcpy (THIS->__retvalue, name, MAXSTRINGLEN);
+  strlcpy (STAP_RETVALUE, name, MAXSTRINGLEN);
 %}

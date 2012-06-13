@@ -41,7 +41,7 @@ function print_backtrace () %{
  */
 function sprint_backtrace:string () %{
 	/* pure */ /* pragma:unwind */ /* pragma:symbols */
-	_stp_stack_kernel_sprint (THIS->__retvalue, MAXSTRINGLEN,
+	_stp_stack_kernel_sprint (STAP_RETVALUE, MAXSTRINGLEN,
 				  CONTEXT, _STP_SYM_SIMPLE);
 %}
 
@@ -53,7 +53,7 @@ function sprint_backtrace:string () %{
  * as per maximum string length (MAXSTRINGLEN).
  */
 function backtrace:string () %{ /* pure */ /* pragma:unwind */
-	_stp_stack_kernel_sprint (THIS->__retvalue, MAXSTRINGLEN,
+	_stp_stack_kernel_sprint (STAP_RETVALUE, MAXSTRINGLEN,
 				  CONTEXT, _STP_SYM_NONE);
 %}
 

@@ -9,5 +9,5 @@
  * running the stap or staprun command.
  */
 function system (cmd:string) %{
-	_stp_ctl_send(STP_SYSTEM, THIS->cmd, strlen(THIS->cmd)+1);
+	_stp_ctl_send(STP_SYSTEM, STAP_ARG_cmd, strlen(STAP_ARG_cmd)+1);
 %}

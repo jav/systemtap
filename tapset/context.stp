@@ -33,7 +33,7 @@ function print_regs ()
  */
 function execname:string ()
 %{ /* pure */ /* unprivileged */
-	strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);
+	strlcpy (STAP_RETVALUE, current->comm, MAXSTRINGLEN);
 %}
 
 /**
@@ -43,7 +43,7 @@ function execname:string ()
  */
 function pid:long ()
 %{ /* pure */ /* unprivileged */
-	THIS->__retvalue = current->tgid;
+	STAP_RETVALUE = current->tgid;
 %}
 
 /**
@@ -53,7 +53,7 @@ function pid:long ()
  */
 function tid:long ()
 %{ /* pure */ /* unprivileged */
-	THIS->__retvalue = current->pid;
+	STAP_RETVALUE = current->pid;
 %}
 
 /**
@@ -64,9 +64,9 @@ function tid:long ()
 function ppid:long()
 %{ /* pure */ /* unprivileged */
 #if defined(STAPCONF_REAL_PARENT)
-	THIS->__retvalue = current->real_parent->tgid;
+	STAP_RETVALUE = current->real_parent->tgid;
 #else
-	THIS->__retvalue = current->parent->tgid;
+	STAP_RETVALUE = current->parent->tgid;
 #endif
 %}
 
@@ -80,10 +80,10 @@ function pgrp:long ()
 %{ /* pure */ /* unprivileged */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 	struct signal_struct *ss = kread( &(current->signal) );
-	THIS->__retvalue = kread ( &(ss->pgrp) );
+	STAP_RETVALUE = kread ( &(ss->pgrp) );
 	CATCH_DEREF_FAULT();
 #else
-	THIS->__retvalue = task_pgrp_nr_ns(current, &init_pid_ns);
+	STAP_RETVALUE = task_pgrp_nr_ns(current, &init_pid_ns);
 #endif
 %}
 
@@ -98,10 +98,10 @@ function sid:long ()
 %{ /* pure */ /* unprivileged */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 	struct signal_struct *ss = kread( &(current->signal) );
-	THIS->__retvalue = kread ( &(ss->session) );
+	STAP_RETVALUE = kread ( &(ss->session) );
 	CATCH_DEREF_FAULT();
 #else
-	THIS->__retvalue = task_session_nr_ns(current, &init_pid_ns);
+	STAP_RETVALUE = task_session_nr_ns(current, &init_pid_ns);
 #endif
 %}
 
@@ -114,9 +114,9 @@ function sid:long ()
 function pexecname:string ()
 %{ /* pure */ /* unprivileged */
 #if defined(STAPCONF_REAL_PARENT)
-	strlcpy (THIS->__retvalue, current->real_parent->comm, MAXSTRINGLEN);
+	strlcpy (STAP_RETVALUE, current->real_parent->comm, MAXSTRINGLEN);
 #else
-	strlcpy (THIS->__retvalue, current->parent->comm, MAXSTRINGLEN);
+	strlcpy (STAP_RETVALUE, current->parent->comm, MAXSTRINGLEN);
 #endif
 %}
 
@@ -128,9 +128,9 @@ function pexecname:string ()
 function gid:long ()
 %{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
-	THIS->__retvalue = current->gid;
+	STAP_RETVALUE = current->gid;
 #else
-	THIS->__retvalue = current_gid();
+	STAP_RETVALUE = current_gid();
 #endif
 %}
 
@@ -142,9 +142,9 @@ function gid:long ()
 function egid:long ()
 %{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
-	THIS->__retvalue = current->egid;
+	STAP_RETVALUE = current->egid;
 #else
-	THIS->__retvalue = current_egid();
+	STAP_RETVALUE = current_egid();
 #endif
 %}
 
@@ -156,9 +156,9 @@ function egid:long ()
 function uid:long ()
 %{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
-	THIS->__retvalue = current->uid;
+	STAP_RETVALUE = current->uid;
 #else
-	THIS->__retvalue = current_uid();
+	STAP_RETVALUE = current_uid();
 #endif
 %}
 
@@ -170,9 +170,9 @@ function uid:long ()
 function euid:long ()
 %{ /* pure */ /* unprivileged */
 #ifdef STAPCONF_TASK_UID
-	THIS->__retvalue = current->euid;
+	STAP_RETVALUE = current->euid;
 #else
-	THIS->__retvalue = current_euid();
+	STAP_RETVALUE = current_euid();
 #endif
 %}
 
@@ -185,7 +185,7 @@ function euid:long ()
  */
 function is_myproc:long ()
 %{ /* pure */ /* unprivileged */
-        THIS->__retvalue = is_myproc();
+        STAP_RETVALUE = is_myproc();
 %}
 
 
@@ -198,7 +198,7 @@ function is_myproc:long ()
  */
 function cpuid:long ()
 %{ /* pure */
-	THIS->__retvalue = smp_processor_id();
+	STAP_RETVALUE = smp_processor_id();
 %}
 %)
 
@@ -209,7 +209,7 @@ function cpuid:long ()
  */
 function cpu:long ()
 %{ /* pure */ /* unprivileged */
-	THIS->__retvalue = smp_processor_id();
+	STAP_RETVALUE = smp_processor_id();
 %}
 
 /**
@@ -221,7 +221,7 @@ function cpu:long ()
  */
 function pp:string ()
 %{ /* pure */ /* unprivileged */
-	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
+	strlcpy (STAP_RETVALUE, CONTEXT->probe_point, MAXSTRINGLEN);
 %}
 
 /**
@@ -234,7 +234,7 @@ function pp:string ()
  */
 function registers_valid:long ()
 %{ /* pure */ /* unprivileged */
-	THIS->__retvalue = ((c->probe_flags & _STP_PROBE_STATE_USER_MODE)
+	STAP_RETVALUE = ((c->probe_flags & _STP_PROBE_STATE_USER_MODE)
 			    ? (CONTEXT->uregs != NULL)
 			    : (CONTEXT->kregs != NULL));
 %}
@@ -246,7 +246,7 @@ function registers_valid:long ()
  */
 function user_mode:long ()
 %{ /* pure */ /* unprivileged */
-  THIS->__retvalue = (CONTEXT->probe_flags
+  STAP_RETVALUE = (CONTEXT->probe_flags
 		      & _STP_PROBE_STATE_USER_MODE) ? 1 : 0;
 %}
 
@@ -260,9 +260,9 @@ function is_return:long ()
 %{ /* pure */
 	if (CONTEXT->probe_type == _STP_PROBE_HANDLER_KRETPROBE
 	    || CONTEXT->probe_type == _STP_PROBE_HANDLER_URETPROBE)
-		THIS->__retvalue = 1;
+		STAP_RETVALUE = 1;
 	else
-		THIS->__retvalue = 0;
+		STAP_RETVALUE = 0;
 %}
 
 /**
@@ -281,7 +281,7 @@ function is_return:long ()
  */
 function target:long ()
 %{ /* pure */ /* unprivileged */
-        THIS->__retvalue = _stp_target;
+        STAP_RETVALUE = _stp_target;
 %}
 
 /**
@@ -293,7 +293,7 @@ function target:long ()
  */
 function module_name:string ()
 %{ /* pure */ /* unprivileged */
-	strlcpy(THIS->__retvalue, THIS_MODULE->name, MAXSTRINGLEN);
+	strlcpy(STAP_RETVALUE, THIS_MODULE->name, MAXSTRINGLEN);
 %}
 
 /**
@@ -306,7 +306,7 @@ function module_name:string ()
  */
 function stp_pid:long ()
 %{ /* pure */
-        THIS->__retvalue = _stp_pid;
+        STAP_RETVALUE = _stp_pid;
 %}
 
 
@@ -346,7 +346,7 @@ function remote_uri:string () {
  */
 function stack_size:long ()
 %{ /* pure */
-        THIS->__retvalue = THREAD_SIZE;
+        STAP_RETVALUE = THREAD_SIZE;
 %}
 
 /**
@@ -358,7 +358,7 @@ function stack_size:long ()
 function stack_used:long ()
 %{ /* pure */
 	char a;
-        THIS->__retvalue = THREAD_SIZE - ((long)&a & (THREAD_SIZE-1));
+        STAP_RETVALUE = THREAD_SIZE - ((long)&a & (THREAD_SIZE-1));
 %}
 
 /**
@@ -370,7 +370,7 @@ function stack_used:long ()
 function stack_unused:long ()
 %{ /* pure */
 	char a;
-        THIS->__retvalue = (long)&a & (THREAD_SIZE-1);
+        STAP_RETVALUE = (long)&a & (THREAD_SIZE-1);
 %}
 
 /**
@@ -384,9 +384,9 @@ function stack_unused:long ()
 function addr:long ()
 %{ /* pure */
   if (CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE) {
-    THIS->__retvalue = (intptr_t)(CONTEXT->uregs ? REG_IP(CONTEXT->uregs) : 0);
+    STAP_RETVALUE = (intptr_t)(CONTEXT->uregs ? REG_IP(CONTEXT->uregs) : 0);
   } else {
-    THIS->__retvalue = (intptr_t)(CONTEXT->kregs ? REG_IP(CONTEXT->kregs) : 0);
+    STAP_RETVALUE = (intptr_t)(CONTEXT->kregs ? REG_IP(CONTEXT->kregs) : 0);
   }
 %}
 
@@ -410,9 +410,9 @@ function uaddr:long ()
     uregs = _stp_current_pt_regs();
 
   if (uregs)
-    THIS->__retvalue = (int64_t) REG_IP(uregs);
+    STAP_RETVALUE = (int64_t) REG_IP(uregs);
   else
-    THIS->__retvalue = 0;
+    STAP_RETVALUE = 0;
 %}
 
 
@@ -432,55 +432,55 @@ function probe_type:string()
   switch (CONTEXT->probe_type)
   {
     case _STP_PROBE_HANDLER_BEEN:
-      strlcpy (THIS->__retvalue, "begin_end", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "begin_end", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_ITRACE:
-      strlcpy (THIS->__retvalue, "itrace", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "itrace", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_MARKER:
-      strlcpy (THIS->__retvalue, "kernel_marker", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "kernel_marker", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_PERF:
-      strlcpy (THIS->__retvalue, "perf_event", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "perf_event", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_PROCFS:
-      strlcpy (THIS->__retvalue, "procfs", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "procfs", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_TIMER:
-      strlcpy (THIS->__retvalue, "timer", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "timer", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_HRTIMER:
-      strlcpy (THIS->__retvalue, "hrtimer", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "hrtimer", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_PROFILE_TIMER:
-      strlcpy (THIS->__retvalue, "profile_timer", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "profile_timer", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_NETFILTER:
-      strlcpy (THIS->__retvalue, "netfilter", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "netfilter", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_UTRACE:
-      strlcpy (THIS->__retvalue, "utrace", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "utrace", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_UTRACE_SYSCALL:
-      strlcpy (THIS->__retvalue, "utrace_syscall", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "utrace_syscall", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_KPROBE:
-      strlcpy (THIS->__retvalue, "kprobe", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "kprobe", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_KRETPROBE:
-      strlcpy (THIS->__retvalue, "kretprobe", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "kretprobe", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_UPROBE:
-      strlcpy (THIS->__retvalue, "uprobe", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "uprobe", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_URETPROBE:
-      strlcpy (THIS->__retvalue, "uretprobe", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "uretprobe", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_HWBKPT:
-      strlcpy (THIS->__retvalue, "hardware_data_breakpoint", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "hardware_data_breakpoint", MAXSTRINGLEN);
       break;
     case _STP_PROBE_HANDLER_TRACEPOINT:
-      strlcpy (THIS->__retvalue, "kernel_tracepoint", MAXSTRINGLEN);
+      strlcpy (STAP_RETVALUE, "kernel_tracepoint", MAXSTRINGLEN);
       break;
     default:
       /* This should never happen. */

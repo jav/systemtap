@@ -14,8 +14,8 @@ stap -g -p2 -e '
 
 function tcp_ts_get_info_state:long(sock:long)
 %{
-        struct sock *sk = (struct sock *)(long) THIS->sock;
-        THIS->__retvalue = (int64_t) kread(&(sk->sk_state));
+        struct sock *sk = (struct sock *)(long) STAP_ARG_sock;
+        STAP_RETVALUE = (int64_t) kread(&(sk->sk_state));
         CATCH_DEREF_FAULT();
 %}
 

@@ -368,7 +368,7 @@ probe ioscheduler_trace.unplug_timer = kernel.trace("block_unplug_timer") ?
 
 function disk_major_from_request:long(var_q:long)
 %{ /* pure */
-	struct request_queue *q = (struct request_queue *)((long)THIS->var_q);
+	struct request_queue *q = (struct request_queue *)((long)STAP_ARG_var_q);
 
 	/* We need to make sure there isn't a deref hazard here when
 	 * reading 'q->queue_head'.  However, kread() wants a pointer to
@@ -379,18 +379,18 @@ function disk_major_from_request:long(var_q:long)
 	(void) kread(&(q->queue_head.next));
 	(void) kread(&(q->queue_head.prev));
 	if (list_empty(&(q->queue_head)))
-		THIS->__retvalue = -1;
+		STAP_RETVALUE = -1;
 	else  {
 		struct request *rq = list_entry_rq(q->queue_head.next);
 		struct gendisk *rq_disk = kread(&(rq->rq_disk));
-		THIS->__retvalue = kread(&(rq_disk->major));
+		STAP_RETVALUE = kread(&(rq_disk->major));
 	}
 	CATCH_DEREF_FAULT();
 %}
 
 function disk_minor_from_request:long(var_q:long)
 %{ /* pure */
-	struct request_queue *q = (struct request_queue *)((long)THIS->var_q);
+	struct request_queue *q = (struct request_queue *)((long)STAP_ARG_var_q);
 
 	/* We need to make sure there isn't a deref hazard here when
 	 * reading 'q->queue_head'.  However, kread() wants a pointer to
@@ -401,11 +401,11 @@ function disk_minor_from_request:long(var_q:long)
 	(void) kread(&(q->queue_head.next));
 	(void) kread(&(q->queue_head.prev));
 	if (list_empty(&(q->queue_head)))
-		THIS->__retvalue = -1;
+		STAP_RETVALUE = -1;
 	else  {
 		struct request *rq = list_entry_rq(q->queue_head.next);
 		struct gendisk *rq_disk = kread(&(rq->rq_disk));
-		THIS->__retvalue = kread(&(rq_disk->first_minor));
+		STAP_RETVALUE = kread(&(rq_disk->first_minor));
 	}
 	CATCH_DEREF_FAULT();
 %}

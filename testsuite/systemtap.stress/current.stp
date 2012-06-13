@@ -7,11 +7,11 @@
 global length
 
 function commlen:long () %{
-    THIS->__retvalue = strlen(current->comm);
+    STAP_RETVALUE = strlen(current->comm);
 %}
 
 function pcommlen:long () %{
-    THIS->__retvalue = strlen(current->parent->comm);
+    STAP_RETVALUE = strlen(current->parent->comm);
 %}
 
 probe begin { println("systemtap starting probe") }
@@ -67,9 +67,9 @@ function get_TASK_COMM_LEN:long() %{
     /* TASK_COMM_LEN was introduced in 2.6.11, before which
      * the length of the comm string was hard-coded to 16 */
 #ifdef TASK_COMM_LEN
-    THIS->__retvalue = TASK_COMM_LEN;
+    STAP_RETVALUE = TASK_COMM_LEN;
 #else
-    THIS->__retvalue = 16;
+    STAP_RETVALUE = 16;
 #endif
 %}
 

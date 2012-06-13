@@ -3,9 +3,9 @@
 static struct tcphdr foo = {0};
 %}
 
-function get_ptr:long() %{ THIS->__retvalue = (long)&foo; /* pure */ %}
-function get_ack:long() %{ THIS->__retvalue = foo.ack; /* pure */ %}
-function get_urg:long() %{ THIS->__retvalue = foo.urg; /* pure */ %}
+function get_ptr:long() %{ STAP_RETVALUE = (long)&foo; /* pure */ %}
+function get_ack:long() %{ STAP_RETVALUE = foo.ack; /* pure */ %}
+function get_urg:long() %{ STAP_RETVALUE = foo.urg; /* pure */ %}
 
 function check:long(ack:long, urg:long) {
   ptr = get_ptr()

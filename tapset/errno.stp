@@ -353,19 +353,19 @@ static const int Maxerrno = sizeof(errlist)/sizeof(char *);
  * E#3333 for an out-of-range value such as 3333.
  */
 function errno_str:string (err:long) %{ /* pure */
-	long e = THIS->err;
+	long e = STAP_ARG_err;
 	e = (e > 0 ? e : -e);
 	if (e > 0 && e < Maxerrno && errlist[e])
-		strlcpy (THIS->__retvalue, errlist[e], MAXSTRINGLEN);
+		strlcpy (STAP_RETVALUE, errlist[e], MAXSTRINGLEN);
 %}
 
 function errno_p:long (err:long) %{ /* pure */
-	long e = THIS->err;
+	long e = STAP_ARG_err;
 	e = (e > 0 ? e : -e);
 	if (e > 0 && e < Maxerrno && errlist[e])
-		THIS->__retvalue = e;	
+		STAP_RETVALUE = e;	
 	else
-		THIS->__retvalue = 0;
+		STAP_RETVALUE = 0;
 %}
 
 %{
@@ -411,7 +411,7 @@ function returnval:long () %{ /* pure */
 	struct pt_regs *regs;
 	regs = ((CONTEXT->probe_flags & _STP_PROBE_STATE_USER_MODE)
 		? CONTEXT->uregs : CONTEXT->kregs);
-	THIS->__retvalue = _stp_returnval(regs);
+	STAP_RETVALUE = _stp_returnval(regs);
 %}
 
 /**
@@ -434,16 +434,16 @@ function returnstr:string (format:long) %{ /* pure */
 	if (regs) {
 		long ret = _stp_returnval(regs);
 		if (ret < 0 && ret > -Maxerrno && errlist[-ret])
-			snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld (%s)", ret, errlist[-ret]);
-		else if (THIS->format == 2)
-			snprintf (THIS->__retvalue, MAXSTRINGLEN, "0x%lx", ret);
-		else if (THIS->format == 3)
-			snprintf (THIS->__retvalue, MAXSTRINGLEN, "%#lo", ret);
+			snprintf (STAP_RETVALUE, MAXSTRINGLEN, "%ld (%s)", ret, errlist[-ret]);
+		else if (STAP_ARG_format == 2)
+			snprintf (STAP_RETVALUE, MAXSTRINGLEN, "0x%lx", ret);
+		else if (STAP_ARG_format == 3)
+			snprintf (STAP_RETVALUE, MAXSTRINGLEN, "%#lo", ret);
 		else 	
-			snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld", ret);
+			snprintf (STAP_RETVALUE, MAXSTRINGLEN, "%ld", ret);
 	} else {
 no_ret:
-		strlcpy(THIS->__retvalue, "N/A", MAXSTRINGLEN);
+		strlcpy(STAP_RETVALUE, "N/A", MAXSTRINGLEN);
 	}
 %}
 

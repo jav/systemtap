@@ -24,13 +24,13 @@
 // timeout (TCP_RTO_MAX)
 function tcp_get_info_rto:long(sock:long)
 %{ /* pure */
-	struct sock *sk = (struct sock *)(long) THIS->sock;
+	struct sock *sk = (struct sock *)(long) STAP_ARG_sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
 	struct tcp_opt *tp = tcp_sk(sk);
-	THIS->__retvalue = (int64_t) jiffies_to_usecs(kread(&(tp->rto)));
+	STAP_RETVALUE = (int64_t) jiffies_to_usecs(kread(&(tp->rto)));
 #else
 	const struct inet_connection_sock *icsk = inet_csk(sk);
-	THIS->__retvalue = (int64_t) jiffies_to_usecs(kread(&(icsk->icsk_rto)));
+	STAP_RETVALUE = (int64_t) jiffies_to_usecs(kread(&(icsk->icsk_rto)));
 #endif
 	CATCH_DEREF_FAULT();
 %}
@@ -41,13 +41,13 @@ function tcp_get_info_rto:long(sock:long)
 //is performing slow start or congestion avoidance. 
 function tcp_get_info_snd_cwnd:long(sock:long)
 %{ /* pure */
-	struct sock *sk = (struct sock *)(long) THIS->sock;
+	struct sock *sk = (struct sock *)(long) STAP_ARG_sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
 	struct tcp_opt *tp = tcp_sk(sk);
 #else
 	struct tcp_sock *tp = tcp_sk(sk);
 #endif
-	THIS->__retvalue = (int64_t) kread(&(tp->snd_cwnd));
+	STAP_RETVALUE = (int64_t) kread(&(tp->snd_cwnd));
 	CATCH_DEREF_FAULT();
 %}
 
@@ -69,8 +69,8 @@ function tcp_get_info_snd_cwnd:long(sock:long)
 // 
 function tcp_ts_get_info_state:long(sock:long)
 %{ /* pure */
-	struct sock *sk = (struct sock *)(long) THIS->sock;
-	THIS->__retvalue = (int64_t) kread(&(sk->sk_state));
+	struct sock *sk = (struct sock *)(long) STAP_ARG_sock;
+	STAP_RETVALUE = (int64_t) kread(&(sk->sk_state));
 	CATCH_DEREF_FAULT();
 %}
 
@@ -88,12 +88,12 @@ function __tcp_sock_dport:long (sock:long)
 function __get_skb_tcphdr_new:long(skb:long)
 %{ /* pure */
 	struct sk_buff *skb;
-	skb = (struct sk_buff *)(long)THIS->skb;
+	skb = (struct sk_buff *)(long)STAP_ARG_skb;
 	/* as done by skb_transport_header() */
 	#ifdef NET_SKBUFF_DATA_USES_OFFSET
-		THIS->__retvalue = (long)(kread(&(skb->head)) + kread(&(skb->transport_header)));
+		STAP_RETVALUE = (long)(kread(&(skb->head)) + kread(&(skb->transport_header)));
 	#else
-		THIS->__retvalue = (long)kread(&(skb->transport_header));
+		STAP_RETVALUE = (long)kread(&(skb->transport_header));
 	#endif
 	CATCH_DEREF_FAULT();
 %}
@@ -191,13 +191,13 @@ function tcp_sockstate_str:string (state:long) {
 // avoidance.
 function tcp_ts_get_info_snd_ssthresh:long(sock:long)
 %{ /* pure */
-	struct sock *sk = (struct sock *)(long) THIS->sock;
+	struct sock *sk = (struct sock *)(long) STAP_ARG_sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
 	struct tcp_opt *tp = tcp_sk(sk);
 #else
 	struct tcp_sock *tp = tcp_sk(sk);
 #endif
-	THIS->__retvalue = (int64_t) kread(&(tp->snd_ssthresh));
+	STAP_RETVALUE = (int64_t) kread(&(tp->snd_ssthresh));
 	CATCH_DEREF_FAULT();
 %}
 
@@ -205,13 +205,13 @@ function tcp_ts_get_info_snd_ssthresh:long(sock:long)
 // than what receiver can accept.
 function tcp_ts_get_info_rcv_mss:long(sock:long)
 %{ /* pure */
-	struct sock *sk = (struct sock *)(long) THIS->sock;
+	struct sock *sk = (struct sock *)(long) STAP_ARG_sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
 	struct tcp_opt *tp = tcp_sk(sk);
-	THIS->__retvalue = (int64_t) kread(&(tp->ack.rcv_mss));
+	STAP_RETVALUE = (int64_t) kread(&(tp->ack.rcv_mss));
 #else
 	const struct inet_connection_sock *icsk = inet_csk(sk);
-	THIS->__retvalue = (int64_t) kread(&(icsk->icsk_ack.rcv_mss));
+	STAP_RETVALUE = (int64_t) kread(&(icsk->icsk_ack.rcv_mss));
 #endif
 	CATCH_DEREF_FAULT();
 %}

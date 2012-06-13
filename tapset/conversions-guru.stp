@@ -16,11 +16,11 @@
  * Requires the use of guru mode (-g).
  */
 function set_kernel_string (addr:long, val:string) %{ /* guru */
-  store_kderef_string (THIS->val, THIS->addr, MAXSTRINGLEN);
+  store_kderef_string (STAP_ARG_val, STAP_ARG_addr, MAXSTRINGLEN);
   if (0) {
 deref_fault: /* branched to from store_deref_string() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel string copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel string copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -36,12 +36,12 @@ deref_fault: /* branched to from store_deref_string() */
  * Requires the use of guru mode (-g).
  */
 function set_kernel_string_n (addr:long, n:long, val:string) %{ /* guru */
-  int64_t len = clamp_t(int64_t, THIS->n + 1, 1, MAXSTRINGLEN);
-  store_kderef_string (THIS->val, THIS->addr, len);
+  int64_t len = clamp_t(int64_t, STAP_ARG_n + 1, 1, MAXSTRINGLEN);
+  store_kderef_string (STAP_ARG_val, STAP_ARG_addr, len);
   if (0) {
 deref_fault: /* branched to from store_deref_string() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel string copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel string copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -56,11 +56,11 @@ deref_fault: /* branched to from store_deref_string() */
  * Requires the use of guru mode (-g).
  */
 function set_kernel_long (addr:long, val:long) %{ /* guru */
-  kwrite((long *) (intptr_t) THIS->addr, THIS->val);
+  kwrite((long *) (intptr_t) STAP_ARG_addr, STAP_ARG_val);
   if (0) {
 deref_fault: /* branched to from kwrite() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel long copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel long copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -75,11 +75,11 @@ deref_fault: /* branched to from kwrite() */
  * Requires the use of guru mode (-g).
  */
 function set_kernel_int (addr:long, val:long) %{ /* guru */
-  kwrite((int *) (intptr_t) THIS->addr, THIS->val);
+  kwrite((int *) (intptr_t) STAP_ARG_addr, STAP_ARG_val);
   if (0) {
 deref_fault: /* branched to from kwrite() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel int copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel int copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -94,11 +94,11 @@ deref_fault: /* branched to from kwrite() */
  * Requires the use of guru mode (-g).
  */
 function set_kernel_short (addr:long, val:long) %{ /* guru */
-  kwrite((short *) (intptr_t) THIS->addr, THIS->val);
+  kwrite((short *) (intptr_t) STAP_ARG_addr, STAP_ARG_val);
   if (0) {
 deref_fault: /* branched to from kwrite() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel short copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel short copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -113,11 +113,11 @@ deref_fault: /* branched to from kwrite() */
  * Requires the use of guru mode (-g).
  */
 function set_kernel_char (addr:long, val:long) %{ /* guru */
-  kwrite((char *) (intptr_t) THIS->addr, THIS->val);
+  kwrite((char *) (intptr_t) STAP_ARG_addr, STAP_ARG_val);
   if (0) {
 deref_fault: /* branched to from kwrite() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel char copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel char copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
@@ -132,11 +132,11 @@ deref_fault: /* branched to from kwrite() */
  * Requires the use of guru mode (-g).
  */
 function set_kernel_pointer (addr:long, val:long) %{ /* guru */
-  kwrite((void **) (uintptr_t) THIS->addr, (uintptr_t)THIS->val);
+  kwrite((void **) (uintptr_t) STAP_ARG_addr, (uintptr_t)STAP_ARG_val);
   if (0) {
 deref_fault: /* branched to from kwrite() */
     snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-        "kernel pointer copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+        "kernel pointer copy fault at 0x%p", (void *) (uintptr_t) STAP_ARG_addr);
     CONTEXT->last_error = CONTEXT->error_buffer;
   }
 %}
