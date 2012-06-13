@@ -30,10 +30,16 @@ int init_ctl_channel(const char *name, int verb)
 	control_channel = open(buf, O_RDWR);
 	dbug(2, "Opened %s (%d)\n", buf, control_channel);
 
-/* It's actually safe to do this check before the open(),
- * as the file we're trying to access connot be modified
- * by a typical user.
- */
+	/* NB: Even if open() succeeded with effective-UID permissions, we
+	 * need the access() check to make sure real-UID permissions are also
+	 * sufficient.  When we run under the setuid staprun, effective and
+	 * real UID may not be the same.
+	 *
+	 * The access() is done *after* open() to avoid any TOCTOU-style race
+	 * condition.  We believe it's probably safe either way, as the file
+	 * we're trying to access connot be modified by a typical user, but
+	 * better safe than sorry.
+	 */
 	if (access(buf, R_OK|W_OK) != 0){
 		close(control_channel);
 		return -5;
