@@ -2458,7 +2458,9 @@ c_unparser::c_funcname (const string& e)
 string
 c_unparser::c_arg_define (const string& e)
 {
-  if (strverscmp(session->compatible.c_str(), "1.8") < 0)
+  // XXX: temporarily force old behaviour, will be changed in later commit
+  //if (strverscmp(session->compatible.c_str(), "1.8") < 0)
+  if (true)
     return "#define STAP_ARG_" + e + " THIS->" + e; // old mangling behaviour
   else
     return "#define STAP_ARG_" + e + " THIS->l_" + e;
