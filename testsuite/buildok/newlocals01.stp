@@ -1,0 +1,14 @@
+#! stap -gp4
+
+# test accessing locals using STAP_ARG_* macros
+function baz:long(foo:long, bar:string)
+%{
+        printk("%s\n", STAP_ARG_bar);
+        STAP_RETVALUE = 600 + STAP_ARG_foo;
+%}
+
+probe begin {
+   q = baz(9001, "I'm in your dmesg making stupid jokes")
+   printf("%d\n", q)
+   exit()
+}
