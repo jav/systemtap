@@ -9153,7 +9153,7 @@ tracepoint_derived_probe_group::emit_module_decls (systemtap_session& s)
       for (unsigned j = 0; j < used_args.size(); ++j)
         {
           s.op->newline() << "c->probe_locals." << p->name
-                          << ".__tracepoint_arg_" << used_args[j]->name
+                          << "." + s.up->c_localname("__tracepoint_arg_" + used_args[j]->name)
                           << " = __tracepoint_arg_" << used_args[j]->name << ";";
         }
       s.op->newline() << "(*probe->ph) (c);";

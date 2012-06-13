@@ -278,23 +278,23 @@ netfilter_derived_probe_group::emit_module_decls (systemtap_session& s)
       // since the generated probe handler body refers to that name.
 
       if (np->context_vars.find("__nf_hooknum") != np->context_vars.end())
-        s.op->newline() << c_p + ".__nf_hooknum = (int64_t)(uintptr_t) nf_hooknum;";
+        s.op->newline() << c_p + "." + s.up->c_localname("__nf_hooknum") + " = (int64_t)(uintptr_t) nf_hooknum;";
       else
         s.op->newline() << "(void) nf_hooknum;";
       if (np->context_vars.find("__nf_skb") != np->context_vars.end())
-        s.op->newline() << c_p + ".__nf_skb = (int64_t)(uintptr_t) nf_skb;";
+        s.op->newline() << c_p + "." + s.up->c_localname("__nf_skb") + " = (int64_t)(uintptr_t) nf_skb;";
       else
         s.op->newline() << "(void) nf_skb;";
       if (np->context_vars.find("__nf_in") != np->context_vars.end())
-        s.op->newline() << c_p + ".__nf_in = (int64_t)(uintptr_t) nf_in;";
+        s.op->newline() << c_p + "." + s.up->c_localname("__nf_in") + " = (int64_t)(uintptr_t) nf_in;";
       else
         s.op->newline() << "(void) nf_in;";
       if (np->context_vars.find("__nf_out") != np->context_vars.end())
-        s.op->newline() << c_p + ".__nf_in = (int64_t)(uintptr_t) nf_out;";
+        s.op->newline() << c_p + "." + s.up->c_localname("__nf_in") + " = (int64_t)(uintptr_t) nf_out;";
       else
         s.op->newline() << "(void) nf_out;";
       if (np->context_vars.find("__nf_verdict") != np->context_vars.end())
-        s.op->newline() << c_p + ".__nf_verdict = (int64_t) nf_verdict;";
+        s.op->newline() << c_p + "." + s.up->c_localname("__nf_verdict") + " = (int64_t) nf_verdict;";
       else
         s.op->newline() << "(void) nf_out;";
 
@@ -304,7 +304,7 @@ netfilter_derived_probe_group::emit_module_decls (systemtap_session& s)
       common_probe_entryfn_epilogue (s.op, false, s.suppress_handler_errors);
 
       if (np->context_vars.find("__nf_verdict") != np->context_vars.end())
-        s.op->newline() << "nf_verdict = (int) "+c_p+".__nf_verdict;";
+        s.op->newline() << "nf_verdict = (int) "+c_p+"." + s.up->c_localname("__nf_verdict") + ";";
 
       s.op->newline() << "return nf_verdict;";
       s.op->newline(-1) << "}";

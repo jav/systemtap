@@ -116,16 +116,21 @@ struct c_unparser: public unparser, public visitor
   vector<string> loop_continue_labels;
 
   string c_typename (exp_type e);
-  string c_varname (const string& e);
+  virtual string c_localname (const string& e);
+  virtual string c_globalname (const string &e);
+  virtual string c_funcname (const string &e);
   string c_expression (expression* e);
+
+  string c_arg_define (const string& e);
+  string c_arg_undef (const string& e);
 
   void c_assign (var& lvalue, const string& rvalue, const token* tok);
   void c_assign (const string& lvalue, expression* rvalue, const string& msg);
   void c_assign (const string& lvalue, const string& rvalue, exp_type type,
                  const string& msg, const token* tok);
 
-  void c_declare(exp_type ty, const string &name);
-  void c_declare_static(exp_type ty, const string &name);
+  void c_declare(exp_type ty, const string &ident);
+  void c_declare_static(exp_type ty, const string &ident);
 
   void c_strcat (const string& lvalue, const string& rvalue);
   void c_strcat (const string& lvalue, expression* rvalue);
@@ -321,19 +326,29 @@ class var
 {
 
 protected:
+  // Required for accurate mangling:
+  c_unparser *u;
+
   bool local;
   exp_type ty;
   statistic_decl sd;
   string name;
+  bool do_mangle;
 
 public:
 
-  var(bool local, exp_type ty, statistic_decl const & sd, string const & name)
-    : local(local), ty(ty), sd(sd), name(name)
+  var(c_unparser *u, bool local, exp_type ty,
+      statistic_decl const & sd, string const & name)
+    : u(u), local(local), ty(ty), sd(sd), name(name), do_mangle(true)
   {}
 
-  var(bool local, exp_type ty, string const & name)
-    : local(local), ty(ty), name(name)
+  var(c_unparser *u, bool local, exp_type ty, string const & name)
+    : u(u), local(local), ty(ty), name(name), do_mangle(true)
+  {}
+
+  var(c_unparser *u, bool local, exp_type ty,
+      string const & name, bool do_mangle)
+    : u(u), local(local), ty(ty), name(name), do_mangle(do_mangle)
   {}
 
   virtual ~var() {}
@@ -375,12 +390,22 @@ public:
     return ty;
   }
 
+  string c_name() const
+  {
+    if (!do_mangle)
+      return name;
+    else if (local)
+      return u->c_localname(name);
+    else
+      return u->c_globalname(name);
+  }
+
   string value() const
   {
     if (local)
-      return "l->" + name;
+      return "l->" + c_name();
     else
-      return "global.s_" + name;
+      return "global." + c_name();
   }
 
   virtual string hist() const
@@ -465,7 +490,7 @@ public:
 
   void declare(c_unparser &c) const
   {
-    c.c_declare(ty, name);
+    c.c_declare(ty, c_name());
   }
 };
 
@@ -497,9 +522,9 @@ protected:
   string override_value;
 
 public:
-  tmpvar(exp_type ty,
-	 unsigned & counter)
-    : var(true, ty, ("__tmp" + lex_cast(counter++))), overridden(false)
+  tmpvar(c_unparser *u, exp_type ty, unsigned & counter)
+    : var(u, true, ty, ("__tmp" + lex_cast(counter++)), false),
+      overridden(false)
   {}
 
   tmpvar(const var& source)
@@ -529,8 +554,8 @@ ostream & operator<<(ostream & o, tmpvar const & v)
 struct aggvar
   : public var
 {
-  aggvar(unsigned & counter)
-    : var(true, pe_stats, ("__tmp" + lex_cast(counter++)))
+  aggvar(c_unparser *u, unsigned & counter)
+    : var(u, true, pe_stats, ("__tmp" + lex_cast(counter++)), false)
   {}
 
   string init() const
@@ -557,12 +582,13 @@ struct mapvar
   vector<exp_type> index_types;
   int maxsize;
   bool wrap;
-  mapvar (bool local, exp_type ty,
+  mapvar (c_unparser *u,
+          bool local, exp_type ty,
 	  statistic_decl const & sd,
 	  string const & name,
 	  vector<exp_type> const & index_types,
 	  int maxsize, bool wrap)
-    : var (local, ty, sd, name),
+    : var (u, local, ty, sd, name),
       index_types (index_types),
       maxsize (maxsize), wrap(wrap)
   {}
@@ -978,7 +1004,7 @@ c_unparser::emit_common_header ()
               try
                 {
                   o->newline() << c_typename (v->type) << " "
-                               << c_varname (v->name) << ";";
+                               << c_localname (v->name) << ";";
                 } catch (const semantic_error& e) {
                 semantic_error e2 (e);
                 if (e2.tok1 == 0) e2.tok1 = v->tok;
@@ -1004,7 +1030,7 @@ c_unparser::emit_common_header ()
     {
       functiondecl* fd = it->second;
       o->newline()
-        << "struct function_" << c_varname (fd->name) << "_locals {";
+        << "struct " << c_funcname (fd->name) << "_locals {";
       o->indent(1);
       for (unsigned j=0; j<fd->locals.size(); j++)
         {
@@ -1012,7 +1038,7 @@ c_unparser::emit_common_header ()
 	  try
 	    {
 	      o->newline() << c_typename (v->type) << " "
-			   << c_varname (v->name) << ";";
+			   << c_localname (v->name) << ";";
 	    } catch (const semantic_error& e) {
 	      semantic_error e2 (e);
 	      if (e2.tok1 == 0) e2.tok1 = v->tok;
@@ -1025,7 +1051,7 @@ c_unparser::emit_common_header ()
 	  try
 	    {
 	      o->newline() << c_typename (v->type) << " "
-			   << c_varname (v->name) << ";";
+			   << c_localname (v->name) << ";";
 	    } catch (const semantic_error& e) {
 	      semantic_error e2 (e);
 	      if (e2.tok1 == 0) e2.tok1 = v->tok;
@@ -1040,7 +1066,7 @@ c_unparser::emit_common_header ()
 	{
 	  o->newline() << c_typename (fd->type) << " __retvalue;";
 	}
-      o->newline(-1) << "} function_" << c_varname (fd->name) << ";";
+      o->newline(-1) << "} " << c_funcname (fd->name) << ";";
     }
   o->newline(-1) << "} locals [MAXNESTING+1];"; 
 
@@ -1421,26 +1447,26 @@ c_unparser::emit_compiled_printfs ()
 void
 c_unparser::emit_global_param (vardecl *v)
 {
-  string vn = c_varname (v->name);
+  string vn = c_globalname (v->name);
 
   // NB: systemtap globals can collide with linux macros,
   // e.g. VM_FAULT_MAJOR.  We want the parameter name anyway.  This
   // #undef is spit out at the end of the C file, so that removing the
   // definition won't affect any other embedded-C or generated code.
   // XXX: better not have a global variable named module_param_named etc.!
-  o->newline() << "#undef " << vn;
+  o->newline() << "#undef " << v->name; // avoid colliding with non-mangled name
 
   // Emit module_params for this global, if its type is convenient.
   if (v->arity == 0 && v->type == pe_long)
     {
-      o->newline() << "module_param_named (" << vn << ", "
-                   << "global.s_" << vn << ", int64_t, 0);";
+      o->newline() << "module_param_named (" << v->name << ", "
+                   << "global." << vn << ", int64_t, 0);";
     }
   else if (v->arity == 0 && v->type == pe_string)
     {
       // NB: no special copying is needed.
-      o->newline() << "module_param_string (" << vn << ", "
-                   << "global.s_" << vn
+      o->newline() << "module_param_string (" << v->name << ", "
+                   << "global." << vn
                    << ", MAXSTRINGLEN, 0);";
     }
 }
@@ -1449,17 +1475,17 @@ c_unparser::emit_global_param (vardecl *v)
 void
 c_unparser::emit_global (vardecl *v)
 {
-  string vn = c_varname (v->name);
+  string vn = c_globalname (v->name);
 
   if (v->arity == 0)
-    o->newline() << c_typename (v->type) << " s_" << vn << ";";
+    o->newline() << c_typename (v->type) << " " << vn << ";";
   else if (v->type == pe_stats)
-    o->newline() << "PMAP s_" << vn << ";";
+    o->newline() << "PMAP " << vn << ";";
   else
-    o->newline() << "MAP s_" << vn << ";";
-  o->newline() << "rwlock_t s_" << vn << "_lock;";
+    o->newline() << "MAP " << vn << ";";
+  o->newline() << "rwlock_t " << vn << "_lock;";
   o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "atomic_t s_" << vn << "_lock_skip_count;";
+  o->newline() << "atomic_t " << vn << "_lock_skip_count;";
   o->newline() << "#endif\n";
 }
 
@@ -1467,19 +1493,19 @@ c_unparser::emit_global (vardecl *v)
 void
 c_unparser::emit_global_init (vardecl *v)
 {
-  string vn = c_varname (v->name);
+  string vn = c_globalname (v->name);
 
   if (v->arity == 0) // can only statically initialize some scalars
     {
       if (v->init)
 	{
-	  o->newline() << ".s_" << vn << " = ";
+	  o->newline() << "." << vn << " = ";
 	  v->init->visit(this);
           o->line() << ",";
 	}
     }
   o->newline() << "#ifdef STP_TIMING";
-  o->newline() << ".s_" << vn << "_lock_skip_count = ATOMIC_INIT(0),";
+  o->newline() << "." << vn << "_lock_skip_count = ATOMIC_INIT(0),";
   o->newline() << "#endif";
 }
 
@@ -1632,7 +1658,7 @@ c_unparser::emit_module_init ()
       o->newline() << "goto out;";
       o->newline(-1) << "}";
 
-      o->newline() << "rwlock_init (& global.s_" << c_varname (v->name) << "_lock);";
+      o->newline() << "rwlock_init (& global." << c_globalname (v->name) << "_lock);";
     }
 
   // initialize each Stat used for timing information
@@ -1910,10 +1936,11 @@ c_unparser::emit_module_exit ()
   o->newline(1) << "int ctr;";
   for (unsigned i=0; i<session->globals.size(); i++)
     {
-      string vn = c_varname (session->globals[i]->name);
-      o->newline() << "ctr = atomic_read (& global.s_" << vn << "_lock_skip_count);";
+      string orig_vn = session->globals[i]->name;
+      string vn = c_globalname (orig_vn);
+      o->newline() << "ctr = atomic_read (& global." << vn << "_lock_skip_count);";
       o->newline() << "if (ctr) _stp_warn (\"Skipped due to global '%s' lock timeout: %d\\n\", "
-                   << lex_cast_qstring(vn) << ", ctr);";
+                   << lex_cast_qstring(orig_vn) << ", ctr);"; 
     }
   o->newline() << "ctr = atomic_read (& skipped_count_lowstack);";
   o->newline() << "if (ctr) _stp_warn (\"Skipped due to low stack: %d\\n\", ctr);";
@@ -1938,7 +1965,7 @@ c_unparser::emit_module_exit ()
 void
 c_unparser::emit_function (functiondecl* v)
 {
-  o->newline() << "static void function_" << c_varname (v->name)
+  o->newline() << "static void " << c_funcname (v->name)
             << " (struct context* __restrict__ c) {";
   o->indent(1);
   this->current_probe = 0;
@@ -1948,13 +1975,21 @@ c_unparser::emit_function (functiondecl* v)
 
   o->newline() << "__label__ out;";
   o->newline()
-    << "struct function_" << c_varname (v->name) << "_locals * "
+    << "struct " << c_funcname (v->name) << "_locals * "
     << " __restrict__ l = "
-    << "& c->locals[c->nesting+1].function_" << c_varname (v->name) // NB: nesting+1
+    << "& c->locals[c->nesting+1]." << c_funcname (v->name) // NB: nesting+1
     << ";";
   o->newline() << "(void) l;"; // make sure "l" is marked used
   o->newline() << "#define CONTEXT c";
   o->newline() << "#define THIS l";
+  for (unsigned i = 0; i < v->formal_args.size(); i++) {
+    o->newline() << c_arg_define(v->formal_args[i]->name); // #define STAP_ARG_foo ...
+  }
+  for (unsigned i = 0; i < v->locals.size(); i++) {
+    o->newline() << c_arg_define(v->locals[i]->name); // #define STAP_ARG_foo ...
+  }
+  // TODOXXX PR10299: define STAP_RETVALUE only if the function is non-void
+  o->newline() << "#define STAP_RETVALUE THIS->__retvalue";
 
   // set this, in case embedded-c code sets last_error but doesn't otherwise identify itself
   o->newline() << "c->last_stmt = " << lex_cast_qstring(*v->tok) << ";";
@@ -1986,7 +2021,7 @@ c_unparser::emit_function (functiondecl* v)
   // initialize return value, if any
   if (v->type != pe_unknown)
     {
-      var retvalue = var(true, v->type, "__retvalue");
+      var retvalue = var(this, true, v->type, "__retvalue", false); // not mangled
       o->newline() << retvalue.init();
     }
 
@@ -2007,6 +2042,13 @@ c_unparser::emit_function (functiondecl* v)
 
   o->newline() << "#undef CONTEXT";
   o->newline() << "#undef THIS";
+  for (unsigned i = 0; i < v->formal_args.size(); i++) {
+    o->newline() << c_arg_undef(v->formal_args[i]->name); // #undef STAP_ARG_foo
+  }
+  for (unsigned i = 0; i < v->locals.size(); i++) {
+    o->newline() << c_arg_undef(v->locals[i]->name); // #undef STAP_ARG_foo
+  }
+  o->newline() << "#undef STAP_RETVALUE";
   o->newline(-1) << "}\n";
 }
 
@@ -2126,10 +2168,10 @@ c_unparser::emit_probe (derived_probe* v)
             throw semantic_error (_("array locals not supported, missing global declaration?"),
                                   v->locals[j]->tok);
 	  else if (v->locals[j]->type == pe_long)
-	    o->newline() << "l->" << c_varname (v->locals[j]->name)
+	    o->newline() << "l->" << c_localname (v->locals[j]->name)
 			 << " = 0;";
 	  else if (v->locals[j]->type == pe_string)
-	    o->newline() << "l->" << c_varname (v->locals[j]->name)
+	    o->newline() << "l->" << c_localname (v->locals[j]->name)
 			 << "[0] = '\\0';";
 	  else
 	    throw semantic_error (_("unsupported local variable type"),
@@ -2207,7 +2249,7 @@ c_unparser::emit_lock_decls(const varuse_collecting_visitor& vut)
       o->newline(1) << ".lock = &global.s_" + v->name + "_lock,";
       o->newline() << ".write_p = " << (write_p ? 1 : 0) << ",";
       o->newline() << "#ifdef STP_TIMING";
-      o->newline() << ".skipped = &global.s_" << c_varname (v->name) << "_lock_skip_count,";
+      o->newline() << ".skipped = &global." << c_globalname (v->name) << "_lock_skip_count,";
       o->newline() << "#endif";
       o->newline(-1) << "},";
 
@@ -2384,11 +2426,49 @@ c_unparser::c_typename (exp_type e)
 }
 
 
+// XXX: we may wish to invent and/or test other mangling schemes
+
+
 string
-c_unparser::c_varname (const string& e)
+c_unparser::c_localname (const string& e)
 {
-  // XXX: safeify, uniquefy, given name
-  return e;
+  // XXX: temporarily force old behaviour, will be changed in later commit
+  //if (strverscmp(session->compatible.c_str(), "1.8") < 0)
+  if (true)
+    return e; // old mangling behaviour
+  else
+    return "l_" + e;
+}
+
+
+string
+c_unparser::c_globalname (const string& e)
+{
+  return "s_" + e;
+}
+
+
+string
+c_unparser::c_funcname (const string& e)
+{
+  return "function_" + e;
+}
+
+
+string
+c_unparser::c_arg_define (const string& e)
+{
+  if (strverscmp(session->compatible.c_str(), "1.8") < 0)
+    return "#define STAP_ARG_" + e + " THIS->" + e; // old mangling behaviour
+  else
+    return "#define STAP_ARG_" + e + " THIS->l_" + e;
+}
+
+
+string
+c_unparser::c_arg_undef (const string& e)
+{
+  return "#undef STAP_ARG_" + e;
 }
 
 
@@ -2606,16 +2686,16 @@ c_unparser_assignment::c_assignop(tmpvar & res,
 
 
 void
-c_unparser::c_declare(exp_type ty, const string &name)
+c_unparser::c_declare(exp_type ty, const string &ident)
 {
-  o->newline() << c_typename (ty) << " " << c_varname (name) << ";";
+  o->newline() << c_typename (ty) << " " << ident << ";";
 }
 
 
 void
-c_unparser::c_declare_static(exp_type ty, const string &name)
+c_unparser::c_declare_static(exp_type ty, const string &ident)
 {
-  o->newline() << "static " << c_typename (ty) << " " << c_varname (name) << ";";
+  o->newline() << "static " << c_typename (ty) << " " << ident << ";";
 }
 
 
@@ -2697,13 +2777,13 @@ c_unparser::is_local(vardecl const *r, token const *tok)
 tmpvar
 c_unparser::gensym(exp_type ty)
 {
-  return tmpvar (ty, tmpvar_counter);
+  return tmpvar (this, ty, tmpvar_counter);
 }
 
 aggvar
 c_unparser::gensym_aggregate()
 {
-  return aggvar (tmpvar_counter);
+  return aggvar (this, tmpvar_counter);
 }
 
 
@@ -2712,7 +2792,7 @@ c_unparser::getvar(vardecl *v, token const *tok)
 {
   bool loc = is_local (v, tok);
   if (loc)
-    return var (loc, v->type, v->name);
+    return var (this, loc, v->type, v->name);
   else
     {
       statistic_decl sd;
@@ -2720,7 +2800,7 @@ c_unparser::getvar(vardecl *v, token const *tok)
       i = session->stat_decls.find(v->name);
       if (i != session->stat_decls.end())
 	sd = i->second;
-      return var (loc, v->type, sd, v->name);
+      return var (this, loc, v->type, sd, v->name);
     }
 }
 
@@ -2735,7 +2815,7 @@ c_unparser::getmap(vardecl *v, token const *tok)
   i = session->stat_decls.find(v->name);
   if (i != session->stat_decls.end())
     sd = i->second;
-  return mapvar (is_local (v, tok), v->type, sd,
+  return mapvar (this, is_local (v, tok), v->type, sd,
       v->name, v->index_types, v->maxsize, v->wrap);
 }
 
@@ -4671,9 +4751,9 @@ c_unparser::visit_functioncall (functioncall* e)
 	throw semantic_error (_("function argument type mismatch"),
 			      e->args[i]->tok, r->formal_args[i]->tok);
 
-      c_assign ("c->locals[c->nesting+1].function_" +
-		c_varname (r->name) + "." +
-                c_varname (r->formal_args[i]->name),
+      c_assign ("c->locals[c->nesting+1]." +
+		c_funcname (r->name) + "." +
+                c_localname (r->formal_args[i]->name),
                 tmp[i].value(),
                 e->args[i]->type,
                 "function actual argument copy",
@@ -4681,7 +4761,7 @@ c_unparser::visit_functioncall (functioncall* e)
     }
 
   // call function
-  o->newline() << "function_" << c_varname (r->name) << " (c);";
+  o->newline() << c_funcname (r->name) << " (c);";
   o->newline() << "if (unlikely(c->last_error)) goto out;";
 
   // return result from retvalue slot
@@ -4690,7 +4770,7 @@ c_unparser::visit_functioncall (functioncall* e)
     o->newline() << "(void) 0;";
   else
     o->newline() << "c->locals[c->nesting+1]"
-                 << ".function_" << c_varname (r->name)
+                 << "." << c_funcname (r->name)
                  << ".__retvalue;";
 }
 

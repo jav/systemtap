@@ -13,6 +13,7 @@
 #include "parse.h"
 #include <iostream>
 #include <fstream>
+#include <string>
 
 
 // ------------------------------------------------------------------------
@@ -97,6 +98,13 @@ struct unparser
   //   ....
   // }
   // ... then call over to the derived_probe's emit_probe_entries() fn
+
+  // The following helper functions must be used by any code-generation
+  // infrastructure outside this file to properly mangle identifiers
+  // appearing in the final code:
+  virtual std::string c_localname (const std::string& e) = 0;
+  virtual std::string c_globalname (const std::string &e) = 0;
+  virtual std::string c_funcname (const std::string &e) = 0;
 };
 
 
@@ -105,7 +113,6 @@ struct unparser
 int prepare_translate_pass (systemtap_session& s);
 
 int translate_pass (systemtap_session& s);
-
 
 #endif // TRANSLATE_H
 
