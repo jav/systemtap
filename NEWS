@@ -71,6 +71,19 @@
   removed in release 1.9:
       daddr_to_string()
 
+- SystemTap now mangles local variables to avoid collisions with C
+  headers included by tapsets. This required a change in how
+  embedded-C functions access local parameters and the return value slot.
+
+  Instead of THIS->foo in an embedded-C function, please use the newly
+  defined macro STAP_ARG_foo (substitute the actual name of the
+  argument for 'foo'); instead of THIS->__retvalue, use the newly
+  defined STAP_RETVALUE. All of the tapsets and test cases have been
+  adapted to use this new notation.
+
+  If you need to run code which uses the old THIS-> notation, run stap
+  with the --compatible=1.7 option.
+
 - There is updated support for user-space probing against kernels >=
   3.5, which have no utrace but do have the newer inode-uprobes work
   by Srikar Dronamraju and colleagues.  For kernels < 3.5, the
