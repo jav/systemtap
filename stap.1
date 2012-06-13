@@ -1294,16 +1294,18 @@ concurrency, resource consumption, and run time limits, so this
 is an advanced technique.
 .PP
 The memory locations set aside for input and output values
-are made available to it using a macro
-.IR THIS .
+are made available to it using macros
+.IR STAP_ARG_*
+and
+.IR STAP_RETVALUE .
 Here are some examples:
 .SAMPLE
 function add_one (val) %{
-  THIS\->__retvalue = THIS\->val + 1;
+  STAP_RETVALUE = STAP_ARG_val + 1;
 %}
 function add_one_str (val) %{
-  strlcpy (THIS\->__retvalue, THIS\->val, MAXSTRINGLEN);
-  strlcat (THIS\->__retvalue, "one", MAXSTRINGLEN);
+  strlcpy (STAP_RETVALUE, STAP_ARG_val, MAXSTRINGLEN);
+  strlcat (STAP_RETVALUE, "one", MAXSTRINGLEN);
 %}
 .ESAMPLE
 The function argument and return value types have to be inferred by

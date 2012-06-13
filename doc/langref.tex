@@ -615,18 +615,20 @@ name = kread(&(dev->name));
 \end{verbatim}
 \end{vindent}
 
-The memory locations reserved for input and output values are provided to
-a function using a macro named \texttt{THIS}\index{THIS}. The following
-are examples.
+The memory locations reserved for input and output values are provided
+to a function using macros named
+\texttt{STAP\_ARG\_foo}\index{STAP_ARG_} (for arguments named
+\texttt{foo}) and \texttt{STAP\_RETVALUE}\index{STAP_RETVALUE}. The
+following are examples.
 
 \begin{vindent}
 \begin{verbatim}
 function add_one (val:long) %{
-    THIS->__retvalue = THIS->val + 1;
+    STAP_RETVALUE = STAP_ARG_val + 1;
 %}
 function add_one_str:string (val:string) %{
-    strlcpy (THIS->__retvalue, THIS->val, MAXSTRINGLEN);
-    strlcat (THIS->__retvalue, "one", MAXSTRINGLEN);
+    strlcpy (STAP_RETVALUE, STAP_ARG_val, MAXSTRINGLEN);
+    strlcat (STAP_RETVALUE, "one", MAXSTRINGLEN);
 %}
 \end{verbatim}
 \end{vindent}

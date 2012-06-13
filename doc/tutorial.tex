@@ -954,9 +954,8 @@ Embedded C can be the body of a script function.  Instead enclosing
 the function body statements in \verb+{+ and \verb+}+, use \verb+%{+
 and \verb+%}+.  Any enclosed C code is literally transcribed into the
 kernel module: it is up to you to make it safe and correct.  In order
-to take parameters and return a value, a pointer macro \verb+THIS+ is
-available.  Function parameters and a place for the return value are
-available as fields of that pointer.  The familiar data-gathering
+to take parameters and return a value, macros \verb+STAP_ARG_*+ and
+\verb+STAP_RETVALUE+ are made available.  The familiar data-gathering
 functions \verb+pid()+, \verb+execname()+, and their neighbours are
 all embedded C functions.  Figure~\ref{fig:embedded-C} contains
 another example.
@@ -1001,8 +1000,8 @@ function task_execname_by_pid:string (pid:long) %{
   struct list_head *_p, *_n;
   list_for_each_safe(_p, _n, &current->tasks) {
     p = list_entry(_p, struct task_struct, tasks);
-    if (p->pid == (int)THIS->pid) 
-      snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s", p->comm);
+    if (p->pid == (int)STAP_ARG_pid) 
+      snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%s", p->comm);
   }
 %}
 

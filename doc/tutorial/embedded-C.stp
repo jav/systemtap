@@ -8,8 +8,8 @@ function task_execname_by_pid:string (pid:long) %{
   struct list_head *_p, *_n;
   list_for_each_safe(_p, _n, &current->tasks) {
     p = list_entry(_p, struct task_struct, tasks);
-    if (p->pid == (int)THIS->pid) 
-      snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s", p->comm);
+    if (p->pid == (int)STAP_ARG_pid) 
+      snprintf(STAP_RETVALUE, MAXSTRINGLEN, "%s", p->comm);
   }
 %}
 
