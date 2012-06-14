@@ -48,9 +48,13 @@ proc uprobes_p {} {
 	}
 	return 1
     }
+
     # inode-uprobes or (unlikely compiled-in classical uprobes?)
+    #
+    # Note we're looking for " uprobe_register" to avoid finding
+    # 'kallsyms_uprobe_register' from a loaded systemtap module.
     if {! [catch {exec grep -q register_uprobe $path} dummy]
-	|| ! [catch {exec grep -q uprobe_register $path} dummy]} {
+	|| ! [catch {exec grep -q " uprobe_register" $path} dummy]} {
 	return 1
     }
     return 0
