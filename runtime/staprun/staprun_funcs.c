@@ -311,6 +311,18 @@ rename_module(void* module_file, const __off_t st_size)
 #endif
 }
 
+static int
+access_debugfs(void)
+{
+	/* We need to make sure that debugfs is accessible by the real UID, or
+	 * else we won't be able to reach the .ctl path within. (PR14244) */
+	int rc = access(DEBUGFSDIR, X_OK);
+	if (rc < 0)
+		err("ERROR: no access to debugfs; try \"chmod 0755 %s\" as root\n",
+				DEBUGFSDIR);
+	return rc;
+}
+
 int mountfs(void)
 {
 	struct stat sb;
@@ -320,7 +332,7 @@ int mountfs(void)
 	/* If the debugfs dir is already mounted correctly, we're done. */
  	if (statfs(DEBUGFSDIR, &st) == 0
 	    && (int) st.f_type == (int) DEBUGFS_MAGIC)
-		return 0;
+		return access_debugfs();
 
 	/* If DEBUGFSDIR exists (and is a directory), try to mount
 	 * DEBUGFSDIR. */
@@ -329,7 +341,7 @@ int mountfs(void)
 		/* If we can mount the debugfs dir correctly, we're done. */
           	rc = mount ("debugfs", DEBUGFSDIR, "debugfs", 0, NULL);
 		if (rc == 0)
-			return 0;
+			return access_debugfs();
 		/* If we got ENODEV, that means that debugfs isn't
 		 * supported, so we'll need try try relayfs.  If we
 		 * didn't get ENODEV, we got a real error. */
