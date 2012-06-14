@@ -237,13 +237,24 @@ Embedded C & Safety
 -------------------
 As mentioned previously, you can use embedded C (raw C code) to do
 things not supported by the SystemTap language.  Please do this
-carefully and sparingly. Embedded C bypasses all the safety features
-built into SystemTap.  Be especially careful when dereferencing
-pointers.  Use the kread() macro to dereference any pointers that could
-potentially be invalid.  If you're not sure, err on the side of caution.
-The cost of using kread() is small compared to the cost of your tapset
-inadvertently crashing a system!  It is necessary to rigorously test
-embedded-C functions in the testsuite.
+carefully and sparingly, as embedded C bypasses all the safety
+features built into SystemTap.  There are a few style conventions that
+make writing robust embedded C code easier:
+
+- Be especially careful when dereferencing pointers.  Use the kread()
+  macro to dereference any pointers that could potentially be invalid.
+  If you're not sure, err on the side of caution.  The cost of using
+  kread() is small compared to the cost of your tapset inadvertently
+  crashing a system!
+
+- Use the macros STAP_RETVALUE and STAP_ARG_* to access the function's
+  arguments and return slot.  This ensures that the function will not
+  break if the internal naming scheme for local variables changes
+  between SystemTap versions.
+
+- It is absolutely necessary to rigorously test embedded-C functions
+  in the testsuite, particularly to ensure that they fail gracefully
+  in unexpected situations instead of causing a kernel panic.
 
 Add the string 
     /* pure */
