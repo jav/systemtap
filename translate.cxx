@@ -2456,10 +2456,7 @@ c_unparser::c_funcname (const string& e)
 string
 c_unparser::c_arg_define (const string& e)
 {
-  if (strverscmp(session->compatible.c_str(), "1.8") < 0)
-    return "#define STAP_ARG_" + e + " THIS->" + e; // old mangling behaviour
-  else
-    return "#define STAP_ARG_" + e + " THIS->l_" + e;
+  return "#define STAP_ARG_" + e + " THIS->" + c_localname(e);
 }
 
 
