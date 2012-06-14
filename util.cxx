@@ -59,8 +59,8 @@ get_home_directory(void)
   if (pwd)
     return pwd->pw_dir;
 
-  throw runtime_error(_("Unable to determine home directory"));
-  return NULL;
+  cerr << _("Unable to determine home directory") << endl;
+  return "/";
 }
 
 
@@ -1027,7 +1027,7 @@ std::string autosprintf(const char* format, ...)
   va_start (args, format);
   int rc = vasprintf (&str, format, args);
   if (rc < 0)
-    throw runtime_error (_F("autosprintf/vasprintf error %s", lex_cast(rc).c_str()));
+    return _F("autosprintf/vasprintf error %s", lex_cast(rc).c_str());
   string s = str;
   va_end (args);
   free (str);
