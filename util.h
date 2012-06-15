@@ -65,8 +65,12 @@ pid_t stap_spawn(int verbose, const std::vector<std::string>& args,
 		 posix_spawn_file_actions_t* fa, const std::vector<std::string>& envVec = std::vector<std::string> ());
 pid_t stap_spawn_piped(int verbose, const std::vector<std::string>& args,
                        int* child_in=NULL, int* child_out=NULL, int* child_err=NULL);
-int stap_system(int verbose, const std::vector<std::string>& args,
+int stap_system(int verbose, const std::string& description,
+                const std::vector<std::string>& args,
                 bool null_out=false, bool null_err=false);
+inline int stap_system(int verbose, const std::vector<std::string>& args,
+                       bool null_out=false, bool null_err=false)
+{ return stap_system(verbose, args.front(), args, null_out, null_err); }
 int stap_system_read(int verbose, const std::vector<std::string>& args, std::ostream& out);
 int kill_stap_spawn(int sig);
 void assert_regexp_match (const std::string& name, const std::string& value, const std::string& re);

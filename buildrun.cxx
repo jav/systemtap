@@ -71,7 +71,7 @@ run_make_cmd(systemtap_session& s, vector<string>& make_cmd,
       null_out = true;
     }
 
-  int rc = stap_system (s.verbose, make_cmd, null_out, null_err);
+  int rc = stap_system (s.verbose, "kbuild", make_cmd, null_out, null_err);
   if (rc != 0)
     s.set_try_server ();
   return rc;
