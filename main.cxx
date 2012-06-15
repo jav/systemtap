@@ -1032,11 +1032,11 @@ main (int argc, char * const argv [])
     assert_no_interrupts();
     return (rc) ? EXIT_FAILURE : EXIT_SUCCESS;
   }
-  catch (interrupt_exception) {
+  catch (const interrupt_exception& e) {
       // User entered ctrl-c, exit quietly.
       exit(EXIT_FAILURE);
   }
-  catch (runtime_error &e) {
+  catch (const runtime_error &e) {
       // Some other uncaught runtime_error exception.
       cerr << e.what() << endl;
       exit(EXIT_FAILURE);
