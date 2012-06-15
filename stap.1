@@ -1391,11 +1391,11 @@ Stopping the translator after pass 1 causes it to print the parse trees.
 In pass 2, the translator analyzes the input script to resolve symbols
 and types.  References to variables, functions, and probe aliases that
 are unresolved internally are satisfied by searching through the
-parsed tapset scripts.  If any tapset script is selected because it
-defines an unresolved symbol, then the entirety of that script is
-added to the translator's resolution queue.  This process iterates
-until all symbols are resolved and a subset of tapset scripts is
-selected.
+parsed tapset script files.  If any tapset script file is selected
+because it defines an unresolved symbol, then the entirety of that
+file is added to the translator's resolution queue.  This process
+iterates until all symbols are resolved and a subset of tapset script
+files is selected.
 .PP
 Next, all probe point descriptions are validated
 against the wide variety supported by the translator.  Probe points that
