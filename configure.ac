@@ -518,7 +518,7 @@ if test $build_elfutils = yes -a $enable_translator = yes; then
 				--exec-prefix="$exec_prefix" \
 				--prefix="$prefix" \
 				${need_maintainer_option} \
-				CFLAGS="${CFLAGS/-Wall/} $gnu89_inline_flag" \
+				CFLAGS="${CFLAGS/-Wall/} $gnu89_inline_flag -fexceptions" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath" &&
    if test -f ${elfutils_srcdir}/config/version.h.in; then
         echo Found elfutils/version.h header...
