@@ -171,7 +171,7 @@ conjunction with optional probes.
 The
 .IR syscall.*
 aliases define several hundred probes, too many to
-summarize here.  They are:
+detail here.  They are of the general form:
 
 .SAMPLE
 syscall.NAME

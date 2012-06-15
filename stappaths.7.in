@@ -2,7 +2,7 @@
 .TH STAP 7  "Systemtap Team"
 .SH NAME
 
-stappaths \- systemtap miscellaneous and paths
+stappaths \- systemtap configurable file paths
 
 
 .\" macros
@@ -23,17 +23,18 @@ The following section will list the main paths in systemtap that are
 important to know and may be required to reference.
 .TP
 Tapset Path: @prefix@/share/systemtap/tapset/
-Systemtap data directory for cached systemtap files, unless overridden
-by the
+Systemtap data directory for the standard probe-alias / function library,
+unless overridden by the
 .I SYSTEMTAP_TAPSET
 environment variable or the
 .I XDG_DATA_DIRS
 environment variable.
-This directory stores a set of builtin probe point
-aliases are provided by the scripts installed here.
 These are described in the
-.IR stapprobes (3stap)
-manual page.
+.IR stapprobes (3stap),
+.IR probe::* (3stap),
+and
+.IR function::* (3stap)
+manual pages.
 .TP
 Runtime Path: @prefix@/share/systemtap/runtime/
 The runtime sources, unless overridden by the
@@ -56,9 +57,9 @@ RPM, unless overridden by the
 .I SYSTEMTAP_DEBUGINFO_PATH
 environment variable.  The default value for this variable is
 .I \+:.debug:/usr/lib/debug:build 
-and can be changed using $env SYSTEMTAP_DEBUGINFO_PATH=/path/to/vmlinux .
-Elfutils searches vmlinux in this path and it interprets the path as a base
-directory of which various subdirectories will be searched for finding modules.
+.  Elfutils searches vmlinux in this path and it interprets the path as a base
+directory of which various subdirectories will be searched for finding debuginfo
+for the kernel, kernel modules, and user-space binaries.
 By default, systemtap will also look for vmlinux in these locations:
 
 .SAMPLE
@@ -74,7 +75,7 @@ By default, systemtap will also look for vmlinux in these locations:
 .ESAMPLE
 .IP
       
-Debuginfo for user-space applications have source files located in /usr/src/debug/
+Corresponding source files are usually located under /usr/src/debug/.
 Further file information on user-space applications can be determined per-basis using
 rpm \-ql <package>\-debuginfo. For supported user-space applications information please 
 visit the systemtap wiki. 
@@ -93,7 +94,7 @@ and kernel object.
 The location of kernel module building infrastructure.
 .TP
 @prefix@/share/doc/systemtap*/examples
-Examples with greater detail, can be found here. Each example comes with a .txt
+Examples with greater detail can be found here. Each example comes with a .txt
 or .meta file explaining what the example, sample or demo does and how it is
 ordinarily run.
 .TP
