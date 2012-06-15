@@ -2426,7 +2426,18 @@ c_unparser::c_typename (exp_type e)
 }
 
 
-// XXX: we may wish to invent and/or test other mangling schemes
+// XXX: the below is just for the sake of example; it's possibly
+// better to expose the hash function in hash.cxx
+
+// unsigned int
+// do_hash (const char *e)
+// {
+//   unsigned int foo = 0;
+//   while (*e) {
+//     foo *= 101; foo += *e; e++;
+//   }
+//   return foo;
+// }
 
 
 string
@@ -2435,6 +2446,8 @@ c_unparser::c_localname (const string& e)
   if (strverscmp(session->compatible.c_str(), "1.8") < 0)
     return e; // old mangling behaviour
   else
+// XXX: we may wish to invent and/or test other mangling schemes, e.g.:
+//  return "l_" + e + "_" + lex_cast(do_hash(e.c_str()));
     return "l_" + e;
 }
 
