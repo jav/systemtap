@@ -816,6 +816,7 @@ stap_system(int verbose, const vector<string>& args,
         ret = stap_waitpid(verbose, pid);
         if(ret)
           // XXX PR13274 needs-session to use print_warning()
+          // XXX PR14168 made 'make's into 'env', possibly mystifying here
           clog << _F("WARNING: %s exited with status: %d", args.front().c_str(), ret) << endl;
       }
     }
