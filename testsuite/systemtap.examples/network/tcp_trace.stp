@@ -127,6 +127,8 @@ global rcvwnd;
 global length_flg;
 global length;
 
+global record_time;
+
 probe begin
 {
 	number_of_rules = process_cmdline()
@@ -300,6 +302,7 @@ probe kernel.function("tcp_set_state")
 
 function print_header()
 {
+	printf("%-24s","Time")
 	printf("%-22s","Source Address")
 	printf("%-22s","Dest Address")
 	if (state_flg) printf("%-12s","State")
@@ -323,6 +326,8 @@ function print_packet_info:long ( key:long, SourceIsLocal:long)
 			if ( key_list[laddr, raddr, lport, rport] == key )
 				break
 	}
+
+        printf("%-24d", record_time[key]);
 
 	local_addr = sprintf("%s:%d",ip_ntop(htonl(laddr)), lport)
 	remote_addr = sprintf("%s:%d",ip_ntop(htonl(raddr)) ,rport)
@@ -462,6 +467,9 @@ function is_packet_updated:long ( key:long, sk:long )
 		}
 	}
 
+        if ( packet_updated ) {
+		record_time[key] = gettimeofday_us();
+        }
 	return packet_updated
 }
 
